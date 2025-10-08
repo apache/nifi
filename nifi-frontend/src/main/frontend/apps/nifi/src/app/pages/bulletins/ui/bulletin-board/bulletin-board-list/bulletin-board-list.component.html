@@ -48,7 +48,7 @@
                     @if (isBulletin(item)) {
                         @if (asBulletin(item); as bulletin) {
                             @if (bulletin.canRead) {
-                                <li>
+                                <li class="w-full">
                                     <div class="inline-flex flex-wrap gap-x-1.5">
                                         <div>{{ bulletin.timestamp }}</div>
                                         <div class="font-bold {{ getSeverity(bulletin.bulletin.level) }}">
@@ -64,8 +64,23 @@
                                         @if (!!bulletin.nodeAddress) {
                                             <div>{{ bulletin.nodeAddress }}</div>
                                         }
-                                        <pre class="whitespace-pre-wrap">{{ bulletin.bulletin.message }}</pre>
+                                        <pre class="whitespace-pre-wrap" [copy]="getBulletinCopyMessage(bulletin)">{{
+                                            bulletin.bulletin.message
+                                        }}</pre>
                                     </div>
+                                    @if (bulletin.bulletin.stackTrace) {
+                                        <div class="w-full">
+                                            <a class="italic" (click)="toggleStackTrace(bulletin)">
+                                                {{ isExpanded(bulletin) ? 'Hide stack trace' : 'Show stack trace' }}
+                                            </a>
+                                            @if (isExpanded(bulletin)) {
+                                                <pre
+                                                    class="stack-trace mt-2 p-2 border whitespace-pre-wrap overflow-auto max-h-96"
+                                                    >{{ bulletin.bulletin.stackTrace }}</pre
+                                                >
+                                            }
+                                        </div>
+                                    }
                                 </li>
                             }
                         }
