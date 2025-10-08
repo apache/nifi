@@ -741,7 +741,6 @@ public class NiFiClientUtil {
 
         final ParameterContextEntity entityUpdate = createParameterContextEntity(existingEntity.getComponent().getName(), existingEntity.getComponent().getDescription(),
             parameterEntities, inheritedParameterContextIds, null);
-        entityUpdate.setId(existingEntity.getId());
         entityUpdate.setRevision(existingEntity.getRevision());
         entityUpdate.getComponent().setId(existingEntity.getComponent().getId());
 
