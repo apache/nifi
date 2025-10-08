@@ -45,8 +45,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,8 +59,39 @@ import java.util.concurrent.LinkedBlockingQueue;
 class ConsumeKafkaRecordWithNullIT extends AbstractConsumeKafkaIT {
     private static final int FIRST_PARTITION = 0;
 
-    private static final String RESOURCE_AVRO_SCHEMA_NULLABLE = "src/test/resources/org/apache/nifi/kafka/reader/schemaNullable.avsc.json";
-    private static final String RESOURCE_AVRO_SCHEMA_REQUIRED = "src/test/resources/org/apache/nifi/kafka/reader/schemaRequired.avsc.json";
+    private static final String AVRO_SCHEMA_NULLABLE = """
+            {
+              "name": "test",
+              "type": "record",
+              "fields": [
+                {
+                  "name": "text",
+                  "type": "string"
+                },
+                {
+                  "name": "ordinal",
+                  "type": ["null", "long"],
+                  "default": null
+                }
+              ]
+            }
+            """;
+    private static final String AVRO_SCHEMA_REQUIRED = """
+            {
+              "name": "test",
+              "type": "record",
+              "fields": [
+                {
+                  "name": "text",
+                  "type": "string"
+                },
+                {
+                  "name": "ordinal",
+                  "type": "long"
+                }
+              ]
+            }
+            """;
 
     private TestRunner runner;
 
@@ -75,31 +104,28 @@ class ConsumeKafkaRecordWithNullIT extends AbstractConsumeKafkaIT {
         addRecordWriterServiceAvro(runner);
     }
 
-    private void addRecordReaderServiceAvro(final TestRunner runner) throws InitializationException, IOException {
+    private void addRecordReaderServiceAvro(final TestRunner runner) throws InitializationException {
         final String readerId = ConsumeKafka.RECORD_READER.getName();
-        final String schemaText = Files.readString(Path.of(RESOURCE_AVRO_SCHEMA_NULLABLE));
         final RecordReaderFactory readerService = new AvroReader();
         runner.addControllerService(readerId, readerService);
         runner.setProperty(readerService, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
-        runner.setProperty(readerService, SchemaAccessUtils.SCHEMA_TEXT, schemaText);
+        runner.setProperty(readerService, SchemaAccessUtils.SCHEMA_TEXT, AVRO_SCHEMA_NULLABLE);
         runner.enableControllerService(readerService);
         runner.setProperty(readerId, readerId);
     }
 
-    private void addRecordWriterServiceAvro(final TestRunner runner) throws InitializationException, IOException {
+    private void addRecordWriterServiceAvro(final TestRunner runner) throws InitializationException {
         final String writerId = ConsumeKafka.RECORD_WRITER.getName();
-        final String schemaText = Files.readString(Path.of(RESOURCE_AVRO_SCHEMA_REQUIRED));
         final RecordSetWriterFactory writerService = new AvroRecordSetWriter();
         runner.addControllerService(writerId, writerService);
         runner.setProperty(writerService, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY.getValue());
-        runner.setProperty(writerService, SchemaAccessUtils.SCHEMA_TEXT, schemaText);
+        runner.setProperty(writerService, SchemaAccessUtils.SCHEMA_TEXT, AVRO_SCHEMA_REQUIRED);
         runner.enableControllerService(writerService);
         runner.setProperty(writerId, writerId);
     }
 
     private byte[] generateAvroPayloadWithNullField() throws IOException {
-        final String schemaText = Files.readString(Path.of(RESOURCE_AVRO_SCHEMA_NULLABLE));
-        final Schema avroSchema = new Schema.Parser().parse(schemaText);
+        final Schema avroSchema = new Schema.Parser().parse(AVRO_SCHEMA_NULLABLE);
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
 
         final Map<String, Object> fields1 = Map.of("text", "string1", "ordinal", 1);
