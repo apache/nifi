@@ -97,6 +97,7 @@ public class StandardReloadComponent implements ReloadComponent {
         // attempt the creation to make sure it works before firing the OnRemoved methods below
         final String classloaderIsolationKey = existingNode.getClassLoaderIsolationKey(processContext);
         final ProcessorNode newNode = flowController.getFlowManager().createProcessor(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
+        newNode.setProcessGroup(existingNode.getProcessGroup());
 
         // set the new processor in the existing node
         final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getProcessor(), new StandardLoggingContext(newNode));
@@ -151,6 +152,7 @@ public class StandardReloadComponent implements ReloadComponent {
         // attempt the creation to make sure it works before firing the OnRemoved methods below
         final String classloaderIsolationKey = existingNode.getClassLoaderIsolationKey(configurationContext);
         final ControllerServiceNode newNode = flowController.getFlowManager().createControllerService(newType, id, bundleCoordinate, additionalUrls, true, false, classloaderIsolationKey);
+        newNode.setProcessGroup(existingNode.getProcessGroup());
 
         // take the invocation handler that was created for new proxy and is set to look at the new node,
         // and set it to look at the existing node
