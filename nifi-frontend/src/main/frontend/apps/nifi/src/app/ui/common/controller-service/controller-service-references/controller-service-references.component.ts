@@ -113,6 +113,10 @@ export class ControllerServiceReferences {
         };
     }
 
+    getBulletinSeverityClass(entity: ControllerServiceReferencingComponentEntity): string {
+        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins);
+    }
+
     hasActiveThreads(reference: ControllerServiceReferencingComponent): boolean {
         return reference.activeThreadCount != null && reference.activeThreadCount > 0;
     }

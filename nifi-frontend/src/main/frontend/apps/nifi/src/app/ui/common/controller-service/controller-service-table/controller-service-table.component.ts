@@ -138,6 +138,10 @@ export class ControllerServiceTable {
         };
     }
 
+    getBulletinSeverityClass(entity: ControllerServiceEntity): string {
+        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins);
+    }
+
     getStateIcon(entity: ControllerServiceEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
             return 'validating neutral-color fa fa-spin fa-circle-o-notch';

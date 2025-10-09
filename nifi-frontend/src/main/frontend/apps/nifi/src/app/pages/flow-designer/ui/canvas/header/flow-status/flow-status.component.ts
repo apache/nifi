@@ -22,7 +22,7 @@ import { BulletinsTip } from '../../../../../../ui/common/tooltips/bulletins-tip
 import { BulletinsTipInput } from '../../../../../../state/shared';
 
 import { Search } from '../search/search.component';
-import { BulletinEntity, NifiTooltipDirective, Storage } from '@nifi/shared';
+import { BulletinEntity, NifiTooltipDirective, Storage, NiFiCommon } from '@nifi/shared';
 import { ClusterSummary } from '../../../../../../state/cluster-summary';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 import { FlowAnalysisState } from '../../../../state/flow-analysis';
@@ -30,7 +30,6 @@ import { CommonModule } from '@angular/common';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../../../state';
 import { setFlowAnalysisOpen } from '../../../../state/flow/flow.actions';
-import { CanvasUtils } from '../../../../service/canvas-utils.service';
 
 @Component({
     selector: 'flow-status',
@@ -41,7 +40,7 @@ import { CanvasUtils } from '../../../../service/canvas-utils.service';
 export class FlowStatus {
     private store = inject<Store<NiFiState>>(Store);
     private storage = inject(Storage);
-    private canvasUtils = inject(CanvasUtils);
+    private nifiCommon = inject(NiFiCommon);
 
     private static readonly FLOW_ANALYSIS_VISIBILITY_KEY: string = 'flow-analysis-visibility';
     private static readonly FLOW_ANALYSIS_KEY: string = 'flow-analysis';
@@ -172,7 +171,7 @@ export class FlowStatus {
 
     getMostSevereBulletinLevel(): string | null {
         // determine the most severe of the bulletins
-        const mostSevere = this.canvasUtils.getMostSevereBulletin(this.filteredBulletins);
+        const mostSevere = this.nifiCommon.getMostSevereBulletin(this.filteredBulletins);
         return mostSevere ? mostSevere.bulletin.level.toLowerCase() : null;
     }
 
