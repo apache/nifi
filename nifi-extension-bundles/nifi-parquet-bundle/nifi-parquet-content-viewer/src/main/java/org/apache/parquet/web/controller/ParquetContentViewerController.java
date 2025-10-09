@@ -44,7 +44,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ParquetContentViewerController extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(ParquetContentViewerController.class);
@@ -124,13 +127,13 @@ public class ParquetContentViewerController extends HttpServlet {
     private static Object recordToMap(Object obj) {
         switch (obj) {
             case GenericRecord record -> {
-                java.util.Map<String, Object> map = new java.util.LinkedHashMap<>();
+                Map<String, Object> map = new LinkedHashMap<>();
                 for (Schema.Field field : record.getSchema().getFields()) {
                     map.put(field.name(), recordToMap(record.get(field.name())));
                 }
                 return map;
             }
-            case java.util.Collection<?> coll -> {
+            case Collection<?> coll -> {
                 List<Object> list = new ArrayList<>();
                 for (Object elem : coll) {
                     list.add(recordToMap(elem));
