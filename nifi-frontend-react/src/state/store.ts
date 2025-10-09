@@ -8,6 +8,7 @@ import flowConfigurationReducer from './flowConfigurationSlice';
 import bannerTextReducer from './bannerTextSlice';
 import navigationReducer from './navigationSlice';
 import aboutReducer from './aboutSlice';
+import systemDiagnosticsReducer from './systemDiagnosticsSlice';
 
 const store = configureStore({
   reducer: {
@@ -18,7 +19,8 @@ const store = configureStore({
     flowConfiguration: flowConfigurationReducer,
     bannerText: bannerTextReducer,
     navigation: navigationReducer,
-    about: aboutReducer
+    about: aboutReducer,
+    systemDiagnostics: systemDiagnosticsReducer
   }
 });
 
