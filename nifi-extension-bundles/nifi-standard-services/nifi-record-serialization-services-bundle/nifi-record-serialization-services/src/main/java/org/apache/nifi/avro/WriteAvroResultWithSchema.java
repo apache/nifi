@@ -61,7 +61,7 @@ public class WriteAvroResultWithSchema extends AbstractRecordSetWriter {
         try {
             dataFileWriter.append(rec);
         } catch (final DataFileWriter.AppendWriteException e) {
-            throw new IOException(e);
+            throw new IOException("AppendWriteException while writing a datum to the Avro record buffer", e);
         }
         return Collections.emptyMap();
     }
