@@ -134,6 +134,7 @@ export class ExtensionTypesEffects {
                     this.extensionTypesService.getProcessorTypes(),
                     this.extensionTypesService.getControllerServiceTypes(),
                     this.extensionTypesService.getReportingTaskTypes(),
+                    this.extensionTypesService.getRegistryClientTypes(),
                     this.extensionTypesService.getParameterProviderTypes(),
                     this.extensionTypesService.getFlowAnalysisRuleTypes()
                 ]).pipe(
@@ -142,6 +143,7 @@ export class ExtensionTypesEffects {
                             processorTypes,
                             controllerServiceTypes,
                             reportingTaskTypes,
+                            registryClientTypes,
                             parameterProviderTypes,
                             flowAnalysisRuleTypes
                         ]) =>
@@ -150,6 +152,7 @@ export class ExtensionTypesEffects {
                                     processorTypes: processorTypes.processorTypes,
                                     controllerServiceTypes: controllerServiceTypes.controllerServiceTypes,
                                     reportingTaskTypes: reportingTaskTypes.reportingTaskTypes,
+                                    registryClientTypes: registryClientTypes.flowRegistryClientTypes,
                                     parameterProviderTypes: parameterProviderTypes.parameterProviderTypes,
                                     flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes
                                 }

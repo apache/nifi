@@ -96,10 +96,10 @@ public class ListExtensions extends AbstractNiFiRegistryCommand<ExtensionMetadat
                 final ExtensionType extensionType = ExtensionType.valueOf(extensionTypeArg);
                 builder.extensionType(extensionType);
             } catch (Exception e) {
-                throw new NiFiRegistryException("Invalid extension type, should be one of "
-                        + ExtensionType.PROCESSOR.toString() + ", "
-                        + ExtensionType.CONTROLLER_SERVICE.toString() + ", or "
-                        + ExtensionType.REPORTING_TASK.toString());
+                final String supportedTypes = Arrays.stream(ExtensionType.values())
+                        .map(Enum::toString)
+                        .collect(Collectors.joining(", "));
+                throw new NiFiRegistryException("Invalid extension type, should be one of " + supportedTypes);
             }
         }
 
