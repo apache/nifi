@@ -1778,6 +1778,12 @@ public interface NiFiServiceFacade {
     void verifyCanVerifyParameterProviderConfig(String parameterProviderId);
 
     /**
+     * Verifies that the Flow Registry Client with the given identifier is in a state where its configuration can be verified
+     * @param registryClientId the ID of the registry client
+     */
+    void verifyCanVerifyFlowRegistryClientConfig(String registryClientId);
+
+    /**
      * Verifies that the Process Group with the given identifier can be saved to the flow registry
      *
      * @param groupId the ID of the Process Group
@@ -2577,6 +2583,10 @@ public interface NiFiServiceFacade {
      * @return the buckets
      */
     Set<FlowRegistryBucketEntity> getBucketsForUser(String registryClientId, String branch);
+
+    List<ConfigVerificationResultDTO> performFlowRegistryClientConfigVerification(String registryClientId, Map<String, String> properties, Map<String, String> variables);
+
+    ConfigurationAnalysisEntity analyzeFlowRegistryClientConfiguration(String registryClientId, Map<String, String> properties);
 
     /**
      * Gets the flows for the current user for the specified registry and bucket.

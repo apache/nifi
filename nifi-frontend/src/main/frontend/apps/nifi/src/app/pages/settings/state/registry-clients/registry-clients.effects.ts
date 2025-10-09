@@ -27,7 +27,7 @@ import {
     selectExtensionTypesLoadingStatus,
     selectRegistryClientTypes
 } from '../../../../state/extension-types/extension-types.selectors';
-import { LARGE_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { Router } from '@angular/router';
 import { RegistryClientService } from '../../service/registry-client.service';
 import { CreateRegistryClient } from '../../ui/registry-clients/create-registry-client/create-registry-client.component';
@@ -41,6 +41,15 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { BackNavigation } from '../../../../state/navigation';
 import { ErrorContextKey } from '../../../../state/error';
+import {
+    resetPropertyVerificationState,
+    verifyProperties
+} from '../../../../state/property-verification/property-verification.actions';
+import {
+    selectPropertyVerificationResults,
+    selectPropertyVerificationStatus
+} from '../../../../state/property-verification/property-verification.selectors';
+import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -182,7 +191,7 @@ export class RegistryClientsEffects {
         { dispatch: false }
     );
 
-    openConfigureControllerServiceDialog$ = createEffect(
+    openConfigureRegistryClientDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(RegistryClientsActions.openConfigureRegistryClientDialog),
@@ -190,13 +199,31 @@ export class RegistryClientsEffects {
                 tap((request) => {
                     const registryClientId: string = request.registryClient.id;
 
+                    this.store.dispatch(resetPropertyVerificationState());
+
                     const editDialogReference = this.dialog.open(EditRegistryClient, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         data: request,
                         id: registryClientId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    editDialogReference.componentInstance.propertyVerificationResults$ = this.store.select(
+                        selectPropertyVerificationResults
+                    );
+                    editDialogReference.componentInstance.propertyVerificationStatus$ = this.store.select(
+                        selectPropertyVerificationStatus
+                    );
+
+                    editDialogReference.componentInstance.verify
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((verificationRequest: VerifyPropertiesRequestContext) => {
+                            this.store.dispatch(
+                                verifyProperties({
+                                    request: verificationRequest
+                                })
+                            );
+                        });
 
                     editDialogReference.componentInstance.createNewProperty =
                         this.propertyTableHelperService.createNewProperty(registryClientId, this.registryClientService);
@@ -260,6 +287,8 @@ export class RegistryClientsEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(resetPropertyVerificationState());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 RegistryClientsActions.selectClient({

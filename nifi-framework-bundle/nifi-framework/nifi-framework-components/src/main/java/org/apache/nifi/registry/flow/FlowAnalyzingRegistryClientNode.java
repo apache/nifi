@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -28,6 +29,7 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.TerminationAwareLogger;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -37,6 +39,7 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterUpdate;
@@ -449,6 +452,12 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     public FlowSnapshotContainer getFlowContents(final FlowRegistryClientUserContext context, final FlowVersionLocation flowVersionLocation, final boolean fetchRemoteFlows)
             throws FlowRegistryException, IOException {
         return node.getFlowContents(context, flowVersionLocation, fetchRemoteFlows);
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verifyConfiguration(final Map<String, String> properties, final Map<String, String> variables,
+                                                               final ComponentLog logger, final ExtensionManager extensionManager) {
+        return node.verifyConfiguration(properties, variables, logger, extensionManager);
     }
 
     @Override

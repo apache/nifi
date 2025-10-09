@@ -16,14 +16,18 @@
  */
 package org.apache.nifi.registry.flow;
 
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.LoggableComponent;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -66,4 +70,16 @@ public interface FlowRegistryClientNode extends ComponentNode {
     String generateFlowId(String flowName) throws IOException, FlowRegistryException;
 
     void setComponent(LoggableComponent<FlowRegistryClient> component);
+
+    /**
+     * Verifies that the given configuration is valid for the Flow Registry Client
+     *
+     * @param properties the proposed property values keyed by property name
+     * @param variables a map of variable names to values for resolving expression language
+     * @param logger a logger that can be used during verification
+     * @param extensionManager extension manager used for obtaining appropriate NAR ClassLoaders
+     * @return a list of verification results describing the verification outcome
+     */
+    List<ConfigVerificationResult> verifyConfiguration(Map<String, String> properties, Map<String, String> variables,
+                                                       ComponentLog logger, ExtensionManager extensionManager);
 }
