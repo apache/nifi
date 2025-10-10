@@ -91,7 +91,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private static final String REFERENCE_VERSION_FIELD_NAME = "version";
     private static final String APPLICATION_JSON_CONTENT_TYPE = "application/json";
     private static final String BASIC_CREDENTIALS_FORMAT = "%s:%s";
-
+    private static final String BASIC_AUTHORIZATION_FORMAT = "Basic %s";
 
     public RestSchemaRegistryClient(final List<String> baseUrls,
                                     final int timeoutMillis,
@@ -107,7 +107,8 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             final String credentials = BASIC_CREDENTIALS_FORMAT.formatted(username, password);
             final byte[] credentialsEncoded = credentials.getBytes(StandardCharsets.UTF_8);
             final String authorization = Base64.getEncoder().encodeToString(credentialsEncoded);
-            this.httpHeaders.put(HttpHeaderName.AUTHORIZATION.getHeaderName(), authorization);
+            final String basicAuthorization = BASIC_AUTHORIZATION_FORMAT.formatted(authorization);
+            this.httpHeaders.put(HttpHeaderName.AUTHORIZATION.getHeaderName(), basicAuthorization);
         }
 
         final StandardWebClientService standardWebClientService = new StandardWebClientService();

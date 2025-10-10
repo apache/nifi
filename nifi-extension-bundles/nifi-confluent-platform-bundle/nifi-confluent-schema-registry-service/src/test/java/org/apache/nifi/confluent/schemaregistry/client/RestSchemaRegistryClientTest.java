@@ -18,6 +18,7 @@ package org.apache.nifi.confluent.schemaregistry.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.Headers;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
@@ -58,6 +59,7 @@ class RestSchemaRegistryClientTest {
     private static final String REFERENCED_SUBJECT_NAME = "referenced-subject";
     private static final String REFERENCED_SCHEMA_NAME = "common.proto";
     private static final String PROTOBUF = "PROTOBUF";
+    private static final String AUTHORIZATION_HEADER = "Authorization";
     private static final String AVRO_SCHEMA_TEXT = """
         {
             "type": "record",
@@ -121,6 +123,7 @@ class RestSchemaRegistryClientTest {
         }""";
 
     private MockWebServer mockWebServer;
+    private String baseUrl;
     private RestSchemaRegistryClient client;
     private ObjectMapper objectMapper;
 
@@ -131,7 +134,7 @@ class RestSchemaRegistryClientTest {
     void setUp() throws IOException {
         mockWebServer = new MockWebServer();
         mockWebServer.start();
-        final String baseUrl = mockWebServer.url("/").toString();
+        baseUrl = mockWebServer.url("/").toString();
 
         client = new RestSchemaRegistryClient(List.of(baseUrl), 30000, null, null, null, logger, Map.of());
         objectMapper = new ObjectMapper();
@@ -176,6 +179,12 @@ class RestSchemaRegistryClientTest {
 
     @Test
     void testGetSchemaByIdWithSubjectsEndpointSupport() throws IOException, SchemaNotFoundException, InterruptedException {
+        // Set Username and Password example from RFC 7617 Section 2
+        final String username = "Aladdin";
+        final String password = "open sesame";
+        final String expectedAuthorization = "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==";
+        client = new RestSchemaRegistryClient(List.of(baseUrl), 30000, null, username, password, logger, Map.of());
+
         /*
          * Client request sequence when subjects endpoint is supported (Schema Registry v5.3.1+):
          * 1. GET /schemas/ids/{id} - retrieves schema text (200 OK)
@@ -196,7 +205,11 @@ class RestSchemaRegistryClientTest {
         assertEquals(SCHEMA_VERSION, schema.getIdentifier().getVersion().getAsInt());
         assertTrue(schema.getSchemaText().isPresent());
 
-        verifyRequest("GET", "/schemas/ids/" + SCHEMA_ID);
+        final RecordedRequest schemaIdRequest = verifyRequest("GET", "/schemas/ids/" + SCHEMA_ID);
+        final Headers schemaIdRequestHeaders = schemaIdRequest.getHeaders();
+        final String authorization = schemaIdRequestHeaders.get(AUTHORIZATION_HEADER);
+        assertEquals(expectedAuthorization, authorization);
+
         verifyRequest("GET", "/schemas/ids/" + SCHEMA_ID + "/subjects");
         verifyRequest("POST", "/subjects/" + SUBJECT_NAME);
     }
@@ -452,9 +465,10 @@ class RestSchemaRegistryClientTest {
         mockWebServer.enqueue(new MockResponse.Builder().code(500).body(errorMessage).build());
     }
 
-    private void verifyRequest(String method, String expectedPath) throws InterruptedException {
+    private RecordedRequest verifyRequest(String method, String expectedPath) throws InterruptedException {
         RecordedRequest request = mockWebServer.takeRequest();
         assertEquals(method, request.getMethod());
         assertEquals(expectedPath, request.getTarget());
+        return request;
     }
 }
