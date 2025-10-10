@@ -147,6 +147,10 @@ export class ParameterReferences {
         };
     }
 
+    getBulletinSeverityClass(entity: AffectedComponentEntity): string {
+        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins);
+    }
+
     hasActiveThreads(reference: AffectedComponent): boolean {
         return reference.activeThreadCount != null && reference.activeThreadCount > 0;
     }

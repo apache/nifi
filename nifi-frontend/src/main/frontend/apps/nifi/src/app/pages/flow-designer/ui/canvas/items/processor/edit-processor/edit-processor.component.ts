@@ -487,7 +487,7 @@ export class EditProcessor extends TabbedDialog {
 
     getMostSevereBulletinLevel(): string | null {
         // determine the most severe of the bulletins
-        const mostSevere = this.canvasUtils.getMostSevereBulletin(this.bulletins);
+        const mostSevere = this.nifiCommon.getMostSevereBulletin(this.bulletins);
         return mostSevere ? mostSevere.bulletin.level.toLowerCase() : null;
     }
 
