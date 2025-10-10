@@ -37,7 +37,7 @@ import { queueFeatureKey } from '../../queue/state';
 import * as fromQueue from '../state/queue/queue.reducer';
 import { flowAnalysisFeatureKey } from '../state/flow-analysis';
 import * as fromFlowAnalysis from '../state/flow-analysis/flow-analysis.reducer';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, BulletinEntity } from '@nifi/shared';
 import * as d3 from 'd3';
 
 describe('CanvasUtils', () => {
@@ -139,9 +139,9 @@ describe('CanvasUtils', () => {
         });
 
         it('should return false for multiple selections', () => {
-            const div1 = document.createElement('g');
-            const div2 = document.createElement('g');
-            const multiSelection = d3.selectAll([div1, div2]);
+            const g1 = document.createElement('g');
+            const g2 = document.createElement('g');
+            const multiSelection = d3.selectAll([g1, g2]);
             expect(service.isStoppable(multiSelection)).toBe(false);
         });
 
@@ -407,6 +407,256 @@ describe('CanvasUtils', () => {
                 const selection = d3.select(document.createElement('g')).classed('funnel', true).datum(funnelDatum);
                 expect(service.isStoppable(selection)).toBe(false);
             });
+        });
+    });
+
+    describe('bulletins', () => {
+        let mockSelection: any;
+
+        beforeEach(() => {
+            // Create a mock DOM element and selection
+            const g = document.createElement('g');
+            g.classList.add('component');
+
+            // Create mock bulletin background and icon elements
+            const bulletinBackground = document.createElement('rect');
+            bulletinBackground.classList.add('bulletin-background');
+            const bulletinIcon = document.createElement('text');
+            bulletinIcon.classList.add('bulletin-icon');
+
+            g.appendChild(bulletinBackground);
+            g.appendChild(bulletinIcon);
+
+            document.body.appendChild(g);
+
+            mockSelection = d3.select(g);
+        });
+
+        afterEach(() => {
+            // Clean up DOM
+            const elements = document.querySelectorAll('g.component');
+            elements.forEach((el) => el.remove());
+        });
+
+        it('should add has-bulletins class when bulletins are present', () => {
+            const bulletins: BulletinEntity[] = [
+                {
+                    id: 1,
+                    canRead: true,
+                    timestampIso: new Date().toISOString(),
+                    sourceId: 'source1',
+                    groupId: 'group1',
+                    timestamp: '12:00:00 UTC',
+                    bulletin: {
+                        id: 1,
+                        nodeAddress: 'localhost',
+                        category: 'test',
+                        groupId: 'group1',
+                        sourceId: 'source1',
+                        sourceName: 'Test Source',
+                        sourceType: 'COMPONENT',
+                        level: 'ERROR',
+                        message: 'Test error message',
+                        timestamp: '12:00:00 UTC',
+                        timestampIso: new Date().toISOString()
+                    }
+                }
+            ];
+
+            service.bulletins(mockSelection, bulletins);
+
+            expect(mockSelection.classed('has-bulletins')).toBe(true);
+        });
+
+        it('should remove has-bulletins class when no bulletins are present', () => {
+            // First add the class
+            mockSelection.classed('has-bulletins', true);
+            expect(mockSelection.classed('has-bulletins')).toBe(true);
+
+            // Call bulletins with empty array
+            service.bulletins(mockSelection, []);
+
+            expect(mockSelection.classed('has-bulletins')).toBe(false);
+        });
+
+        it('should remove has-bulletins class when bulletins array is null', () => {
+            // First add the class
+            mockSelection.classed('has-bulletins', true);
+            expect(mockSelection.classed('has-bulletins')).toBe(true);
+
+            // Call bulletins with null
+            service.bulletins(mockSelection, null as any);
+
+            expect(mockSelection.classed('has-bulletins')).toBe(false);
+        });
+
+        it('should remove has-bulletins class when bulletins array is undefined', () => {
+            // First add the class
+            mockSelection.classed('has-bulletins', true);
+            expect(mockSelection.classed('has-bulletins')).toBe(true);
+
+            // Call bulletins with undefined
+            service.bulletins(mockSelection, undefined as any);
+
+            expect(mockSelection.classed('has-bulletins')).toBe(false);
+        });
+
+        it('should filter out bulletins with canRead=false and only show readable bulletins', () => {
+            const bulletins: BulletinEntity[] = [
+                {
+                    id: 1,
+                    canRead: false, // Not readable
+                    timestampIso: new Date().toISOString(),
+                    sourceId: 'source1',
+                    groupId: 'group1',
+                    timestamp: '12:00:00 UTC',
+                    bulletin: {
+                        id: 1,
+                        nodeAddress: 'localhost',
+                        category: 'test',
+                        groupId: 'group1',
+                        sourceId: 'source1',
+                        sourceName: 'Test Source',
+                        sourceType: 'COMPONENT',
+                        level: 'ERROR',
+                        message: 'Hidden error message',
+                        timestamp: '12:00:00 UTC',
+                        timestampIso: new Date().toISOString()
+                    }
+                },
+                {
+                    id: 2,
+                    canRead: true, // Readable
+                    timestampIso: new Date().toISOString(),
+                    sourceId: 'source1',
+                    groupId: 'group1',
+                    timestamp: '12:01:00 UTC',
+                    bulletin: {
+                        id: 2,
+                        nodeAddress: 'localhost',
+                        category: 'test',
+                        groupId: 'group1',
+                        sourceId: 'source1',
+                        sourceName: 'Test Source',
+                        sourceType: 'COMPONENT',
+                        level: 'WARN',
+                        message: 'Visible warning message',
+                        timestamp: '12:00:00 UTC',
+                        timestampIso: new Date().toISOString()
+                    }
+                }
+            ];
+
+            service.bulletins(mockSelection, bulletins);
+
+            // Should add has-bulletins class because there is one readable bulletin
+            expect(mockSelection.classed('has-bulletins')).toBe(true);
+        });
+
+        it('should remove has-bulletins class when all bulletins have canRead=false', () => {
+            const bulletins: BulletinEntity[] = [
+                {
+                    id: 1,
+                    canRead: false, // Not readable
+                    timestampIso: new Date().toISOString(),
+                    sourceId: 'source1',
+                    groupId: 'group1',
+                    timestamp: '12:00:00 UTC',
+                    bulletin: {
+                        id: 1,
+                        nodeAddress: 'localhost',
+                        category: 'test',
+                        groupId: 'group1',
+                        sourceId: 'source1',
+                        sourceName: 'Test Source',
+                        sourceType: 'COMPONENT',
+                        level: 'ERROR',
+                        message: 'Hidden error message',
+                        timestamp: '12:00:00 UTC',
+                        timestampIso: new Date().toISOString()
+                    }
+                }
+            ];
+
+            service.bulletins(mockSelection, bulletins);
+
+            // Should not add has-bulletins class because there are no readable bulletins
+            expect(mockSelection.classed('has-bulletins')).toBe(false);
+        });
+
+        it('should remove has-bulletins class when bulletins have missing bulletin property', () => {
+            const bulletins: BulletinEntity[] = [
+                {
+                    id: 1,
+                    canRead: true,
+                    timestampIso: new Date().toISOString(),
+                    sourceId: 'source1',
+                    groupId: 'group1',
+                    timestamp: '12:00:00 UTC',
+                    bulletin: null as any // Missing bulletin data
+                }
+            ];
+
+            service.bulletins(mockSelection, bulletins);
+
+            // Should not add has-bulletins class because bulletin data is missing
+            expect(mockSelection.classed('has-bulletins')).toBe(false);
+        });
+
+        it('should set appropriate level class based on most severe bulletin', () => {
+            const bulletins: BulletinEntity[] = [
+                {
+                    id: 1,
+                    canRead: true,
+                    timestampIso: new Date().toISOString(),
+                    sourceId: 'source1',
+                    groupId: 'group1',
+                    timestamp: '12:00:00 UTC',
+                    bulletin: {
+                        id: 1,
+                        nodeAddress: 'localhost',
+                        category: 'test',
+                        groupId: 'group1',
+                        sourceId: 'source1',
+                        sourceName: 'Test Source',
+                        sourceType: 'COMPONENT',
+                        level: 'INFO',
+                        message: 'Info message',
+                        timestamp: '12:00:00 UTC',
+                        timestampIso: new Date().toISOString()
+                    }
+                },
+                {
+                    id: 2,
+                    canRead: true,
+                    timestampIso: new Date().toISOString(),
+                    sourceId: 'source1',
+                    groupId: 'group1',
+                    timestamp: '12:01:00 UTC',
+                    bulletin: {
+                        id: 2,
+                        nodeAddress: 'localhost',
+                        category: 'test',
+                        groupId: 'group1',
+                        sourceId: 'source1',
+                        sourceName: 'Test Source',
+                        sourceType: 'COMPONENT',
+                        level: 'ERROR', // Most severe
+                        message: 'Error message',
+                        timestamp: '12:01:00 UTC',
+                        timestampIso: new Date().toISOString()
+                    }
+                }
+            ];
+
+            service.bulletins(mockSelection, bulletins);
+
+            expect(mockSelection.classed('has-bulletins')).toBe(true);
+
+            // Check that the error level class is applied to the bulletin icon
+            const bulletinIcon = mockSelection.select('text.bulletin-icon');
+            expect(bulletinIcon.classed('error')).toBe(true);
+            expect(bulletinIcon.classed('info')).toBe(false);
         });
     });
 });

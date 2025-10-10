@@ -17,9 +17,9 @@
 
 import { TestBed } from '@angular/core/testing';
 import { NO_ERRORS_SCHEMA } from '@angular/core';
-
 import { ControllerServices } from './controller-services.component';
-import { provideMockStore, MockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { initialState } from '../../state/controller-services/controller-services.reducer';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockComponent } from 'ng-mocks';
@@ -28,6 +28,11 @@ import { canvasFeatureKey } from '../../state';
 import { controllerServicesFeatureKey } from '../../state/controller-services';
 import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
 import { ControllerServiceEntity } from '../../../../state/shared';
+import { ComponentType } from '@nifi/shared';
+import {
+    clearControllerServiceBulletins,
+    loadControllerServices
+} from '../../state/controller-services/controller-services.actions';
 import { BreadcrumbEntity } from '../../state/shared';
 import { FormsModule } from '@angular/forms';
 import { MatCheckboxModule } from '@angular/material/checkbox';
@@ -37,6 +42,69 @@ import { ControllerServiceTable } from '../../../../ui/common/controller-service
 
 describe('ControllerServices', () => {
     // Mock data factories
+    function createMockControllerServiceEntity(): ControllerServiceEntity {
+        return {
+            id: 'test-controller-service-id',
+            uri: 'test-uri',
+            bulletins: [
+                {
+                    id: 1,
+                    sourceId: 'test-controller-service-id',
+                    groupId: 'test-group-id',
+                    timestamp: '12:00:00 UTC',
+                    timestampIso: '2023-10-08T12:00:00.000Z',
+                    canRead: true,
+                    bulletin: {
+                        id: 1,
+                        category: 'INFO',
+                        level: 'INFO',
+                        message: 'Test bulletin',
+                        timestamp: '12:00:00 UTC',
+                        sourceId: 'test-controller-service-id',
+                        groupId: 'test-group-id',
+                        sourceType: 'CONTROLLER_SERVICE',
+                        sourceName: 'Test Controller Service'
+                    }
+                }
+            ],
+            permissions: {
+                canRead: true,
+                canWrite: true
+            },
+            revision: {
+                version: 1,
+                clientId: 'test-client'
+            },
+            component: {
+                id: 'test-controller-service-id',
+                name: 'Test Controller Service',
+                type: 'org.apache.nifi.TestControllerService',
+                bundle: {
+                    group: 'org.apache.nifi',
+                    artifact: 'test-bundle',
+                    version: '1.0.0'
+                },
+                state: 'ENABLED',
+                properties: {},
+                descriptors: {},
+                validationErrors: [],
+                referencingComponents: [],
+                comments: '',
+                deprecated: false,
+                extensionMissing: false,
+                multipleVersionsAvailable: false,
+                persistsState: false,
+                restricted: false,
+                validationStatus: 'VALID'
+            },
+            status: {
+                runStatus: 'ENABLED',
+                validationStatus: 'VALID'
+            },
+            parentGroupId: 'test-process-group-id'
+        } as ControllerServiceEntity;
+    }
+
     function createMockBreadcrumb(
         options: {
             id?: string;
@@ -169,7 +237,7 @@ describe('ControllerServices', () => {
     async function setup(options: SetupOptions = {}) {
         const { controllerServicesState = createMockState(), mockStore = {} } = options;
 
-        const initialState = {
+        const testInitialState = {
             [canvasFeatureKey]: {
                 [controllerServicesFeatureKey]: controllerServicesState
             },
@@ -209,14 +277,13 @@ describe('ControllerServices', () => {
                 MockComponent(Breadcrumbs),
                 MockComponent(ControllerServiceTable)
             ],
-            providers: [provideMockStore({ initialState })],
+            providers: [provideMockStore({ initialState: testInitialState })],
             schemas: [NO_ERRORS_SCHEMA]
         }).compileComponents();
 
         const fixture = TestBed.createComponent(ControllerServices);
         const component = fixture.componentInstance;
         const store = TestBed.inject(MockStore);
-
         fixture.detectChanges();
 
         return { component, fixture, store };
@@ -230,6 +297,205 @@ describe('ControllerServices', () => {
         it('should create', async () => {
             const { component } = await setup();
             expect(component).toBeTruthy();
+        });
+
+        it('should return true for isInitialLoading when timestamp matches initial state', async () => {
+            const { component } = await setup();
+            const state = { ...initialState };
+
+            expect(component.isInitialLoading(state)).toBe(true);
+        });
+
+        it('should return false for isInitialLoading when timestamp differs from initial state', async () => {
+            const { component } = await setup();
+            const state = {
+                ...initialState,
+                loadedTimestamp: '2023-01-01 12:00:00 EST'
+            };
+
+            expect(component.isInitialLoading(state)).toBe(false);
+        });
+    });
+
+    describe('Action dispatching', () => {
+        it('should dispatch loadControllerServices action when refreshControllerServiceListing is called', async () => {
+            const { component, store } = await setup();
+            jest.spyOn(store, 'dispatch');
+
+            // Set the current process group ID
+            (component as any).currentProcessGroupId = 'test-process-group-id';
+
+            component.refreshControllerServiceListing();
+
+            expect(store.dispatch).toHaveBeenCalledWith(
+                loadControllerServices({
+                    request: {
+                        processGroupId: 'test-process-group-id'
+                    }
+                })
+            );
+        });
+
+        it('should dispatch clearControllerServiceBulletins action when clearBulletinsControllerService is called', async () => {
+            const { component, store } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            jest.spyOn(store, 'dispatch');
+
+            component.clearBulletinsControllerService(mockControllerServiceEntity);
+
+            expect(store.dispatch).toHaveBeenCalledWith(
+                clearControllerServiceBulletins({
+                    request: {
+                        uri: mockControllerServiceEntity.uri,
+                        fromTimestamp: '2023-10-08T12:00:00.000Z',
+                        componentId: mockControllerServiceEntity.id,
+                        componentType: ComponentType.ControllerService
+                    }
+                })
+            );
+        });
+    });
+
+    describe('Breadcrumb and scope functions', () => {
+        it('should format scope correctly for controller service entity', async () => {
+            const { component } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            const mockBreadcrumb = {
+                id: 'test-process-group-id',
+                breadcrumb: { id: 'test-process-group-id', name: 'Test Process Group' },
+                permissions: { canRead: true, canWrite: true },
+                parentBreadcrumb: undefined,
+                versionedFlowState: 'UNVERSIONED'
+            };
+
+            const formatScopeFn = component.formatScope(mockBreadcrumb);
+            const result = formatScopeFn(mockControllerServiceEntity);
+
+            expect(result).toBe('Test Process Group');
+        });
+
+        it('should return entity ID when breadcrumb cannot be read', async () => {
+            const { component } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            const mockBreadcrumb = {
+                id: 'test-process-group-id',
+                breadcrumb: { id: 'test-process-group-id', name: 'Test Process Group' },
+                permissions: { canRead: false, canWrite: false },
+                parentBreadcrumb: undefined,
+                versionedFlowState: 'UNVERSIONED'
+            };
+
+            const formatScopeFn = component.formatScope(mockBreadcrumb);
+            const result = formatScopeFn(mockControllerServiceEntity);
+
+            expect(result).toBe('test-process-group-id');
+        });
+
+        it('should return empty string when breadcrumb is not found', async () => {
+            const { component } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            mockControllerServiceEntity.parentGroupId = 'different-group-id';
+            const mockBreadcrumb = {
+                id: 'test-process-group-id',
+                breadcrumb: { id: 'test-process-group-id', name: 'Test Process Group' },
+                permissions: { canRead: true, canWrite: true },
+                parentBreadcrumb: undefined,
+                versionedFlowState: 'UNVERSIONED'
+            };
+
+            const formatScopeFn = component.formatScope(mockBreadcrumb);
+            const result = formatScopeFn(mockControllerServiceEntity);
+
+            expect(result).toBe('');
+        });
+
+        it('should return true when entity is defined by current group', async () => {
+            const { component } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            const mockBreadcrumb = {
+                id: 'test-process-group-id',
+                breadcrumb: { id: 'test-process-group-id', name: 'Test Process Group' },
+                permissions: { canRead: true, canWrite: true },
+                parentBreadcrumb: undefined,
+                versionedFlowState: 'UNVERSIONED'
+            };
+
+            const definedByCurrentGroupFn = component.definedByCurrentGroup(mockBreadcrumb);
+            const result = definedByCurrentGroupFn(mockControllerServiceEntity);
+
+            expect(result).toBe(true);
+        });
+
+        it('should return false when entity is not defined by current group', async () => {
+            const { component } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            mockControllerServiceEntity.parentGroupId = 'different-group-id';
+            const mockBreadcrumb = {
+                id: 'test-process-group-id',
+                breadcrumb: { id: 'test-process-group-id', name: 'Test Process Group' },
+                permissions: { canRead: true, canWrite: true },
+                parentBreadcrumb: undefined,
+                versionedFlowState: 'UNVERSIONED'
+            };
+
+            const definedByCurrentGroupFn = component.definedByCurrentGroup(mockBreadcrumb);
+            const result = definedByCurrentGroupFn(mockControllerServiceEntity);
+
+            expect(result).toBe(false);
+        });
+    });
+
+    describe('Permission functions', () => {
+        it('should return true when user can modify parent group', async () => {
+            const { component } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            const mockBreadcrumb = {
+                id: 'test-process-group-id',
+                breadcrumb: { id: 'test-process-group-id', name: 'Test Process Group' },
+                permissions: { canRead: true, canWrite: true },
+                parentBreadcrumb: undefined,
+                versionedFlowState: 'UNVERSIONED'
+            };
+
+            const canModifyParentFn = component.canModifyParent(mockBreadcrumb);
+            const result = canModifyParentFn(mockControllerServiceEntity);
+
+            expect(result).toBe(true);
+        });
+
+        it('should return false when user cannot modify parent group', async () => {
+            const { component } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            const mockBreadcrumb = {
+                id: 'test-process-group-id',
+                breadcrumb: { id: 'test-process-group-id', name: 'Test Process Group' },
+                permissions: { canRead: true, canWrite: false },
+                parentBreadcrumb: undefined,
+                versionedFlowState: 'UNVERSIONED'
+            };
+
+            const canModifyParentFn = component.canModifyParent(mockBreadcrumb);
+            const result = canModifyParentFn(mockControllerServiceEntity);
+
+            expect(result).toBe(false);
+        });
+
+        it('should return false when breadcrumb is not found for permission check', async () => {
+            const { component } = await setup();
+            const mockControllerServiceEntity = createMockControllerServiceEntity();
+            mockControllerServiceEntity.parentGroupId = 'different-group-id';
+            const mockBreadcrumb = {
+                id: 'test-process-group-id',
+                breadcrumb: { id: 'test-process-group-id', name: 'Test Process Group' },
+                permissions: { canRead: true, canWrite: true },
+                parentBreadcrumb: undefined,
+                versionedFlowState: 'UNVERSIONED'
+            };
+
+            const canModifyParentFn = component.canModifyParent(mockBreadcrumb);
+            const result = canModifyParentFn(mockControllerServiceEntity);
+
+            expect(result).toBe(false);
         });
     });
 

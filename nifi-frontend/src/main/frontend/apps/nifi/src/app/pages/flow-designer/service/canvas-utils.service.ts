@@ -1315,6 +1315,9 @@ export class CanvasUtils {
         selection.select('text.bulletin-icon').style('visibility', 'hidden');
         selection.select('rect.bulletin-background').style('visibility', 'hidden');
 
+        // remove the has-bulletins class
+        selection.classed('has-bulletins', false);
+
         // reset the canvas tooltip
         this.resetCanvasTooltip(selection);
     }
@@ -1346,6 +1349,9 @@ export class CanvasUtils {
                 const bulletinBackground: any = selection
                     .select('rect.bulletin-background')
                     .style('visibility', 'visible');
+
+                // add the has-bulletins class to indicate this component has bulletins
+                selection.classed('has-bulletins', true);
 
                 // reset any level-specifying classes that might have been there before
                 bulletinIcon

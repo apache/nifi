@@ -16,7 +16,13 @@
  */
 
 import { Bundle, ComponentHistory, ParameterEntity, PropertyDescriptor } from '../../../../state/shared';
-import { AffectedComponentEntity, ParameterContextReferenceEntity, Permissions, Revision } from '@nifi/shared';
+import {
+    AffectedComponentEntity,
+    BulletinEntity,
+    ParameterContextReferenceEntity,
+    Permissions,
+    Revision
+} from '@nifi/shared';
 
 export const parameterProvidersFeatureKey = 'parameterProviders';
 
@@ -67,7 +73,7 @@ export interface ParameterProvider {
 
 export interface ParameterProviderEntity {
     id: string;
-    bulletins: [];
+    bulletins: BulletinEntity[];
     component: ParameterProvider;
     permissions: Permissions;
     revision: Revision;
