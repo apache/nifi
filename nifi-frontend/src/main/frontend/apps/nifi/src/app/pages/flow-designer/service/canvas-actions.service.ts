@@ -18,6 +18,8 @@
 import { Injectable, inject } from '@angular/core';
 import { CanvasUtils } from './canvas-utils.service';
 import {
+    clearBulletinsForComponent,
+    clearBulletinsForProcessGroup,
     copySuccess,
     deleteComponents,
     disableComponents,
@@ -52,7 +54,7 @@ import { CanvasState } from '../state';
 import * as d3 from 'd3';
 import { MatDialog } from '@angular/material/dialog';
 import { CanvasView } from './canvas-view.service';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { Client } from '../../../service/client.service';
 import { CopyRequestContext, CopyRequestEntity, CopyResponseEntity } from '../../../state/copy';
 import { CopyPasteService } from './copy-paste.service';
@@ -83,6 +85,7 @@ export class CanvasActionsService {
     private dialog = inject(MatDialog);
     private client = inject(Client);
     private copyService = inject(CopyPasteService);
+    private nifiCommon = inject(NiFiCommon);
 
     private _actions: CanvasActions = {
         delete: {
@@ -534,6 +537,102 @@ export class CanvasActionsService {
                         request: changeColorRequests
                     })
                 );
+            }
+        },
+        clearBulletins: {
+            id: 'clearBulletins',
+            condition: (selection: d3.Selection<any, any, any, any>) => {
+                // Empty selection means user is opening context menu for current process group
+                if (selection.empty()) {
+                    // Use d3 to select components with has-bulletins class
+                    // If this selection is non-empty, clear bulletins action should be available
+                    const componentsWithBulletins = d3.selectAll('g.component.has-bulletins');
+                    return !componentsWithBulletins.empty();
+                }
+
+                // Show clear bulletins option only when there are bulletins to clear
+                if (selection.size() === 1) {
+                    const d = selection.datum();
+
+                    // For individual components (not process groups), check write permissions
+                    if (d.type !== ComponentType.ProcessGroup) {
+                        if (!d.permissions.canWrite) {
+                            return false;
+                        }
+                    }
+
+                    // Check if the component has the has-bulletins class
+                    return selection.classed('has-bulletins');
+                }
+                return false;
+            },
+            action: (selection: d3.Selection<any, any, any, any>) => {
+                if (selection.empty()) {
+                    // Clear bulletins for current process group when no selection
+                    // Get all components with bulletins and find the most recent timestamp
+                    const componentsWithBulletins = d3.selectAll('g.component.has-bulletins');
+
+                    // Find the most recent timestamp across all components
+                    let mostRecentTimestamp: string | null = null;
+                    let mostRecentTime: number | null = null;
+                    componentsWithBulletins.each((d: any) => {
+                        if (d?.bulletins) {
+                            const componentTimestamp = this.nifiCommon.getMostRecentBulletinTimestamp(d.bulletins);
+                            if (componentTimestamp !== null) {
+                                const componentTime = new Date(componentTimestamp).getTime();
+                                if (mostRecentTime === null || componentTime > mostRecentTime) {
+                                    mostRecentTime = componentTime;
+                                    mostRecentTimestamp = componentTimestamp;
+                                }
+                            }
+                        }
+                    });
+
+                    if (mostRecentTimestamp === null || mostRecentTimestamp === undefined) {
+                        return; // no bulletins to clear
+                    }
+
+                    this.store.dispatch(
+                        clearBulletinsForProcessGroup({
+                            request: {
+                                processGroupId: this.currentProcessGroupId(),
+                                fromTimestamp: mostRecentTimestamp
+                            }
+                        })
+                    );
+                } else if (selection.size() === 1) {
+                    const d = selection.datum();
+
+                    // Get the most recent bulletin timestamp from the selected component
+                    const fromTimestamp = this.nifiCommon.getMostRecentBulletinTimestamp(d.bulletins);
+                    if (fromTimestamp === null) {
+                        return; // no bulletins to clear
+                    }
+
+                    if (d.type === ComponentType.ProcessGroup) {
+                        // For process groups, clear bulletins for all child components
+                        this.store.dispatch(
+                            clearBulletinsForProcessGroup({
+                                request: {
+                                    processGroupId: d.id,
+                                    fromTimestamp
+                                }
+                            })
+                        );
+                    } else {
+                        // Clear bulletins for this component
+                        this.store.dispatch(
+                            clearBulletinsForComponent({
+                                request: {
+                                    uri: d.uri,
+                                    fromTimestamp,
+                                    componentId: d.id,
+                                    componentType: d.type
+                                }
+                            })
+                        );
+                    }
+                }
             }
         }
     };

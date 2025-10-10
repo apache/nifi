@@ -24,8 +24,6 @@ import java.time.Instant;
  */
 public class InstantAdapter extends XmlAdapter<String, Instant> {
 
-    public static final String DEFAULT_DATE_TIME_FORMAT = "MM/dd/yyyy HH:mm:ss z";
-
     @Override
     public String marshal(Instant instant) throws Exception {
         return instant.toString();
