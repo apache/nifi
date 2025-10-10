@@ -19,6 +19,7 @@ import { createReducer, on } from '@ngrx/store';
 import {
     changeVersionComplete,
     changeVersionSuccess,
+    clearBulletinsForComponentSuccess,
     createComponentComplete,
     createComponentSuccess,
     createConnection,
@@ -90,7 +91,7 @@ import {
     uploadProcessGroup
 } from './flow.actions';
 import { ComponentEntity, FlowState } from './index';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, BulletinEntity } from '@nifi/shared';
 import { produce } from 'immer';
 
 export const initialState: FlowState = {
@@ -652,7 +653,32 @@ export const flowReducer = createReducer(
     on(changeVersionComplete, revertChangesComplete, (state) => ({
         ...state,
         changeVersionRequest: null
-    }))
+    })),
+    on(clearBulletinsForComponentSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            // Find and update the component in all possible collections
+            const collections = [
+                { name: 'processors', array: draftState.flow.processGroupFlow.flow.processors },
+                { name: 'inputPorts', array: draftState.flow.processGroupFlow.flow.inputPorts },
+                { name: 'outputPorts', array: draftState.flow.processGroupFlow.flow.outputPorts },
+                { name: 'remoteProcessGroups', array: draftState.flow.processGroupFlow.flow.remoteProcessGroups }
+            ];
+
+            for (const collection of collections) {
+                if (collection.array) {
+                    const componentIndex = collection.array.findIndex(
+                        (component: any) => component.id === response.componentId
+                    );
+                    if (componentIndex > -1) {
+                        const component = collection.array[componentIndex] as any;
+                        // Replace bulletins with the current bulletins from the server
+                        component.bulletins = response.bulletins;
+                        break; // Component found and updated, no need to continue
+                    }
+                }
+            }
+        });
+    })
 );
 
 function getComponentCollection(draftState: FlowState, componentType: ComponentType): any[] | null {

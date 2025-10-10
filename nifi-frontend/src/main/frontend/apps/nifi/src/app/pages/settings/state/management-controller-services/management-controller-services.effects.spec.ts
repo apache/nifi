@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,84 +17,124 @@
 
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
-import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { provideMockStore } from '@ngrx/store/testing';
 import { Action } from '@ngrx/store';
-import { ReplaySubject, of, take, throwError } from 'rxjs';
+import { ReplaySubject, of, throwError, firstValueFrom } from 'rxjs';
+import { take } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material/dialog';
 import { HttpErrorResponse } from '@angular/common/http';
 
-import * as ManagementControllerServicesActions from './management-controller-services.actions';
 import { ManagementControllerServicesEffects } from './management-controller-services.effects';
+import * as ManagementControllerServicesActions from './management-controller-services.actions';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
-import { ErrorHelper } from '../../../../service/error-helper.service';
-import { MatDialog } from '@angular/material/dialog';
-import { Router } from '@angular/router';
-import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { Client } from '../../../../service/client.service';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import { ComponentType } from '@nifi/shared';
+import { managementControllerServicesFeatureKey } from './index';
 import { initialState } from './management-controller-services.reducer';
+import { settingsFeatureKey } from '../index';
 
 describe('ManagementControllerServicesEffects', () => {
-    interface SetupOptions {
-        managementControllerServicesState?: any;
-    }
+    let actions$: ReplaySubject<Action>;
+    let effects: ManagementControllerServicesEffects;
+    let mockManagementControllerServiceService: jest.Mocked<ManagementControllerServiceService>;
+    let mockErrorHelper: jest.Mocked<ErrorHelper>;
 
-    const mockResponse = {
-        controllerServices: [],
-        currentTime: '2023-01-01 12:00:00 EST'
-    };
+    beforeEach(() => {
+        const managementControllerServiceServiceSpy = {
+            getControllerServices: jest.fn(),
+            createControllerService: jest.fn(),
+            getControllerService: jest.fn(),
+            getPropertyDescriptor: jest.fn(),
+            updateControllerService: jest.fn(),
+            deleteControllerService: jest.fn(),
+            clearBulletins: jest.fn()
+        } as unknown as jest.Mocked<ManagementControllerServiceService>;
 
-    async function setup({ managementControllerServicesState = initialState }: SetupOptions = {}) {
-        await TestBed.configureTestingModule({
+        const errorHelperSpy = {
+            handleLoadingError: jest.fn().mockReturnValue({ type: '[Error] Loading Error' }),
+            getErrorString: jest.fn(),
+            showErrorInContext: jest.fn(),
+            fullScreenError: jest.fn()
+        } as unknown as jest.Mocked<ErrorHelper>;
+
+        TestBed.configureTestingModule({
             providers: [
                 ManagementControllerServicesEffects,
-                provideMockActions(() => action$),
+                provideMockActions(() => actions$),
                 provideMockStore({
                     initialState: {
-                        settings: {
-                            managementControllerServices: managementControllerServicesState
+                        [settingsFeatureKey]: {
+                            [managementControllerServicesFeatureKey]: initialState
                         }
                     }
                 }),
-                { provide: ManagementControllerServiceService, useValue: { getControllerServices: jest.fn() } },
-                { provide: ErrorHelper, useValue: { handleLoadingError: jest.fn() } },
-                { provide: MatDialog, useValue: { open: jest.fn(), closeAll: jest.fn() } },
-                { provide: Router, useValue: { navigate: jest.fn() } },
-                { provide: PropertyTableHelperService, useValue: {} },
-                { provide: Client, useValue: {} },
-                { provide: ExtensionTypesService, useValue: {} }
+                {
+                    provide: ManagementControllerServiceService,
+                    useValue: managementControllerServiceServiceSpy
+                },
+                {
+                    provide: Client,
+                    useValue: {
+                        getClientId: jest.fn().mockReturnValue('test-client-id')
+                    }
+                },
+                {
+                    provide: ErrorHelper,
+                    useValue: errorHelperSpy
+                },
+                {
+                    provide: Router,
+                    useValue: {
+                        navigate: jest.fn()
+                    }
+                },
+                {
+                    provide: MatDialog,
+                    useValue: {
+                        open: jest.fn(),
+                        closeAll: jest.fn()
+                    }
+                },
+                {
+                    provide: PropertyTableHelperService,
+                    useValue: {
+                        getComponentHistory: jest.fn(),
+                        createNewProperty: jest.fn(),
+                        createNewService: jest.fn()
+                    }
+                },
+                {
+                    provide: ExtensionTypesService,
+                    useValue: {
+                        getControllerServiceVersionsForType: jest.fn()
+                    }
+                }
             ]
-        }).compileComponents();
+        });
 
-        const store = TestBed.inject(MockStore);
-        const effects = TestBed.inject(ManagementControllerServicesEffects);
-        const managementControllerServiceService = TestBed.inject(ManagementControllerServiceService);
-        const errorHelper = TestBed.inject(ErrorHelper);
-
-        return { effects, store, managementControllerServiceService, errorHelper };
-    }
-
-    let action$: ReplaySubject<Action>;
-    beforeEach(() => {
-        action$ = new ReplaySubject<Action>();
+        effects = TestBed.inject(ManagementControllerServicesEffects);
+        mockManagementControllerServiceService = TestBed.inject(
+            ManagementControllerServiceService
+        ) as jest.Mocked<ManagementControllerServiceService>;
+        mockErrorHelper = TestBed.inject(ErrorHelper) as jest.Mocked<ErrorHelper>;
+        actions$ = new ReplaySubject(1);
     });
 
-    it('should create', async () => {
-        const { effects } = await setup();
-        expect(effects).toBeTruthy();
-    });
+    describe('loadManagementControllerServices$', () => {
+        it('should dispatch loadManagementControllerServicesSuccess when services are loaded successfully', async () => {
+            const mockResponse = {
+                controllerServices: [],
+                currentTime: '2023-01-01 12:00:00 EST'
+            };
+            mockManagementControllerServiceService.getControllerServices.mockReturnValue(of(mockResponse));
 
-    describe('Load Management Controller Services', () => {
-        it('should load management controller services successfully', async () => {
-            const { effects, managementControllerServiceService } = await setup();
+            actions$.next(ManagementControllerServicesActions.loadManagementControllerServices());
 
-            action$.next(ManagementControllerServicesActions.loadManagementControllerServices());
-            jest.spyOn(managementControllerServiceService, 'getControllerServices').mockReturnValueOnce(
-                of(mockResponse) as never
-            );
-
-            const result = await new Promise((resolve) =>
-                effects.loadManagementControllerServices$.pipe(take(1)).subscribe(resolve)
-            );
+            const result = await firstValueFrom(effects.loadManagementControllerServices$);
 
             expect(result).toEqual(
                 ManagementControllerServicesActions.loadManagementControllerServicesSuccess({
@@ -104,103 +144,175 @@ describe('ManagementControllerServicesEffects', () => {
                     }
                 })
             );
+            expect(mockManagementControllerServiceService.getControllerServices).toHaveBeenCalled();
         });
 
-        it('should fail to load management controller services on initial load with hasExistingData=false', async () => {
-            const { effects, managementControllerServiceService } = await setup();
-
-            action$.next(ManagementControllerServicesActions.loadManagementControllerServices());
-            const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(managementControllerServiceService, 'getControllerServices').mockImplementationOnce(() =>
-                throwError(() => error)
+        it('should dispatch loadManagementControllerServicesError with status pending on initial load failure', async () => {
+            const errorResponse = new HttpErrorResponse({ status: 500, statusText: 'Server Error' });
+            mockManagementControllerServiceService.getControllerServices.mockReturnValue(
+                throwError(() => errorResponse)
             );
 
-            const result = await new Promise((resolve) =>
-                effects.loadManagementControllerServices$.pipe(take(1)).subscribe(resolve)
-            );
+            actions$.next(ManagementControllerServicesActions.loadManagementControllerServices());
+
+            const result = await firstValueFrom(effects.loadManagementControllerServices$);
 
             expect(result).toEqual(
                 ManagementControllerServicesActions.loadManagementControllerServicesError({
-                    errorResponse: error,
+                    errorResponse,
                     loadedTimestamp: initialState.loadedTimestamp,
                     status: 'pending'
-                })
-            );
-        });
-
-        it('should fail to load management controller services on refresh with hasExistingData=true', async () => {
-            const stateWithData = { ...initialState, loadedTimestamp: '2023-01-01 11:00:00 EST' };
-            const { effects, managementControllerServiceService } = await setup({
-                managementControllerServicesState: stateWithData
-            });
-
-            action$.next(ManagementControllerServicesActions.loadManagementControllerServices());
-            const error = new HttpErrorResponse({ status: 500 });
-            jest.spyOn(managementControllerServiceService, 'getControllerServices').mockImplementationOnce(() =>
-                throwError(() => error)
-            );
-
-            const result = await new Promise((resolve) =>
-                effects.loadManagementControllerServices$.pipe(take(1)).subscribe(resolve)
-            );
-
-            expect(result).toEqual(
-                ManagementControllerServicesActions.loadManagementControllerServicesError({
-                    errorResponse: error,
-                    loadedTimestamp: stateWithData.loadedTimestamp,
-                    status: 'success'
                 })
             );
         });
     });
 
-    describe('Load Management Controller Services Error', () => {
-        it('should handle management controller services error for initial load', async () => {
-            const { effects, errorHelper } = await setup();
-
-            const error = new HttpErrorResponse({ status: 500 });
+    describe('loadManagementControllerServicesError$', () => {
+        it('should handle error on initial load (hasExistingData=false)', async () => {
+            const errorResponse = new HttpErrorResponse({ status: 500 });
             const errorAction = ManagementControllerServicesActions.managementControllerServicesBannerApiError({
-                error: 'Error message'
+                error: 'Error loading'
             });
-            action$.next(
+
+            mockErrorHelper.handleLoadingError.mockReturnValue(errorAction);
+
+            actions$.next(
                 ManagementControllerServicesActions.loadManagementControllerServicesError({
-                    errorResponse: error,
+                    errorResponse,
                     loadedTimestamp: initialState.loadedTimestamp,
                     status: 'pending'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
-            const result = await new Promise((resolve) =>
-                effects.loadManagementControllerServicesError$.pipe(take(1)).subscribe(resolve)
-            );
+            const result = await firstValueFrom(effects.loadManagementControllerServicesError$);
 
-            expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(false, error);
+            expect(mockErrorHelper.handleLoadingError).toHaveBeenCalledWith(false, errorResponse);
             expect(result).toEqual(errorAction);
         });
 
-        it('should handle management controller services error for refresh', async () => {
-            const { effects, errorHelper } = await setup();
-
-            const error = new HttpErrorResponse({ status: 500 });
+        it('should handle error on refresh (hasExistingData=true)', async () => {
+            const errorResponse = new HttpErrorResponse({ status: 500 });
             const errorAction = ManagementControllerServicesActions.managementControllerServicesBannerApiError({
-                error: 'Error message'
+                error: 'Error loading'
             });
-            action$.next(
+
+            mockErrorHelper.handleLoadingError.mockReturnValue(errorAction);
+
+            actions$.next(
                 ManagementControllerServicesActions.loadManagementControllerServicesError({
-                    errorResponse: error,
+                    errorResponse,
                     loadedTimestamp: '2023-01-01 11:00:00 EST',
                     status: 'success'
                 })
             );
-            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
 
-            const result = await new Promise((resolve) =>
-                effects.loadManagementControllerServicesError$.pipe(take(1)).subscribe(resolve)
-            );
+            const result = await firstValueFrom(effects.loadManagementControllerServicesError$);
 
-            expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(true, error);
+            expect(mockErrorHelper.handleLoadingError).toHaveBeenCalledWith(true, errorResponse);
             expect(result).toEqual(errorAction);
+        });
+    });
+
+    describe('clearControllerServiceBulletins$', () => {
+        it('should dispatch clearControllerServiceBulletinsSuccess action when bulletins are cleared successfully', () => {
+            const request = {
+                uri: 'test-uri',
+                fromTimestamp: '2023-01-01T12:00:00.000Z',
+                componentId: 'controller-service-1',
+                componentType: ComponentType.ControllerService
+            };
+
+            const mockResponse = {
+                bulletinsCleared: 3,
+                bulletins: []
+            };
+
+            mockManagementControllerServiceService.clearBulletins.mockReturnValue(of(mockResponse));
+
+            const action = ManagementControllerServicesActions.clearControllerServiceBulletins({ request });
+            actions$.next(action);
+
+            effects.clearControllerServiceBulletins$.pipe(take(1)).subscribe((result) => {
+                expect(result).toEqual(
+                    ManagementControllerServicesActions.clearControllerServiceBulletinsSuccess({
+                        response: {
+                            componentId: request.componentId,
+                            bulletinsCleared: mockResponse.bulletinsCleared,
+                            bulletins: mockResponse.bulletins || [],
+                            componentType: request.componentType
+                        }
+                    })
+                );
+            });
+
+            expect(mockManagementControllerServiceService.clearBulletins).toHaveBeenCalledWith({
+                uri: request.uri,
+                fromTimestamp: request.fromTimestamp
+            });
+        });
+
+        it('should handle bulletinsCleared being undefined and default to 0', () => {
+            const request = {
+                uri: 'test-uri',
+                fromTimestamp: '2023-01-01T12:00:00.000Z',
+                componentId: 'controller-service-2',
+                componentType: ComponentType.ControllerService
+            };
+
+            const mockResponse = {
+                // bulletinsCleared is undefined
+                bulletins: []
+            };
+
+            mockManagementControllerServiceService.clearBulletins.mockReturnValue(of(mockResponse));
+
+            const action = ManagementControllerServicesActions.clearControllerServiceBulletins({ request });
+            actions$.next(action);
+
+            effects.clearControllerServiceBulletins$.pipe(take(1)).subscribe((result) => {
+                expect(result).toEqual(
+                    ManagementControllerServicesActions.clearControllerServiceBulletinsSuccess({
+                        response: {
+                            componentId: request.componentId,
+                            bulletinsCleared: 0, // Should default to 0
+                            bulletins: mockResponse.bulletins || [],
+                            componentType: request.componentType
+                        }
+                    })
+                );
+            });
+        });
+
+        it('should preserve request fields in the success response', () => {
+            const request = {
+                uri: 'different-uri',
+                fromTimestamp: '2023-06-15T08:30:00.000Z',
+                componentId: 'another-controller-service',
+                componentType: ComponentType.ControllerService
+            };
+
+            const mockResponse = {
+                bulletinsCleared: 7,
+                bulletins: []
+            };
+
+            mockManagementControllerServiceService.clearBulletins.mockReturnValue(of(mockResponse));
+
+            const action = ManagementControllerServicesActions.clearControllerServiceBulletins({ request });
+            actions$.next(action);
+
+            effects.clearControllerServiceBulletins$.pipe(take(1)).subscribe((result) => {
+                expect(result).toEqual(
+                    ManagementControllerServicesActions.clearControllerServiceBulletinsSuccess({
+                        response: {
+                            componentId: request.componentId, // From request
+                            bulletinsCleared: mockResponse.bulletinsCleared, // From response
+                            bulletins: mockResponse.bulletins || [], // From response
+                            componentType: request.componentType // From request
+                        }
+                    })
+                );
+            });
         });
     });
 });

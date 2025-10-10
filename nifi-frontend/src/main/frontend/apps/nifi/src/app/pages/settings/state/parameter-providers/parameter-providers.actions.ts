@@ -31,6 +31,7 @@ import {
     PollParameterProviderParametersUpdateSuccess,
     SelectParameterProviderRequest
 } from './index';
+import { ClearBulletinsRequest, ClearBulletinsResponse } from '../../../../state/shared';
 
 const PARAMETER_PROVIDERS_PREFIX = '[Parameter Providers]';
 
@@ -175,4 +176,14 @@ export const deleteParameterProviderParametersUpdateRequest = createAction(
 
 export const submitParameterProviderParametersUpdateComplete = createAction(
     `${PARAMETER_PROVIDERS_PREFIX} Submit Parameter Provider Parameters Update Complete`
+);
+
+export const clearParameterProviderBulletins = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Clear Parameter Provider Bulletins`,
+    props<{ request: ClearBulletinsRequest }>()
+);
+
+export const clearParameterProviderBulletinsSuccess = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Clear Parameter Provider Bulletins Success`,
+    props<{ response: ClearBulletinsResponse }>()
 );

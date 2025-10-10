@@ -82,6 +82,13 @@ export class FlowAnalysisRuleService implements PropertyDescriptorRetriever {
         );
     }
 
+    clearBulletins(request: { uri: string; fromTimestamp: string }): Observable<any> {
+        const payload = {
+            fromTimestamp: request.fromTimestamp
+        };
+        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.uri)}/bulletins/clear-requests`, payload);
+    }
+
     setEnable(flowAnalysisRule: EnableFlowAnalysisRuleRequest, enabled: boolean): Observable<any> {
         const entity: FlowAnalysisRuleEntity = flowAnalysisRule.flowAnalysisRule;
         return this.httpClient.put(`${this.nifiCommon.stripProtocol(entity.uri)}/run-status`, {

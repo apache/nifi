@@ -26,6 +26,7 @@ import {
     selectSingleEditedFlowAnalysisRule
 } from '../../state/flow-analysis-rules/flow-analysis-rules.selectors';
 import {
+    clearFlowAnalysisRuleBulletins,
     disableFlowAnalysisRule,
     enableFlowAnalysisRule,
     loadFlowAnalysisRules,
@@ -43,7 +44,7 @@ import { NiFiState } from '../../../../state';
 import { FlowAnalysisRuleEntity, FlowAnalysisRulesState } from '../../state/flow-analysis-rules';
 import { getComponentStateAndOpenDialog } from '../../../../state/component-state/component-state.actions';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
-import { ComponentType } from '@nifi/shared';
+import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { AsyncPipe } from '@angular/common';
 import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
 import { MatIconButton } from '@angular/material/button';
@@ -57,6 +58,7 @@ import { FlowAnalysisRuleTable } from './flow-analysis-rule-table/flow-analysis-
 })
 export class FlowAnalysisRules implements OnInit, OnDestroy {
     private store = inject<Store<NiFiState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
 
     flowAnalysisRuleState$ = this.store.select(selectFlowAnalysisRulesState);
     selectedFlowAnalysisRuleId$ = this.store.select(selectFlowAnalysisRuleIdFromRoute);
@@ -200,6 +202,26 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
         this.store.dispatch(
             navigateToEditFlowAnalysisRule({
                 id: entity.id
+            })
+        );
+    }
+
+    clearBulletinsFlowAnalysisRule(entity: FlowAnalysisRuleEntity): void {
+        // Get the most recent bulletin timestamp from the entity's bulletins
+        // This will be reconstructed from the time-only string to a full timestamp
+        const fromTimestamp = this.nifiCommon.getMostRecentBulletinTimestamp(entity.bulletins || []);
+        if (fromTimestamp === null) {
+            return; // no bulletins to clear
+        }
+
+        this.store.dispatch(
+            clearFlowAnalysisRuleBulletins({
+                request: {
+                    uri: entity.uri,
+                    fromTimestamp,
+                    componentId: entity.id,
+                    componentType: ComponentType.FlowAnalysisRule
+                }
             })
         );
     }
