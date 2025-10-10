@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.Date;
 import java.util.Optional;
 
@@ -32,6 +33,12 @@ import java.util.Optional;
  * Convert Object to java.time.LocalTime using instanceof evaluation and optional format pattern for DateTimeFormatter
  */
 class ObjectLocalTimeFieldConverter implements FieldConverter<Object, LocalTime> {
+    private static final DateTimeFormatter[] DEFAULT_TIME_FORMATTERS = new DateTimeFormatter[]{
+            DateTimeFormatter.ISO_LOCAL_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_OFFSET_TIME.withResolverStyle(ResolverStyle.STRICT),
+            DateTimeFormatter.ISO_TIME.withResolverStyle(ResolverStyle.STRICT)
+    };
+
     /**
      * Convert Object field to java.time.LocalTime using optional format supported in DateTimeFormatter
      *
@@ -76,14 +83,22 @@ class ObjectLocalTimeFieldConverter implements FieldConverter<Object, LocalTime>
                     } catch (final DateTimeParseException e) {
                         throw new FieldConversionException(LocalTime.class, field, name, e);
                     }
-                } else {
+                }
+
+                for (final DateTimeFormatter formatter : DEFAULT_TIME_FORMATTERS) {
                     try {
-                        final long number = Long.parseLong(string);
-                        final Instant instant = Instant.ofEpochMilli(number);
-                        return ofInstant(instant);
-                    } catch (final NumberFormatException e) {
-                        throw new FieldConversionException(LocalTime.class, field, name, e);
+                        return LocalTime.parse(string, formatter);
+                    } catch (final DateTimeParseException e) {
+                        continue;
                     }
+                }
+
+                try {
+                    final long number = Long.parseLong(string);
+                    final Instant instant = Instant.ofEpochMilli(number);
+                    return ofInstant(instant);
+                } catch (final NumberFormatException e) {
+                    throw new FieldConversionException(LocalTime.class, field, name, e);
                 }
             }
             default -> {
