@@ -15,17 +15,16 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
 import { CreateConnection } from './create-connection.component';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { provideMockStore } from '@ngrx/store/testing';
+import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { CreateConnectionDialogRequest } from '../../../../../state/flow';
 import { ComponentType } from '@nifi/shared';
 import { DocumentedType } from '../../../../../../../state/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { of } from 'rxjs';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
 import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../../../../../state/error';
@@ -33,350 +32,136 @@ import { initialState as initialCurrentUserState } from '../../../../../../../st
 import { currentUserFeatureKey } from '../../../../../../../state/current-user';
 import { canvasFeatureKey } from '../../../../../state';
 import { flowFeatureKey } from '../../../../../state/flow';
+import { selectBreadcrumbs, selectSaving } from '../../../../../state/flow/flow.selectors';
+import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
+import { createConnection } from '../../../../../state/flow/flow.actions';
 
 describe('CreateConnection', () => {
-    let component: CreateConnection;
-    let fixture: ComponentFixture<CreateConnection>;
-
-    const data: CreateConnectionDialogRequest = {
-        request: {
-            source: {
-                id: 'a67bf99d-018b-1000-611d-2993eb2f64b8',
-                componentType: ComponentType.InputPort,
-                entity: {
-                    revision: {
-                        version: 0
-                    },
-                    id: 'a67bf99d-018b-1000-611d-2993eb2f64b8',
-                    uri: 'https://localhost:4200/nifi-api/input-ports/a67bf99d-018b-1000-611d-2993eb2f64b8',
-                    position: {
-                        x: 1160,
-                        y: -320
-                    },
-                    permissions: {
-                        canRead: true,
-                        canWrite: true
-                    },
-                    bulletins: [],
-                    component: {
-                        id: 'a67bf99d-018b-1000-611d-2993eb2f64b8',
-                        versionedComponentId: '77458ab4-8e53-3855-a682-c787a2705b9d',
-                        parentGroupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                        position: {
-                            x: 1160,
-                            y: -320
-                        },
-                        name: 'in',
-                        state: 'STOPPED',
-                        type: 'INPUT_PORT',
-                        transmitting: false,
-                        concurrentlySchedulableTaskCount: 1,
-                        allowRemoteAccess: true,
-                        portFunction: 'STANDARD'
-                    },
-                    status: {
-                        id: 'a67bf99d-018b-1000-611d-2993eb2f64b8',
-                        groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                        name: 'in',
-                        transmitting: false,
-                        runStatus: 'Stopped',
-                        statsLastRefreshed: '14:03:53 EST',
-                        aggregateSnapshot: {
-                            id: 'a67bf99d-018b-1000-611d-2993eb2f64b8',
-                            groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                            name: 'in',
-                            activeThreadCount: 0,
-                            flowFilesIn: 0,
-                            bytesIn: 0,
-                            input: '0 (0 bytes)',
-                            flowFilesOut: 0,
-                            bytesOut: 0,
-                            output: '0 (0 bytes)',
-                            runStatus: 'Stopped'
-                        }
-                    },
-                    portType: 'INPUT_PORT',
-                    operatePermissions: {
-                        canRead: false,
-                        canWrite: false
-                    },
-                    allowRemoteAccess: true,
-                    type: 'InputPort',
-                    dimensions: {
-                        width: 240,
-                        height: 80
-                    }
+    // Mock data factories
+    function createMockInputPort(id: string = 'input-port-id'): any {
+        return {
+            id,
+            componentType: ComponentType.InputPort,
+            entity: {
+                id,
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id,
+                    name: 'Input Port',
+                    parentGroupId: 'group-id'
                 }
-            },
-            destination: {
-                id: 'ca0a0504-018b-1000-5917-2b063e8946b9',
-                componentType: ComponentType.Processor,
-                entity: {
-                    revision: {
-                        clientId: 'd8e8a955-018b-1000-915e-a59d0e7933ef',
-                        version: 6
-                    },
-                    id: 'ca0a0504-018b-1000-5917-2b063e8946b9',
-                    uri: 'https://localhost:4200/nifi-api/processors/ca0a0504-018b-1000-5917-2b063e8946b9',
-                    position: {
-                        x: 144,
-                        y: -280
-                    },
-                    permissions: {
-                        canRead: true,
-                        canWrite: true
-                    },
-                    bulletins: [],
-                    component: {
-                        id: 'ca0a0504-018b-1000-5917-2b063e8946b9',
-                        versionedComponentId: 'e499c564-caa6-3c53-ad8b-371745868b27',
-                        parentGroupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                        position: {
-                            x: 144,
-                            y: -280
-                        },
-                        name: 'UpdateAttribute',
-                        type: 'org.apache.nifi.processors.attributes.UpdateAttribute',
-                        bundle: {
-                            group: 'org.apache.nifi',
-                            artifact: 'nifi-update-attribute-nar',
-                            version: '2.0.0-SNAPSHOT'
-                        },
-                        state: 'STOPPED',
-                        style: {
-                            'background-color': '#966969'
-                        },
-                        relationships: [
-                            {
-                                name: 'success',
-                                description: 'All successful FlowFiles are routed to this relationship',
-                                autoTerminate: false,
-                                retry: false
-                            }
-                        ],
-                        supportsParallelProcessing: true,
-                        supportsBatching: true,
-                        supportsSensitiveDynamicProperties: false,
-                        persistsState: true,
-                        restricted: false,
-                        deprecated: false,
-                        executionNodeRestricted: false,
-                        multipleVersionsAvailable: false,
-                        inputRequirement: 'INPUT_REQUIRED',
-                        config: {
-                            properties: {
-                                'Delete Attributes Expression': null,
-                                'Store State': 'Do not store state',
-                                'Stateful Variables Initial Value': null,
-                                'canonical-value-lookup-cache-size': '100',
-                                asdf: 'qwer'
-                            },
-                            descriptors: {
-                                'Delete Attributes Expression': {
-                                    name: 'Delete Attributes Expression',
-                                    displayName: 'Delete Attributes Expression',
-                                    description:
-                                        'Regular expression for attributes to be deleted from FlowFiles.  Existing attributes that match will be deleted regardless of whether they are updated by this processor.',
-                                    required: false,
-                                    sensitive: false,
-                                    dynamic: false,
-                                    supportsEl: true,
-                                    expressionLanguageScope: 'Environment variables and FlowFile Attributes',
-                                    dependencies: []
-                                },
-                                'Store State': {
-                                    name: 'Store State',
-                                    displayName: 'Store State',
-                                    description:
-                                        "Select whether or not state will be stored. Selecting 'Stateless' will offer the default functionality of purely updating the attributes on a FlowFile in a stateless manner. Selecting a stateful option will not only store the attributes on the FlowFile but also in the Processors state. See the 'Stateful Usage' topic of the 'Additional Details' section of this processor's documentation for more information",
-                                    defaultValue: 'Do not store state',
-                                    allowableValues: [
-                                        {
-                                            allowableValue: {
-                                                displayName: 'Do not store state',
-                                                value: 'Do not store state'
-                                            },
-                                            canRead: true
-                                        },
-                                        {
-                                            allowableValue: {
-                                                displayName: 'Store state locally',
-                                                value: 'Store state locally'
-                                            },
-                                            canRead: true
-                                        }
-                                    ],
-                                    required: true,
-                                    sensitive: false,
-                                    dynamic: false,
-                                    supportsEl: false,
-                                    expressionLanguageScope: 'Not Supported',
-                                    dependencies: []
-                                },
-                                'Stateful Variables Initial Value': {
-                                    name: 'Stateful Variables Initial Value',
-                                    displayName: 'Stateful Variables Initial Value',
-                                    description:
-                                        'If using state to set/reference variables then this value is used to set the initial value of the stateful variable. This will only be used in the @OnScheduled method when state does not contain a value for the variable. This is required if running statefully but can be empty if needed.',
-                                    required: false,
-                                    sensitive: false,
-                                    dynamic: false,
-                                    supportsEl: false,
-                                    expressionLanguageScope: 'Not Supported',
-                                    dependencies: []
-                                },
-                                'canonical-value-lookup-cache-size': {
-                                    name: 'canonical-value-lookup-cache-size',
-                                    displayName: 'Cache Value Lookup Cache Size',
-                                    description:
-                                        'Specifies how many canonical lookup values should be stored in the cache',
-                                    defaultValue: '100',
-                                    required: true,
-                                    sensitive: false,
-                                    dynamic: false,
-                                    supportsEl: false,
-                                    expressionLanguageScope: 'Not Supported',
-                                    dependencies: []
-                                },
-                                asdf: {
-                                    name: 'asdf',
-                                    displayName: 'asdf',
-                                    description: '',
-                                    required: false,
-                                    sensitive: false,
-                                    dynamic: true,
-                                    supportsEl: true,
-                                    expressionLanguageScope: 'Environment variables and FlowFile Attributes',
-                                    dependencies: []
-                                }
-                            },
-                            schedulingPeriod: '10 sec',
-                            schedulingStrategy: 'TIMER_DRIVEN',
-                            executionNode: 'ALL',
-                            penaltyDuration: '30 sec',
-                            yieldDuration: '1 sec',
-                            bulletinLevel: 'WARN',
-                            runDurationMillis: 25,
-                            concurrentlySchedulableTaskCount: 1,
-                            autoTerminatedRelationships: [],
-                            comments: '',
-                            customUiUrl: '/nifi-update-attribute-ui-2.0.0-SNAPSHOT',
-                            lossTolerant: false,
-                            defaultConcurrentTasks: {
-                                TIMER_DRIVEN: '1',
-                                CRON_DRIVEN: '1'
-                            },
-                            defaultSchedulingPeriod: {
-                                TIMER_DRIVEN: '0 sec',
-                                CRON_DRIVEN: '* * * * * ?'
-                            },
-                            retryCount: 10,
-                            retriedRelationships: [],
-                            backoffMechanism: 'PENALIZE_FLOWFILE',
-                            maxBackoffPeriod: '10 mins'
-                        },
-                        validationStatus: 'VALID',
-                        extensionMissing: false
-                    },
-                    inputRequirement: 'INPUT_REQUIRED',
-                    status: {
-                        groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                        id: 'ca0a0504-018b-1000-5917-2b063e8946b9',
-                        name: 'UpdateAttribute',
-                        runStatus: 'Stopped',
-                        statsLastRefreshed: '14:03:53 EST',
-                        aggregateSnapshot: {
-                            id: 'ca0a0504-018b-1000-5917-2b063e8946b9',
-                            groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                            name: 'UpdateAttribute',
-                            type: 'UpdateAttribute',
-                            runStatus: 'Stopped',
-                            executionNode: 'ALL',
-                            bytesRead: 0,
-                            bytesWritten: 0,
-                            read: '0 bytes',
-                            written: '0 bytes',
-                            flowFilesIn: 0,
-                            bytesIn: 0,
-                            input: '0 (0 bytes)',
-                            flowFilesOut: 0,
-                            bytesOut: 0,
-                            output: '0 (0 bytes)',
-                            taskCount: 0,
-                            tasksDurationNanos: 0,
-                            tasks: '0',
-                            tasksDuration: '00:00:00.000',
-                            activeThreadCount: 0,
-                            terminatedThreadCount: 0
-                        }
-                    },
-                    operatePermissions: {
-                        canRead: false,
-                        canWrite: false
-                    },
-                    type: 'Processor',
-                    dimensions: {
-                        width: 352,
-                        height: 128
+            }
+        };
+    }
+
+    function createMockProcessor(id: string = 'processor-id'): any {
+        return {
+            id,
+            componentType: ComponentType.Processor,
+            entity: {
+                id,
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id,
+                    name: 'Test Processor',
+                    parentGroupId: 'group-id',
+                    relationships: [{ name: 'success', description: 'Success relationship', autoTerminate: false }]
+                }
+            }
+        };
+    }
+
+    function createMockProcessGroup(id: string = 'process-group-id'): any {
+        return {
+            id,
+            componentType: ComponentType.ProcessGroup,
+            entity: {
+                id,
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    id,
+                    name: 'Test Process Group',
+                    parentGroupId: 'group-id'
+                }
+            }
+        };
+    }
+
+    function createMockRemoteProcessGroup(id: string = 'remote-group-id'): any {
+        return {
+            id,
+            componentType: ComponentType.RemoteProcessGroup,
+            entity: {
+                id,
+                permissions: {
+                    canRead: true,
+                    canWrite: true
+                },
+                component: {
+                    id,
+                    name: 'Remote Process Group',
+                    parentGroupId: 'group-id',
+                    contents: {
+                        outputPorts: [{ id: 'output-1', name: 'Output 1' }],
+                        inputPorts: [{ id: 'input-1', name: 'Input 1' }]
                     }
                 }
             }
-        },
-        defaults: {
-            flowfileExpiration: '0 sec',
-            objectThreshold: 10000,
-            dataSizeThreshold: '1 GB'
-        }
-    };
+        };
+    }
 
-    const parameterContexts: DocumentedType[] = [
-        {
-            type: 'org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer',
-            bundle: {
-                group: 'org.apache.nifi',
-                artifact: 'nifi-framework-nar',
-                version: '2.0.0-SNAPSHOT'
-            },
-            restricted: false,
-            tags: []
-        },
-        {
-            type: 'org.apache.nifi.prioritizer.NewestFlowFileFirstPrioritizer',
-            bundle: {
-                group: 'org.apache.nifi',
-                artifact: 'nifi-framework-nar',
-                version: '2.0.0-SNAPSHOT'
-            },
-            restricted: false,
-            tags: []
-        },
-        {
-            type: 'org.apache.nifi.prioritizer.OldestFlowFileFirstPrioritizer',
-            bundle: {
-                group: 'org.apache.nifi',
-                artifact: 'nifi-framework-nar',
-                version: '2.0.0-SNAPSHOT'
-            },
-            restricted: false,
-            tags: []
-        },
-        {
-            type: 'org.apache.nifi.prioritizer.PriorityAttributePrioritizer',
-            bundle: {
-                group: 'org.apache.nifi',
-                artifact: 'nifi-framework-nar',
-                version: '2.0.0-SNAPSHOT'
-            },
-            restricted: false,
-            tags: []
-        }
-    ];
+    function createMockBreadcrumb() {
+        return {
+            id: 'root',
+            permissions: { canRead: true, canWrite: true },
+            versionedFlowState: 'UP_TO_DATE',
+            breadcrumb: { id: 'root', name: 'Root Group' }
+        };
+    }
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
+    function createMockPrioritizers(): DocumentedType[] {
+        return [
+            {
+                type: 'org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer',
+                bundle: { group: 'org.apache.nifi', artifact: 'nifi-framework-nar', version: '2.0.0-SNAPSHOT' },
+                restricted: false,
+                tags: []
+            }
+        ];
+    }
+
+    // Setup function for component configuration
+    async function setup(
+        options: {
+            source?: any;
+            destination?: any;
+        } = {}
+    ) {
+        const testSource = options.source || createMockInputPort();
+        const testDestination = options.destination || createMockProcessor();
+
+        const testDialogData: CreateConnectionDialogRequest = {
+            request: {
+                source: testSource,
+                destination: testDestination
+            },
+            defaults: {
+                flowfileExpiration: '0 sec',
+                objectThreshold: 10000,
+                dataSizeThreshold: '1 GB'
+            }
+        };
+
+        await TestBed.configureTestingModule({
             imports: [CreateConnection, NoopAnimationsModule],
             providers: [
-                { provide: MAT_DIALOG_DATA, useValue: data },
+                { provide: MAT_DIALOG_DATA, useValue: testDialogData },
                 provideMockStore({
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
@@ -389,19 +174,210 @@ describe('CreateConnection', () => {
                 {
                     provide: ClusterConnectionService,
                     useValue: {
-                        isDisconnectionAcknowledged: jest.fn()
+                        isDisconnectionAcknowledged: jest.fn().mockReturnValue(false)
                     }
                 },
                 { provide: MatDialogRef, useValue: null }
             ]
-        });
-        fixture = TestBed.createComponent(CreateConnection);
-        component = fixture.componentInstance;
-        component.availablePrioritizers$ = of(parameterContexts);
+        }).compileComponents();
+
+        const store = TestBed.inject(MockStore);
+
+        // Setup required selectors
+        store.overrideSelector(selectBreadcrumbs, createMockBreadcrumb());
+        store.overrideSelector(selectSaving, false);
+        store.overrideSelector(selectPrioritizerTypes, createMockPrioritizers());
+
+        const fixture = TestBed.createComponent(CreateConnection);
+        const component = fixture.componentInstance;
+
         fixture.detectChanges();
+
+        return { component, fixture, store };
+    }
+
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it('should create', () => {
-        expect(component).toBeTruthy();
+    describe('Component initialization', () => {
+        it('should create', async () => {
+            const { component } = await setup();
+            expect(component).toBeTruthy();
+        });
+
+        it('should initialize with InputPort source and Processor destination', async () => {
+            const { component } = await setup();
+            expect(component.source).toBeDefined();
+            expect(component.destination).toBeDefined();
+            expect(component.source.componentType).toBe(ComponentType.InputPort);
+            expect(component.destination.componentType).toBe(ComponentType.Processor);
+        });
+
+        it('should initialize form with default values', async () => {
+            const { component } = await setup();
+            expect(component.createConnectionForm.get('flowFileExpiration')?.value).toBe('0 sec');
+            expect(component.createConnectionForm.get('backPressureObjectThreshold')?.value).toBe(10000);
+            expect(component.createConnectionForm.get('backPressureDataSizeThreshold')?.value).toBe('1 GB');
+        });
+    });
+
+    describe('Source component types', () => {
+        it('should handle Processor source type', async () => {
+            const source = createMockProcessor('source-processor');
+            const { component } = await setup({ source });
+
+            expect(component.source.componentType).toBe(ComponentType.Processor);
+            expect(component.createConnectionForm.get('relationships')).toBeTruthy();
+        });
+
+        it('should handle ProcessGroup source type', async () => {
+            const source = createMockProcessGroup('source-group');
+            const { component } = await setup({ source });
+
+            expect(component.source.componentType).toBe(ComponentType.ProcessGroup);
+        });
+
+        it('should handle RemoteProcessGroup source type', async () => {
+            const source = createMockRemoteProcessGroup('source-remote');
+            const { component } = await setup({ source });
+
+            expect(component.source.componentType).toBe(ComponentType.RemoteProcessGroup);
+        });
+    });
+
+    describe('Destination component types', () => {
+        it('should handle Processor destination type', async () => {
+            const destination = createMockProcessor('dest-processor');
+            const { component } = await setup({ destination });
+
+            expect(component.destination.componentType).toBe(ComponentType.Processor);
+        });
+
+        it('should handle ProcessGroup destination type', async () => {
+            const destination = createMockProcessGroup('dest-group');
+            const { component } = await setup({ destination });
+
+            expect(component.destination.componentType).toBe(ComponentType.ProcessGroup);
+        });
+
+        it('should handle RemoteProcessGroup destination type', async () => {
+            const destination = createMockRemoteProcessGroup('dest-remote');
+            const { component } = await setup({ destination });
+
+            expect(component.destination.componentType).toBe(ComponentType.RemoteProcessGroup);
+        });
+    });
+
+    describe('Load balance strategy logic', () => {
+        it('should handle DO_NOT_LOAD_BALANCE by default', async () => {
+            const { component } = await setup();
+
+            expect(component.createConnectionForm.get('loadBalanceStrategy')?.value).toBe('DO_NOT_LOAD_BALANCE');
+            expect(component.loadBalancePartitionAttributeRequired).toBe(false);
+            expect(component.loadBalanceCompressionRequired).toBe(false);
+        });
+
+        it('should handle PARTITION_BY_ATTRIBUTE strategy change', async () => {
+            const { component } = await setup();
+
+            component.loadBalanceChanged('PARTITION_BY_ATTRIBUTE');
+
+            expect(component.loadBalancePartitionAttributeRequired).toBe(true);
+            expect(component.loadBalanceCompressionRequired).toBe(true);
+            expect(component.createConnectionForm.get('partitionAttribute')).toBeTruthy();
+            expect(component.createConnectionForm.get('compression')).toBeTruthy();
+        });
+
+        it('should handle ROUND_ROBIN strategy change', async () => {
+            const { component } = await setup();
+
+            component.loadBalanceChanged('ROUND_ROBIN');
+
+            expect(component.loadBalancePartitionAttributeRequired).toBe(false);
+            expect(component.loadBalanceCompressionRequired).toBe(true);
+            expect(component.createConnectionForm.get('compression')).toBeTruthy();
+        });
+    });
+
+    describe('Create connection method', () => {
+        it('should dispatch createConnection action when createConnection is called', async () => {
+            const { component, store } = await setup();
+
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+            component.createConnection('root');
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                createConnection({
+                    request: expect.objectContaining({
+                        payload: expect.any(Object)
+                    })
+                })
+            );
+        });
+
+        it('should include relationships for Processor source type', async () => {
+            const source = createMockProcessor('source-processor');
+            const { component, store, fixture } = await setup({ source });
+
+            // Set relationships
+            component.createConnectionForm.patchValue({ relationships: ['success'] });
+            fixture.detectChanges();
+
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+            component.createConnection('root');
+
+            expect(dispatchSpy).toHaveBeenCalled();
+            const dispatchCall = dispatchSpy.mock.calls[0][0] as any;
+            expect(dispatchCall.type).toBe('[Canvas] Create Connection');
+            expect(dispatchCall.request.payload.component.selectedRelationships).toEqual(['success']);
+        });
+    });
+
+    describe('Template logic', () => {
+        it('should display "Create Connection" title', async () => {
+            const { fixture } = await setup();
+
+            const dialogTitle = fixture.nativeElement.querySelector('[data-qa="dialog-title"]');
+            expect(dialogTitle).toBeTruthy();
+            expect(dialogTitle.textContent.trim()).toBe('Create Connection');
+        });
+
+        it('should display create connection form', async () => {
+            const { fixture } = await setup();
+
+            const form = fixture.nativeElement.querySelector('[data-qa="create-connection-form"]');
+            expect(form).toBeTruthy();
+
+            const tabs = fixture.nativeElement.querySelector('[data-qa="connection-tabs"]');
+            expect(tabs).toBeTruthy();
+        });
+
+        it('should display dialog actions with Cancel and Add buttons', async () => {
+            const { fixture } = await setup();
+
+            const dialogActions = fixture.nativeElement.querySelector('[data-qa="dialog-actions"]');
+            expect(dialogActions).toBeTruthy();
+
+            const cancelButton = fixture.nativeElement.querySelector('[data-qa="cancel-button"]');
+            expect(cancelButton).toBeTruthy();
+            expect(cancelButton.textContent.trim()).toBe('Cancel');
+
+            const addButton = fixture.nativeElement.querySelector('[data-qa="add-button"]');
+            expect(addButton).toBeTruthy();
+        });
+
+        it('should disable Add button when form is invalid', async () => {
+            const { component, fixture } = await setup();
+
+            // Make form invalid
+            component.createConnectionForm.setErrors({ invalid: true });
+            fixture.detectChanges();
+
+            const addButton = fixture.nativeElement.querySelector('[data-qa="add-button"]');
+            expect(addButton.disabled).toBe(true);
+        });
     });
 });

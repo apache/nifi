@@ -15,11 +15,11 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>Create Connection</h2>
+<h2 mat-dialog-title data-qa="dialog-title">Create Connection</h2>
 @if (breadcrumbs$ | async; as breadcrumbs) {
-    <form class="create-connection-form" [formGroup]="createConnectionForm">
+    <form class="create-connection-form" [formGroup]="createConnectionForm" data-qa="create-connection-form">
         <context-error-banner [context]="ErrorContextKey.CONNECTION"></context-error-banner>
-        <mat-tab-group>
+        <mat-tab-group data-qa="connection-tabs">
             <mat-tab label="Details">
                 <mat-dialog-content>
                     <div class="dialog-tab-content flex">
@@ -223,13 +223,14 @@
             </mat-tab>
         </mat-tab-group>
         @if ({ value: (saving$ | async)! }; as saving) {
-            <mat-dialog-actions align="end">
-                <button mat-button mat-dialog-close>Cancel</button>
+            <mat-dialog-actions align="end" data-qa="dialog-actions">
+                <button mat-button mat-dialog-close data-qa="cancel-button">Cancel</button>
                 <button
                     [disabled]="createConnectionForm.invalid || saving.value || createConnectionForm.pending"
                     type="button"
                     (click)="createConnection(breadcrumbs.id)"
-                    mat-flat-button>
+                    mat-flat-button
+                    data-qa="add-button">
                     <span *nifiSpinner="saving.value">Add</span>
                 </button>
             </mat-dialog-actions>
