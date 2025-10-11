@@ -25,7 +25,6 @@ import org.springframework.web.util.WebUtils;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.ws.rs.core.HttpHeaders;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Objects;
@@ -46,6 +45,8 @@ public class StandardApplicationCookieService implements ApplicationCookieServic
     private static final boolean SECURE_ENABLED = true;
 
     private static final boolean HTTP_ONLY_ENABLED = true;
+
+    private static final String SET_COOKIE_HEADER = "Set-Cookie";
 
     private static final Logger logger = LoggerFactory.getLogger(StandardApplicationCookieService.class);
 
@@ -134,7 +135,7 @@ public class StandardApplicationCookieService implements ApplicationCookieServic
     }
 
     private void setResponseCookie(final HttpServletResponse response, final ResponseCookie responseCookie) {
-        response.addHeader(HttpHeaders.SET_COOKIE, responseCookie.toString());
+        response.addHeader(SET_COOKIE_HEADER, responseCookie.toString());
     }
 
     private String getCookiePath(final URI resourceUri) {

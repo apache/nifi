@@ -104,9 +104,6 @@ nifi.security.user.login.identity.provider=
 nifi.security.support.new.account.requests=
 # Valid Authorities include: ROLE_MONITOR,ROLE_DFM,ROLE_ADMIN,ROLE_PROVENANCE,ROLE_NIFI
 nifi.security.anonymous.authorities=
-nifi.security.ocsp.responder.url=
-nifi.security.ocsp.responder.certificate=
-
 
 # cluster node properties (only configure for cluster nodes) #
 nifi.cluster.is.node=false
