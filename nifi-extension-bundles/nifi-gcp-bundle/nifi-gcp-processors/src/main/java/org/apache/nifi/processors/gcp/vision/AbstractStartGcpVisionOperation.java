@@ -31,6 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -38,8 +39,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 public abstract class AbstractStartGcpVisionOperation<B extends com.google.protobuf.GeneratedMessageV3.Builder<B>> extends AbstractGcpVisionProcessor  {
     public static final PropertyDescriptor FEATURE_TYPE = new PropertyDescriptor.Builder()
-            .name("vision-feature-type")
-            .displayName("Vision Feature Type")
+            .name("Vision Feature Type")
             .description("Type of GCP Vision Feature. The value of this property applies when the JSON Payload property is configured. " +
                     "The JSON Payload property value can use Expression Language to reference the value of ${vision-feature-type}")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -48,8 +48,7 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
             .defaultValue("TEXT_DETECTION")
             .build();
     public static final PropertyDescriptor OUTPUT_BUCKET = new PropertyDescriptor.Builder()
-            .name("output-bucket")
-            .displayName("Output Bucket")
+            .name("Output Bucket")
             .description("Name of the GCS bucket where the output of the Vision job will be persisted. " +
                     "The value of this property applies when the JSON Payload property is configured. " +
                     "The JSON Payload property value can use Expression Language to reference the value of ${output-bucket}")
@@ -81,6 +80,13 @@ public abstract class AbstractStartGcpVisionOperation<B extends com.google.proto
     @OnStopped
     public void onStopped() throws IOException {
         getVisionClient().close();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("vision-feature-type", FEATURE_TYPE.getName());
+        config.renameProperty("output-bucket", OUTPUT_BUCKET.getName());
     }
 
     protected OperationFuture<?, ?> startOperation(ProcessSession session, ProcessContext context, FlowFile flowFile) {

@@ -198,8 +198,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
                     " Any property that relates to the persisting state will be ignored.");
 
     public static final PropertyDescriptor LISTING_STRATEGY = new PropertyDescriptor.Builder()
-        .name("listing-strategy")
-        .displayName("Listing Strategy")
+        .name("Listing Strategy")
         .description("Specify how to determine new/updated entities. See each strategy descriptions for detail.")
         .required(true)
         .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING)
@@ -222,9 +221,8 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         .required(true)
         .build();
 
-    public static final PropertyDescriptor BUCKET = new PropertyDescriptor
-            .Builder().name("gcs-bucket")
-            .displayName("Bucket")
+    public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
+            .name("Bucket")
             .description(BUCKET_DESC)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -232,8 +230,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder()
-            .name("gcs-prefix")
-            .displayName("Prefix")
+            .name("Prefix")
             .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -241,8 +238,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor USE_GENERATIONS = new PropertyDescriptor.Builder()
-            .name("gcs-use-generations")
-            .displayName("Use Generations")
+            .name("Use Generations")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -252,8 +248,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
+        .name("Record Writer")
         .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
             "all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
         .required(false)
@@ -354,6 +349,11 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, TRACKING_STATE_CACHE.getName());
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, TRACKING_TIME_WINDOW.getName());
         config.renameProperty(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, INITIAL_LISTING_TARGET.getName());
+        config.renameProperty("listing-strategy", LISTING_STRATEGY.getName());
+        config.renameProperty("gcs-bucket", BUCKET.getName());
+        config.renameProperty("gcs-prefix", PREFIX.getName());
+        config.renameProperty("gcs-use-generations", USE_GENERATIONS.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
     }
 
     protected ListedEntityTracker<ListableBlob> createListedEntityTracker() {
