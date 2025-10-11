@@ -28,6 +28,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.file.transfer.FetchFileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.processor.util.file.transfer.FileTransfer;
+import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.processor.util.file.transfer.PermissionDeniedException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -71,7 +72,7 @@ public class TestFetchFTP {
 
         MockProcessContext ctx = (MockProcessContext) runner.getProcessContext();
         setDefaultValues(ctx, FTPTransfer.BUFFER_SIZE, FTPTransfer.DATA_TIMEOUT, FTPTransfer.CONNECTION_TIMEOUT,
-            FTPTransfer.CONNECTION_MODE, FTPTransfer.TRANSFER_MODE);
+                FTPTransfer.CONNECTION_MODE, FTPTransfer.TRANSFER_MODE);
         ctx.setProperty(FTPTransfer.USERNAME, "foo");
         ctx.setProperty(FTPTransfer.PASSWORD, "bar");
     }
@@ -242,6 +243,24 @@ public class TestFetchFTP {
     }
 
     @Test
+    public void testMoveConflictReplace() {
+        runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_MOVE.getValue());
+        runner.setProperty(FetchFileTransfer.MOVE_DESTINATION_DIR, "/moved/");
+        runner.setProperty(FetchFileTransfer.MOVE_CONFLICT_RESOLUTION, FileTransfer.CONFLICT_RESOLUTION_REPLACE);
+
+        // Destination exists
+        proc.addContent("/moved/hello.txt", "old".getBytes());
+        addFileAndEnqueue("hello.txt");
+
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
+
+        assertFalse(proc.fileContents.containsKey("hello.txt"));
+        assertTrue(proc.fileContents.containsKey("/moved/hello.txt"));
+    }
+
+
+    @Test
     public void testCreateDirFails() {
         runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_MOVE.getValue());
         runner.setProperty(FetchFileTransfer.MOVE_DESTINATION_DIR, "/moved/");
@@ -319,11 +338,19 @@ public class TestFetchFTP {
                         throw new PermissionDeniedException("test permission denied");
                     }
 
-                    if (!fileContents.containsKey(remoteFileName)) {
+                    String key;
+                    if (path == null) {
+                        key = remoteFileName;
+                    } else {
+                        key = (path.endsWith("/") ? path.substring(0, path.length() - 1) : path) + "/" + remoteFileName;
+                    }
+                    key = key.replaceAll("/+", "/");
+
+                    if (!fileContents.containsKey(key)) {
                         throw new FileNotFoundException();
                     }
 
-                    fileContents.remove(remoteFileName);
+                    fileContents.remove(key);
                 }
 
                 @Override
@@ -332,12 +359,15 @@ public class TestFetchFTP {
                         throw new PermissionDeniedException("test permission denied");
                     }
 
-                    if (!fileContents.containsKey(source)) {
+                    final String normalizedSource = source.replaceAll("/+", "/");
+                    final String normalizedTarget = target.replaceAll("/+", "/");
+
+                    if (!fileContents.containsKey(normalizedSource)) {
                         throw new FileNotFoundException();
                     }
 
-                    final byte[] content = fileContents.remove(source);
-                    fileContents.put(target, content);
+                    final byte[] content = fileContents.remove(normalizedSource);
+                    fileContents.put(normalizedTarget, content);
                 }
 
                 @Override
@@ -348,9 +378,47 @@ public class TestFetchFTP {
                 }
 
                 @Override
+                public String getAbsolutePath(FlowFile flowFile, String remotePath) throws IOException {
+                    final String abs;
+                    if (!remotePath.startsWith("/") && !remotePath.startsWith("\\")) {
+                        abs = new File(getHomeDirectory(flowFile), remotePath).getPath();
+                    } else {
+                        abs = remotePath;
+                    }
+                    String norm = abs.replace("\\", "/");
+                    norm = norm.replaceAll("/+", "/");
+                    if (norm.endsWith("/") && norm.length() > 1) {
+                        norm = norm.substring(0, norm.length() - 1);
+                    }
+                    return norm;
+                }
+
+                @Override
                 public void close() throws IOException {
                     super.close();
                     isClosed = true;
+                }
+
+                @Override
+                public String getHomeDirectory(FlowFile flowFile) throws IOException {
+                    return "/";
+                }
+
+                @Override
+                public FileInfo getRemoteFileInfo(FlowFile flowFile, String path, String remoteFileName) throws IOException {
+                    final String dir = path == null ? "/" : path;
+                    String key = (dir.endsWith("/") ? dir.substring(0, dir.length() - 1) : dir) + "/" + remoteFileName;
+                    key = key.replaceAll("/+", "/");
+                    final byte[] content = fileContents.get(key);
+                    if (content == null) {
+                        return null;
+                    }
+                    return new FileInfo.Builder()
+                            .filename(remoteFileName)
+                            .fullPathFileName(key)
+                            .directory(false)
+                            .size(content.length)
+                            .build();
                 }
             };
         }
