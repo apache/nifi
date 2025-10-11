@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.parquet.web.content.viewer;
+package org.apache.nifi.parquet.web.content.viewer;
 
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterRegistration;
@@ -24,7 +24,7 @@ import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.ServletRegistration;
 import jakarta.servlet.annotation.WebListener;
 import org.apache.nifi.web.servlet.filter.QueryStringToFragmentFilter;
-import org.apache.parquet.web.controller.ParquetContentViewerController;
+import org.apache.nifi.parquet.web.controller.ParquetContentViewerController;
 import org.eclipse.jetty.ee11.servlet.DefaultServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

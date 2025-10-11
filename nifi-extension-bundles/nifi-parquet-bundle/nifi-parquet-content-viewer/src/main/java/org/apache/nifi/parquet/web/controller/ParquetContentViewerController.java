@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.parquet.web.controller;
+package org.apache.nifi.parquet.web.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import jakarta.servlet.ServletContext;
-import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,6 +55,11 @@ public class ParquetContentViewerController extends HttpServlet {
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final long MAX_CONTENT_SIZE = 1024 * 1024 * 2; // 10MB
     private static final int BUFFER_SIZE = 8 * 1024; // 8KB
+
+    private static final byte NEWLINE = '\n';
+    private static final byte COMMA = ',';
+    private static final byte START_ARRAY = '[';
+    private static final byte END_ARRAY = ']';
 
     @Override
     public void doGet(final HttpServletRequest request, final HttpServletResponse response) throws IOException {
@@ -82,41 +88,26 @@ public class ParquetContentViewerController extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_OK);
 
         try {
-            //Convert InputStream to a seekable InputStream
-            byte[] data = getInputStreamBytes(downloadableContent.getContent());
+            // Convert InputStream to a seekable InputStream
+            final byte[] data = getInputStreamBytes(downloadableContent.getContent());
 
             if (data.length == 0) {
                 response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Content size is too large to display.");
                 return;
             }
 
-            Configuration conf = new Configuration();
+            final Configuration conf = new Configuration();
 
-            //Allow older deprecated schemas
+            // Allow older deprecated schemas
             conf.setBoolean("parquet.avro.readInt96AsFixed", true);
 
             final InputFile inputFile = new NifiParquetInputFile(new ByteArrayInputStream(data), data.length);
-            final ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(inputFile)
+            try (
+                    ParquetReader<GenericRecord> reader = AvroParquetReader.<GenericRecord>builder(inputFile)
                     .withConf(conf)
                     .build();
-
-            //Format and write out each record
-            GenericRecord record;
-            boolean firstRecord = true;
-            final List<Schema.Field> fields = new ArrayList<>();
-            try (ServletOutputStream outputStream = response.getOutputStream()) {
-                outputStream.write("[\n".getBytes());
-                while ((record = reader.read()) != null) {
-                    if (firstRecord) {
-                        firstRecord = false;
-                        fields.addAll(record.getSchema().getFields());
-                    } else {
-                        outputStream.write(",\n".getBytes());
-                    }
-
-                    outputStream.write(mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(recordToMap(record)));
-                }
-                outputStream.write("\n]".getBytes());
+                    OutputStream outputStream = response.getOutputStream()) {
+                writeRecords(outputStream, reader);
             }
         } catch (final Throwable t) {
             logger.warn("Unable to format FlowFile content", t);
@@ -124,17 +115,41 @@ public class ParquetContentViewerController extends HttpServlet {
         }
     }
 
-    private static Object recordToMap(Object obj) {
+    private void writeRecords(final OutputStream outputStream, final ParquetReader<GenericRecord> reader) throws IOException {
+        // Format and write out each record
+        GenericRecord record;
+        boolean firstRecord = true;
+        final ObjectWriter objectWriter = mapper.writerWithDefaultPrettyPrinter();
+
+        outputStream.write(START_ARRAY);
+        outputStream.write(NEWLINE);
+        while ((record = reader.read()) != null) {
+            if (firstRecord) {
+                firstRecord = false;
+            } else {
+                outputStream.write(COMMA);
+                outputStream.write(NEWLINE);
+            }
+
+            final Object mappedRecord = recordToMap(record);
+            final byte[] serializedRecord = objectWriter.writeValueAsBytes(mappedRecord);
+            outputStream.write(serializedRecord);
+        }
+        outputStream.write(NEWLINE);
+        outputStream.write(END_ARRAY);
+    }
+
+    private static Object recordToMap(final Object obj) {
         switch (obj) {
             case GenericRecord record -> {
-                Map<String, Object> map = new LinkedHashMap<>();
-                for (Schema.Field field : record.getSchema().getFields()) {
+                final Map<String, Object> map = new LinkedHashMap<>();
+                for (final Schema.Field field : record.getSchema().getFields()) {
                     map.put(field.name(), recordToMap(record.get(field.name())));
                 }
                 return map;
             }
             case Collection<?> coll -> {
-                List<Object> list = new ArrayList<>();
+                final List<Object> list = new ArrayList<>();
                 for (Object elem : coll) {
                     list.add(recordToMap(elem));
                 }
@@ -153,24 +168,25 @@ public class ParquetContentViewerController extends HttpServlet {
     }
 
     private byte[] getInputStreamBytes(final InputStream inputStream) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buffer = new byte[BUFFER_SIZE];
-        long totalRead = 0;
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            final byte[] buffer = new byte[BUFFER_SIZE];
+            long totalRead = 0;
 
-        while (totalRead < MAX_CONTENT_SIZE) {
-            int bytesRead = inputStream.read(buffer, 0, BUFFER_SIZE);
-            if (bytesRead == -1) {
-                break;
+            while (totalRead < MAX_CONTENT_SIZE) {
+                int bytesRead = inputStream.read(buffer, 0, BUFFER_SIZE);
+                if (bytesRead == -1) {
+                    break;
+                }
+                outputStream.write(buffer, 0, bytesRead);
+                totalRead += bytesRead;
             }
-            baos.write(buffer, 0, bytesRead);
-            totalRead += bytesRead;
-        }
 
-        // Return empty array if inputStream has more data beyond maxBytes
-        if (totalRead >= MAX_CONTENT_SIZE && inputStream.read() != -1) {
-            return new byte[0];
-        }
+            // Return empty array if inputStream has more data beyond maxBytes
+            if (totalRead >= MAX_CONTENT_SIZE && inputStream.read() != -1) {
+                return new byte[0];
+            }
 
-        return baos.toByteArray();
+            return outputStream.toByteArray();
+        }
     }
 }
