@@ -30,6 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -86,8 +87,7 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
 
     // Optional Properties.
     static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
-            .displayName("Compression type")
-            .name("compression type")
+            .name("Compression Type")
             .description("Type of compression to use when creating Sequence File")
             .allowableValues(SequenceFile.CompressionType.values())
             .build();
@@ -179,5 +179,11 @@ public class CreateHadoopSequenceFile extends AbstractHadoopProcessor {
             session.transfer(flowFile, RELATIONSHIP_FAILURE);
         }
 
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("compression type", COMPRESSION_TYPE.getName());
     }
 }
