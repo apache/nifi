@@ -12,7 +12,7 @@ import { getBannerText$ } from '../service/bannerTextService';
 import { ErrorResponse, getErrorString } from '../service/errorHelper';
 
 interface BannerTextProps {
-  children: ReactNode;
+  children?: ReactNode;
   errorFallback?: (message: string) => ReactNode;
 }
 
