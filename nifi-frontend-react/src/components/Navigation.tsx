@@ -23,10 +23,10 @@ const Navigation: React.FC = () => {
       description: 'Track data lineage and provenance',
     },
     {
-      name: 'Controller Services',
-      href: '/nifi/controller-services',
+      name: 'Settings',
+      href: '/nifi/settings',
       icon: Settings,
-      description: 'Manage shared services',
+      description: 'Controller services and reporting tasks',
     },
     {
       name: 'Users',

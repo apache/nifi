@@ -8,6 +8,10 @@ import AuthenticationGuard from './components/guards/AuthenticationGuard';
 import LoginConfigurationGuard from './components/guards/LoginConfigurationGuard';
 import Login from './pages/Login';
 import Layout from './components/Layout';
+import Settings from './pages/Settings';
+import DataProvenance from './pages/DataProvenance';
+import Summary from './pages/Summary';
+import Users from './pages/Users';
 
 function App(): JSX.Element {
   return (
@@ -39,6 +43,10 @@ function App(): JSX.Element {
                 <Layout>
                   <Routes>
                     <Route path="flow-designer/*" element={<FlowDesigner />} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="provenance" element={<DataProvenance />} />
+                    <Route path="summary" element={<Summary />} />
+                    <Route path="users" element={<Users />} />
                     <Route path="*" element={<Navigate to="/nifi/flow-designer" replace />} />
                   </Routes>
                 </Layout>
