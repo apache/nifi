@@ -15,15 +15,9 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { EditConnectionComponent } from './edit-connection.component';
+import { TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
-import { EditConnectionDialogRequest } from '../../../../../state/flow';
-import { ComponentType } from '@nifi/shared';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../../../state/flow/flow.reducer';
-import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../../../../../state/error';
@@ -32,148 +26,526 @@ import { currentUserFeatureKey } from '../../../../../../../state/current-user';
 import { canvasFeatureKey } from '../../../../../state';
 import { flowFeatureKey } from '../../../../../state/flow';
 
+import { EditConnectionComponent } from './edit-connection.component';
+import { EditConnectionDialogRequest } from '../../../../../state/flow';
+import { ComponentType } from '@nifi/shared';
+import { initialState } from '../../../../../state/flow/flow.reducer';
+import { selectPrioritizerTypes } from '../../../../../../../state/extension-types/extension-types.selectors';
+import { selectBreadcrumbs, selectSaving } from '../../../../../state/flow/flow.selectors';
+import { updateConnection } from '../../../../../state/flow/flow.actions';
+
 describe('EditConnectionComponent', () => {
-    let store: MockStore;
-    let component: EditConnectionComponent;
-    let fixture: ComponentFixture<EditConnectionComponent>;
+    // Mock data factories
+    function createMockConnection(
+        sourceType: string = 'INPUT_PORT',
+        destinationType: string = 'OUTPUT_PORT',
+        options: any = {}
+    ) {
+        return {
+            id: options.id || 'connection-id',
+            source: {
+                id: options.sourceId || 'source-id',
+                type: sourceType,
+                groupId: options.sourceGroupId || 'source-group-id',
+                name: options.sourceName || 'Source Component'
+            },
+            destination: {
+                id: options.destinationId || 'destination-id',
+                type: destinationType,
+                groupId: options.destinationGroupId || 'destination-group-id',
+                name: options.destinationName || 'Destination Component'
+            },
+            name: options.name !== undefined ? options.name : 'Test Connection',
+            backPressureObjectThreshold: options.backPressureObjectThreshold || 10000,
+            backPressureDataSizeThreshold: options.backPressureDataSizeThreshold || '1 GB',
+            flowFileExpiration: options.flowFileExpiration || '0 sec',
+            prioritizers: options.prioritizers || [],
+            loadBalanceStrategy: options.loadBalanceStrategy || 'DO_NOT_LOAD_BALANCE',
+            loadBalancePartitionAttribute: options.loadBalancePartitionAttribute || '',
+            loadBalanceCompression: options.loadBalanceCompression || 'DO_NOT_COMPRESS',
+            selectedRelationships: options.selectedRelationships || []
+        };
+    }
 
-    const data: EditConnectionDialogRequest = {
-        type: ComponentType.Connection,
-        uri: 'https://localhost:4200/nifi-api/connections/abd5a02c-018b-1000-c602-fe83979f1997',
-        entity: {
-            revision: {
-                version: 0
+    function createMockDialogRequest(
+        connection: any,
+        permissions: any = { canRead: true, canWrite: true },
+        newDestination?: any
+    ): EditConnectionDialogRequest {
+        return {
+            type: ComponentType.Connection,
+            uri: `https://localhost:4200/nifi-api/connections/${connection.id}`,
+            entity: {
+                revision: { version: 0 },
+                id: connection.id,
+                uri: `https://localhost:4200/nifi-api/connections/${connection.id}`,
+                permissions,
+                component: connection
             },
-            id: 'abd5a02c-018b-1000-c602-fe83979f1997',
-            uri: 'https://localhost:4200/nifi-api/connections/abd5a02c-018b-1000-c602-fe83979f1997',
-            permissions: {
-                canRead: true,
-                canWrite: true
-            },
-            component: {
-                id: 'abd5a02c-018b-1000-c602-fe83979f1997',
-                versionedComponentId: '8ae63ec1-bf33-3af4-a1c1-bd19d41c19ec',
-                parentGroupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                source: {
-                    id: 'a67bf99d-018b-1000-611d-2993eb2f64b8',
-                    versionedComponentId: '77458ab4-8e53-3855-a682-c787a2705b9d',
-                    type: 'INPUT_PORT',
-                    groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                    name: 'in',
-                    running: false
-                },
-                destination: {
-                    id: 'a687e30e-018b-1000-f904-849a9f8e6bdb',
-                    versionedComponentId: '56cf65da-e2cd-3ec5-9d69-d73c382a9049',
-                    type: 'OUTPUT_PORT',
-                    groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                    name: 'out',
-                    running: false
-                },
-                name: '',
-                labelIndex: 1,
-                zIndex: 0,
-                backPressureObjectThreshold: 10000,
-                backPressureDataSizeThreshold: '1 GB',
-                flowFileExpiration: '0 sec',
-                prioritizers: [],
-                bends: [],
-                loadBalanceStrategy: 'DO_NOT_LOAD_BALANCE',
-                loadBalancePartitionAttribute: '',
-                loadBalanceCompression: 'DO_NOT_COMPRESS',
-                loadBalanceStatus: 'LOAD_BALANCE_NOT_CONFIGURED'
-            },
-            status: {
-                id: 'abd5a02c-018b-1000-c602-fe83979f1997',
-                groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                name: '',
-                statsLastRefreshed: '09:06:47 EST',
-                sourceId: 'a67bf99d-018b-1000-611d-2993eb2f64b8',
-                sourceName: 'in',
-                destinationId: 'a687e30e-018b-1000-f904-849a9f8e6bdb',
-                destinationName: 'out',
-                aggregateSnapshot: {
-                    id: 'abd5a02c-018b-1000-c602-fe83979f1997',
-                    groupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-                    name: '',
-                    sourceName: 'in',
-                    destinationName: 'out',
-                    flowFilesIn: 0,
-                    bytesIn: 0,
-                    input: '0 (0 bytes)',
-                    flowFilesOut: 0,
-                    bytesOut: 0,
-                    output: '0 (0 bytes)',
-                    flowFilesQueued: 0,
-                    bytesQueued: 0,
-                    queued: '0 (0 bytes)',
-                    queuedSize: '0 bytes',
-                    queuedCount: '0',
-                    percentUseCount: 0,
-                    percentUseBytes: 0,
-                    flowFileAvailability: 'ACTIVE_QUEUE_EMPTY'
-                }
-            },
-            bends: [],
-            labelIndex: 1,
-            zIndex: 0,
-            sourceId: 'a67bf99d-018b-1000-611d-2993eb2f64b8',
-            sourceGroupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-            sourceType: 'INPUT_PORT',
-            destinationId: 'a687e30e-018b-1000-f904-849a9f8e6bdb',
-            destinationGroupId: '95a4b210-018b-1000-772a-5a9ebfa03287',
-            destinationType: 'OUTPUT_PORT'
-        }
-        // TODO - create separate test for existing different scenario edit scenarios
-        // newDestination?: {
-        //     type: ComponentType | null;
-        //     id?: string;
-        //     groupId: string;
-        //     name: string;
-        // }
-    };
+            newDestination
+        };
+    }
 
-    beforeEach(() => {
-        TestBed.configureTestingModule({
+    function createMockBreadcrumb(canRead: boolean = true) {
+        return {
+            id: 'breadcrumb-id',
+            permissions: { canRead, canWrite: true },
+            breadcrumb: { id: 'breadcrumb-id', name: 'Test Breadcrumb' },
+            versionedFlowState: 'UP_TO_DATE'
+        };
+    }
+
+    function createMockPrioritizerTypes() {
+        return [
+            {
+                type: 'org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer',
+                bundle: { group: 'org.apache.nifi', artifact: 'nifi-framework-nar', version: '2.0.0-SNAPSHOT' },
+                restricted: false,
+                tags: []
+            }
+        ];
+    }
+
+    // Setup function for component configuration
+    async function setup(
+        options: {
+            dialogRequest?: EditConnectionDialogRequest;
+            mockStore?: any;
+        } = {}
+    ) {
+        const defaultConnection = createMockConnection();
+        const defaultDialogRequest = options.dialogRequest || createMockDialogRequest(defaultConnection);
+
+        const storeState = {
+            ...initialState,
+            ...options.mockStore
+        };
+
+        await TestBed.configureTestingModule({
             imports: [EditConnectionComponent, NoopAnimationsModule],
             providers: [
-                {
-                    provide: MAT_DIALOG_DATA,
-                    useValue: data
-                },
+                { provide: MAT_DIALOG_DATA, useValue: defaultDialogRequest },
                 provideMockStore({
                     initialState: {
                         [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: initialCurrentUserState,
                         [canvasFeatureKey]: {
-                            [flowFeatureKey]: initialState
+                            [flowFeatureKey]: storeState
                         }
                     }
                 }),
                 { provide: MatDialogRef, useValue: null }
             ]
-        });
+        }).compileComponents();
 
-        store = TestBed.inject(MockStore);
-        store.overrideSelector(selectPrioritizerTypes, [
-            {
-                type: 'org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer',
-                bundle: {
-                    group: 'org.apache.nifi',
-                    artifact: 'nifi-framework-nar',
-                    version: '2.0.0-SNAPSHOT'
-                },
-                restricted: false,
-                tags: []
-            }
-        ]);
+        const store = TestBed.inject(MockStore);
 
-        fixture = TestBed.createComponent(EditConnectionComponent);
-        component = fixture.componentInstance;
+        // Setup mock selectors
+        store.overrideSelector(selectPrioritizerTypes, createMockPrioritizerTypes());
+        store.overrideSelector(selectSaving, false);
+        store.overrideSelector(selectBreadcrumbs, createMockBreadcrumb());
+
+        const fixture = TestBed.createComponent(EditConnectionComponent);
+        const component = fixture.componentInstance;
+
         fixture.detectChanges();
+
+        return { component, fixture, store };
+    }
+
+    beforeEach(() => {
+        jest.clearAllMocks();
     });
 
-    it('should create', () => {
-        expect(component).toBeTruthy();
+    describe('Component initialization', () => {
+        it('should create', async () => {
+            const { component } = await setup();
+            expect(component).toBeTruthy();
+        });
+
+        it('should initialize with basic connection data', async () => {
+            const connection = createMockConnection();
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.source).toEqual(connection.source);
+            expect(component.sourceType).toBe(ComponentType.InputPort);
+            expect(component.destinationType).toBe(ComponentType.OutputPort);
+            expect(component.destinationId).toBe(connection.destination.id);
+        });
+
+        it('should initialize form with connection values', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                name: 'My Connection',
+                flowFileExpiration: '30 sec',
+                backPressureObjectThreshold: 5000,
+                loadBalanceStrategy: 'ROUND_ROBIN'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.editConnectionForm.get('name')?.value).toBe('My Connection');
+            expect(component.editConnectionForm.get('flowFileExpiration')?.value).toBe('30 sec');
+            expect(component.editConnectionForm.get('backPressureObjectThreshold')?.value).toBe(5000);
+            expect(component.editConnectionForm.get('loadBalanceStrategy')?.value).toBe('ROUND_ROBIN');
+        });
+
+        it('should set readonly state based on permissions', async () => {
+            const connection = createMockConnection();
+            const dialogRequest = createMockDialogRequest(connection, { canRead: true, canWrite: false });
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.connectionReadonly).toBe(true);
+        });
+    });
+
+    describe('Source component type logic', () => {
+        it('should handle Processor source type', async () => {
+            const connection = createMockConnection('PROCESSOR', 'OUTPUT_PORT', {
+                selectedRelationships: ['success', 'failure']
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.sourceType).toBe(ComponentType.Processor);
+            expect(component.editConnectionForm.get('relationships')).toBeTruthy();
+            expect(component.editConnectionForm.get('relationships')?.value).toEqual(['success', 'failure']);
+        });
+
+        it('should handle ProcessGroup source type', async () => {
+            const connection = createMockConnection('OUTPUT_PORT', 'OUTPUT_PORT');
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.sourceType).toBe(ComponentType.ProcessGroup);
+            expect(component.editConnectionForm.get('source')).toBeTruthy();
+            expect(component.editConnectionForm.get('source')?.disabled).toBe(true);
+        });
+
+        it('should handle RemoteProcessGroup source type', async () => {
+            const connection = createMockConnection('REMOTE_OUTPUT_PORT', 'OUTPUT_PORT');
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.sourceType).toBe(ComponentType.RemoteProcessGroup);
+            expect(component.editConnectionForm.get('source')).toBeTruthy();
+        });
+
+        it('should handle InputPort source type', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT');
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.sourceType).toBe(ComponentType.InputPort);
+            expect(component.editConnectionForm.get('relationships')).toBeFalsy();
+        });
+    });
+
+    describe('Destination component type logic', () => {
+        it('should handle ProcessGroup destination type', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'INPUT_PORT');
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.destinationType).toBe(ComponentType.ProcessGroup);
+            expect(component.editConnectionForm.get('destination')).toBeTruthy();
+            expect(component.editConnectionForm.get('destination')?.value).toBe(connection.destination.id);
+        });
+
+        it('should handle RemoteProcessGroup destination type', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'REMOTE_INPUT_PORT');
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.destinationType).toBe(ComponentType.RemoteProcessGroup);
+            expect(component.editConnectionForm.get('destination')).toBeTruthy();
+        });
+
+        it('should handle Processor destination type', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'PROCESSOR');
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.destinationType).toBe(ComponentType.Processor);
+            expect(component.editConnectionForm.get('destination')).toBeFalsy();
+        });
+    });
+
+    describe('Load balance strategy logic', () => {
+        it('should handle DO_NOT_LOAD_BALANCE strategy', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'DO_NOT_LOAD_BALANCE'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.loadBalancePartitionAttributeRequired).toBe(false);
+            expect(component.loadBalanceCompressionRequired).toBe(false);
+            expect(component.editConnectionForm.get('partitionAttribute')).toBeFalsy();
+            expect(component.editConnectionForm.get('compression')).toBeFalsy();
+        });
+
+        it('should handle PARTITION_BY_ATTRIBUTE strategy', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'PARTITION_BY_ATTRIBUTE',
+                loadBalancePartitionAttribute: 'filename',
+                loadBalanceCompression: 'GZIP'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.loadBalancePartitionAttributeRequired).toBe(true);
+            expect(component.loadBalanceCompressionRequired).toBe(true);
+            expect(component.editConnectionForm.get('partitionAttribute')).toBeTruthy();
+            expect(component.editConnectionForm.get('partitionAttribute')?.value).toBe('filename');
+            expect(component.editConnectionForm.get('compression')).toBeTruthy();
+            expect(component.editConnectionForm.get('compression')?.value).toBe('GZIP');
+        });
+
+        it('should handle ROUND_ROBIN strategy', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'ROUND_ROBIN',
+                loadBalanceCompression: 'SNAPPY'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.loadBalancePartitionAttributeRequired).toBe(false);
+            expect(component.loadBalanceCompressionRequired).toBe(true);
+            expect(component.editConnectionForm.get('partitionAttribute')).toBeFalsy();
+            expect(component.editConnectionForm.get('compression')).toBeTruthy();
+        });
+
+        it('should add partition attribute control when strategy changes to PARTITION_BY_ATTRIBUTE', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'DO_NOT_LOAD_BALANCE'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            component.loadBalanceChanged('PARTITION_BY_ATTRIBUTE');
+
+            expect(component.loadBalancePartitionAttributeRequired).toBe(true);
+            expect(component.loadBalanceCompressionRequired).toBe(true);
+            expect(component.editConnectionForm.get('partitionAttribute')).toBeTruthy();
+            expect(component.editConnectionForm.get('compression')).toBeTruthy();
+        });
+
+        it('should remove controls when strategy changes to DO_NOT_LOAD_BALANCE', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'PARTITION_BY_ATTRIBUTE',
+                loadBalancePartitionAttribute: 'filename'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component } = await setup({ dialogRequest });
+
+            component.loadBalanceChanged('DO_NOT_LOAD_BALANCE');
+
+            expect(component.loadBalancePartitionAttributeRequired).toBe(false);
+            expect(component.loadBalanceCompressionRequired).toBe(false);
+            expect(component.editConnectionForm.get('partitionAttribute')).toBeFalsy();
+            expect(component.editConnectionForm.get('compression')).toBeFalsy();
+        });
+    });
+
+    describe('New destination logic', () => {
+        it('should initialize with new destination when provided', async () => {
+            const connection = createMockConnection();
+            const newDestination = {
+                type: ComponentType.Processor,
+                id: 'new-processor-id',
+                groupId: 'new-group-id',
+                name: 'New Processor'
+            };
+            const dialogRequest = createMockDialogRequest(connection, undefined, newDestination);
+            const { component } = await setup({ dialogRequest });
+
+            expect(component.destinationType).toBe(ComponentType.Processor);
+            expect(component.destinationId).toBe('new-processor-id');
+            expect(component.destinationGroupId).toBe('new-group-id');
+            expect(component.destinationName).toBe('New Processor');
+            expect(component.previousDestination).toEqual(connection.destination);
+        });
+    });
+
+    describe('Edit connection method', () => {
+        it('should dispatch updateConnection action when editConnection is called', async () => {
+            const connection = createMockConnection();
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component, store } = await setup({ dialogRequest });
+
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+            component.editConnection();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                updateConnection({
+                    request: expect.objectContaining({
+                        id: connection.id,
+                        type: ComponentType.Connection,
+                        payload: expect.objectContaining({
+                            component: expect.objectContaining({
+                                id: connection.id
+                            })
+                        })
+                    })
+                })
+            );
+        });
+
+        it('should include relationships for Processor source type', async () => {
+            const connection = createMockConnection('PROCESSOR', 'OUTPUT_PORT', {
+                selectedRelationships: ['success']
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component, store } = await setup({ dialogRequest });
+
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+
+            component.editConnection();
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                updateConnection({
+                    request: expect.objectContaining({
+                        payload: expect.objectContaining({
+                            component: expect.objectContaining({
+                                selectedRelationships: ['success']
+                            })
+                        })
+                    })
+                })
+            );
+        });
+    });
+
+    describe('Template logic', () => {
+        it('should display "Edit Connection" title when not readonly', async () => {
+            const connection = createMockConnection();
+            const dialogRequest = createMockDialogRequest(connection, { canRead: true, canWrite: true });
+            const { fixture } = await setup({ dialogRequest });
+
+            const dialogTitle = fixture.nativeElement.querySelector('[data-qa="dialog-title"]');
+            expect(dialogTitle).toBeTruthy();
+            expect(dialogTitle.textContent.trim()).toBe('Edit Connection');
+        });
+
+        it('should display "Connection Details" title when readonly', async () => {
+            const connection = createMockConnection();
+            const dialogRequest = createMockDialogRequest(connection, { canRead: true, canWrite: false });
+            const { fixture } = await setup({ dialogRequest });
+
+            const dialogTitle = fixture.nativeElement.querySelector('[data-qa="dialog-title"]');
+            expect(dialogTitle).toBeTruthy();
+            expect(dialogTitle.textContent.trim()).toBe('Connection Details');
+        });
+
+        it('should display edit connection form', async () => {
+            const { fixture } = await setup();
+
+            const editForm = fixture.nativeElement.querySelector('[data-qa="edit-connection-form"]');
+            expect(editForm).toBeTruthy();
+
+            const connectionTabs = fixture.nativeElement.querySelector('[data-qa="connection-tabs"]');
+            expect(connectionTabs).toBeTruthy();
+        });
+
+        it('should display partition attribute section when PARTITION_BY_ATTRIBUTE is selected', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'PARTITION_BY_ATTRIBUTE',
+                loadBalancePartitionAttribute: 'filename'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component, fixture } = await setup({ dialogRequest });
+
+            // Switch to Settings tab (index 1) where the partition attribute section is displayed
+            component.selectedIndex = 1;
+            fixture.detectChanges();
+
+            const partitionSection = fixture.nativeElement.querySelector('[data-qa="partition-attribute-section"]');
+            expect(partitionSection).toBeTruthy();
+
+            const partitionInput = fixture.nativeElement.querySelector('[data-qa="partition-attribute-input"]');
+            expect(partitionInput).toBeTruthy();
+        });
+
+        it('should not display partition attribute section when DO_NOT_LOAD_BALANCE is selected', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'DO_NOT_LOAD_BALANCE'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component, fixture } = await setup({ dialogRequest });
+
+            // Switch to Settings tab (index 1) where the partition attribute section would be displayed
+            component.selectedIndex = 1;
+            fixture.detectChanges();
+
+            const partitionSection = fixture.nativeElement.querySelector('[data-qa="partition-attribute-section"]');
+            expect(partitionSection).toBeFalsy();
+        });
+
+        it('should display compression section when load balance strategy requires compression', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'ROUND_ROBIN',
+                loadBalanceCompression: 'GZIP'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component, fixture } = await setup({ dialogRequest });
+
+            // Switch to Settings tab (index 1) where the compression section is displayed
+            component.selectedIndex = 1;
+            fixture.detectChanges();
+
+            const compressionSection = fixture.nativeElement.querySelector('[data-qa="compression-section"]');
+            expect(compressionSection).toBeTruthy();
+
+            const compressionSelect = fixture.nativeElement.querySelector('[data-qa="compression-select"]');
+            expect(compressionSelect).toBeTruthy();
+        });
+
+        it('should not display compression section when DO_NOT_LOAD_BALANCE is selected', async () => {
+            const connection = createMockConnection('INPUT_PORT', 'OUTPUT_PORT', {
+                loadBalanceStrategy: 'DO_NOT_LOAD_BALANCE'
+            });
+            const dialogRequest = createMockDialogRequest(connection);
+            const { component, fixture } = await setup({ dialogRequest });
+
+            // Switch to Settings tab (index 1) where the compression section would be displayed
+            component.selectedIndex = 1;
+            fixture.detectChanges();
+
+            const compressionSection = fixture.nativeElement.querySelector('[data-qa="compression-section"]');
+            expect(compressionSection).toBeFalsy();
+        });
+
+        it('should display Close button when readonly', async () => {
+            const connection = createMockConnection();
+            const dialogRequest = createMockDialogRequest(connection, { canRead: true, canWrite: false });
+            const { fixture } = await setup({ dialogRequest });
+
+            const closeButton = fixture.nativeElement.querySelector('[data-qa="close-button"]');
+            expect(closeButton).toBeTruthy();
+            expect(closeButton.textContent.trim()).toBe('Close');
+
+            // Should not show Cancel/Apply buttons
+            const cancelButton = fixture.nativeElement.querySelector('[data-qa="cancel-button"]');
+            const applyButton = fixture.nativeElement.querySelector('[data-qa="apply-button"]');
+            expect(cancelButton).toBeFalsy();
+            expect(applyButton).toBeFalsy();
+        });
+
+        it('should display Cancel and Apply buttons when not readonly', async () => {
+            const connection = createMockConnection();
+            const dialogRequest = createMockDialogRequest(connection, { canRead: true, canWrite: true });
+            const { fixture } = await setup({ dialogRequest });
+
+            const cancelButton = fixture.nativeElement.querySelector('[data-qa="cancel-button"]');
+            const applyButton = fixture.nativeElement.querySelector('[data-qa="apply-button"]');
+            expect(cancelButton).toBeTruthy();
+            expect(applyButton).toBeTruthy();
+
+            // Should not show Close button
+            const closeButton = fixture.nativeElement.querySelector('[data-qa="close-button"]');
+            expect(closeButton).toBeFalsy();
+        });
     });
 });

@@ -167,11 +167,15 @@ export class Prioritizers implements ControlValueAccessor {
         // mark the component as touched if not already
         if (!this.isTouched) {
             this.isTouched = true;
-            this.onTouched();
+            if (this.onTouched) {
+                this.onTouched();
+            }
         }
 
         // emit the changes
-        this.onChange(this.serializeSelectedPrioritizers());
+        if (this.onChange) {
+            this.onChange(this.serializeSelectedPrioritizers());
+        }
     }
 
     private serializeSelectedPrioritizers(): string[] {
