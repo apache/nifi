@@ -684,4 +684,171 @@ describe('ParameterTable', () => {
             expect(component.isVisible(item)).toBe(true);
         });
     });
+
+    describe('doubleClicked', () => {
+        it('should call editClicked when parameter is editable and not disabled', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+
+            const editClickedSpy = jest.spyOn(component, 'editClicked').mockImplementation(() => {});
+            component.isDisabled = false;
+
+            component.doubleClicked(item);
+
+            expect(editClickedSpy).toHaveBeenCalledWith(item);
+        });
+
+        it('should not call editClicked when parameter is not editable', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: true, // provided parameters cannot be edited
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+
+            const editClickedSpy = jest.spyOn(component, 'editClicked');
+            component.isDisabled = false;
+
+            component.doubleClicked(item);
+
+            expect(editClickedSpy).not.toHaveBeenCalled();
+        });
+
+        it('should not call editClicked when component is disabled', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: false
+                    },
+                    canWrite: true
+                }
+            };
+
+            const editClickedSpy = jest.spyOn(component, 'editClicked');
+            component.isDisabled = true;
+
+            component.doubleClicked(item);
+
+            expect(editClickedSpy).not.toHaveBeenCalled();
+        });
+
+        it('should not call editClicked when parameter does not have write permission', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: false
+                    },
+                    canWrite: false
+                }
+            };
+
+            const editClickedSpy = jest.spyOn(component, 'editClicked');
+            component.isDisabled = false;
+
+            component.doubleClicked(item);
+
+            expect(editClickedSpy).not.toHaveBeenCalled();
+        });
+
+        it('should not call editClicked for inherited parameter that is not overridden', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                }
+            };
+
+            const editClickedSpy = jest.spyOn(component, 'editClicked');
+            component.isDisabled = false;
+
+            component.doubleClicked(item);
+
+            expect(editClickedSpy).not.toHaveBeenCalled();
+        });
+
+        it('should call editClicked for inherited parameter that is overridden', () => {
+            const item: ParameterItem = {
+                added: false,
+                dirty: false,
+                deleted: false,
+                originalEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value',
+                        description: 'asdf',
+                        sensitive: false,
+                        provided: false,
+                        inherited: true
+                    },
+                    canWrite: true
+                },
+                updatedEntity: {
+                    parameter: {
+                        name: 'param',
+                        value: 'value2',
+                        description: 'asdf',
+                        sensitive: false
+                    },
+                    canWrite: true
+                }
+            };
+
+            const editClickedSpy = jest.spyOn(component, 'editClicked').mockImplementation(() => {});
+            component.isDisabled = false;
+
+            component.doubleClicked(item);
+
+            expect(editClickedSpy).toHaveBeenCalledWith(item);
+        });
+    });
 });
