@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.services.couchbase;
 
-import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
+import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
 
@@ -27,5 +27,5 @@ public interface CouchbaseClient {
 
     CouchbaseUpsertResult upsertDocument(String documentId, byte[] content) throws CouchbaseException;
 
-    CouchbaseErrorHandler getErrorHandler();
+    ExceptionCategory getExceptionCategory(Throwable throwable);
 }

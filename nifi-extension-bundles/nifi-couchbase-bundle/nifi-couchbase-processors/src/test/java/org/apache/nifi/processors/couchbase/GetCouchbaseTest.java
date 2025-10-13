@@ -21,8 +21,8 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.couchbase.CouchbaseClient;
 import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
-import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
+import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +81,6 @@ public class GetCouchbaseTest {
         final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
         when(client.getDocument(anyString())).thenReturn(result);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
@@ -123,7 +121,6 @@ public class GetCouchbaseTest {
         final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
         when(client.getDocument(anyString())).thenReturn(result);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
@@ -166,7 +163,6 @@ public class GetCouchbaseTest {
         final CouchbaseGetResult result = new CouchbaseGetResult(content.getBytes(), TEST_CAS);
 
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
         when(client.getDocument(anyString())).thenReturn(result);
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
@@ -205,7 +201,7 @@ public class GetCouchbaseTest {
     @Test
     public void testWithFailure() throws CouchbaseException, InitializationException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
+        when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.FAILURE);
         when(client.getDocument(anyString())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);

@@ -16,23 +16,8 @@
  */
 package org.apache.nifi.services.couchbase.exception;
 
-import java.util.Map;
-
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE;
-
-public class CouchbaseErrorHandler {
-
-    private final Map<Class<? extends Exception>, ErrorHandlingStrategy> exceptionMapping;
-
-    public CouchbaseErrorHandler(Map<Class<? extends Exception>, ErrorHandlingStrategy> exceptionMapping) {
-        this.exceptionMapping = exceptionMapping;
-    }
-
-    public ErrorHandlingStrategy getStrategy(Throwable throwable) {
-        return exceptionMapping.getOrDefault(throwable.getClass(), FAILURE);
-    }
-
-    public enum ErrorHandlingStrategy {
-        ROLLBACK, FAILURE, RETRY
-    }
+public enum ExceptionCategory {
+    ROLLBACK,
+    FAILURE,
+    RETRY
 }

@@ -51,8 +51,8 @@ import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.client.java.kv.PersistTo;
 import com.couchbase.client.java.kv.ReplicateTo;
 import com.couchbase.client.java.kv.UpsertOptions;
-import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
+import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
 import org.apache.nifi.services.couchbase.utils.DocumentType;
@@ -63,9 +63,9 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 import static java.util.Map.entry;
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE;
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.RETRY;
-import static org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler.ErrorHandlingStrategy.ROLLBACK;
+import static org.apache.nifi.services.couchbase.exception.ExceptionCategory.FAILURE;
+import static org.apache.nifi.services.couchbase.exception.ExceptionCategory.RETRY;
+import static org.apache.nifi.services.couchbase.exception.ExceptionCategory.ROLLBACK;
 
 class StandardCouchbaseClient implements CouchbaseClient {
 
@@ -73,6 +73,36 @@ class StandardCouchbaseClient implements CouchbaseClient {
     private final DocumentType documentType;
     private final PersistTo persistTo;
     private final ReplicateTo replicateTo;
+
+    private final Map<Class<? extends Exception>, ExceptionCategory> exceptionMapping = Map.ofEntries(
+            entry(AuthenticationFailureException.class, ROLLBACK),
+            entry(BucketNotFoundException.class, ROLLBACK),
+            entry(ScopeNotFoundException.class, ROLLBACK),
+            entry(CollectionNotFoundException.class, ROLLBACK),
+            entry(DatasetNotFoundException.class, ROLLBACK),
+            entry(ServiceNotAvailableException.class, ROLLBACK),
+            entry(FeatureNotAvailableException.class, ROLLBACK),
+            entry(InvalidArgumentException.class, ROLLBACK),
+            entry(ConfigException.class, ROLLBACK),
+
+            entry(RequestCanceledException.class, RETRY),
+            entry(TemporaryFailureException.class, RETRY),
+            entry(DurableWriteInProgressException.class, RETRY),
+            entry(DurableWriteReCommitInProgressException.class, RETRY),
+            entry(ServerOutOfMemoryException.class, RETRY),
+            entry(DocumentLockedException.class, RETRY),
+            entry(DocumentMutationLostException.class, RETRY),
+            entry(DocumentUnretrievableException.class, RETRY),
+            entry(DocumentNotLockedException.class, RETRY),
+
+            entry(DocumentNotFoundException.class, FAILURE),
+            entry(DocumentExistsException.class, FAILURE),
+            entry(CasMismatchException.class, FAILURE),
+            entry(DecodingFailureException.class, FAILURE),
+            entry(PathNotFoundException.class, FAILURE),
+            entry(PathExistsException.class, FAILURE),
+            entry(ValueTooLargeException.class, FAILURE)
+    );
 
     StandardCouchbaseClient(Collection collection, DocumentType documentType, PersistTo persistTo, ReplicateTo replicateTo) {
         this.collection = collection;
@@ -88,7 +118,7 @@ class StandardCouchbaseClient implements CouchbaseClient {
 
             return new CouchbaseGetResult(result.contentAsBytes(), result.cas());
         } catch (Exception e) {
-            throw new CouchbaseException("An error occurred while getting the document from Couchbase", e);
+            throw new CouchbaseException("Failed to get document [%s] from Couchbase".formatted(documentId), e);
         }
     }
 
@@ -107,43 +137,13 @@ class StandardCouchbaseClient implements CouchbaseClient {
 
             return new CouchbaseUpsertResult(result.cas());
         } catch (Exception e) {
-            throw new CouchbaseException("An error occurred while upserting the document in Couchbase", e);
+            throw new CouchbaseException("Failed to upsert document [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public CouchbaseErrorHandler getErrorHandler() {
-        final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping = Map.ofEntries(
-                entry(AuthenticationFailureException.class, ROLLBACK),
-                entry(BucketNotFoundException.class, ROLLBACK),
-                entry(ScopeNotFoundException.class, ROLLBACK),
-                entry(CollectionNotFoundException.class, ROLLBACK),
-                entry(DatasetNotFoundException.class, ROLLBACK),
-                entry(ServiceNotAvailableException.class, ROLLBACK),
-                entry(FeatureNotAvailableException.class, ROLLBACK),
-                entry(InvalidArgumentException.class, ROLLBACK),
-                entry(ConfigException.class, ROLLBACK),
-
-                entry(RequestCanceledException.class, RETRY),
-                entry(TemporaryFailureException.class, RETRY),
-                entry(DurableWriteInProgressException.class, RETRY),
-                entry(DurableWriteReCommitInProgressException.class, RETRY),
-                entry(ServerOutOfMemoryException.class, RETRY),
-                entry(DocumentLockedException.class, RETRY),
-                entry(DocumentMutationLostException.class, RETRY),
-                entry(DocumentUnretrievableException.class, RETRY),
-                entry(DocumentNotLockedException.class, RETRY),
-
-                entry(DocumentNotFoundException.class, FAILURE),
-                entry(DocumentExistsException.class, FAILURE),
-                entry(CasMismatchException.class, FAILURE),
-                entry(DecodingFailureException.class, FAILURE),
-                entry(PathNotFoundException.class, FAILURE),
-                entry(PathExistsException.class, FAILURE),
-                entry(ValueTooLargeException.class, FAILURE)
-        );
-
-        return new CouchbaseErrorHandler(exceptionMapping);
+    public ExceptionCategory getExceptionCategory(Throwable throwable) {
+        return exceptionMapping.getOrDefault(throwable.getClass(), FAILURE);
     }
 
     private Transcoder getTranscoder(DocumentType documentType) {

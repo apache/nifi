@@ -27,10 +27,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.couchbase.CouchbaseClient;
+import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
 import org.apache.nifi.services.couchbase.utils.DocumentType;
 import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
-import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.stream.io.StreamUtils;
 
@@ -177,8 +177,8 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
                                             ComponentLog logger, FlowFile flowFile, CouchbaseException e, String errorMessage) {
         final Throwable throwable = (e.getCause() != null) ? e.getCause() : e;
         logger.error(errorMessage, throwable);
-        final CouchbaseErrorHandler.ErrorHandlingStrategy strategy = couchbaseClient.getErrorHandler().getStrategy(throwable);
-        switch (strategy) {
+        final ExceptionCategory exceptionCategory = couchbaseClient.getExceptionCategory(throwable);
+        switch (exceptionCategory) {
             case ROLLBACK -> session.rollback();
             case FAILURE -> {
                 context.yield();

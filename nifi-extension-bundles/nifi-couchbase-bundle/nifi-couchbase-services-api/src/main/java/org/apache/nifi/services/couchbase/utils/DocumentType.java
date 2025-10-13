@@ -21,8 +21,8 @@ package org.apache.nifi.services.couchbase.utils;
  */
 public enum DocumentType {
 
-    JSON( "application/json"),
-    BINARY( "application/octet-stream");
+    JSON("application/json"),
+    BINARY("application/octet-stream");
 
     private final String mimeType;
 

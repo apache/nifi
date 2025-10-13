@@ -21,8 +21,8 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.couchbase.CouchbaseClient;
 import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
-import org.apache.nifi.services.couchbase.exception.CouchbaseErrorHandler;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
+import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
@@ -32,7 +32,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +74,6 @@ public class PutCouchbaseTest {
     @Test
     public void testWithDocumentIdAsFlowFileAttribute() throws CouchbaseException, InitializationException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
         when(client.upsertDocument(anyString(), any())).thenReturn(new CouchbaseUpsertResult(TEST_CAS));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
@@ -118,11 +116,8 @@ public class PutCouchbaseTest {
 
     @Test
     public void testWithFailure() throws CouchbaseException, InitializationException {
-        final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(TestCouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.FAILURE);
-
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(exceptionMapping));
+        when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.FAILURE);
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
@@ -144,11 +139,8 @@ public class PutCouchbaseTest {
 
     @Test
     public void testWithRetry() throws CouchbaseException, InitializationException {
-        final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(TestCouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.RETRY);
-
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(exceptionMapping));
+        when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.RETRY);
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
@@ -170,11 +162,8 @@ public class PutCouchbaseTest {
 
     @Test
     public void testWithRollback() throws CouchbaseException, InitializationException {
-        final Map<Class<? extends Exception>, CouchbaseErrorHandler.ErrorHandlingStrategy> exceptionMapping =
-                Collections.singletonMap(TestCouchbaseException.class, CouchbaseErrorHandler.ErrorHandlingStrategy.ROLLBACK);
-
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(exceptionMapping));
+        when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.ROLLBACK);
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
@@ -197,7 +186,7 @@ public class PutCouchbaseTest {
     @Test
     public void testWithUnknownException() throws CouchbaseException, InitializationException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getErrorHandler()).thenReturn(new CouchbaseErrorHandler(Collections.emptyMap()));
+        when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.FAILURE);
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
         final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
