@@ -262,9 +262,13 @@ public class EnrichGraphRecord extends  AbstractGraphExecutor {
                     Map<String, Object> dynamicPropertyMap = new HashMap<>();
                     for (String entry : dynamic.keySet()) {
                         if (!dynamicPropertyMap.containsKey(entry)) {
-                            final Object propertyValue = getRecordValue(record, dynamic.get(entry));
+                            final List<FieldValue> propertyValues = getRecordValue(record, dynamic.get(entry));
+                            // Use the first value if multiple are found
+                            if (propertyValues == null || propertyValues.isEmpty() || propertyValues.get(0).getValue() == null) {
+                                throw new IOException("Dynamic property field(s) not found in record (check the RecordPath Expression), sending this record to failure");
+                            }
 
-                            dynamicPropertyMap.put(entry, propertyValue);
+                            dynamicPropertyMap.put(entry, propertyValues.get(0).getValue());
                         }
                     }
 
