@@ -41,7 +41,6 @@
                         <ng-container matColumnDef="type">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
                             <td mat-cell *matCellDef="let row">
-                                <i class="fa mr-2" [ngClass]="row.type === 'group' ? 'fa-users' : ''"></i>
                                 {{ row.type }}
                             </td>
                         </ng-container>
