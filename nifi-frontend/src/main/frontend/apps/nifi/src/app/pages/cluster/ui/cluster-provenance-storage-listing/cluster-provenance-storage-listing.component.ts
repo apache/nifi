@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import {
     selectClusterListingLoadedTimestamp,
     selectClusterListingStatus,
@@ -75,12 +75,11 @@ export class ClusterProvenanceStorageListing {
         })
     );
 
-    isInitialLoading(loadedTimestamp: string, systemDiagnosticsLoadedTimestamp: string): boolean {
-        return (
-            loadedTimestamp == initialClusterState.loadedTimestamp ||
-            systemDiagnosticsLoadedTimestamp == initialSystemDiagnosticsState.loadedTimestamp
-        );
-    }
+    isInitialLoading = computed(
+        () =>
+            this.loadedTimestamp() == initialClusterState.loadedTimestamp ||
+            this.systemDiagnosticsLoadedTimestamp() == initialSystemDiagnosticsState.loadedTimestamp
+    );
 
     selectStorageNode(node: ClusterNodeRepositoryStorageUsage): void {
         this.store.dispatch(

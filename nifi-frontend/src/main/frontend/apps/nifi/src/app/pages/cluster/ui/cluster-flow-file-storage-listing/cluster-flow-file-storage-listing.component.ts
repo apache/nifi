@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { RepositoryStorageTable } from '../common/repository-storage-table/repository-storage-table.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import {
@@ -69,12 +69,11 @@ export class ClusterFlowFileStorageListing {
         })
     );
 
-    isInitialLoading(loadedTimestamp: string, systemDiagnosticsLoadedTimestamp: string): boolean {
-        return (
-            loadedTimestamp == initialClusterState.loadedTimestamp ||
-            systemDiagnosticsLoadedTimestamp == initialSystemDiagnosticsState.loadedTimestamp
-        );
-    }
+    isInitialLoading = computed(
+        () =>
+            this.loadedTimestamp() == initialClusterState.loadedTimestamp ||
+            this.systemDiagnosticsLoadedTimestamp() == initialSystemDiagnosticsState.loadedTimestamp
+    );
 
     selectStorageNode(node: ClusterNodeRepositoryStorageUsage): void {
         this.store.dispatch(selectFlowFileStorageNode({ request: { id: node.nodeId } }));

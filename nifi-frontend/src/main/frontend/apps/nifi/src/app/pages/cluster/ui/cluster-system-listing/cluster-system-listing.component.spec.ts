@@ -21,8 +21,12 @@ import { ClusterSystemListing } from './cluster-system-listing.component';
 import { clusterListingFeatureKey } from '../../state/cluster-listing';
 import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
 import { clusterFeatureKey } from '../../state';
-import { provideMockStore } from '@ngrx/store/testing';
-import { selectClusterListing } from '../../state/cluster-listing/cluster-listing.selectors';
+import { provideMockStore, MockStore } from '@ngrx/store/testing';
+import {
+    selectClusterListing,
+    selectClusterListingLoadedTimestamp
+} from '../../state/cluster-listing/cluster-listing.selectors';
+import { selectSystemDiagnosticsLoadedTimestamp } from '../../../../state/system-diagnostics/system-diagnostics.selectors';
 import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
 import { errorFeatureKey } from '../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
@@ -33,6 +37,7 @@ import { systemDiagnosticsFeatureKey } from '../../../../state/system-diagnostic
 describe('ClusterSystemListing', () => {
     let component: ClusterSystemListing;
     let fixture: ComponentFixture<ClusterSystemListing>;
+    let store: MockStore;
 
     beforeEach(async () => {
         const initialState = {
@@ -58,6 +63,7 @@ describe('ClusterSystemListing', () => {
             ]
         }).compileComponents();
 
+        store = TestBed.inject(MockStore);
         fixture = TestBed.createComponent(ClusterSystemListing);
         component = fixture.componentInstance;
         fixture.detectChanges();
@@ -69,26 +75,43 @@ describe('ClusterSystemListing', () => {
 
     describe('isInitialLoading', () => {
         it('should return true when both timestamps are empty (initial state)', () => {
-            const result = component.isInitialLoading(
-                initialClusterState.loadedTimestamp,
-                initialSystemDiagnosticsState.loadedTimestamp
-            );
-            expect(result).toBe(true);
+            expect(component.isInitialLoading()).toBe(true);
         });
 
         it('should return true when cluster timestamp is empty but system diagnostics has loaded', () => {
-            const result = component.isInitialLoading(initialClusterState.loadedTimestamp, '10:30:00 UTC');
-            expect(result).toBe(true);
+            store.overrideSelector(selectClusterListingLoadedTimestamp, '');
+            store.overrideSelector(selectSystemDiagnosticsLoadedTimestamp, '10:30:00 UTC');
+            store.refreshState();
+            fixture.detectChanges();
+
+            expect(component.isInitialLoading()).toBe(true);
         });
 
         it('should return true when system diagnostics timestamp is empty but cluster has loaded', () => {
-            const result = component.isInitialLoading('10:30:00 UTC', initialSystemDiagnosticsState.loadedTimestamp);
-            expect(result).toBe(true);
+            store.overrideSelector(selectClusterListingLoadedTimestamp, '10:30:00 UTC');
+            store.overrideSelector(selectSystemDiagnosticsLoadedTimestamp, '');
+            store.refreshState();
+            fixture.detectChanges();
+
+            expect(component.isInitialLoading()).toBe(true);
         });
 
         it('should return false when both timestamps are populated', () => {
-            const result = component.isInitialLoading('10:30:00 UTC', '10:30:05 UTC');
-            expect(result).toBe(false);
+            store.overrideSelector(selectClusterListingLoadedTimestamp, '10:30:00 UTC');
+            store.overrideSelector(selectSystemDiagnosticsLoadedTimestamp, '10:30:05 UTC');
+            store.refreshState();
+            fixture.detectChanges();
+
+            expect(component.isInitialLoading()).toBe(false);
+        });
+
+        it('should return false when data has been loaded and user triggers a refresh', () => {
+            store.overrideSelector(selectClusterListingLoadedTimestamp, '10:30:00 UTC');
+            store.overrideSelector(selectSystemDiagnosticsLoadedTimestamp, '10:30:05 UTC');
+            store.refreshState();
+            fixture.detectChanges();
+
+            expect(component.isInitialLoading()).toBe(false);
         });
     });
 });

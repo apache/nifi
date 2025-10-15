@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import {
     selectClusterListingLoadedTimestamp,
     selectClusterListingStatus,
@@ -49,12 +49,11 @@ export class ClusterVersionListing {
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     nodes = this.store.selectSignal(selectSystemNodeSnapshots);
 
-    isInitialLoading(loadedTimestamp: string, systemDiagnosticsLoadedTimestamp: string): boolean {
-        return (
-            loadedTimestamp == initialClusterState.loadedTimestamp ||
-            systemDiagnosticsLoadedTimestamp == initialSystemDiagnosticsState.loadedTimestamp
-        );
-    }
+    isInitialLoading = computed(
+        () =>
+            this.loadedTimestamp() == initialClusterState.loadedTimestamp ||
+            this.systemDiagnosticsLoadedTimestamp() == initialSystemDiagnosticsState.loadedTimestamp
+    );
 
     selectNode(node: NodeSnapshot): void {
         this.store.dispatch(selectVersionNode({ request: { id: node.nodeId } }));
