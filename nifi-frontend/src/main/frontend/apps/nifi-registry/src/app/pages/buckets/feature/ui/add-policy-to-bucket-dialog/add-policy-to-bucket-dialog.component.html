@@ -34,7 +34,6 @@
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Identity</th>
                             <td mat-cell *matCellDef="let row">
                                 <div class="flex items-center gap-x-2">
-                                    <i class="fa mr-2" [ngClass]="row.type === 'group' ? 'fa-users' : ''"></i>
                                     <div
                                         class="overflow-ellipsis overflow-hidden whitespace-nowrap"
                                         [title]="row.identity">

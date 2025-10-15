@@ -155,6 +155,14 @@ export class ResourcesComponent implements OnInit {
         });
     }
 
+    filterWritableBuckets(buckets: Bucket[]): Bucket[] {
+        return buckets.filter((bucket) => bucket.permissions.canWrite);
+    }
+
+    get canImportNewDroplet(): boolean {
+        return this.buckets.length > 0 && this.filterWritableBuckets(this.buckets).length > 0;
+    }
+
     openImportNewDropletDialog() {
         this.store.dispatch(openImportNewDropletDialog({ request: { buckets: this.buckets } }));
     }
