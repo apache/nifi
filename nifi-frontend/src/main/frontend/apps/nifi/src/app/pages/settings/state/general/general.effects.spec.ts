@@ -16,7 +16,7 @@
  */
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
-import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { provideMockStore } from '@ngrx/store/testing';
 import { ReplaySubject, of, take, throwError } from 'rxjs';
 import { Action } from '@ngrx/store';
 

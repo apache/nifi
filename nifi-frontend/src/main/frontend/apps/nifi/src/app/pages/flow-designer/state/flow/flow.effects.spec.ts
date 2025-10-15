@@ -932,7 +932,6 @@ describe('FlowEffects', () => {
 
             // Arrange error helper
             const errorHelper = TestBed.inject(ErrorHelper);
-            const error = new HttpErrorResponse({ status: 500 });
             const errorAction = FlowActions.flowBannerError({
                 errorContext: { context: 'FLOW', errors: ['e'] } as any
             });
@@ -962,7 +961,6 @@ describe('FlowEffects', () => {
 
             // Arrange error helper
             const errorHelper = TestBed.inject(ErrorHelper);
-            const error = new HttpErrorResponse({ status: 500 });
             const errorAction = FlowActions.flowBannerError({
                 errorContext: { context: 'FLOW', errors: ['e'] } as any
             });

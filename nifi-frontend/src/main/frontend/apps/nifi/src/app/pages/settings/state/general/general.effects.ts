@@ -24,8 +24,6 @@ import { ControllerService } from '../../service/controller.service';
 import { MatDialog } from '@angular/material/dialog';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { NiFiState } from '../../../../state';
-import { Store } from '@ngrx/store';
 import { HttpErrorResponse } from '@angular/common/http';
 import { SMALL_DIALOG } from '@nifi/shared';
 
