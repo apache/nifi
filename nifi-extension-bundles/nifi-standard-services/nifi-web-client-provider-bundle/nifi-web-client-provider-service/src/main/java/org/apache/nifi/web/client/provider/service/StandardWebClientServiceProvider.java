@@ -136,7 +136,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
         standardWebClientService.setReadTimeout(readTimeout);
 
         final Duration writeTimeout = getDuration(context, WRITE_TIMEOUT);
-        standardWebClientService.setReadTimeout(writeTimeout);
+        standardWebClientService.setWriteTimeout(writeTimeout);
 
         final String redirectHandlingStrategy = context.getProperty(REDIRECT_HANDLING_STRATEGY).getValue();
         final RedirectHandling redirectHandling = RedirectHandling.valueOf(redirectHandlingStrategy);
