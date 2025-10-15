@@ -53,12 +53,12 @@ import java.util.Set;
 @SupportsBatching
 @Tags({"map", "cache", "put", "distributed"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Gets the content of a FlowFile and puts it to a distributed map cache, using a cache key " +
+@CapabilityDescription("Gets the content of a FlowFile and puts it to a map cache, using a cache key " +
     "computed from FlowFile attributes. If the cache already contains the entry and the cache update strategy is " +
     "'keep original' the entry is not replaced.'")
 @WritesAttribute(attribute = "cached", description = "All FlowFiles will have an attribute 'cached'. The value of this " +
     "attribute is true, is the FlowFile is cached, otherwise false.")
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.MapCacheClientService", "org.apache.nifi.distributed.cache.server.map.MapCacheServer",
         "org.apache.nifi.processors.standard.FetchDistributedMapCache"})
 public class PutDistributedMapCache extends AbstractProcessor {
 

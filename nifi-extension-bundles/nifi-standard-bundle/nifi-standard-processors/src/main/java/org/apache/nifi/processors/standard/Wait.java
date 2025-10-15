@@ -67,7 +67,7 @@ import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJE
 @Tags({"map", "cache", "wait", "hold", "distributed", "signal", "release"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Routes incoming FlowFiles to the 'wait' relationship until a matching release signal "
-        + "is stored in the distributed cache from a corresponding Notify processor. "
+        + "is stored in the cache from a corresponding Notify processor. "
         + "When a matching release signal is identified, a waiting FlowFile is routed to the 'success' relationship. "
         + "The release signal entry is then removed from the cache. "
         + "The attributes of the FlowFile that produced the release signal are copied to the waiting FlowFile if the Attribute Cache Regex "
@@ -94,7 +94,7 @@ import static org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult.REJE
         + "has been present in the cache since the last time the cache was empty "
         + "gets copied to the current FlowFile as an attribute.")
 })
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.MapCacheClientService", "org.apache.nifi.distributed.cache.server.map.MapCacheServer",
         "org.apache.nifi.processors.standard.Notify"})
 public class Wait extends AbstractProcessor {
 

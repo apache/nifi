@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 @WritesAttribute(attribute = "original.flowfile.description", description = "All FlowFiles routed to the duplicate relationship will have "
         + "an attribute added named original.flowfile.description. The value of this attribute is determined by the attributes of the original "
         + "copy of the data and by the FlowFile Description property.")
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer"})
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.MapCacheClientService", "org.apache.nifi.distributed.cache.server.map.MapCacheServer"})
 public class DetectDuplicate extends AbstractProcessor {
 
     public static final String ORIGINAL_DESCRIPTION_ATTRIBUTE_NAME = "original.flowfile.description";
