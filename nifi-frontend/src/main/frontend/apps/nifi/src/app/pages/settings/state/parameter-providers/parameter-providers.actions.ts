@@ -43,8 +43,13 @@ export const loadParameterProvidersSuccess = createAction(
     props<{ response: LoadParameterProvidersResponse }>()
 );
 
-export const parameterProvidersBannerApiError = createAction(
+export const loadParameterProvidersError = createAction(
     `${PARAMETER_PROVIDERS_PREFIX} Load Parameter Providers Error`,
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
+export const parameterProvidersBannerApiError = createAction(
+    `${PARAMETER_PROVIDERS_PREFIX} Parameter Providers Banner Api Error`,
     props<{ error: string }>()
 );
 

@@ -42,6 +42,11 @@ export const loadFlowAnalysisRulesSuccess = createAction(
     props<{ response: LoadFlowAnalysisRulesResponse }>()
 );
 
+export const loadFlowAnalysisRulesError = createAction(
+    '[Flow Analysis Rules] Load Flow Analysis Rules Error',
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const openConfigureFlowAnalysisRuleDialog = createAction(
     '[Flow Analysis Rules] Open Flow Analysis Rule Dialog',
     props<{ request: EditFlowAnalysisRuleDialogRequest }>()

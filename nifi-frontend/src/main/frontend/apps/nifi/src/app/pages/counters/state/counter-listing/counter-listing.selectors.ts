@@ -24,6 +24,7 @@ export const selectCounterListingState = createSelector(
     (state: CountersState) => state[countersFeatureKey]
 );
 
-export const selectCounters = createSelector(selectCounterListingState, (state: CounterListingState) => state.counters);
-
-export const selectStatus = createSelector(selectCounterListingState, (state: CounterListingState) => state.status);
+export const selectLoadedTimestamp = createSelector(
+    selectCounterListingState,
+    (state: CounterListingState) => state.loadedTimestamp
+);

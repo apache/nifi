@@ -33,6 +33,11 @@ export const loadParameterContextsSuccess = createAction(
     props<{ response: LoadParameterContextsResponse }>()
 );
 
+export const loadParameterContextsError = createAction(
+    '[Parameter Context Listing] Load Parameter Contexts Error',
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const parameterContextListingSnackbarApiError = createAction(
     '[Parameter Context Listing] Load Parameter Context Listing Snackbar Api Error',
     props<{ error: string }>()

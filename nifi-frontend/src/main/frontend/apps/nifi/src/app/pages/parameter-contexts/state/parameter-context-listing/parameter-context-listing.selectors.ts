@@ -55,9 +55,9 @@ export const selectParameterContexts = createSelector(
     (state: ParameterContextListingState) => state.parameterContexts
 );
 
-export const selectParameterContextStatus = createSelector(
+export const selectParameterContextLoadedTimestamp = createSelector(
     selectParameterContextListingState,
-    (state: ParameterContextListingState) => state.status
+    (state: ParameterContextListingState) => state.loadedTimestamp
 );
 
 export const selectContext = (id: string) =>

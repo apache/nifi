@@ -46,6 +46,11 @@ export const loadManagementControllerServicesSuccess = createAction(
     props<{ response: LoadManagementControllerServicesResponse }>()
 );
 
+export const loadManagementControllerServicesError = createAction(
+    '[Management Controller Services] Load Management Controller Services Error',
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const managementControllerServicesBannerApiError = createAction(
     '[Management Controller Services] Management Controller Services Banner Api Error',
     props<{ error: string }>()
