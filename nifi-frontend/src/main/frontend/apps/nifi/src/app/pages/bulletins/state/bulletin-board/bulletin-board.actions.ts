@@ -30,6 +30,11 @@ export const loadBulletinBoardSuccess = createAction(
     props<{ response: LoadBulletinBoardResponse }>()
 );
 
+export const loadBulletinBoardError = createAction(
+    `${BULLETIN_BOARD_PREFIX} Load Bulletin Board Error`,
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const resetBulletinBoardState = createAction(`${BULLETIN_BOARD_PREFIX} Reset Bulletin Board State`);
 
 export const clearBulletinBoard = createAction(`${BULLETIN_BOARD_PREFIX} Clear Bulletin Board`);

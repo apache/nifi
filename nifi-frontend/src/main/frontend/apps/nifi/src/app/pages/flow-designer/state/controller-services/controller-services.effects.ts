@@ -40,9 +40,9 @@ import {
 import { Router } from '@angular/router';
 import {
     selectCurrentProcessGroupId,
+    selectLoadedTimestamp,
     selectParameterContext,
-    selectSaving,
-    selectStatus
+    selectSaving
 } from './controller-services.selectors';
 import { ControllerServiceService } from '../../service/controller-service.service';
 import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
@@ -53,6 +53,7 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import { initialState } from './controller-services.reducer';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import {
     resetPropertyVerificationState,
@@ -87,8 +88,8 @@ export class ControllerServicesEffects {
         this.actions$.pipe(
             ofType(ControllerServicesActions.loadControllerServices),
             map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([request, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([request, loadedTimestamp]) =>
                 combineLatest([
                     this.controllerServiceService.getControllerServices(request.processGroupId),
                     this.controllerServiceService.getFlow(request.processGroupId)
@@ -105,8 +106,26 @@ export class ControllerServicesEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            ControllerServicesActions.loadControllerServicesError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
+                )
+            )
+        )
+    );
+
+    controllerServicesListingError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.loadControllerServicesError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

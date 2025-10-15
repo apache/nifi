@@ -37,8 +37,13 @@ export const loadRegistryClientsSuccess = createAction(
     props<{ response: LoadRegistryClientsResponse }>()
 );
 
+export const loadRegistryClientsError = createAction(
+    '[Registry Clients] Load Registry Clients Error',
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const registryClientsBannerApiError = createAction(
-    '[Registry Clients] Load Registry Clients Banner Api Error',
+    '[Registry Clients] Registry Clients Banner Api Error',
     props<{ error: string }>()
 );
 

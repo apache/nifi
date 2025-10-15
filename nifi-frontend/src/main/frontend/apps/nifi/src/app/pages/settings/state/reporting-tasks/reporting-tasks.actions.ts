@@ -42,6 +42,11 @@ export const loadReportingTasksSuccess = createAction(
     props<{ response: LoadReportingTasksResponse }>()
 );
 
+export const loadReportingTasksError = createAction(
+    '[Reporting Tasks] Load Reporting Tasks Error',
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const openConfigureReportingTaskDialog = createAction(
     '[Reporting Tasks] Open Reporting Task Dialog',
     props<{ request: EditReportingTaskDialogRequest }>()
@@ -58,7 +63,7 @@ export const configureReportingTaskSuccess = createAction(
 );
 
 export const reportingTasksBannerApiError = createAction(
-    '[Reporting Tasks] Load Reporting Tasks Banner Api Error',
+    '[Reporting Tasks] Reporting Tasks Banner Api Error',
     props<{ error: string }>()
 );
 

@@ -28,6 +28,11 @@ export const loadCountersSuccess = createAction(
     props<{ response: LoadCounterListingResponse }>()
 );
 
+export const loadCountersError = createAction(
+    `${COUNTER_PREFIX} Load Counters Error`,
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const counterListingApiError = createAction(
     `${COUNTER_PREFIX} Load Counter Listing Error`,
     props<{ errorResponse: HttpErrorResponse }>()

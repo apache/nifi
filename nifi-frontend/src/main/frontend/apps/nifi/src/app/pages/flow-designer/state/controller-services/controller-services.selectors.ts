@@ -31,9 +31,9 @@ export const selectSaving = createSelector(
     (state: ControllerServicesState) => state.saving
 );
 
-export const selectStatus = createSelector(
+export const selectLoadedTimestamp = createSelector(
     selectControllerServicesState,
-    (state: ControllerServicesState) => state.status
+    (state: ControllerServicesState) => state.loadedTimestamp
 );
 
 export const selectCurrentProcessGroupId = createSelector(

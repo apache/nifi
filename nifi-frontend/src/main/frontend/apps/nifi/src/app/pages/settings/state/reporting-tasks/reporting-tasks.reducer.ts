@@ -25,6 +25,7 @@ import {
     deleteReportingTask,
     deleteReportingTaskSuccess,
     loadReportingTasks,
+    loadReportingTasksError,
     loadReportingTasksSuccess,
     reportingTasksBannerApiError,
     reportingTasksSnackbarApiError,
@@ -55,6 +56,10 @@ export const reportingTasksReducer = createReducer(
         reportingTasks: response.reportingTasks,
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
+    })),
+    on(loadReportingTasksError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(reportingTasksBannerApiError, reportingTasksSnackbarApiError, (state) => ({
         ...state,

@@ -41,8 +41,8 @@ import { Router } from '@angular/router';
 import { ParameterContextService } from '../../service/parameter-contexts.service';
 import { Parameter, YesNoDialog } from '@nifi/shared';
 import {
+    selectParameterContextLoadedTimestamp,
     selectParameterContexts,
-    selectParameterContextStatus,
     selectSaving,
     selectUpdateRequest,
     selectDeleteUpdateRequestInitiated
@@ -52,6 +52,7 @@ import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { initialState } from './parameter-context-listing.reducer';
 import { BackNavigation } from '../../../../state/navigation';
 import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG, NiFiCommon, Storage } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../state/error';
@@ -70,8 +71,8 @@ export class ParameterContextListingEffects {
     loadParameterContexts$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.loadParameterContexts),
-            concatLatestFrom(() => this.store.select(selectParameterContextStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectParameterContextLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.parameterContextService.getParameterContexts()).pipe(
                     map((response) =>
                         ParameterContextListingActions.loadParameterContextsSuccess({
@@ -82,8 +83,26 @@ export class ParameterContextListingEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            ParameterContextListingActions.loadParameterContextsError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
+                )
+            )
+        )
+    );
+
+    loadParameterContextsError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterContextListingActions.loadParameterContextsError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

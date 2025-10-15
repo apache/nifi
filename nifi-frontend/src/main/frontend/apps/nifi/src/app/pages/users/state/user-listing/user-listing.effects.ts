@@ -28,13 +28,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { UsersService } from '../../service/users.service';
 import { YesNoDialog } from '@nifi/shared';
 import { EditTenantDialog } from '../../../../ui/common/edit-tenant/edit-tenant-dialog.component';
-import { selectSaving, selectStatus, selectUserGroups, selectUsers } from './user-listing.selectors';
+import { selectLoadedTimestamp, selectSaving, selectUserGroups, selectUsers } from './user-listing.selectors';
 import { EditTenantRequest, UserGroupEntity } from '../../../../state/shared';
 import { Client } from '../../../../service/client.service';
 import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, NiFiCommon } from '@nifi/shared';
 import { UserAccessPolicies } from '../../ui/user-listing/user-access-policies/user-access-policies.component';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { initialState } from './user-listing.reducer';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorContextKey } from '../../../../state/error';
 
@@ -54,8 +55,8 @@ export class UserListingEffects {
     loadTenants$ = createEffect(() =>
         this.actions$.pipe(
             ofType(UserListingActions.loadTenants),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 combineLatest([this.usersService.getUsers(), this.usersService.getUserGroups()]).pipe(
                     map(([usersResponse, userGroupsResponse]) =>
                         UserListingActions.loadTenantsSuccess({
@@ -67,7 +68,13 @@ export class UserListingEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            UserListingActions.loadTenantsError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
                 )
             )
@@ -84,6 +91,13 @@ export class UserListingEffects {
                 })
             ),
         { dispatch: false }
+    );
+
+    loadTenantsError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(UserListingActions.loadTenantsError),
+            map((action) => this.errorHelper.handleLoadingError(action.status === 'success', action.errorResponse))
+        )
     );
 
     openCreateTenantDialog$ = createEffect(

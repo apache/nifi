@@ -34,6 +34,11 @@ export const loadHistorySuccess = createAction(
     props<{ response: HistoryEntity }>()
 );
 
+export const loadHistoryError = createAction(
+    `${HISTORY_PREFIX} Load History Error`,
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const resetHistoryState = createAction(`${HISTORY_PREFIX} Reset History State`);
 
 export const clearHistorySelection = createAction(`${HISTORY_PREFIX} Clear Selection`);

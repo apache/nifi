@@ -18,6 +18,7 @@
 import { BulletinBoardEvent, BulletinBoardItem, BulletinBoardState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
+    loadBulletinBoardError,
     clearBulletinBoard,
     loadBulletinBoard,
     loadBulletinBoardSuccess,
@@ -68,6 +69,11 @@ export const bulletinBoardReducer = createReducer(
             loadedTimestamp: response.loadedTimestamp
         };
     }),
+
+    on(loadBulletinBoardError, (state: BulletinBoardState, { status }) => ({
+        ...state,
+        status
+    })),
 
     on(resetBulletinBoardState, () => ({ ...initialBulletinBoardState })),
 
