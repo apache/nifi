@@ -30,6 +30,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { CounterEntity } from './index';
 
 describe('CounterListingEffects', () => {
+    let action$: ReplaySubject<Action>;
+
     interface SetupOptions {
         counterListingState?: any;
     }
@@ -100,7 +102,7 @@ describe('CounterListingEffects', () => {
         const dispatchSpy = jest.spyOn(store, 'dispatch');
 
         const effects = TestBed.inject(CounterListingEffects);
-        const action$ = new ReplaySubject<Action>();
+        action$ = new ReplaySubject<Action>();
 
         const countersService = TestBed.inject(CountersService);
         const dialog = TestBed.inject(MatDialog);
@@ -108,6 +110,12 @@ describe('CounterListingEffects', () => {
 
         return { effects, action$, store, dispatchSpy, countersService, dialog, errorHelper };
     }
+
+    afterEach(() => {
+        if (action$) {
+            action$.complete();
+        }
+    });
 
     it('should create', async () => {
         const { effects } = await setup();

@@ -88,6 +88,12 @@ describe('ParameterContextListingEffects', () => {
         jest.clearAllMocks();
     });
 
+    afterEach(() => {
+        if (action$) {
+            action$.complete();
+        }
+    });
+
     it('should create', async () => {
         const { effects } = await setup();
         expect(effects).toBeTruthy();

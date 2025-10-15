@@ -907,6 +907,12 @@ describe('FlowEffects', () => {
         jest.spyOn(store, 'dispatch');
     });
 
+    afterEach(() => {
+        if (action$) {
+            action$.complete();
+        }
+    });
+
     describe('#moveToFront', () => {
         it('calls the flow service to update the component when max index matches request index', async () => {
             const REQUEST: MoveToFrontRequest = {
