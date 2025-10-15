@@ -63,7 +63,7 @@ export class Cluster implements OnInit, OnDestroy {
     ];
 
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
-    systemDiagnosticsState = this.store.selectSignal(selectSystemDiagnosticsStatus);
+    systemDiagnosticsStatus = this.store.selectSignal(selectSystemDiagnosticsStatus);
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
     currentUser$ = this.store.select(selectCurrentUser);
     currentRoute = this.store.selectSignal(selectCurrentRoute);

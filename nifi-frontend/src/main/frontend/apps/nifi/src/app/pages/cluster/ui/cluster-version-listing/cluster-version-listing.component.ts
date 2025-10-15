@@ -21,7 +21,10 @@ import {
     selectClusterListingStatus,
     selectClusterNodeIdFromRoute
 } from '../../state/cluster-listing/cluster-listing.selectors';
-import { selectSystemNodeSnapshots } from '../../../../state/system-diagnostics/system-diagnostics.selectors';
+import {
+    selectSystemDiagnosticsLoadedTimestamp,
+    selectSystemNodeSnapshots
+} from '../../../../state/system-diagnostics/system-diagnostics.selectors';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
@@ -29,6 +32,7 @@ import { NodeSnapshot } from '../../../../state/system-diagnostics';
 import { clearVersionsNodeSelection, selectVersionNode } from '../../state/cluster-listing/cluster-listing.actions';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ClusterVersionTable } from './cluster-version-table/cluster-version-table.component';
+import { initialSystemDiagnosticsState } from '../../../../state/system-diagnostics/system-diagnostics.reducer';
 
 @Component({
     selector: 'cluster-version-listing',
@@ -40,12 +44,16 @@ export class ClusterVersionListing {
     private store = inject<Store<NiFiState>>(Store);
 
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
+    systemDiagnosticsLoadedTimestamp = this.store.selectSignal(selectSystemDiagnosticsLoadedTimestamp);
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     nodes = this.store.selectSignal(selectSystemNodeSnapshots);
 
-    isInitialLoading(loadedTimestamp: string): boolean {
-        return loadedTimestamp == initialClusterState.loadedTimestamp;
+    isInitialLoading(loadedTimestamp: string, systemDiagnosticsLoadedTimestamp: string): boolean {
+        return (
+            loadedTimestamp == initialClusterState.loadedTimestamp ||
+            systemDiagnosticsLoadedTimestamp == initialSystemDiagnosticsState.loadedTimestamp
+        );
     }
 
     selectNode(node: NodeSnapshot): void {

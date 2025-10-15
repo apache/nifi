@@ -25,7 +25,10 @@ import {
     selectClusterNodeIdFromRoute,
     selectClusterStorageRepositoryIdFromRoute
 } from '../../state/cluster-listing/cluster-listing.selectors';
-import { selectSystemNodeSnapshots } from '../../../../state/system-diagnostics/system-diagnostics.selectors';
+import {
+    selectSystemDiagnosticsLoadedTimestamp,
+    selectSystemNodeSnapshots
+} from '../../../../state/system-diagnostics/system-diagnostics.selectors';
 import { isDefinedAndNotNull } from '@nifi/shared';
 import { map } from 'rxjs';
 import { ClusterNodeRepositoryStorageUsage } from '../../../../state/system-diagnostics';
@@ -37,6 +40,7 @@ import {
     selectContentStorageNode
 } from '../../state/cluster-listing/cluster-listing.actions';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { initialSystemDiagnosticsState } from '../../../../state/system-diagnostics/system-diagnostics.reducer';
 
 @Component({
     selector: 'cluster-content-storage-listing',
@@ -48,6 +52,7 @@ export class ClusterContentStorageListing {
     private store = inject<Store<NiFiState>>(Store);
 
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
+    systemDiagnosticsLoadedTimestamp = this.store.selectSignal(selectSystemDiagnosticsLoadedTimestamp);
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     selectedClusterRepoId = this.store.selectSignal(selectClusterStorageRepositoryIdFromRoute);
@@ -70,8 +75,11 @@ export class ClusterContentStorageListing {
         })
     );
 
-    isInitialLoading(loadedTimestamp: string): boolean {
-        return loadedTimestamp == initialClusterState.loadedTimestamp;
+    isInitialLoading(loadedTimestamp: string, systemDiagnosticsLoadedTimestamp: string): boolean {
+        return (
+            loadedTimestamp == initialClusterState.loadedTimestamp ||
+            systemDiagnosticsLoadedTimestamp == initialSystemDiagnosticsState.loadedTimestamp
+        );
     }
 
     selectStorageNode(node: ClusterNodeRepositoryStorageUsage): void {
