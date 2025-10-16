@@ -36,7 +36,7 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>mysql-binlog-connector-java</artifactId>
-            <version>0.40.2</version>
+            <version>0.40.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

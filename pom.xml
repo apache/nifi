@@ -121,7 +121,7 @@
 
         <!-- AWS SDK -->
         <com.amazonaws.version>1.12.792</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.35.0</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.35.8</software.amazon.awssdk.version>
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.10.0</org.apache.commons.cli.version>
@@ -147,7 +147,7 @@
         <derby.version>10.17.1.0</derby.version>
 
         <!-- Data formats and serialization -->
-        <avro.version>1.12.0</avro.version>
+        <avro.version>1.12.1</avro.version>
         <com.github.luben.zstd-jni.version>1.5.7-5</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <gson.version>2.13.2</gson.version>
@@ -169,16 +169,16 @@
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
-        <netty.4.version>4.2.6.Final</netty.4.version>
-        <okhttp.version>5.1.0</okhttp.version>
-        <okio.version>3.16.0</okio.version>
+        <netty.4.version>4.2.7.Final</netty.4.version>
+        <okhttp.version>5.2.1</okhttp.version>
+        <okio.version>3.16.2</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
         <org.apache.httpcomponents.httpcore.version>4.4.16</org.apache.httpcomponents.httpcore.version>
         <org.apache.sshd.version>2.16.0</org.apache.sshd.version>
 
         <!-- Security -->
         <nimbus-jose-jwt.version>10.5</nimbus-jose-jwt.version>
-        <nimbus-oauth2-oidc.version>11.29.2</nimbus-oauth2-oidc.version>
+        <nimbus-oauth2-oidc.version>11.30</nimbus-oauth2-oidc.version>
         <org.bouncycastle.version>1.82</org.bouncycastle.version>
 
         <!-- Utilities -->
@@ -193,17 +193,17 @@
         <jakarta.activation-api.version>2.1.4</jakarta.activation-api.version>
         <jaxb.runtime.version>4.0.6</jaxb.runtime.version>
         <jersey.bom.version>4.0.0-M4</jersey.bom.version>
-        <jetty.version>12.1.1</jetty.version>
+        <jetty.version>12.1.2</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
         <spring.security.version>6.5.5</spring.security.version>
-        <spring.version>6.2.11</spring.version>
-        <swagger.annotations.version>2.2.38</swagger.annotations.version>
+        <spring.version>6.2.12</spring.version>
+        <swagger.annotations.version>2.2.39</swagger.annotations.version>
 
         <!-- Testing and quality -->
         <junit.version>6.0.0</junit.version>
         <mockito.version>5.20.0</mockito.version>
         <pmd.version>7.17.0</pmd.version>
-        <checkstyle.version>11.1.0</checkstyle.version>
+        <checkstyle.version>12.0.1</checkstyle.version>
         <testcontainers.version>1.21.3</testcontainers.version>
     </properties>
     <dependencyManagement>
@@ -837,7 +837,7 @@
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
                     <artifactId>swagger-maven-plugin-jakarta</artifactId>
-                    <version>2.2.38</version>
+                    <version>2.2.39</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>
