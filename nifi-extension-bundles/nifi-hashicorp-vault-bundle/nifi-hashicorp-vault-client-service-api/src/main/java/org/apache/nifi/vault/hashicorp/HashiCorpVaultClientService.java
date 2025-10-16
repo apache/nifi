@@ -47,6 +47,8 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
 
     PropertyDescriptor VAULT_URI = new PropertyDescriptor.Builder()
             .name("Vault URI")
+            .name("vault.uri")
+            .displayName("Vault URI")
             .description("The URI of the HashiCorp Vault server (e.g., http://localhost:8200).  Required if not specified in the " +
                     "Bootstrap HashiCorp Vault Configuration File.")
             .required(true)
