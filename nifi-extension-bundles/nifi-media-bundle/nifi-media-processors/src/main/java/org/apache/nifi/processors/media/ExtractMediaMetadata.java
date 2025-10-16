@@ -201,9 +201,9 @@ public class ExtractMediaMetadata extends AbstractProcessor {
 
         // Configure ParseContext to disable OCR - metadata extraction does not require OCR
         // https://issues.apache.org/jira/browse/NIFI-15098
-        TesseractOCRConfig ocrConfig = new TesseractOCRConfig();
+        final TesseractOCRConfig ocrConfig = new TesseractOCRConfig();
         ocrConfig.setSkipOcr(true);
-        ParseContext parseContext = new ParseContext();
+        final ParseContext parseContext = new ParseContext();
         parseContext.set(TesseractOCRConfig.class, ocrConfig);
 
         try {
