@@ -85,7 +85,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .build();
 
     public static final PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Neo4J Max Connection Time Out (seconds)")
+            .name("Connection Timeout")
             .description("The maximum time for establishing connection to the Neo4j")
             .defaultValue("5 seconds")
             .required(true)
@@ -95,7 +95,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .build();
 
     public static final PropertyDescriptor MAX_CONNECTION_POOL_SIZE = new PropertyDescriptor.Builder()
-            .name("Neo4J Max Connection Pool Size")
+            .name("Connection Pool Size")
             .description("The maximum connection pool size for Neo4j.")
             .defaultValue("100")
             .required(true)
@@ -105,7 +105,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .build();
 
     public static final PropertyDescriptor MAX_CONNECTION_ACQUISITION_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Neo4J Max Connection Acquisition Timeout")
+            .name("Connection Acquisition Timeout")
             .description("The maximum connection acquisition timeout.")
             .defaultValue("60 second")
             .required(true)
@@ -115,7 +115,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .build();
 
     public static final PropertyDescriptor IDLE_TIME_BEFORE_CONNECTION_TEST = new PropertyDescriptor.Builder()
-            .name("Neo4J Idle Time Before Connection Test")
+            .name("Idle Time Before Connection Test")
             .description("The idle time before connection test.")
             .defaultValue("60 seconds")
             .required(true)
@@ -125,7 +125,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .build();
 
     public static final PropertyDescriptor MAX_CONNECTION_LIFETIME = new PropertyDescriptor.Builder()
-            .name("Neo4J Max Connection Lifetime")
+            .name("Connection Lifetime")
             .description("The maximum connection lifetime")
             .defaultValue("3600 seconds")
             .required(true)
