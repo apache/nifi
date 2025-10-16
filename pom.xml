@@ -116,7 +116,7 @@
         <node.version>v22.19.0</node.version>
 
         <!-- NiFi build -->
-        <nifi-api.version>2.3.0</nifi-api.version>
+        <nifi-api.version>2.4.0</nifi-api.version>
         <nifi.nar.maven.plugin.version>2.1.0</nifi.nar.maven.plugin.version>
 
         <!-- AWS SDK -->
