@@ -204,7 +204,7 @@
         <mockito.version>5.20.0</mockito.version>
         <pmd.version>7.17.0</pmd.version>
         <checkstyle.version>11.1.0</checkstyle.version>
-        <testcontainers.version>1.21.3</testcontainers.version>
+        <testcontainers.version>2.0.0</testcontainers.version>
     </properties>
     <dependencyManagement>
         <dependencies>

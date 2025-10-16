@@ -16,13 +16,14 @@
  */
 package org.apache.nifi.registry.db;
 
+import jakarta.annotation.PostConstruct;
 import org.mariadb.jdbc.MariaDbDataSource;
-import org.testcontainers.containers.MariaDBContainer;
 import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
+import org.testcontainers.mariadb.MariaDBContainer;
 
-import jakarta.annotation.PostConstruct;
 import javax.sql.DataSource;
+
 import java.sql.SQLException;
 
 public abstract class MariaDBDataSourceFactory extends TestDataSourceFactory {

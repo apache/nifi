@@ -19,16 +19,15 @@ package org.apache.nifi.processors.couchbase.integration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService;
 import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.couchbase.BucketDefinition;
 import org.testcontainers.couchbase.CouchbaseContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService.CONNECTION_STRING;
 import static org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService.PASSWORD;
 import static org.apache.nifi.services.couchbase.StandardCouchbaseConnectionService.USERNAME;
 
-@Testcontainers
 public class AbstractCouchbaseIT {
 
     protected static final String TEST_BUCKET_NAME = "test_bucket";
@@ -45,9 +44,7 @@ public class AbstractCouchbaseIT {
 
     protected static TestRunner runner;
 
-    @Container
-    protected static CouchbaseContainer container = new CouchbaseContainer(COUCHBASE_IMAGE_COMMUNITY_RECENT)
-            .withBucket(new BucketDefinition(TEST_BUCKET_NAME));
+    protected static CouchbaseContainer container = new CouchbaseContainer(COUCHBASE_IMAGE_COMMUNITY_RECENT).withBucket(new BucketDefinition(TEST_BUCKET_NAME));
 
     protected void initConnectionService() throws InitializationException {
         final StandardCouchbaseConnectionService connectionService = new StandardCouchbaseConnectionService();
@@ -57,5 +54,15 @@ public class AbstractCouchbaseIT {
         runner.setProperty(connectionService, PASSWORD, container.getPassword());
         runner.setValidateExpressionUsage(false);
         runner.enableControllerService(connectionService);
+    }
+
+    @BeforeAll
+    public static void start() {
+        container.start();
+    }
+
+    @AfterAll
+    public static void stop() {
+        container.stop();
     }
 }

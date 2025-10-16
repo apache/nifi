@@ -18,7 +18,7 @@ package org.apache.nifi.registry.db;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 @Configuration
 @Profile({"mysql", "mysql-8"})

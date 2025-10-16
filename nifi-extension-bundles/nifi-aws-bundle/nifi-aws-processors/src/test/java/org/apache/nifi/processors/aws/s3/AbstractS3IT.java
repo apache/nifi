@@ -48,7 +48,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.File;
@@ -85,8 +85,7 @@ public abstract class AbstractS3IT {
 
     private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:latest");
 
-    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage)
-            .withServices(LocalStackContainer.Service.S3, LocalStackContainer.Service.KMS);
+    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage).withServices("s3", "kms");
 
     @BeforeAll
     public static void oneTimeSetup() {
@@ -155,7 +154,7 @@ public abstract class AbstractS3IT {
     }
 
     protected String getEndpointOverride() {
-        return localstack.getEndpointOverride(LocalStackContainer.Service.S3).toString();
+        return localstack.getEndpoint().toString();
     }
 
     protected static String getRegion() {
