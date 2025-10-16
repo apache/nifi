@@ -153,7 +153,7 @@ export class EditRegistryClient extends TabbedDialog {
 
     private getModifiedProperties(): ModifiedProperties {
         const propertyControl: AbstractControl | null = this.editRegistryClientForm.get('properties');
-        if (propertyControl) {
+        if (propertyControl && propertyControl.dirty) {
             const properties: Property[] = propertyControl.value;
             const values: { [key: string]: string | null } = {};
             properties.forEach((property) => (values[property.property] = property.value));
