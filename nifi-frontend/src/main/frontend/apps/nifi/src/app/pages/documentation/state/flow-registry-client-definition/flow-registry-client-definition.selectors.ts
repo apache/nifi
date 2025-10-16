@@ -6,7 +6,7 @@
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,23 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.extension.manifest;
 
-/**
- * Possible types of extensions.
- */
-public enum ExtensionType {
+import { createSelector } from '@ngrx/store';
+import { DocumentationState, selectDocumentationState } from '../index';
+import { flowRegistryClientDefinitionFeatureKey } from './index';
 
-    PROCESSOR,
-
-    CONTROLLER_SERVICE,
-
-    REPORTING_TASK,
-
-    FLOW_ANALYSIS_RULE,
-
-    PARAMETER_PROVIDER,
-
-    FLOW_REGISTRY_CLIENT;
-
-}
+export const selectFlowRegistryClientDefinitionState = createSelector(
+    selectDocumentationState,
+    (state: DocumentationState) => state[flowRegistryClientDefinitionFeatureKey]
+);

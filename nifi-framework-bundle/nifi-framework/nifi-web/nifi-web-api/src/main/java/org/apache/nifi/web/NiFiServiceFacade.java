@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
 import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
 import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
@@ -501,6 +502,8 @@ public interface NiFiServiceFacade {
      * @return The list of available flow registry client types matching specified criteria
      */
     Set<DocumentedTypeDTO> getFlowRegistryTypes();
+
+    FlowRegistryClientDefinition getFlowRegistryClientDefinition(String group, String artifact, String version, String type);
 
     /**
      * Returns the RuntimeManifest for this NiFi instance.
