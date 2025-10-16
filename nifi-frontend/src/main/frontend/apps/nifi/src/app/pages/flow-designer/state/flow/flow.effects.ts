@@ -85,7 +85,7 @@ import {
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
     selectCurrentProcessGroupRevision,
-    selectFlowLoadingStatus,
+    selectHasFlowData,
     selectInputPort,
     selectMaxZIndex,
     selectOutputPort,
@@ -249,11 +249,11 @@ export class FlowEffects {
             ofType(FlowActions.loadProcessGroup),
             map((action) => action.request),
             concatLatestFrom(() => [
-                this.store.select(selectFlowLoadingStatus),
+                this.store.select(selectHasFlowData),
                 this.store.select(selectConnectedStateChanged)
             ]),
             tap(() => this.store.dispatch(resetConnectedStateChanged())),
-            switchMap(([request, status, connectedStateChanged]) =>
+            switchMap(([request, hasFlowData, connectedStateChanged]) =>
                 combineLatest([
                     this.flowService.getFlow(request.id),
                     this.flowService.getFlowStatus(),
@@ -274,7 +274,7 @@ export class FlowEffects {
                         });
                     }),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(this.errorHelper.handleLoadingError(hasFlowData, errorResponse))
                     )
                 )
             )

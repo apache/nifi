@@ -23,7 +23,10 @@ export const selectRemotePortsState = createFeatureSelector<RemotePortsState>(re
 
 export const selectSaving = createSelector(selectRemotePortsState, (state: RemotePortsState) => state.saving);
 
-export const selectStatus = createSelector(selectRemotePortsState, (state: RemotePortsState) => state.status);
+export const selectLoadedTimestamp = createSelector(
+    selectRemotePortsState,
+    (state: RemotePortsState) => state.loadedTimestamp
+);
 
 export const selectRpgIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {

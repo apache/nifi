@@ -31,7 +31,7 @@ import { LARGE_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { Router } from '@angular/router';
 import { RegistryClientService } from '../../service/registry-client.service';
 import { CreateRegistryClient } from '../../ui/registry-clients/create-registry-client/create-registry-client.component';
-import { selectSaving, selectStatus } from './registry-clients.selectors';
+import { selectLoadedTimestamp, selectSaving } from './registry-clients.selectors';
 import { EditRegistryClient } from '../../ui/registry-clients/edit-registry-client/edit-registry-client.component';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { EditRegistryClientRequest } from './index';
@@ -39,6 +39,7 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { initialState } from './registry-clients.reducer';
 import { BackNavigation } from '../../../../state/navigation';
 import { ErrorContextKey } from '../../../../state/error';
 
@@ -56,8 +57,8 @@ export class RegistryClientsEffects {
     loadRegistryClients$ = createEffect(() =>
         this.actions$.pipe(
             ofType(RegistryClientsActions.loadRegistryClients),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.registryClientService.getRegistryClients()).pipe(
                     map((response) =>
                         RegistryClientsActions.loadRegistryClientsSuccess({
@@ -67,10 +68,26 @@ export class RegistryClientsEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        const status = loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending';
+                        return of(
+                            RegistryClientsActions.loadRegistryClientsError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status
+                            })
+                        );
+                    })
                 )
+            )
+        )
+    );
+
+    loadRegistryClientsError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(RegistryClientsActions.loadRegistryClientsError),
+            switchMap((action) =>
+                of(this.errorHelper.handleLoadingError(action.status === 'success', action.errorResponse))
             )
         )
     );

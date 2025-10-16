@@ -3594,6 +3594,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 parent.onComponentModified();
             }
 
+            setLoggingAttributes();
             scheduler.submitFrameworkTask(() -> synchronizeWithFlowRegistry(flowManager));
         } finally {
             writeLock.unlock();
@@ -3668,6 +3669,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         writeLock.lock();
         try {
             this.versionControlInfo.set(null);
+            setLoggingAttributes();
         } finally {
             writeLock.unlock();
         }
@@ -4564,6 +4566,8 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     private void setLoggingAttributes() {
+        loggingAttributes.clear();
+
         loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_ID.attribute, id);
 
         final String processGroupName = name.get();
@@ -4572,6 +4576,15 @@ public final class StandardProcessGroup implements ProcessGroup {
         } else {
             loggingAttributes.put(LoggingAttribute.PROCESS_GROUP_NAME.attribute, processGroupName);
             setGroupPath();
+        }
+
+        final VersionControlInformation currentVersionControl = versionControlInfo.get();
+        if (currentVersionControl != null) {
+            final String registeredFlowIdentifier = currentVersionControl.getFlowIdentifier();
+            loggingAttributes.put(LoggingAttribute.REGISTERED_FLOW_IDENTIFIER.attribute, registeredFlowIdentifier);
+
+            final String registeredFlowVersion = currentVersionControl.getVersion();
+            loggingAttributes.put(LoggingAttribute.REGISTERED_FLOW_VERSION.attribute, registeredFlowVersion);
         }
     }
 
@@ -4609,7 +4622,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         PROCESS_GROUP_NAME("processGroupName"),
 
-        PROCESS_GROUP_NAME_PATH("processGroupNamePath");
+        PROCESS_GROUP_NAME_PATH("processGroupNamePath"),
+
+        REGISTERED_FLOW_IDENTIFIER("registeredFlowIdentifier"),
+
+        REGISTERED_FLOW_VERSION("registeredFlowVersion");
 
         private final String attribute;
 

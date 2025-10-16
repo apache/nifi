@@ -19,6 +19,7 @@ import { CounterListingState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
     counterListingApiError,
+    loadCountersError,
     loadCounters,
     loadCountersSuccess,
     resetAllCountersSuccess,
@@ -49,6 +50,10 @@ export const counterListingReducer = createReducer(
     on(counterListingApiError, (state) => ({
         ...state,
         saving: false
+    })),
+    on(loadCountersError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(resetCounterSuccess, (state, { response }) => {
         return produce(state, (draftState) => {

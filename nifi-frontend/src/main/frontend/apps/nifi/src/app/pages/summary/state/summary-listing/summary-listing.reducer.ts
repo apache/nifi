@@ -26,6 +26,7 @@ import {
 } from '../index';
 import {
     loadSummaryListing,
+    loadSummaryListingError,
     loadSummaryListingSuccess,
     resetSummaryState,
     selectClusterNode
@@ -95,6 +96,11 @@ export const summaryListingReducer = createReducer(
             remoteProcessGroupStatusSnapshots: rpgs
         };
     }),
+
+    on(loadSummaryListingError, (state, { status }) => ({
+        ...state,
+        status
+    })),
 
     on(resetSummaryState, () => ({
         ...initialState

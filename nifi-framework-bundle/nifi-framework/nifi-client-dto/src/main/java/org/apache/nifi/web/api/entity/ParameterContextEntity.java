@@ -32,6 +32,7 @@ public class ParameterContextEntity extends ComponentEntity {
 
     public void setComponent(ParameterContextDTO parameterContext) {
         this.parameterContextDTO = parameterContext;
+        setId(parameterContext == null ? null : parameterContext.getId());
     }
 
     @Override

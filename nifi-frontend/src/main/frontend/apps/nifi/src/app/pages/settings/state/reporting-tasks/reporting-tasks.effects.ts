@@ -35,7 +35,8 @@ import { ManagementControllerServiceService } from '../../service/management-con
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { selectStatus } from './reporting-tasks.selectors';
+import { selectLoadedTimestamp } from './reporting-tasks.selectors';
+import { initialState } from './reporting-tasks.reducer';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
@@ -66,8 +67,8 @@ export class ReportingTasksEffects {
     loadReportingTasks$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ReportingTaskActions.loadReportingTasks),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.reportingTaskService.getReportingTasks()).pipe(
                     map((response) =>
                         ReportingTaskActions.loadReportingTasksSuccess({
@@ -77,10 +78,26 @@ export class ReportingTasksEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        const status = loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending';
+                        return of(
+                            ReportingTaskActions.loadReportingTasksError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status
+                            })
+                        );
+                    })
                 )
+            )
+        )
+    );
+
+    loadReportingTasksError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ReportingTaskActions.loadReportingTasksError),
+            switchMap((action) =>
+                of(this.errorHelper.handleLoadingError(action.status === 'success', action.errorResponse))
             )
         )
     );

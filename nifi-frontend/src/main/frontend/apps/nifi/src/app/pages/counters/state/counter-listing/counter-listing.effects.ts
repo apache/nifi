@@ -28,7 +28,8 @@ import { SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { selectStatus } from './counter-listing.selectors';
+import { selectLoadedTimestamp } from './counter-listing.selectors';
+import { initialState } from './counter-listing.reducer';
 
 @Injectable()
 export class CounterListingEffects {
@@ -41,8 +42,8 @@ export class CounterListingEffects {
     loadCounters$ = createEffect(() =>
         this.actions$.pipe(
             ofType(CounterListingActions.loadCounters),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.countersService.getCounters()).pipe(
                     map((response) =>
                         CounterListingActions.loadCountersSuccess({
@@ -53,8 +54,26 @@ export class CounterListingEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            CounterListingActions.loadCountersError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
+                )
+            )
+        )
+    );
+
+    counterListingError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(CounterListingActions.loadCountersError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

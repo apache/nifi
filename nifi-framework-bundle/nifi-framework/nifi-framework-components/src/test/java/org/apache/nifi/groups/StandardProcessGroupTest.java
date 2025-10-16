@@ -28,6 +28,8 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,6 +59,9 @@ class StandardProcessGroupTest {
     private static final String PARENT_ID_PATH = "/87654321-1234/12345678-4321";
     private static final String PARENT_NAME = "ParentGroup";
     private static final String PARENT_NAME_PATH = "/ParentGroup/TestGroup";
+
+    private static final String REGISTERED_FLOW_IDENTIFIER = "87654321-4321";
+    private static final String REGISTERED_FLOW_VERSION = "1.0.0";
 
     @Mock
     private ControllerServiceProvider controllerServiceProvider;
@@ -99,6 +104,12 @@ class StandardProcessGroupTest {
 
     @Mock
     private ProcessGroup parentProcessGroup;
+
+    @Mock
+    private VersionControlInformation versionControlInformation;
+
+    @Mock
+    private VersionedFlowStatus versionedFlowStatus;
 
     private StandardProcessGroup processGroup;
 
@@ -160,6 +171,32 @@ class StandardProcessGroupTest {
                 StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_ID_PATH.getAttribute(), PARENT_ID_PATH,
                 StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME.getAttribute(), NAME,
                 StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME_PATH.getAttribute(), PARENT_NAME_PATH
+        );
+
+        assertEquals(expected, loggingAttributes);
+    }
+
+    @Test
+    void testGetLoggingAttributesWithVersionControlInformation() {
+        processGroup.setName(NAME);
+
+        when(versionControlInformation.getFlowIdentifier()).thenReturn(REGISTERED_FLOW_IDENTIFIER);
+        when(versionControlInformation.getVersion()).thenReturn(REGISTERED_FLOW_VERSION);
+        when(versionControlInformation.getStatus()).thenReturn(versionedFlowStatus);
+        processGroup.setVersionControlInformation(versionControlInformation, Map.of());
+
+        final Map<String, String> loggingAttributes = processGroup.getLoggingAttributes();
+
+        assertNotNull(loggingAttributes);
+        assertFalse(loggingAttributes.isEmpty());
+
+        final Map<String, String> expected = Map.of(
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_ID.getAttribute(), ID,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_ID_PATH.getAttribute(), ID_PATH,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME.getAttribute(), NAME,
+                StandardProcessGroup.LoggingAttribute.PROCESS_GROUP_NAME_PATH.getAttribute(), NAME_PATH,
+                StandardProcessGroup.LoggingAttribute.REGISTERED_FLOW_IDENTIFIER.getAttribute(), REGISTERED_FLOW_IDENTIFIER,
+                StandardProcessGroup.LoggingAttribute.REGISTERED_FLOW_VERSION.getAttribute(), REGISTERED_FLOW_VERSION
         );
 
         assertEquals(expected, loggingAttributes);
