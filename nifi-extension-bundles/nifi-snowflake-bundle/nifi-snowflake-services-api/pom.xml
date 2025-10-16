@@ -32,7 +32,7 @@
         </dependency>
         <dependency>
             <groupId>net.snowflake</groupId>
-            <artifactId>snowflake-jdbc</artifactId>
+            <artifactId>snowflake-jdbc-thin</artifactId>
         </dependency>
 
         <dependency>
