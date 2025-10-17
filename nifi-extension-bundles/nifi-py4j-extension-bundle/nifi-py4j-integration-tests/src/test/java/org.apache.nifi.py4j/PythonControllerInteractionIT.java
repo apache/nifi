@@ -475,7 +475,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testHashRecordFieldHappyPath() throws InitializationException {
         final TestRunner runner = createRecordTransformRunner("HashRecordField");
-        runner.setProperty("Record Path", "/my/example");
+        runner.setProperty("Record Path", "my.example");
 
         final String json = "[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]";
         runner.enqueue(json);
@@ -492,7 +492,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testHashRecordFieldMissingField() throws InitializationException {
         final TestRunner runner = createRecordTransformRunner("HashRecordField");
-        runner.setProperty("Record Path", "/does/not/exist");
+        runner.setProperty("Record Path", "does.not.exist");
 
         final String json = "[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]";
         runner.enqueue(json);
@@ -508,7 +508,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testHashRecordFieldNonScalar() throws InitializationException {
         final TestRunner runner = createRecordTransformRunner("HashRecordField");
-        runner.setProperty("Record Path", "/my");
+        runner.setProperty("Record Path", "my");
 
         final String json = "[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]";
         runner.enqueue(json);
@@ -524,7 +524,7 @@ public class PythonControllerInteractionIT {
     @Test
     public void testHashRecordFieldLongValue() throws InitializationException {
         final TestRunner runner = createRecordTransformRunner("HashRecordField");
-        runner.setProperty("Record Path", "/count");
+        runner.setProperty("Record Path", "count");
 
         final String json = "[{\"count\":7}]";
         runner.enqueue(json);
