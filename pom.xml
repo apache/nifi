@@ -931,6 +931,9 @@
                                     <excludes>
                                         <!-- JUnit 5 is the preferred test framework -->
                                         <exclude>org.testng:testng</exclude>
+                                        <!-- JUnit 4 should not be used -->
+                                        <exclude>junit:junit</exclude>
+                                        <exclude>org.junit.vintage:junit-vintage-engine</exclude>
                                         <!-- Cat-X Deps -->
                                         <exclude>org.json:json:(,20240303):compile</exclude>
                                         <exclude>c3p0:c3p0:*:*:compile</exclude>
