@@ -28,7 +28,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -67,14 +67,13 @@ public class PutDatabaseRecordIT {
     private static final String FAVORITE_COLOR_FIELD = "favorite_color";
     private static final String FAVORITE_COLOR = "blue";
 
-    private static PostgreSQLContainer<?> postgres;
+    private static PostgreSQLContainer postgres;
     private TestRunner runner;
 
 
     @BeforeAll
     public static void startPostgres() {
-        postgres = new PostgreSQLContainer<>("postgres:9.6.12")
-            .withInitScript("PutDatabaseRecordIT/create-person-table.sql");
+        postgres = new PostgreSQLContainer("postgres:latest").withInitScript("PutDatabaseRecordIT/create-person-table.sql");
         postgres.start();
     }
 
