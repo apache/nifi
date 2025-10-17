@@ -30,12 +30,12 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -63,8 +63,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             " is allowed. NiFi nodes are not listed will be join to the Hazelcast cluster as clients.");
 
     private static final PropertyDescriptor HAZELCAST_PORT = new PropertyDescriptor.Builder()
-            .name("hazelcast-port")
-            .displayName("Hazelcast Port")
+            .name("Hazelcast Port")
             .description("Port for the Hazelcast instance to use.")
             .required(true)
             .defaultValue(String.valueOf(DEFAULT_HAZELCAST_PORT))
@@ -73,8 +72,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             .build();
 
     private static final PropertyDescriptor HAZELCAST_CLUSTERING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("hazelcast-clustering-strategy")
-            .displayName("Hazelcast Clustering Strategy")
+            .name("Hazelcast Clustering Strategy")
             .description("Specifies with what strategy the Hazelcast cluster should be created.")
             .required(true)
             .allowableValues(CLUSTER_NONE, CLUSTER_ALL_NODES, CLUSTER_EXPLICIT)
@@ -82,8 +80,7 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             .build();
 
     private static final PropertyDescriptor HAZELCAST_INSTANCES = new PropertyDescriptor.Builder()
-            .name("hazelcast-instances")
-            .displayName("Hazelcast Instances")
+            .name("Hazelcast Instances")
             .description("Only used with \"Explicit\" Clustering Strategy!" +
                     " List of NiFi instance host names which should be part of the Hazelcast cluster. Host names are separated by comma." +
                     " The port specified in the \"Hazelcast Port\" property will be used as server port." +
@@ -94,15 +91,19 @@ public class EmbeddedHazelcastCacheManager extends IMapBasedHazelcastCacheManage
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            HAZELCAST_CLUSTER_NAME,
+            HAZELCAST_PORT,
+            HAZELCAST_CLUSTERING_STRATEGY,
+            HAZELCAST_INSTANCES
+    );
 
-    static {
-        PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-                HAZELCAST_CLUSTER_NAME,
-                HAZELCAST_PORT,
-                HAZELCAST_CLUSTERING_STRATEGY,
-                HAZELCAST_INSTANCES
-        ));
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("hazelcast-port", HAZELCAST_PORT.getName());
+        config.renameProperty("hazelcast-clustering-strategy", HAZELCAST_CLUSTERING_STRATEGY.getName());
+        config.renameProperty("hazelcast-instances", HAZELCAST_INSTANCES.getName());
     }
 
     @Override

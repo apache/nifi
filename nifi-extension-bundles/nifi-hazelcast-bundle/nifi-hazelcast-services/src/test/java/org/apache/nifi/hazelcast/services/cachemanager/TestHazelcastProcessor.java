@@ -48,8 +48,7 @@ class TestHazelcastProcessor extends AbstractProcessor {
     private static final DummyStringSerializer SERIALIZER = new DummyStringSerializer();
 
     public static final PropertyDescriptor TEST_HAZELCAST_MAP_CACHE_CLIENT = new PropertyDescriptor.Builder()
-            .name("test-hazelcast-map-cache-client")
-            .displayName("Test Hazelcast Map Cache Client")
+            .name("Test Hazelcast Map Cache Client")
             .identifiesControllerService(HazelcastMapCacheClient.class)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
