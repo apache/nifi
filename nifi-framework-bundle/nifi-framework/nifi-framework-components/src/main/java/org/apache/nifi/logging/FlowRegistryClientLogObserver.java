@@ -39,7 +39,7 @@ public class FlowRegistryClientLogObserver implements LogObserver {
         final String bulletinLevel = message.getLogLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLogLevel().toString();
 
         final Bulletin bulletin = BulletinFactory.createBulletin(null, clientNode.getIdentifier(), ComponentType.FLOW_REGISTRY_CLIENT,
-                clientNode.getName(), "Log Message", bulletinLevel, message.getMessage());
+                clientNode.getName(), "Log Message", bulletinLevel, message.getMessage(), message.getThrowable());
         bulletinRepository.addBulletin(bulletin);
     }
 

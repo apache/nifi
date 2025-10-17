@@ -39,7 +39,7 @@ public class FlowAnalysisRuleLogObserver implements LogObserver {
         final String bulletinLevel = message.getLogLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLogLevel().toString();
 
         final Bulletin bulletin = BulletinFactory.createBulletin(null, flowAnalysisRuleNode.getIdentifier(), ComponentType.FLOW_ANALYSIS_RULE,
-            flowAnalysisRuleNode.getName(), "Log Message", bulletinLevel, message.getMessage());
+            flowAnalysisRuleNode.getName(), "Log Message", bulletinLevel, message.getMessage(), message.getThrowable());
         bulletinRepository.addBulletin(bulletin);
     }
 

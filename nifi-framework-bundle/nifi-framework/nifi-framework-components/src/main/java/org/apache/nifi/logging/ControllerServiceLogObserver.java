@@ -45,7 +45,7 @@ public class ControllerServiceLogObserver implements LogObserver {
         final String groupName = pg == null ? null : pg.getName();
 
         final Bulletin bulletin = BulletinFactory.createBulletin(groupId, groupName, serviceNode.getIdentifier(), ComponentType.CONTROLLER_SERVICE,
-                serviceNode.getName(), "Log Message", bulletinLevel, message.getMessage());
+                serviceNode.getName(), "Log Message", bulletinLevel, message.getMessage(), message.getThrowable());
         bulletinRepository.addBulletin(bulletin);
     }
 
