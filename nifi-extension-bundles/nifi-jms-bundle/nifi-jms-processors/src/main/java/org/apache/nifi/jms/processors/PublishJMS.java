@@ -132,7 +132,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
-            .name("Attributes to Send as JMS Headers (Regex)")
+            .name("Attributes to Send as JMS Headers")
             .description("Specifies the Regular Expression that determines the names of FlowFile attributes that" +
                     " should be sent as JMS Headers")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)

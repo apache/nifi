@@ -143,7 +143,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor AUTO_OFFSET_RESET = new PropertyDescriptor.Builder()
-            .name("Auto Offset Reset")
+            .name("auto.offset.reset")
+            .displayName("Auto Offset Reset")
             .description("Automatic offset configuration applied when no previous consumer offset found corresponding to Kafka auto.offset.reset property")
             .required(true)
             .allowableValues(AutoOffsetReset.class)
@@ -454,11 +455,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 rollback(consumerService, offsetTracker, session);
                 context.yield();
             });
-    }
-
-    @Override
-    public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty("auto.offset.reset", AUTO_OFFSET_RESET.getName());
     }
 
     private void commitOffsets(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext, final ProcessSession session) {
