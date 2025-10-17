@@ -134,7 +134,6 @@ Eclipse Public License 2.0
 
 The following binary components are provided under the Eclipse Public License 2.0 (dual-licensed with GPL2+CPE as applicable).
 
-    (EPL 2.0) jersey-client (org.glassfish.jersey.core:jersey-client:jar:4.0.0 - https://jersey.github.io/)
     (EPL 2.0) jersey-common (org.glassfish.jersey.core:jersey-common:jar:4.0.0 - https://jersey.github.io/)
     (EPL 2.0) jersey-container-servlet-core (org.glassfish.jersey.containers:jersey-container-servlet-core:jar:4.0.0 - https://jersey.github.io/)
     (EPL 2.0) jersey-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:jar:4.0.0 - https://jersey.github.io/)
