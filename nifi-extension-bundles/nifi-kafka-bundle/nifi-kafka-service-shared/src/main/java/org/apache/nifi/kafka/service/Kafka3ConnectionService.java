@@ -58,7 +58,6 @@ import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyProvi
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.kafka.shared.validation.DynamicPropertyValidator;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -96,7 +95,8 @@ import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUS
 public class Kafka3ConnectionService extends AbstractControllerService implements KafkaConnectionService, VerifiableControllerService, KafkaClientComponent {
 
     public static final PropertyDescriptor TRANSACTION_ISOLATION_LEVEL = new PropertyDescriptor.Builder()
-            .name("Transaction Isolation Level")
+            .name("isolation.level")
+            .displayName("Transaction Isolation Level")
             .description("""
                     Specifies how the service should handle transaction isolation levels when communicating with Kafka.
                     The uncommited option means that messages will be received as soon as they are written to Kafka but will be pulled, even if the producer cancels the transactions.
@@ -111,7 +111,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .build();
 
     public static final PropertyDescriptor MAX_POLL_RECORDS = new PropertyDescriptor.Builder()
-            .name("Max Poll Records")
+            .name("max.poll.records")
+            .displayName("Max Poll Records")
             .description("Maximum number of records Kafka should return in a single poll.")
             .required(true)
             .defaultValue("10000")
@@ -119,7 +120,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .build();
 
     public static final PropertyDescriptor CLIENT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Client Timeout")
+            .name("default.api.timeout.ms")
+            .displayName("Client Timeout")
             .description("Default timeout for Kafka client operations. Mapped to Kafka default.api.timeout.ms. The Kafka request.timeout.ms property is derived from half of the configured timeout")
             .defaultValue("60 sec")
             .required(true)
@@ -128,7 +130,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .build();
 
     public static final PropertyDescriptor METADATA_WAIT_TIME = new PropertyDescriptor.Builder()
-            .name("Max Metadata Wait Time")
+            .name("max.block.ms")
+            .displayName("Max Metadata Wait Time")
             .description("""
                     The amount of time publisher will wait to obtain metadata or wait for the buffer to flush during the 'send' call before failing the
                     entire 'send' call. Corresponds to Kafka max.block.ms property
@@ -140,7 +143,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             .build();
 
     public static final PropertyDescriptor ACK_WAIT_TIME = new PropertyDescriptor.Builder()
-            .name("Acknowledgment Wait Time")
+            .name("ack.wait.time")
+            .displayName("Acknowledgment Wait Time")
             .description("""
                     After sending a message to Kafka, this indicates the amount of time that the service will wait for a response from Kafka.
                     If Kafka does not acknowledge the message within this time period, the service will throw an exception.
@@ -184,23 +188,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         producerProperties = getProducerProperties(configurationContext, clientProperties);
         consumerProperties = getConsumerProperties(configurationContext, clientProperties);
         uri = createBrokerUri(configurationContext);
-    }
-
-    @Override
-    public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty("isolation.level", TRANSACTION_ISOLATION_LEVEL.getName());
-        config.renameProperty("max.poll.records", MAX_POLL_RECORDS.getName());
-        config.renameProperty("default.api.timeout.ms", CLIENT_TIMEOUT.getName());
-        config.renameProperty("max.block.ms", METADATA_WAIT_TIME.getName());
-        config.renameProperty("ack.wait.time", ACK_WAIT_TIME.getName());
-        config.renameProperty(OLD_BOOTSTRAP_SERVERS_PROPERTY_NAME, BOOTSTRAP_SERVERS.getName());
-        config.renameProperty(OLD_SECURITY_PROTOCOL_PROPERTY_NAME, SECURITY_PROTOCOL.getName());
-        config.renameProperty(OLD_SASL_MECHANISM_PROPERTY_NAME, SASL_MECHANISM.getName());
-        config.renameProperty(OLD_SASL_USERNAME_PROPERTY_NAME, SASL_USERNAME.getName());
-        config.renameProperty(OLD_SASL_PASSWORD_PROPERTY_NAME, SASL_PASSWORD.getName());
-        config.renameProperty(OLD_KERBEROS_SERVICE_NAME_PROPERTY_NAME, KERBEROS_SERVICE_NAME.getName());
-        config.renameProperty(OLD_SELF_CONTAINED_KERBEROS_USER_SERVICE_PROPERTY_NAME, SELF_CONTAINED_KERBEROS_USER_SERVICE.getName());
-        config.renameProperty(OLD_OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE_PROPERTY_NAME, OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE.getName());
     }
 
     private String createBrokerUri(final ConfigurationContext context) {

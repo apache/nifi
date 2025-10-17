@@ -71,10 +71,6 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
-        super.migrateProperties(config);
-        config.renameProperty(KafkaClientComponent.OLD_SASL_MECHANISM_PROPERTY_NAME, KafkaClientComponent.SASL_MECHANISM.getName());
-        config.renameProperty(KafkaClientComponent.OLD_AWS_PROFILE_NAME_PROPERTY_NAME, KafkaClientComponent.AWS_PROFILE_NAME.getName());
-
         // For backward compatibility: if an AWS Profile Name was configured previously,
         // set AWS Role Source to SPECIFIED_PROFILE
         if (config.isPropertySet(KafkaClientComponent.AWS_PROFILE_NAME)) {
