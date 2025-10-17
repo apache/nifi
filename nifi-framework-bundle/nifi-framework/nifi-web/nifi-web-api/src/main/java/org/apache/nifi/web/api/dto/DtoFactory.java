@@ -3474,10 +3474,25 @@ public final class DtoFactory {
    /**
     * Creates a BulletinDTO for the specified Bulletin.
     *
+    * Note: By default, stack trace is not included as it should be exposed
+    * only for the Bulletin Board API. Use the overloaded method with
+    * includeStackTrace=true when serving the Bulletin Board.
+    *
     * @param bulletin bulletin
     * @return dto
     */
    public BulletinDTO createBulletinDto(final Bulletin bulletin) {
+       return createBulletinDto(bulletin, false);
+   }
+
+   /**
+    * Creates a BulletinDTO for the specified Bulletin with optional stack trace inclusion.
+    *
+    * @param bulletin bulletin
+    * @param includeStackTrace whether to include stack trace
+    * @return dto
+    */
+   public BulletinDTO createBulletinDto(final Bulletin bulletin, final boolean includeStackTrace) {
        final BulletinDTO dto = new BulletinDTO();
        dto.setId(bulletin.getId());
        dto.setNodeAddress(bulletin.getNodeAddress());
@@ -3489,6 +3504,7 @@ public final class DtoFactory {
        dto.setLevel(bulletin.getLevel());
        dto.setMessage(bulletin.getMessage());
        dto.setSourceType(bulletin.getSourceType().name());
+       dto.setStackTrace(includeStackTrace ? bulletin.getStackTrace() : null);
        return dto;
    }
 

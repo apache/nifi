@@ -39,7 +39,7 @@ public class ReportingTaskLogObserver implements LogObserver {
         final String bulletinLevel = message.getLogLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLogLevel().toString();
 
         final Bulletin bulletin = BulletinFactory.createBulletin(null, taskNode.getIdentifier(), ComponentType.REPORTING_TASK,
-            taskNode.getName(), "Log Message", bulletinLevel, message.getMessage());
+            taskNode.getName(), "Log Message", bulletinLevel, message.getMessage(), message.getThrowable());
         bulletinRepository.addBulletin(bulletin);
     }
 
