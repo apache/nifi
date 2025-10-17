@@ -37,5 +37,37 @@
             <artifactId>nifi-aws-service-api</artifactId>
             <scope>compile</scope>
         </dependency>
+        <!-- Shared dependency on Netty NIO Client for Asynchronous HTTP requests -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>netty-nio-client</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- Shared dependencies for Kinesis -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>dynamodb</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>cloudwatch</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>

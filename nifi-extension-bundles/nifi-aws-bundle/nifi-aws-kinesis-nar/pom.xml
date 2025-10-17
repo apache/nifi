@@ -29,7 +29,7 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Mark AWS SDK v2 dependencies as provided since they're in nifi-aws-service-api-nar -->
+            <!-- Mark AWS SDK v2 dependencies as provided from nifi-aws-service-api-nar -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>sdk-core</artifactId>
@@ -80,12 +80,6 @@
             </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
-                <artifactId>arns</artifactId>
-                <version>${software.amazon.awssdk.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
                 <artifactId>json-utils</artifactId>
                 <version>${software.amazon.awssdk.version}</version>
                 <scope>provided</scope>
@@ -122,12 +116,6 @@
             </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
-                <artifactId>aws-xml-protocol</artifactId>
-                <version>${software.amazon.awssdk.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
                 <artifactId>aws-json-protocol</artifactId>
                 <version>${software.amazon.awssdk.version}</version>
                 <scope>provided</scope>
@@ -137,12 +125,6 @@
                 <artifactId>sts</artifactId>
                 <version>${software.amazon.awssdk.version}</version>
                 <scope>provided</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>software.amazon.awssdk</groupId>
-                        <artifactId>netty-nio-client</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
@@ -213,37 +195,6 @@
             </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
-                <artifactId>third-party-jackson-dataformat-cbor</artifactId>
-                <version>${software.amazon.awssdk.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>aws-cbor-protocol</artifactId>
-                <version>${software.amazon.awssdk.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <!-- AWS Service Clients that are shared -->
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>kinesis</artifactId>
-                <version>${software.amazon.awssdk.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>dynamodb</artifactId>
-                <version>${software.amazon.awssdk.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>cloudwatch</artifactId>
-                <version>${software.amazon.awssdk.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>software.amazon.awssdk</groupId>
                 <artifactId>netty-nio-client</artifactId>
                 <version>${software.amazon.awssdk.version}</version>
                 <scope>provided</scope>
@@ -275,55 +226,11 @@
                 <version>${guava.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>failureaccess</artifactId>
-                <version>1.0.3</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.google.j2objc</groupId>
-                <artifactId>j2objc-annotations</artifactId>
-                <version>3.1</version>
-                <scope>provided</scope>
-            </dependency>
-            <!-- Apache Commons -->
-            <dependency>
-                <groupId>commons-collections</groupId>
-                <artifactId>commons-collections</artifactId>
-                <version>3.2.2</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-collections4</artifactId>
-                <version>4.4</version>
-                <scope>provided</scope>
-            </dependency>
             <!-- Reactive Streams -->
             <dependency>
                 <groupId>org.reactivestreams</groupId>
                 <artifactId>reactive-streams</artifactId>
                 <version>1.0.4</version>
-                <scope>provided</scope>
-            </dependency>
-            <!-- Netty (shared with nifi-aws-nar) -->
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-http</artifactId>
-                <version>${netty.4.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-codec-http2</artifactId>
-                <version>${netty.4.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-transport-classes-epoll</artifactId>
-                <version>${netty.4.version}</version>
                 <scope>provided</scope>
             </dependency>
         </dependencies>
