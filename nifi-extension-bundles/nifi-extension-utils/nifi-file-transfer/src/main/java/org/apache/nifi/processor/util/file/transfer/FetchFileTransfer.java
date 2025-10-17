@@ -116,6 +116,21 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .required(false)
         .build();
 
+    public static final PropertyDescriptor MOVE_CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+        .name("Move Conflict Resolution")
+        .description(String.format("Determines how to handle filename collisions when '%s' is '%s'. " +
+                        "This setting controls behavior when the target file exists in the %s.",
+                COMPLETION_STRATEGY.getDisplayName(), COMPLETION_MOVE.getDisplayName(), MOVE_DESTINATION_DIR.getDisplayName()))
+        .required(true)
+        .dependsOn(COMPLETION_STRATEGY, COMPLETION_MOVE.getValue())
+        .allowableValues(FileTransfer.CONFLICT_RESOLUTION_REPLACE_ALLOWABLE,
+                FileTransfer.CONFLICT_RESOLUTION_IGNORE_ALLOWABLE,
+                FileTransfer.CONFLICT_RESOLUTION_RENAME_ALLOWABLE,
+                FileTransfer.CONFLICT_RESOLUTION_REJECT_ALLOWABLE,
+                FileTransfer.CONFLICT_RESOLUTION_FAIL_ALLOWABLE)
+        .defaultValue(FileTransfer.CONFLICT_RESOLUTION_IGNORE_ALLOWABLE)
+        .build();
+
     public static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
         .name("Log Level When File Not Found")
         .description("Log level to use in case the file does not exist when the processor is triggered")
@@ -147,7 +162,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         REMOTE_FILENAME,
         COMPLETION_STRATEGY,
         MOVE_DESTINATION_DIR,
-        MOVE_CREATE_DIRECTORY
+        MOVE_CREATE_DIRECTORY,
+        MOVE_CONFLICT_RESOLUTION
     );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -363,7 +379,45 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                     transfer.ensureDirectoryExists(flowFile, new File(absoluteTargetDirPath));
                 }
 
-                final String destinationPath = String.format("%s/%s", absoluteTargetDirPath, simpleFilename);
+                String destinationFileName = simpleFilename;
+                final FileInfo remoteFileInfo = transfer.getRemoteFileInfo(flowFile, absoluteTargetDirPath, destinationFileName);
+                if (remoteFileInfo != null) {
+                    final String strategy = context.getProperty(MOVE_CONFLICT_RESOLUTION).getValue();
+                    getLogger().info("Detected filename conflict moving remote file for {} so handling using configured Conflict Resolution of {}", flowFile, strategy);
+                    switch (strategy.toUpperCase()) {
+                        case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
+                            try {
+                                transfer.deleteFile(flowFile, absoluteTargetDirPath, destinationFileName);
+                            } catch (final IOException deleteEx) {
+                                getLogger().warn("Failed to delete existing destination file {} on {}:{} due to {}. Move will be attempted regardless.",
+                                        destinationFileName, host, port, deleteEx.toString(), deleteEx);
+                            }
+                            break;
+                        case FileTransfer.CONFLICT_RESOLUTION_RENAME:
+                            final String unique = FileTransferConflictUtil.generateUniqueFilename(transfer, absoluteTargetDirPath, destinationFileName, flowFile, getLogger());
+                            if (unique != null) {
+                                destinationFileName = unique;
+                            } else {
+                                getLogger().warn("Could not determine a unique name after 99 attempts for {}. Move will not be performed.", flowFile);
+                                return;
+                            }
+                            break;
+                        case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
+                            getLogger().info("Configured to IGNORE move conflict for {}. Original remote file will be left in place.", flowFile);
+                            return;
+                        case FileTransfer.CONFLICT_RESOLUTION_REJECT:
+                        case FileTransfer.CONFLICT_RESOLUTION_FAIL:
+                            getLogger().warn("Configured to {} on move conflict for {}. Original remote file will be left in place.", strategy, flowFile);
+                            return;
+                        case FileTransfer.CONFLICT_RESOLUTION_NONE:
+                        default:
+                            // Treat as IGNORE for move
+                            getLogger().info("Configured to NONE for move conflict on {}. Original remote file will be left in place.", flowFile);
+                            return;
+                    }
+                }
+
+                final String destinationPath = String.format("%s/%s", absoluteTargetDirPath, destinationFileName);
                 transfer.rename(flowFile, filename, destinationPath);
 
             } catch (final IOException ioe) {
