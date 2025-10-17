@@ -27,6 +27,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
@@ -68,9 +69,8 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     }
 
     // https://cloud.google.com/storage/docs/request-endpoints#storage-set-client-endpoint-java
-    public static final PropertyDescriptor STORAGE_API_URL = new PropertyDescriptor
-            .Builder().name("storage-api-url")
-            .displayName("Storage API URL")
+    public static final PropertyDescriptor STORAGE_API_URL = new PropertyDescriptor.Builder()
+            .name("Storage API URL")
             .description("Overrides the default storage URL. Configuring an alternative Storage API URL also overrides the "
                     + "HTTP Host header on requests as described in the Google documentation for Private Service Connections.")
             .addValidator(StandardValidators.URL_VALIDATOR)
@@ -109,6 +109,12 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
             }
         }
         return results;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("storage-api-url", STORAGE_API_URL.getName());
     }
 
     @Override

@@ -49,6 +49,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -167,9 +168,8 @@ import static org.apache.nifi.processors.gcp.storage.StorageAttributes.URI_DESC;
     }
 )
 public class FetchGCSObject extends AbstractGCSProcessor {
-    public static final PropertyDescriptor BUCKET = new PropertyDescriptor
-            .Builder().name("gcs-bucket")
-            .displayName("Bucket")
+    public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
+            .name("Bucket")
             .description(BUCKET_DESC)
             .required(true)
             .defaultValue("${" + BUCKET_ATTR + "}")
@@ -177,9 +177,8 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor KEY = new PropertyDescriptor
-            .Builder().name("gcs-key")
-            .displayName("Key")
+    public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
+            .name("Key")
             .description(KEY_DESC)
             .required(true)
             .defaultValue("${" + CoreAttributes.FILENAME.key() + "}")
@@ -188,8 +187,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor GENERATION = new PropertyDescriptor.Builder()
-            .name("gcs-generation")
-            .displayName("Object Generation")
+            .name("Object Generation")
             .description("The generation of the Object to download. If not set, the latest generation will be downloaded.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
@@ -197,8 +195,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor ENCRYPTION_KEY = new PropertyDescriptor.Builder()
-            .name("gcs-server-side-encryption-key")
-            .displayName("Server Side Encryption Key")
+            .name("Server Side Encryption Key")
             .description("An AES256 Key (encoded in base64) which the object has been encrypted in.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -207,8 +204,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
-            .name("gcs-object-range-start")
-            .displayName("Range Start")
+            .name("Range Start")
             .description("The byte position at which to start reading from the object. An empty value or a value of " +
                     "zero will start reading at the beginning of the object.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -217,8 +213,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .build();
 
     public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
-            .name("gcs-object-range-length")
-            .displayName("Range Length")
+            .name("Range Length")
             .description("The number of bytes to download from the object, starting from the Range Start. An empty " +
                     "value or a value that extends beyond the end of the object will read to the end of the object.")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
@@ -316,6 +311,17 @@ public class FetchGCSObject extends AbstractGCSProcessor {
 
         final String transitUri = getTransitUri(storage.getOptions().getHost(), bucketName, key);
         session.getProvenanceReporter().fetch(flowFile, transitUri, millis);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("gcs-bucket", BUCKET.getName());
+        config.renameProperty("gcs-key", KEY.getName());
+        config.renameProperty("gcs-generation", GENERATION.getName());
+        config.renameProperty("gcs-server-side-encryption-key", ENCRYPTION_KEY.getName());
+        config.renameProperty("gcs-object-range-start", RANGE_START.getName());
+        config.renameProperty("gcs-object-range-length", RANGE_LENGTH.getName());
     }
 
     private FetchedBlob fetchBlob(final ProcessContext context, final Storage storage, final Map<String, String> attributes) throws IOException {

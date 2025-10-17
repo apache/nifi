@@ -34,6 +34,6 @@
     </modules>
 
     <properties>
-        <mongo.driver.version>5.6.0</mongo.driver.version>
+        <mongo.driver.version>5.6.1</mongo.driver.version>
     </properties>
 </project>

@@ -48,6 +48,8 @@ import org.apache.tika.exception.TikaException;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.ocr.TesseractOCRConfig;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -196,8 +198,16 @@ public class ExtractMediaMetadata extends AbstractProcessor {
                                            Integer maxAttribLen) throws IOException, TikaException, SAXException {
         final Metadata metadata = new Metadata();
         final TikaInputStream tikaInputStream = TikaInputStream.get(sourceStream);
+
+        // Configure ParseContext to disable OCR - metadata extraction does not require OCR
+        // https://issues.apache.org/jira/browse/NIFI-15098
+        final TesseractOCRConfig ocrConfig = new TesseractOCRConfig();
+        ocrConfig.setSkipOcr(true);
+        final ParseContext parseContext = new ParseContext();
+        parseContext.set(TesseractOCRConfig.class, ocrConfig);
+
         try {
-            autoDetectParser.parse(tikaInputStream, new DefaultHandler(), metadata);
+            autoDetectParser.parse(tikaInputStream, new DefaultHandler(), metadata, parseContext);
         } finally {
             tikaInputStream.close();
         }

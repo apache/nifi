@@ -42,6 +42,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -87,16 +88,14 @@ import java.util.stream.Collectors;
 public class GetHubSpot extends AbstractProcessor {
 
     static final PropertyDescriptor OBJECT_TYPE = new PropertyDescriptor.Builder()
-            .name("object-type")
-            .displayName("Object Type")
+            .name("Object Type")
             .description("The HubSpot Object Type requested")
             .required(true)
             .allowableValues(HubSpotObjectType.class)
             .build();
 
     static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
-            .name("access-token")
-            .displayName("Access Token")
+            .name("Access Token")
             .description("Access Token to authenticate requests")
             .required(true)
             .sensitive(true)
@@ -105,8 +104,7 @@ public class GetHubSpot extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor RESULT_LIMIT = new PropertyDescriptor.Builder()
-            .name("result-limit")
-            .displayName("Result Limit")
+            .name("Result Limit")
             .description("The maximum number of results to request for each invocation of the Processor")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
@@ -114,8 +112,7 @@ public class GetHubSpot extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor IS_INCREMENTAL = new PropertyDescriptor.Builder()
-            .name("is-incremental")
-            .displayName("Incremental Loading")
+            .name("Incremental Loading")
             .description("The processor can incrementally load the queried objects so that each object is queried exactly once." +
                     " For each query, the processor queries objects within a time window where the objects were modified between" +
                     " the previous run time and the current time (optionally adjusted by the Incremental Delay property).")
@@ -125,8 +122,7 @@ public class GetHubSpot extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor INCREMENTAL_DELAY = new PropertyDescriptor.Builder()
-            .name("incremental-delay")
-            .displayName("Incremental Delay")
+            .name("Incremental Delay")
             .description(("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
                     " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35." +
                     " Set this property to avoid missing objects when the clock of your local machines and HubSpot servers' clock are not in sync" +
@@ -139,8 +135,7 @@ public class GetHubSpot extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor INCREMENTAL_INITIAL_START_TIME = new PropertyDescriptor.Builder()
-            .name("incremental-initial-start-time")
-            .displayName("Incremental Initial Start Time")
+            .name("Incremental Initial Start Time")
             .description("This property specifies the start time that the processor applies when running the first request." +
                     " The expected format is a UTC date-time such as '2011-12-03T10:15:30Z'")
             .required(false)
@@ -150,8 +145,7 @@ public class GetHubSpot extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
-            .name("web-client-service-provider")
-            .displayName("Web Client Service Provider")
+            .name("Web Client Service Provider")
             .description("Controller service for HTTP client operations")
             .identifiesControllerService(WebClientServiceProvider.class)
             .required(true)
@@ -254,6 +248,17 @@ public class GetHubSpot extends AbstractProcessor {
             final String responseBody = getResponseBodyAsString(context, response, uri);
             getLogger().warn("HTTP {} error for requested URI [{}] with response [{}]", response.statusCode(), uri, responseBody);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("object-type", OBJECT_TYPE.getName());
+        config.renameProperty("access-token", ACCESS_TOKEN.getName());
+        config.renameProperty("result-limit", RESULT_LIMIT.getName());
+        config.renameProperty("is-incremental", IS_INCREMENTAL.getName());
+        config.renameProperty("incremental-delay", INCREMENTAL_DELAY.getName());
+        config.renameProperty("incremental-initial-start-time", INCREMENTAL_INITIAL_START_TIME.getName());
+        config.renameProperty("web-client-service-provider", WEB_CLIENT_SERVICE_PROVIDER.getName());
     }
 
     private String getResponseBodyAsString(final ProcessContext context, final HttpResponseEntity response, final URI uri) {

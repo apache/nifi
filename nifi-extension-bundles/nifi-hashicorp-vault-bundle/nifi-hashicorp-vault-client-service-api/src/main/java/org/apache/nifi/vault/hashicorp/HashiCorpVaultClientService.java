@@ -23,6 +23,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
@@ -37,8 +38,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             "Use one or more '.properties' files to configure the client");
 
     PropertyDescriptor CONFIGURATION_STRATEGY = new PropertyDescriptor.Builder()
-            .displayName("Configuration Strategy")
-            .name("configuration-strategy")
+            .name("Configuration Strategy")
             .required(true)
             .allowableValues(DIRECT_PROPERTIES, PROPERTIES_FILES)
             .defaultValue(DIRECT_PROPERTIES.getValue())
@@ -46,6 +46,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .build();
 
     PropertyDescriptor VAULT_URI = new PropertyDescriptor.Builder()
+            .name("Vault URI")
             .name("vault.uri")
             .displayName("Vault URI")
             .description("The URI of the HashiCorp Vault server (e.g., http://localhost:8200).  Required if not specified in the " +
@@ -57,8 +58,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .build();
 
     PropertyDescriptor VAULT_AUTHENTICATION = new PropertyDescriptor.Builder()
-            .name("vault.authentication")
-            .displayName("Vault Authentication")
+            .name("Vault Authentication")
             .description("Vault authentication method, as described in the Spring Vault Environment Configuration documentation " +
                     "(https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration).")
             .required(true)
@@ -68,8 +68,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .build();
 
     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("vault.ssl.context.service")
-            .displayName("SSL Context Service")
+            .name("SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections to the " +
                     "HashiCorp Vault server.")
             .required(false)
@@ -78,8 +77,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .build();
 
     PropertyDescriptor VAULT_PROPERTIES_FILES = new PropertyDescriptor.Builder()
-            .name("vault.properties.files")
-            .displayName("Vault Properties Files")
+            .name("Vault Properties Files")
             .description("A comma-separated list of files containing HashiCorp Vault configuration properties, as described in the Spring Vault " +
                     "Environment Configuration documentation (https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration). " +
                     "All of the Spring property keys and authentication-specific property keys are supported.")
@@ -89,8 +87,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .build();
 
     PropertyDescriptor CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("vault.connection.timeout")
-            .displayName("Connection Timeout")
+            .name("Connection Timeout")
             .description("The connection timeout for the HashiCorp Vault client")
             .required(true)
             .defaultValue("5 sec")
@@ -98,8 +95,7 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .build();
 
     PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("vault.read.timeout")
-            .displayName("Read Timeout")
+            .name("Read Timeout")
             .description("The read timeout for the HashiCorp Vault client")
             .required(true)
             .defaultValue("15 sec")
@@ -112,4 +108,14 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
      */
     HashiCorpVaultCommunicationService getHashiCorpVaultCommunicationService();
 
+    @Override
+    default void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("configuration-strategy", CONFIGURATION_STRATEGY.getName());
+        config.renameProperty("vault.uri", VAULT_URI.getName());
+        config.renameProperty("vault.authentication", VAULT_AUTHENTICATION.getName());
+        config.renameProperty("vault.ssl.context.service", SSL_CONTEXT_SERVICE.getName());
+        config.renameProperty("vault.properties.files", VAULT_PROPERTIES_FILES.getName());
+        config.renameProperty("vault.connection.timeout", CONNECTION_TIMEOUT.getName());
+        config.renameProperty("vault.read.timeout", READ_TIMEOUT.getName());
+    }
 }
