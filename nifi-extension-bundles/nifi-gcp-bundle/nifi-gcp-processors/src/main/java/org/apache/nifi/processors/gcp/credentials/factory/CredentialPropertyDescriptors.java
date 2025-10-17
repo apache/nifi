@@ -38,8 +38,7 @@ public final class CredentialPropertyDescriptors {
      *     </a>
      */
     public static final PropertyDescriptor USE_APPLICATION_DEFAULT_CREDENTIALS = new PropertyDescriptor.Builder()
-            .name("application-default-credentials")
-            .displayName("Use Application Default Credentials")
+            .name("Use Application Default Credentials")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -53,8 +52,7 @@ public final class CredentialPropertyDescriptors {
             .build();
 
     public static final PropertyDescriptor USE_COMPUTE_ENGINE_CREDENTIALS = new PropertyDescriptor.Builder()
-            .name("compute-engine-credentials")
-            .displayName("Use Compute Engine Credentials")
+            .name("Use Compute Engine Credentials")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -73,8 +71,7 @@ public final class CredentialPropertyDescriptors {
      *     </a>
      */
     public static final PropertyDescriptor SERVICE_ACCOUNT_JSON_FILE = new PropertyDescriptor.Builder()
-            .name("service-account-json-file")
-            .displayName("Service Account JSON File")
+            .name("Service Account JSON File")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
@@ -82,8 +79,7 @@ public final class CredentialPropertyDescriptors {
             .build();
 
     public static final PropertyDescriptor SERVICE_ACCOUNT_JSON = new PropertyDescriptor.Builder()
-            .name("service-account-json")
-            .displayName("Service Account JSON")
+            .name("Service Account JSON")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(JsonValidator.INSTANCE)

@@ -29,7 +29,6 @@ import org.springframework.mock.web.MockCookie;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.ws.rs.core.HttpHeaders;
 import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
@@ -63,6 +62,8 @@ public class StandardApplicationCookieServiceTest {
 
     private static final String COOKIE_VALUE = UUID.randomUUID().toString();
 
+    private static final String SET_COOKIE_HEADER = "Set-Cookie";
+
     private static final ApplicationCookieName COOKIE_NAME = ApplicationCookieName.LOGOUT_REQUEST_IDENTIFIER;
 
     private URI resourceUri;
@@ -91,7 +92,7 @@ public class StandardApplicationCookieServiceTest {
     public void testAddCookie() {
         service.addCookie(resourceUri, response, COOKIE_NAME, COOKIE_VALUE);
 
-        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieArgumentCaptor.capture());
+        verify(response).addHeader(eq(SET_COOKIE_HEADER), cookieArgumentCaptor.capture());
         final String setCookieHeader = cookieArgumentCaptor.getValue();
         assertAddCookieMatches(setCookieHeader, ROOT_PATH, EXPECTED_MAX_AGE);
     }
@@ -100,7 +101,7 @@ public class StandardApplicationCookieServiceTest {
     public void testAddCookieContextPath() {
         service.addCookie(contextResourceUri, response, COOKIE_NAME, COOKIE_VALUE);
 
-        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieArgumentCaptor.capture());
+        verify(response).addHeader(eq(SET_COOKIE_HEADER), cookieArgumentCaptor.capture());
         final String setCookieHeader = cookieArgumentCaptor.getValue();
         assertAddCookieMatches(setCookieHeader, CONTEXT_PATH, EXPECTED_MAX_AGE);
     }
@@ -109,7 +110,7 @@ public class StandardApplicationCookieServiceTest {
     public void testAddSessionCookie() {
         service.addSessionCookie(resourceUri, response, COOKIE_NAME, COOKIE_VALUE);
 
-        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieArgumentCaptor.capture());
+        verify(response).addHeader(eq(SET_COOKIE_HEADER), cookieArgumentCaptor.capture());
 
         final String setCookieHeader = cookieArgumentCaptor.getValue();
         assertAddCookieMatches(setCookieHeader, ROOT_PATH, SESSION_MAX_AGE);
@@ -119,7 +120,7 @@ public class StandardApplicationCookieServiceTest {
     public void testAddSessionCookieContextPath() {
         service.addSessionCookie(contextResourceUri, response, COOKIE_NAME, COOKIE_VALUE);
 
-        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieArgumentCaptor.capture());
+        verify(response).addHeader(eq(SET_COOKIE_HEADER), cookieArgumentCaptor.capture());
 
         final String setCookieHeader = cookieArgumentCaptor.getValue();
         assertAddCookieMatches(setCookieHeader, CONTEXT_PATH, SESSION_MAX_AGE);
@@ -144,7 +145,7 @@ public class StandardApplicationCookieServiceTest {
     public void testRemoveCookie() {
         service.removeCookie(resourceUri, response, COOKIE_NAME);
 
-        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieArgumentCaptor.capture());
+        verify(response).addHeader(eq(SET_COOKIE_HEADER), cookieArgumentCaptor.capture());
         final String setCookieHeader = cookieArgumentCaptor.getValue();
         assertRemoveCookieMatches(setCookieHeader, ROOT_PATH);
     }
@@ -153,7 +154,7 @@ public class StandardApplicationCookieServiceTest {
     public void testRemoveCookieContextPath() {
         service.removeCookie(contextResourceUri, response, COOKIE_NAME);
 
-        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), cookieArgumentCaptor.capture());
+        verify(response).addHeader(eq(SET_COOKIE_HEADER), cookieArgumentCaptor.capture());
         final String setCookieHeader = cookieArgumentCaptor.getValue();
         assertRemoveCookieMatches(setCookieHeader, CONTEXT_PATH);
     }

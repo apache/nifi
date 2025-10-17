@@ -413,6 +413,49 @@ def getDynamicPropertyDescriptor(self, propertyname):
 If this method is not implemented and a user adds a property other than those that are explicitly supported, the Processor will become
 invalid. Of course, we might also specify explicit validators that can be used, etc.
 
+==== Dependent Properties
+
+Python-based processors can express property dependencies in the same way as Java processors. The
+`nifiapi.properties.PropertyDependency` class mirrors the Java builder's `dependsOn(...)` method and is exposed via the
+`dependencies` keyword argument on `PropertyDescriptor`.
+
+NiFi's discovery logic inspects the processor source code using Python's abstract syntax tree. When declaring a
+dependency, the referenced descriptor must therefore appear as a simple name, not as an attribute such as
+`self.output_mode`. The common pattern is to assign the descriptor to a local variable, reference that variable inside
+`PropertyDependency`, and only then assign the descriptor to an instance field for later reuse.
+
+----
+from nifiapi.properties import PropertyDescriptor, PropertyDependency
+
+output_mode = PropertyDescriptor(
+    name='Output Mode',
+    allowable_values=['text', 'json'],
+    default_value='text',
+    required=True,
+)
+
+uppercase = PropertyDescriptor(
+    name='Uppercase',
+    allowable_values=['true', 'false'],
+    default_value='false',
+    dependencies=[PropertyDependency(output_mode, 'text')],
+)
+
+json_field = PropertyDescriptor(
+    name='JSON Field Name',
+    required=True,
+    dependencies=[PropertyDependency(output_mode, 'json')],
+)
+
+# Optionally assign to instance attributes for reuse
+self.output_mode = output_mode
+self.uppercase = uppercase
+self.json_field = json_field
+----
+
+At runtime the NiFi UI hides or disables dependent properties until the prerequisite property is configured with one of the specified
+values, and the framework applies the same rules during validation.
+
 ==== Referencing Controller Services
 
 Python processors can reference existing Java controller services using the same mechanism as Java processors. Set the

@@ -25,12 +25,15 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +52,9 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -123,6 +128,7 @@ public class StandardOauth2AccessTokenProviderTest {
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.AUDIENCE).getValue()).thenReturn(AUDIENCE);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.REFRESH_WINDOW).asTimePeriod(eq(TimeUnit.SECONDS))).thenReturn(FIVE_MINUTES);
         when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY).getValue()).thenReturn(ClientAuthenticationStrategy.BASIC_AUTHENTICATION.getValue());
+        when(mockContext.getProperties()).thenReturn(Collections.emptyMap());
     }
 
     @Nested
@@ -409,6 +415,46 @@ public class StandardOauth2AccessTokenProviderTest {
             verify(mockHttpClient, atLeast(1)).newCall(requestCaptor.capture());
             requestCaptor.getValue().body().writeTo(buffer);
             assertEquals(expected, buffer.readString(Charset.defaultCharset()));
+        }
+
+        @Test
+        public void testRequestBodyFormDataIncludesCustomParameters() throws Exception {
+            PropertyDescriptor accountIdDescriptor = new PropertyDescriptor.Builder()
+                .name("FORM.account_id")
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+                .build();
+
+            when(mockContext.getProperty(StandardOauth2AccessTokenProvider.GRANT_TYPE).getValue()).thenReturn(StandardOauth2AccessTokenProvider.CLIENT_CREDENTIALS_GRANT_TYPE.getValue());
+            when(mockContext.getProperty(StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY).getValue()).thenReturn(ClientAuthenticationStrategy.REQUEST_BODY.getValue());
+            Map<PropertyDescriptor, String> properties = new HashMap<>();
+            properties.put(accountIdDescriptor, "12345");
+            when(mockContext.getProperties()).thenReturn(properties);
+            when(mockContext.getProperty(accountIdDescriptor)).thenReturn(new MockPropertyValue("12345"));
+
+            testSubject.onEnabled(mockContext);
+
+            Response response = buildResponse(HTTP_OK, "{\"access_token\":\"foobar\"}");
+            when(mockHttpClient.newCall(any(Request.class)).execute()).thenReturn(response);
+
+            testSubject.getAccessDetails();
+
+            verify(mockHttpClient, atLeast(1)).newCall(requestCaptor.capture());
+            FormBody formBody = (FormBody) requestCaptor.getValue().body();
+            assertNotNull(formBody);
+
+            Map<String, String> parameters = new HashMap<>();
+            for (int i = 0; i < formBody.size(); i++) {
+                parameters.put(formBody.encodedName(i), formBody.encodedValue(i));
+            }
+
+            assertEquals("client_credentials", parameters.get("grant_type"));
+            assertEquals(CLIENT_ID, parameters.get("client_id"));
+            assertEquals(CLIENT_SECRET, parameters.get("client_secret"));
+            assertEquals(SCOPE, parameters.get("scope"));
+            assertEquals(RESOURCE, parameters.get("resource"));
+            assertEquals(AUDIENCE, parameters.get("audience"));
+            assertEquals("12345", parameters.get("account_id"));
         }
 
         @Test

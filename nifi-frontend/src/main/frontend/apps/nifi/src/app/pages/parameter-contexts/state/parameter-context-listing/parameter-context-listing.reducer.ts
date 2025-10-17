@@ -25,6 +25,7 @@ import {
     editParameterContextComplete,
     loadParameterContexts,
     loadParameterContextsSuccess,
+    loadParameterContextsError,
     parameterContextListingSnackbarApiError,
     parameterContextListingBannerApiError,
     pollParameterContextUpdateRequestSuccess,
@@ -57,6 +58,10 @@ export const parameterContextListingReducer = createReducer(
         loadedTimestamp: response.loadedTimestamp,
         error: null,
         status: 'success' as const
+    })),
+    on(loadParameterContextsError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(parameterContextListingSnackbarApiError, parameterContextListingBannerApiError, (state) => ({
         ...state,

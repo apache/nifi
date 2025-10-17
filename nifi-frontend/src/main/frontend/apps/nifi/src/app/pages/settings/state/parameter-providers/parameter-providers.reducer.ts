@@ -28,6 +28,7 @@ import {
     fetchParameterProviderParametersSuccess,
     loadParameterProviders,
     loadParameterProvidersSuccess,
+    loadParameterProvidersError,
     parameterProvidersBannerApiError,
     pollParameterProviderParametersUpdateRequestSuccess,
     resetFetchedParameterProvider,
@@ -63,6 +64,11 @@ export const parameterProvidersReducer = createReducer(
         parameterProviders: response.parameterProviders,
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
+    })),
+
+    on(loadParameterProvidersError, (state: ParameterProvidersState, { status }) => ({
+        ...state,
+        status
     })),
 
     on(parameterProvidersBannerApiError, (state: ParameterProvidersState) => ({

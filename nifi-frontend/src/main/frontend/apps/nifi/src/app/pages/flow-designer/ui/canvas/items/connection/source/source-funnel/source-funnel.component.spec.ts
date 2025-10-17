@@ -15,24 +15,126 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing';
 
 import { SourceFunnel } from './source-funnel.component';
 
 describe('SourceFunnel', () => {
-    let component: SourceFunnel;
-    let fixture: ComponentFixture<SourceFunnel>;
+    // Setup function for component configuration
+    async function setup(
+        options: {
+            groupName?: string;
+        } = {}
+    ) {
+        await TestBed.configureTestingModule({
+            imports: [SourceFunnel]
+        }).compileComponents();
+
+        const fixture = TestBed.createComponent(SourceFunnel);
+        const component = fixture.componentInstance;
+
+        // Set groupName if provided
+        if (options.groupName !== undefined) {
+            component.groupName = options.groupName;
+        }
+
+        // Initial detection to trigger lifecycle hooks
+        fixture.detectChanges();
+
+        return { component, fixture };
+    }
 
     beforeEach(() => {
-        TestBed.configureTestingModule({
-            imports: [SourceFunnel]
-        });
-        fixture = TestBed.createComponent(SourceFunnel);
-        component = fixture.componentInstance;
-        fixture.detectChanges();
+        jest.clearAllMocks();
     });
 
-    it('should create', () => {
-        expect(component).toBeTruthy();
+    describe('Component initialization', () => {
+        it('should create', async () => {
+            const { component } = await setup({ groupName: 'Test Group' });
+            expect(component).toBeTruthy();
+        });
+
+        it('should initialize with provided groupName', async () => {
+            const { component } = await setup({ groupName: 'Test Group' });
+            expect(component.groupName).toBe('Test Group');
+        });
+
+        it('should initialize without groupName', async () => {
+            const { component } = await setup();
+            expect(component.groupName).toBeUndefined();
+        });
+    });
+
+    describe('Input property logic', () => {
+        it('should accept groupName input', async () => {
+            const { component } = await setup({ groupName: 'Initial Group' });
+
+            component.groupName = 'Updated Group';
+
+            expect(component.groupName).toBe('Updated Group');
+        });
+
+        it('should handle empty groupName', async () => {
+            const { component } = await setup({ groupName: '' });
+            expect(component.groupName).toBe('');
+        });
+
+        it('should update groupName after initialization', async () => {
+            const { component, fixture } = await setup({ groupName: 'Initial Group' });
+
+            component.groupName = 'Updated Group';
+            fixture.detectChanges();
+
+            expect(component.groupName).toBe('Updated Group');
+        });
+    });
+
+    describe('Template logic', () => {
+        it('should display funnel label', async () => {
+            const { fixture } = await setup({ groupName: 'Test Group' });
+
+            const funnelLabel = fixture.nativeElement.querySelector('[data-qa="funnel-label"]');
+            expect(funnelLabel).toBeTruthy();
+            expect(funnelLabel.textContent.trim()).toBe('funnel');
+        });
+
+        it('should display groupName when provided', async () => {
+            const testGroupName = 'Test Group Name';
+            const { fixture } = await setup({ groupName: testGroupName });
+
+            const groupNameDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
+            expect(groupNameDisplay).toBeTruthy();
+            expect(groupNameDisplay.textContent.trim()).toBe(testGroupName);
+        });
+
+        it('should set title attribute for groupName', async () => {
+            const testGroupName = 'Test Group Name';
+            const { fixture } = await setup({ groupName: testGroupName });
+
+            const groupNameDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
+            expect(groupNameDisplay.getAttribute('title')).toBe(testGroupName);
+        });
+
+        it('should display empty groupName', async () => {
+            const { fixture } = await setup({ groupName: '' });
+
+            const groupNameDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
+            expect(groupNameDisplay).toBeTruthy();
+            expect(groupNameDisplay.textContent.trim()).toBe('');
+            expect(groupNameDisplay.getAttribute('title')).toBe('');
+        });
+
+        it('should update display when groupName changes', async () => {
+            const { component, fixture } = await setup({ groupName: 'Initial Group' });
+
+            const groupNameDisplay = fixture.nativeElement.querySelector('[data-qa="group-name-display"]');
+            expect(groupNameDisplay.textContent.trim()).toBe('Initial Group');
+
+            component.groupName = 'Updated Group';
+            fixture.detectChanges();
+
+            expect(groupNameDisplay.textContent.trim()).toBe('Updated Group');
+            expect(groupNameDisplay.getAttribute('title')).toBe('Updated Group');
+        });
     });
 });

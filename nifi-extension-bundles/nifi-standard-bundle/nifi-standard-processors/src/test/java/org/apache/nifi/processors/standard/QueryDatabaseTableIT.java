@@ -21,15 +21,14 @@ import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 public class QueryDatabaseTableIT extends QueryDatabaseTableTest {
-    private static PostgreSQLContainer<?> postgres;
+    private static PostgreSQLContainer postgres;
 
     @BeforeAll
     public static void setupBeforeClass() {
-        postgres = new PostgreSQLContainer<>("postgres:9.6.12")
-                .withInitScript("PutDatabaseRecordIT/create-person-table.sql");
+        postgres = new PostgreSQLContainer("postgres:latest").withInitScript("PutDatabaseRecordIT/create-person-table.sql");
         postgres.start();
     }
 

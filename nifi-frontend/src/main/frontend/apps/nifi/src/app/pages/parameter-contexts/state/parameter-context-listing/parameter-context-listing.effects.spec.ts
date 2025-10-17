@@ -18,7 +18,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { Action } from '@ngrx/store';
-import { ReplaySubject, of } from 'rxjs';
+import { ReplaySubject, of, throwError } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { provideMockStore } from '@ngrx/store/testing';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
@@ -30,11 +31,13 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { Storage, NiFiCommon } from '@nifi/shared';
 import { initialState } from './parameter-context-listing.reducer';
 import { ParameterContextUpdateRequest, ParameterContextUpdateRequestEntity } from '../../../../state/shared';
+import { HttpErrorResponse } from '@angular/common/http';
 
 describe('ParameterContextListingEffects', () => {
     interface SetupOptions {
         updateRequest?: ParameterContextUpdateRequestEntity | null;
         deleteUpdateRequestInitiated?: boolean;
+        listStateOverride?: any;
     }
 
     let action$: ReplaySubject<Action>;
@@ -54,24 +57,37 @@ describe('ParameterContextListingEffects', () => {
         };
     }
 
-    async function setup({ updateRequest = null, deleteUpdateRequestInitiated = false }: SetupOptions = {}) {
+    async function setup({
+        updateRequest = null,
+        deleteUpdateRequestInitiated = false,
+        listStateOverride
+    }: SetupOptions = {}) {
         await TestBed.configureTestingModule({
             providers: [
                 ParameterContextListingEffects,
                 provideMockActions(() => action$),
                 provideMockStore({
                     initialState: {
-                        parameterContextListing: {
-                            ...initialState,
-                            updateRequestEntity: updateRequest,
-                            deleteUpdateRequestInitiated
+                        parameterContexts: {
+                            parameterContextListing: {
+                                ...initialState,
+                                ...listStateOverride,
+                                updateRequestEntity: updateRequest,
+                                deleteUpdateRequestInitiated
+                            }
                         }
                     }
                 }),
-                { provide: ParameterContextService, useValue: { deleteParameterContextUpdate: jest.fn() } },
+                {
+                    provide: ParameterContextService,
+                    useValue: { deleteParameterContextUpdate: jest.fn(), getParameterContexts: jest.fn() }
+                },
                 { provide: MatDialog, useValue: { open: jest.fn() } },
                 { provide: Router, useValue: { navigate: jest.fn() } },
-                { provide: ErrorHelper, useValue: { getErrorString: jest.fn() } },
+                {
+                    provide: ErrorHelper,
+                    useValue: { getErrorString: jest.fn(), handleLoadingError: jest.fn(), fullScreenError: jest.fn() }
+                },
                 { provide: Storage, useValue: { setItem: jest.fn() } },
                 { provide: NiFiCommon, useValue: { stripProtocol: jest.fn() } }
             ]
@@ -81,16 +97,142 @@ describe('ParameterContextListingEffects', () => {
         const parameterContextService = TestBed.inject(ParameterContextService) as jest.Mocked<ParameterContextService>;
         action$ = new ReplaySubject<Action>();
 
-        return { effects, parameterContextService };
+        const errorHelper = TestBed.inject(ErrorHelper);
+        return { effects, parameterContextService, errorHelper };
     }
 
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
+    afterEach(() => {
+        if (action$) {
+            action$.complete();
+        }
+    });
+
     it('should create', async () => {
         const { effects } = await setup();
         expect(effects).toBeTruthy();
+    });
+
+    describe('loadParameterContexts$', () => {
+        it('loads successfully', async () => {
+            const { effects, parameterContextService } = await setup();
+
+            action$.next(ParameterContextListingActions.loadParameterContexts());
+
+            (parameterContextService.getParameterContexts as jest.Mock).mockReturnValueOnce(
+                of({ parameterContexts: [], currentTime: 't' })
+            );
+
+            const result = await new Promise((resolve) =>
+                effects.loadParameterContexts$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(
+                ParameterContextListingActions.loadParameterContextsSuccess({
+                    response: { parameterContexts: [], loadedTimestamp: 't' }
+                })
+            );
+        });
+
+        it('errors on initial load (hasExistingData=false)', async () => {
+            const { effects, parameterContextService } = await setup();
+
+            action$.next(ParameterContextListingActions.loadParameterContexts());
+
+            const error = new HttpErrorResponse({ status: 500 });
+            (parameterContextService.getParameterContexts as jest.Mock).mockImplementationOnce(() =>
+                throwError(() => error)
+            );
+
+            const result = await new Promise((resolve) =>
+                effects.loadParameterContexts$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(
+                ParameterContextListingActions.loadParameterContextsError({
+                    errorResponse: error,
+                    loadedTimestamp: initialState.loadedTimestamp,
+                    status: 'pending'
+                })
+            );
+        });
+
+        it('errors on refresh (hasExistingData=true)', async () => {
+            const stateWithData = { loadedTimestamp: 'prev' };
+            const { effects, parameterContextService } = await setup({ listStateOverride: stateWithData });
+
+            action$.next(ParameterContextListingActions.loadParameterContexts());
+
+            const error = new HttpErrorResponse({ status: 500 });
+            (parameterContextService.getParameterContexts as jest.Mock).mockImplementationOnce(() =>
+                throwError(() => error)
+            );
+
+            const result = await new Promise((resolve) =>
+                effects.loadParameterContexts$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(
+                ParameterContextListingActions.loadParameterContextsError({
+                    errorResponse: error,
+                    loadedTimestamp: stateWithData.loadedTimestamp,
+                    status: 'success'
+                })
+            );
+        });
+    });
+
+    describe('loadParameterContextsError$', () => {
+        it('should handle parameter contexts error for initial load', async () => {
+            const { effects, errorHelper } = await setup();
+
+            const error = new HttpErrorResponse({ status: 500 });
+            const errorAction = ParameterContextListingActions.parameterContextListingBannerApiError({
+                error: 'Error message'
+            });
+            action$.next(
+                ParameterContextListingActions.loadParameterContextsError({
+                    errorResponse: error,
+                    loadedTimestamp: initialState.loadedTimestamp,
+                    status: 'pending'
+                })
+            );
+            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+
+            const result = await new Promise((resolve) =>
+                effects.loadParameterContextsError$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(false, error);
+            expect(result).toEqual(errorAction);
+        });
+
+        it('should handle parameter contexts error for refresh', async () => {
+            const { effects, errorHelper } = await setup();
+
+            const error = new HttpErrorResponse({ status: 500 });
+            const errorAction = ParameterContextListingActions.parameterContextListingBannerApiError({
+                error: 'Error message'
+            });
+            action$.next(
+                ParameterContextListingActions.loadParameterContextsError({
+                    errorResponse: error,
+                    loadedTimestamp: 'prev',
+                    status: 'success'
+                })
+            );
+            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction);
+
+            const result = await new Promise((resolve) =>
+                effects.loadParameterContextsError$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(true, error);
+            expect(result).toEqual(errorAction);
+        });
     });
 
     describe('stopPollingParameterContextUpdateRequest$', () => {

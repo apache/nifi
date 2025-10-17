@@ -533,6 +533,12 @@ export class ParameterTable implements AfterViewInit, ControlValueAccessor {
         this.selectedItem = item;
     }
 
+    doubleClicked(item: ParameterItem): void {
+        if (this.canEdit(item) && !this.isDisabled) {
+            this.editClicked(item);
+        }
+    }
+
     isSelected(item: ParameterItem): boolean {
         if (this.selectedItem) {
             return item.originalEntity.parameter.name == this.selectedItem.originalEntity.parameter.name;

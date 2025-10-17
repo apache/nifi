@@ -27,11 +27,15 @@
     <packaging>pom</packaging>
 
     <properties>
-        <aws-kinesis-client-library-version>2.7.2</aws-kinesis-client-library-version>
+        <guava.version>33.5.0-jre</guava.version>
+        <protobuf.version>4.33.0</protobuf.version>
     </properties>
 
     <modules>
+        <module>nifi-aws-kinesis</module>
+        <module>nifi-aws-kinesis-nar</module>
         <module>nifi-aws-processors</module>
+        <module>nifi-aws-regions</module>
         <module>nifi-aws-nar</module>
         <module>nifi-aws-service-api</module>
         <module>nifi-aws-service-api-nar</module>
@@ -43,12 +47,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- Override Guava 31.0.1 from amazon-kinesis-client -->
-            <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>33.5.0-jre</version>
-            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-aws-service-api</artifactId>
@@ -59,12 +57,41 @@
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>sts</artifactId>
                 <version>${software.amazon.awssdk.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>software.amazon.awssdk</groupId>
-                        <artifactId>netty-nio-client</artifactId>
-                    </exclusion>
-                </exclusions>
+            </dependency>
+            <!-- Shared Guava provided in nifi-aws-service-api-nar -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Shared Protobuf provided in nifi-aws-service-api-nar -->
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${protobuf.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Netty NIO Client provided in nifi-aws-service-api-nar -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>netty-nio-client</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- DynamoDB provided in nifi-aws-service-api-nar -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>dynamodb</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Cloudwatch provided in nifi-aws-service-api-nar -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>cloudwatch</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
             </dependency>
             <!-- Override kotlin-stdlib-common from amazon-kinesis-client -->
             <!-- can be removed when not relying on kotlin-stdlib-common:jar anymore -->

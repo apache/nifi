@@ -22,5 +22,3 @@ import { generalFeatureKey, GeneralState } from './index';
 export const selectGeneral = createSelector(selectSettingsState, (state: SettingsState) => state[generalFeatureKey]);
 
 export const selectSaving = createSelector(selectGeneral, (state: GeneralState) => state.saving);
-
-export const selectStatus = createSelector(selectGeneral, (state: GeneralState) => state.status);

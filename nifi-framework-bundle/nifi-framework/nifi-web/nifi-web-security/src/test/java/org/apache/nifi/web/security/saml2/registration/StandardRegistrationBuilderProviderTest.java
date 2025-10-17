@@ -19,7 +19,6 @@ package org.apache.nifi.web.security.saml2.registration;
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import okhttp3.HttpUrl;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardKeyManagerBuilder;
@@ -73,7 +72,7 @@ class StandardRegistrationBuilderProviderTest {
     }
 
     @AfterEach
-    void shutdownServer() throws IOException {
+    void shutdownServer() {
         mockWebServer.close();
     }
 
@@ -182,7 +181,8 @@ class StandardRegistrationBuilderProviderTest {
 
     final String getMetadata() throws IOException {
         try (final InputStream inputStream = Objects.requireNonNull(getClass().getResourceAsStream(METADATA_PATH))) {
-            return IOUtils.toString(inputStream, StandardCharsets.UTF_8);
+            final byte[] bytes = inputStream.readAllBytes();
+            return new String(bytes, StandardCharsets.UTF_8);
         }
     }
 

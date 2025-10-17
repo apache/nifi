@@ -21,6 +21,7 @@ import {
     configureRemotePortSuccess,
     loadRemotePorts,
     loadRemotePortsSuccess,
+    loadRemotePortsError,
     remotePortsBannerApiError,
     resetRemotePortsState
 } from './manage-remote-ports.actions';
@@ -50,6 +51,10 @@ export const manageRemotePortsReducer = createReducer(
         loadedTimestamp: response.loadedTimestamp,
         rpg: response.rpg,
         status: 'success' as const
+    })),
+    on(loadRemotePortsError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(remotePortsBannerApiError, (state) => ({
         ...state,

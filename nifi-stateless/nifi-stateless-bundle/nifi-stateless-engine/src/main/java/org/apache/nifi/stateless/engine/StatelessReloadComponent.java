@@ -98,7 +98,7 @@ public class StatelessReloadComponent implements ReloadComponent {
         }
 
         // set the new processor in the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getProcessor(), new StandardLoggingContext(null));
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getProcessor(), new StandardLoggingContext(newNode));
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -157,7 +157,7 @@ public class StatelessReloadComponent implements ReloadComponent {
         invocationHandler.setServiceNode(existingNode);
 
         // create LoggableComponents for the proxy and implementation
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getControllerServiceImplementation(), new StandardLoggingContext(null));
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, newNode.getControllerServiceImplementation(), new StandardLoggingContext(newNode));
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -205,7 +205,7 @@ public class StatelessReloadComponent implements ReloadComponent {
         }
 
         // set the new reporting task into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getReportingTask(), new StandardLoggingContext(null));
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getReportingTask(), new StandardLoggingContext());
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -250,7 +250,7 @@ public class StatelessReloadComponent implements ReloadComponent {
         }
 
         // set the new reporting task into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getParameterProvider(), new StandardLoggingContext(null));
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getParameterProvider(), new StandardLoggingContext());
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 
@@ -288,7 +288,7 @@ public class StatelessReloadComponent implements ReloadComponent {
         extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
 
         // set the new flow registry client into the existing node
-        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getComponent(), new StandardLoggingContext(null));
+        final ComponentLog componentLogger = new SimpleProcessLogger(id, existingNode.getComponent(), new StandardLoggingContext());
         final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLogger);
         LogRepositoryFactory.getRepository(id).setLogger(terminationAwareLogger);
 

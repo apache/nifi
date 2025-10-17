@@ -18,6 +18,8 @@ package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
+import com.google.api.client.http.HttpResponseException;
+import com.google.api.client.http.HttpStatusCodes;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -48,12 +50,13 @@ public interface GoogleDriveTrait {
     String DRIVE_SHORTCUT_MIME_TYPE = "application/vnd.google-apps.shortcut";
     String DRIVE_URL = "https://drive.google.com/open?id=";
     String APPLICATION_NAME = "NiFi";
+    String OLD_CONNECT_TIMEOUT_PROPERTY_NAME = "connect-timeout";
+    String OLD_READ_TIMEOUT_PROPERTY_NAME = "read-timeout";
 
     JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("connect-timeout")
-            .displayName("Connect Timeout")
+            .name("Connect Timeout")
             .description("Maximum wait time for connection to Google Drive service.")
             .required(true)
             .defaultValue("20 sec")
@@ -62,8 +65,7 @@ public interface GoogleDriveTrait {
             .build();
 
     PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("read-timeout")
-            .displayName("Read Timeout")
+            .name("Read Timeout")
             .description("Maximum wait time for response from Google Drive service.")
             .required(true)
             .defaultValue("60 sec")
@@ -136,16 +138,22 @@ public interface GoogleDriveTrait {
                     .execute();
 
             final String sharedDriveId = folder.getDriveId();
-            final String sharedDriveName;
+            String sharedDriveName = null;
             if (sharedDriveId != null) {
-                sharedDriveName = driveService
-                        .drives()
-                        .get(sharedDriveId)
-                        .setFields("name")
-                        .execute()
-                        .getName();
-            } else {
-                sharedDriveName = null;
+                try {
+                    sharedDriveName = driveService
+                            .drives()
+                            .get(sharedDriveId)
+                            .setFields("name")
+                            .execute()
+                            .getName();
+                } catch (HttpResponseException e) {
+                    if (e.getStatusCode() != HttpStatusCodes.STATUS_CODE_NOT_FOUND) {
+                        throw e;
+                    }
+                    // if the user does not have permission to the Shared Drive root, the service returns HTTP 404 (Not Found)
+                    // the Shared Drive name can not be retrieved in this case and will not be added as a FlowFile attribute
+                }
             }
 
             final String folderName;

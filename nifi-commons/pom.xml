@@ -65,7 +65,6 @@
         <module>nifi-web-client-api</module>
         <module>nifi-content-viewer-utils</module>
         <module>nifi-web-servlet-shared</module>
-        <module>nifi-web-utils</module>
         <module>nifi-write-ahead-log</module>
         <module>nifi-xml-processing</module>
         <module>nifi-calcite-utils</module>

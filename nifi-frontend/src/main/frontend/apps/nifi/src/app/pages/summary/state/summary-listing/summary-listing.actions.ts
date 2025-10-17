@@ -38,6 +38,11 @@ export const loadSummaryListingSuccess = createAction(
     props<{ response: SummaryListingResponse }>()
 );
 
+export const loadSummaryListingError = createAction(
+    `${SUMMARY_LISTING_PREFIX} Load Summary Listing Error`,
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const selectProcessorStatus = createAction(
     `${SUMMARY_LISTING_PREFIX} Select Processor Status`,
     props<{ request: SelectProcessorStatusRequest }>()

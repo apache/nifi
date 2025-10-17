@@ -16,10 +16,17 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
@@ -27,12 +34,19 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.File;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
@@ -41,6 +55,10 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StandardProcessorDAOTest {
+
+    private static final String BUNDLE_GROUP_ID = "org.apache.nifi";
+
+    private static final String BUNDLE_VERSION = "1.0.0";
 
     @Mock
     private FlowController flowController;
@@ -52,10 +70,22 @@ class StandardProcessorDAOTest {
     private ProcessorNode processorNode;
 
     @Mock
+    private Processor processor;
+
+    @Mock
     private ProcessGroup processGroup;
 
     @Mock
     private FlowManager flowManager;
+
+    @Mock
+    private ExtensionManager extensionManager;
+
+    @Mock
+    private StateManagerProvider stateManagerProvider;
+
+    @Mock
+    private StateManager stateManager;
 
     private StandardProcessorDAO dao;
 
@@ -163,5 +193,35 @@ class StandardProcessorDAOTest {
 
         // Should throw ResourceNotFoundException
         assertThrows(ResourceNotFoundException.class, () -> dao.verifyUpdate(processorDTO));
+    }
+
+    @Test
+    void testCreateProcessor(@TempDir final File tempDir) {
+        final String id = ProcessorDTO.class.getSimpleName();
+        final String groupId = ProcessGroup.class.getSimpleName();
+        final String processorType = ProcessorDTO.class.getCanonicalName();
+
+        final ProcessorDTO processorDTO = new ProcessorDTO();
+        processorDTO.setId(id);
+        processorDTO.setType(processorType);
+
+        final BundleCoordinate bundleCoordinate = new BundleCoordinate(BUNDLE_GROUP_ID, processorType, BUNDLE_VERSION);
+        final BundleDetails bundleDetails = new BundleDetails.Builder().coordinate(bundleCoordinate).workingDir(tempDir).build();
+        final Bundle bundle = new Bundle(bundleDetails, getClass().getClassLoader());
+        final List<Bundle> bundles = List.of(bundle);
+
+        when(flowManager.getGroup(eq(groupId))).thenReturn(processGroup);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+        when(flowManager.createProcessor(eq(processorType), eq(id), eq(bundleCoordinate))).thenReturn(processorNode);
+        when(extensionManager.getBundles(eq(processorType))).thenReturn(bundles);
+        when(processorNode.getProcessor()).thenReturn(processor);
+        when(processor.getIdentifier()).thenReturn(id);
+        when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
+        when(stateManagerProvider.getStateManager(eq(id), any())).thenReturn(stateManager);
+
+        final ProcessorNode createdProcessorNode = dao.createProcessor(groupId, processorDTO);
+
+        assertEquals(processorNode, createdProcessorNode);
+        verify(processorNode).setProcessGroup(processGroup);
     }
 }

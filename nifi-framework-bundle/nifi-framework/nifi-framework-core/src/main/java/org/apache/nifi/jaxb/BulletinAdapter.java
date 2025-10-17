@@ -31,12 +31,15 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
             return null;
         }
         // TODO - timestamp is overridden here with a new timestamp... address?
+        final Bulletin bulletin;
         if (b.getSourceId() == null) {
-            return BulletinFactory.createBulletin(b.getCategory(), b.getLevel(), b.getMessage());
+            bulletin = BulletinFactory.createBulletin(b.getCategory(), b.getLevel(), b.getMessage());
         } else {
-            return BulletinFactory.createBulletin(b.getGroupId(), b.getGroupName(), b.getSourceId(), b.getSourceType(),
+            bulletin = BulletinFactory.createBulletin(b.getGroupId(), b.getGroupName(), b.getSourceId(), b.getSourceType(),
                     b.getSourceName(), b.getCategory(), b.getLevel(), b.getMessage());
         }
+        bulletin.setStackTrace(b.getStackTrace());
+        return bulletin;
     }
 
     @Override
@@ -55,6 +58,7 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
         aBulletin.setCategory(b.getCategory());
         aBulletin.setLevel(b.getLevel());
         aBulletin.setMessage(b.getMessage());
+        aBulletin.setStackTrace(b.getStackTrace());
         return aBulletin;
     }
 

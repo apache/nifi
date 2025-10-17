@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import {
     selectClusterListingLoadedTimestamp,
     selectClusterListingStatus,
@@ -25,10 +25,14 @@ import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { initialClusterState } from '../../state/cluster-listing/cluster-listing.reducer';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { selectSystemNodeSnapshots } from '../../../../state/system-diagnostics/system-diagnostics.selectors';
+import {
+    selectSystemDiagnosticsLoadedTimestamp,
+    selectSystemNodeSnapshots
+} from '../../../../state/system-diagnostics/system-diagnostics.selectors';
 import { ClusterSystemTable } from './cluster-system-table/cluster-system-table.component';
 import { clearSystemNodeSelection, selectSystemNode } from '../../state/cluster-listing/cluster-listing.actions';
 import { NodeSnapshot } from '../../../../state/system-diagnostics';
+import { initialSystemDiagnosticsState } from '../../../../state/system-diagnostics/system-diagnostics.reducer';
 
 @Component({
     selector: 'cluster-system-listing',
@@ -40,13 +44,16 @@ export class ClusterSystemListing {
     private store = inject<Store<NiFiState>>(Store);
 
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
+    systemDiagnosticsLoadedTimestamp = this.store.selectSignal(selectSystemDiagnosticsLoadedTimestamp);
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
     selectedClusterNodeId = this.store.selectSignal(selectClusterNodeIdFromRoute);
     nodes = this.store.selectSignal(selectSystemNodeSnapshots);
 
-    isInitialLoading(loadedTimestamp: string): boolean {
-        return loadedTimestamp == initialClusterState.loadedTimestamp;
-    }
+    isInitialLoading = computed(
+        () =>
+            this.loadedTimestamp() == initialClusterState.loadedTimestamp ||
+            this.systemDiagnosticsLoadedTimestamp() == initialSystemDiagnosticsState.loadedTimestamp
+    );
 
     selectNode(node: NodeSnapshot): void {
         this.store.dispatch(selectSystemNode({ request: { id: node.nodeId } }));

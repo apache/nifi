@@ -31,9 +31,9 @@ export const selectSaving = createSelector(
     (state: ManagementControllerServicesState) => state.saving
 );
 
-export const selectStatus = createSelector(
+export const selectLoadedTimestamp = createSelector(
     selectManagementControllerServicesState,
-    (state: ManagementControllerServicesState) => state.status
+    (state: ManagementControllerServicesState) => state.loadedTimestamp
 );
 
 export const selectControllerServiceIdFromRoute = createSelector(selectCurrentRoute, (route) => {

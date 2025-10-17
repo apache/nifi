@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.db;
 
-import org.testcontainers.containers.MariaDBContainer;
+import org.testcontainers.mariadb.MariaDBContainer;
 
 /**
  * Custom container to override the JDBC URL and add additional query parameters.

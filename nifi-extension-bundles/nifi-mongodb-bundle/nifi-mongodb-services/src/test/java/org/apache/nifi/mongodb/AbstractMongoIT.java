@@ -19,14 +19,24 @@
 
 package org.apache.nifi.mongodb;
 
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.testcontainers.mongodb.MongoDBContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@Testcontainers
 public class AbstractMongoIT {
+
     private static final String DOCKER_IMAGE = System.getProperty("mongo.docker.image", "mongo:8");
-    @Container
     protected static final MongoDBContainer MONGO_CONTAINER = new MongoDBContainer(DockerImageName.parse(DOCKER_IMAGE));
+
+    @BeforeAll
+    public static void start() {
+        MONGO_CONTAINER.start();
+    }
+
+    @AfterAll
+    public static void stop() {
+        MONGO_CONTAINER.stop();
+    }
+
 }

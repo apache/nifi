@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { SelectOption } from '../types';
+import { SelectOption, BulletinEntity } from '../types';
 
 @Injectable({
     providedIn: 'root'
@@ -712,5 +712,70 @@ export class NiFiCommon {
      */
     public stripProtocol(url: string): string {
         return this.substringAfterFirst(url, ':');
+    }
+
+    /**
+     * Determines the most severe bulletin from a list of bulletins.
+     * Severity order: ERROR > WARNING > INFO > DEBUG > TRACE
+     */
+    public getMostSevereBulletin(bulletins: BulletinEntity[]): BulletinEntity | null {
+        if (bulletins && bulletins.length > 0) {
+            const mostSevere = bulletins.reduce((previous, current) => {
+                return this.getHigherSeverityBulletinLevel(previous, current);
+            });
+            if (mostSevere.bulletin) {
+                return mostSevere;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Helper method to determine which bulletin has higher severity.
+     * Uses numeric mapping for severity comparison.
+     */
+    private getHigherSeverityBulletinLevel(left: BulletinEntity, right: BulletinEntity): BulletinEntity {
+        const bulletinSeverityMap: { [key: string]: number } = {
+            TRACE: 0,
+            DEBUG: 1,
+            INFO: 2,
+            WARNING: 3,
+            ERROR: 4
+        };
+        let mappedLeft = 0;
+        let mappedRight = 0;
+        if (left.bulletin) {
+            mappedLeft = bulletinSeverityMap[left.bulletin.level.toUpperCase()] || 0;
+        }
+        if (right.bulletin) {
+            mappedRight = bulletinSeverityMap[right.bulletin.level.toUpperCase()] || 0;
+        }
+
+        return mappedLeft >= mappedRight ? left : right;
+    }
+
+    /**
+     * Returns the appropriate CSS class for bulletin severity-based styling.
+     * @param bulletins Array of bulletin entities
+     * @returns CSS class name for severity-based styling
+     */
+    public getBulletinSeverityClass(bulletins: BulletinEntity[]): string {
+        const mostSevere = this.getMostSevereBulletin(bulletins);
+        if (!mostSevere) {
+            return 'tertiary-color';
+        }
+
+        switch (mostSevere.bulletin.level.toLowerCase()) {
+            case 'error':
+                return 'error-color';
+            case 'warn':
+            case 'warning':
+                return 'caution-color';
+            case 'info':
+            case 'debug':
+            case 'trace':
+            default:
+                return 'success-color-default';
+        }
     }
 }

@@ -17,16 +17,20 @@
 
 <div class="flex flex-col gap-y-4">
     <div class="flex flex-col mb-5">
-        <div>To Processor</div>
+        <div data-qa="to-processor-label">To Processor</div>
         <div
             [title]="processorName"
-            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            data-qa="processor-name-display">
             {{ processorName }}
         </div>
     </div>
     <div class="flex flex-col mb-5">
-        <div>Within Group</div>
-        <div [title]="groupName" class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+        <div data-qa="within-group-label">Within Group</div>
+        <div
+            [title]="groupName"
+            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            data-qa="group-name-display">
             {{ groupName }}
         </div>
     </div>

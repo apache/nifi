@@ -55,6 +55,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -87,8 +88,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor USE_SEGMENT_NAMES = new PropertyDescriptor.Builder()
-            .name("use-segment-names")
-            .displayName("Use Segment Names")
+            .name("Use Segment Names")
             .description("Whether or not to use HL7 segment names in attributes")
             .required(true)
             .allowableValues("true", "false")
@@ -97,8 +97,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PARSE_SEGMENT_FIELDS = new PropertyDescriptor.Builder()
-            .name("parse-segment-fields")
-            .displayName("Parse Segment Fields")
+            .name("Parse Segment Fields")
             .description("Whether or not to parse HL7 segment fields into attributes")
             .required(true)
             .allowableValues("true", "false")
@@ -107,8 +106,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SKIP_VALIDATION = new PropertyDescriptor.Builder()
-            .name("skip-validation")
-            .displayName("Skip Validation")
+            .name("Skip Validation")
             .description("Whether or not to validate HL7 message values")
             .required(true)
             .allowableValues("true", "false")
@@ -117,8 +115,7 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor HL7_INPUT_VERSION = new PropertyDescriptor.Builder()
-            .name("hl7-input-version")
-            .displayName("HL7 Input Version")
+            .name("HL7 Input Version")
             .description("The HL7 version to use for parsing and validation")
             .required(true)
             .allowableValues("autodetect", "2.2", "2.3", "2.3.1", "2.4", "2.5", "2.5.1", "2.6")
@@ -198,6 +195,14 @@ public class ExtractHL7Attributes extends AbstractProcessor {
         }
 
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("use-segment-names", USE_SEGMENT_NAMES.getName());
+        config.renameProperty("parse-segment-fields", PARSE_SEGMENT_FIELDS.getName());
+        config.renameProperty("skip-validation", SKIP_VALIDATION.getName());
+        config.renameProperty("hl7-input-version", HL7_INPUT_VERSION.getName());
     }
 
     public static Map<String, String> getAttributes(final Group group, final boolean useNames, final boolean parseFields) throws HL7Exception {

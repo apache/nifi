@@ -15,21 +15,21 @@ package org.apache.nifi.registry.db; /*
  * limitations under the License.
  */
 
+import jakarta.annotation.PostConstruct;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
-import jakarta.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 @Configuration
 @Profile("postgres-11")
 public class Postgres11DataSourceFactory extends TestDataSourceFactory {
 
-    private static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = new PostgreSQLContainer<>("postgres:11");
+    private static final PostgreSQLContainer POSTGRESQL_CONTAINER = new PostgreSQLContainer("postgres:11");
 
     static {
         POSTGRESQL_CONTAINER.start();

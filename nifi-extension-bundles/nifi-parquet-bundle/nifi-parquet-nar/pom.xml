@@ -37,5 +37,11 @@
             <version>2.7.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-parquet-content-viewer</artifactId>
+            <version>2.7.0-SNAPSHOT</version>
+            <type>war</type>
+        </dependency>
     </dependencies>
 </project>

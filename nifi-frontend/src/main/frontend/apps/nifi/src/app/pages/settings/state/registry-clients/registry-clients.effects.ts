@@ -27,11 +27,11 @@ import {
     selectExtensionTypesLoadingStatus,
     selectRegistryClientTypes
 } from '../../../../state/extension-types/extension-types.selectors';
-import { LARGE_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
+import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { Router } from '@angular/router';
 import { RegistryClientService } from '../../service/registry-client.service';
 import { CreateRegistryClient } from '../../ui/registry-clients/create-registry-client/create-registry-client.component';
-import { selectSaving, selectStatus } from './registry-clients.selectors';
+import { selectLoadedTimestamp, selectSaving } from './registry-clients.selectors';
 import { EditRegistryClient } from '../../ui/registry-clients/edit-registry-client/edit-registry-client.component';
 import { ManagementControllerServiceService } from '../../service/management-controller-service.service';
 import { EditRegistryClientRequest } from './index';
@@ -39,8 +39,18 @@ import { PropertyTableHelperService } from '../../../../service/property-table-h
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { initialState } from './registry-clients.reducer';
 import { BackNavigation } from '../../../../state/navigation';
 import { ErrorContextKey } from '../../../../state/error';
+import {
+    resetPropertyVerificationState,
+    verifyProperties
+} from '../../../../state/property-verification/property-verification.actions';
+import {
+    selectPropertyVerificationResults,
+    selectPropertyVerificationStatus
+} from '../../../../state/property-verification/property-verification.selectors';
+import { VerifyPropertiesRequestContext } from '../../../../state/property-verification';
 
 @Injectable()
 export class RegistryClientsEffects {
@@ -56,8 +66,8 @@ export class RegistryClientsEffects {
     loadRegistryClients$ = createEffect(() =>
         this.actions$.pipe(
             ofType(RegistryClientsActions.loadRegistryClients),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.registryClientService.getRegistryClients()).pipe(
                     map((response) =>
                         RegistryClientsActions.loadRegistryClientsSuccess({
@@ -67,10 +77,26 @@ export class RegistryClientsEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        const status = loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending';
+                        return of(
+                            RegistryClientsActions.loadRegistryClientsError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status
+                            })
+                        );
+                    })
                 )
+            )
+        )
+    );
+
+    loadRegistryClientsError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(RegistryClientsActions.loadRegistryClientsError),
+            switchMap((action) =>
+                of(this.errorHelper.handleLoadingError(action.status === 'success', action.errorResponse))
             )
         )
     );
@@ -182,7 +208,7 @@ export class RegistryClientsEffects {
         { dispatch: false }
     );
 
-    openConfigureControllerServiceDialog$ = createEffect(
+    openConfigureRegistryClientDialog$ = createEffect(
         () =>
             this.actions$.pipe(
                 ofType(RegistryClientsActions.openConfigureRegistryClientDialog),
@@ -190,13 +216,31 @@ export class RegistryClientsEffects {
                 tap((request) => {
                     const registryClientId: string = request.registryClient.id;
 
+                    this.store.dispatch(resetPropertyVerificationState());
+
                     const editDialogReference = this.dialog.open(EditRegistryClient, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         data: request,
                         id: registryClientId
                     });
 
                     editDialogReference.componentInstance.saving$ = this.store.select(selectSaving);
+                    editDialogReference.componentInstance.propertyVerificationResults$ = this.store.select(
+                        selectPropertyVerificationResults
+                    );
+                    editDialogReference.componentInstance.propertyVerificationStatus$ = this.store.select(
+                        selectPropertyVerificationStatus
+                    );
+
+                    editDialogReference.componentInstance.verify
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe((verificationRequest: VerifyPropertiesRequestContext) => {
+                            this.store.dispatch(
+                                verifyProperties({
+                                    request: verificationRequest
+                                })
+                            );
+                        });
 
                     editDialogReference.componentInstance.createNewProperty =
                         this.propertyTableHelperService.createNewProperty(registryClientId, this.registryClientService);
@@ -260,6 +304,8 @@ export class RegistryClientsEffects {
                         });
 
                     editDialogReference.afterClosed().subscribe((response) => {
+                        this.store.dispatch(resetPropertyVerificationState());
+
                         if (response != 'ROUTED') {
                             this.store.dispatch(
                                 RegistryClientsActions.selectClient({

@@ -39,6 +39,7 @@ public class BulletinDTO {
     private String message;
     private Date timestamp;
     private String sourceType;
+    private String stackTrace;
 
     /**
      * @return id of this message
@@ -167,5 +168,14 @@ public class BulletinDTO {
 
     public void setSourceType(String sourceType) {
         this.sourceType = sourceType;
+    }
+
+    @Schema(description = "The stack trace associated with the bulletin, if any.")
+    public String getStackTrace() {
+        return stackTrace;
+    }
+
+    public void setStackTrace(String stackTrace) {
+        this.stackTrace = stackTrace;
     }
 }
