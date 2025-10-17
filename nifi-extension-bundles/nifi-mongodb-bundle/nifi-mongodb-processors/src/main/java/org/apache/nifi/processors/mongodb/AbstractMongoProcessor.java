@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -62,8 +63,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             "Generate a JSON document that conforms to typical JSON conventions instead of Mongo-specific conventions.");
 
     static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
-        .name("mongo-client-service")
-        .displayName("Client Service")
+        .name("Client Service")
         .description("If configured, this property will use the assigned client service for connection pooling.")
         .required(false)
         .identifiesControllerService(MongoDBClientService.class)
@@ -88,8 +88,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     protected static final PropertyDescriptor JSON_TYPE = new PropertyDescriptor.Builder()
             .allowableValues(JSON_EXTENDED, JSON_STANDARD)
             .defaultValue(JSON_TYPE_EXTENDED)
-            .displayName("JSON Type")
-            .name("json-type")
+            .name("JSON Type")
             .description("By default, MongoDB's Java driver returns \"extended JSON\". Some of the features of this variant of JSON" +
                     " may cause problems for other JSON parsers that expect only standard JSON types and conventions. This configuration setting " +
                     " controls whether to use extended JSON or provide a clean view that conforms to standard JSON.")
@@ -98,8 +97,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
-            .name("results-per-flowfile")
-            .displayName("Results Per FlowFile")
+            .name("Results Per FlowFile")
             .description("How many results to put into a flowfile at once. The whole body will be treated as a JSON array of results.")
             .required(false)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -115,16 +113,14 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("mongo-query-attribute")
-            .displayName("Query Output Attribute")
+            .name("Query Output Attribute")
             .description("If set, the query will be written to a specified attribute on the output flowfiles.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
             .required(false)
             .build();
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("mongo-charset")
-            .displayName("Character Set")
+            .name("Character Set")
             .description("Specifies the character set of the document data.")
             .required(true)
             .defaultValue("UTF-8")
@@ -133,8 +129,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
-        .name("mongo-date-format")
-        .displayName("Date Format")
+        .name("Date Format")
         .description("The date format string to use for formatting Date fields that are returned from Mongo. It is only " +
                 "applied when the JSON output format is set to Standard JSON.")
         .defaultValue("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -203,6 +198,16 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     @OnScheduled
     public final void createClient(ProcessContext context) {
         clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("mongo-client-service", CLIENT_SERVICE.getName());
+        config.renameProperty("json-type", JSON_TYPE.getName());
+        config.renameProperty("results-per-flowfile", RESULTS_PER_FLOWFILE.getName());
+        config.renameProperty("mongo-query-attribute", QUERY_ATTRIBUTE.getName());
+        config.renameProperty("mongo-charset", CHARSET.getName());
+        config.renameProperty("mongo-date-format", DATE_FORMAT.getName());
     }
 
     protected MongoClientSettings.Builder getClientSettings(final String uri, final SSLContext sslContext) {
