@@ -26,6 +26,10 @@
     <artifactId>nifi-aws-bundle</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <guava.version>33.5.0-jre</guava.version>
+    </properties>
+
     <modules>
         <module>nifi-aws-kinesis</module>
         <module>nifi-aws-kinesis-nar</module>
@@ -46,7 +50,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>33.5.0-jre</version>
+                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
