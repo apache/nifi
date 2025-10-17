@@ -250,7 +250,7 @@ Start the container:
 
 After NiFi has been started, it is possible to run toolkit commands against the running instance:
 
-    docker exec -ti nifi nifi-toolkit-current/bin/cli.sh nifi current-user
+    docker exec -ti nifi /opt/nifi/nifi-toolkit-current/bin/cli.sh nifi current-user
     anonymous
 
 ## Configuration Information
