@@ -188,6 +188,7 @@ import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.VerifiableFlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
@@ -666,6 +667,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCanVerifyFlowRegistryClientConfig(final String registryClientId) {
+        flowRegistryDAO.verifyConfigVerification(registryClientId);
+    }
+
+    @Override
     public void verifyDeleteProcessor(final String processorId) {
         processorDAO.verifyDelete(processorId);
     }
@@ -1083,6 +1089,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return ((ControllerServiceNode) componentNode).getControllerServiceImplementation() instanceof VerifiableControllerService;
         } else if (componentNode instanceof ReportingTaskNode) {
             return ((ReportingTaskNode) componentNode).getReportingTask() instanceof VerifiableReportingTask;
+        } else if (componentNode instanceof FlowRegistryClientNode) {
+            return componentNode.getComponent() instanceof VerifiableFlowRegistryClient;
         } else {
             return false;
         }
@@ -3545,6 +3553,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConfigurationAnalysisEntity analyzeParameterProviderConfiguration(final String parameterProviderId, final Map<String, String> properties) {
         final ParameterProviderNode taskNode = parameterProviderDAO.getParameterProvider(parameterProviderId);
         final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(taskNode, properties, null);
+        return configurationAnalysisEntity;
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> performFlowRegistryClientConfigVerification(final String registryClientId, final Map<String, String> properties, final Map<String, String> variables) {
+        return flowRegistryDAO.verifyConfiguration(registryClientId, properties, variables);
+    }
+
+    @Override
+    public ConfigurationAnalysisEntity analyzeFlowRegistryClientConfiguration(final String registryClientId, final Map<String, String> properties) {
+        final FlowRegistryClientNode registryClientNode = flowRegistryDAO.getFlowRegistryClient(registryClientId);
+        final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(registryClientNode, properties, null);
         return configurationAnalysisEntity;
     }
 

@@ -1429,6 +1429,277 @@ public class ControllerResource extends ApplicationResource {
     // registries
     // ----------
 
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registry-clients/{id}/config/analysis")
+    @Operation(
+            summary = "Performs analysis of the component's configuration, providing information about which attributes are referenced.",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConfigurationAnalysisEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
+            }
+    )
+    public Response analyzeFlowRegistryClientConfiguration(
+            @Parameter(description = "The registry client id.", required = true) @PathParam("id") final String registryClientId,
+            @Parameter(description = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+
+        if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
+            throw new IllegalArgumentException("Registry Client's configuration must be specified");
+        }
+
+        final ConfigurationAnalysisDTO dto = configurationAnalysis.getConfigurationAnalysis();
+        if (dto.getComponentId() == null) {
+            throw new IllegalArgumentException("Registry Client's identifier must be specified in the request");
+        }
+
+        if (!dto.getComponentId().equals(registryClientId)) {
+            throw new IllegalArgumentException("Registry Client's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (dto.getProperties() == null) {
+            throw new IllegalArgumentException("Registry Client's properties must be specified in the request");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, configurationAnalysis);
+        }
+
+        return withWriteLock(
+                serviceFacade,
+                configurationAnalysis,
+                lookup -> {
+                    final Authorizable authorizable = lookup.getFlowRegistryClient(registryClientId).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+                },
+                () -> {
+                },
+                entity -> {
+                    final ConfigurationAnalysisDTO analysis = entity.getConfigurationAnalysis();
+                    final ConfigurationAnalysisEntity resultsEntity = serviceFacade.analyzeFlowRegistryClientConfiguration(analysis.getComponentId(), analysis.getProperties());
+                    return generateOkResponse(resultsEntity).build();
+                }
+        );
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registry-clients/{id}/config/verification-requests")
+    @Operation(
+            summary = "Performs verification of the Registry Client's configuration",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "Initiates verification of a Registry Client configuration. The request returns immediately "
+                    + "with a request entity while verification runs asynchronously. The client should poll "
+                    + "/controller/registry-clients/{clientId}/config/verification-requests/{requestId} for status and "
+                    + "DELETE the request once verification completes.",
+            security = {
+                    @SecurityRequirement(name = "Read - /controller")
+            }
+    )
+    public Response submitRegistryClientConfigVerificationRequest(
+            @Parameter(description = "The registry client id.", required = true)
+            @PathParam("id") final String registryClientId,
+            @Parameter(description = "The registry client configuration verification request.", required = true) final VerifyConfigRequestEntity registryClientConfigRequest) {
+
+        if (registryClientConfigRequest == null) {
+            throw new IllegalArgumentException("Registry Client's configuration must be specified");
+        }
+
+        final VerifyConfigRequestDTO requestDto = registryClientConfigRequest.getRequest();
+        if (requestDto == null || requestDto.getProperties() == null) {
+            throw new IllegalArgumentException("Registry Client properties must be specified");
+        }
+
+        if (requestDto.getComponentId() == null) {
+            throw new IllegalArgumentException("Registry Client's identifier must be specified in the request");
+        }
+
+        if (!requestDto.getComponentId().equals(registryClientId)) {
+            throw new IllegalArgumentException("Registry Client's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, registryClientConfigRequest);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        return withWriteLock(
+                serviceFacade,
+                registryClientConfigRequest,
+                lookup -> {
+                    final Authorizable authorizable = lookup.getFlowRegistryClient(registryClientId).getAuthorizable();
+                    authorizable.authorize(authorizer, RequestAction.READ, user);
+                },
+                () -> serviceFacade.verifyCanVerifyFlowRegistryClientConfig(registryClientId),
+                entity -> performAsyncRegistryClientConfigVerification(entity, user)
+        );
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registry-clients/{id}/config/verification-requests/{requestId}")
+    @Operation(
+            summary = "Returns the Verification Request with the given ID",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "Returns the Verification Request with the given ID. Once a Verification Request has been created, "
+                    + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
+                    + "current state of the request, and any failures. ",
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can get it")
+            }
+    )
+    public Response getRegistryClientVerificationRequest(
+            @Parameter(description = "The ID of the Registry Client") @PathParam("id") final String registryClientId,
+            @Parameter(description = "The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+                configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+        final VerifyConfigRequestEntity updateRequestEntity = createVerifyRegistryClientConfigRequestEntity(asyncRequest, requestId);
+        return generateOkResponse(updateRequestEntity).build();
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("registry-clients/{id}/config/verification-requests/{requestId}")
+    @Operation(
+            summary = "Deletes the Verification Request with the given ID",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = VerifyConfigRequestEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
+                    + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
+                    + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
+            security = {
+                    @SecurityRequirement(name = "Only the user that submitted the request can remove it")
+            }
+    )
+    public Response deleteRegistryClientVerificationRequest(
+            @Parameter(description = "The ID of the Registry Client") @PathParam("id") final String registryClientId,
+            @Parameter(description = "The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
+        final boolean executionPhase = isExecutionPhase(httpServletRequest);
+
+        if (!twoPhaseRequest || executionPhase) {
+            final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+                    configVerificationRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+            if (asyncRequest == null) {
+                throw new ResourceNotFoundException("Could not find request of type " + VERIFICATION_REQUEST_TYPE + " with ID " + requestId);
+            }
+
+            if (!asyncRequest.isComplete()) {
+                asyncRequest.cancel();
+            }
+
+            final VerifyConfigRequestEntity updateRequestEntity = createVerifyRegistryClientConfigRequestEntity(asyncRequest, requestId);
+            return generateOkResponse(updateRequestEntity).build();
+        }
+
+        if (isValidationPhase(httpServletRequest)) {
+            configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+            return generateContinueResponse().build();
+        } else if (isCancellationPhase(httpServletRequest)) {
+            return generateOkResponse().build();
+        } else {
+            throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+        }
+    }
+
+    public Response performAsyncRegistryClientConfigVerification(final VerifyConfigRequestEntity configRequest, final NiFiUser user) {
+        final String requestId = generateUuid();
+
+        final VerifyConfigRequestDTO requestDto = configRequest.getRequest();
+        final String registryClientId = requestDto.getComponentId();
+        final List<UpdateStep> updateSteps = Collections.singletonList(new StandardUpdateStep("Verify Registry Client Configuration"));
+
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> request =
+                new StandardAsynchronousWebRequest<>(requestId, configRequest, registryClientId, user, updateSteps);
+
+        final Consumer<AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>>> verificationTask = asyncRequest -> {
+            try {
+                final List<ConfigVerificationResultDTO> results = serviceFacade.performFlowRegistryClientConfigVerification(
+                        registryClientId, requestDto.getProperties(), requestDto.getAttributes());
+                asyncRequest.markStepComplete(results);
+            } catch (final Exception e) {
+                LOGGER.error("Failed to verify Registry Client configuration", e);
+                asyncRequest.fail("Failed to verify Registry Client configuration due to " + e);
+            }
+        };
+
+        configVerificationRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, verificationTask);
+
+        final VerifyConfigRequestEntity resultsEntity = createVerifyRegistryClientConfigRequestEntity(request, requestId);
+        return generateOkResponse(resultsEntity).build();
+    }
+
+    private VerifyConfigRequestEntity createVerifyRegistryClientConfigRequestEntity(
+            final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest, final String requestId) {
+
+        final VerifyConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
+        final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
+
+        final VerifyConfigRequestDTO dto = new VerifyConfigRequestDTO();
+        dto.setComponentId(requestDto.getComponentId());
+        dto.setProperties(requestDto.getProperties());
+        dto.setAttributes(requestDto.getAttributes());
+        dto.setResults(resultsList);
+
+        dto.setComplete(asyncRequest.isComplete());
+        dto.setFailureReason(asyncRequest.getFailureReason());
+        dto.setLastUpdated(asyncRequest.getLastUpdated());
+        dto.setPercentCompleted(asyncRequest.getPercentComplete());
+        dto.setRequestId(requestId);
+        dto.setState(asyncRequest.getState());
+        dto.setUri(generateResourceUri("controller/registry-clients", requestDto.getComponentId(), "config", "verification-requests", requestId));
+
+        final VerifyConfigRequestEntity entity = new VerifyConfigRequestEntity();
+        entity.setRequest(dto);
+        return entity;
+    }
+
     /**
      * Lists existing clients.
      *

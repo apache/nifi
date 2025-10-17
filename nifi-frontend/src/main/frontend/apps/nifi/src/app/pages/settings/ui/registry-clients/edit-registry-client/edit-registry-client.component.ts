@@ -22,7 +22,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import {
     InlineServiceCreationRequest,
     InlineServiceCreationResponse,
@@ -40,6 +40,12 @@ import { ClusterConnectionService } from '../../../../../service/cluster-connect
 import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { PropertyVerification } from '../../../../../ui/common/property-verification/property-verification.component';
+import {
+    ConfigVerificationResult,
+    ModifiedProperties,
+    VerifyPropertiesRequestContext
+} from '../../../../../state/property-verification';
 
 @Component({
     selector: 'edit-registry-client',
@@ -56,7 +62,8 @@ import { ContextErrorBanner } from '../../../../../ui/common/context-error-banne
         MatTabsModule,
         PropertyTable,
         ContextErrorBanner,
-        CopyDirective
+        CopyDirective,
+        PropertyVerification
     ],
     styleUrls: ['./edit-registry-client.component.scss'],
     providers: [
@@ -77,10 +84,12 @@ export class EditRegistryClient extends TabbedDialog {
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() goToService!: (serviceId: string) => void;
     @Input() saving$!: Observable<boolean>;
+    @Input() propertyVerificationResults$!: Observable<ConfigVerificationResult[]>;
+    @Input() propertyVerificationStatus$: Observable<'pending' | 'loading' | 'success'> = of('pending');
+
+    @Output() verify: EventEmitter<VerifyPropertiesRequestContext> = new EventEmitter<VerifyPropertiesRequestContext>();
     @Output() editRegistryClient: EventEmitter<EditRegistryClientRequest> =
         new EventEmitter<EditRegistryClientRequest>();
-
-    protected readonly TextTip = TextTip;
 
     editRegistryClientForm: FormGroup;
 
@@ -142,9 +151,28 @@ export class EditRegistryClient extends TabbedDialog {
         });
     }
 
+    private getModifiedProperties(): ModifiedProperties {
+        const propertyControl: AbstractControl | null = this.editRegistryClientForm.get('properties');
+        if (propertyControl && propertyControl.dirty) {
+            const properties: Property[] = propertyControl.value;
+            const values: { [key: string]: string | null } = {};
+            properties.forEach((property) => (values[property.property] = property.value));
+            return values;
+        }
+        return {};
+    }
+
     override isDirty(): boolean {
         return this.editRegistryClientForm.dirty;
     }
 
     protected readonly ErrorContextKey = ErrorContextKey;
+    protected readonly TextTip = TextTip;
+
+    verifyClicked(entity: RegistryClientEntity): void {
+        this.verify.next({
+            entity,
+            properties: this.getModifiedProperties()
+        });
+    }
 }
