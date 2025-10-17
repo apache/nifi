@@ -150,19 +150,6 @@
                 <version>${software.amazon.awssdk.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <!-- Mark AWS SDK v1 dependencies as provided since they're in nifi-aws-service-api-nar -->
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-core</artifactId>
-                <version>${com.amazonaws.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-sts</artifactId>
-                <version>${com.amazonaws.version}</version>
-                <scope>provided</scope>
-            </dependency>
             <!-- Additional AWS SDK v2 core components -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
