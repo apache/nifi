@@ -50,6 +50,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -88,8 +89,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
     public static String JSLT_FILTER_DEFAULT = ". != null and . != {} and . != []";
 
     public static final PropertyDescriptor JSLT_TRANSFORM = new PropertyDescriptor.Builder()
-            .name("jslt-transform-transformation")
-            .displayName("JSLT Transformation")
+            .name("JSLT Transformation")
             .description("JSLT Transformation for transform of JSON data. Any NiFi Expression Language present will be evaluated first to get the final transform to be applied. " +
                     "The JSLT Tutorial provides an overview of supported expressions: https://github.com/schibsted/jslt/blob/master/tutorial.md")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -99,8 +99,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor TRANSFORMATION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("jslt-transform-transformation-strategy")
-            .displayName("Transformation Strategy")
+            .name("Transformation Strategy")
             .description("Whether to apply the JSLT transformation to the entire FlowFile contents or each JSON object in the root-level array")
             .required(true)
             .allowableValues(TransformationStrategy.class)
@@ -108,8 +107,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
-            .name("jslt-transform-pretty_print")
-            .displayName("Pretty Print")
+            .name("Pretty Print")
             .description("Apply pretty-print formatting to the output of the JSLT transform")
             .required(true)
             .allowableValues("true", "false")
@@ -117,8 +115,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor TRANSFORM_CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("jslt-transform-cache-size")
-            .displayName("Transform Cache Size")
+            .name("Transform Cache Size")
             .description("Compiling a JSLT Transform can be fairly expensive. Ideally, this will be done only once. However, if the Expression Language is used in the transform, we may need "
                     + "a new Transform for each FlowFile. This value controls how many of those Transforms we cache in memory in order to avoid having to compile the Transform each time.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -128,8 +125,7 @@ public class JSLTTransformJSON extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RESULT_FILTER = new PropertyDescriptor.Builder()
-            .name("jslt-transform-result-filter")
-            .displayName("Transform Result Filter")
+            .name("Transform Result Filter")
             .description("A filter for output JSON results using a JSLT expression. This property supports changing the default filter,"
                     + " which removes JSON objects with null values, empty objects and empty arrays from the output JSON."
                     + " This JSLT must return true for each JSON object to be included and false for each object to be removed."
@@ -173,6 +169,15 @@ public class JSLTTransformJSON extends AbstractProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("jslt-transform-transformation", JSLT_TRANSFORM.getName());
+        config.renameProperty("jslt-transform-transformation-strategy", TRANSFORMATION_STRATEGY.getName());
+        config.renameProperty("jslt-transform-pretty_print", PRETTY_PRINT.getName());
+        config.renameProperty("jslt-transform-cache-size", TRANSFORM_CACHE_SIZE.getName());
+        config.renameProperty("jslt-transform-result-filter", RESULT_FILTER.getName());
     }
 
     @Override

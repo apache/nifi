@@ -59,6 +59,7 @@ import org.apache.nifi.kafka.shared.property.KeyEncoding;
 import org.apache.nifi.kafka.shared.property.PublishStrategy;
 import org.apache.nifi.kafka.shared.transaction.TransactionIdSupplier;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -131,8 +132,7 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor DELIVERY_GUARANTEE = new PropertyDescriptor.Builder()
-            .name("acks")
-            .displayName("Delivery Guarantee")
+            .name("Delivery Guarantee")
             .description("Specifies the requirement for guaranteeing that a message is sent to Kafka. Corresponds to Kafka Client acks property.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -141,8 +141,7 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
-            .name("compression.type")
-            .displayName("Compression Type")
+            .name("Compression Type")
             .description("Specifies the compression strategy for records sent to Kafka. Corresponds to Kafka Client compression.type property.")
             .required(true)
             .allowableValues("none", "gzip", "snappy", "lz4", "zstd")
@@ -150,8 +149,7 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     public static final PropertyDescriptor MAX_REQUEST_SIZE = new PropertyDescriptor.Builder()
-            .name("max.request.size")
-            .displayName("Max Request Size")
+            .name("Max Request Size")
             .description("The maximum size of a request in bytes. Corresponds to Kafka Client max.request.size property.")
             .required(true)
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -180,8 +178,7 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     static final PropertyDescriptor PARTITION_CLASS = new PropertyDescriptor.Builder()
-            .name("partitioner.class")
-            .displayName("Partitioner Class")
+            .name("Partitioner Class")
             .description("Specifies which class to use to compute a partition id for a message. Corresponds to Kafka Client partitioner.class property.")
             .allowableValues(PartitionStrategy.class)
             .defaultValue(PartitionStrategy.DEFAULT_PARTITIONER.getValue())
@@ -189,8 +186,7 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
             .build();
 
     public static final PropertyDescriptor PARTITION = new PropertyDescriptor.Builder()
-            .name("partition")
-            .displayName("Partition")
+            .name("Partition")
             .description("Specifies the Kafka Partition destination for Records.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -437,6 +433,15 @@ public class PublishKafka extends AbstractProcessor implements VerifiableProcess
                 producerServices.offer(producerService);
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("acks", DELIVERY_GUARANTEE.getName());
+        config.renameProperty("compression.type", COMPRESSION_CODEC.getName());
+        config.renameProperty("max.request.size", MAX_REQUEST_SIZE.getName());
+        config.renameProperty("partitioner.class", PARTITION_CLASS.getName());
+        config.renameProperty("partition", PARTITION.getName());
     }
 
     private KafkaProducerService getProducerService(final ProcessContext context) {

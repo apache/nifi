@@ -31,9 +31,18 @@ import org.apache.nifi.ssl.SSLContextService;
  */
 public interface KafkaClientComponent {
 
+    String OLD_BOOTSTRAP_SERVERS_PROPERTY_NAME = "bootstrap.servers";
+    String OLD_SECURITY_PROTOCOL_PROPERTY_NAME = "security.protocol";
+    String OLD_SASL_MECHANISM_PROPERTY_NAME = "sasl.mechanism";
+    String OLD_SASL_USERNAME_PROPERTY_NAME = "sasl.username";
+    String OLD_SASL_PASSWORD_PROPERTY_NAME = "sasl.password";
+    String OLD_AWS_PROFILE_NAME_PROPERTY_NAME = "aws.profile.name";
+    String OLD_KERBEROS_SERVICE_NAME_PROPERTY_NAME = "sasl.kerberos.service.name";
+    String OLD_SELF_CONTAINED_KERBEROS_USER_SERVICE_PROPERTY_NAME = "kerberos-user-service";
+    String OLD_OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE_PROPERTY_NAME = "oauth2-access-token-provider-service";
+
     PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
-            .name("bootstrap.servers")
-            .displayName("Bootstrap Servers")
+            .name("Bootstrap Servers")
             .description("Comma-separated list of Kafka Bootstrap Servers in the format host:port. Corresponds to Kafka bootstrap.servers property")
             .required(true)
             .addValidator(StandardValidators.HOSTNAME_PORT_LIST_VALIDATOR)
@@ -41,8 +50,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
-            .name("security.protocol")
-            .displayName("Security Protocol")
+            .name("Security Protocol")
             .description("Security protocol used to communicate with brokers. Corresponds to Kafka Client security.protocol property")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -51,8 +59,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor SASL_MECHANISM = new PropertyDescriptor.Builder()
-            .name("sasl.mechanism")
-            .displayName("SASL Mechanism")
+            .name("SASL Mechanism")
             .description("SASL mechanism used for authentication. Corresponds to Kafka Client sasl.mechanism property")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -64,8 +71,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor SASL_USERNAME = new PropertyDescriptor.Builder()
-            .name("sasl.username")
-            .displayName("SASL Username")
+            .name("SASL Username")
             .description("Username provided with configured password when using PLAIN or SCRAM SASL Mechanisms")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -79,8 +85,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor SASL_PASSWORD = new PropertyDescriptor.Builder()
-            .name("sasl.password")
-            .displayName("SASL Password")
+            .name("SASL Password")
             .description("Password provided with configured username when using PLAIN or SCRAM SASL Mechanisms")
             .required(true)
             .sensitive(true)
@@ -95,8 +100,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor TOKEN_AUTHENTICATION = new PropertyDescriptor.Builder()
-            .name("sasl.token.auth")
-            .displayName("Token Authentication")
+            .name("Token Authentication")
             .description("Enables or disables Token authentication when using SCRAM SASL Mechanisms")
             .required(false)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
@@ -122,8 +126,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor AWS_PROFILE_NAME = new PropertyDescriptor.Builder()
-            .name("aws.profile.name")
-            .displayName("AWS Profile Name")
+            .name("AWS Profile Name")
             .description("The Amazon Web Services Profile to select when multiple profiles are available.")
             .dependsOn(
                     KafkaClientComponent.AWS_ROLE_SOURCE,
@@ -170,8 +173,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor KERBEROS_SERVICE_NAME = new PropertyDescriptor.Builder()
-            .name("sasl.kerberos.service.name")
-            .displayName("Kerberos Service Name")
+            .name("Kerberos Service Name")
             .description("The service name that matches the primary name of the Kafka server configured in the broker JAAS configuration")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -182,8 +184,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor SELF_CONTAINED_KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-            .name("kerberos-user-service")
-            .displayName("Kerberos User Service")
+            .name("Kerberos User Service")
             .description("Service supporting user authentication with Kerberos")
             .identifiesControllerService(SelfContainedKerberosUserService.class)
             .required(true)
@@ -193,8 +194,7 @@ public interface KafkaClientComponent {
             .build();
 
     PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("oauth2-access-token-provider-service")
-            .displayName("OAuth2 Access Token Provider Service")
+            .name("OAuth2 Access Token Provider Service")
             .description("Service providing OAuth2 Access Tokens for authentication")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(true)
