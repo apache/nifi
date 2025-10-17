@@ -18,6 +18,8 @@ package org.apache.nifi.processors.gcp.drive;
 
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
+import com.google.api.client.http.HttpResponseException;
+import com.google.api.client.http.HttpStatusCodes;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -136,16 +138,22 @@ public interface GoogleDriveTrait {
                     .execute();
 
             final String sharedDriveId = folder.getDriveId();
-            final String sharedDriveName;
+            String sharedDriveName = null;
             if (sharedDriveId != null) {
-                sharedDriveName = driveService
-                        .drives()
-                        .get(sharedDriveId)
-                        .setFields("name")
-                        .execute()
-                        .getName();
-            } else {
-                sharedDriveName = null;
+                try {
+                    sharedDriveName = driveService
+                            .drives()
+                            .get(sharedDriveId)
+                            .setFields("name")
+                            .execute()
+                            .getName();
+                } catch (HttpResponseException e) {
+                    if (e.getStatusCode() != HttpStatusCodes.STATUS_CODE_NOT_FOUND) {
+                        throw e;
+                    }
+                    // if the user does not have permission to the Shared Drive root, the service returns HTTP 404 (Not Found)
+                    // the Shared Drive name can not be retrieved in this case and will not be added as a FlowFile attribute
+                }
             }
 
             final String folderName;
