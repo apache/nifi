@@ -51,6 +51,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -155,8 +156,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
             .build();
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
-            .name("gcp-pubsub-topic")
-            .displayName("Topic Name")
+            .name("Topic Name")
             .description("Name of the Google Cloud PubSub Topic")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -307,6 +307,12 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
         } else {
             throw new IllegalStateException(inputStrategy.getValue());
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("gcp-pubsub-topic", TOPIC_NAME.getName());
     }
 
     private void onTriggerFlowFileStrategy(
