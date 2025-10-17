@@ -197,12 +197,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-web-utils</artifactId>
-                <version>2.7.0-SNAPSHOT</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-xml-processing</artifactId>
                 <version>2.7.0-SNAPSHOT</version>
                 <scope>provided</scope>
@@ -319,10 +313,6 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>

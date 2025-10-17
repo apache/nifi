@@ -26,7 +26,7 @@
         </init-param>
         <init-param>
             <param-name>jersey.config.server.provider.classnames</param-name>
-            <param-value>org.apache.nifi.web.util.ObjectMapperResolver;org.glassfish.jersey.jackson.JacksonFeature</param-value>
+            <param-value>org.apache.nifi.update.attributes.mapper.ObjectMapperResolver;org.glassfish.jersey.jackson.JacksonFeature</param-value>
         </init-param>
     </servlet>
     <servlet-mapping>

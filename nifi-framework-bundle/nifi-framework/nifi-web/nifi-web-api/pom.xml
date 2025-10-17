@@ -181,11 +181,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
-            <scope>provided</scope> <!-- expected to be provided by parent classloader -->
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-servlet-shared</artifactId>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
