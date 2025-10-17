@@ -27,7 +27,7 @@ import java.io.StringWriter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class DtoFactoryBulletinStackTraceTest {
+class DtoFactoryBulletinStackTraceTest {
 
     private static String toStackTrace(final Throwable t) {
         final StringWriter sw = new StringWriter();
@@ -38,21 +38,21 @@ public class DtoFactoryBulletinStackTraceTest {
     }
 
     @Test
-    public void testBulletinDtoDoesNotIncludeStackTraceByDefault() {
+    void testBulletinDtoDoesNotIncludeStackTraceByDefault() {
         final Throwable ex = new IllegalArgumentException("invalid");
         final Bulletin bulletin = BulletinFactory.createBulletin(
                 "pg", "PG", "svc1", ComponentType.CONTROLLER_SERVICE, "CS",
                 "Log Message", "ERROR", "boom", "/PG", null, ex);
 
         final DtoFactory dtoFactory = new DtoFactory();
-        final BulletinDTO dto = dtoFactory.createBulletinDto(bulletin);
+        final BulletinDTO dto = dtoFactory.createBulletinDto(bulletin, false);
 
         assertNotNull(dto);
         assertEquals(null, dto.getStackTrace(), "DTO must not include stackTrace by default");
     }
 
     @Test
-    public void testBulletinDtoIncludesStackTraceWhenRequested() {
+    void testBulletinDtoIncludesStackTraceWhenRequested() {
         final Throwable ex = new IllegalArgumentException("invalid");
         final Bulletin bulletin = BulletinFactory.createBulletin(
                 "pg", "PG", "svc1", ComponentType.CONTROLLER_SERVICE, "CS",

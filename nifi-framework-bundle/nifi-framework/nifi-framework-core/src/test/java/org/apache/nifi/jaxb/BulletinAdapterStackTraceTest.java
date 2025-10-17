@@ -24,10 +24,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class BulletinAdapterStackTraceTest {
+class BulletinAdapterStackTraceTest {
 
     @Test
-    public void testMarshalUnmarshalCarriesStackTrace() throws Exception {
+    void testMarshalUnmarshalCarriesStackTrace() throws Exception {
         final Throwable t = new NullPointerException("npe");
         final Bulletin original = BulletinFactory.createBulletin(
                 "g", "G", "id", ComponentType.PROCESSOR, "Name",

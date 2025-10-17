@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api.dto;
 
+import jakarta.ws.rs.WebApplicationException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -119,9 +120,9 @@ import org.apache.nifi.diagnostics.DiagnosticLevel;
 import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
-import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -255,8 +256,6 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.revision.RevisionManager;
-
-import jakarta.ws.rs.WebApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -3466,23 +3465,9 @@ public final class DtoFactory {
    public List<BulletinDTO> createBulletinDtos(final List<Bulletin> bulletins) {
        final List<BulletinDTO> bulletinDtos = new ArrayList<>(bulletins.size());
        for (final Bulletin bulletin : bulletins) {
-           bulletinDtos.add(createBulletinDto(bulletin));
+           bulletinDtos.add(createBulletinDto(bulletin, false));
        }
        return bulletinDtos;
-   }
-
-   /**
-    * Creates a BulletinDTO for the specified Bulletin.
-    *
-    * Note: By default, stack trace is not included as it should be exposed
-    * only for the Bulletin Board API. Use the overloaded method with
-    * includeStackTrace=true when serving the Bulletin Board.
-    *
-    * @param bulletin bulletin
-    * @return dto
-    */
-   public BulletinDTO createBulletinDto(final Bulletin bulletin) {
-       return createBulletinDto(bulletin, false);
    }
 
    /**

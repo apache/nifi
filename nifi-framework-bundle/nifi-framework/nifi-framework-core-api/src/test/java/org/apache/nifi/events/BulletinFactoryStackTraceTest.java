@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class BulletinFactoryStackTraceTest {
+class BulletinFactoryStackTraceTest {
 
     private static String toStackTrace(final Throwable t) {
         final StringWriter sw = new StringWriter();
@@ -38,7 +38,7 @@ public class BulletinFactoryStackTraceTest {
     }
 
     @Test
-    public void testCreateBulletinWithThrowableIncludesPrintableStackTrace() {
+    void testCreateBulletinWithThrowableIncludesPrintableStackTrace() {
         final Exception cause = new IllegalStateException("inner");
         final RuntimeException ex = new RuntimeException("outer", cause);
 
@@ -52,8 +52,8 @@ public class BulletinFactoryStackTraceTest {
 
         final String expected = toStackTrace(ex);
         assertEquals(expected, stackTrace, "Stack trace should match Throwable.printStackTrace output exactly");
-        assertTrue(stackTrace.contains("RuntimeException"));
-        assertTrue(stackTrace.contains("IllegalStateException"));
+        assertTrue(stackTrace.contains(cause.getClass().getSimpleName()));
+        assertTrue(stackTrace.contains(ex.getClass().getSimpleName()));
         assertTrue(stackTrace.contains("\n"), "Stack trace should contain newlines for multiline formatting");
         assertTrue(stackTrace.contains("\tat ") || stackTrace.contains("\n\tat "), "Stack trace should include frame lines");
     }

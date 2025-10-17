@@ -21,6 +21,8 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.ComponentType;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class BulletinFactory {
@@ -179,9 +181,7 @@ public final class BulletinFactory {
     }
 
     private static String formatStackTrace(final Throwable t) {
-        try {
-            final java.io.StringWriter sw = new java.io.StringWriter();
-            final java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+        try (final StringWriter sw = new StringWriter(); final PrintWriter pw = new PrintWriter(sw)) {
             t.printStackTrace(pw);
             pw.flush();
             return sw.toString();
