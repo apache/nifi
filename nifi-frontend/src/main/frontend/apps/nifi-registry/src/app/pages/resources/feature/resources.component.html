@@ -33,7 +33,12 @@
                 [totalCount]="dataSource.data.length"
                 (filterChanged)="applyFilter($event)"></droplet-table-filter>
             <div class="flex justify-end">
-                <button mat-icon-button class="primary-icon-button" (click)="openImportNewDropletDialog()">
+                <button
+                    mat-icon-button
+                    class="primary-icon-button"
+                    [disabled]="!canImportNewDroplet"
+                    (click)="openImportNewDropletDialog()"
+                    matTooltip="Import new resource">
                     <i class="fa fa-plus"></i>
                 </button>
             </div>

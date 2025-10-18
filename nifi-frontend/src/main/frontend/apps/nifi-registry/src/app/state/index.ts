@@ -21,6 +21,8 @@ import { dropletsFeatureKey, DropletsState } from './droplets';
 import { dropletsReducer } from './droplets/droplets.reducer';
 import { bucketsFeatureKey, BucketsState } from './buckets';
 import { bucketsReducer } from './buckets/buckets.reducer';
+import { policiesFeatureKey, PoliciesState } from './policies';
+import { policiesReducer } from './policies/policies.reducer';
 import { errorReducer } from './error/error.reducer';
 import { errorFeatureKey, ErrorState } from './error';
 import { aboutFeatureKey, AboutState } from './about';
@@ -52,12 +54,14 @@ export interface Permissions {
 export interface ResourcesState {
     [dropletsFeatureKey]: DropletsState;
     [bucketsFeatureKey]: BucketsState;
+    [policiesFeatureKey]: PoliciesState;
 }
 
 export function reducers(state: ResourcesState | undefined, action: Action) {
     return combineReducers({
         [dropletsFeatureKey]: dropletsReducer,
-        [bucketsFeatureKey]: bucketsReducer
+        [bucketsFeatureKey]: bucketsReducer,
+        [policiesFeatureKey]: policiesReducer
     })(state, action);
 }
 

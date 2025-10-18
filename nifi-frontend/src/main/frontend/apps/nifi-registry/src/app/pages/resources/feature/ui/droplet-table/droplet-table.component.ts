@@ -33,7 +33,7 @@ import {
 
 @Component({
     selector: 'droplet-table',
-    imports: [MatTableModule, MatSortModule, MatMenuModule, MatButtonModule, MatButtonModule],
+    imports: [MatTableModule, MatSortModule, MatMenuModule, MatButtonModule],
     templateUrl: './droplet-table.component.html',
     styleUrl: './droplet-table.component.scss'
 })
@@ -130,5 +130,17 @@ export class DropletTableComponent implements OnInit {
 
     openDropletVersionsDialog(droplet: Droplet) {
         this.store.dispatch(openDropletVersionsDialog({ request: { droplet } }));
+    }
+
+    canImportNewVersion(droplet: Droplet): boolean {
+        return droplet.permissions.canWrite;
+    }
+
+    canExportVersion(droplet: Droplet): boolean {
+        return droplet.permissions.canRead;
+    }
+
+    canDeleteResource(droplet: Droplet): boolean {
+        return droplet.permissions.canDelete;
     }
 }
