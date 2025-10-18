@@ -29,8 +29,8 @@ of the methods in the API, as this guide is intended to supplement the JavaDocs 
 This guide also assumes that the reader is familiar with Java 7 and Apache Maven.
 
 This guide is written by developers for developers. It is expected that before reading this
-guide, you have a basic understanding of NiFi and the concepts of dataflow. If not, please see the link:overview.html[NiFi Overview]
-and the link:user-guide.html[NiFi User Guide] to familiarize yourself with the concepts of NiFi.
+guide, you have a basic understanding of NiFi and the concepts of dataflow. If not, please see the <<overview.adoc#apache-nifi-overview,NiFi Overview>>
+and the <<user-guide.adoc#apache-nifi-user-guide,NiFi User Guide>> to familiarize yourself with the concepts of NiFi.
 
 
 [[components]]
