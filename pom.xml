@@ -121,7 +121,7 @@
 
         <!-- AWS SDK -->
         <com.amazonaws.version>1.12.792</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.35.8</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.35.10</software.amazon.awssdk.version>
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.10.0</org.apache.commons.cli.version>
@@ -158,12 +158,12 @@
 
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.24</aspectj.version>
-        <groovy.version>5.0.1</groovy.version>
+        <groovy.version>5.0.2</groovy.version>
         <kotlin.version>2.2.20</kotlin.version>
 
         <!-- Logging and observability -->
         <log4j2.version>2.25.2</log4j2.version>
-        <logback.version>1.5.19</logback.version>
+        <logback.version>1.5.20</logback.version>
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <prometheus.version>0.16.0</prometheus.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
@@ -204,7 +204,7 @@
         <mockito.version>5.20.0</mockito.version>
         <pmd.version>7.17.0</pmd.version>
         <checkstyle.version>12.0.1</checkstyle.version>
-        <testcontainers.version>2.0.0</testcontainers.version>
+        <testcontainers.version>2.0.1</testcontainers.version>
     </properties>
     <dependencyManagement>
         <dependencies>
