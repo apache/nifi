@@ -16,58 +16,41 @@
  */
 package org.apache.nifi.authorization;
 
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBElement;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Marshaller;
-import jakarta.xml.bind.Unmarshaller;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
-import org.apache.nifi.authorization.file.tenants.generated.Groups;
-import org.apache.nifi.authorization.file.tenants.generated.Tenants;
-import org.apache.nifi.authorization.file.tenants.generated.Users;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.xml.processing.ProcessingException;
-import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
-import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
-import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
-import javax.xml.XMLConstants;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.stream.XMLStreamWriter;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.StringWriter;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
@@ -76,37 +59,12 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(FileUserGroupProvider.class);
 
-    private static final String TENANTS_XSD = "/tenants.xsd";
-    private static final String JAXB_TENANTS_PATH = "org.apache.nifi.authorization.file.tenants.generated";
-    private static final JAXBContext JAXB_TENANTS_CONTEXT = initializeJaxbContext();
-
-    /**
-     * Load the JAXBContext.
-     */
-    private static JAXBContext initializeJaxbContext() {
-        try {
-            return JAXBContext.newInstance(JAXB_TENANTS_PATH, FileUserGroupProvider.class.getClassLoader());
-        } catch (JAXBException e) {
-            throw new RuntimeException("Unable to create JAXBContext.", e);
-        }
-    }
-
-    private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
-
-    private static final String USER_ELEMENT = "user";
-    private static final String GROUP_USER_ELEMENT = "groupUser";
-    private static final String GROUP_ELEMENT = "group";
-    private static final String IDENTIFIER_ATTR = "identifier";
-    private static final String IDENTITY_ATTR = "identity";
-    private static final String NAME_ATTR = "name";
-
     static final String PROP_TENANTS_FILE = "Users File";
     static final String PROP_INITIAL_USER_IDENTITY_PREFIX = "Initial User Identity ";
     static final Pattern INITIAL_USER_IDENTITY_PATTERN = Pattern.compile(PROP_INITIAL_USER_IDENTITY_PREFIX + "\\S+");
     static final String PROP_INITIAL_GROUP_IDENTITY_PREFIX = "Initial Group Identity ";
     static final Pattern INITIAL_GROUP_IDENTITY_PATTERN = Pattern.compile(PROP_INITIAL_GROUP_IDENTITY_PREFIX + "\\S+");
 
-    private Schema tenantsSchema;
     private NiFiProperties properties;
     private File tenantsFile;
     private File restoreTenantsFile;
@@ -115,14 +73,12 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
     private final AtomicReference<UserGroupHolder> userGroupHolder = new AtomicReference<>();
 
+    private final AuthorizedUserGroupsMapper fileAuthorizedUserGroupsMapper = new FileAuthorizedUserGroupsMapper();
+    private final AuthorizedUserGroupsMapper fingerprintAuthorizedUserGroupMapper = new FingerprintAuthorizedUserGroupsMapper();
+
     @Override
     public void initialize(UserGroupProviderInitializationContext initializationContext) throws AuthorizerCreationException {
-        try {
-            final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            tenantsSchema = schemaFactory.newSchema(FileUserGroupProvider.class.getResource(TENANTS_XSD));
-        } catch (Exception e) {
-            throw new AuthorizerCreationException(e);
-        }
+
     }
 
     @Override
@@ -137,7 +93,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             tenantsFile = new File(tenantsPath.getValue());
             if (!tenantsFile.exists()) {
                 logger.info("Creating new users file at {}", tenantsFile.getAbsolutePath());
-                saveTenants(new Tenants());
+                saveAuthorizedUserGroups(new AuthorizedUserGroups(List.of(), List.of()), tenantsFile);
             }
 
             final File tenantsFileDirectory = tenantsFile.getAbsoluteFile().getParentFile();
@@ -194,7 +150,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
             }
 
             logger.debug("Users/Groups file loaded");
-        } catch (IOException | AuthorizerCreationException | JAXBException | IllegalStateException e) {
+        } catch (IOException | AuthorizerCreationException | IllegalStateException e) {
             throw new AuthorizerCreationException(e);
         }
     }
@@ -205,13 +161,13 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized User addUser(User user) throws AuthorizationAccessException {
+    public synchronized User addUser(final User user) throws AuthorizationAccessException {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
 
-        final UsersAndGroups usersAndGroups = new UsersAndGroups(Collections.singletonList(user), Collections.emptyList());
-        addUsersAndGroups(usersAndGroups);
+        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(List.of(user), List.of());
+        addUsersAndGroups(authorizedUserGroups);
 
         return userGroupHolder.get().getUsersById().get(user.getIdentifier());
     }
@@ -227,34 +183,35 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized User updateUser(User user) throws AuthorizationAccessException {
+    public synchronized User updateUser(final User user) throws AuthorizationAccessException {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
 
+        final String identifier = user.getIdentifier();
         final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
+        final User foundUser = holder.getUsersById().get(identifier);
+        if (foundUser == null) {
+            return null;
+        }
 
-        final List<org.apache.nifi.authorization.file.tenants.generated.User> users = tenants.getUsers().getUser();
-
-        // fine the User that needs to be updated
-        org.apache.nifi.authorization.file.tenants.generated.User updateUser = null;
-        for (org.apache.nifi.authorization.file.tenants.generated.User jaxbUser : users) {
-            if (user.getIdentifier().equals(jaxbUser.getIdentifier())) {
-                updateUser = jaxbUser;
+        final List<User> users = new ArrayList<>(holder.getAllUsers());
+        final User updatedUser = new User.Builder().identifier(identifier).identity(user.getIdentity()).build();
+        final ListIterator<User> updatedUsers = users.listIterator();
+        while (updatedUsers.hasNext()) {
+            final User currentUser = updatedUsers.next();
+            if (identifier.equals(currentUser.getIdentifier())) {
+                updatedUsers.remove();
+                updatedUsers.add(updatedUser);
                 break;
             }
         }
 
-        // if user wasn't found return null, otherwise update the user and save changes
-        if (updateUser == null) {
-            return null;
-        } else {
-            updateUser.setIdentity(user.getIdentity());
-            saveAndRefreshHolder(tenants);
+        final List<Group> groups = new ArrayList<>(holder.getAllGroups());
+        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(users, groups);
+        saveAndRefreshHolder(authorizedUserGroups);
+        return userGroupHolder.get().getUsersById().get(identifier);
 
-            return userGroupHolder.get().getUsersById().get(user.getIdentifier());
-        }
     }
 
     @Override
@@ -268,46 +225,49 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized User deleteUser(User user) throws AuthorizationAccessException {
+    public synchronized User deleteUser(final User user) throws AuthorizationAccessException {
         if (user == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
 
         final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
 
-        final List<org.apache.nifi.authorization.file.tenants.generated.User> users = tenants.getUsers().getUser();
+        final String identifier = user.getIdentifier();
+        final User deletedUser = holder.getUsersById().get(identifier);
+        if (deletedUser == null) {
+            return null;
+        }
 
-        // for each group iterate over the user references and remove the user reference if it matches the user being deleted
-        for (org.apache.nifi.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
-            Iterator<org.apache.nifi.authorization.file.tenants.generated.Group.User> groupUserIter = group.getUser().iterator();
-            while (groupUserIter.hasNext()) {
-                org.apache.nifi.authorization.file.tenants.generated.Group.User groupUser = groupUserIter.next();
-                if (groupUser.getIdentifier().equals(user.getIdentifier())) {
-                    groupUserIter.remove();
-                    break;
-                }
+        final List<Group> groups = new ArrayList<>(holder.getAllGroups());
+        final ListIterator<Group> updatedGroups = groups.listIterator();
+        while (updatedGroups.hasNext()) {
+            final Group currentGroup = updatedGroups.next();
+            final Set<String> updatedUsers = new HashSet<>(currentGroup.getUsers());
+            if (updatedUsers.remove(identifier)) {
+                updatedGroups.remove();
+
+                final Group updatedGroup = new Group.Builder()
+                        .identifier(currentGroup.getIdentifier())
+                        .name(currentGroup.getName())
+                        .addUsers(updatedUsers)
+                        .build();
+                updatedGroups.add(updatedGroup);
             }
         }
 
-        // remove the actual user if it exists
-        boolean removedUser = false;
-        Iterator<org.apache.nifi.authorization.file.tenants.generated.User> iter = users.iterator();
-        while (iter.hasNext()) {
-            org.apache.nifi.authorization.file.tenants.generated.User jaxbUser = iter.next();
-            if (user.getIdentifier().equals(jaxbUser.getIdentifier())) {
-                iter.remove();
-                removedUser = true;
+        final List<User> users = new ArrayList<>(holder.getAllUsers());
+        final Iterator<User> updatedUsers = users.iterator();
+        while (updatedUsers.hasNext()) {
+            final User updatedUser = updatedUsers.next();
+            if (identifier.equals(updatedUser.getIdentifier())) {
+                updatedUsers.remove();
                 break;
             }
         }
 
-        if (removedUser) {
-            saveAndRefreshHolder(tenants);
-            return user;
-        } else {
-            return null;
-        }
+        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(users, groups);
+        saveAndRefreshHolder(authorizedUserGroups);
+        return deletedUser;
     }
 
     @Override
@@ -315,49 +275,27 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         return userGroupHolder.get().getAllGroups();
     }
 
-    private synchronized void addUsersAndGroups(final UsersAndGroups usersAndGroups) {
+    private synchronized void addUsersAndGroups(final AuthorizedUserGroups authorizedUserGroups) {
         final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
-
-        final List<Group> groups = usersAndGroups.getGroups();
-        for (final Group group : groups) {
-            // create a new JAXB Group based on the incoming Group
-            final org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup = new org.apache.nifi.authorization.file.tenants.generated.Group();
-            jaxbGroup.setIdentifier(group.getIdentifier());
-            jaxbGroup.setName(group.getName());
-
-            // add each user to the group
-            for (String groupUser : group.getUsers()) {
-                org.apache.nifi.authorization.file.tenants.generated.Group.User jaxbGroupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
-                jaxbGroupUser.setIdentifier(groupUser);
-                jaxbGroup.getUser().add(jaxbGroupUser);
-            }
-
-            tenants.getGroups().getGroup().add(jaxbGroup);
-        }
-
-        final List<User> users = usersAndGroups.getUsers();
-        for (final User user : users) {
-            final org.apache.nifi.authorization.file.tenants.generated.User jaxbUser = createJAXBUser(user);
-            tenants.getUsers().getUser().add(jaxbUser);
-        }
-
-        saveAndRefreshHolder(tenants);
+        final AuthorizedUserGroups currentUserGroups = holder.getAuthorizedUserGroups();
+        currentUserGroups.users().addAll(authorizedUserGroups.users());
+        currentUserGroups.groups().addAll(authorizedUserGroups.groups());
+        saveAndRefreshHolder(currentUserGroups);
     }
 
     @Override
-    public synchronized Group addGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group addGroup(final Group group) throws AuthorizationAccessException {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }
 
-        final UsersAndGroups usersAndGroups = new UsersAndGroups(Collections.emptyList(), Collections.singletonList(group));
-        addUsersAndGroups(usersAndGroups);
+        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(List.of(), List.of(group));
+        addUsersAndGroups(authorizedUserGroups);
         return userGroupHolder.get().getGroupsById().get(group.getIdentifier());
     }
 
     @Override
-    public Group getGroup(String identifier) throws AuthorizationAccessException {
+    public Group getGroup(final String identifier) throws AuthorizationAccessException {
         if (identifier == null) {
             return null;
         }
@@ -365,7 +303,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public Group getGroupByName(String name) throws AuthorizationAccessException {
+    public Group getGroupByName(final String name) throws AuthorizationAccessException {
         if (name == null) {
             return null;
         }
@@ -393,71 +331,66 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized Group updateGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group updateGroup(final Group group) throws AuthorizationAccessException {
         if (group == null) {
             throw new IllegalArgumentException("Group cannot be null");
         }
 
         final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
+        final String identifier = group.getIdentifier();
+        final Group foundGroup = holder.getGroupsById().get(identifier);
+        if (foundGroup == null) {
+            return null;
+        }
 
-        // find the group that needs to be update
-        org.apache.nifi.authorization.file.tenants.generated.Group updateGroup = null;
-        for (org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup : tenants.getGroups().getGroup()) {
-            if (jaxbGroup.getIdentifier().equals(group.getIdentifier())) {
-                updateGroup = jaxbGroup;
+        final Group updatedGroup = new Group.Builder()
+                .identifier(identifier)
+                .name(group.getName())
+                .addUsers(group.getUsers())
+                .build();
+
+        final List<Group> groups = new ArrayList<>(holder.getAllGroups());
+        final ListIterator<Group> updatedGroups = groups.listIterator();
+        while (updatedGroups.hasNext()) {
+            final Group currentGroup = updatedGroups.next();
+            if (currentGroup.getIdentifier().equals(identifier)) {
+                updatedGroups.remove();
+                updatedGroups.add(updatedGroup);
                 break;
             }
         }
 
-        // if the group wasn't found return null, otherwise update the group and save changes
-        if (updateGroup == null) {
-            return null;
-        }
-
-        // reset the list of users and add each user to the group
-        updateGroup.getUser().clear();
-        for (String groupUser : group.getUsers()) {
-            org.apache.nifi.authorization.file.tenants.generated.Group.User jaxbGroupUser = new org.apache.nifi.authorization.file.tenants.generated.Group.User();
-            jaxbGroupUser.setIdentifier(groupUser);
-            updateGroup.getUser().add(jaxbGroupUser);
-        }
-
-        updateGroup.setName(group.getName());
-        saveAndRefreshHolder(tenants);
-
-        return userGroupHolder.get().getGroupsById().get(group.getIdentifier());
+        final List<User> users = new ArrayList<>(holder.getAllUsers());
+        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(users, groups);
+        saveAndRefreshHolder(authorizedUserGroups);
+        return userGroupHolder.get().getGroupsById().get(identifier);
     }
 
     @Override
-    public synchronized Group deleteGroup(Group group) throws AuthorizationAccessException {
+    public synchronized Group deleteGroup(final Group group) throws AuthorizationAccessException {
+        Objects.requireNonNull(group, "Group required");
+
         final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
+        final String identifier = group.getIdentifier();
+        final Group foundGroup = holder.getGroupsById().get(identifier);
+        if (foundGroup == null) {
+            return null;
+        }
 
-        final List<org.apache.nifi.authorization.file.tenants.generated.Group> groups = tenants.getGroups().getGroup();
-
-        // now remove the actual group from the top-level list of groups
-        boolean removedGroup = false;
-        Iterator<org.apache.nifi.authorization.file.tenants.generated.Group> iter = groups.iterator();
-        while (iter.hasNext()) {
-            org.apache.nifi.authorization.file.tenants.generated.Group jaxbGroup = iter.next();
-            if (group.getIdentifier().equals(jaxbGroup.getIdentifier())) {
-                iter.remove();
-                removedGroup = true;
+        final List<Group> groups = new ArrayList<>(holder.getAllGroups());
+        final ListIterator<Group> updatedGroups = groups.listIterator();
+        while (updatedGroups.hasNext()) {
+            final Group currentGroup = updatedGroups.next();
+            if (identifier.equals(currentGroup.getIdentifier())) {
+                updatedGroups.remove();
                 break;
             }
         }
 
-        if (removedGroup) {
-            saveAndRefreshHolder(tenants);
-            return group;
-        } else {
-            return null;
-        }
-    }
-
-    UserGroupHolder getUserGroupHolder() {
-        return userGroupHolder.get();
+        final List<User> users = new ArrayList<>(holder.getAllUsers());
+        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(users, groups);
+        saveAndRefreshHolder(authorizedUserGroups);
+        return foundGroup;
     }
 
     @AuthorizerContext
@@ -466,68 +399,61 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
-    public synchronized void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
-        final UsersAndGroups usersAndGroups = parseUsersAndGroups(fingerprint);
-        inherit(usersAndGroups);
+    public synchronized void inheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        final AuthorizedUserGroups authorizedUserGroups = parseUsersAndGroups(fingerprint);
+        inherit(authorizedUserGroups);
     }
 
-    private synchronized void inherit(final UsersAndGroups usersAndGroups) {
-        addUsersAndGroups(usersAndGroups);
+    private synchronized void inherit(final AuthorizedUserGroups authorizedUserGroups) {
+        addUsersAndGroups(authorizedUserGroups);
     }
 
     @Override
     public synchronized void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
         if (fingerprint == null || fingerprint.isBlank()) {
-            logger.info("Inheriting Empty Users & Groups. Will backup existing Uesrs & Groups first.");
+            logger.info("Inheriting empty Users and Groups: Backup of current Users and Groups started");
             backupUsersAndGroups();
             purgeUsersAndGroups();
-
             return;
         }
 
-        final UsersAndGroups usersAndGroups = parseUsersAndGroups(fingerprint);
-
+        final AuthorizedUserGroups authorizedUserGroups = parseUsersAndGroups(fingerprint);
         if (isInheritable()) {
-            logger.debug("Inheriting cluster's Users & Groups");
-            inherit(usersAndGroups);
+            logger.debug("Inheriting Users and Groups");
+            inherit(authorizedUserGroups);
         } else {
-            logger.info("Cannot directly inherit proposed Users & Groups so will backup existing Users & Groups and then replace with proposed configuration");
+            logger.info("Failed to inherit Users and Groups: Backup of current Users and Groups before replacing configuration");
             backupUsersAndGroups();
             purgeUsersAndGroups();
-            addUsersAndGroups(usersAndGroups);
+            addUsersAndGroups(authorizedUserGroups);
         }
     }
 
     public void backupUsersAndGroups() throws AuthorizationAccessException {
         final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
+        final AuthorizedUserGroups authorizedUserGroups = holder.getAuthorizedUserGroups();
 
         final String timestamp = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss").format(OffsetDateTime.now());
         final File destinationFile = new File(tenantsFile.getParentFile(), tenantsFile.getName() + "." + timestamp);
         logger.info("Writing backup of Users & Groups to {}", destinationFile.getAbsolutePath());
 
         try {
-            saveTenants(tenants, destinationFile);
-        } catch (final JAXBException jaxb) {
-            throw new AuthorizationAccessException("Could not backup existing Users and Groups so will not inherit new Users and Groups", jaxb);
+            saveAuthorizedUserGroups(authorizedUserGroups, destinationFile);
+        } catch (final ProcessingException e) {
+            throw new AuthorizationAccessException("Could not backup existing Users and Groups so will not inherit new Users and Groups", e);
         }
     }
 
     public synchronized void purgeUsersAndGroups() {
-        final UserGroupHolder holder = userGroupHolder.get();
-        final Tenants tenants = holder.getTenants();
-
-        tenants.setGroups(new Groups());
-        tenants.setUsers(new Users());
-
-        saveAndRefreshHolder(tenants);
+        final AuthorizedUserGroups authorizedUserGroups = new AuthorizedUserGroups(List.of(), List.of());
+        saveAndRefreshHolder(authorizedUserGroups);
     }
 
     @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException {
         // ensure we are in a proper state to inherit the fingerprint
         if (!isInheritable()) {
-            throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current users and groups is not empty.");
+            throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current users and groups is not empty");
         }
     }
 
@@ -538,243 +464,61 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
     @Override
     public String getFingerprint() throws AuthorizationAccessException {
-        final UserGroupHolder usersAndGroups = userGroupHolder.get();
-
-        final List<User> users = new ArrayList<>(usersAndGroups.getAllUsers());
-        users.sort(Comparator.comparing(User::getIdentifier));
-
-        final List<Group> groups = new ArrayList<>(usersAndGroups.getAllGroups());
-        groups.sort(Comparator.comparing(Group::getIdentifier));
-
-        XMLStreamWriter writer = null;
-        final StringWriter out = new StringWriter();
-        try {
-            writer = XML_OUTPUT_FACTORY.createXMLStreamWriter(out);
-            writer.writeStartDocument();
-            writer.writeStartElement("tenants");
-
-            for (User user : users) {
-                writeUser(writer, user);
-            }
-            for (Group group : groups) {
-                writeGroup(writer, group);
-            }
-
-            writer.writeEndElement();
-            writer.writeEndDocument();
-            writer.flush();
-        } catch (XMLStreamException e) {
-            throw new AuthorizationAccessException("Unable to generate fingerprint", e);
-        } finally {
-            if (writer != null) {
-                try {
-                    writer.close();
-                } catch (XMLStreamException ignored) {
-                    // nothing to do here
-                }
-            }
+        final UserGroupHolder holder = userGroupHolder.get();
+        final AuthorizedUserGroups authorizedUserGroups = holder.getAuthorizedUserGroups();
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            fingerprintAuthorizedUserGroupMapper.writeUserGroups(authorizedUserGroups, outputStream);
+            outputStream.flush();
+            return outputStream.toString(StandardCharsets.UTF_8);
+        } catch (final IOException e) {
+            throw new UncheckedIOException("User Group Fingerprint generation failed", e);
         }
-
-        return out.toString();
     }
 
-    private UsersAndGroups parseUsersAndGroups(final String fingerprint) {
-        final List<User> users = new ArrayList<>();
-        final List<Group> groups = new ArrayList<>();
-
+    private AuthorizedUserGroups parseUsersAndGroups(final String fingerprint) {
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
-        try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final StandardDocumentProvider documentProvider = new StandardDocumentProvider();
-            final Document document = documentProvider.parse(in);
-            final Element rootElement = document.getDocumentElement();
-
-            // parse all the users and add them to the current user group provider
-            NodeList userNodes = rootElement.getElementsByTagName(USER_ELEMENT);
-            for (int i = 0; i < userNodes.getLength(); i++) {
-                Node userNode = userNodes.item(i);
-                users.add(parseUser((Element) userNode));
-            }
-
-            // parse all the groups and add them to the current user group provider
-            NodeList groupNodes = rootElement.getElementsByTagName(GROUP_ELEMENT);
-            for (int i = 0; i < groupNodes.getLength(); i++) {
-                Node groupNode = groupNodes.item(i);
-                groups.add(parseGroup((Element) groupNode));
-            }
+        try (final InputStream inputStream = new ByteArrayInputStream(fingerprintBytes)) {
+            return fingerprintAuthorizedUserGroupMapper.readUserGroups(inputStream);
         } catch (final ProcessingException | IOException e) {
-            throw new AuthorizationAccessException("Unable to parse fingerprint", e);
+            throw new AuthorizationAccessException("User Group Fingerprint parsing failed", e);
+        }
+    }
+
+    private synchronized void load() {
+        final AuthorizedUserGroups authorizedUserGroups;
+        try (InputStream inputStream = new FileInputStream(tenantsFile)) {
+            authorizedUserGroups = fileAuthorizedUserGroupsMapper.readUserGroups(inputStream);
+        } catch (final IOException | ProcessingException e) {
+            throw new IllegalStateException("Loading Users and Groups [%s] failed".formatted(tenantsFile), e);
         }
 
-        return new UsersAndGroups(users, groups);
-    }
+        if (authorizedUserGroups.users().isEmpty() && authorizedUserGroups.groups().isEmpty()) {
+            final List<User> users = new ArrayList<>();
+            for (final String identity : initialUserIdentities) {
+                final User user = new User.Builder().identity(identity).identifierGenerateFromSeed(identity).build();
+                users.add(user);
+            }
 
-    private User parseUser(final Element element) {
-        final User.Builder builder = new User.Builder()
-                .identifier(element.getAttribute(IDENTIFIER_ATTR))
-                .identity(element.getAttribute(IDENTITY_ATTR));
+            final List<Group> groups = new ArrayList<>();
+            for (final String name : initialGroupIdentities) {
+                final Group group = new Group.Builder().name(name).identifierGenerateFromSeed(name).build();
+                groups.add(group);
+            }
 
-        return builder.build();
-    }
-
-    private Group parseGroup(final Element element) {
-        final Group.Builder builder = new Group.Builder()
-                .identifier(element.getAttribute(IDENTIFIER_ATTR))
-                .name(element.getAttribute(NAME_ATTR));
-
-        NodeList groupUsers = element.getElementsByTagName(GROUP_USER_ELEMENT);
-        for (int i = 0; i < groupUsers.getLength(); i++) {
-            Element groupUserNode = (Element) groupUsers.item(i);
-            builder.addUser(groupUserNode.getAttribute(IDENTIFIER_ATTR));
-        }
-
-        return builder.build();
-    }
-
-    private void writeUser(final XMLStreamWriter writer, final User user) throws XMLStreamException {
-        writer.writeStartElement(USER_ELEMENT);
-        writer.writeAttribute(IDENTIFIER_ATTR, user.getIdentifier());
-        writer.writeAttribute(IDENTITY_ATTR, user.getIdentity());
-        writer.writeEndElement();
-    }
-
-    private void writeGroup(final XMLStreamWriter writer, final Group group) throws XMLStreamException {
-        List<String> users = new ArrayList<>(group.getUsers());
-        Collections.sort(users);
-
-        writer.writeStartElement(GROUP_ELEMENT);
-        writer.writeAttribute(IDENTIFIER_ATTR, group.getIdentifier());
-        writer.writeAttribute(NAME_ATTR, group.getName());
-
-        for (String user : users) {
-            writer.writeStartElement(GROUP_USER_ELEMENT);
-            writer.writeAttribute(IDENTIFIER_ATTR, user);
-            writer.writeEndElement();
-        }
-
-        writer.writeEndElement();
-    }
-
-    private org.apache.nifi.authorization.file.tenants.generated.User createJAXBUser(User user) {
-        final org.apache.nifi.authorization.file.tenants.generated.User jaxbUser = new org.apache.nifi.authorization.file.tenants.generated.User();
-        jaxbUser.setIdentifier(user.getIdentifier());
-        jaxbUser.setIdentity(user.getIdentity());
-        return jaxbUser;
-    }
-
-    /**
-     * Loads the authorizations file and populates the AuthorizationsHolder, only called during start-up.
-     *
-     * @throws JAXBException            Unable to reload the authorized users file
-     * @throws IllegalStateException    Unable to sync file with restore
-     */
-    private synchronized void load() throws JAXBException, IllegalStateException {
-        final Tenants tenants = unmarshallTenants();
-        if (tenants.getUsers() == null) {
-            tenants.setUsers(new Users());
-        }
-        if (tenants.getGroups() == null) {
-            tenants.setGroups(new Groups());
-        }
-
-        final UserGroupHolder userGroupHolder = new UserGroupHolder(tenants);
-        final boolean emptyTenants = userGroupHolder.getAllUsers().isEmpty() && userGroupHolder.getAllGroups().isEmpty();
-
-        if (emptyTenants) {
-            populateInitialUsers(tenants);
-            populateInitialGroups(tenants);
-
-            // save any changes that were made and repopulate the holder
-            saveAndRefreshHolder(tenants);
+            final AuthorizedUserGroups initialAuthorizedUserGroups = new AuthorizedUserGroups(users, groups);
+            saveAndRefreshHolder(initialAuthorizedUserGroups);
         } else {
+            final UserGroupHolder userGroupHolder = new UserGroupHolder(authorizedUserGroups);
             this.userGroupHolder.set(userGroupHolder);
         }
     }
 
-    private void saveTenants(final Tenants tenants) throws JAXBException {
-        saveTenants(tenants, tenantsFile);
-    }
-
-    private void saveTenants(final Tenants tenants, final File destinationFile) throws JAXBException {
-        final Marshaller marshaller = JAXB_TENANTS_CONTEXT.createMarshaller();
-        marshaller.setSchema(tenantsSchema);
-        marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshaller.marshal(tenants, destinationFile);
-    }
-
-    private Tenants unmarshallTenants() throws JAXBException {
-        final Unmarshaller unmarshaller = JAXB_TENANTS_CONTEXT.createUnmarshaller();
-        unmarshaller.setSchema(tenantsSchema);
-
-        final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-        try {
-            final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(tenantsFile));
-            final JAXBElement<Tenants> element = unmarshaller.unmarshal(xsr, Tenants.class);
-            return element.getValue();
-        } catch (final ProcessingException e) {
-            throw new JAXBException("Error unmarshalling tenants", e);
+    private void saveAuthorizedUserGroups(final AuthorizedUserGroups authorizedUserGroups, final File destinationFile) {
+        try (OutputStream outputStream = new FileOutputStream(destinationFile)) {
+            fileAuthorizedUserGroupsMapper.writeUserGroups(authorizedUserGroups, outputStream);
+        } catch (final IOException e) {
+            throw new ProcessingException("Failed to save Tenants [%s]".formatted(destinationFile), e);
         }
-    }
-
-    private void populateInitialUsers(final Tenants tenants) {
-        for (String initialUserIdentity : initialUserIdentities) {
-            createUser(tenants, initialUserIdentity);
-        }
-    }
-
-    private void populateInitialGroups(final Tenants tenants) {
-        for (String initialGroupIdentity : initialGroupIdentities) {
-            createGroup(tenants, initialGroupIdentity);
-        }
-    }
-
-    /**
-     * Finds the User with the given identity, or creates a new one and adds it to the Tenants.
-     *
-     * @param tenants the Tenants reference
-     * @param userIdentity the user identity to find or create
-     */
-    private void createUser(final Tenants tenants, final String userIdentity) {
-        if (StringUtils.isBlank(userIdentity)) {
-            return;
-        }
-
-        for (org.apache.nifi.authorization.file.tenants.generated.User user : tenants.getUsers().getUser()) {
-            if (user.getIdentity().equals(userIdentity)) {
-                return;
-            }
-        }
-
-        final User builtUser = new User.Builder().identifierGenerateFromSeed(userIdentity).identity(userIdentity).build();
-        final org.apache.nifi.authorization.file.tenants.generated.User newUser =
-                new org.apache.nifi.authorization.file.tenants.generated.User();
-        newUser.setIdentifier(builtUser.getIdentifier());
-        newUser.setIdentity(builtUser.getIdentity());
-        tenants.getUsers().getUser().add(newUser);
-    }
-
-    /**
-     * Finds the Group with the given name, or creates a new one and adds it to Tenants.
-     *
-     * @param tenants the Tenants reference
-     * @param groupName the name of the group to look for
-     */
-    private void createGroup(final Tenants tenants, final String groupName) {
-        if (StringUtils.isBlank(groupName)) {
-            return;
-        }
-
-        for (org.apache.nifi.authorization.file.tenants.generated.Group group : tenants.getGroups().getGroup()) {
-            if (group.getName().equals(groupName)) {
-                return;
-            }
-        }
-
-        final Group builtGroup = new Group.Builder().identifierGenerateFromSeed(groupName).name(groupName).build();
-        final org.apache.nifi.authorization.file.tenants.generated.Group newGroup =
-                new org.apache.nifi.authorization.file.tenants.generated.Group();
-        newGroup.setIdentifier(builtGroup.getIdentifier());
-        newGroup.setName(builtGroup.getName());
-        tenants.getGroups().getGroup().add(newGroup);
     }
 
     /**
@@ -782,38 +526,19 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
      * in-memory data structures and sets the new holder.
      * Synchronized to ensure only one thread writes the file at a time.
      *
-     * @param tenants the tenants to save and populate from
+     * @param authorizedUserGroups Authorized Users and Groups
      * @throws AuthorizationAccessException if an error occurs saving the authorizations
      */
-    private synchronized void saveAndRefreshHolder(final Tenants tenants) throws AuthorizationAccessException {
+    private synchronized void saveAndRefreshHolder(final AuthorizedUserGroups authorizedUserGroups) throws AuthorizationAccessException {
         try {
-            saveTenants(tenants);
-
-            this.userGroupHolder.set(new UserGroupHolder(tenants));
-        } catch (JAXBException e) {
-            throw new AuthorizationAccessException("Unable to save Authorizations", e);
+            saveAuthorizedUserGroups(authorizedUserGroups, tenantsFile);
+            userGroupHolder.set(new UserGroupHolder(authorizedUserGroups));
+        } catch (final ProcessingException e) {
+            throw new AuthorizationAccessException("Unable to save Users and Groups", e);
         }
     }
 
     @Override
     public void preDestruction() throws AuthorizerDestructionException {
-    }
-
-    private static class UsersAndGroups {
-        final List<User> users;
-        final List<Group> groups;
-
-        public UsersAndGroups(List<User> users, List<Group> groups) {
-            this.users = users;
-            this.groups = groups;
-        }
-
-        public List<User> getUsers() {
-            return users;
-        }
-
-        public List<Group> getGroups() {
-            return groups;
-        }
     }
 }
