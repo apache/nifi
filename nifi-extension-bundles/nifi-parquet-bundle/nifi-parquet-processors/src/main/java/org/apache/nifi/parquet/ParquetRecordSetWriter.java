@@ -39,6 +39,7 @@ import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.parquet.record.WriteParquetResult;
 import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.parquet.utils.ParquetConfig;
@@ -56,8 +57,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implements RecordSetWriterFactory {
 
     public static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("cache-size")
-            .displayName("Cache Size")
+            .name("Cache Size")
             .description("Specifies how many Schemas should be cached")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue("1000")
@@ -65,8 +65,7 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
             .build();
 
     public static final PropertyDescriptor INT96_FIELDS = new PropertyDescriptor.Builder()
-            .name("int96-fields")
-            .displayName("INT96 Fields")
+            .name("INT96 Fields")
             .description("List of fields with full path that should be treated as INT96 timestamps.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(false)
@@ -129,6 +128,22 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
         } catch (final SchemaNotFoundException e) {
             throw new ProcessException("Could not determine the Avro Schema to use for writing the content", e);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("cache-size", CACHE_SIZE.getName());
+        config.renameProperty("int96-fields", INT96_FIELDS.getName());
+        config.renameProperty(ParquetUtils.OLD_ROW_GROUP_SIZE_PROPERTY_NAME, ParquetUtils.ROW_GROUP_SIZE.getName());
+        config.renameProperty(ParquetUtils.OLD_PAGE_SIZE_PROPERTY_NAME, ParquetUtils.PAGE_SIZE.getName());
+        config.renameProperty(ParquetUtils.OLD_DICTIONARY_PAGE_SIZE_PROPERTY_NAME, ParquetUtils.DICTIONARY_PAGE_SIZE.getName());
+        config.renameProperty(ParquetUtils.OLD_MAX_PADDING_SIZE_PROPERTY_NAME, ParquetUtils.MAX_PADDING_SIZE.getName());
+        config.renameProperty(ParquetUtils.OLD_ENABLE_DICTIONARY_ENCODING_PROPERTY_NAME, ParquetUtils.ENABLE_DICTIONARY_ENCODING.getName());
+        config.renameProperty(ParquetUtils.OLD_ENABLE_VALIDATION_PROPERTY_NAME, ParquetUtils.ENABLE_VALIDATION.getName());
+        config.renameProperty(ParquetUtils.OLD_WRITER_VERSION_PROPERTY_NAME, ParquetUtils.WRITER_VERSION.getName());
+        config.renameProperty(ParquetUtils.OLD_AVRO_ADD_LIST_ELEMENT_RECORDS_PROPERTY_NAME, ParquetUtils.AVRO_ADD_LIST_ELEMENT_RECORDS.getName());
+        config.renameProperty(ParquetUtils.OLD_AVRO_WRITE_OLD_LIST_STRUCTURE_PROPERTY_NAME, ParquetUtils.AVRO_WRITE_OLD_LIST_STRUCTURE.getName());
     }
 
     @Override

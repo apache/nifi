@@ -27,6 +27,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.pgp.service.api.PGPPublicKeyService;
 import org.apache.nifi.pgp.service.standard.exception.PGPConfigurationException;
@@ -63,8 +64,7 @@ import java.util.stream.StreamSupport;
 @CapabilityDescription("PGP Public Key Service providing Public Keys loaded from files")
 public class StandardPGPPublicKeyService extends AbstractControllerService implements PGPPublicKeyService {
     public static final PropertyDescriptor KEYRING_FILE = new PropertyDescriptor.Builder()
-            .name("keyring-file")
-            .displayName("Keyring File")
+            .name("Keyring File")
             .description("File path to PGP Keyring or Public Key encoded in binary or ASCII Armor")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -72,8 +72,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
             .build();
 
     public static final PropertyDescriptor KEYRING = new PropertyDescriptor.Builder()
-            .name("keyring")
-            .displayName("Keyring")
+            .name("Keyring")
             .description("PGP Keyring or Public Key encoded in ASCII Armor")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -127,6 +126,11 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
         return publicKeys.stream().filter(publicKey -> isPublicKeyMatched(publicKey, search)).findFirst();
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("keyring-file", KEYRING_FILE.getName());
+        config.renameProperty("keyring", KEYRING.getName());
+    }
     /**
      * Get Supported Property Descriptors
      *

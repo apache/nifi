@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -56,6 +57,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
+import static org.apache.nifi.redis.util.RedisUtils.OLD_REDIS_CONNECTION_POOL_PROPERTY_NAME;
 import static org.apache.nifi.redis.util.RedisUtils.REDIS_CONNECTION_POOL;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -73,16 +75,14 @@ public class PutRedisHashRecord extends AbstractProcessor {
     public static final String SUCCESS_RECORD_COUNT = "redis.success.record.count";
 
     protected static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor HASH_VALUE_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("hash-value-record-path")
-            .displayName("Hash Value Record Path")
+            .name("Hash Value Record Path")
             .description("Specifies a RecordPath to evaluate against each Record in order to determine the hash value associated with all the record fields/values "
                     + "(see 'hset' in Redis documentation for more details). The RecordPath must point at exactly one field or an error will occur.")
             .required(true)
@@ -91,8 +91,7 @@ public class PutRedisHashRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor DATA_RECORD_PATH = new PropertyDescriptor.Builder()
-            .name("data-record-path")
-            .displayName("Data Record Path")
+            .name("Data Record Path")
             .description("This property denotes a RecordPath that will be evaluated against each incoming Record and the Record that results from evaluating the RecordPath will be sent to" +
                     " Redis instead of sending the entire incoming Record. The property defaults to the root '/' which corresponds to a 'flat' record (all fields/values at the top level of " +
                     " the Record.")
@@ -103,8 +102,7 @@ public class PutRedisHashRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("charset")
-            .displayName("Character Set")
+            .name("Character Set")
             .description("Specifies the character set to use when storing record field values as strings. All fields will be converted to strings using this character set "
                     + "before being stored in Redis.")
             .required(true)
@@ -223,6 +221,15 @@ public class PutRedisHashRecord extends AbstractProcessor {
 
         flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
+        config.renameProperty("hash-value-record-path", HASH_VALUE_RECORD_PATH.getName());
+        config.renameProperty("data-record-path", DATA_RECORD_PATH.getName());
+        config.renameProperty("charset", CHARSET.getName());
+        config.renameProperty(OLD_REDIS_CONNECTION_POOL_PROPERTY_NAME, REDIS_CONNECTION_POOL.getName());
     }
 
     private List<Record> getDataRecords(final RecordPath dataRecordPath, final Record outerRecord) {

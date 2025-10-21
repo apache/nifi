@@ -41,9 +41,19 @@ import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 
 public class ParquetUtils {
 
+    public static final String OLD_ROW_GROUP_SIZE_PROPERTY_NAME = "row-group-size";
+    public static final String OLD_PAGE_SIZE_PROPERTY_NAME = "page-size";
+    public static final String OLD_DICTIONARY_PAGE_SIZE_PROPERTY_NAME = "dictionary-page-size";
+    public static final String OLD_MAX_PADDING_SIZE_PROPERTY_NAME = "max-padding-size";
+    public static final String OLD_ENABLE_DICTIONARY_ENCODING_PROPERTY_NAME = "enable-dictionary-encoding";
+    public static final String OLD_ENABLE_VALIDATION_PROPERTY_NAME = "enable-validation";
+    public static final String OLD_WRITER_VERSION_PROPERTY_NAME = "writer-version";
+    public static final String OLD_AVRO_READ_COMPATIBILITY_PROPERTY_NAME = "avro-read-compatibility";
+    public static final String OLD_AVRO_ADD_LIST_ELEMENT_RECORDS_PROPERTY_NAME = "avro-add-list-element-records";
+    public static final String OLD_AVRO_WRITE_OLD_LIST_STRUCTURE_PROPERTY_NAME = "avro-write-old-list-structure";
+
     public static final PropertyDescriptor ROW_GROUP_SIZE = new PropertyDescriptor.Builder()
-            .name("row-group-size")
-            .displayName("Row Group Size")
+            .name("Row Group Size")
             .description("The row group size used by the Parquet writer. " +
                     "The value is specified in the format of <Data Size> <Data Unit> where Data Unit is one of B, KB, MB, GB, TB.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -51,8 +61,7 @@ public class ParquetUtils {
             .build();
 
     public static final PropertyDescriptor PAGE_SIZE = new PropertyDescriptor.Builder()
-            .name("page-size")
-            .displayName("Page Size")
+            .name("Page Size")
             .description("The page size used by the Parquet writer. " +
                     "The value is specified in the format of <Data Size> <Data Unit> where Data Unit is one of B, KB, MB, GB, TB.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -60,8 +69,7 @@ public class ParquetUtils {
             .build();
 
     public static final PropertyDescriptor DICTIONARY_PAGE_SIZE = new PropertyDescriptor.Builder()
-            .name("dictionary-page-size")
-            .displayName("Dictionary Page Size")
+            .name("Dictionary Page Size")
             .description("The dictionary page size used by the Parquet writer. " +
                     "The value is specified in the format of <Data Size> <Data Unit> where Data Unit is one of B, KB, MB, GB, TB.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -69,8 +77,7 @@ public class ParquetUtils {
             .build();
 
     public static final PropertyDescriptor MAX_PADDING_SIZE = new PropertyDescriptor.Builder()
-            .name("max-padding-size")
-            .displayName("Max Padding Size")
+            .name("Max Padding Size")
             .description("The maximum amount of padding that will be used to align row groups with blocks in the " +
                     "underlying filesystem. If the underlying filesystem is not a block filesystem like HDFS, this has no effect. " +
                     "The value is specified in the format of <Data Size> <Data Unit> where Data Unit is one of B, KB, MB, GB, TB.")
@@ -79,29 +86,25 @@ public class ParquetUtils {
             .build();
 
     public static final PropertyDescriptor ENABLE_DICTIONARY_ENCODING = new PropertyDescriptor.Builder()
-            .name("enable-dictionary-encoding")
-            .displayName("Enable Dictionary Encoding")
+            .name("Enable Dictionary Encoding")
             .description("Specifies whether dictionary encoding should be enabled for the Parquet writer")
             .allowableValues("true", "false")
             .build();
 
     public static final PropertyDescriptor ENABLE_VALIDATION = new PropertyDescriptor.Builder()
-            .name("enable-validation")
-            .displayName("Enable Validation")
+            .name("Enable Validation")
             .description("Specifies whether validation should be enabled for the Parquet writer")
             .allowableValues("true", "false")
             .build();
 
     public static final PropertyDescriptor WRITER_VERSION = new PropertyDescriptor.Builder()
-            .name("writer-version")
-            .displayName("Writer Version")
+            .name("Writer Version")
             .description("Specifies the version used by Parquet writer")
             .allowableValues(org.apache.parquet.column.ParquetProperties.WriterVersion.values())
             .build();
 
     public static final PropertyDescriptor AVRO_READ_COMPATIBILITY = new PropertyDescriptor.Builder()
-            .name("avro-read-compatibility")
-            .displayName("Avro Read Compatibility")
+            .name("Avro Read Compatibility")
             .description("Specifies the value for '" + AvroReadSupport.AVRO_COMPATIBILITY + "' in the underlying Parquet library")
             .allowableValues("true", "false")
             .defaultValue("true")
@@ -109,8 +112,7 @@ public class ParquetUtils {
             .build();
 
     public static final PropertyDescriptor AVRO_ADD_LIST_ELEMENT_RECORDS = new PropertyDescriptor.Builder()
-            .name("avro-add-list-element-records")
-            .displayName("Avro Add List Element Records")
+            .name("Avro Add List Element Records")
             .description("Specifies the value for '" + AvroSchemaConverter.ADD_LIST_ELEMENT_RECORDS + "' in the underlying Parquet library")
             .allowableValues("true", "false")
             .defaultValue("true")
@@ -118,8 +120,7 @@ public class ParquetUtils {
             .build();
 
     public static final PropertyDescriptor AVRO_WRITE_OLD_LIST_STRUCTURE = new PropertyDescriptor.Builder()
-            .name("avro-write-old-list-structure")
-            .displayName("Avro Write Old List Structure")
+            .name("Avro Write Old List Structure")
             .description("Specifies the value for '" + AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE + "' in the underlying Parquet library")
             .allowableValues("true", "false")
             .defaultValue("true")
@@ -140,7 +141,6 @@ public class ParquetUtils {
     // NOTE: This needs to be named the same as the compression property in AbstractPutHDFSRecord
     public static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
             .name(AbstractPutHDFSRecord.COMPRESSION_TYPE.getName())
-            .displayName("Compression Type")
             .description("The type of compression for the file being written.")
             .allowableValues(COMPRESSION_TYPES.toArray(new AllowableValue[0]))
             .defaultValue(COMPRESSION_TYPES.get(0).getValue())
