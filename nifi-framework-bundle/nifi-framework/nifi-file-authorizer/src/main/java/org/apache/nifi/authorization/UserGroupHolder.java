@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-
-import org.apache.nifi.authorization.file.tenants.generated.Groups;
-import org.apache.nifi.authorization.file.tenants.generated.Tenants;
-import org.apache.nifi.authorization.file.tenants.generated.Users;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,7 +27,7 @@ import java.util.Set;
  */
 public class UserGroupHolder {
 
-    private final Tenants tenants;
+    private final AuthorizedUserGroups authorizedUserGroups;
 
     private final Set<User> allUsers;
     private final Map<String, User> usersById;
@@ -46,18 +41,16 @@ public class UserGroupHolder {
     /**
      * Creates a new holder and populates all convenience data structures.
      *
-     * @param tenants the current tenants instance
+     * @param authorizedUserGroups Authorized Users and Groups
      */
-    public UserGroupHolder(final Tenants tenants) {
-        this.tenants = tenants;
+    public UserGroupHolder(final AuthorizedUserGroups authorizedUserGroups) {
+        this.authorizedUserGroups = authorizedUserGroups;
 
         // load all users
-        final Users users = tenants.getUsers();
-        final Set<User> allUsers = Collections.unmodifiableSet(createUsers(users));
+        final Set<User> allUsers = Set.copyOf(authorizedUserGroups.users());
 
         // load all groups
-        final Groups groups = tenants.getGroups();
-        final Set<Group> allGroups = Collections.unmodifiableSet(createGroups(groups, users));
+        final Set<Group> allGroups = Set.copyOf(authorizedUserGroups.groups());
 
         // create a convenience map to retrieve a user by id
         final Map<String, User> userByIdMap = Collections.unmodifiableMap(createUserByIdMap(allUsers));
@@ -82,57 +75,6 @@ public class UserGroupHolder {
         this.groupsById = groupByIdMap;
         this.groupsByName = groupByNameMap;
         this.groupsByUserIdentity = groupsByUserIdentityMap;
-    }
-
-    /**
-     * Creates a set of Users from the JAXB Users.
-     *
-     * @param users the JAXB Users
-     * @return a set of API Users matching the provided JAXB Users
-     */
-    private Set<User> createUsers(Users users) {
-        Set<User> allUsers = new HashSet<>();
-        if (users == null || users.getUser() == null) {
-            return allUsers;
-        }
-
-        for (org.apache.nifi.authorization.file.tenants.generated.User user : users.getUser()) {
-            final User.Builder builder = new User.Builder()
-                    .identity(user.getIdentity())
-                    .identifier(user.getIdentifier());
-
-            allUsers.add(builder.build());
-        }
-
-        return allUsers;
-    }
-
-    /**
-     * Creates a set of Groups from the JAXB Groups.
-     *
-     * @param groups the JAXB Groups
-     * @return a set of API Groups matching the provided JAXB Groups
-     */
-    private Set<Group> createGroups(Groups groups,
-                                    Users users) {
-        Set<Group> allGroups = new HashSet<>();
-        if (groups == null || groups.getGroup() == null) {
-            return allGroups;
-        }
-
-        for (org.apache.nifi.authorization.file.tenants.generated.Group group : groups.getGroup()) {
-            final Group.Builder builder = new Group.Builder()
-                    .identifier(group.getIdentifier())
-                    .name(group.getName());
-
-            for (org.apache.nifi.authorization.file.tenants.generated.Group.User groupUser : group.getUser()) {
-                builder.addUser(groupUser.getIdentifier());
-            }
-
-            allGroups.add(builder.build());
-        }
-
-        return allGroups;
     }
 
     /**
@@ -217,8 +159,8 @@ public class UserGroupHolder {
         return groupsByUserIdentity;
     }
 
-    public Tenants getTenants() {
-        return tenants;
+    AuthorizedUserGroups getAuthorizedUserGroups() {
+        return authorizedUserGroups;
     }
 
     public Set<User> getAllUsers() {

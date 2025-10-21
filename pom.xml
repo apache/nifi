@@ -825,11 +825,6 @@
                     <version>1.7.0</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.patrodyne.jvnet</groupId>
-                    <artifactId>hisrc-higherjaxb40-maven-plugin</artifactId>
-                    <version>2.2.1</version>
-                </plugin>
-                <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.13</version>
@@ -885,15 +880,6 @@
                     <stagingProgressTimeoutMinutes>15</stagingProgressTimeoutMinutes>
                     <serverId>repository.apache.org</serverId>
                     <nexusUrl>https://repository.apache.org/</nexusUrl>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.patrodyne.jvnet</groupId>
-                <artifactId>hisrc-higherjaxb40-maven-plugin</artifactId>
-                <configuration>
-                    <noFileHeader>true</noFileHeader>
-                    <!-- Disable episode file generation with non-reproducible timestamps -->
-                    <episode>false</episode>
                 </configuration>
             </plugin>
             <plugin>
