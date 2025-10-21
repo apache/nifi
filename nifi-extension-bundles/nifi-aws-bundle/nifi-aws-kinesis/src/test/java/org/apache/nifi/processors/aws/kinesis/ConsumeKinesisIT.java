@@ -41,8 +41,7 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.localstack.LocalStackContainer;
-import org.testcontainers.containers.localstack.LocalStackContainer.Service;
+import org.testcontainers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -89,10 +88,9 @@ import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 class ConsumeKinesisIT {
 
     private static final Logger logger = LoggerFactory.getLogger(ConsumeKinesisIT.class);
-    private static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:4.6.0");
+    private static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:latest");
 
-    private static final LocalStackContainer localstack = new LocalStackContainer(LOCALSTACK_IMAGE)
-            .withServices(Service.KINESIS, Service.DYNAMODB, Service.CLOUDWATCH);
+    private static final LocalStackContainer localstack = new LocalStackContainer(LOCALSTACK_IMAGE).withServices("kinesis", "dynamodb", "cloudwatch");
 
     private static KinesisClient kinesisClient;
     private static DynamoDbClient dynamoDbClient;
@@ -111,13 +109,13 @@ class ConsumeKinesisIT {
         );
 
         kinesisClient = KinesisClient.builder()
-                .endpointOverride(localstack.getEndpointOverride(Service.KINESIS))
+                .endpointOverride(localstack.getEndpoint())
                 .credentialsProvider(credentialsProvider)
                 .region(Region.of(localstack.getRegion()))
                 .build();
 
         dynamoDbClient = DynamoDbClient.builder()
-                .endpointOverride(localstack.getEndpointOverride(Service.DYNAMODB))
+                .endpointOverride(localstack.getEndpoint())
                 .credentialsProvider(credentialsProvider)
                 .region(Region.of(localstack.getRegion()))
                 .build();
@@ -483,17 +481,17 @@ class ConsumeKinesisIT {
 
         @Override
         URI getKinesisEndpointOverride() {
-            return localstack.getEndpointOverride(Service.KINESIS);
+            return localstack.getEndpoint();
         }
 
         @Override
         URI getDynamoDbEndpointOverride() {
-            return localstack.getEndpointOverride(Service.DYNAMODB);
+            return localstack.getEndpoint();
         }
 
         @Override
         URI getCloudwatchEndpointOverride() {
-            return localstack.getEndpointOverride(Service.CLOUDWATCH);
+            return localstack.getEndpoint();
         }
     }
 
