@@ -37,6 +37,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -109,8 +110,7 @@ public class PutMongo extends AbstractMongoProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     static final PropertyDescriptor UPDATE_QUERY = new PropertyDescriptor.Builder()
-        .name("putmongo-update-query")
-        .displayName("Update Query")
+        .name("Update Query")
         .description("Specify a full MongoDB query to be used for the lookup query to do an update/upsert. NOTE: this field is ignored if the '%s' value is not empty."
             .formatted(UPDATE_QUERY_KEY.getDisplayName()))
         .required(false)
@@ -120,8 +120,7 @@ public class PutMongo extends AbstractMongoProcessor {
         .build();
 
     static final PropertyDescriptor UPDATE_OPERATION_MODE = new PropertyDescriptor.Builder()
-        .displayName("Update Mode")
-        .name("put-mongo-update-mode")
+        .name("Update Mode")
         .required(true)
         .dependsOn(MODE, MODE_UPDATE)
         .allowableValues(UPDATE_WITH_DOC, UPDATE_WITH_OPERATORS)
@@ -279,6 +278,13 @@ public class PutMongo extends AbstractMongoProcessor {
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("putmongo-update-query", UPDATE_QUERY.getName());
+        config.renameProperty("put-mongo-update-mode", UPDATE_OPERATION_MODE.getName());
     }
 
     private void removeUpdateKeys(String updateKeyParam, Map doc) {

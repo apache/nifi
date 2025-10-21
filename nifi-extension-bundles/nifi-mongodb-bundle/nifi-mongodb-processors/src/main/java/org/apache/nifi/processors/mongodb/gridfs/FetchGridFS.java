@@ -31,6 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -61,8 +62,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
     static final String METADATA_ATTRIBUTE = "gridfs.file.metadata";
 
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-        .name("gridfs-query")
-        .displayName("Query")
+        .name("Query")
         .description("A valid MongoDB query to use to fetch one or more files from GridFS.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(JsonValidator.INSTANCE)
@@ -99,6 +99,12 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OLD_OPERATION_MODE_PROPERTY_NAME, OPERATION_MODE.getName());
+        config.renameProperty("gridfs-query", QUERY.getName());
     }
 
     private String getQuery(ProcessSession session, ProcessContext context, FlowFile input) throws IOException {

@@ -29,6 +29,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.JsonInferenceSchemaRegistryService;
@@ -72,39 +73,34 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
             .build();
 
     public static final PropertyDescriptor CONTROLLER_SERVICE = new PropertyDescriptor.Builder()
-        .name("mongo-lookup-client-service")
-        .displayName("Client Service")
+        .name("Client Service")
         .description("A MongoDB controller service to use with this lookup service.")
         .required(true)
         .identifiesControllerService(MongoDBClientService.class)
         .build();
     public static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
-        .name("mongo-db-name")
-        .displayName("Mongo Database Name")
+        .name("Mongo Database Name")
         .description("The name of the database to use")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     public static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
-        .name("mongo-collection-name")
-        .displayName("Mongo Collection Name")
+        .name("Mongo Collection Name")
         .description("The name of the collection to use")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
     public static final PropertyDescriptor LOOKUP_VALUE_FIELD = new PropertyDescriptor.Builder()
-        .name("mongo-lookup-value-field")
-        .displayName("Lookup Value Field")
+        .name("Lookup Value Field")
         .description("The field whose value will be returned when the lookup key(s) match a record. If not specified then the entire " +
                 "MongoDB result document minus the _id field will be returned as a record.")
         .addValidator(Validator.VALID)
         .required(false)
         .build();
     public static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
-        .name("mongo-lookup-projection")
-        .displayName("Projection")
+        .name("Projection")
         .description("Specifies a projection for limiting which fields will be returned.")
         .required(false)
         .addValidator(JsonValidator.INSTANCE)
@@ -189,6 +185,16 @@ public class MongoDBLookupService extends JsonInferenceSchemaRegistryService imp
     @Override
     public Set<String> getRequiredKeys() {
         return Collections.emptySet();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("mongo-lookup-client-service", CONTROLLER_SERVICE.getName());
+        config.renameProperty("mongo-db-name", DATABASE_NAME.getName());
+        config.renameProperty("mongo-collection-name", COLLECTION_NAME.getName());
+        config.renameProperty("mongo-lookup-value-field", LOOKUP_VALUE_FIELD.getName());
+        config.renameProperty("mongo-lookup-projection", PROJECTION.getName());
     }
 
     @Override

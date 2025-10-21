@@ -43,6 +43,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -85,8 +86,7 @@ public class ResizeImage extends AbstractProcessor {
         .defaultValue(RESIZE_DEFAULT.getValue())
         .build();
     static final PropertyDescriptor KEEP_RATIO = new PropertyDescriptor.Builder()
-        .displayName("Maintain aspect ratio")
-        .name("keep-ratio")
+        .name("Maintain Aspect Ratio")
         .description("Specifies if the ratio of the input image should be maintained")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .allowableValues("true", "false")
@@ -225,6 +225,11 @@ public class ResizeImage extends AbstractProcessor {
 
         session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("keep-ratio", KEEP_RATIO.getName());
     }
 
     public Dimension getScaledDimension(int originalWidth, int originalHeight, int boundWidth, int boundHeight) {
