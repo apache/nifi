@@ -86,7 +86,7 @@ public class ResizeImage extends AbstractProcessor {
         .defaultValue(RESIZE_DEFAULT.getValue())
         .build();
     static final PropertyDescriptor KEEP_RATIO = new PropertyDescriptor.Builder()
-        .name("Maintain aspect ratio")
+        .name("Maintain Aspect Ratio")
         .description("Specifies if the ratio of the input image should be maintained")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .allowableValues("true", "false")

@@ -77,7 +77,7 @@ public class ParseNetflowv5 extends AbstractProcessor {
     public static final AllowableValue DESTINATION_ATTRIBUTES = new AllowableValue(FLOWFILE_ATTRIBUTE, FLOWFILE_ATTRIBUTE,
             "Parsed data routes as flowfile attributes");
     public static final PropertyDescriptor FIELDS_DESTINATION = new PropertyDescriptor.Builder()
-            .name("Parsed fields destination")
+            .name("Parsed Fields Destination")
             .description("Indicates whether the results of the parser are written " + "to the FlowFile content or a FlowFile attribute; if using " + DESTINATION_ATTRIBUTES
                     + ", fields will be populated as attributes. If set to " + DESTINATION_CONTENT + ", the netflowv5 field will be converted into a flat JSON object.")
             .required(true).allowableValues(DESTINATION_CONTENT, DESTINATION_ATTRIBUTES).defaultValue(DESTINATION_CONTENT.getDisplayName()).build();

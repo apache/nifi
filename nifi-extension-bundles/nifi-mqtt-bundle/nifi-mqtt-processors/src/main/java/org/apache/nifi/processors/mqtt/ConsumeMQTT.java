@@ -180,7 +180,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             .build();
 
     public static final PropertyDescriptor ADD_ATTRIBUTES_AS_FIELDS = new PropertyDescriptor.Builder()
-            .name("Add attributes as fields")
+            .name("Add Attributes as Fields")
             .description("If setting this property to true, default fields "
                     + "are going to be added in each record: _topic, _qos, _isDuplicate, _isRetained.")
             .required(true)
