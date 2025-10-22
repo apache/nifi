@@ -2799,6 +2799,7 @@ public final class DtoFactory {
 
    public Set<ComponentDifferenceDTO> createComponentDifferenceDtosForLocalModifications(final FlowComparison comparison, final VersionedProcessGroup localGroup, final FlowManager flowManager) {
        final Map<ComponentDifferenceDTO, List<DifferenceDTO>> differencesByComponent = new HashMap<>();
+       final Map<ComponentDifferenceDTO, Set<DifferenceDTO>> bundleDifferencesByComponent = new HashMap<>();
 
        final Map<String, VersionedProcessGroup> versionedGroups = flattenProcessGroups(comparison.getFlowA().getContents());
 
@@ -2807,6 +2808,13 @@ public final class DtoFactory {
                FlowDifferenceFilters.buildEnvironmentalChangeContext(comparisonDifferences, flowManager);
 
        for (final FlowDifference difference : comparisonDifferences) {
+           // capture bundle differences and dedupe those differences
+           if (FlowDifferenceFilters.isBundleChange(difference)) {
+               final ComponentDifferenceDTO componentDiff = createBundleDifference(difference);
+               final Set<DifferenceDTO> differences = bundleDifferencesByComponent.computeIfAbsent(componentDiff, key -> new HashSet<>());
+               differences.add(createDifferenceDto(difference));
+           }
+
            // Ignore any environment-specific change
            if (FlowDifferenceFilters.isEnvironmentalChange(difference, localGroup, flowManager, environmentalContext)) {
                continue;
@@ -2820,12 +2828,19 @@ public final class DtoFactory {
 
            final ComponentDifferenceDTO componentDiff = createComponentDifference(difference);
            final List<DifferenceDTO> differences = differencesByComponent.computeIfAbsent(componentDiff, key -> new ArrayList<>());
+           differences.add(createDifferenceDto(difference));
+       }
 
-           final DifferenceDTO dto = new DifferenceDTO();
-           dto.setDifferenceType(difference.getDifferenceType().getDescription());
-           dto.setDifference(difference.getDescription());
-
-           differences.add(dto);
+       if (!differencesByComponent.isEmpty()) {
+           // differences were found, so now let's add back in any BUNDLE_CHANGED differences
+           // since they were initially filtered out as an environment-specific change
+           bundleDifferencesByComponent.forEach((key, value) -> {
+               List<DifferenceDTO> values = value.stream().toList();
+               differencesByComponent.merge(key, values, (v1, v2) -> {
+                   v1.addAll(v2);
+                   return v1;
+               });
+           });
        }
 
        for (final Map.Entry<ComponentDifferenceDTO, List<DifferenceDTO>> entry : differencesByComponent.entrySet()) {
@@ -2833,6 +2848,16 @@ public final class DtoFactory {
        }
 
        return differencesByComponent.keySet();
+   }
+
+   /*
+    * Create a custom difference with a simpler difference description, only for matching descriptions.
+    */
+   DifferenceDTO createDifferenceDto(final FlowDifference difference) {
+       final DifferenceDTO dto = new DifferenceDTO();
+       dto.setDifferenceType(difference.getDifferenceType().getDescription());
+       dto.setDifference(difference.getDescription());
+       return dto;
    }
 
    private Map<String, VersionedProcessGroup> flattenProcessGroups(final VersionedProcessGroup group) {
@@ -2847,6 +2872,18 @@ public final class DtoFactory {
        for (final VersionedProcessGroup child : group.getProcessGroups()) {
            flattenProcessGroups(child, flattened);
        }
+   }
+
+   private ComponentDifferenceDTO createBundleDifference(final FlowDifference difference) {
+       VersionedComponent component = difference.getComponentB();
+
+       final ComponentDifferenceDTO dto = new ComponentDifferenceDTO();
+       dto.setComponentType(component.getComponentType().toString());
+       // bundle difference could apply to many components, but use the Process Group identifier as
+       // the Component Identifier here so that many similar component differences can be easily deduped
+       dto.setComponentId(component.getGroupIdentifier());
+
+       return dto;
    }
 
    private ComponentDifferenceDTO createComponentDifference(final FlowDifference difference) {
