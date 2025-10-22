@@ -28,7 +28,7 @@ env:
     -Xms6g
     -Xmx6g
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
-  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.NIFI_DEVELOCITY_ACCESS_KEY }}
 
 permissions:
   contents: read
