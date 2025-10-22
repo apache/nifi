@@ -7432,7 +7432,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // Get the current bulletins for the component after clearing
         final List<Bulletin> currentBulletins = bulletinRepository.findBulletinsForSource(componentId);
         final List<BulletinEntity> bulletinEntities = currentBulletins.stream()
-                .map(bulletin -> entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), authorizeBulletin(bulletin)))
+                .map(bulletin -> entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), authorizeBulletin(bulletin)))
                 .collect(Collectors.toList());
 
         // Create the response entity
