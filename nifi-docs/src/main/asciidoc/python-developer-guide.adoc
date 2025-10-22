@@ -23,7 +23,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 == Introduction
 
 This guide is intended to provide an introduction and some guidance to developing extensions for Apache NiFi using Python.
-This guide is not intended to be an alternative to the link:developer-guide.adoc[NiFi Developers Guide] document but rather
+This guide is not intended to be an alternative to the <<developer-guide.adoc#nifi-developers-guide,NiFi Developers Guide>> document but rather
 a supplement to it. The normal Developer Guide is far more in depth and discusses more topics. However, that guide is
 targeted toward Java developers. The philosophies and guidance offered in that guide, generally, still hold for Python extensions, though.
 
