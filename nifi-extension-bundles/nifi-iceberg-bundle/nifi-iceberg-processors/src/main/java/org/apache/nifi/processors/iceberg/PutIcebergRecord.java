@@ -182,17 +182,20 @@ public class PutIcebergRecord extends AbstractProcessor {
                 }
             } catch (final Exception e) {
                 getLogger().error("Processing Records for Table [{}] failed {}", tableIdentifier, flowFile, e);
+                abortWriter(rowWriter, tableIdentifier);
                 relationship.set(FAILURE);
             }
         }
 
-        try {
-            final DataFile[] dataFiles = rowWriter.dataFiles();
-            appendDataFiles(table, dataFiles);
-            session.adjustCounter(DATA_FILES_PROCESSED_COUNTER, dataFiles.length, false);
-        } catch (final Exception e) {
-            getLogger().error("Appending Data Files to Table [{}] failed", tableIdentifier, e);
-            relationship.set(FAILURE);
+        if (SUCCESS.equals(relationship.get())) {
+            try {
+                final DataFile[] dataFiles = rowWriter.dataFiles();
+                appendDataFiles(table, dataFiles);
+                session.adjustCounter(DATA_FILES_PROCESSED_COUNTER, dataFiles.length, false);
+            } catch (final Exception e) {
+                getLogger().error("Appending Data Files to Table [{}] failed", tableIdentifier, e);
+                relationship.set(FAILURE);
+            }
         }
 
         try {

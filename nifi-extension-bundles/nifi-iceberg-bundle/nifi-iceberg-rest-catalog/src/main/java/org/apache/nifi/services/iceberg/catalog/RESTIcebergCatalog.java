@@ -183,10 +183,12 @@ public class RESTIcebergCatalog extends AbstractControllerService implements Ice
 
     @OnDisabled
     public void onDisabled() {
-        try {
-            sessionCatalog.close();
-        } catch (final IOException e) {
-            getLogger().warn("Close Catalog failed", e);
+        if (sessionCatalog != null) {
+            try {
+                sessionCatalog.close();
+            } catch (final IOException e) {
+                getLogger().warn("Close Catalog failed", e);
+            }
         }
     }
 
