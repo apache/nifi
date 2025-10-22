@@ -29,7 +29,7 @@ along several dimensions of quality of service, such as loss-tolerant versus gua
 high throughput, and priority-based queuing. NiFi provides fine-grained data provenance for all data received, forked, joined
 cloned, modified, sent, and ultimately dropped upon reaching its configured end-state.
 
-See the link:administration-guide.html[System Administrator’s Guide] for information about system requirements, installation, and configuration. Once NiFi is installed,
+See the <<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>> for information about system requirements, installation, and configuration. Once NiFi is installed,
 use a supported web browser to view the UI.
 
 
@@ -126,7 +126,7 @@ UI may become unavailable.
 	You can use these archived files to rollback flow configuration. To do so, stop NiFi, replace _flow.xml.gz_ with a desired backup copy, then restart NiFi.
 	In a clustered environment, stop the entire NiFi cluster, replace the _flow.xml.gz_ of one of nodes, and restart the node. Remove _flow.xml.gz_ from other nodes.
 	Once you confirmed the node starts up as a one-node cluster, start the other nodes. The replaced flow configuration will be synchronized across the cluster.
-	The name and location of _flow.xml.gz_, and auto archive behavior are configurable. See the link:administration-guide.html#core_properties[System Administrator’s Guide] for further details.
+	The name and location of _flow.xml.gz_, and auto archive behavior are configurable. See the <<administration-guide.adoc#core_properties,System Administrator’s Guide>> for further details.
 
 
 
@@ -142,7 +142,7 @@ in the document.
 When the application is started, the user is able to navigate to the UI by going to the default address of
 `https://localhost:8443/nifi` in a web browser. The default configuration generates a username and password
 with full system administration privileges.
-For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
+For information on securing the system, see the <<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>.
 
 When a DFM navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
@@ -220,13 +220,13 @@ The available component-level access policies are:
 |======================
 
 If you are unable to view or modify a NiFi resource, contact your System Administrator or see Configuring Users and Access Policies in the
-link:administration-guide.html[System Administrator’s Guide] for more information.
+<<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>> for more information.
 
 [[logging-in]]
 == Logging In
 
 If NiFi is configured to run securely, users will be able to request access to the DataFlow. For information on configuring NiFi to run
-securely, see the link:administration-guide.html[System Administrator’s Guide]. If NiFi supports anonymous access, users will be given access
+securely, see the <<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>. If NiFi supports anonymous access, users will be given access
 accordingly and given an option to log in.
 
 Clicking the 'login' link will open the log in page. If the user is logging in with their username/password they will be presented with
@@ -327,7 +327,7 @@ in the Root Process Group. If the Input Port is dragged onto the Root Process Gr
 to receive data from remote instances of NiFi via <<site-to-site,Site-to-Site>>. In this case, the Input Port can be configured
 to restrict access to appropriate users, if NiFi is configured to run securely. For information on configuring NiFi to run
 securely, see the
-link:administration-guide.html[System Administrator’s Guide].
+<<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>.
 
 
 
@@ -342,7 +342,7 @@ remote instances of NiFi via <<site-to-site,Site-to-Site>>. In this case, the Po
 of NiFi pull data from the port, that data is removed from the queues of the incoming Connections. If NiFi is configured
 to run securely, the Output Port can be configured to restrict access to appropriate users. For information on configuring
 NiFi to run securely, see the
-link:administration-guide.html[System Administrator’s Guide].
+<<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>.
 
 
 [[process_group]]
@@ -997,7 +997,7 @@ This can be escaped using an additional `#` character at the beginning. To illus
 | `+#{abc/data}+`                       | Exception thrown on property set operation | `/` not a valid parameter name character
 |================================================================================================================================================================
 
-When referencing a Parameter from within link:expression-language-guide.html[Expression Language], the Parameter reference is evaluated first. As an example, to replace `xxx` with `zzz` for the `abc` Parameter:
+When referencing a Parameter from within <<expression-language-guide.adoc#apache-nifi-expression-language-guide,Expression Language>>, the Parameter reference is evaluated first. As an example, to replace `xxx` with `zzz` for the `abc` Parameter:
 
 `${ #{abc}:replace('xxx', 'zzz') }`
 
@@ -1119,7 +1119,7 @@ See the <<administration-guide.adoc#component-level-access-policies,Component Le
 
 [[Using_Custom_Properties]]
 === Using Custom Properties with Expression Language
-You can use NiFi Expression Language to reference FlowFile attributes, compare them to other values, and manipulate their values when you are creating and configuring dataflows. For more information on Expression Language, see the link:expression-language-guide.html[Expression Language Guide].
+You can use NiFi Expression Language to reference FlowFile attributes, compare them to other values, and manipulate their values when you are creating and configuring dataflows. For more information on Expression Language, see the <<expression-language-guide.adoc#apache-nifi-expression-language-guide,Expression Language Guide>>.
 
 In addition to using FlowFile attributes, system properties, and environment properties within Expression
 Language, you can also define custom properties for Expression Language use. Defining custom properties
@@ -1508,8 +1508,8 @@ Using Site-to-Site provides the following benefits:
 ** Site-to-Site optionally makes use of Certificates in order to encrypt data and provide authentication and authorization. Each port can be configured
    to allow only specific users, and only those users will be able to see that the port even exists. For information on configuring the Certificates,
    see the
-link:administration-guide.html#security_configuration[Security Configuration] section of the
-link:administration-guide.html[System Administrator’s Guide].
+<<administration-guide.adoc#security_configuration,Security Configuration>> section of the
+<<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>.
 
 * Scalable
 ** As nodes in the remote cluster change, those changes are automatically detected and data is scaled out across all nodes in the cluster.
@@ -1559,7 +1559,7 @@ the ports shown will be the Input Ports of the remote group, as this implies tha
 
 NOTE: If the remote instance is configured to use secure data transmission, you will see only ports that you are authorized to
 communicate with. For information on configuring NiFi to run securely, see the
-link:administration-guide.html[System Administrator’s Guide].
+<<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>.
 
 [[Site-to-Site_Transport_Protocol]]
 *Transport Protocol*: On a Remote Process Group creation or configuration dialog, you can choose Transport Protocol to use for Site-to-Site communication as shown in the following image:
@@ -1597,12 +1597,12 @@ image::add-output-port-S2S.png["Add Output Port for Site-to-Site"]
 In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance.
 
 NOTE: For information on how to enable and configure Site-to-Site on a NiFi instance, see the
-link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
-link:administration-guide.html[System Administrator’s Guide].
+<<administration-guide.adoc#site_to_site_properties,Site-to-Site Properties>> section of the
+<<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>.
 
 NOTE: For information on how to configure access policies, see the
-link:administration-guide.html#access-policies[Access Policies] section of the
-link:administration-guide.html[System Administrator’s Guide].
+<<administration-guide.adoc#access-policies,Access Policies>> section of the
+<<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>.
 
 === Example Dataflow
 
@@ -2037,7 +2037,7 @@ NiFi provides various mechanisms for getting around a dataflow. The <<User_Inter
 [[component_linking]]
 === Component Linking
 
-A hyperlink can be used to navigate directly to a component on the NiFi canvas. This is especially useful when link:administration-guide.html#multi-tenant-authorization[Multi-Tenant Authorization] is configured. For example, a URL can be given to a user to direct them to the specific process group to which they have privileges.
+A hyperlink can be used to navigate directly to a component on the NiFi canvas. This is especially useful when <<administration-guide.adoc#multi-tenant-authorization,Multi-Tenant Authorization>> is configured. For example, a URL can be given to a user to direct them to the specific process group to which they have privileges.
 
 The default URL for a NiFI instance is `https://localhost:8443/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `https://localhost:8443/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
 
@@ -2496,7 +2496,7 @@ by right-clicking on a component and choosing the "View Status History" menu opt
 for more information).
 
 The amount of historical information that is stored is configurable in the NiFi properties but defaults to `24 hours`. For specific
-configuration information reference the Component Status Repository of the link:administration-guide.html[System Administrator’s Guide].
+configuration information reference the Component Status Repository of the <<administration-guide.adoc#nifi-system-administrators-guide,System Administrator’s Guide>>.
 When the Status History dialog is opened, it provides a graph of historical statistics:
 
 image::stats-history.png["Status History"]
@@ -3068,4 +3068,4 @@ view on the health of the node. The status history includes information about th
 
 Two other tools in the Global Menu are Controller Settings and Users. The Controller Settings page provides the ability to set the maximum number of threads that are available
 to the application. It also provides tabs where DFMs may add and configure <<Controller_Services>> and <<Reporting_Tasks>>. The Users page is used to manage user access, which is described in
-the link:administration-guide.html[System Administrator's Guide].
+the <<administration-guide.adoc#nifi-system-administrators-guide,System Administrator's Guide>>.
