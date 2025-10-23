@@ -108,10 +108,10 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     public static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
             .name("Move Destination Directory")
             .description("""
-                        The directory on the remote server to move the original file to once it has been ingested into NiFi.
-                        This property is ignored unless the %s is set to '%s'.
-                        The specified directory must already exist on the remote system if '%s' is disabled, or the rename will fail.
-                        """.formatted(
+                            The directory on the remote server to move the original file to once it has been ingested into NiFi.
+                            This property is ignored unless the %s is set to '%s'.
+                            The specified directory must already exist on the remote system if '%s' is disabled, or the rename will fail.
+                            """.formatted(
                             COMPLETION_STRATEGY.getDisplayName(),
                             COMPLETION_MOVE.getDisplayName(),
                             MOVE_CREATE_DIRECTORY.getDisplayName()
