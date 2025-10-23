@@ -106,15 +106,21 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             .required(false)
             .build();
     public static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
-        .name("Move Destination Directory")
-        .description(String.format("The directory on the remote server to move the original file to once it has been ingested into NiFi. "
-            + "This property is ignored unless the %s is set to '%s'. The specified directory must already exist on "
-            + "the remote system if '%s' is disabled, or the rename will fail.",
-                COMPLETION_STRATEGY.getDisplayName(), COMPLETION_MOVE.getDisplayName(), MOVE_CREATE_DIRECTORY.getDisplayName()))
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .required(false)
-        .build();
+            .name("Move Destination Directory")
+            .description("""
+                        The directory on the remote server to move the original file to once it has been ingested into NiFi.
+                        This property is ignored unless the %s is set to '%s'.
+                        The specified directory must already exist on the remote system if '%s' is disabled, or the rename will fail.
+                        """.formatted(
+                            COMPLETION_STRATEGY.getDisplayName(),
+                            COMPLETION_MOVE.getDisplayName(),
+                            MOVE_CREATE_DIRECTORY.getDisplayName()
+                    )
+            )
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
 
     public static final PropertyDescriptor MOVE_CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
         .name("Move Conflict Resolution")
@@ -383,7 +389,6 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                 final FileInfo remoteFileInfo = transfer.getRemoteFileInfo(flowFile, absoluteTargetDirPath, destinationFileName);
                 if (remoteFileInfo != null) {
                     final String strategy = context.getProperty(MOVE_CONFLICT_RESOLUTION).getValue();
-                    getLogger().info("Detected filename conflict moving remote file for {} so handling using configured Conflict Resolution of {}", flowFile, strategy);
                     switch (strategy.toUpperCase()) {
                         case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
                             try {
@@ -394,16 +399,11 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                             }
                             break;
                         case FileTransfer.CONFLICT_RESOLUTION_RENAME:
-                            final String unique = FileTransferConflictUtil.generateUniqueFilename(transfer, absoluteTargetDirPath, destinationFileName, flowFile, getLogger());
-                            if (unique != null) {
-                                destinationFileName = unique;
-                            } else {
-                                getLogger().warn("Could not determine a unique name after 99 attempts for {}. Move will not be performed.", flowFile);
-                                return;
-                            }
+                            getLogger().info("Configured to RENAME on move conflict for {}. A unique filename will be generated.", flowFile);
+                            destinationFileName = FileTransferConflictUtil.generateUniqueFilename(transfer, absoluteTargetDirPath, destinationFileName, flowFile, getLogger());
                             break;
                         case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
-                            getLogger().info("Configured to IGNORE move conflict for {}. Original remote file will be left in place.", flowFile);
+                            getLogger().debug("Configured to IGNORE move conflict for {}. Original remote file will be left in place.", flowFile);
                             return;
                         case FileTransfer.CONFLICT_RESOLUTION_REJECT:
                         case FileTransfer.CONFLICT_RESOLUTION_FAIL:

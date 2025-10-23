@@ -20,32 +20,25 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public final class FileTransferConflictUtil {
     private FileTransferConflictUtil() {
     }
 
     /**
-     * Attempts to generate a unique filename by prefixing with an incrementing integer followed by a dot.
-     * Returns null if a unique name could not be found within 99 attempts.
+     * Generates a unique filename by using a UUID prefix.
+     * This approach virtually eliminates the possibility of name collisions without requiring multiple remote file checks.
      */
     public static String generateUniqueFilename(final FileTransfer transfer,
                                                 final String path,
                                                 final String baseFileName,
                                                 final FlowFile flowFile,
                                                 final ComponentLog logger) throws IOException {
-        boolean uniqueNameGenerated;
-        String candidate = null;
-        for (int i = 1; i < 100; i++) {
-            final String possibleFileName = i + "." + baseFileName;
-            final FileInfo renamedFileInfo = transfer.getRemoteFileInfo(flowFile, path, possibleFileName);
-            uniqueNameGenerated = (renamedFileInfo == null);
-            if (uniqueNameGenerated) {
-                candidate = possibleFileName;
-                logger.info("Attempting to resolve filename conflict for {} on the remote server by using a newly generated filename of: {}", flowFile, candidate);
-                break;
-            }
-        }
-        return candidate;
+        String uuid = UUID.randomUUID().toString();
+        String uniqueFilename = uuid + "." + baseFileName;
+
+        logger.info("Attempting to resolve filename conflict for {} on the remote server by using a newly generated filename of: {}", flowFile, uniqueFilename);
+        return uniqueFilename;
     }
 }
