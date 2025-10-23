@@ -21,6 +21,7 @@ import {
     connectNode,
     disconnectNode,
     loadClusterListing,
+    loadClusterListingError,
     loadClusterListingSuccess,
     removeNode,
     removeNodeSuccess,
@@ -53,6 +54,11 @@ export const clusterListingReducer = createReducer(
         loadedTimestamp: response.generated,
         nodes: response.nodes,
         status: 'success' as const
+    })),
+
+    on(loadClusterListingError, (state, { status }) => ({
+        ...state,
+        status
     })),
 
     on(disconnectNode, connectNode, removeNode, (state) => ({

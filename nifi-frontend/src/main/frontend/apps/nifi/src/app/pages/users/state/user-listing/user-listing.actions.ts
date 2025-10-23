@@ -44,6 +44,11 @@ export const loadTenantsSuccess = createAction(
     props<{ response: LoadTenantsSuccess }>()
 );
 
+export const loadTenantsError = createAction(
+    `${USER_PREFIX} Load Tenants Error`,
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const usersApiSnackbarError = createAction(
     `${USER_PREFIX} Users Api Snackbar Error`,
     props<{ error: string }>()

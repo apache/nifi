@@ -33,6 +33,8 @@ import { initialState as initialErrorState } from '../../../state/error/error.re
 import { errorFeatureKey } from '../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../state/current-user';
+import { initialSystemDiagnosticsState } from '../../../state/system-diagnostics/system-diagnostics.reducer';
+import { systemDiagnosticsFeatureKey } from '../../../state/system-diagnostics';
 
 describe('Cluster', () => {
     let component: Cluster;
@@ -44,7 +46,8 @@ describe('Cluster', () => {
             [currentUserFeatureKey]: initialCurrentUserState,
             [clusterFeatureKey]: {
                 [clusterListingFeatureKey]: initialClusterState
-            }
+            },
+            [systemDiagnosticsFeatureKey]: initialSystemDiagnosticsState
         };
         TestBed.configureTestingModule({
             declarations: [Cluster],

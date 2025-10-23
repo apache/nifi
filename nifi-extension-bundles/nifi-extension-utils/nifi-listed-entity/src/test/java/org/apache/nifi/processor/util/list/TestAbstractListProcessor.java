@@ -46,7 +46,6 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.glassfish.jersey.internal.guava.Predicates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -488,7 +487,7 @@ public class TestAbstractListProcessor {
             final PropertyValue listingFilter = context.getProperty(LISTING_FILTER);
             Predicate<ListableEntity> filter = listingFilter.isSet()
                     ? entity -> entity.getName().matches(listingFilter.getValue())
-                    : Predicates.alwaysTrue();
+                    : entity -> true;
             return getEntityList().stream().filter(filter).collect(Collectors.toList());
         }
 

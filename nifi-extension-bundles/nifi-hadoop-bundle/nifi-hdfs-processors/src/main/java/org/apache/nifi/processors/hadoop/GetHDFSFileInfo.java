@@ -49,6 +49,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -97,8 +98,7 @@ import static org.apache.nifi.processors.hadoop.GetHDFSFileInfo.HDFSFileInfoRequ
 public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     public static final String APPLICATION_JSON = "application/json";
     public static final PropertyDescriptor FULL_PATH = new PropertyDescriptor.Builder()
-            .displayName("Full path")
-            .name("gethdfsfileinfo-full-path")
+            .name("Full Path")
             .description("A directory to start listing from, or a file's full path.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -107,8 +107,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
-            .displayName("Recurse Subdirectories")
-            .name("gethdfsfileinfo-recurse-subdirs")
+            .name("Recurse Subdirectories")
             .description("Indicates whether to list files from subdirectories of the HDFS directory")
             .required(true)
             .allowableValues("true", "false")
@@ -117,8 +116,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor DIR_FILTER = new PropertyDescriptor.Builder()
-            .displayName("Directory Filter")
-            .name("gethdfsfileinfo-dir-filter")
+            .name("Directory Filter")
             .description("Regex. Only directories whose names match the given regular expression will be picked up. If not provided, any filter would be apply (performance considerations).")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -126,8 +124,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
-            .displayName("File Filter")
-            .name("gethdfsfileinfo-file-filter")
+            .name("File Filter")
             .description("Regex. Only files whose names match the given regular expression will be picked up. If not provided, any filter would be apply (performance considerations).")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -135,8 +132,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor FILE_EXCLUDE_FILTER = new PropertyDescriptor.Builder()
-            .displayName("Exclude Files")
-            .name("gethdfsfileinfo-file-exclude-filter")
+            .name("Exclude Files")
             .description("Regex. Files whose names match the given regular expression will not be picked up. If not provided, any filter won't be apply (performance considerations).")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -144,8 +140,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor IGNORE_DOTTED_DIRS = new PropertyDescriptor.Builder()
-            .displayName("Ignore Dotted Directories")
-            .name("gethdfsfileinfo-ignore-dotted-dirs")
+            .name("Ignore Dotted Directories")
             .description("If true, directories whose names begin with a dot (\".\") will be ignored")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -154,8 +149,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor IGNORE_DOTTED_FILES = new PropertyDescriptor.Builder()
-            .displayName("Ignore Dotted Files")
-            .name("gethdfsfileinfo-ignore-dotted-files")
+            .name("Ignore Dotted Files")
             .description("If true, files whose names begin with a dot (\".\") will be ignored")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -174,8 +168,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             "Don't group results. Generate flowfile per each HDFS object.");
 
     public static final PropertyDescriptor GROUPING = new PropertyDescriptor.Builder()
-            .displayName("Group Results")
-            .name("gethdfsfileinfo-group")
+            .name("Group Results")
             .description("Groups HDFS objects")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -184,8 +177,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .displayName("Batch Size")
-            .name("gethdfsfileinfo-batch-size")
+            .name("Batch Size")
             .description("Number of records to put into an output flowfile when 'Destination' is set to 'Content'"
                     + " and 'Group Results' is set to 'None'")
             .required(false)
@@ -201,8 +193,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             "Details of given HDFS object will be stored in a content in JSON format");
 
     public static final PropertyDescriptor DESTINATION = new PropertyDescriptor.Builder()
-            .displayName("Destination")
-            .name("gethdfsfileinfo-destination")
+            .name("Destination")
             .description("Sets the destination for the resutls. When set to 'Content', attributes of flowfile won't be used for storing results. ")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -344,6 +335,20 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("gethdfsfileinfo-full-path", FULL_PATH.getName());
+        config.renameProperty("gethdfsfileinfo-recurse-subdirs", RECURSE_SUBDIRS.getName());
+        config.renameProperty("gethdfsfileinfo-dir-filter", DIR_FILTER.getName());
+        config.renameProperty("gethdfsfileinfo-file-filter", FILE_FILTER.getName());
+        config.renameProperty("gethdfsfileinfo-file-exclude-filter", FILE_EXCLUDE_FILTER.getName());
+        config.renameProperty("gethdfsfileinfo-ignore-dotted-dirs", IGNORE_DOTTED_DIRS.getName());
+        config.renameProperty("gethdfsfileinfo-ignore-dotted-files", IGNORE_DOTTED_FILES.getName());
+        config.renameProperty("gethdfsfileinfo-group", GROUPING.getName());
+        config.renameProperty("gethdfsfileinfo-batch-size", BATCH_SIZE.getName());
+        config.renameProperty("gethdfsfileinfo-destination", DESTINATION.getName());
+    }
 
     /*
      * Walks thru HDFS tree. This method will return null to the main if there is no provided path existing.

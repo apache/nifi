@@ -15,12 +15,15 @@
   ~ limitations under the License.
   -->
 
-<h2 mat-dialog-title>
+<h2 mat-dialog-title data-qa="dialog-title">
     {{ connectionReadonly || sourceReadonly || destinationReadonly ? 'Connection Details' : 'Edit Connection' }}
 </h2>
-<form class="edit-connection-form" [formGroup]="editConnectionForm">
+<form class="edit-connection-form" [formGroup]="editConnectionForm" data-qa="edit-connection-form">
     <context-error-banner [context]="ErrorContextKey.CONNECTION"></context-error-banner>
-    <mat-tab-group [(selectedIndex)]="selectedIndex" (selectedIndexChange)="tabChanged($event)">
+    <mat-tab-group
+        [(selectedIndex)]="selectedIndex"
+        (selectedIndexChange)="tabChanged($event)"
+        data-qa="connection-tabs">
         <mat-tab label="Details">
             <mat-dialog-content>
                 @if (breadcrumbs$ | async; as breadcrumbs) {
@@ -178,7 +181,8 @@
                                     </mat-label>
                                     <mat-select
                                         formControlName="loadBalanceStrategy"
-                                        (selectionChange)="loadBalanceChanged($event.value)">
+                                        (selectionChange)="loadBalanceChanged($event.value)"
+                                        data-qa="load-balance-strategy-select">
                                         @for (option of loadBalanceStrategies; track option) {
                                             <mat-option
                                                 [value]="option.value"
@@ -194,7 +198,7 @@
                                 </mat-form-field>
                             </div>
                             @if (loadBalancePartitionAttributeRequired) {
-                                <div class="w-full">
+                                <div class="w-full" data-qa="partition-attribute-section">
                                     <mat-form-field>
                                         <mat-label>
                                             Attribute Name
@@ -208,13 +212,14 @@
                                             matInput
                                             formControlName="partitionAttribute"
                                             type="text"
-                                            [readonly]="connectionReadonly || sourceReadonly || destinationReadonly" />
+                                            [readonly]="connectionReadonly || sourceReadonly || destinationReadonly"
+                                            data-qa="partition-attribute-input" />
                                     </mat-form-field>
                                 </div>
                             }
                         </div>
                         @if (loadBalanceCompressionRequired) {
-                            <div>
+                            <div data-qa="compression-section">
                                 <mat-form-field>
                                     <mat-label>
                                         Load Balance Compression
@@ -224,7 +229,7 @@
                                             [tooltipComponentType]="TextTip"
                                             tooltipInputData="Whether or not data should be compressed when being transferred between nodes in the cluster."></i>
                                     </mat-label>
-                                    <mat-select formControlName="compression">
+                                    <mat-select formControlName="compression" data-qa="compression-select">
                                         @for (option of loadBalanceCompressionStrategies; track option) {
                                             <mat-option
                                                 [value]="option.value"
@@ -253,9 +258,9 @@
     @if ({ value: (saving$ | async)! }; as saving) {
         <mat-dialog-actions align="end">
             @if (connectionReadonly || sourceReadonly || destinationReadonly) {
-                <button mat-flat-button mat-dialog-close>Close</button>
+                <button mat-flat-button mat-dialog-close data-qa="close-button">Close</button>
             } @else {
-                <button mat-button mat-dialog-close="CANCELLED">Cancel</button>
+                <button mat-button mat-dialog-close="CANCELLED" data-qa="cancel-button">Cancel</button>
                 <button
                     [disabled]="
                         !editConnectionForm.dirty ||
@@ -265,7 +270,8 @@
                     "
                     type="button"
                     (click)="editConnection()"
-                    mat-flat-button>
+                    mat-flat-button
+                    data-qa="apply-button">
                     <span *nifiSpinner="saving.value">Apply</span>
                 </button>
             }

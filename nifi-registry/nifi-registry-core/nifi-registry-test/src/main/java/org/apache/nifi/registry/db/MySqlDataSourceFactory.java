@@ -17,13 +17,14 @@
 package org.apache.nifi.registry.db;
 
 import com.mysql.cj.jdbc.MysqlDataSource;
-import org.testcontainers.containers.MySQLContainer;
+import jakarta.annotation.PostConstruct;
 import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
+import org.testcontainers.mysql.MySQLContainer;
 
-import jakarta.annotation.PostConstruct;
 import javax.script.ScriptException;
 import javax.sql.DataSource;
+
 import java.sql.SQLException;
 
 public abstract class MySqlDataSourceFactory extends TestDataSourceFactory {

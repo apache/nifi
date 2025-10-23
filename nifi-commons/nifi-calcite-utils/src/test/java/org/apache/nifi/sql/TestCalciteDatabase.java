@@ -106,6 +106,36 @@ public class TestCalciteDatabase {
         }
     }
 
+    @Test
+    public void testSelectReorderedColumns() throws Exception {
+        final List<Object[]> rows = new ArrayList<>();
+        rows.add(new Object[] {"12345", "10101", "Credit Card", "Porduct Credit", "RO"});
+        final NiFiTableSchema tableSchema = new NiFiTableSchema(List.of(
+                new ColumnSchema("ArticleCode", String.class, false),
+                new ColumnSchema("ProductCode", String.class, false),
+                new ColumnSchema("ArticleName", String.class, false),
+                new ColumnSchema("ProductName", String.class, false),
+                new ColumnSchema("Country", String.class, false)
+        ));
+
+        final CalciteDatabase database = new CalciteDatabase();
+        final ListDataSource dataSource = new ListDataSource(tableSchema, rows);
+        final NiFiTable table = new NiFiTable("CANNED_DATA", dataSource, mock(ComponentLog.class));
+        database.addTable(table);
+
+        final String query = "SELECT ArticleCode, ArticleName, ProductCode, ProductName, Country FROM CANNED_DATA";
+        try (final PreparedStatement stmt = database.getConnection().prepareStatement(query);
+             final ResultSet resultSet = stmt.executeQuery()) {
+            assertTrue(resultSet.next());
+            final List<String> actualRow = new ArrayList<>();
+            for (int i = 1; i <= 5; i++) {
+                actualRow.add(resultSet.getString(i));
+            }
+            final List<String> expectedRow = List.of("12345", "Credit Card", "10101", "Porduct Credit", "RO");
+            assertEquals(expectedRow, actualRow);
+        }
+    }
+
     public static class ToUpperCase {
         public String invoke(final String value) {
             return value.toUpperCase();

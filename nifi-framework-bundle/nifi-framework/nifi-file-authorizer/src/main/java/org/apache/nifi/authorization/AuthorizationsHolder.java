@@ -16,13 +16,10 @@
  */
 package org.apache.nifi.authorization;
 
-
-import org.apache.nifi.authorization.file.generated.Authorizations;
-import org.apache.nifi.authorization.file.generated.Policies;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,9 +27,7 @@ import java.util.Set;
  * A holder to provide atomic access to data structures.
  */
 public class AuthorizationsHolder {
-
-    private final Authorizations authorizations;
-
+    private final List<AccessPolicy> policies;
     private final Set<AccessPolicy> allPolicies;
     private final Map<String, Set<AccessPolicy>> policiesByResource;
     private final Map<String, AccessPolicy> policiesById;
@@ -40,14 +35,12 @@ public class AuthorizationsHolder {
     /**
      * Creates a new holder and populates all convenience authorizations data structures.
      *
-     * @param authorizations the current authorizations instance
      */
-    public AuthorizationsHolder(final Authorizations authorizations) {
-        this.authorizations = authorizations;
+    public AuthorizationsHolder(final List<AccessPolicy> policies) {
+        this.policies = policies;
 
         // load all access policies
-        final Policies policies = authorizations.getPolicies();
-        final Set<AccessPolicy> allPolicies = Collections.unmodifiableSet(createAccessPolicies(policies));
+        final Set<AccessPolicy> allPolicies = Set.copyOf(policies);
 
         // create a convenience map from resource id to policies
         final Map<String, Set<AccessPolicy>> policiesByResourceMap = Collections.unmodifiableMap(createResourcePolicyMap(allPolicies));
@@ -62,55 +55,6 @@ public class AuthorizationsHolder {
     }
 
     /**
-     * Creates AccessPolicies from the JAXB Policies.
-     *
-     * @param policies the JAXB Policies element
-     * @return a set of AccessPolicies corresponding to the provided Resources
-     */
-    private Set<AccessPolicy> createAccessPolicies(final Policies policies) {
-        Set<AccessPolicy> allPolicies = new HashSet<>();
-        if (policies == null || policies.getPolicy() == null) {
-            return allPolicies;
-        }
-
-        // load the new authorizations
-        for (final org.apache.nifi.authorization.file.generated.Policy policy : policies.getPolicy()) {
-            final String policyIdentifier = policy.getIdentifier();
-            final String resourceIdentifier = policy.getResource();
-
-            // start a new builder and set the policy and resource identifiers
-            final AccessPolicy.Builder builder = new AccessPolicy.Builder()
-                    .identifier(policyIdentifier)
-                    .resource(resourceIdentifier);
-
-            // add each user identifier
-            for (org.apache.nifi.authorization.file.generated.Policy.User user : policy.getUser()) {
-                builder.addUser(user.getIdentifier());
-            }
-
-            // add each group identifier
-            for (org.apache.nifi.authorization.file.generated.Policy.Group group : policy.getGroup()) {
-                builder.addGroup(group.getIdentifier());
-            }
-
-            // add the appropriate request actions
-            final String authorizationCode = policy.getAction();
-            if (authorizationCode.equals(FileAccessPolicyProvider.READ_CODE)) {
-                builder.action(RequestAction.READ);
-            } else if (authorizationCode.equals(FileAccessPolicyProvider.WRITE_CODE)) {
-                builder.action(RequestAction.WRITE);
-            } else {
-                throw new IllegalStateException("Unknown Policy Action: " + authorizationCode);
-            }
-
-            // build the policy and add it to the map
-            allPolicies.add(builder.build());
-        }
-
-        return allPolicies;
-    }
-
-    /**
      * Creates a map from resource identifier to the set of policies for the given resource.
      *
      * @param allPolicies the set of all policies
@@ -120,11 +64,8 @@ public class AuthorizationsHolder {
         Map<String, Set<AccessPolicy>> resourcePolicies = new HashMap<>();
 
         for (AccessPolicy policy : allPolicies) {
-            Set<AccessPolicy> policies = resourcePolicies.get(policy.getResource());
-            if (policies == null) {
-                policies = new HashSet<>();
-                resourcePolicies.put(policy.getResource(), policies);
-            }
+            final String resource = policy.getResource();
+            final Set<AccessPolicy> policies = resourcePolicies.computeIfAbsent(resource, k -> new HashSet<>());
             policies.add(policy);
         }
 
@@ -145,16 +86,12 @@ public class AuthorizationsHolder {
         return policyMap;
     }
 
-    public Authorizations getAuthorizations() {
-        return authorizations;
+    public List<AccessPolicy> getPolicies() {
+        return policies;
     }
 
     public Set<AccessPolicy> getAllPolicies() {
         return allPolicies;
-    }
-
-    public Map<String, Set<AccessPolicy>> getPoliciesByResource() {
-        return policiesByResource;
     }
 
     public Map<String, AccessPolicy> getPoliciesById() {

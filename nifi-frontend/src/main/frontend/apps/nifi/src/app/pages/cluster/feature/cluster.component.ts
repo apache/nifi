@@ -34,6 +34,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { selectCurrentRoute } from '@nifi/shared';
 import { resetSystemDiagnostics } from '../../../state/system-diagnostics/system-diagnostics.actions';
 import { ErrorContextKey } from '../../../state/error';
+import { selectSystemDiagnosticsStatus } from '../../../state/system-diagnostics/system-diagnostics.selectors';
 
 interface TabLink {
     label: string;
@@ -62,6 +63,7 @@ export class Cluster implements OnInit, OnDestroy {
     ];
 
     listingStatus = this.store.selectSignal(selectClusterListingStatus);
+    systemDiagnosticsStatus = this.store.selectSignal(selectSystemDiagnosticsStatus);
     loadedTimestamp = this.store.selectSignal(selectClusterListingLoadedTimestamp);
     currentUser$ = this.store.select(selectCurrentUser);
     currentRoute = this.store.selectSignal(selectCurrentRoute);

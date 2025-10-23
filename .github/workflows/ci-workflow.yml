@@ -36,14 +36,16 @@ env:
     --no-snapshot-updates
     --no-transfer-progress
     --fail-fast
+    --threads 1C
   MAVEN_VERIFY_COMMAND: >-
     verify
     --show-version
     --no-snapshot-updates
     --no-transfer-progress
     --fail-fast
+    --threads 1C
     -D dir-only
-  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.NIFI_DEVELOCITY_ACCESS_KEY }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

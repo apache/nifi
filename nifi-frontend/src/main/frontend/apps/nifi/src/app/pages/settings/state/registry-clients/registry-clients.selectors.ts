@@ -28,7 +28,10 @@ export const selectRegistryClientsState = createSelector(
 
 export const selectSaving = createSelector(selectRegistryClientsState, (state: RegistryClientsState) => state.saving);
 
-export const selectStatus = createSelector(selectRegistryClientsState, (state: RegistryClientsState) => state.status);
+export const selectLoadedTimestamp = createSelector(
+    selectRegistryClientsState,
+    (state: RegistryClientsState) => state.loadedTimestamp
+);
 
 export const selectRegistryClientIdFromRoute = createSelector(selectCurrentRoute, (route) => {
     if (route) {

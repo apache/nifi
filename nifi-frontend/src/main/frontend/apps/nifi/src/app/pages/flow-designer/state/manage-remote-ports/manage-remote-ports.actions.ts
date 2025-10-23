@@ -39,6 +39,11 @@ export const loadRemotePortsSuccess = createAction(
     props<{ response: LoadRemotePortsResponse }>()
 );
 
+export const loadRemotePortsError = createAction(
+    '[Manage Remote Ports] Load Remote Ports Error',
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const remotePortsBannerApiError = createAction(
     '[Manage Remote Ports] Remote Ports Banner Api Error',
     props<{ error: string }>()

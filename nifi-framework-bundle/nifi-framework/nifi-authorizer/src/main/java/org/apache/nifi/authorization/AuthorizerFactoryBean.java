@@ -17,6 +17,9 @@
 package org.apache.nifi.authorization;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -29,12 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.xml.XMLConstants;
-import jakarta.xml.bind.JAXBContext;
-import jakarta.xml.bind.JAXBElement;
-import jakarta.xml.bind.JAXBException;
-import jakarta.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
+import javax.xml.transform.Source;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
@@ -42,19 +41,23 @@ import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
-import org.apache.nifi.authorization.generated.Authorizers;
-import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.apache.nifi.xml.processing.ProcessingException;
-import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
-import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
+import org.apache.nifi.xml.processing.parsers.DocumentProvider;
+import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
+import org.apache.nifi.xml.processing.validation.SchemaValidator;
+import org.apache.nifi.xml.processing.validation.StandardSchemaValidator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
@@ -64,21 +67,8 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizerFactoryBean.class);
     private static final String AUTHORIZERS_XSD = "/authorizers.xsd";
-    private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authorization.generated";
-    private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
 
     private NiFiProperties properties;
-
-    /**
-     * Load the JAXBContext.
-     */
-    private static JAXBContext initializeJaxbContext() {
-        try {
-            return JAXBContext.newInstance(JAXB_GENERATED_PATH, AuthorizerFactoryBean.class.getClassLoader());
-        } catch (JAXBException e) {
-            throw new RuntimeException("Unable to create JAXBContext.");
-        }
-    }
 
     private Authorizer authorizer;
     private ExtensionManager extensionManager;
@@ -112,51 +102,20 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
                 // use a default authorizer... only allowable when running not securely
                 authorizer = createDefaultAuthorizer();
             } else {
-                // look up the authorizer to use
                 final String authorizerIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
-
-                // ensure the authorizer class name was specified
                 if (StringUtils.isBlank(authorizerIdentifier)) {
-                    throw new Exception("When running securely, the authorizer identifier must be specified in the nifi properties file.");
+                    throw new IllegalStateException("Authorizer [%s] required with HTTPS configuration".formatted(NiFiProperties.SECURITY_USER_AUTHORIZER));
                 } else {
-                    final Authorizers authorizerConfiguration = loadAuthorizersConfiguration();
+                    final ConfiguredAuthorizers configuredAuthorizers = loadAuthorizersConfiguration();
 
-                    // create each user group provider
-                    for (final org.apache.nifi.authorization.generated.UserGroupProvider userGroupProvider : authorizerConfiguration.getUserGroupProvider()) {
-                        if (userGroupProviders.containsKey(userGroupProvider.getIdentifier())) {
-                            throw new Exception("Duplicate User Group Provider identifier in Authorizers configuration: " + userGroupProvider.getIdentifier());
-                        }
-                        userGroupProviders.put(userGroupProvider.getIdentifier(), createUserGroupProvider(userGroupProvider.getIdentifier(), userGroupProvider.getClazz()));
-                    }
-
-                    // create each access policy provider
-                    for (final org.apache.nifi.authorization.generated.AccessPolicyProvider accessPolicyProvider : authorizerConfiguration.getAccessPolicyProvider()) {
-                        if (accessPolicyProviders.containsKey(accessPolicyProvider.getIdentifier())) {
-                            throw new Exception("Duplicate Access Policy Provider identifier in Authorizers configuration: " + accessPolicyProvider.getIdentifier());
-                        }
-                        accessPolicyProviders.put(accessPolicyProvider.getIdentifier(), createAccessPolicyProvider(accessPolicyProvider.getIdentifier(), accessPolicyProvider.getClazz()));
-                    }
-
-                    // create each authorizer
-                    for (final org.apache.nifi.authorization.generated.Authorizer authorizer : authorizerConfiguration.getAuthorizer()) {
-                        if (authorizers.containsKey(authorizer.getIdentifier())) {
-                            throw new Exception("Duplicate Authorizer identifier in Authorizers configuration: " + authorizer.getIdentifier());
-                        }
-                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(), authorizer.getClasspath()));
-                    }
-
-                    // get the authorizer instance
                     authorizer = getAuthorizer(authorizerIdentifier);
-
-                    // ensure it was found
                     if (authorizer == null) {
-                        throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
+                        throw new IllegalStateException("Configured Authorizer [%s] not found".formatted(authorizerIdentifier));
                     } else {
-                        // install integrity checks
                         authorizer = AuthorizerFactory.installIntegrityChecks(authorizer);
 
                         // configure authorizer after integrity checks are installed
-                        loadProviderProperties(authorizerConfiguration, authorizerIdentifier);
+                        loadProviderProperties(configuredAuthorizers, authorizerIdentifier);
                     }
                 }
             }
@@ -165,50 +124,29 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         return authorizer;
     }
 
-    private void loadProviderProperties(final Authorizers authorizerConfiguration, final String authorizerIdentifier) {
+    private void loadProviderProperties(final ConfiguredAuthorizers configuredAuthorizers, final String authorizerIdentifier) {
         final ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
 
         try {
-            // configure each user group provider
-            for (final org.apache.nifi.authorization.generated.UserGroupProvider provider : authorizerConfiguration.getUserGroupProvider()) {
-                final UserGroupProvider instance = userGroupProviders.get(provider.getIdentifier());
-                final AuthorizerConfigurationContext configurationContext = getConfigurationContext(
-                        provider.getIdentifier(),
-                        provider.getProperty()
-                );
-                instance.onConfigured(configurationContext);
-            }
-
-            // configure each access policy provider
-            for (final org.apache.nifi.authorization.generated.AccessPolicyProvider provider : authorizerConfiguration.getAccessPolicyProvider()) {
-                final AccessPolicyProvider instance = accessPolicyProviders.get(provider.getIdentifier());
-                final AuthorizerConfigurationContext configurationContext = getConfigurationContext(
-                        provider.getIdentifier(),
-                        provider.getProperty()
-                );
-                instance.onConfigured(configurationContext);
-            }
-
             // configure each authorizer, except the authorizer that is selected in nifi.properties
             AuthorizerConfigurationContext authorizerConfigurationContext = null;
-            for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
-                if (provider.getIdentifier().equals(authorizerIdentifier)) {
-                    authorizerConfigurationContext = getConfigurationContext(
-                            provider.getIdentifier(),
-                            provider.getProperty()
-                    );
+
+            final NodeList authorizerNodes = configuredAuthorizers.authorizersConfiguration.getElementsByTagName("authorizer");
+            for (int i = 0; i < authorizerNodes.getLength(); i++) {
+                final Element currentAuthorizer = (Element) authorizerNodes.item(i);
+                final String currentAuthorizerIdentifier = getElementIdentifier(currentAuthorizer);
+
+                if (currentAuthorizerIdentifier.equals(authorizerIdentifier)) {
+                    authorizerConfigurationContext = getConfigurationContext(currentAuthorizerIdentifier, currentAuthorizer);
                     continue;
                 }
-                final Authorizer instance = authorizers.get(provider.getIdentifier());
-                final AuthorizerConfigurationContext configurationContext = getConfigurationContext(
-                        provider.getIdentifier(),
-                        provider.getProperty()
-                );
-                instance.onConfigured(configurationContext);
+                final Authorizer loadedAuthorizer = authorizers.get(currentAuthorizerIdentifier);
+                final AuthorizerConfigurationContext configurationContext = getConfigurationContext(currentAuthorizerIdentifier, currentAuthorizer);
+                loadedAuthorizer.onConfigured(configurationContext);
             }
 
             if (authorizerConfigurationContext == null) {
-                throw new IllegalStateException("Unable to load configuration for authorizer with id: " + authorizerIdentifier);
+                throw new IllegalStateException("Authorizer [%s] configuration properties not found".formatted(authorizerIdentifier));
             }
 
             authorizer.onConfigured(authorizerConfigurationContext);
@@ -217,29 +155,105 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         }
     }
 
-    private Authorizers loadAuthorizersConfiguration() throws Exception {
+    private ConfiguredAuthorizers loadAuthorizersConfiguration() throws Exception {
         final File authorizersConfigurationFile = properties.getAuthorizerConfigurationFile();
 
-        // load the authorizers from the specified file
         if (authorizersConfigurationFile.exists()) {
-            try {
-                // find the schema
+            try (InputStream inputStream = new FileInputStream(authorizersConfigurationFile)) {
                 final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-                final Schema schema = schemaFactory.newSchema(Authorizers.class.getResource(AUTHORIZERS_XSD));
+                final Schema schema = schemaFactory.newSchema(getClass().getResource(AUTHORIZERS_XSD));
+                final SchemaValidator schemaValidator = new StandardSchemaValidator();
 
-                // attempt to unmarshal
-                final XMLStreamReaderProvider provider = new StandardXMLStreamReaderProvider();
-                final XMLStreamReader xsr = provider.getStreamReader(new StreamSource(authorizersConfigurationFile));
-                final Unmarshaller unmarshaller = JAXB_CONTEXT.createUnmarshaller();
-                unmarshaller.setSchema(schema);
-                final JAXBElement<Authorizers> element = unmarshaller.unmarshal(xsr, Authorizers.class);
-                return element.getValue();
-            } catch (final ProcessingException | SAXException | JAXBException e) {
-                throw new Exception("Unable to load the authorizer configuration file at: " + authorizersConfigurationFile.getAbsolutePath(), e);
+                final DocumentProvider documentProvider = new StandardDocumentProvider();
+                final Document document = documentProvider.parse(inputStream);
+                final Source source = new DOMSource(document);
+
+                // Validate Document using Schema before parsing
+                schemaValidator.validate(schema, source);
+
+                // Load and configure Providers according to defined order to support lookup references
+                final Element authorizers = (Element) document.getElementsByTagName("authorizers").item(0);
+                loadUserGroupProviders(authorizers);
+                loadAccessPolicyProviders(authorizers);
+                loadAuthorizers(authorizers);
+
+                return new ConfiguredAuthorizers(authorizers);
+            } catch (final ProcessingException | SAXException | IOException e) {
+                throw new IllegalStateException("Unable to load the authorizer configuration file at: " + authorizersConfigurationFile.getAbsolutePath(), e);
             }
         } else {
-            throw new Exception("Unable to find the authorizer configuration file at " + authorizersConfigurationFile.getAbsolutePath());
+            throw new IllegalStateException("Unable to find the authorizer configuration file at " + authorizersConfigurationFile.getAbsolutePath());
         }
+    }
+
+    private void loadUserGroupProviders(final Element authorizers) throws Exception {
+        final NodeList groupProviders = authorizers.getElementsByTagName("userGroupProvider");
+        for (int i = 0; i < groupProviders.getLength(); i++) {
+            final Element groupProvider = (Element) groupProviders.item(i);
+            final String identifier = getElementIdentifier(groupProvider);
+            final String providerClass = getElementClass(groupProvider);
+            final UserGroupProvider userGroupProvider = createUserGroupProvider(identifier, providerClass);
+
+            final AuthorizerConfigurationContext context = getConfigurationContext(identifier, groupProvider);
+            userGroupProvider.onConfigured(context);
+
+            userGroupProviders.put(identifier, userGroupProvider);
+        }
+    }
+
+    private void loadAccessPolicyProviders(final Element authorizers) throws Exception {
+        final NodeList policyProviders = authorizers.getElementsByTagName("accessPolicyProvider");
+        for (int i = 0; i < policyProviders.getLength(); i++) {
+            final Element policyProvider = (Element) policyProviders.item(i);
+            final String identifier = getElementIdentifier(policyProvider);
+            final String providerClass = getElementClass(policyProvider);
+            final AccessPolicyProvider accessPolicyProvider = createAccessPolicyProvider(identifier, providerClass);
+
+            final AuthorizerConfigurationContext context = getConfigurationContext(identifier, policyProvider);
+            accessPolicyProvider.onConfigured(context);
+
+            accessPolicyProviders.put(identifier, accessPolicyProvider);
+        }
+    }
+
+    private void loadAuthorizers(final Element configuredAuthorizers) throws Exception {
+        final NodeList authorizerNodes = configuredAuthorizers.getElementsByTagName("authorizer");
+        for (int i = 0; i < authorizerNodes.getLength(); i++) {
+            final Element currentAuthorizer = (Element) authorizerNodes.item(i);
+            final String identifier = getElementIdentifier(currentAuthorizer);
+            final String authorizerClass = getElementClass(currentAuthorizer);
+            final String classpath = getElementClasspath(currentAuthorizer);
+            final Authorizer loadedAuthorizer = createAuthorizer(identifier, authorizerClass, classpath);
+
+            authorizers.put(identifier, loadedAuthorizer);
+        }
+    }
+
+    private String getElementIdentifier(final Element element) {
+        final NodeList identifiers = element.getElementsByTagName("identifier");
+        final Node firstIdentifier = identifiers.item(0);
+        return firstIdentifier.getFirstChild().getNodeValue();
+    }
+
+    private String getElementClass(final Element element) {
+        final NodeList classes = element.getElementsByTagName("class");
+        final Node firstClass = classes.item(0);
+        return firstClass.getFirstChild().getNodeValue();
+    }
+
+    private String getElementClasspath(final Element element) {
+        final NodeList classpaths = element.getElementsByTagName("classpath");
+
+        final String classpath;
+
+        if (classpaths.getLength() == 0) {
+            classpath = null;
+        } else {
+            final Node firstClasspath = classpaths.item(0);
+            classpath = firstClasspath.getFirstChild().getNodeValue();
+        }
+
+        return classpath;
     }
 
     private UserGroupProvider createUserGroupProvider(final String identifier, final String userGroupProviderClassName) throws Exception {
@@ -254,7 +268,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
             throw new Exception(String.format("Multiple bundles found for the specified user group provider class '%s', only one is allowed.", userGroupProviderClassName));
         }
 
-        final Bundle userGroupProviderBundle = userGroupProviderBundles.get(0);
+        final Bundle userGroupProviderBundle = userGroupProviderBundles.getFirst();
         final ClassLoader userGroupProviderClassLoader = userGroupProviderBundle.getClassLoader();
 
         // get the current context classloader
@@ -297,7 +311,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
             throw new Exception(String.format("Multiple bundles found for the specified access policy provider class '%s', only one is allowed.", accessPolicyProviderClassName));
         }
 
-        final Bundle accessPolicyProviderBundle = accessPolicyProviderBundles.get(0);
+        final Bundle accessPolicyProviderBundle = accessPolicyProviderBundles.getFirst();
         final ClassLoader accessPolicyProviderClassLoader = accessPolicyProviderBundle.getClassLoader();
 
         // get the current context classloader
@@ -341,7 +355,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         }
 
         // start with ClassLoad from authorizer's bundle
-        final Bundle authorizerBundle = authorizerBundles.get(0);
+        final Bundle authorizerBundle = authorizerBundles.getFirst();
         ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
 
         // if additional classpath resources were specified, replace with a new ClassLoader that wraps the original one
@@ -381,12 +395,21 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
 
     private AuthorizerConfigurationContext getConfigurationContext(
             final String identifier,
-            final List<Property> properties
+            final Element element
     ) {
         final Map<String, String> authorizerProperties = new HashMap<>();
 
-        for (final Property property : properties) {
-            authorizerProperties.put(property.getName(), property.getValue());
+        final NodeList properties = element.getElementsByTagName("property");
+        for (int i = 0; i < properties.getLength(); i++) {
+            final Element property = (Element) properties.item(i);
+            final String propertyName = property.getAttribute("name");
+
+            if (property.hasChildNodes()) {
+                final String propertyValue = property.getFirstChild().getNodeValue();
+                if (StringUtils.isNotBlank(propertyValue)) {
+                    authorizerProperties.put(propertyName, propertyValue);
+                }
+            }
         }
 
         return new StandardAuthorizerConfigurationContext(identifier, authorizerProperties);
@@ -511,7 +534,7 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
 
         if (!errors.isEmpty()) {
             List<String> errorMessages = errors.stream().map(Throwable::toString).collect(Collectors.toList());
-            throw new AuthorizerDestructionException("One or more providers encountered a pre-destruction error: " + StringUtils.join(errorMessages, "; "), errors.get(0));
+            throw new AuthorizerDestructionException("One or more providers encountered a pre-destruction error: " + StringUtils.join(errorMessages, "; "), errors.getFirst());
         }
     }
 
@@ -519,4 +542,9 @@ public class AuthorizerFactoryBean implements FactoryBean<Authorizer>, Disposabl
         this.extensionManager = extensionManager;
     }
 
+    private record ConfiguredAuthorizers(
+            Element authorizersConfiguration
+    ) {
+
+    }
 }

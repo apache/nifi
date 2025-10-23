@@ -39,7 +39,8 @@ import {
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { selectStatus } from './flow-analysis-rules.selectors';
+import { selectLoadedTimestamp } from './flow-analysis-rules.selectors';
+import { initialState } from './flow-analysis-rules.reducer';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
@@ -70,8 +71,8 @@ export class FlowAnalysisRulesEffects {
     loadFlowAnalysisRule$ = createEffect(() =>
         this.actions$.pipe(
             ofType(FlowAnalysisRuleActions.loadFlowAnalysisRules),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.flowAnalysisRuleService.getFlowAnalysisRule()).pipe(
                     map((response) =>
                         FlowAnalysisRuleActions.loadFlowAnalysisRulesSuccess({
@@ -82,8 +83,26 @@ export class FlowAnalysisRulesEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            FlowAnalysisRuleActions.loadFlowAnalysisRulesError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
+                )
+            )
+        )
+    );
+
+    loadFlowAnalysisRulesError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowAnalysisRuleActions.loadFlowAnalysisRulesError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

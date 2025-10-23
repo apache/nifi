@@ -83,7 +83,7 @@ public class FlowDifferenceFilters {
     public static boolean isEnvironmentalChange(final FlowDifference difference, final VersionedProcessGroup localGroup, final FlowManager flowManager,
                                                 final EnvironmentalChangeContext context) {
         final EnvironmentalChangeContext evaluatedContext = Objects.requireNonNull(context, "EnvironmentalChangeContext required");
-        return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED
+        return isBundleChange(difference)
             || isSensitivePropertyDueToGhosting(difference, flowManager)
             || isRpgUrlChange(difference)
             || isAddedOrRemovedRemotePort(difference)
@@ -104,6 +104,10 @@ public class FlowDifferenceFilters {
             || isPropertyParameterizationRename(difference, evaluatedContext)
             || isPropertyRenameWithMatchingValue(difference, evaluatedContext)
             || isSelectedRelationshipChangeForNewRelationship(difference, flowManager);
+    }
+
+    public static boolean isBundleChange(final FlowDifference difference) {
+        return difference.getDifferenceType() == DifferenceType.BUNDLE_CHANGED;
     }
 
     private static boolean isSensitivePropertyDueToGhosting(final FlowDifference difference, final FlowManager flowManager) {

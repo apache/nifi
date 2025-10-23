@@ -133,8 +133,6 @@ public class MiNiFiPropertiesGenerator {
         Triple.of(NiFiProperties.SECURITY_TRUSTSTORE, EMPTY, EMPTY),
         Triple.of(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, EMPTY, EMPTY),
         Triple.of(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, EMPTY, EMPTY),
-        Triple.of(NiFiProperties.SECURITY_OCSP_RESPONDER_URL, EMPTY, EMPTY),
-        Triple.of(NiFiProperties.SECURITY_OCSP_RESPONDER_CERTIFICATE, EMPTY, EMPTY),
         Triple.of(NiFiProperties.CLUSTER_IS_NODE, "false", EMPTY),
         Triple.of(NiFiProperties.FLOW_CONFIGURATION_FILE, "./conf/flow.json.gz", EMPTY)
     );

@@ -20,6 +20,7 @@ package org.apache.nifi.registry.flow.diff;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedProcessor;
 
 import java.util.Objects;
 
@@ -72,9 +73,7 @@ public class ConciseEvolvingDifferenceDescriptor implements DifferenceDescriptor
                 description = "Connection Bendpoints changed";
                 break;
             case VERSIONED_FLOW_COORDINATES_CHANGED:
-                if (valueA instanceof VersionedFlowCoordinates && valueB instanceof VersionedFlowCoordinates) {
-                    final VersionedFlowCoordinates coordinatesA = (VersionedFlowCoordinates) valueA;
-                    final VersionedFlowCoordinates coordinatesB = (VersionedFlowCoordinates) valueB;
+                if (valueA instanceof VersionedFlowCoordinates coordinatesA && valueB instanceof VersionedFlowCoordinates coordinatesB) {
 
                     // If the two vary only by version, then use a more concise message. If anything else is different, then use a fully explanation.
                     if (Objects.equals(coordinatesA.getStorageLocation(), coordinatesB.getStorageLocation()) && Objects.equals(coordinatesA.getBucketId(), coordinatesB.getBucketId())
@@ -85,14 +84,28 @@ public class ConciseEvolvingDifferenceDescriptor implements DifferenceDescriptor
                     }
                 }
 
-                description = String.format("From '%s' to '%s'", valueA, valueB);
+                description = defaultDescription(valueA, valueB);
+                break;
+            case BUNDLE_CHANGED:
+                if (componentA instanceof VersionedProcessor processorA && componentB instanceof VersionedProcessor processorB) {
+                    String artifact = processorA.getBundle().getArtifact();
+                    String versionA = processorA.getBundle().getVersion();
+                    String versionB = processorB.getBundle().getVersion();
+                    description = String.format("%s version %s to %s", artifact, versionA, versionB);
+                    break;
+                }
+
+                description = defaultDescription(valueA, valueB);
                 break;
             default:
-                description = String.format("From '%s' to '%s'", valueA, valueB);
+                description = defaultDescription(valueA, valueB);
                 break;
         }
 
         return description;
     }
 
+    private String defaultDescription(Object valueA, Object valueB) {
+        return String.format("From '%s' to '%s'", valueA, valueB);
+    }
 }

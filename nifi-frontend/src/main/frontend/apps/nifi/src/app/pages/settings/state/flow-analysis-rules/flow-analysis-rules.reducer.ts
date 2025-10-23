@@ -26,6 +26,7 @@ import {
     deleteFlowAnalysisRuleSuccess,
     loadFlowAnalysisRules,
     loadFlowAnalysisRulesSuccess,
+    loadFlowAnalysisRulesError,
     flowAnalysisRuleBannerApiError,
     resetFlowAnalysisRulesState,
     disableFlowAnalysisRule,
@@ -57,6 +58,10 @@ export const flowAnalysisRulesReducer = createReducer(
         flowAnalysisRules: response.flowAnalysisRules,
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
+    })),
+    on(loadFlowAnalysisRulesError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(flowAnalysisRuleBannerApiError, flowAnalysisRuleSnackbarApiError, (state) => ({
         ...state,

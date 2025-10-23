@@ -82,7 +82,7 @@ env:
     -pl -:nifi-processor-bundle-archetype
     -pl -:nifi-service-bundle-archetype
 
-  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.NIFI_DEVELOCITY_ACCESS_KEY }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

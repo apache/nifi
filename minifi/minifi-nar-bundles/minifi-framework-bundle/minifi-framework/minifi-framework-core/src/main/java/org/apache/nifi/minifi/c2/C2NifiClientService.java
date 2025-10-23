@@ -86,10 +86,13 @@ import org.apache.nifi.c2.client.service.operation.C2OperationHandlerProvider;
 import org.apache.nifi.c2.client.service.operation.DescribeManifestOperationHandler;
 import org.apache.nifi.c2.client.service.operation.EmptyOperandPropertiesProvider;
 import org.apache.nifi.c2.client.service.operation.FlowStateStrategy;
+import org.apache.nifi.c2.client.service.operation.ProcessorStateStrategy;
 import org.apache.nifi.c2.client.service.operation.OperandPropertiesProvider;
 import org.apache.nifi.c2.client.service.operation.OperationQueueDAO;
 import org.apache.nifi.c2.client.service.operation.StartFlowOperationHandler;
 import org.apache.nifi.c2.client.service.operation.StopFlowOperationHandler;
+import org.apache.nifi.c2.client.service.operation.StartProcessorOperationHandler;
+import org.apache.nifi.c2.client.service.operation.StopProcessorOperationHandler;
 import org.apache.nifi.c2.client.service.operation.SupportedOperationsProvider;
 import org.apache.nifi.c2.client.service.operation.SyncResourceOperationHandler;
 import org.apache.nifi.c2.client.service.operation.TransferDebugOperationHandler;
@@ -116,6 +119,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.manifest.StandardRuntimeManifestService;
 import org.apache.nifi.minifi.c2.command.DefaultFlowStateStrategy;
+import org.apache.nifi.minifi.c2.command.DefaultProcessorStateStrategy;
 import org.apache.nifi.minifi.c2.command.DefaultUpdateConfigurationStrategy;
 import org.apache.nifi.minifi.c2.command.PropertiesPersister;
 import org.apache.nifi.minifi.c2.command.TransferDebugCommandHelper;
@@ -251,6 +255,7 @@ public class C2NifiClientService {
         UpdatePropertiesPropertyProvider updatePropertiesPropertyProvider = new UpdatePropertiesPropertyProvider(bootstrapConfigFileLocation);
         PropertiesPersister propertiesPersister = new PropertiesPersister(updatePropertiesPropertyProvider, bootstrapConfigFileLocation);
         FlowStateStrategy defaultFlowStateStrategy = new DefaultFlowStateStrategy(flowController);
+        ProcessorStateStrategy defaultProcessorStateStrategy = new DefaultProcessorStateStrategy(flowController);
         FlowPropertyAssetReferenceResolver flowPropertyAssetReferenceResolver = new StandardFlowPropertyAssetReferenceResolverService(resourceRepository::getAbsolutePath);
 
         FlowPropertyEncryptor flowPropertyEncryptor = new StandardFlowPropertyEncryptor(
@@ -278,7 +283,10 @@ public class C2NifiClientService {
                 updateAssetCommandHelper::assetUpdatePrecondition, updateAssetCommandHelper::assetPersistFunction),
             new UpdatePropertiesOperationHandler(updatePropertiesPropertyProvider, propertiesPersister::persistProperties),
             SyncResourceOperationHandler.create(client, new SyncResourcePropertyProvider(), new DefaultSyncResourceStrategy(resourceRepository), c2Serializer),
-            new StartFlowOperationHandler(defaultFlowStateStrategy), new StopFlowOperationHandler(defaultFlowStateStrategy)
+            new StartFlowOperationHandler(defaultFlowStateStrategy),
+            new StopFlowOperationHandler(defaultFlowStateStrategy),
+            new StartProcessorOperationHandler(defaultProcessorStateStrategy),
+            new StopProcessorOperationHandler(defaultProcessorStateStrategy)
         ));
     }
 
@@ -427,6 +435,11 @@ public class C2NifiClientService {
         result.setProcessingNanos(processorStatus.getProcessingNanos());
         result.setActiveThreadCount(processorStatus.getActiveThreadCount());
         result.setTerminatedThreadCount(processorStatus.getTerminatedThreadCount());
+        result.setRunStatus(
+                processorStatus.getRunStatus() == org.apache.nifi.controller.status.RunStatus.Running
+                        ? RUNNING
+                        : STOPPED
+        );
         return result;
     }
 

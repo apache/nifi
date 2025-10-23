@@ -46,6 +46,11 @@ export const loadControllerServicesSuccess = createAction(
     props<{ response: LoadControllerServicesResponse }>()
 );
 
+export const loadControllerServicesError = createAction(
+    '[Controller Services] Load Controller Services Error',
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const controllerServicesBannerApiError = createAction(
     '[Controller Services] Controller Services Banner Api Error',
     props<{ error: string }>()

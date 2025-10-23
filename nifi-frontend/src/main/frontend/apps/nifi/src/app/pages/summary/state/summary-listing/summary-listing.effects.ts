@@ -27,8 +27,9 @@ import { catchError, filter, from, map, of, switchMap, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { ComponentType } from '@nifi/shared';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { initialState } from './summary-listing.reducer';
 import { HttpErrorResponse } from '@angular/common/http';
-import { selectSelectedClusterNode, selectSummaryListingStatus } from './summary-listing.selectors';
+import { selectSelectedClusterNode, selectSummaryListingLoadedTimestamp } from './summary-listing.selectors';
 import { LoadSummaryRequest } from './index';
 
 @Injectable()
@@ -44,10 +45,10 @@ export class SummaryListingEffects {
             ofType(SummaryListingActions.loadSummaryListing),
             map((action) => action.recursive),
             concatLatestFrom(() => [
-                this.store.select(selectSummaryListingStatus),
+                this.store.select(selectSummaryListingLoadedTimestamp),
                 this.store.select(selectSelectedClusterNode)
             ]),
-            switchMap(([recursive, listingStatus, selectedClusterNode]) => {
+            switchMap(([recursive, loadedTimestamp, selectedClusterNode]) => {
                 const request: LoadSummaryRequest = {
                     recursive
                 };
@@ -62,11 +63,27 @@ export class SummaryListingEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(listingStatus, errorResponse))
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        const status = loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending';
+                        return of(
+                            SummaryListingActions.loadSummaryListingError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status
+                            })
+                        );
+                    })
                 );
             })
+        )
+    );
+
+    loadSummaryListingError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(SummaryListingActions.loadSummaryListingError),
+            switchMap((action) =>
+                of(this.errorHelper.handleLoadingError(action.status === 'success', action.errorResponse))
+            )
         )
     );
 

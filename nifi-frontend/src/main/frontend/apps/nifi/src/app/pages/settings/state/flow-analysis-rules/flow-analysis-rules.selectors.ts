@@ -30,9 +30,9 @@ export const selectSaving = createSelector(
     (state: FlowAnalysisRulesState) => state.saving
 );
 
-export const selectStatus = createSelector(
+export const selectLoadedTimestamp = createSelector(
     selectFlowAnalysisRulesState,
-    (state: FlowAnalysisRulesState) => state.status
+    (state: FlowAnalysisRulesState) => state.loadedTimestamp
 );
 
 export const selectFlowAnalysisRuleIdFromRoute = createSelector(selectCurrentRoute, (route) => {

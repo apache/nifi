@@ -24,9 +24,10 @@ import { MatDialog } from '@angular/material/dialog';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { Router } from '@angular/router';
-import { selectRpg, selectRpgIdFromRoute, selectStatus } from './manage-remote-ports.selectors';
+import { selectLoadedTimestamp, selectRpg, selectRpgIdFromRoute } from './manage-remote-ports.selectors';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { initialState } from './manage-remote-ports.reducer';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ManageRemotePortService } from '../../service/manage-remote-port.service';
 import { PortSummary } from './index';
@@ -53,11 +54,11 @@ export class ManageRemotePortsEffects {
             ofType(ManageRemotePortsActions.loadRemotePorts),
             map((action) => action.request),
             concatLatestFrom(() => [
-                this.store.select(selectStatus),
+                this.store.select(selectLoadedTimestamp),
                 this.store.select(selectTimeOffset).pipe(isDefinedAndNotNull()),
                 this.store.select(selectAbout).pipe(isDefinedAndNotNull())
             ]),
-            switchMap(([request, status, timeOffset, about]) => {
+            switchMap(([request, loadedTimestamp, timeOffset, about]) => {
                 return this.manageRemotePortService.getRemotePorts(request.rpgId).pipe(
                     map((response) => {
                         // get the current user time to properly convert the server time
@@ -100,10 +101,28 @@ export class ManageRemotePortsEffects {
                         });
                     }),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            ManageRemotePortsActions.loadRemotePortsError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
                 );
             })
+        )
+    );
+
+    loadRemotePortsError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManageRemotePortsActions.loadRemotePortsError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
+                )
+            )
         )
     );
 

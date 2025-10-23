@@ -22,6 +22,7 @@ import {
     flowConfigurationHistorySnackbarError,
     loadHistory,
     loadHistorySuccess,
+    loadHistoryError,
     purgeHistory,
     purgeHistorySuccess,
     resetHistoryState,
@@ -53,6 +54,11 @@ export const flowConfigurationHistoryListingReducer = createReducer(
         loadedTimestamp: response.history.lastRefreshed,
         actions: response.history.actions,
         total: response.history.total
+    })),
+
+    on(loadHistoryError, (state, { status }) => ({
+        ...state,
+        status
     })),
 
     on(resetHistoryState, () => ({

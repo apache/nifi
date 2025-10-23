@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.redis.state;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -35,11 +26,23 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.redis.testcontainers.RedisContainer;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.util.MockComponentLog;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.containers.Container;
+
+import javax.net.ssl.SSLContext;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,19 +53,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * NOTE: These test cases should be kept in-sync with AbstractTestStateProvider which is in the framework
  * and couldn't be extended here.
  */
-@Testcontainers
 public class ITRedisStateProvider {
 
     protected final String componentId = "111111111-1111-1111-1111-111111111111";
-
-    @Container
-    public RedisContainer redisContainer = new RedisContainer("redis:7.0.12-alpine")
-            .withExposedPorts(6379);
+    public static RedisContainer redisContainer = new RedisContainer("redis:8.2.2-alpine").withExposedPorts(6379);
 
     private RedisStateProvider provider;
 
+    @BeforeAll
+    public static void start() {
+        redisContainer.start();
+    }
+
+    @AfterAll
+    public static void stop() {
+        redisContainer.stop();
+    }
+
     @BeforeEach
     public void setup() {
+        flushDatabase();
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(RedisUtils.CONNECTION_STRING, redisContainer.getHost() + ":" + redisContainer.getFirstMappedPort());
         this.provider = createProvider(properties);
@@ -78,6 +88,7 @@ public class ITRedisStateProvider {
             provider.disable();
             provider.shutdown();
         }
+        flushDatabase();
     }
 
     public StateProvider getProvider() {
@@ -364,5 +375,20 @@ public class ITRedisStateProvider {
         initializeProvider(provider, properties);
         provider.enable();
         return provider;
+    }
+
+    private static void flushDatabase() {
+        try {
+            final Container.ExecResult execResult = redisContainer.execInContainer("redis-cli", "flushall");
+            if (execResult.getExitCode() != 0) {
+                throw new IllegalStateException(String.format("Failed to flush Redis container: %s%s",
+                        execResult.getStdout(), execResult.getStderr()));
+            }
+        } catch (InterruptedException interruptedException) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while flushing Redis container", interruptedException);
+        } catch (IOException ioException) {
+            throw new IllegalStateException("Failed to flush Redis container", ioException);
+        }
     }
 }

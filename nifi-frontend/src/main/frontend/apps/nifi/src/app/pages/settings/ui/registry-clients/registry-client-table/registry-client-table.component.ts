@@ -18,6 +18,7 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
+import { NgClass } from '@angular/common';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 import { TextTip, NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
@@ -30,7 +31,16 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
     selector: 'registry-client-table',
     templateUrl: './registry-client-table.component.html',
     styleUrls: ['./registry-client-table.component.scss'],
-    imports: [MatTableModule, MatSortModule, NifiTooltipDirective, MatIconButton, MatMenuTrigger, MatMenu, MatMenuItem]
+    imports: [
+        MatTableModule,
+        MatSortModule,
+        NgClass,
+        NifiTooltipDirective,
+        MatIconButton,
+        MatMenuTrigger,
+        MatMenu,
+        MatMenuItem
+    ]
 })
 export class RegistryClientTable {
     private nifiCommon = inject(NiFiCommon);
@@ -87,6 +97,10 @@ export class RegistryClientTable {
             // @ts-ignore
             bulletins: entity.bulletins
         };
+    }
+
+    getBulletinSeverityClass(entity: RegistryClientEntity): string {
+        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins || []);
     }
 
     formatType(entity: RegistryClientEntity): string {

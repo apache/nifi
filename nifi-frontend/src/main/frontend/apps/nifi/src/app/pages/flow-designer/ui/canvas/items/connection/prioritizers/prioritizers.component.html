@@ -15,10 +15,10 @@
   ~ limitations under the License.
   -->
 
-<div class="prioritizers flex flex-col gap-y-4" cdkDropListGroup>
+<div class="prioritizers flex flex-col gap-y-4" cdkDropListGroup data-qa="prioritizers-component">
     @if (!isDisabled) {
-        <div class="flex flex-col">
-            <div>
+        <div class="flex flex-col" data-qa="available-prioritizers-section">
+            <div data-qa="available-prioritizers-label">
                 Available Prioritizers
                 <i
                     class="fa fa-info-circle primary-color"
@@ -31,12 +31,14 @@
                 cdkDropList
                 cdkDropListSortingDisabled
                 [cdkDropListData]="availablePrioritizers"
-                (cdkDropListDropped)="dropAvailable($event)">
+                (cdkDropListDropped)="dropAvailable($event)"
+                data-qa="available-prioritizers-list">
                 @for (item of availablePrioritizers; track item; let i = $index) {
                     <div
                         class="prioritizer-draggable-item border m-1 font-bold"
                         cdkDrag
-                        cdkDragPreviewContainer="parent">
+                        cdkDragPreviewContainer="parent"
+                        data-qa="available-prioritizer-item">
                         <ng-container
                             *ngTemplateOutlet="
                                 prioritizerItem;
@@ -47,8 +49,8 @@
             </div>
         </div>
     }
-    <div class="flex flex-col">
-        <div>
+    <div class="flex flex-col" data-qa="selected-prioritizers-section">
+        <div data-qa="selected-prioritizers-label">
             @if (!isDisabled) {
                 Selected Prioritizers
             } @else {
@@ -67,13 +69,15 @@
                 cdkDropList
                 [cdkDropListDisabled]="isDisabled"
                 [cdkDropListData]="selectedPrioritizers"
-                (cdkDropListDropped)="dropSelected($event)">
+                (cdkDropListDropped)="dropSelected($event)"
+                data-qa="selected-prioritizers-list">
                 @for (item of selectedPrioritizers; track item; let i = $index) {
                     <div
                         class="prioritizer-draggable-item border m-1 font-bold"
                         cdkDrag
                         cdkDragPreviewContainer="parent"
-                        [class.border-dashed]="isDisabled">
+                        [class.border-dashed]="isDisabled"
+                        data-qa="selected-prioritizer-item">
                         <ng-container
                             *ngTemplateOutlet="
                                 prioritizerItem;
@@ -83,14 +87,16 @@
                 }
             </div>
         } @else {
-            <div class="unset">No value set</div>
+            <div class="unset" data-qa="no-selected-prioritizers">No value set</div>
         }
     </div>
     <ng-template #prioritizerItem let-item let-i="i" let-canClose="canClose">
         @if (!isDisabled) {
             <div class="flex items-center">
                 <span class="grip pr-5"></span>
-                <div class="prioritizer-name" [title]="getPrioritizerLabel(item)">{{ getPrioritizerLabel(item) }}</div>
+                <div class="prioritizer-name" [title]="getPrioritizerLabel(item)" data-qa="prioritizer-name">
+                    {{ getPrioritizerLabel(item) }}
+                </div>
                 @if (hasDescription(item)) {
                     <i
                         class="pl-1 fa fa-info-circle neutral-color"
@@ -100,13 +106,17 @@
                 }
             </div>
             @if (canClose) {
-                <button class="pr-1" type="button" (click)="removeSelected(item, i)">
+                <button
+                    class="pr-1"
+                    type="button"
+                    (click)="removeSelected(item, i)"
+                    data-qa="remove-prioritizer-button">
                     <i class="fa fa-times neutral-contrast"></i>
                 </button>
             }
         } @else {
             <div class="flex items-center tertiary-color font-medium">
-                <div>{{ getPrioritizerLabel(item) }}</div>
+                <div data-qa="prioritizer-name-readonly">{{ getPrioritizerLabel(item) }}</div>
                 @if (hasDescription(item)) {
                     <i
                         class="pl-1 fa fa-info-circle neutral-color"

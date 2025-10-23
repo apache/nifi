@@ -16,7 +16,7 @@
  */
 import { FlowService } from '../../service/flow.service';
 import * as FlowActions from './flow.actions';
-import { of, ReplaySubject, take } from 'rxjs';
+import { of, ReplaySubject, take, throwError } from 'rxjs';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { ComponentHistoryEntity } from '../../../../state/shared';
 import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
@@ -59,6 +59,9 @@ import { BirdseyeView } from '../../service/birdseye-view.service';
 import { selectDisconnectionAcknowledged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 import { ComponentType } from '@nifi/shared';
 import { ParameterContextService } from '../../../parameter-contexts/service/parameter-contexts.service';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorHelper } from '../../../../service/error-helper.service';
+import { selectConnectedStateChanged } from '../../../../state/cluster-summary/cluster-summary.selectors';
 
 describe('FlowEffects', () => {
     let action$: ReplaySubject<Action>;
@@ -905,6 +908,72 @@ describe('FlowEffects', () => {
         );
 
         jest.spyOn(store, 'dispatch');
+    });
+
+    afterEach(() => {
+        if (action$) {
+            action$.complete();
+        }
+    });
+
+    describe('loadProcessGroup error handling', () => {
+        it('dispatches full-screen error on initial load (hasExistingData=false)', async () => {
+            // Arrange selectors
+            store.overrideSelector(flowSelectors.selectHasFlowData, false);
+            store.overrideSelector(selectConnectedStateChanged, false);
+
+            // Arrange service methods
+            (flowService as any).getFlow = jest.fn(() => throwError(() => new HttpErrorResponse({ status: 500 })));
+            (flowService as any).getFlowStatus = jest.fn(() => of({}));
+            (flowService as any).getControllerBulletins = jest.fn(() => of({}));
+            jest.spyOn(TestBed.inject(RegistryService), 'getRegistryClients').mockReturnValueOnce(
+                of({ registries: [] }) as any
+            );
+
+            // Arrange error helper
+            const errorHelper = TestBed.inject(ErrorHelper);
+            const errorAction = FlowActions.flowBannerError({
+                errorContext: { context: 'FLOW', errors: ['e'] } as any
+            });
+            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction as any);
+
+            // Act
+            action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
+            const result = await new Promise((resolve) => effects.loadProcessGroup$.pipe(take(1)).subscribe(resolve));
+
+            // Assert
+            expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(false, expect.any(HttpErrorResponse));
+            expect(result).toEqual(errorAction);
+        });
+
+        it('dispatches snackbar/banner error on refresh (hasExistingData=true)', async () => {
+            // Arrange selectors
+            store.overrideSelector(flowSelectors.selectHasFlowData, true);
+            store.overrideSelector(selectConnectedStateChanged, false);
+
+            // Arrange service methods
+            (flowService as any).getFlow = jest.fn(() => throwError(() => new HttpErrorResponse({ status: 500 })));
+            (flowService as any).getFlowStatus = jest.fn(() => of({}));
+            (flowService as any).getControllerBulletins = jest.fn(() => of({}));
+            jest.spyOn(TestBed.inject(RegistryService), 'getRegistryClients').mockReturnValueOnce(
+                of({ registries: [] }) as any
+            );
+
+            // Arrange error helper
+            const errorHelper = TestBed.inject(ErrorHelper);
+            const errorAction = FlowActions.flowBannerError({
+                errorContext: { context: 'FLOW', errors: ['e'] } as any
+            });
+            jest.spyOn(errorHelper, 'handleLoadingError').mockReturnValueOnce(errorAction as any);
+
+            // Act
+            action$.next(FlowActions.loadProcessGroup({ request: { id: 'pg-1', transitionRequired: false } }));
+            const result = await new Promise((resolve) => effects.loadProcessGroup$.pipe(take(1)).subscribe(resolve));
+
+            // Assert
+            expect(errorHelper.handleLoadingError).toHaveBeenCalledWith(true, expect.any(HttpErrorResponse));
+            expect(result).toEqual(errorAction);
+        });
     });
 
     describe('#moveToFront', () => {

@@ -58,7 +58,11 @@ public class WriteAvroResultWithSchema extends AbstractRecordSetWriter {
     @Override
     public Map<String, String> writeRecord(final Record record) throws IOException {
         final GenericRecord rec = AvroTypeUtil.createAvroRecord(record, schema);
-        dataFileWriter.append(rec);
+        try {
+            dataFileWriter.append(rec);
+        } catch (final DataFileWriter.AppendWriteException e) {
+            throw new IOException("AppendWriteException while writing a datum to the Avro record buffer", e);
+        }
         return Collections.emptyMap();
     }
 

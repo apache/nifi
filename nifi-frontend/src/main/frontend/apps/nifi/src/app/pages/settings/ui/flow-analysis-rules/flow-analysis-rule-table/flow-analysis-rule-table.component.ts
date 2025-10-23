@@ -156,6 +156,10 @@ export class FlowAnalysisRuleTable {
         };
     }
 
+    getBulletinSeverityClass(entity: FlowAnalysisRuleEntity): string {
+        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins);
+    }
+
     getStateIcon(entity: FlowAnalysisRuleEntity): string {
         if (entity.status.validationStatus === 'VALIDATING') {
             return 'validating neutral-color fa fa-spin fa-circle-o-notch';

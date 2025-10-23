@@ -29,8 +29,8 @@ of the methods in the API, as this guide is intended to supplement the JavaDocs 
 This guide also assumes that the reader is familiar with Java 7 and Apache Maven.
 
 This guide is written by developers for developers. It is expected that before reading this
-guide, you have a basic understanding of NiFi and the concepts of dataflow. If not, please see the link:overview.html[NiFi Overview]
-and the link:user-guide.html[NiFi User Guide] to familiarize yourself with the concepts of NiFi.
+guide, you have a basic understanding of NiFi and the concepts of dataflow. If not, please see the <<overview.adoc#apache-nifi-overview,NiFi Overview>>
+and the <<user-guide.adoc#apache-nifi-user-guide,NiFi User Guide>> to familiarize yourself with the concepts of NiFi.
 
 
 [[components]]
@@ -912,7 +912,7 @@ public final class InvokeHTTP extends AbstractProcessor {
 === Documenting Related Components
 Often Processors and ControllerServices are related to one another.  Sometimes it is a put/get relation as in `PutFile` and `GetFile`.
 Sometimes a Processor uses a ControllerService like `InvokeHTTP` and `StandardSSLContextService`.  Sometimes one ControllerService uses another
-like `DistributedMapCacheClientService` and `DistributedMapCacheServer`.  Developers of these extension points may relate these
+like `MapCacheClientService` and `MapCacheServer`.  Developers of these extension points may relate these
 different components using the `SeeAlso` tag.  This annotation links these components in the documentation.
 `SeeAlso` can be applied to Processors, ControllerServices, ParameterProviders, and ReportingTasks.  An example of how to do this is listed below:
 

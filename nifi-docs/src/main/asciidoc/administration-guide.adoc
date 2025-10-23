@@ -24,7 +24,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
 * Requires Java 21
-* Use of Python-based Processors (beta feature) requires Python 3.9, 3.10, 3.11, or 3.12
+* Use of Python-based Processors (beta feature) requires Python 3.10, 3.11, or 3.12
 * Supported Operating Systems:
 ** Linux
 ** Unix
@@ -76,7 +76,7 @@ See the <<system_properties>> section of this guide for more information about c
 
 == Build a Custom Distribution
 
-The binary build of Apache NiFi that is provided by the Apache mirrors does not contain every NAR file that is part of the official release. This is due to size constraints imposed by the mirrors to reduce the expenses associated with hosting such a large project. The Developer Guide link:developer-guide.html#build[has a list] of optional Maven profiles that can be activated to build a binary distribution of NiFi with these extra capabilities.
+The binary build of Apache NiFi that is provided by the Apache mirrors does not contain every NAR file that is part of the official release. This is due to size constraints imposed by the mirrors to reduce the expenses associated with hosting such a large project. The Developer Guide <<developer-guide.adoc#nifi-developers-guide,has a list>> of optional Maven profiles that can be activated to build a binary distribution of NiFi with these extra capabilities.
 
 Java 21 is required for building and running Apache NiFi.
 
@@ -249,7 +249,7 @@ The `name` attribute must start with `deprecation`, followed by the component cl
 
 NiFi is a Java-based application. NiFi 2.0 introduces support for a Python-based Processor API. This capability is still
 considered to be in "Beta" mode and should not be used in production. By default, support for Python-based Processors is disabled. In order to enable it,
-Python 3.9, 3.10, 3.11, or 3.12 must be installed on the NiFi node.
+Python 3.10, 3.11, or 3.12 must be installed on the NiFi node.
 
 The following properties may be used to configure the Python 3 installation and process management. These properties are all located under the
 "Python Extensions" heading in the _nifi.properties_ file:
@@ -381,6 +381,8 @@ NiFi will require client certificates for authenticating users over HTTPS if no 
 A user cannot anonymously authenticate with a secured instance of NiFi unless `nifi.security.allow.anonymous.authentication` is set to `true`.
 If this is the case, NiFi must also be configured with an Authorizer that supports authorizing an anonymous user. Currently, NiFi does not ship
 with any Authorizers that support this. There is a feature request here to help support it (link:https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730^]).
+
+NOTE: Allowing anonymous authentication is deprecated for removal in subsequent releases.
 
 There are three scenarios to consider when setting `nifi.security.allow.anonymous.authentication`. When the user is directly calling an endpoint
 with no attempted authentication then `nifi.security.allow.anonymous.authentication` will control whether the request is authenticated or rejected.
@@ -1905,7 +1907,7 @@ The NiFi Toolkit also contains command line utilities for administrators to supp
 
 * CLI -- The `cli` tool enables administrators to interact with NiFi and NiFi Registry instances to automate tasks such as deploying versioned flows and managing process groups and cluster nodes.
 
-For more information about each utility, see the link:toolkit-guide.html[NiFi Toolkit Guide].
+For more information about each utility, see the <<toolkit-guide.adoc#apache-nifi-toolkit-guide,NiFi Toolkit Guide>>.
 
 [[clustering]]
 == Clustering Configuration
@@ -2043,7 +2045,7 @@ As an alternative to the UI, the following NiFi CLI commands can be used for ret
 * `nifi offload-node`
 * `nifi delete-node`
 
-For more information, see the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
+For more information, see the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>> section in the <<toolkit-guide.adoc#apache-nifi-toolkit-guide,NiFi Toolkit Guide>>.
 
 === Flow Election
 When a cluster first starts up, NiFi must determine which of the nodes have the
@@ -3550,8 +3552,6 @@ These properties pertain to various security features in NiFi. Many of these pro
 |`nifi.security.user.authorizer`|Specifies which of the configured Authorizers in the _authorizers.xml_ file to use.  By default, it is set to `single-user-authorizer`.
 |`nifi.security.allow.anonymous.authentication`|Whether anonymous authentication is allowed when running over HTTPS. If set to true, client certificates are not required to connect via TLS. The default value is `false`.
 |`nifi.security.user.login.identity.provider`|This indicates what type of login identity provider to use. It can be set to the identifier from a provider in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication. The default value is `single-user-provider`.
-|`nifi.security.ocsp.responder.url`|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
-|`nifi.security.ocsp.responder.certificate`|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
 |====
 
 === Identity Mapping Properties

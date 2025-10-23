@@ -17,14 +17,20 @@
 
 <div class="flex flex-col gap-y-4">
     <div class="flex flex-col mb-5">
-        <div>To Output</div>
-        <div [title]="name" class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+        <div data-qa="to-output-label">To Output</div>
+        <div
+            [title]="name"
+            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            data-qa="output-port-name-display">
             {{ name }}
         </div>
     </div>
     <div class="flex flex-col mb-5">
-        <div>Within Group</div>
-        <div [title]="groupName" class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium">
+        <div data-qa="within-group-label">Within Group</div>
+        <div
+            [title]="groupName"
+            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            data-qa="group-name-display">
             {{ groupName }}
         </div>
     </div>

@@ -30,6 +30,7 @@ public enum OperandType {
     PROPERTIES,
     ASSET,
     RESOURCE,
+    PROCESSOR,
     FLOW;
 
     public static Optional<OperandType> fromString(String value) {

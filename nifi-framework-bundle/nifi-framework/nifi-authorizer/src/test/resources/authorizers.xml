@@ -17,6 +17,7 @@
     <userGroupProvider>
         <identifier>user-group-provider</identifier>
         <class>org.apache.nifi.authorization.mock.MockUserGroupProvider</class>
+        <property name="Empty Property"/>
     </userGroupProvider>
 
     <accessPolicyProvider>
@@ -27,5 +28,6 @@
     <authorizer>
         <identifier>authorizer</identifier>
         <class>org.apache.nifi.authorization.mock.MockAuthorizer</class>
+        <property name="Unused Property">Value</property>
     </authorizer>
 </authorizers>

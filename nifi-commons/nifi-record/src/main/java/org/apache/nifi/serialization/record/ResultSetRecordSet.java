@@ -136,16 +136,23 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     protected Record createRecord(final ResultSet rs) throws SQLException {
         final Map<String, Object> values = new HashMap<>(schema.getFieldCount());
 
+        // Prefer label-based retrieval when possible to support tests/drivers that stub by label,
+        // with index-based fallback (projection pushdown ensures index order matches SELECT order).
+        int columnIndex = 1;
         for (final RecordField field : schema.getFields()) {
             final String fieldName = field.getFieldName();
-            RecordFieldType fieldType = field.getDataType().getFieldType();
-            final Object value;
+            final RecordFieldType fieldType = field.getDataType().getFieldType();
 
-            value = rsColumnNames.contains(fieldName)
-                    ? normalizeValue((fieldType == TIMESTAMP) ? rs.getTimestamp(fieldName) : rs.getObject(fieldName))
-                    : null;
+            Object raw = null;
+            if (rsColumnNames.contains(fieldName)) {
+                raw = (fieldType == TIMESTAMP) ? rs.getTimestamp(fieldName) : rs.getObject(fieldName);
+            }
+            if (raw == null) {
+                raw = (fieldType == TIMESTAMP) ? rs.getTimestamp(columnIndex) : rs.getObject(columnIndex);
+            }
 
-            values.put(fieldName, value);
+            values.put(fieldName, normalizeValue(raw));
+            columnIndex++;
         }
 
         return new MapRecord(schema, values);
