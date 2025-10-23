@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.auth.PropertiesFileCredentialsProvider;
-import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -32,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.AnonymousCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -52,13 +46,9 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
     public void testImpliedDefaultCredentials() {
         runner.enableControllerService(service);
 
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(DefaultAWSCredentialsProviderChain.class, credentialsProvider.getClass());
-
-        final AwsCredentialsProvider credentialsProviderV2 = service.getAwsCredentialsProvider();
-        assertNotNull(credentialsProviderV2);
-        assertEquals(DefaultCredentialsProvider.class, credentialsProviderV2.getClass());
+        assertEquals(DefaultCredentialsProvider.class, credentialsProvider.getClass());
     }
 
     @Test
@@ -67,13 +57,9 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
         runner.assertValid(service);
         runner.enableControllerService(service);
 
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(DefaultAWSCredentialsProviderChain.class, credentialsProvider.getClass());
-
-        final AwsCredentialsProvider credentialsProviderV2 = service.getAwsCredentialsProvider();
-        assertNotNull(credentialsProviderV2);
-        assertEquals(DefaultCredentialsProvider.class, credentialsProviderV2.getClass());
+        assertEquals(DefaultCredentialsProvider.class, credentialsProvider.getClass());
     }
 
     @Test
@@ -90,9 +76,9 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
         runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "BogusSession");
         runner.enableControllerService(service);
 
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(STSAssumeRoleSessionCredentialsProvider.class, credentialsProvider.getClass());
+        assertEquals(StsAssumeRoleCredentialsProvider.class, credentialsProvider.getClass());
     }
 
 
@@ -101,13 +87,9 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
         runner.setProperty(service, AWSCredentialsProviderControllerService.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.enableControllerService(service);
 
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(PropertiesFileCredentialsProvider.class, credentialsProvider.getClass());
-
-        final AwsCredentialsProvider credentialsProviderV2 = service.getAwsCredentialsProvider();
-        assertNotNull(credentialsProviderV2);
-        assertEquals(PropertiesCredentialsProvider.class, credentialsProviderV2.getClass());
+        assertEquals(PropertiesCredentialsProvider.class, credentialsProvider.getClass());
     }
 
     @Test
@@ -132,14 +114,9 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
         runner.assertValid(service);
         runner.enableControllerService(service);
 
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        final AWSCredentials creds = credentialsProvider.getCredentials();
-        assertEquals(AnonymousAWSCredentials.class, creds.getClass());
-
-        final AwsCredentialsProvider credentialsProviderV2 = service.getAwsCredentialsProvider();
-        assertNotNull(credentialsProviderV2);
-        assertEquals(AnonymousCredentialsProvider.class, credentialsProviderV2.getClass());
+        assertEquals(AnonymousCredentialsProvider.class, credentialsProvider.getClass());
     }
 
     @Test
@@ -155,12 +132,8 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
         runner.setProperty(service, AWSCredentialsProviderControllerService.PROFILE_NAME, "BogusProfile");
         runner.enableControllerService(service);
 
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(ProfileCredentialsProvider.class, credentialsProvider.getClass());
-
-        final AwsCredentialsProvider credentialsProviderV2 = service.getAwsCredentialsProvider();
-        assertNotNull(credentialsProviderV2);
-        assertEquals(software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.class, credentialsProviderV2.getClass());
+        assertEquals(software.amazon.awssdk.auth.credentials.ProfileCredentialsProvider.class, credentialsProvider.getClass());
     }
 }

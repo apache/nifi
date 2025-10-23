@@ -33,8 +33,8 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
 import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
-import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.kinesis.KinesisClient;
 import software.amazon.awssdk.services.kinesis.KinesisClientBuilder;
@@ -49,6 +49,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -113,6 +116,7 @@ public class PutKinesisStream extends AbstractAwsSyncProcessor<KinesisClient, Ki
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         KINESIS_STREAM_NAME,
         REGION,
+        CUSTOM_REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
         KINESIS_PARTITION_KEY,
         BATCH_SIZE,

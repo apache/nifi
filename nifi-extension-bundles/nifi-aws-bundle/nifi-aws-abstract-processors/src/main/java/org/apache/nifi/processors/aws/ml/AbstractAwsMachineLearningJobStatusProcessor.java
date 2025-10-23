@@ -26,21 +26,23 @@ import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.awscore.AwsClient;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
-import software.amazon.awssdk.core.SdkClient;
 
 import java.util.List;
 import java.util.Set;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
 public abstract class AbstractAwsMachineLearningJobStatusProcessor<
-        T extends SdkClient,
-        U extends AwsSyncClientBuilder<U, T> & AwsClientBuilder<U, T>>
-        extends AbstractAwsSyncProcessor<T, U> {
+        C extends AwsClient,
+        B extends AwsClientBuilder<B, C> & AwsSyncClientBuilder<B, C>>
+        extends AbstractAwsSyncProcessor<C, B> {
     public static final String AWS_TASK_OUTPUT_LOCATION = "outputLocation";
     public static final PropertyDescriptor MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE =
             new PropertyDescriptor.Builder().fromPropertyDescriptor(AWS_CREDENTIALS_PROVIDER_SERVICE)
@@ -82,6 +84,7 @@ public abstract class AbstractAwsMachineLearningJobStatusProcessor<
             TASK_ID,
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
+            CUSTOM_REGION,
             TIMEOUT,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,

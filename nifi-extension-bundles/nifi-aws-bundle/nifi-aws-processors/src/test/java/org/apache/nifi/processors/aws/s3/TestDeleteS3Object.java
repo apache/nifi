@@ -16,20 +16,20 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.DeleteObjectRequest;
-import com.amazonaws.services.s3.model.DeleteVersionRequest;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.processors.aws.util.RegionUtilV1;
-import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Utilities;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,14 +41,15 @@ public class TestDeleteS3Object {
 
     private TestRunner runner = null;
     private DeleteS3Object mockDeleteS3Object = null;
-    private AmazonS3Client mockS3Client = null;
+    private S3Client mockS3Client = null;
 
     @BeforeEach
     public void setUp() {
-        mockS3Client = Mockito.mock(AmazonS3Client.class);
+        mockS3Client = Mockito.mock(S3Client.class);
+        Mockito.when(mockS3Client.utilities()).thenReturn(S3Utilities.builder().region(Region.US_WEST_2).build());
         mockDeleteS3Object = new DeleteS3Object() {
             @Override
-            protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
+            protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
                 return mockS3Client;
             }
         };
@@ -58,7 +59,7 @@ public class TestDeleteS3Object {
 
     @Test
     public void testDeleteObjectSimple() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
@@ -70,14 +71,14 @@ public class TestDeleteS3Object {
         ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
         Mockito.verify(mockS3Client, Mockito.times(1)).deleteObject(captureRequest.capture());
         DeleteObjectRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("delete-key", request.getKey());
-        Mockito.verify(mockS3Client, Mockito.never()).deleteVersion(Mockito.any(DeleteVersionRequest.class));
+        assertEquals("test-bucket", request.bucket());
+        assertEquals("delete-key", request.key());
     }
 
     @Test
     public void testDeleteObjectSimpleRegionFromFlowFileAttribute() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "attribute-defined-region");
+        runner.setProperty(RegionUtil.REGION, "use-custom-region");
+        runner.setProperty(RegionUtil.CUSTOM_REGION, "${s3.region}");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
@@ -91,22 +92,21 @@ public class TestDeleteS3Object {
 
     @Test
     public void testDeleteObjectS3Exception() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
         runner.enqueue(new byte[0], attrs);
-        Mockito.doThrow(new AmazonS3Exception("NoSuchBucket")).when(mockS3Client).deleteObject(Mockito.any());
+        Mockito.doThrow(S3Exception.builder().message("NoSuchBucket").build()).when(mockS3Client).deleteObject(Mockito.any(DeleteObjectRequest.class));
 
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_FAILURE, 1);
-        Mockito.verify(mockS3Client, Mockito.never()).deleteVersion(Mockito.any(DeleteVersionRequest.class));
     }
 
     @Test
     public void testDeleteVersionSimple() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(DeleteS3Object.VERSION_ID, "test-version");
         final Map<String, String> attrs = new HashMap<>();
@@ -116,18 +116,17 @@ public class TestDeleteS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<DeleteVersionRequest> captureRequest = ArgumentCaptor.forClass(DeleteVersionRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).deleteVersion(captureRequest.capture());
-        DeleteVersionRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("test-key", request.getKey());
-        assertEquals("test-version", request.getVersionId());
-        Mockito.verify(mockS3Client, Mockito.never()).deleteObject(Mockito.any(DeleteObjectRequest.class));
+        ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).deleteObject(captureRequest.capture());
+        DeleteObjectRequest request = captureRequest.getValue();
+        assertEquals("test-bucket", request.bucket());
+        assertEquals("test-key", request.key());
+        assertEquals("test-version", request.versionId());
     }
 
     @Test
     public void testDeleteVersionFromExpressions() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(DeleteS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "${s3.bucket}");
         runner.setProperty(DeleteS3Object.VERSION_ID, "${s3.version}");
         final Map<String, String> attrs = new HashMap<>();
@@ -139,23 +138,12 @@ public class TestDeleteS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(DeleteS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<DeleteVersionRequest> captureRequest = ArgumentCaptor.forClass(DeleteVersionRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).deleteVersion(captureRequest.capture());
-        DeleteVersionRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("test-key", request.getKey());
-        assertEquals("test-version", request.getVersionId());
-        Mockito.verify(mockS3Client, Mockito.never()).deleteObject(Mockito.any(DeleteObjectRequest.class));
-    }
-
-    @Test
-    void testMigration() {
-        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expectedRenamed =
-                Map.of("custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
-                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName());
-
-        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
+        ArgumentCaptor<DeleteObjectRequest> captureRequest = ArgumentCaptor.forClass(DeleteObjectRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).deleteObject(captureRequest.capture());
+        DeleteObjectRequest request = captureRequest.getValue();
+        assertEquals("test-bucket", request.bucket());
+        assertEquals("test-key", request.key());
+        assertEquals("test-version", request.versionId());
     }
 
 }

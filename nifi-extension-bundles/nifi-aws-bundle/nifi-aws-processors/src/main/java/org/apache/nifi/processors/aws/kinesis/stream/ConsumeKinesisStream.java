@@ -49,8 +49,10 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.kinesis.property.SchemaDifferenceHandlingStrategy;
+import org.apache.nifi.processors.aws.AbstractAwsAsyncProcessor;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 import org.apache.nifi.processors.aws.kinesis.property.OutputStrategy;
+import org.apache.nifi.processors.aws.kinesis.property.SchemaDifferenceHandlingStrategy;
 import org.apache.nifi.processors.aws.kinesis.stream.pause.StandardRecordProcessorBlocker;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
@@ -58,8 +60,6 @@ import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcess
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverter;
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterIdentity;
 import org.apache.nifi.processors.aws.kinesis.stream.record.converter.RecordConverterWrapper;
-import org.apache.nifi.processors.aws.v2.AbstractAwsAsyncProcessor;
-import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -114,6 +114,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.getRegion;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
@@ -345,6 +349,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
             OUTPUT_STRATEGY,
             FLOW_FILE_HANDLING_ON_SCHEMA_CHANGE_STRATEGY,
             REGION,
+            CUSTOM_REGION,
             ENDPOINT_OVERRIDE,
             DYNAMODB_ENDPOINT_OVERRIDE,
             INITIAL_STREAM_POSITION,
@@ -482,7 +487,7 @@ public class ConsumeKinesisStream extends AbstractAwsAsyncProcessor<KinesisAsync
                     .valid(false).build();
         }
 
-        final Region region = Region.of(context.getProperty(REGION).getValue());
+        final Region region = getRegion(context);
         // This is a temporary builder that is not used outside of validation
         final ConfigsBuilder configsBuilderTemp = new ConfigsBuilder(
                 getStreamName(context),

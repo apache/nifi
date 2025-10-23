@@ -37,8 +37,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
-import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
-
 public abstract class ITConsumeKinesisStream {
 
     static final String KINESIS_STREAM_NAME = "test-stream";
@@ -126,8 +124,6 @@ public abstract class ITConsumeKinesisStream {
         runner = null;
 
         Thread.sleep(2_000);
-
-        System.clearProperty(AWS_CBOR_DISABLE_SYSTEM_PROPERTY);
     }
 
     private void cleanupDynamoDB() {

@@ -31,8 +31,8 @@ import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
 import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
-import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.services.firehose.FirehoseClient;
 import software.amazon.awssdk.services.firehose.FirehoseClientBuilder;
@@ -45,6 +45,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -91,6 +94,7 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
         KINESIS_FIREHOSE_DELIVERY_STREAM_NAME,
         BATCH_SIZE,
         REGION,
+        CUSTOM_REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
         MAX_MESSAGE_BUFFER_SIZE_MB,
         TIMEOUT,

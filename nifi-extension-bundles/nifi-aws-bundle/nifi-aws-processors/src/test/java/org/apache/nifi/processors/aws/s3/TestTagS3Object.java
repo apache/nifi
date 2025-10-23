@@ -16,18 +16,9 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.SetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -36,6 +27,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Utilities;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
+import software.amazon.awssdk.services.s3.model.PutObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,15 +51,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestTagS3Object {
 
     private TestRunner runner = null;
-    private AmazonS3Client mockS3Client = null;
+    private S3Client mockS3Client = null;
 
     @BeforeEach
     public void setUp() {
-        mockS3Client = Mockito.mock(AmazonS3Client.class);
+        mockS3Client = Mockito.mock(S3Client.class);
+        Mockito.when(mockS3Client.utilities()).thenReturn(S3Utilities.builder().region(Region.US_WEST_2).build());
         TagS3Object mockTagS3Object = new TagS3Object() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+            protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
                 return mockS3Client;
             }
         };
@@ -72,7 +71,7 @@ public class TestTagS3Object {
     public void testTagObjectSimple() {
         final String tagKey = "k";
         final String tagVal = "v";
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -85,13 +84,13 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
-        SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertNull(request.getVersionId(), "test-version");
-        assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "Expected tag not found in request");
+        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
+        PutObjectTaggingRequest request = captureRequest.getValue();
+        assertEquals("test-bucket", request.bucket());
+        assertEquals("object-key", request.key());
+        assertNull(request.versionId(), "test-version");
+        assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "Expected tag not found in request");
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
@@ -100,7 +99,8 @@ public class TestTagS3Object {
 
     @Test
     public void testTagObjectSimpleRegionFromFlowFileAttribute() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "attribute-defined-region");
+        runner.setProperty(RegionUtil.REGION, "use-custom-region");
+        runner.setProperty(RegionUtil.CUSTOM_REGION, "${s3.region}");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "k");
         runner.setProperty(TagS3Object.TAG_VALUE, "v");
@@ -120,7 +120,7 @@ public class TestTagS3Object {
     public void testTagObjectVersion() {
         final String tagKey = "k";
         final String tagVal = "v";
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.VERSION_ID, "test-version");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
@@ -133,59 +133,59 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
-        SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertEquals("test-version", request.getVersionId());
-        assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "Expected tag not found in request");
+        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
+        PutObjectTaggingRequest request = captureRequest.getValue();
+        assertEquals("test-bucket", request.bucket());
+        assertEquals("object-key", request.key());
+        assertEquals("test-version", request.versionId());
+        assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "Expected tag not found in request");
     }
 
     @Test
     public void testTagObjectAppendToExistingTags() {
         //set up existing tags on S3 object
-        Tag currentTag = new Tag("ck", "cv");
+        Tag currentTag = Tag.builder().key("ck").value("cv").build();
         mockGetExistingTags(currentTag);
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "object-key");
-        attrs.put("s3.tag." + currentTag.getKey(), currentTag.getValue());
+        attrs.put("s3.tag." + currentTag.key(), currentTag.value());
         runner.enqueue(new byte[0], attrs);
 
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
-        SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "New tag not found in request");
-        assertTrue(request.getTagging().getTagSet().contains(currentTag), "Existing tag not found in request");
+        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
+        PutObjectTaggingRequest request = captureRequest.getValue();
+        assertEquals("test-bucket", request.bucket());
+        assertEquals("object-key", request.key());
+        assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "New tag not found in request");
+        assertTrue(request.tagging().tagSet().contains(currentTag), "Existing tag not found in request");
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals("s3.tag." + tagKey, tagVal);
-        ff0.assertAttributeEquals("s3.tag." + currentTag.getKey(), currentTag.getValue());
+        ff0.assertAttributeEquals("s3.tag." + currentTag.key(), currentTag.value());
     }
 
     @Test
     public void testTagObjectAppendUpdatesExistingTagValue() {
         //set up existing tags on S3 object
-        Tag currentTag1 = new Tag("ck", "cv");
-        Tag currentTag2 = new Tag("nk", "ov");
+        Tag currentTag1 = Tag.builder().key("ck").value("cv").build();
+        Tag currentTag2 = Tag.builder().key("nk").value("ov").build();
         mockGetExistingTags(currentTag1, currentTag2);
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
@@ -196,67 +196,67 @@ public class TestTagS3Object {
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
-        SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "New tag not found in request");
-        assertTrue(request.getTagging().getTagSet().contains(currentTag1), "Existing tag not found in request");
-        assertFalse(request.getTagging().getTagSet().contains(currentTag2), "Existing tag should be excluded from request");
+        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
+        PutObjectTaggingRequest request = captureRequest.getValue();
+        assertEquals("test-bucket", request.bucket());
+        assertEquals("object-key", request.key());
+        assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "New tag not found in request");
+        assertTrue(request.tagging().tagSet().contains(currentTag1), "Existing tag not found in request");
+        assertFalse(request.tagging().tagSet().contains(currentTag2), "Existing tag should be excluded from request");
     }
 
     @Test
     public void testTagObjectReplacesExistingTags() {
         //set up existing tags on S3 object
-        Tag currentTag = new Tag("ck", "cv");
+        Tag currentTag = Tag.builder().key("ck").value("cv").build();
         mockGetExistingTags(currentTag);
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         runner.setProperty(TagS3Object.APPEND_TAG, "false");
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "object-key");
-        attrs.put("s3.tag." + currentTag.getKey(), currentTag.getValue());
+        attrs.put("s3.tag." + currentTag.key(), currentTag.value());
         runner.enqueue(new byte[0], attrs);
 
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(TagS3Object.REL_SUCCESS, 1);
-        ArgumentCaptor<SetObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(SetObjectTaggingRequest.class);
-        Mockito.verify(mockS3Client, Mockito.times(1)).setObjectTagging(captureRequest.capture());
-        SetObjectTaggingRequest request = captureRequest.getValue();
-        assertEquals("test-bucket", request.getBucketName());
-        assertEquals("object-key", request.getKey());
-        assertTrue(request.getTagging().getTagSet().contains(new Tag(tagKey, tagVal)), "New tag not found in request");
-        assertFalse(request.getTagging().getTagSet().contains(currentTag), "Existing tag should be excluded from request");
+        ArgumentCaptor<PutObjectTaggingRequest> captureRequest = ArgumentCaptor.forClass(PutObjectTaggingRequest.class);
+        Mockito.verify(mockS3Client, Mockito.times(1)).putObjectTagging(captureRequest.capture());
+        PutObjectTaggingRequest request = captureRequest.getValue();
+        assertEquals("test-bucket", request.bucket());
+        assertEquals("object-key", request.key());
+        assertTrue(request.tagging().tagSet().contains(Tag.builder().key(tagKey).value(tagVal).build()), "New tag not found in request");
+        assertFalse(request.tagging().tagSet().contains(currentTag), "Existing tag should be excluded from request");
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ListS3.REL_SUCCESS);
         MockFlowFile ff0 = flowFiles.get(0);
         ff0.assertAttributeEquals("s3.tag." + tagKey, tagVal);
-        ff0.assertAttributeNotExists("s3.tag." + currentTag.getKey());
+        ff0.assertAttributeNotExists("s3.tag." + currentTag.key());
     }
 
     @Test
     public void testTagObjectS3Exception() {
         //set up existing tags on S3 object
-        Tag currentTag = new Tag("ck", "cv");
+        Tag currentTag = Tag.builder().key("ck").value("cv").build();
         mockGetExistingTags(currentTag);
 
         final String tagKey = "nk";
         final String tagVal = "nv";
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, tagKey);
         runner.setProperty(TagS3Object.TAG_VALUE, tagVal);
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", "delete-key");
         runner.enqueue(new byte[0], attrs);
-        Mockito.doThrow(new AmazonS3Exception("TagFailure")).when(mockS3Client).setObjectTagging(Mockito.any());
+        Mockito.doThrow(S3Exception.builder().message("TagFailure").build()).when(mockS3Client).putObjectTagging(Mockito.any(PutObjectTaggingRequest.class));
 
         runner.run(1);
 
@@ -265,7 +265,7 @@ public class TestTagS3Object {
 
     @Test
     public void testBucketEvaluatedAsBlank() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "${not.existant.attribute}");
         runner.setProperty(TagS3Object.TAG_KEY, "key");
         runner.setProperty(TagS3Object.TAG_VALUE, "val");
@@ -280,7 +280,7 @@ public class TestTagS3Object {
 
     @Test
     public void testTagKeyEvaluatedAsBlank() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "${not.existant.attribute}");
         runner.setProperty(TagS3Object.TAG_VALUE, "val");
@@ -295,7 +295,7 @@ public class TestTagS3Object {
 
     @Test
     public void testTagValEvaluatedAsBlank() {
-        runner.setProperty(RegionUtilV1.S3_REGION, "us-west-2");
+        runner.setProperty(RegionUtil.REGION, "us-west-2");
         runner.setProperty(TagS3Object.BUCKET_WITHOUT_DEFAULT_VALUE, "test-bucket");
         runner.setProperty(TagS3Object.TAG_KEY, "tagKey");
         runner.setProperty(TagS3Object.TAG_VALUE, "${not.existant.attribute}");
@@ -312,9 +312,7 @@ public class TestTagS3Object {
     void testMigration() {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed =
-                Map.of("custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
-                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName(),
-                        "tag-key", TagS3Object.TAG_KEY.getName(),
+                Map.of("tag-key", TagS3Object.TAG_KEY.getName(),
                         "tag-value", TagS3Object.TAG_VALUE.getName(),
                         "append-tag", TagS3Object.APPEND_TAG.getName());
 
@@ -323,7 +321,7 @@ public class TestTagS3Object {
 
     private void mockGetExistingTags(Tag... currentTag) {
         List<Tag> currentTags = new ArrayList<>(Arrays.asList(currentTag));
-        Mockito.when(mockS3Client.getObjectTagging(Mockito.any())).thenReturn(new GetObjectTaggingResult(currentTags));
+        Mockito.when(mockS3Client.getObjectTagging(Mockito.any(GetObjectTaggingRequest.class))).thenReturn(GetObjectTaggingResponse.builder().tagSet(currentTags).build());
     }
 
 }

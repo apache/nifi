@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.auth.PropertiesFileCredentialsProvider;
-import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
+import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -27,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ACCESS_KEY_ID;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.CREDENTIALS_FILE;
@@ -45,12 +44,12 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
-        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
         assertNotNull(service);
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(DefaultAWSCredentialsProviderChain.class,
+        assertEquals(DefaultCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
@@ -64,10 +63,10 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
-        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
         assertNotNull(service);
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
     }
 
@@ -84,12 +83,12 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
-        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
         assertNotNull(service);
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
+        assertEquals(StsAssumeRoleCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
@@ -107,12 +106,12 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
-        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
         assertNotNull(service);
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
+        assertEquals(StsAssumeRoleCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
@@ -198,12 +197,12 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
-        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
         assertNotNull(service);
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(STSAssumeRoleSessionCredentialsProvider.class,
+        assertEquals(StsAssumeRoleCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
@@ -217,12 +216,12 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
-        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
         assertNotNull(service);
-        final AWSCredentialsProvider credentialsProvider = service.getCredentialsProvider();
+        final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();
         assertNotNull(credentialsProvider);
-        assertEquals(PropertiesFileCredentialsProvider.class,
+        assertEquals(PropertiesCredentialsProvider.class,
                 credentialsProvider.getClass(), "credentials provider should be equal");
     }
 
@@ -305,14 +304,14 @@ public class AWSCredentialsProviderControllerServiceTest {
 
         runner.assertValid(serviceImpl);
 
-        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
 
         assertEquals(
-                "awsAccessKey", service.getCredentialsProvider().getCredentials().getAWSAccessKeyId(),
+                "awsAccessKey", service.getAwsCredentialsProvider().resolveCredentials().accessKeyId(),
             "Expression language should be supported for " + ACCESS_KEY_ID.getName());
         assertEquals(
-                "awsSecretKey", service.getCredentialsProvider().getCredentials().getAWSSecretKey(),
+                "awsSecretKey", service.getAwsCredentialsProvider().resolveCredentials().secretAccessKey(),
             "Expression language should be supported for " + SECRET_KEY.getName());
     }
 
@@ -325,7 +324,7 @@ public class AWSCredentialsProviderControllerServiceTest {
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
-        final AWSCredentialsProviderService service = (AWSCredentialsProviderService) runner.getProcessContext()
+        final AwsCredentialsProviderService service = (AwsCredentialsProviderService) runner.getProcessContext()
                 .getControllerServiceLookup().getControllerService("awsCredentialsProvider");
         assertNotNull(service);
         final AwsCredentialsProvider credentialsProvider = service.getAwsCredentialsProvider();

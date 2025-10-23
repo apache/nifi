@@ -19,7 +19,7 @@ package org.apache.nifi.processors.aws.kinesis;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.v2;
+package org.apache.nifi.processors.aws;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -36,20 +36,20 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
-import org.apache.nifi.processors.aws.region.RegionUtilV2;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.awscore.AwsClient;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.core.client.builder.SdkClientBuilder;
 import software.amazon.awssdk.core.client.config.SdkAdvancedClientOption;
-import software.amazon.awssdk.core.retry.RetryPolicy;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsTrustManagersProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.retries.DefaultRetryStrategy;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.TrustManager;
@@ -65,14 +65,19 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.getRegion;
+import static org.apache.nifi.processors.aws.region.RegionUtil.isDynamicRegion;
+
 /**
  * Base class for aws processors using the AWS v2 SDK.
  *
- * @param <T> client type
+ * @param <C> client type
+ * @param <B> client builder type
  *
  * @see <a href="https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/AwsCredentialsProvider.html">AwsCredentialsProvider</a>
  */
-public abstract class AbstractAwsProcessor<T extends SdkClient> extends AbstractSessionFactoryProcessor implements VerifiableProcessor {
+public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsClientBuilder<B, C>> extends AbstractSessionFactoryProcessor implements VerifiableProcessor {
     private static final String CREDENTIALS_SERVICE_CLASSNAME = "org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService";
 
     // Obsolete property names
@@ -106,13 +111,6 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
             REL_FAILURE
     );
 
-    public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-            .name("Region")
-            .required(true)
-            .allowableValues(RegionUtilV2.getAvailableRegions())
-            .defaultValue(RegionUtilV2.createAllowableValue(Region.US_WEST_2).getValue())
-            .build();
-
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Communications Timeout")
             .required(true)
@@ -141,7 +139,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
         .name("AWS Credentials Provider service")
         .description("The Controller Service that is used to obtain AWS credentials provider")
         .required(true)
-        .identifiesControllerService(AWSCredentialsProviderService.class)
+        .identifiesControllerService(AwsCredentialsProviderService.class)
         .build();
 
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxySpec.HTTP, ProxySpec.HTTP_AUTH);
@@ -149,15 +147,14 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
 
     protected static final String DEFAULT_USER_AGENT = "NiFi";
 
-    private final Cache<Region, T> clientCache = Caffeine.newBuilder().build();
+    private final Cache<Region, C> clientCache = Caffeine.newBuilder().build();
 
     /**
      * Configure the http client on the builder.
-     * @param <B> The builder type
      * @param clientBuilder The client builder
      * @param context The process context
      */
-    protected abstract <B extends AwsClientBuilder<?, ?>> void configureHttpClient(B clientBuilder, ProcessContext context);
+    protected abstract void configureHttpClient(AwsClientBuilder<?, ?> clientBuilder, ProcessContext context);
 
     /*
      * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors (e.g. ConsumeKinesisStream)
@@ -220,7 +217,9 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        getClient(context);
+        if (!isDynamicRegion(context)) {
+            getClient(context);
+        }
     }
 
     @OnStopped
@@ -234,7 +233,7 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
-        try (final T ignored = createClient(context)) {
+        try (final C ignored = createClient(context, attributes)) {
             results.add(new ConfigVerificationResult.Builder()
                     .outcome(Outcome.SUCCESSFUL)
                     .verificationStepName("Create Client")
@@ -256,23 +255,18 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
      * Creates an AWS service client from the context or returns an existing client from the cache
      * @return The created or cached client
      */
-    protected T getClient(final ProcessContext context, final Region region) {
+    protected C getClient(final ProcessContext context, final Map<String, String> attributes) {
+        final Region region = getRegion(context, attributes);
         return clientCache.get(region, ignored -> createClient(context, region));
     }
 
-    protected T getClient(final ProcessContext context) {
-        return getClient(context, getRegion(context));
+    protected C getClient(final ProcessContext context) {
+        return getClient(context, Map.of());
     }
 
-    protected <C extends SdkClient, B extends AwsClientBuilder<B, C>>
-    void configureClientBuilder(final B clientBuilder, final Region region, final ProcessContext context) {
-        configureClientBuilder(clientBuilder, region, context, ENDPOINT_OVERRIDE);
-    }
-
-    protected <C extends SdkClient, B extends AwsClientBuilder<B, C>>
-    void configureClientBuilder(final B clientBuilder, final Region region, final ProcessContext context, final PropertyDescriptor endpointOverrideDescriptor) {
+    protected void configureClientBuilder(final AwsClientBuilder<?, ?> clientBuilder, final Region region, final ProcessContext context, final PropertyDescriptor endpointOverrideDescriptor) {
         clientBuilder.overrideConfiguration(builder -> builder.putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, DEFAULT_USER_AGENT));
-        clientBuilder.overrideConfiguration(builder -> builder.retryPolicy(RetryPolicy.none()));
+        clientBuilder.overrideConfiguration(builder -> builder.retryStrategy(DefaultRetryStrategy.doNotRetry()));
         this.configureHttpClient(clientBuilder, context);
 
         if (region != null) {
@@ -316,22 +310,6 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
         }
     }
 
-    protected Region getRegion(final ProcessContext context) {
-        final Region region;
-        // if the processor supports REGION, get the configured region.
-        if (getSupportedPropertyDescriptors().contains(REGION)) {
-            final String regionValue = context.getProperty(REGION).getValue();
-            if (regionValue != null) {
-                region = Region.of(regionValue);
-            } else {
-                region = null;
-            }
-        } else {
-            region = null;
-        }
-        return region;
-    }
-
     protected void configureEndpoint(final ProcessContext context, final SdkClientBuilder<?, ?> clientBuilder, final PropertyDescriptor endpointOverrideDescriptor) {
         // if the endpoint override has been configured, set the endpoint.
         // (per Amazon docs this should only be configured at client creation)
@@ -353,22 +331,26 @@ public abstract class AbstractAwsProcessor<T extends SdkClient> extends Abstract
      * @return AwsCredentialsProvider the credential provider
      */
     protected AwsCredentialsProvider getCredentialsProvider(final ProcessContext context) {
-        final AWSCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
+        final AwsCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AwsCredentialsProviderService.class);
         return awsCredentialsProviderService.getAwsCredentialsProvider();
     }
 
-
-    protected T createClient(final ProcessContext context) {
-        return createClient(context, getRegion(context));
+    protected C createClient(final ProcessContext context, final Map<String, String> attributes) {
+        final Region region = getRegion(context, attributes);
+        return createClient(context, region);
     }
 
     /**
-     * Creates an AWS client using process context and AWS client details.
-     *
-     * @param context process context
-     * @param region  the AWS Region
-     * @return AWS client
+     * Construct the AWS client builder and perform any service-specific configuration of the builder.
+     * @param context The process context
+     * @return The AWS client builder
      */
-    protected abstract T createClient(final ProcessContext context, final Region region);
+    protected abstract B createClientBuilder(final ProcessContext context);
+
+    private C createClient(final ProcessContext context, final Region region) {
+        final B clientBuilder = createClientBuilder(context);
+        configureClientBuilder(clientBuilder, region, context, ENDPOINT_OVERRIDE);
+        return clientBuilder.build();
+    }
 
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.cloudwatch;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -266,7 +267,7 @@ public class TestPutCloudWatchMetric {
     @CsvSource({"null", "us-west-100", "us-east-a"})
     public void testInvalidRegion(String region) {
         runner.setProperty(PutCloudWatchMetric.VALUE, "6");
-        runner.setProperty(PutCloudWatchMetric.REGION, region);
+        runner.setProperty(RegionUtil.REGION, region);
         runner.assertNotValid();
     }
 
@@ -274,7 +275,7 @@ public class TestPutCloudWatchMetric {
     @CsvSource({"us-east-1", "us-west-1", "us-east-2"})
     public void testValidRegionRoutesToSuccess(String region) {
         runner.setProperty(PutCloudWatchMetric.VALUE, "6");
-        runner.setProperty(PutCloudWatchMetric.REGION, region);
+        runner.setProperty(RegionUtil.REGION, region);
         runner.assertValid();
 
         runner.enqueue(new byte[] {});
