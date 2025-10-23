@@ -85,11 +85,8 @@ class TestListDatabaseTables {
     }
 
     @Test
-    void testListTablesNoCount() throws Exception {
-        try (Statement stmt = createStatement()) {
-            stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-            stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
-        }
+    void testListTablesNoCount() throws SQLException {
+        createTables();
 
         runner.run();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
@@ -103,12 +100,8 @@ class TestListDatabaseTables {
     void testListTablesWithCount() throws Exception {
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
 
-        try (Statement stmt = createStatement()) {
-            stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-            stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
-            stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
-            stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
-        }
+        createTables();
+        insertFirstTableRows();
 
         runner.run();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
@@ -121,12 +114,8 @@ class TestListDatabaseTables {
     void testListTablesWithCountAsRecord() throws Exception {
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
 
-        try (Statement stmt = createStatement()) {
-            stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-            stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
-            stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
-            stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
-        }
+        createTables();
+        insertFirstTableRows();
 
         final MockRecordWriter recordWriter = new MockRecordWriter(null, false);
         runner.addControllerService("record-writer", recordWriter);
@@ -146,13 +135,8 @@ class TestListDatabaseTables {
 
     @Test
     void testListTablesAfterRefresh() throws Exception {
-
-        try (Statement stmt = createStatement()) {
-            stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-            stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
-            stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
-            stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
-        }
+        createTables();
+        insertFirstTableRows();
 
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
         runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "100 millis");
@@ -173,11 +157,8 @@ class TestListDatabaseTables {
 
     @Test
     void testListTablesMultipleRefresh() throws Exception {
-        try (Statement stmt = createStatement()) {
-            stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-            stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
-            stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
-        }
+        createFirstTable();
+        insertFirstTableRows();
 
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
         runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "200 millis");
@@ -189,9 +170,7 @@ class TestListDatabaseTables {
         runner.clearTransferState();
 
         // Add another table immediately, the first table should not be listed again but the second should
-        try (Statement stmt = createStatement()) {
-            stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
-        }
+        createSecondTable();
 
         runner.run();
         long endTimer = System.currentTimeMillis();
@@ -207,8 +186,36 @@ class TestListDatabaseTables {
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
     }
 
-    private Statement createStatement() throws SQLException {
-        final Connection connection = service.getConnection();
-        return connection.createStatement();
+    private void createTables() throws SQLException {
+        createFirstTable();
+        createSecondTable();
+    }
+
+    private void createFirstTable() throws SQLException {
+        try (
+                Connection connection = service.getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            statement.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
+        }
+    }
+
+    private void createSecondTable() throws SQLException {
+        try (
+                Connection connection = service.getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            statement.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+        }
+    }
+
+    private void insertFirstTableRows() throws SQLException {
+        try (
+                Connection connection = service.getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            statement.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
+            statement.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
+        }
     }
 }
