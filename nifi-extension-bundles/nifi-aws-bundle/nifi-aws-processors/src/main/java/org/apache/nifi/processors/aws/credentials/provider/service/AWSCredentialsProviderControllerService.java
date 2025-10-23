@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.Signer;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -36,8 +34,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.migration.ProxyServiceMigration;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.AccessKeyPairCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.AnonymousCredentialsStrategy;
@@ -53,17 +51,12 @@ import software.amazon.awssdk.regions.Region;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
 
-import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_V4_SIGNER;
-import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
-import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER;
-
 /**
- * Implementation of AWSCredentialsProviderService interface
+ * Implementation of AwsCredentialsProviderService interface
  *
- * @see AWSCredentialsProviderService
+ * @see AwsCredentialsProviderService
  */
 @CapabilityDescription("Defines credentials for Amazon Web Services processors. " +
         "Uses default credentials without configuration. " +
@@ -78,11 +71,17 @@ import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER
         )
     }
 )
-public class AWSCredentialsProviderControllerService extends AbstractControllerService implements AWSCredentialsProviderService {
+public class AWSCredentialsProviderControllerService extends AbstractControllerService implements AwsCredentialsProviderService {
 
     // Obsolete property names
     private static final String OBSOLETE_PROXY_HOST = "assume-role-proxy-host";
     private static final String OBSOLETE_PROXY_PORT = "assume-role-proxy-port";
+    private static final String OBSOLETE_ASSUME_ROLE_STS_SIGNER_OVERRIDE_1 = "assume-role-sts-signer-override";
+    private static final String OBSOLETE_ASSUME_ROLE_STS_SIGNER_OVERRIDE_2 = "Assume Role STS Signer Override";
+    private static final String OBSOLETE_ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME_1 = "custom-signer-class-name";
+    private static final String OBSOLETE_ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME_2 = "Custom Signer Class Name";
+    private static final String OBSOLETE_ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION_1 = "custom-signer-module-location";
+    private static final String OBSOLETE_ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION_2 = "Custom Signer Module Location";
 
     public static final PropertyDescriptor USE_DEFAULT_CREDENTIALS = new PropertyDescriptor.Builder()
         .name("Use Default Credentials")
@@ -206,16 +205,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .dependsOn(ASSUME_ROLE_ARN)
         .build();
 
-
-    public static final PropertyDescriptor ASSUME_ROLE_STS_SIGNER_OVERRIDE = new PropertyDescriptor.Builder()
-        .name("Assume Role STS Signer Override")
-        .description("The AWS STS library uses Signature Version 4 by default. This property allows you to plug in your own custom signer implementation.")
-        .required(false)
-        .allowableValues(EnumSet.of(DEFAULT_SIGNER, AWS_V4_SIGNER, CUSTOM_SIGNER))
-        .defaultValue(DEFAULT_SIGNER.getValue())
-        .dependsOn(ASSUME_ROLE_ARN)
-        .build();
-
     public static final PropertyDescriptor MAX_SESSION_TIME = new PropertyDescriptor.Builder()
         .name("Assume Role Session Time")
         .description("Session time for role based session (between 900 and 3600 seconds). This is used in conjunction with Assume Role ARN.")
@@ -224,26 +213,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .sensitive(false)
         .dependsOn(ASSUME_ROLE_ARN)
-        .build();
-
-    public static final PropertyDescriptor ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
-        .name("Custom Signer Class Name")
-        .description(String.format("Fully qualified class name of the custom signer class. The signer must implement %s interface.", Signer.class.getName()))
-        .required(true)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .dependsOn(ASSUME_ROLE_STS_SIGNER_OVERRIDE, CUSTOM_SIGNER)
-        .build();
-
-    public static final PropertyDescriptor ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION = new PropertyDescriptor.Builder()
-        .name("Custom Signer Module Location")
-        .description("Comma-separated list of paths to files and/or directories which contain the custom signer's JAR file and its dependencies (if any).")
-        .required(false)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-        .dependsOn(ASSUME_ROLE_STS_SIGNER_OVERRIDE, CUSTOM_SIGNER)
-        .dynamicallyModifiesClasspath(true)
         .build();
 
 
@@ -261,14 +230,10 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         ASSUME_ROLE_SSL_CONTEXT_SERVICE,
         ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE,
         ASSUME_ROLE_STS_REGION,
-        ASSUME_ROLE_STS_ENDPOINT,
-        ASSUME_ROLE_STS_SIGNER_OVERRIDE,
-        ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME,
-        ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION
+        ASSUME_ROLE_STS_ENDPOINT
     );
 
-    private volatile ConfigurationContext context;
-    private volatile AWSCredentialsProvider credentialsProvider;
+    private volatile AwsCredentialsProvider credentialsProvider;
 
     private final List<CredentialsStrategy> strategies = List.of(
         // Primary Credential Strategies
@@ -293,6 +258,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         ProxyServiceMigration.migrateProxyProperties(config, ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, null, null);
+
         config.renameProperty("default-credentials", USE_DEFAULT_CREDENTIALS.getName());
         config.renameProperty("profile-name", PROFILE_NAME.getName());
         config.renameProperty("Access Key", ACCESS_KEY_ID.getName());
@@ -303,21 +269,22 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         config.renameProperty("assume-role-ssl-context-service", ASSUME_ROLE_SSL_CONTEXT_SERVICE.getName());
         config.renameProperty("assume-role-proxy-configuration-service", ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE.getName());
         config.renameProperty("assume-role-sts-endpoint", ASSUME_ROLE_STS_ENDPOINT.getName());
-        config.renameProperty("assume-role-sts-signer-override", ASSUME_ROLE_STS_SIGNER_OVERRIDE.getName());
         config.renameProperty("Session Time", MAX_SESSION_TIME.getName());
-        config.renameProperty("custom-signer-class-name", ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME.getName());
-        config.renameProperty("custom-signer-module-location", ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION.getName());
 
-    }
-
-    @Override
-    public AWSCredentialsProvider getCredentialsProvider() throws ProcessException {
-        return credentialsProvider;
+        config.removeProperty(OBSOLETE_ASSUME_ROLE_STS_SIGNER_OVERRIDE_1);
+        config.removeProperty(OBSOLETE_ASSUME_ROLE_STS_SIGNER_OVERRIDE_2);
+        config.removeProperty(OBSOLETE_ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME_1);
+        config.removeProperty(OBSOLETE_ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME_2);
+        config.removeProperty(OBSOLETE_ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION_1);
+        config.removeProperty(OBSOLETE_ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION_2);
     }
 
     @Override
     public AwsCredentialsProvider getAwsCredentialsProvider() {
-        // Avoiding instantiation until actually used, in case v1-related configuration is not compatible with v2 clients
+        return credentialsProvider;
+    }
+
+    private AwsCredentialsProvider createCredentialsProvider(final PropertyContext context) {
         final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(context);
         final AwsCredentialsProvider primaryCredentialsProvider = primaryStrategy.getAwsCredentialsProvider(context);
         AwsCredentialsProvider derivedCredentialsProvider = null;
@@ -359,31 +326,9 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) {
-        this.context = context;
-
         credentialsProvider = createCredentialsProvider(context);
         getLogger().debug("Using credentials provider: {}", credentialsProvider.getClass());
     }
-
-    private AWSCredentialsProvider createCredentialsProvider(final PropertyContext propertyContext) {
-        final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(propertyContext);
-        AWSCredentialsProvider primaryCredentialsProvider = primaryStrategy.getCredentialsProvider(propertyContext);
-        AWSCredentialsProvider derivedCredentialsProvider = null;
-
-        for (CredentialsStrategy strategy : strategies) {
-            if (strategy.canCreateDerivedCredential(propertyContext)) {
-                derivedCredentialsProvider = strategy.getDerivedCredentialsProvider(propertyContext, primaryCredentialsProvider);
-                break;
-            }
-        }
-
-        if (derivedCredentialsProvider != null) {
-            return derivedCredentialsProvider;
-        } else {
-            return primaryCredentialsProvider;
-        }
-    }
-
 
     public static AllowableValue[] getAvailableRegions() {
         final List<AllowableValue> values = new ArrayList<>();
@@ -402,6 +347,6 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     @Override
     public String toString() {
-        return "AWSCredentialsProviderService[id=" + getIdentifier() + "]";
+        return "AWSCredentialsProviderControllerService[id=" + getIdentifier() + "]";
     }
 }

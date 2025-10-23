@@ -17,15 +17,10 @@
 
 package org.apache.nifi.processors.aws.s3.service;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -36,10 +31,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.util.Map;
 
-import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
+import static org.apache.nifi.processors.aws.AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,25 +57,26 @@ class S3FileResourceServiceTest {
     private static final long CONTENT_LENGTH = 10L;
 
     @Mock
-    private AmazonS3 client;
+    private S3Client client;
 
     @Mock
-    private S3Object s3Object;
+    private ResponseInputStream<GetObjectResponse> responseStream;
 
     @Mock
-    private ObjectMetadata metadata;
-
-    @Mock
-    private S3ObjectInputStream inputStream;
+    private GetObjectResponse response;
 
     @InjectMocks
     private TestS3FileResourceService service;
     private TestRunner runner;
 
+    private GetObjectRequest request;
+
     @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("S3FileResourceService", service);
+
+        request = GetObjectRequest.builder().bucket(BUCKET_NAME).key(KEY).build();
     }
 
     @Test
@@ -88,11 +90,11 @@ class S3FileResourceServiceTest {
 
     @Test
     void testNonExistingObject() throws InitializationException {
-        when(client.doesObjectExist(BUCKET_NAME, KEY)).thenReturn(false);
+        when(client.getObject(request)).thenThrow(NoSuchKeyException.builder().build());
         setupService();
 
         assertThrows(ProcessException.class, () -> service.getFileResource(Map.of()), "Failed to fetch s3 object");
-        verify(client).doesObjectExist(BUCKET_NAME, KEY);
+        verify(client).getObject(request);
         verifyNoMoreInteractions(client);
     }
 
@@ -120,13 +122,11 @@ class S3FileResourceServiceTest {
 
     private void assertFileResource(FileResource fileResource) {
         assertNotNull(fileResource);
-        assertEquals(fileResource.getInputStream(), inputStream);
+        assertEquals(fileResource.getInputStream(), responseStream);
         assertEquals(fileResource.getSize(), CONTENT_LENGTH);
-        verify(client).doesObjectExist(BUCKET_NAME, KEY);
-        verify(client).getObject(BUCKET_NAME, KEY);
-        verify(s3Object).getObjectMetadata();
-        verify(metadata).getContentLength();
-        verify(s3Object).getObjectContent();
+        verify(client).getObject(request);
+        verify(responseStream).response();
+        verify(response).contentLength();
     }
 
     private void setupService() throws InitializationException {
@@ -134,7 +134,7 @@ class S3FileResourceServiceTest {
     }
 
     private void setupService(String bucket, String key) throws InitializationException {
-        final AWSCredentialsProviderService credentialsService = new AWSCredentialsProviderControllerService();
+        final AwsCredentialsProviderService credentialsService = new AWSCredentialsProviderControllerService();
 
         runner.addControllerService(CONTROLLER_SERVICE, credentialsService);
         runner.enableControllerService(credentialsService);
@@ -147,23 +147,21 @@ class S3FileResourceServiceTest {
     }
 
     private void setupS3Client() {
-        when(client.doesObjectExist(BUCKET_NAME, KEY)).thenReturn(true);
-        when(client.getObject(BUCKET_NAME, KEY)).thenReturn(s3Object);
-        when(s3Object.getObjectContent()).thenReturn(inputStream);
-        when(s3Object.getObjectMetadata()).thenReturn(metadata);
-        when(metadata.getContentLength()).thenReturn(CONTENT_LENGTH);
+        when(client.getObject(request)).thenReturn(responseStream);
+        when(responseStream.response()).thenReturn(response);
+        when(response.contentLength()).thenReturn(CONTENT_LENGTH);
     }
 
     private static class TestS3FileResourceService extends S3FileResourceService {
 
-        private final AmazonS3 client;
+        private final S3Client client;
 
-        private TestS3FileResourceService(AmazonS3 client) {
+        private TestS3FileResourceService(S3Client client) {
             this.client = client;
         }
 
         @Override
-        protected AmazonS3 getS3Client(Map<String, String> attributes, AWSCredentialsProvider credentialsProvider) {
+        protected S3Client getS3Client(Map<String, String> attributes, AwsCredentialsProvider credentialsProvider) {
             return client;
         }
     }

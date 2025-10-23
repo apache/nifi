@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -54,6 +53,7 @@ import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobSta
 import static org.apache.nifi.processors.aws.ml.textract.TextractType.DOCUMENT_ANALYSIS;
 import static org.apache.nifi.processors.aws.ml.textract.TextractType.DOCUMENT_TEXT_DETECTION;
 import static org.apache.nifi.processors.aws.ml.textract.TextractType.EXPENSE_ANALYSIS;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -322,7 +322,7 @@ public class StartAwsTextractJobStatusTest {
     @Test
     void testMigration() {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expected = Map.of("aws-region", AbstractAwsProcessor.REGION.getName(),
+        final Map<String, String> expected = Map.of("aws-region", REGION.getName(),
                 "json-payload", AbstractAwsMachineLearningJobStarter.JSON_PAYLOAD.getName(),
                 "textract-type", StartAwsTextractJob.TEXTRACT_TYPE.getName());
 

@@ -16,45 +16,49 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
-import org.apache.nifi.processors.aws.util.RegionUtilV1;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.encryption.s3.S3EncryptionClient;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 
 @Tags({"service", "aws", "s3", "encryption", "encrypt", "decryption", "decrypt", "key"})
 @CapabilityDescription("Adds configurable encryption to S3 Put and S3 Fetch operations.")
 public class StandardS3EncryptionService extends AbstractControllerService implements AmazonS3EncryptionService {
     private static final Logger logger = LoggerFactory.getLogger(StandardS3EncryptionService.class);
+
+    private static final String OBSOLETE_ENCRYPTION_VALUE_1 = "key-id-or-key-material";
+    private static final String OBSOLETE_ENCRYPTION_VALUE_2 = "Key ID or Key Material";
+    private static final String OBSOLETE_KMS_REGION_1 = "kms-region";
+    private static final String OBSOLETE_KMS_REGION_2 = "KMS Region";
 
     private static final Map<String, S3EncryptionStrategy> NAMED_STRATEGIES = Map.of(
             STRATEGY_NAME_NONE, new NoOpEncryptionStrategy(),
@@ -88,43 +92,41 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .defaultValue(NONE.getValue())
             .build();
 
-    public static final PropertyDescriptor ENCRYPTION_VALUE = new PropertyDescriptor.Builder()
-            .name("Key ID or Key Material")
-            .description("For None and Server-side S3: not used. For Server-side KMS and Client-side KMS: the KMS Key ID must be configured. " +
-                    "For Server-side Customer Key and Client-side Customer Key: the Key Material must be specified in Base64 encoded form. " +
+    public static final PropertyDescriptor KMS_KEY_ID = new PropertyDescriptor.Builder()
+            .name("KMS Key ID")
+            .description("The ID (ARN) of the KMS key used for Server-side or Client-side KMS encryption.")
+            .required(true)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .dependsOn(ENCRYPTION_STRATEGY, SSE_KMS, CSE_KMS)
+            .build();
+
+    public static final PropertyDescriptor KEY_MATERIAL = new PropertyDescriptor.Builder()
+            .name("Key Material")
+            .description("The key material used for Server-side or Client-side Customer Key encryption. The Key Material must be specified in Base64 encoded form. " +
                     "In case of Server-side Customer Key, the key must be an AES-256 key. In case of Client-side Customer Key, it can be an AES-256, AES-192 or AES-128 key.")
-            .required(false)
+            .required(true)
             .sensitive(true)
             .addValidator(Validator.VALID) // will be validated in customValidate()
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .build();
-
-    public static final PropertyDescriptor KMS_REGION = new PropertyDescriptor.Builder()
-            .name("KMS Region")
-            .description("The Region of the AWS Key Management Service. Only used in case of Client-side KMS.")
-            .required(false)
-            .allowableValues(RegionUtilV1.getAvailableRegions())
-            .defaultValue(RegionUtilV1.createAllowableValue(Regions.DEFAULT_REGION).getValue())
+            .dependsOn(ENCRYPTION_STRATEGY, SSE_C, CSE_C)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-       ENCRYPTION_STRATEGY,
-       ENCRYPTION_VALUE,
-       KMS_REGION
+            ENCRYPTION_STRATEGY,
+            KMS_KEY_ID,
+            KEY_MATERIAL
     );
 
-    private String keyValue = "";
-    private String kmsRegion = "";
+    private S3EncryptionKeySpec keySpec;
     private S3EncryptionStrategy encryptionStrategy = new NoOpEncryptionStrategy();
     private String strategyName = STRATEGY_NAME_NONE;
 
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
         final String newStrategyName = context.getProperty(ENCRYPTION_STRATEGY).getValue();
-        final String newKeyValue = context.getProperty(ENCRYPTION_VALUE).evaluateAttributeExpressions().getValue();
         final S3EncryptionStrategy newEncryptionStrategy = NAMED_STRATEGIES.get(newStrategyName);
-
-        kmsRegion = context.getProperty(KMS_REGION).getValue();
 
         if (newEncryptionStrategy == null) {
             final String msg = "No encryption strategy found for name: " + strategyName;
@@ -134,58 +136,19 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
 
         strategyName = newStrategyName;
         encryptionStrategy = newEncryptionStrategy;
-        keyValue = newKeyValue;
+        keySpec = createKeySpec(context, newStrategyName);
     }
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        Collection<ValidationResult> validationResults = new ArrayList<>();
+        final Collection<ValidationResult> validationResults = new ArrayList<>();
 
-        String encryptionStrategyName = validationContext.getProperty(ENCRYPTION_STRATEGY).getValue();
-        String encryptionStrategyDisplayName = ENCRYPTION_STRATEGY_ALLOWABLE_VALUES.get(encryptionStrategyName).getDisplayName();
-        PropertyValue encryptionValueProperty = validationContext.getProperty(ENCRYPTION_VALUE);
-        String encryptionValue = encryptionValueProperty.evaluateAttributeExpressions().getValue();
+        final String encryptionStrategyName = validationContext.getProperty(ENCRYPTION_STRATEGY).getValue();
+        final S3EncryptionStrategy encryptionStrategy = NAMED_STRATEGIES.get(encryptionStrategyName);
 
-        switch (encryptionStrategyName) {
-            case STRATEGY_NAME_NONE:
-            case STRATEGY_NAME_SSE_S3:
-                if (encryptionValueProperty.isSet()) {
-                    validationResults.add(new ValidationResult.Builder()
-                            .subject(ENCRYPTION_VALUE.getDisplayName())
-                            .valid(false)
-                            .explanation("the property cannot be specified for encryption strategy " + encryptionStrategyDisplayName)
-                            .build()
-                    );
-                }
-                break;
-            case STRATEGY_NAME_SSE_KMS:
-            case STRATEGY_NAME_CSE_KMS:
-                if (StringUtils.isEmpty(encryptionValue)) {
-                    validationResults.add(new ValidationResult.Builder()
-                            .subject(ENCRYPTION_VALUE.getDisplayName())
-                            .valid(false)
-                            .explanation("a non-empty Key ID must be specified for encryption strategy " + encryptionStrategyDisplayName)
-                            .build()
-                    );
-                }
-                break;
-            case STRATEGY_NAME_SSE_C:
-            case STRATEGY_NAME_CSE_C:
-                if (StringUtils.isEmpty(encryptionValue)) {
-                    validationResults.add(new ValidationResult.Builder()
-                            .subject(ENCRYPTION_VALUE.getDisplayName())
-                            .valid(false)
-                            .explanation("a non-empty Key Material must be specified for encryption strategy " + encryptionStrategyDisplayName)
-                            .build()
-                    );
-                } else {
-                    S3EncryptionStrategy encryptionStrategy = NAMED_STRATEGIES.get(encryptionStrategyName);
-                    String keyIdOrMaterial = validationContext.getProperty(ENCRYPTION_VALUE).evaluateAttributeExpressions().getValue();
+        final S3EncryptionKeySpec keySpec = createKeySpec(validationContext, encryptionStrategyName);
 
-                    validationResults.add(encryptionStrategy.validateKey(keyIdOrMaterial));
-                }
-                break;
-        }
+        validationResults.add(encryptionStrategy.validateKeySpec(keySpec));
 
         return validationResults;
     }
@@ -198,38 +161,60 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("encryption-strategy", ENCRYPTION_STRATEGY.getName());
-        config.renameProperty("key-id-or-key-material", ENCRYPTION_VALUE.getName());
-        config.renameProperty("kms-region", KMS_REGION.getName());
+
+        migrateEncryptionValue(config);
+
+        config.removeProperty(OBSOLETE_KMS_REGION_1);
+        config.removeProperty(OBSOLETE_KMS_REGION_2);
+    }
+
+    private void migrateEncryptionValue(PropertyConfiguration config) {
+        final String propertyName;
+        if (config.hasProperty(OBSOLETE_ENCRYPTION_VALUE_1)) {
+            propertyName = OBSOLETE_ENCRYPTION_VALUE_1;
+        } else if (config.hasProperty(OBSOLETE_ENCRYPTION_VALUE_2)) {
+            propertyName = OBSOLETE_ENCRYPTION_VALUE_2;
+        } else {
+            propertyName = null;
+        }
+
+        if (propertyName != null) {
+            config.getPropertyValue(propertyName).ifPresent(encryptionValue -> {
+                final String strategyName = config.getPropertyValue(ENCRYPTION_STRATEGY).orElse(STRATEGY_NAME_NONE);
+
+                switch (strategyName) {
+                    case STRATEGY_NAME_SSE_KMS, STRATEGY_NAME_CSE_KMS -> config.setProperty(KMS_KEY_ID, encryptionValue);
+                    case STRATEGY_NAME_SSE_C, STRATEGY_NAME_CSE_C -> config.setProperty(KEY_MATERIAL, encryptionValue);
+                }
+            });
+
+            config.removeProperty(propertyName);
+        }
     }
 
     @Override
-    public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata) {
-        encryptionStrategy.configurePutObjectRequest(request, objectMetadata, keyValue);
+    public void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder) {
+        encryptionStrategy.configurePutObjectRequest(requestBuilder, keySpec);
     }
 
     @Override
-    public void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata) {
-        encryptionStrategy.configureInitiateMultipartUploadRequest(request, objectMetadata, keyValue);
+    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder) {
+        encryptionStrategy.configureCreateMultipartUploadRequest(requestBuilder, keySpec);
     }
 
     @Override
-    public void configureGetObjectRequest(GetObjectRequest request, ObjectMetadata objectMetadata) {
-        encryptionStrategy.configureGetObjectRequest(request, objectMetadata, keyValue);
+    public void configureGetObjectRequest(GetObjectRequest.Builder requestBuilder) {
+        encryptionStrategy.configureGetObjectRequest(requestBuilder, keySpec);
     }
 
     @Override
-    public void configureUploadPartRequest(UploadPartRequest request, ObjectMetadata objectMetadata) {
-        encryptionStrategy.configureUploadPartRequest(request, objectMetadata, keyValue);
+    public void configureUploadPartRequest(UploadPartRequest.Builder requestBuilder) {
+        encryptionStrategy.configureUploadPartRequest(requestBuilder, keySpec);
     }
 
     @Override
-    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder) {
-        return encryptionStrategy.createEncryptionClient(clientBuilder, kmsRegion, keyValue);
-    }
-
-    @Override
-    public String getKmsRegion() {
-        return kmsRegion;
+    public S3EncryptionClient.Builder createEncryptionClientBuilder() {
+        return encryptionStrategy.createEncryptionClientBuilder(keySpec);
     }
 
     @Override
@@ -240,6 +225,34 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     @Override
     public String getStrategyDisplayName() {
         return ENCRYPTION_STRATEGY_ALLOWABLE_VALUES.get(strategyName).getDisplayName();
+    }
+
+    private S3EncryptionKeySpec createKeySpec(final PropertyContext context, final String encryptionStrategyName) {
+        switch (encryptionStrategyName) {
+            case STRATEGY_NAME_NONE:
+            case STRATEGY_NAME_SSE_S3:
+                return new S3EncryptionKeySpec(null, null, null);
+            case STRATEGY_NAME_SSE_KMS:
+            case STRATEGY_NAME_CSE_KMS:
+                final String kmsKeyId = context.getProperty(KMS_KEY_ID).evaluateAttributeExpressions().getValue();
+                return new S3EncryptionKeySpec(kmsKeyId, null, null);
+            case STRATEGY_NAME_SSE_C:
+            case STRATEGY_NAME_CSE_C:
+                final String keyMaterial = context.getProperty(KEY_MATERIAL).evaluateAttributeExpressions().getValue();
+                final String keyMaterialMd5;
+                try {
+                    keyMaterialMd5 = Base64.getEncoder().encodeToString(
+                            MessageDigest.getInstance("MD5").digest(
+                                    Base64.getDecoder().decode(keyMaterial)
+                            )
+                    );
+                } catch (NoSuchAlgorithmException e) {
+                    throw new ProcessException("Failed to calculate MD5 hash for Key Material", e);
+                }
+                return new S3EncryptionKeySpec(null, keyMaterial, keyMaterialMd5);
+            default:
+                throw new IllegalArgumentException("Unknown encryption strategy: " + encryptionStrategyName);
+        }
     }
 }
 

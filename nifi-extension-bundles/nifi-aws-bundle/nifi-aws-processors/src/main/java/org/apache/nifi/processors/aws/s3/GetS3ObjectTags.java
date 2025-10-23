@@ -17,12 +17,6 @@
 
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.Tag;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -32,12 +26,18 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.s3.api.TagsTarget;
-import org.apache.nifi.util.StringUtils;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -45,7 +45,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION_WITH_FF_EL;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.nullIfBlank;
 
 @Tags({"Amazon", "S3", "AWS", "Archive", "Exists"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -87,17 +89,11 @@ public class GetS3ObjectTags extends AbstractS3Processor {
             KEY,
             VERSION_ID,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
-            S3_REGION,
+            REGION,
+            CUSTOM_REGION_WITH_FF_EL,
             TIMEOUT,
-            FULL_CONTROL_USER_LIST,
-            READ_USER_LIST,
-            READ_ACL_LIST,
-            OWNER,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
-            SIGNER_OVERRIDE,
-            S3_CUSTOM_SIGNER_CLASS_NAME,
-            S3_CUSTOM_SIGNER_MODULE_LOCATION,
             PROXY_CONFIGURATION_SERVICE
     );
 
@@ -132,15 +128,25 @@ public class GetS3ObjectTags extends AbstractS3Processor {
     }
 
     @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+
+        config.removeProperty(FULL_CONTROL_USER_LIST.getName());
+        config.removeProperty(READ_USER_LIST.getName());
+        config.removeProperty(READ_ACL_LIST.getName());
+        config.removeProperty(OBSOLETE_OWNER);
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        final AmazonS3Client s3;
+        final S3Client client;
         try {
-            s3 = getS3Client(context, flowFile.getAttributes());
+            client = getClient(context, flowFile.getAttributes());
         } catch (Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
@@ -166,30 +172,34 @@ public class GetS3ObjectTags extends AbstractS3Processor {
             Relationship relationship;
 
             try {
-                final GetObjectTaggingRequest objectTaggingRequest = new GetObjectTaggingRequest(bucket, key, StringUtils.isNotBlank(version) ? version : null);
-                final GetObjectTaggingResult objectTags = s3.getObjectTagging(objectTaggingRequest);
+                final GetObjectTaggingRequest request = GetObjectTaggingRequest.builder()
+                        .bucket(bucket)
+                        .key(key)
+                        .versionId(nullIfBlank(version))
+                        .build();
+                final GetObjectTaggingResponse response = client.getObjectTagging(request);
 
                 if (TagsTarget.ATTRIBUTES == tagsTarget) {
-                    final Map<String, String> newAttributes = objectTags
-                            .getTagSet().stream()
+                    final Map<String, String> newAttributes = response
+                            .tagSet().stream()
                             .filter(tag -> {
                                 if (attributePattern == null) {
                                     return true;
                                 } else {
-                                    return attributePattern.matcher(tag.getKey()).find();
+                                    return attributePattern.matcher(tag.key()).find();
                                 }
                             })
-                            .collect(Collectors.toMap(tag -> ATTRIBUTE_FORMAT.formatted(tag.getKey()), Tag::getValue));
+                            .collect(Collectors.toMap(tag -> ATTRIBUTE_FORMAT.formatted(tag.key()), Tag::value));
 
                     flowFile = session.putAllAttributes(flowFile, newAttributes);
                 } else if (TagsTarget.FLOWFILE_BODY == tagsTarget) {
                     flowFile = session.write(flowFile, outputStream ->
-                            MAPPER.writeValue(outputStream, objectTags.getTagSet().stream().collect(Collectors.toMap(Tag::getKey, Tag::getValue))));
+                            MAPPER.writeValue(outputStream, response.tagSet().stream().collect(Collectors.toMap(Tag::key, Tag::value))));
                 }
 
                 relationship = REL_FOUND;
-            } catch (final AmazonS3Exception e) {
-                if (e.getStatusCode() == 404) {
+            } catch (final S3Exception e) {
+                if (e.statusCode() == 404) {
                     relationship = REL_NOT_FOUND;
                     flowFile = extractExceptionDetails(e, session, flowFile);
                 } else {
@@ -198,7 +208,7 @@ public class GetS3ObjectTags extends AbstractS3Processor {
             }
 
             session.transfer(flowFile, relationship);
-        } catch (final IllegalArgumentException | AmazonClientException e) {
+        } catch (final IllegalArgumentException | SdkException e) {
             getLogger().error("Failed to get S3 Object Tags from Bucket [{}] Key [{}] Version [{}]", bucket, key, version, e);
             flowFile = extractExceptionDetails(e, session, flowFile);
             session.transfer(flowFile, REL_FAILURE);

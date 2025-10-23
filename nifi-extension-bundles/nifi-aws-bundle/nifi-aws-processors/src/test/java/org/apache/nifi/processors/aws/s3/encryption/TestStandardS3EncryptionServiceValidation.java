@@ -29,7 +29,7 @@ import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATE
 import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_SSE_C;
 import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS;
 import static org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3;
-import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createKey;
+import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createCustomerKey;
 
 public class TestStandardS3EncryptionServiceValidation {
 
@@ -48,30 +48,9 @@ public class TestStandardS3EncryptionServiceValidation {
 
     @Test
     public void testValidNoOpEncryptionStrategy() {
-        configureService(STRATEGY_NAME_NONE, null);
+        configureService(STRATEGY_NAME_NONE, null, null);
 
         runner.assertValid(service);
-    }
-
-    @Test
-    public void testInvalidNoOpEncryptionStrategyBecauseKeyIdOrMaterialSpecified() {
-        configureService(STRATEGY_NAME_NONE, "key-id");
-
-        runner.assertNotValid(service);
-    }
-
-    @Test
-    public void testInvalidNoOpEncryptionStrategyBecauseKeyIdOrMaterialSpecifiedAsEmptyString() {
-        configureService(STRATEGY_NAME_NONE, "");
-
-        runner.assertNotValid(service);
-    }
-
-    @Test
-    public void testInvalidNoOpEncryptionStrategyBecauseKeyIdOrMaterialSpecifiedUsingEL() {
-        configureService(STRATEGY_NAME_NONE, "${key-id-var}");
-
-        runner.assertNotValid(service);
     }
 
 
@@ -79,30 +58,9 @@ public class TestStandardS3EncryptionServiceValidation {
 
     @Test
     public void testValidServerSideS3EncryptionStrategy() {
-        configureService(STRATEGY_NAME_SSE_S3, null);
+        configureService(STRATEGY_NAME_SSE_S3, null, null);
 
         runner.assertValid(service);
-    }
-
-    @Test
-    public void testInvalidServerSideS3EncryptionStrategyBecauseKeyIdOrMaterialSpecified() {
-        configureService(STRATEGY_NAME_SSE_S3, "key-id");
-
-        runner.assertNotValid(service);
-    }
-
-    @Test
-    public void testInvalidServerSideS3EncryptionStrategyBecauseKeyIdOrMaterialSpecifiedAsEmptyString() {
-        configureService(STRATEGY_NAME_SSE_S3, "");
-
-        runner.assertNotValid(service);
-    }
-
-    @Test
-    public void testInvalidServerSideS3EncryptionStrategyBecauseKeyIdOrMaterialSpecifiedUsingEL() {
-        configureService(STRATEGY_NAME_SSE_S3, "${key-id-var}");
-
-        runner.assertNotValid(service);
     }
 
 
@@ -110,14 +68,14 @@ public class TestStandardS3EncryptionServiceValidation {
 
     @Test
     public void testValidServerSideKMSEncryptionStrategy() {
-        configureService(STRATEGY_NAME_SSE_KMS, "key-id");
+        configureService(STRATEGY_NAME_SSE_KMS, "key-id", null);
 
         runner.assertValid(service);
     }
 
     @Test
     public void testValidServerSideKMSEncryptionStrategyUsingEL() {
-        configureService(STRATEGY_NAME_SSE_KMS, "${key-id-var}");
+        configureService(STRATEGY_NAME_SSE_KMS, "${key-id-var}", null);
         configureVariable("key-id-var", "key-id");
 
         runner.assertValid(service);
@@ -125,28 +83,28 @@ public class TestStandardS3EncryptionServiceValidation {
 
     @Test
     public void testInvalidServerSideKMSEncryptionStrategyBecauseKeyIdNotSpecified() {
-        configureService(STRATEGY_NAME_SSE_KMS, null);
+        configureService(STRATEGY_NAME_SSE_KMS, null, null);
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidServerSideKMSEncryptionStrategyBecauseKeyIdSpecifiedAsEmptyString() {
-        configureService(STRATEGY_NAME_SSE_KMS, "");
+        configureService(STRATEGY_NAME_SSE_KMS, "", null);
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidServerSideKMSEncryptionStrategyBecauseKeyIdEvaluatedToNull() {
-        configureService(STRATEGY_NAME_SSE_KMS, "${key-id-var}");
+        configureService(STRATEGY_NAME_SSE_KMS, "${key-id-var}", null);
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidServerSideKMSEncryptionStrategyBecauseKeyIdEvaluatedToEmptyString() {
-        configureService(STRATEGY_NAME_SSE_KMS, "${key-id-var}");
+        configureService(STRATEGY_NAME_SSE_KMS, "${key-id-var}", null);
         configureVariable("key-id-var", "");
 
         runner.assertNotValid(service);
@@ -157,43 +115,43 @@ public class TestStandardS3EncryptionServiceValidation {
 
     @Test
     public void testValidServerSideCEncryptionStrategy() {
-        configureService(STRATEGY_NAME_SSE_C, createKey(256));
+        configureService(STRATEGY_NAME_SSE_C, null, createCustomerKey(256));
 
         runner.assertValid(service);
     }
 
     @Test
     public void testValidServerSideCEncryptionStrategyUsingEL() {
-        configureService(STRATEGY_NAME_SSE_C, "${key-material-var}");
-        configureVariable("key-material-var", createKey(256));
+        configureService(STRATEGY_NAME_SSE_C, null, "${key-material-var}");
+        configureVariable("key-material-var", createCustomerKey(256));
 
         runner.assertValid(service);
     }
 
     @Test
     public void testInvalidServerSideCEncryptionStrategyBecauseKeyMaterialNotSpecified() {
-        configureService(STRATEGY_NAME_SSE_C, null);
+        configureService(STRATEGY_NAME_SSE_C, null, null);
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidServerSideCEncryptionStrategyBecauseKeyMaterialSpecifiedAsEmptyString() {
-        configureService(STRATEGY_NAME_SSE_C, "");
+        configureService(STRATEGY_NAME_SSE_C, null, "");
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidServerSideCEncryptionStrategyBecauseKeyMaterialEvaluatedToNull() {
-        configureService(STRATEGY_NAME_SSE_C, "${key-material-var}");
+        configureService(STRATEGY_NAME_SSE_C, null, "${key-material-var}");
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidServerSideCEncryptionStrategyBecauseKeyMaterialEvaluatedToEmptyString() {
-        configureService(STRATEGY_NAME_SSE_C, "${key-material-var}");
+        configureService(STRATEGY_NAME_SSE_C, null, "${key-material-var}");
         configureVariable("key-material-var", "");
 
         runner.assertNotValid(service);
@@ -204,14 +162,14 @@ public class TestStandardS3EncryptionServiceValidation {
 
     @Test
     public void testValidClientSideKMSEncryptionStrategy() {
-        configureService(STRATEGY_NAME_CSE_KMS, "key-id");
+        configureService(STRATEGY_NAME_CSE_KMS, "key-id", null);
 
         runner.assertValid(service);
     }
 
     @Test
     public void testValidClientSideKMSEncryptionStrategyUsingEL() {
-        configureService(STRATEGY_NAME_CSE_KMS, "${key-id-var}");
+        configureService(STRATEGY_NAME_CSE_KMS, "${key-id-var}", null);
         configureVariable("key-id-var", "key-id");
 
         runner.assertValid(service);
@@ -219,28 +177,28 @@ public class TestStandardS3EncryptionServiceValidation {
 
     @Test
     public void testInvalidClientSideKMSEncryptionStrategyBecauseKeyIdNotSpecified() {
-        configureService(STRATEGY_NAME_CSE_KMS, null);
+        configureService(STRATEGY_NAME_CSE_KMS, null, null);
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidClientSideKMSEncryptionStrategyBecauseKeyIdSpecifiedAsEmptyString() {
-        configureService(STRATEGY_NAME_CSE_KMS, "");
+        configureService(STRATEGY_NAME_CSE_KMS, "", null);
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidClientSideKMSEncryptionStrategyBecauseKeyIdEvaluatedToNull() {
-        configureService(STRATEGY_NAME_CSE_KMS, "${key-id-var}");
+        configureService(STRATEGY_NAME_CSE_KMS, "${key-id-var}", null);
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidClientSideKMSEncryptionStrategyBecauseKeyIdEvaluatedToEmptyString() {
-        configureService(STRATEGY_NAME_CSE_KMS, "${key-id-var}");
+        configureService(STRATEGY_NAME_CSE_KMS, "${key-id-var}", null);
         configureVariable("key-id-var", "");
 
         runner.assertNotValid(service);
@@ -251,53 +209,56 @@ public class TestStandardS3EncryptionServiceValidation {
 
     @Test
     public void testValidClientSideCEncryptionStrategy() {
-        configureService(STRATEGY_NAME_CSE_C, createKey(256));
+        configureService(STRATEGY_NAME_CSE_C, null, createCustomerKey(256));
 
         runner.assertValid(service);
     }
 
     @Test
     public void testValidClientSideCEncryptionStrategyUsingEL() {
-        configureService(STRATEGY_NAME_CSE_C, "${key-material-var}");
-        configureVariable("key-material-var", createKey(256));
+        configureService(STRATEGY_NAME_CSE_C, null, "${key-material-var}");
+        configureVariable("key-material-var", createCustomerKey(256));
 
         runner.assertValid(service);
     }
 
     @Test
     public void testInvalidClientSideCEncryptionStrategyBecauseKeyMaterialNotSpecified() {
-        configureService(STRATEGY_NAME_CSE_C, null);
+        configureService(STRATEGY_NAME_CSE_C, null, null);
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidClientSideCEncryptionStrategyBecauseKeyMaterialSpecifiedAsEmptyString() {
-        configureService(STRATEGY_NAME_CSE_C, "");
+        configureService(STRATEGY_NAME_CSE_C, null, "");
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidClientSideCEncryptionStrategyBecauseKeyMaterialEvaluatedToNull() {
-        configureService(STRATEGY_NAME_CSE_C, "${key-material-var}");
+        configureService(STRATEGY_NAME_CSE_C, null, "${key-material-var}");
 
         runner.assertNotValid(service);
     }
 
     @Test
     public void testInvalidClientSideCEncryptionStrategyBecauseKeyMaterialEvaluatedToEmptyString() {
-        configureService(STRATEGY_NAME_CSE_C, "${key-material-var}");
+        configureService(STRATEGY_NAME_CSE_C, null, "${key-material-var}");
         configureVariable("key-material-var", "");
 
         runner.assertNotValid(service);
     }
 
 
-    private void configureService(String encryptionStrategy, String keyIdOrMaterial) {
+    private void configureService(String encryptionStrategy, String keyId, String keyMaterial) {
         runner.setProperty(service, StandardS3EncryptionService.ENCRYPTION_STRATEGY, encryptionStrategy);
-        if (keyIdOrMaterial != null) {
-            runner.setProperty(service, StandardS3EncryptionService.ENCRYPTION_VALUE, keyIdOrMaterial);
+        if (keyId != null) {
+            runner.setProperty(service, StandardS3EncryptionService.KMS_KEY_ID, keyId);
+        }
+        if (keyMaterial != null) {
+            runner.setProperty(service, StandardS3EncryptionService.KEY_MATERIAL, keyMaterial);
         }
     }
 

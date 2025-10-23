@@ -16,16 +16,9 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.regions.RegionUtils;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2Builder;
-import com.amazonaws.services.s3.model.CryptoConfigurationV2;
-import com.amazonaws.services.s3.model.KMSEncryptionMaterialsProvider;
 import org.apache.commons.lang3.StringUtils;
-
-import java.util.function.Consumer;
+import org.apache.nifi.components.ValidationResult;
+import software.amazon.encryption.s3.S3EncryptionClient;
 
 /**
  * This strategy uses KMS key id to perform client-side encryption.  Use this strategy when you want the client to perform the encryption,
@@ -35,27 +28,22 @@ import java.util.function.Consumer;
  *
  */
 public class ClientSideKMSEncryptionStrategy implements S3EncryptionStrategy {
-    /**
-     * Create an encryption client.
-     *
-     * @param clientBuilder A consumer that is responsible for configuring the client builder
-     * @param kmsRegion AWS KMS region
-     * @param keyIdOrMaterial KMS key id
-     * @return AWS S3 client
-     */
     @Override
-    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
-        final KMSEncryptionMaterialsProvider encryptionMaterialsProvider = new KMSEncryptionMaterialsProvider(keyIdOrMaterial);
+    public S3EncryptionClient.Builder createEncryptionClientBuilder(S3EncryptionKeySpec keySpec) {
+        return S3EncryptionClient.builder()
+                .kmsKeyId(keySpec.kmsId());
+    }
 
-        final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();
-        if (StringUtils.isNotBlank(kmsRegion)) {
-            cryptoConfig.setAwsKmsRegion(RegionUtils.getRegion(kmsRegion));
+    @Override
+    public ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
+        if (StringUtils.isBlank(keySpec.kmsId())) {
+            return new ValidationResult.Builder()
+                    .subject("KMS Key ID")
+                    .valid(false)
+                    .explanation("it is empty")
+                    .build();
         }
 
-        final AmazonS3EncryptionClientV2Builder builder = AmazonS3EncryptionClientV2.encryptionBuilder()
-                .withCryptoConfiguration(cryptoConfig)
-                .withEncryptionMaterialsProvider(encryptionMaterialsProvider);
-        clientBuilder.accept(builder);
-        return builder.build();
+        return new ValidationResult.Builder().valid(true).build();
     }
 }

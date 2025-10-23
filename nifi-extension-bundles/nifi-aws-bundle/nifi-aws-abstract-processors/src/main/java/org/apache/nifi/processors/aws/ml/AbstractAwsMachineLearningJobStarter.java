@@ -31,12 +31,12 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.awscore.AwsClient;
 import software.amazon.awssdk.awscore.AwsRequest;
 import software.amazon.awssdk.awscore.AwsResponse;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
 import software.amazon.awssdk.awscore.client.builder.AwsSyncClientBuilder;
-import software.amazon.awssdk.core.SdkClient;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,14 +45,16 @@ import java.util.Set;
 
 import static org.apache.nifi.flowfile.attributes.CoreAttributes.MIME_TYPE;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.TASK_ID;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
 public abstract class AbstractAwsMachineLearningJobStarter<
-        Q extends AwsRequest,
-        B extends AwsRequest.Builder,
-        R extends AwsResponse,
-        T extends SdkClient,
-        U extends AwsSyncClientBuilder<U, T> & AwsClientBuilder<U, T>>
-        extends AbstractAwsSyncProcessor<T, U> {
+        Req extends AwsRequest,
+        ReqB extends AwsRequest.Builder,
+        Res extends AwsResponse,
+        C extends AwsClient,
+        B extends AwsClientBuilder<B, C> & AwsSyncClientBuilder<B, C>>
+        extends AbstractAwsSyncProcessor<C, B> {
     public static final PropertyDescriptor JSON_PAYLOAD = new PropertyDescriptor.Builder()
             .name("JSON Payload")
             .description("JSON request for AWS Machine Learning services. The Processor will use FlowFile content for the request when this property is not specified.")
@@ -73,6 +75,7 @@ public abstract class AbstractAwsMachineLearningJobStarter<
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             MANDATORY_AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
+            CUSTOM_REGION,
             TIMEOUT,
             JSON_PAYLOAD,
             SSL_CONTEXT_SERVICE,
@@ -109,7 +112,7 @@ public abstract class AbstractAwsMachineLearningJobStarter<
         if (flowFile == null && !context.getProperty(JSON_PAYLOAD).isSet()) {
             return;
         }
-        final R response;
+        final Res response;
         FlowFile childFlowFile;
         try {
             response = sendRequest(buildRequest(session, context, flowFile), context, flowFile);
@@ -135,7 +138,7 @@ public abstract class AbstractAwsMachineLearningJobStarter<
         config.renameProperty("json-payload", JSON_PAYLOAD.getName());
     }
 
-    protected FlowFile postProcessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final R response) {
+    protected FlowFile postProcessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final Res response) {
         final String awsTaskId = getAwsTaskId(context, response, flowFile);
         FlowFile processedFlowFile = session.putAttribute(flowFile, TASK_ID.getName(), awsTaskId);
         processedFlowFile = session.putAttribute(processedFlowFile, MIME_TYPE.key(), "application/json");
@@ -143,11 +146,11 @@ public abstract class AbstractAwsMachineLearningJobStarter<
         return processedFlowFile;
     }
 
-    protected Q buildRequest(final ProcessSession session, final ProcessContext context, final FlowFile flowFile) throws JsonProcessingException {
-        return (Q) MAPPER.readValue(getPayload(session, context, flowFile), getAwsRequestBuilderClass(context, flowFile)).build();
+    protected Req buildRequest(final ProcessSession session, final ProcessContext context, final FlowFile flowFile) throws JsonProcessingException {
+        return (Req) MAPPER.readValue(getPayload(session, context, flowFile), getAwsRequestBuilderClass(context, flowFile)).build();
     }
 
-    protected FlowFile writeToFlowFile(final ProcessSession session, final FlowFile flowFile, final R response) {
+    protected FlowFile writeToFlowFile(final ProcessSession session, final FlowFile flowFile, final Res response) {
         FlowFile childFlowFile = flowFile == null ? session.create() : session.create(flowFile);
         childFlowFile = session.write(childFlowFile, out -> MAPPER.writeValue(out, response.toBuilder()));
         return childFlowFile;
@@ -169,9 +172,9 @@ public abstract class AbstractAwsMachineLearningJobStarter<
         return payloadPropertyValue;
     }
 
-    abstract protected R sendRequest(Q request, ProcessContext context, FlowFile flowFile) throws JsonProcessingException;
+    abstract protected Res sendRequest(Req request, ProcessContext context, FlowFile flowFile) throws JsonProcessingException;
 
-    abstract protected Class<? extends B> getAwsRequestBuilderClass(ProcessContext context, FlowFile flowFile);
+    abstract protected Class<? extends ReqB> getAwsRequestBuilderClass(ProcessContext context, FlowFile flowFile);
 
-    abstract protected String getAwsTaskId(ProcessContext context, R response, FlowFile flowFile);
+    abstract protected String getAwsTaskId(ProcessContext context, Res response, FlowFile flowFile);
 }

@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
@@ -39,14 +36,6 @@ public class AccessKeyPairCredentialsStrategy extends AbstractCredentialsStrateg
             AWSCredentialsProviderControllerService.ACCESS_KEY_ID,
             AWSCredentialsProviderControllerService.SECRET_KEY
         });
-    }
-
-    @Override
-    public AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
-        final String accessKey = propertyContext.getProperty(AWSCredentialsProviderControllerService.ACCESS_KEY_ID).evaluateAttributeExpressions().getValue();
-        final String secretKey = propertyContext.getProperty(AWSCredentialsProviderControllerService.SECRET_KEY).evaluateAttributeExpressions().getValue();
-        final BasicAWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
-        return new AWSStaticCredentialsProvider(credentials);
     }
 
     @Override

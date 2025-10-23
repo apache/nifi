@@ -65,6 +65,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+
 @SeeAlso({DeleteDynamoDB.class, GetDynamoDB.class, PutDynamoDB.class})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"Amazon", "DynamoDB", "AWS", "Put", "Insert", "Record"})
@@ -166,6 +169,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         TABLE,
         REGION,
+        CUSTOM_REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
         RECORD_READER,
         PARTITION_KEY_STRATEGY,

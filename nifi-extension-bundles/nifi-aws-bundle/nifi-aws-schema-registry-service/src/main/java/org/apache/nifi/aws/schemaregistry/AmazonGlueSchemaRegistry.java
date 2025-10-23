@@ -29,7 +29,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.schema.access.SchemaField;
@@ -116,7 +116,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
             .name("AWS Credentials Provider Service")
             .description("The Controller Service that is used to obtain AWS credentials provider")
             .required(false)
-            .identifiesControllerService(AWSCredentialsProviderService.class)
+            .identifiesControllerService(AwsCredentialsProviderService.class)
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -161,8 +161,8 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        final AWSCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
-                .asControllerService(AWSCredentialsProviderService.class);
+        final AwsCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
+                .asControllerService(AwsCredentialsProviderService.class);
         final AwsCredentialsProvider credentialsProvider = awsCredentialsProviderService.getAwsCredentialsProvider();
         final String schemaRegistryName = context.getProperty(SCHEMA_REGISTRY_NAME).getValue();
         final String region = context.getProperty(REGION).getValue();

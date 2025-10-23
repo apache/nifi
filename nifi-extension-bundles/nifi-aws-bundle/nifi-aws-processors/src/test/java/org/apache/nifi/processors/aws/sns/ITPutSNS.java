@@ -17,8 +17,9 @@
 package org.apache.nifi.processors.aws.sns;
 
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -109,7 +110,7 @@ public class ITPutSNS {
 
     protected TestRunner initRunner(final Class<? extends Processor> processorClass) {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
-        runner.setProperty(AbstractAwsProcessor.REGION, localstack.getRegion());
+        runner.setProperty(RegionUtil.REGION, localstack.getRegion());
         runner.setProperty(AbstractAwsProcessor.ENDPOINT_OVERRIDE, localstack.getEndpoint().toString());
         runner.setProperty(PutSNS.ARN, topicARN);
         return runner;

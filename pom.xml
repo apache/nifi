@@ -120,8 +120,8 @@
         <nifi.nar.maven.plugin.version>2.1.0</nifi.nar.maven.plugin.version>
 
         <!-- AWS SDK -->
-        <com.amazonaws.version>1.12.792</com.amazonaws.version>
         <software.amazon.awssdk.version>2.36.0</software.amazon.awssdk.version>
+        <software.amazon.encryption.s3.version>3.4.0</software.amazon.encryption.s3.version>
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.10.0</org.apache.commons.cli.version>
@@ -467,29 +467,6 @@
                 <groupId>net.minidev</groupId>
                 <artifactId>json-smart</artifactId>
                 <version>${json.smart.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-bom</artifactId>
-                <version>${com.amazonaws.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-core</artifactId>
-                <version>${com.amazonaws.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>commons-logging</groupId>
-                        <artifactId>commons-logging</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-bundle</artifactId>
-                <version>${com.amazonaws.version}</version>
             </dependency>
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>

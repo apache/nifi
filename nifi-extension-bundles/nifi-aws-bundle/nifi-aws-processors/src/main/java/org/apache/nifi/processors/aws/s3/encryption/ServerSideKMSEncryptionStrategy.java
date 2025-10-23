@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.ValidationResult;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
 /**
  * This strategy uses a KMS key to perform server-side encryption.  Use this strategy when you want the server to perform the encryption,
@@ -30,14 +31,27 @@ import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
  */
 public class ServerSideKMSEncryptionStrategy implements S3EncryptionStrategy {
     @Override
-    public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
-        SSEAwsKeyManagementParams keyParams = new SSEAwsKeyManagementParams(keyValue);
-        request.setSSEAwsKeyManagementParams(keyParams);
+    public void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+        requestBuilder.serverSideEncryption(ServerSideEncryption.AWS_KMS);
+        requestBuilder.ssekmsKeyId(keySpec.kmsId());
     }
 
     @Override
-    public void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
-        SSEAwsKeyManagementParams keyParams = new SSEAwsKeyManagementParams(keyValue);
-        request.setSSEAwsKeyManagementParams(keyParams);
+    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+        requestBuilder.serverSideEncryption(ServerSideEncryption.AWS_KMS);
+        requestBuilder.ssekmsKeyId(keySpec.kmsId());
+    }
+
+    @Override
+    public ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
+        if (StringUtils.isBlank(keySpec.kmsId())) {
+            return new ValidationResult.Builder()
+                    .subject("KMS Key ID")
+                    .valid(false)
+                    .explanation("it is empty")
+                    .build();
+        }
+
+        return new ValidationResult.Builder().valid(true).build();
     }
 }

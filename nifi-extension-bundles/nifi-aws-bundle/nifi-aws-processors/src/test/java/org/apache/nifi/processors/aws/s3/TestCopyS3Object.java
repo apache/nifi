@@ -17,15 +17,6 @@
 
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CopyObjectRequest;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -35,6 +26,12 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -50,20 +47,19 @@ import static org.mockito.Mockito.when;
 public class TestCopyS3Object {
     private TestRunner runner;
 
-    private AmazonS3Client mockS3Client;
+    private S3Client mockS3Client;
 
     @BeforeEach
     void setUp() {
-        mockS3Client = mock(AmazonS3Client.class);
+        mockS3Client = mock(S3Client.class);
         final CopyS3Object mockCopyS3Object = new CopyS3Object() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
-                ObjectMetadata metadata = mock(ObjectMetadata.class);
+            protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
+                HeadObjectResponse response = HeadObjectResponse.builder()
+                        .contentLength(1000L)
+                        .build();
 
-                when(metadata.getContentLength()).thenReturn(1000L);
-                when(mockS3Client.getObjectMetadata(any(GetObjectMetadataRequest.class)))
-                        .thenReturn(metadata);
+                when(mockS3Client.headObject(any(HeadObjectRequest.class))).thenReturn(response);
 
                 return mockS3Client;
             }
@@ -90,8 +86,10 @@ public class TestCopyS3Object {
     @DisplayName("Validate that S3 errors cleanly route to failure")
     @Test
     void testS3ErrorHandling() {
-        final AmazonS3Exception exception = new AmazonS3Exception("Manually triggered error");
-        exception.setStatusCode(503);
+        final AwsServiceException exception = S3Exception.builder()
+                .message("Manually triggered error")
+                .statusCode(503)
+                .build();
         when(mockS3Client.copyObject(any(CopyObjectRequest.class)))
                 .thenThrow(exception);
 
@@ -105,9 +103,7 @@ public class TestCopyS3Object {
     void testMigration() {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed =
-                Map.of("canned-acl", AbstractS3Processor.CANNED_ACL.getName(),
-                        "custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
-                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName());
+                Map.of("canned-acl", AbstractS3Processor.CANNED_ACL.getName());
 
         expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }

@@ -16,22 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.internal.Constants;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ListVersionsRequest;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.amazonaws.services.s3.model.S3VersionSummary;
-import com.amazonaws.services.s3.model.Tag;
-import com.amazonaws.services.s3.model.VersionListing;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -82,10 +66,23 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.FormatUtils;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectVersionsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectVersionsResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.ObjectVersion;
+import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -99,7 +96,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.getRegion;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.getRequestPayer;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.sanitizeETag;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -235,7 +236,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .name("Write Object Tags")
             .description("If set to 'True', the tags associated with the S3 object will be written as FlowFile attributes")
             .required(true)
-            .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+            .allowableValues("true", "false")
             .defaultValue("false")
             .build();
 
@@ -247,8 +248,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                     + "setting is not applicable when 'Use Versions' is 'true'.")
             .addValidator(createRequesterPaysValidator())
             .allowableValues(
-                new AllowableValue("true", "True", "Indicates that the requester consents to pay any charges associated with listing the S3 bucket."),
-                new AllowableValue("false", "False", "Does not consent to pay requester charges for listing the S3 bucket."))
+                new AllowableValue("true", "true", "Indicates that the requester consents to pay any charges associated with listing the S3 bucket."),
+                new AllowableValue("false", "false", "Does not consent to pay requester charges for listing the S3 bucket."))
             .defaultValue("false")
             .build();
 
@@ -256,7 +257,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             .name("Write User Metadata")
             .description("If set to 'True', the user defined metadata associated with the S3 object will be added to FlowFile attributes/records")
             .required(true)
-            .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
+            .allowableValues("true", "false")
             .defaultValue("false")
             .build();
 
@@ -283,6 +284,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         BUCKET_WITHOUT_DEFAULT_VALUE,
         REGION,
+        CUSTOM_REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
         LISTING_STRATEGY,
         TRACKING_STATE_CACHE,
@@ -297,9 +299,6 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         TIMEOUT,
         SSL_CONTEXT_SERVICE,
         ENDPOINT_OVERRIDE,
-        SIGNER_OVERRIDE,
-        S3_CUSTOM_SIGNER_CLASS_NAME,
-        S3_CUSTOM_SIGNER_MODULE_LOCATION,
         PROXY_CONFIGURATION_SERVICE,
         DELIMITER,
         PREFIX,
@@ -314,9 +313,12 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     private static final Set<PropertyDescriptor> TRACKING_RESET_PROPERTY_DESCRIPTORS = Set.of(
             BUCKET_WITHOUT_DEFAULT_VALUE,
             REGION,
+            CUSTOM_REGION,
             PREFIX,
             LISTING_STRATEGY
     );
+
+    public static final String NULL_VERSION_ID = "null";
 
     public static final String CURRENT_TIMESTAMP = "currentTimestamp";
     public static final String CURRENT_KEY_PREFIX = "key-";
@@ -325,7 +327,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     private final AtomicReference<ListingSnapshot> listing = new AtomicReference<>(ListingSnapshot.empty());
 
     // used by Tracking Entities tracking strategy
-    private volatile ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> listedEntityTracker;
+    private volatile ListedEntityTracker<ListableEntityWrapper<ObjectVersion>> listedEntityTracker;
 
     private volatile boolean justElectedPrimaryNode = false;
     private volatile boolean resetTracking = false;
@@ -397,7 +399,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         config.renameProperty(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, INITIAL_LISTING_TARGET.getName());
     }
 
-    protected ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> createListedEntityTracker() {
+    protected ListedEntityTracker<ListableEntityWrapper<ObjectVersion>> createListedEntityTracker() {
         return new ListedS3VersionSummaryTracker();
     }
 
@@ -502,7 +504,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     }
 
     private void listNoTracking(ProcessContext context, ProcessSession session) {
-        final AmazonS3 client = getClient(context);
+        final S3Client client = getClient(context);
 
         S3BucketLister bucketLister = getS3BucketLister(context, client);
 
@@ -511,6 +513,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final Long maxAgeMilliseconds = context.getProperty(MAX_AGE) != null ? context.getProperty(MAX_AGE).asTimePeriod(TimeUnit.MILLISECONDS) : null;
         final long listingTimestamp = System.currentTimeMillis();
 
+        final String region = getRegion(context).id();
         final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
@@ -524,29 +527,29 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         if (writerFactory == null) {
             writer = new AttributeObjectWriter(session);
         } else {
-            writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(REGION).getValue());
+            writer = new RecordObjectWriter(session, writerFactory, getLogger(), region);
         }
 
         try {
             writer.beginListing();
 
             do {
-                VersionListing versionListing = bucketLister.listVersions();
-                for (S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
-                    long lastModified = versionSummary.getLastModified().getTime();
+                final List<ObjectVersion> objectVersionList = bucketLister.listVersions();
+                for (ObjectVersion objectVersion : objectVersionList) {
+                    long lastModified = objectVersion.lastModified().toEpochMilli();
                     if ((maxAgeMilliseconds != null && (lastModified < (listingTimestamp - maxAgeMilliseconds)))
-                        || lastModified > (listingTimestamp - minAgeMilliseconds)) {
+                            || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                         continue;
                     }
 
-                    getLogger().trace("Listed key={}, lastModified={}", versionSummary.getKey(), lastModified);
+                    getLogger().trace("Listed key={}, lastModified={}", objectVersion.key(), lastModified);
 
-                    GetObjectTaggingResult taggingResult = getTaggingResult(context, client, versionSummary);
+                    final Map<String, String> tagging = getTagging(context, client, bucket, objectVersion);
 
-                    ObjectMetadata objectMetadata = getObjectMetadata(context, client, versionSummary);
+                    final Map<String, String> userMetadata = getUserMetadata(context, client, bucket, objectVersion);
 
                     // Write the entity to the listing
-                    writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
+                    writer.addToListing(objectVersion, tagging, userMetadata, region, bucket);
 
                     listCount++;
                 }
@@ -589,8 +592,9 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return;
         }
 
-        final AmazonS3 client = getClient(context);
+        final S3Client client = getClient(context);
         final S3BucketLister bucketLister = getS3BucketLister(context, client);
+        final String region = getRegion(context).id();
         final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
@@ -611,38 +615,38 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         if (writerFactory == null) {
             writer = new AttributeObjectWriter(session);
         } else {
-            writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(REGION).getValue());
+            writer = new RecordObjectWriter(session, writerFactory, getLogger(), region);
         }
 
         try {
             writer.beginListing();
 
             do {
-                final VersionListing versionListing = bucketLister.listVersions();
-                for (S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
-                    final long lastModified = versionSummary.getLastModified().getTime();
+                final List<ObjectVersion> objectVersionList = bucketLister.listVersions();
+                for (ObjectVersion objectVersion : objectVersionList) {
+                    final long lastModified = objectVersion.lastModified().toEpochMilli();
                     if (lastModified < listingTimestamp
-                            || lastModified == listingTimestamp && currentKeys.contains(versionSummary.getKey())
-                            || !includeObjectInListing(versionSummary, currentTimestamp)) {
+                            || lastModified == listingTimestamp && currentKeys.contains(objectVersion.key())
+                            || !includeObjectInListing(objectVersion, currentTimestamp)) {
                         continue;
                     }
 
-                    getLogger().trace("Listed key={}, lastModified={}, currentKeys={}", versionSummary.getKey(), lastModified, currentKeys);
+                    getLogger().trace("Listed key={}, lastModified={}, currentKeys={}", objectVersion.key(), lastModified, currentKeys);
 
                     // Write the entity to the listing
-                    final GetObjectTaggingResult taggingResult = getTaggingResult(context, client, versionSummary);
-                    final ObjectMetadata objectMetadata = getObjectMetadata(context, client, versionSummary);
-                    writer.addToListing(versionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
+                    final Map<String, String> tagging = getTagging(context, client, bucket, objectVersion);
+                    final Map<String, String> userMetadata = getUserMetadata(context, client, bucket, objectVersion);
+                    writer.addToListing(objectVersion, tagging, userMetadata, region, bucket);
 
                     // Track the latest lastModified timestamp and keys having that timestamp.
                     // NOTE: Amazon S3 lists objects in UTF-8 character encoding in lexicographical order. Not ordered by timestamps.
                     if (lastModified > latestListedTimestampInThisCycle) {
                         latestListedTimestampInThisCycle = lastModified;
                         listedKeys.clear();
-                        listedKeys.add(versionSummary.getKey());
+                        listedKeys.add(objectVersion.key());
 
                     } else if (lastModified == latestListedTimestampInThisCycle) {
-                        listedKeys.add(versionSummary.getKey());
+                        listedKeys.add(objectVersion.key());
                     }
 
                     listCount++;
@@ -695,16 +699,16 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             S3BucketLister bucketLister = getS3BucketLister(context, getClient(context));
             final long currentTime = System.currentTimeMillis();
 
-            return bucketLister.listVersions().getVersionSummaries()
+            return bucketLister.listVersions()
                 .stream()
-                .filter(s3VersionSummary -> s3VersionSummary.getLastModified().getTime() >= minTimestampToList
-                        && includeObjectInListing(s3VersionSummary, currentTime))
-                .map(s3VersionSummary -> new ListableEntityWrapper<>(
-                        s3VersionSummary,
-                        S3VersionSummary::getKey,
-                        summary -> summary.getKey() + "_" + summary.getVersionId(),
-                        summary -> summary.getLastModified().getTime(),
-                        S3VersionSummary::getSize
+                .filter(objectVersion -> objectVersion.lastModified().toEpochMilli() >= minTimestampToList
+                        && includeObjectInListing(objectVersion, currentTime))
+                .map(objectVersion -> new ListableEntityWrapper<>(
+                        objectVersion,
+                        ObjectVersion::key,
+                        ov -> ov.key() + "_" + ov.versionId(),
+                        ov -> ov.lastModified().toEpochMilli(),
+                        ObjectVersion::size
                 ))
                 .collect(Collectors.toList());
         }, null);
@@ -712,7 +716,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         justElectedPrimaryNode = false;
     }
 
-    private class ListedS3VersionSummaryTracker extends ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> {
+    private class ListedS3VersionSummaryTracker extends ListedEntityTracker<ListableEntityWrapper<ObjectVersion>> {
         public ListedS3VersionSummaryTracker() {
             super(getIdentifier(), getLogger(), RecordObjectWriter.RECORD_SCHEMA);
         }
@@ -721,7 +725,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         protected void createRecordsForEntities(
             ProcessContext context,
             ProcessSession session,
-            List<ListableEntityWrapper<S3VersionSummary>> updatedEntities
+            List<ListableEntityWrapper<ObjectVersion>> updatedEntities
         ) {
             publishListing(context, session, updatedEntities);
         }
@@ -730,19 +734,20 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         protected void createFlowFilesForEntities(
             ProcessContext context,
             ProcessSession session,
-            List<ListableEntityWrapper<S3VersionSummary>> updatedEntities,
-            Function<ListableEntityWrapper<S3VersionSummary>, Map<String, String>> createAttributes
+            List<ListableEntityWrapper<ObjectVersion>> updatedEntities,
+            Function<ListableEntityWrapper<ObjectVersion>, Map<String, String>> createAttributes
         ) {
             publishListing(context, session, updatedEntities);
         }
 
-        private void publishListing(ProcessContext context, ProcessSession session, List<ListableEntityWrapper<S3VersionSummary>> updatedEntities) {
+        private void publishListing(ProcessContext context, ProcessSession session, List<ListableEntityWrapper<ObjectVersion>> updatedEntities) {
+            final String region = getRegion(context).id();
             final S3ObjectWriter writer;
             final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
             if (writerFactory == null) {
                 writer = new AttributeObjectWriter(session);
             } else {
-                writer = new RecordObjectWriter(session, writerFactory, getLogger(), context.getProperty(REGION).getValue());
+                writer = new RecordObjectWriter(session, writerFactory, getLogger(), region);
             }
 
             try {
@@ -750,13 +755,14 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
                 final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
 
                 int listCount = 0;
-                for (ListableEntityWrapper<S3VersionSummary> updatedEntity : updatedEntities) {
-                    S3VersionSummary s3VersionSummary = updatedEntity.getRawEntity();
+                for (ListableEntityWrapper<ObjectVersion> updatedEntity : updatedEntities) {
+                    ObjectVersion objectVersion = updatedEntity.getRawEntity();
 
-                    final AmazonS3Client s3Client = getClient(context);
-                    final GetObjectTaggingResult taggingResult = getTaggingResult(context, s3Client, s3VersionSummary);
-                    final ObjectMetadata objectMetadata = getObjectMetadata(context, s3Client, s3VersionSummary);
-                    writer.addToListing(s3VersionSummary, taggingResult, objectMetadata, context.getProperty(REGION).getValue());
+                    final S3Client client = getClient(context);
+                    final String bucket = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions().getValue();
+                    final Map<String, String> tagging = getTagging(context, client, bucket, objectVersion);
+                    final Map<String, String> userMetadata = getUserMetadata(context, client, bucket, objectVersion);
+                    writer.addToListing(objectVersion, tagging, userMetadata, region, bucket);
 
                     listCount++;
 
@@ -779,33 +785,44 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
     }
 
-    private GetObjectTaggingResult getTaggingResult(ProcessContext context, AmazonS3 client, S3VersionSummary versionSummary) {
-        GetObjectTaggingResult taggingResult = null;
+    private Map<String, String> getTagging(ProcessContext context, S3Client client, String bucket, ObjectVersion objectVersion) {
+        Map<String, String> tagging = null;
         if (context.getProperty(WRITE_OBJECT_TAGS).asBoolean()) {
             try {
-                taggingResult = client.getObjectTagging(new GetObjectTaggingRequest(versionSummary.getBucketName(), versionSummary.getKey()));
+                final GetObjectTaggingResponse taggingResponse = client.getObjectTagging(GetObjectTaggingRequest.builder()
+                        .bucket(bucket)
+                        .key(objectVersion.key())
+                        .build());
+
+                tagging = taggingResponse.tagSet().stream()
+                        .collect(Collectors.toMap(Tag::key, Tag::value));
             } catch (final Exception e) {
                 getLogger().warn("Failed to obtain Object Tags for S3 Object {} in bucket {}. Will list S3 Object without the object tags",
-                        versionSummary.getKey(), versionSummary.getBucketName(), e);
+                        objectVersion.key(), bucket, e);
             }
         }
-        return taggingResult;
+        return tagging;
     }
 
-    private ObjectMetadata getObjectMetadata(ProcessContext context, AmazonS3 client, S3VersionSummary versionSummary) {
-        ObjectMetadata objectMetadata = null;
+    private Map<String, String> getUserMetadata(ProcessContext context, S3Client client, String bucket, ObjectVersion objectVersion) {
+        Map<String, String> userMetadata = null;
         if (context.getProperty(WRITE_USER_METADATA).asBoolean()) {
             try {
-                objectMetadata = client.getObjectMetadata(new GetObjectMetadataRequest(versionSummary.getBucketName(), versionSummary.getKey()));
+                final HeadObjectResponse headResponse = client.headObject(HeadObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(objectVersion.key())
+                        .build());
+
+                userMetadata = headResponse.metadata();
             } catch (final Exception e) {
                 getLogger().warn("Failed to obtain User Metadata for S3 Object {} in bucket {}. Will list S3 Object without the user metadata",
-                        versionSummary.getKey(), versionSummary.getBucketName(), e);
+                        objectVersion.key(), bucket, e);
             }
         }
-        return objectMetadata;
+        return userMetadata;
     }
 
-    private S3BucketLister getS3BucketLister(ProcessContext context, AmazonS3 client) {
+    private S3BucketLister getS3BucketLister(ProcessContext context, S3Client client) {
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
         final boolean useVersions = context.getProperty(USE_VERSIONS).asBoolean();
 
@@ -816,10 +833,10 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         final int listType = context.getProperty(LIST_TYPE).asInteger();
 
         final S3BucketLister bucketLister = useVersions
-            ? new S3VersionBucketLister(client)
-            : listType == 2
-            ? new S3ObjectBucketListerVersion2(client)
-            : new S3ObjectBucketLister(client);
+                ? new S3VersionBucketLister(client)
+                : listType == 2
+                ? new S3ObjectBucketListerVersion2(client)
+                : new S3ObjectBucketLister(client);
 
         bucketLister.setBucketName(bucket);
         bucketLister.setRequesterPays(requesterPays);
@@ -840,162 +857,158 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         void setRequesterPays(boolean requesterPays);
         // Versions have a superset of the fields that Objects have, so we'll use
         // them as a common interface
-        VersionListing listVersions();
+        List<ObjectVersion> listVersions();
         void setNextMarker();
         boolean isTruncated();
     }
 
-    public class S3ObjectBucketLister implements S3BucketLister {
-        private final AmazonS3 client;
-        private ListObjectsRequest listObjectsRequest;
-        private ObjectListing objectListing;
+    public static class S3ObjectBucketLister implements S3BucketLister {
+        private final S3Client client;
+        private ListObjectsRequest.Builder listObjectsRequestBuilder;
+        private ListObjectsResponse listObjectsResponse;
 
-        public S3ObjectBucketLister(AmazonS3 client) {
+        public S3ObjectBucketLister(S3Client client) {
             this.client = client;
         }
 
         @Override
         public void setBucketName(String bucketName) {
-            listObjectsRequest = new ListObjectsRequest().withBucketName(bucketName);
+            listObjectsRequestBuilder = ListObjectsRequest.builder().bucket(bucketName);
         }
 
         @Override
         public void setPrefix(String prefix) {
-            listObjectsRequest.setPrefix(prefix);
+            listObjectsRequestBuilder.prefix(prefix);
         }
 
         @Override
         public void setDelimiter(String delimiter) {
-            listObjectsRequest.setDelimiter(delimiter);
+            listObjectsRequestBuilder.delimiter(delimiter);
         }
 
         @Override
         public void setRequesterPays(boolean requesterPays) {
-            listObjectsRequest.setRequesterPays(requesterPays);
+            listObjectsRequestBuilder.requestPayer(getRequestPayer(requesterPays));
         }
 
         @Override
-        public VersionListing listVersions() {
-            objectListing = client.listObjects(listObjectsRequest);
-            final VersionListing versionListing = new VersionListing();
-            versionListing.setVersionSummaries(objectListing.getObjectSummaries().stream()
-                    .map(ListS3.this::objectSummaryToVersionSummary)
-                    .collect(Collectors.toList()));
-            return versionListing;
+        public List<ObjectVersion> listVersions() {
+            listObjectsResponse = client.listObjects(listObjectsRequestBuilder.build());
+            return listObjectsResponse.contents().stream()
+                    .map(ListS3::s3ObjectToObjectVersion)
+                    .toList();
         }
 
         @Override
         public void setNextMarker() {
-            listObjectsRequest.setMarker(objectListing.getNextMarker());
+            listObjectsRequestBuilder.marker(listObjectsResponse.nextMarker());
         }
 
         @Override
         public boolean isTruncated() {
-            return objectListing != null && objectListing.isTruncated();
+            return listObjectsResponse != null && listObjectsResponse.isTruncated();
         }
     }
 
-    public class S3ObjectBucketListerVersion2 implements S3BucketLister {
-        private final AmazonS3 client;
-        private ListObjectsV2Request listObjectsRequest;
-        private ListObjectsV2Result objectListing;
+    public static class S3ObjectBucketListerVersion2 implements S3BucketLister {
+        private final S3Client client;
+        private ListObjectsV2Request.Builder listObjectsRequestBuilder;
+        private ListObjectsV2Response listObjectsResponse;
 
-        public S3ObjectBucketListerVersion2(AmazonS3 client) {
+        public S3ObjectBucketListerVersion2(S3Client client) {
             this.client = client;
         }
 
         @Override
         public void setBucketName(String bucketName) {
-            listObjectsRequest = new ListObjectsV2Request().withBucketName(bucketName);
+            listObjectsRequestBuilder = ListObjectsV2Request.builder().bucket(bucketName);
         }
 
         @Override
         public void setPrefix(String prefix) {
-            listObjectsRequest.setPrefix(prefix);
+            listObjectsRequestBuilder.prefix(prefix);
         }
 
         @Override
         public void setDelimiter(String delimiter) {
-            listObjectsRequest.setDelimiter(delimiter);
+            listObjectsRequestBuilder.delimiter(delimiter);
         }
 
         @Override
         public void setRequesterPays(boolean requesterPays) {
-            listObjectsRequest.setRequesterPays(requesterPays);
+            listObjectsRequestBuilder.requestPayer(getRequestPayer(requesterPays));
         }
 
         @Override
-        public VersionListing listVersions() {
-            objectListing = client.listObjectsV2(listObjectsRequest);
-            final VersionListing versionListing = new VersionListing();
-            versionListing.setVersionSummaries(objectListing.getObjectSummaries().stream()
-                    .map(ListS3.this::objectSummaryToVersionSummary)
-                    .collect(Collectors.toList()));
-            return versionListing;
+        public List<ObjectVersion> listVersions() {
+            listObjectsResponse = client.listObjectsV2(listObjectsRequestBuilder.build());
+            return listObjectsResponse.contents().stream()
+                    .map(ListS3::s3ObjectToObjectVersion)
+                    .toList();
         }
 
         @Override
         public void setNextMarker() {
-            listObjectsRequest.setContinuationToken(objectListing.getNextContinuationToken());
+            listObjectsRequestBuilder.continuationToken(listObjectsResponse.nextContinuationToken());
         }
 
         @Override
         public boolean isTruncated() {
-            return objectListing != null && objectListing.isTruncated();
+            return listObjectsResponse != null && listObjectsResponse.isTruncated();
         }
     }
 
-    public class S3VersionBucketLister implements S3BucketLister {
-        private final AmazonS3 client;
-        private ListVersionsRequest listVersionsRequest;
-        private VersionListing versionListing;
+    public static class S3VersionBucketLister implements S3BucketLister {
+        private final S3Client client;
+        private ListObjectVersionsRequest.Builder listVersionsRequestBuilder;
+        private ListObjectVersionsResponse listVersionsResponse;
 
-        public S3VersionBucketLister(AmazonS3 client) {
+        public S3VersionBucketLister(S3Client client) {
             this.client = client;
         }
 
         @Override
         public void setBucketName(String bucketName) {
-            listVersionsRequest = new ListVersionsRequest().withBucketName(bucketName);
+            listVersionsRequestBuilder = ListObjectVersionsRequest.builder().bucket(bucketName);
         }
 
         @Override
         public void setPrefix(String prefix) {
-            listVersionsRequest.setPrefix(prefix);
+            listVersionsRequestBuilder.prefix(prefix);
         }
 
         @Override
         public void setDelimiter(String delimiter) {
-            listVersionsRequest.setDelimiter(delimiter);
+            listVersionsRequestBuilder.delimiter(delimiter);
         }
 
         @Override
         public void setRequesterPays(boolean requesterPays) {
-            // Not supported in versionListing, so this does nothing.
+            listVersionsRequestBuilder.requestPayer(getRequestPayer(requesterPays));
         }
 
         @Override
-        public VersionListing listVersions() {
-            versionListing = client.listVersions(listVersionsRequest);
-            return versionListing;
+        public List<ObjectVersion> listVersions() {
+            listVersionsResponse = client.listObjectVersions(listVersionsRequestBuilder.build());
+            return listVersionsResponse.versions();
         }
 
         @Override
         public void setNextMarker() {
-            listVersionsRequest.setKeyMarker(versionListing.getNextKeyMarker());
-            listVersionsRequest.setVersionIdMarker(versionListing.getNextVersionIdMarker());
+            listVersionsRequestBuilder.keyMarker(listVersionsResponse.nextKeyMarker());
+            listVersionsRequestBuilder.versionIdMarker(listVersionsResponse.nextVersionIdMarker());
         }
 
         @Override
         public boolean isTruncated() {
-            return versionListing != null && versionListing.isTruncated();
+            return listVersionsResponse != null && listVersionsResponse.isTruncated();
         }
     }
 
     interface S3ObjectWriter {
         void beginListing() throws IOException, SchemaNotFoundException;
 
-        void addToListing(S3VersionSummary summary, GetObjectTaggingResult taggingResult, ObjectMetadata objectMetadata, String region) throws IOException;
+        void addToListing(ObjectVersion objectVersion, Map<String, String> tagging, Map<String, String> userMetadata, String region, String bucket) throws IOException;
 
         void finishListing() throws IOException;
 
@@ -1060,8 +1073,8 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         @Override
-        public void addToListing(final S3VersionSummary summary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata, String region) throws IOException {
-            recordWriter.write(createRecordForListing(summary, taggingResult, objectMetadata));
+        public void addToListing(final ObjectVersion objectVersion, final Map<String, String> tagging, final Map<String, String> userMetadata, String region, String bucket) throws IOException {
+            recordWriter.write(createRecordForListing(objectVersion, tagging, userMetadata, bucket));
         }
 
         @Override
@@ -1097,36 +1110,31 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             return false;
         }
 
-        private Record createRecordForListing(final S3VersionSummary versionSummary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata) {
+        private Record createRecordForListing(final ObjectVersion objectVersion, final Map<String, String> tagging, final Map<String, String> userMetadata, String bucket) {
             final Map<String, Object> values = new HashMap<>();
-            values.put(KEY, versionSummary.getKey());
-            values.put(BUCKET, versionSummary.getBucketName());
+            values.put(KEY, objectVersion.key());
+            values.put(BUCKET, bucket);
 
-            if (versionSummary.getOwner() != null) { // We may not have permission to read the owner
-                values.put(OWNER, versionSummary.getOwner().getId());
+            if (objectVersion.owner() != null) { // We may not have permission to read the owner
+                values.put(OWNER, objectVersion.owner().id());
             }
 
-            values.put(ETAG, versionSummary.getETag());
-            values.put(LAST_MODIFIED, new Timestamp(versionSummary.getLastModified().getTime()));
-            values.put(SIZE, versionSummary.getSize());
-            values.put(STORAGE_CLASS, versionSummary.getStorageClass());
-            values.put(IS_LATEST, versionSummary.isLatest());
-            final String versionId = versionSummary.getVersionId();
-            if (versionId != null && !versionId.equals(Constants.NULL_VERSION_ID)) {
-                values.put(VERSION_ID, versionSummary.getVersionId());
+            values.put(ETAG, sanitizeETag(objectVersion.eTag()));
+            values.put(LAST_MODIFIED, String.valueOf(objectVersion.lastModified().toEpochMilli()));
+            values.put(SIZE, objectVersion.size());
+            values.put(STORAGE_CLASS, objectVersion.storageClassAsString());
+            values.put(IS_LATEST, objectVersion.isLatest());
+            final String versionId = objectVersion.versionId();
+            if (versionId != null && !versionId.equals(NULL_VERSION_ID)) {
+                values.put(VERSION_ID, versionId);
             }
 
-            if (taggingResult != null) {
-                final Map<String, String> tags = new HashMap<>();
-                taggingResult.getTagSet().forEach(tag -> {
-                    tags.put(tag.getKey(), tag.getValue());
-                });
-
-                values.put(TAGS, tags);
+            if (tagging != null) {
+                values.put(TAGS, tagging);
             }
 
-            if (objectMetadata != null) {
-                values.put(USER_METADATA, objectMetadata.getUserMetadata());
+            if (userMetadata != null) {
+                values.put(USER_METADATA, userMetadata);
             }
 
             return new MapRecord(RECORD_SCHEMA, values);
@@ -1145,38 +1153,34 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
         }
 
         @Override
-        public void addToListing(final S3VersionSummary versionSummary, final GetObjectTaggingResult taggingResult, final ObjectMetadata objectMetadata, final String region) {
+        public void addToListing(final ObjectVersion objectVersion, final Map<String, String> tagging, final Map<String, String> userMetadata, final String region, String bucket) {
             // Create the attributes
             final Map<String, String> attributes = new HashMap<>();
-            attributes.put(CoreAttributes.FILENAME.key(), versionSummary.getKey());
-            attributes.put("s3.bucket", versionSummary.getBucketName());
+            attributes.put(CoreAttributes.FILENAME.key(), objectVersion.key());
+            attributes.put("s3.bucket", bucket);
             attributes.put("s3.region", region);
 
-            if (versionSummary.getOwner() != null) { // We may not have permission to read the owner
-                attributes.put("s3.owner", versionSummary.getOwner().getId());
+            if (objectVersion.owner() != null) { // We may not have permission to read the owner
+                attributes.put("s3.owner", objectVersion.owner().id());
             }
 
-            attributes.put("s3.etag", versionSummary.getETag());
-            attributes.put("s3.lastModified", String.valueOf(versionSummary.getLastModified().getTime()));
-            attributes.put("s3.length", String.valueOf(versionSummary.getSize()));
-            attributes.put("s3.storeClass", versionSummary.getStorageClass());
-            attributes.put("s3.isLatest", String.valueOf(versionSummary.isLatest()));
+            attributes.put("s3.etag", sanitizeETag(objectVersion.eTag()));
+            attributes.put("s3.lastModified", String.valueOf(objectVersion.lastModified().toEpochMilli()));
+            attributes.put("s3.length", String.valueOf(objectVersion.size()));
+            attributes.put("s3.storeClass", objectVersion.storageClassAsString());
+            attributes.put("s3.isLatest", String.valueOf(objectVersion.isLatest()));
 
-            if (versionSummary.getVersionId() != null) {
-                attributes.put("s3.version", versionSummary.getVersionId());
+            final String versionId = objectVersion.versionId();
+            if (versionId != null && !versionId.equals(NULL_VERSION_ID)) {
+                attributes.put("s3.version", versionId);
             }
 
-            if (taggingResult != null) {
-                final List<Tag> tags = taggingResult.getTagSet();
-                for (final Tag tag : tags) {
-                    attributes.put("s3.tag." + tag.getKey(), tag.getValue());
-                }
+            if (tagging != null) {
+                tagging.forEach((key, value) -> attributes.put("s3.tag." + key, value));
             }
 
-            if (objectMetadata != null) {
-                for (Map.Entry<String, String> e : objectMetadata.getUserMetadata().entrySet()) {
-                    attributes.put("s3.user.metadata." + e.getKey(), e.getValue());
-                }
+            if (userMetadata != null) {
+                userMetadata.forEach((key, value) -> attributes.put("s3.user.metadata." + key, value));
             }
 
             // Create the flowfile
@@ -1223,7 +1227,7 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
 
     @Override
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes) {
-        final AmazonS3Client client = createClient(context);
+        final S3Client client = createClient(context, attributes);
 
         final List<ConfigVerificationResult> results = new ArrayList<>(super.verify(context, logger, attributes));
         final String bucketName = context.getProperty(BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
@@ -1244,11 +1248,11 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
             int totalItems = 0;
             int totalMatchingItems = 0;
             do {
-                final VersionListing versionListing = bucketLister.listVersions();
+                final List<ObjectVersion> objectVersionList = bucketLister.listVersions();
                 final long currentTime = System.currentTimeMillis();
-                for (final S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
+                for (final ObjectVersion objectVersion : objectVersionList) {
                     totalItems++;
-                    if (includeObjectInListing(versionSummary, currentTime)) {
+                    if (includeObjectInListing(objectVersion, currentTime)) {
                         totalMatchingItems++;
                     }
                 }
@@ -1279,31 +1283,30 @@ public class ListS3 extends AbstractS3Processor implements VerifiableProcessor {
     /**
      * Return whether to include the entity in the listing, based on the minimum and maximum object age (if configured).
      */
-    private boolean includeObjectInListing(final S3VersionSummary versionSummary, final long currentTimeMillis) {
-        final long lastModifiedTime = versionSummary.getLastModified().getTime();
+    private boolean includeObjectInListing(final ObjectVersion objectVersion, final long currentTimeMillis) {
+        final long lastModifiedTime = objectVersion.lastModified().toEpochMilli();
 
         return (minObjectAgeMilliseconds == null || currentTimeMillis >= lastModifiedTime + minObjectAgeMilliseconds)
                 && (maxObjectAgeMilliseconds == null || currentTimeMillis <= lastModifiedTime + maxObjectAgeMilliseconds);
     }
 
-    private S3VersionSummary objectSummaryToVersionSummary(final S3ObjectSummary objectSummary) {
-        final S3VersionSummary versionSummary = new S3VersionSummary();
-        versionSummary.setBucketName(objectSummary.getBucketName());
-        versionSummary.setETag(objectSummary.getETag());
-        versionSummary.setKey(objectSummary.getKey());
-        versionSummary.setLastModified(objectSummary.getLastModified());
-        versionSummary.setOwner(objectSummary.getOwner());
-        versionSummary.setSize(objectSummary.getSize());
-        versionSummary.setStorageClass(objectSummary.getStorageClass());
-        versionSummary.setIsLatest(true);
-        return versionSummary;
+    private static ObjectVersion s3ObjectToObjectVersion(final S3Object s3Object) {
+        return ObjectVersion.builder()
+                .eTag(s3Object.eTag())
+                .key(s3Object.key())
+                .lastModified(s3Object.lastModified())
+                .owner(s3Object.owner())
+                .size(s3Object.size())
+                .storageClass(s3Object.storageClassAsString())
+                .isLatest(true)
+                .build();
     }
 
     ListingSnapshot getListingSnapshot() {
         return listing.get();
     }
 
-    ListedEntityTracker<ListableEntityWrapper<S3VersionSummary>> getListedEntityTracker() {
+    ListedEntityTracker<ListableEntityWrapper<ObjectVersion>> getListedEntityTracker() {
         return listedEntityTracker;
     }
 

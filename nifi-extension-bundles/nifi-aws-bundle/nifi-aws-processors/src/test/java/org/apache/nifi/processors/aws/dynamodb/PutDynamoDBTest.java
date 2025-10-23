@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -76,7 +77,7 @@ public class PutDynamoDBTest extends AbstractDynamoDBTest {
         final TestRunner putRunner = TestRunners.newTestRunner(processor);
         AuthUtils.enableAccessKey(putRunner, "abcd", "cdef");
 
-        putRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        putRunner.setProperty(RegionUtil.REGION, REGION);
         putRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         putRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");

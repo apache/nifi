@@ -41,12 +41,6 @@
                 <version>${software.amazon.awssdk.version}</version>
                 <scope>provided</scope>
             </dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk-sts</artifactId>
-                <version>${com.amazonaws.version}</version>
-                <scope>provided</scope>
-            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>

@@ -19,6 +19,7 @@ package org.apache.nifi.processors.aws.dynamodb;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -125,7 +126,7 @@ public class GetDynamoDBTest extends AbstractDynamoDBTest {
         final TestRunner getRunner = TestRunners.newTestRunner(dynamoDB);
         AuthUtils.enableAccessKey(getRunner, "abcd", "defg");
 
-        getRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        getRunner.setProperty(RegionUtil.REGION, REGION);
         getRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         getRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, HASH_KEY);
         getRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, RANGE_KEY);

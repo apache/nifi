@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -106,7 +107,7 @@ public class AbstractDynamoDBIT {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
 
-        runner.setProperty(AbstractDynamoDBProcessor.REGION, localstack.getRegion());
+        runner.setProperty(RegionUtil.REGION, localstack.getRegion());
         runner.setProperty(AbstractDynamoDBProcessor.ENDPOINT_OVERRIDE, localstack.getEndpoint().toString());
         return runner;
     }

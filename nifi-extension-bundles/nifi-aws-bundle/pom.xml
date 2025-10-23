@@ -79,6 +79,25 @@
                 <version>${software.amazon.awssdk.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <!-- S3 provided in nifi-aws-service-api-nar -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>s3</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.encryption.s3</groupId>
+                <artifactId>amazon-s3-encryption-client-java</artifactId>
+                <version>${software.amazon.encryption.s3.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
             <!-- DynamoDB provided in nifi-aws-service-api-nar -->
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
