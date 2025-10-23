@@ -121,7 +121,7 @@
 
         <!-- AWS SDK -->
         <com.amazonaws.version>1.12.792</com.amazonaws.version>
-        <software.amazon.awssdk.version>2.35.10</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.36.0</software.amazon.awssdk.version>
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.10.0</org.apache.commons.cli.version>
@@ -148,7 +148,7 @@
 
         <!-- Data formats and serialization -->
         <avro.version>1.12.1</avro.version>
-        <com.github.luben.zstd-jni.version>1.5.7-5</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.7-6</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>2.9.0</com.jayway.jsonpath.version>
         <gson.version>2.13.2</gson.version>
         <jackson.annotations.version>2.20</jackson.annotations.version>
@@ -159,7 +159,7 @@
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.24</aspectj.version>
         <groovy.version>5.0.2</groovy.version>
-        <kotlin.version>2.2.20</kotlin.version>
+        <kotlin.version>2.2.21</kotlin.version>
 
         <!-- Logging and observability -->
         <log4j2.version>2.25.2</log4j2.version>
@@ -193,9 +193,9 @@
         <jakarta.activation-api.version>2.1.4</jakarta.activation-api.version>
         <jaxb.runtime.version>4.0.6</jaxb.runtime.version>
         <jersey.bom.version>4.0.0-M4</jersey.bom.version>
-        <jetty.version>12.1.2</jetty.version>
+        <jetty.version>12.1.3</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.security.version>6.5.5</spring.security.version>
+        <spring.security.version>6.5.6</spring.security.version>
         <spring.version>6.2.12</spring.version>
         <swagger.annotations.version>2.2.39</swagger.annotations.version>
 
@@ -203,7 +203,7 @@
         <junit.version>6.0.0</junit.version>
         <mockito.version>5.20.0</mockito.version>
         <pmd.version>7.17.0</pmd.version>
-        <checkstyle.version>12.0.1</checkstyle.version>
+        <checkstyle.version>12.1.0</checkstyle.version>
         <testcontainers.version>2.0.1</testcontainers.version>
     </properties>
     <dependencyManagement>
@@ -727,7 +727,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>jaxb2-maven-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>4.0.0</version>
                     <configuration>
                         <noGeneratedHeaderComments>true</noGeneratedHeaderComments>
                     </configuration>
@@ -735,7 +735,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>3.6.0</version>
+                    <version>3.6.2</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -827,7 +827,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.13</version>
+                    <version>0.8.14</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
@@ -837,7 +837,7 @@
                 <plugin>
                     <groupId>io.swagger.codegen.v3</groupId>
                     <artifactId>swagger-codegen-maven-plugin</artifactId>
-                    <version>3.0.73</version>
+                    <version>3.0.75</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -847,7 +847,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-pmd-plugin</artifactId>
-                    <version>3.27.0</version>
+                    <version>3.28.0</version>
                     <dependencies>
                         <dependency>
                             <groupId>net.sourceforge.pmd</groupId>
