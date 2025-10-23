@@ -18,6 +18,9 @@ package org.apache.nifi.parquet;
 
 import static org.apache.nifi.parquet.utils.ParquetUtils.AVRO_ADD_LIST_ELEMENT_RECORDS;
 import static org.apache.nifi.parquet.utils.ParquetUtils.AVRO_READ_COMPATIBILITY;
+import static org.apache.nifi.parquet.utils.ParquetUtils.OLD_AVRO_ADD_LIST_ELEMENT_RECORDS_PROPERTY_NAME;
+import static org.apache.nifi.parquet.utils.ParquetUtils.OLD_AVRO_READ_COMPATIBILITY_PROPERTY_NAME;
+
 import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
 import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 
@@ -31,6 +34,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.parquet.record.ParquetRecordReader;
 import org.apache.nifi.parquet.utils.ParquetConfig;
 import org.apache.nifi.serialization.RecordReader;
@@ -52,6 +56,12 @@ public class ParquetReader extends AbstractControllerService implements RecordRe
         final ParquetConfig parquetConfig = createParquetConfig(getConfigurationContext(), variables);
         applyCommonConfig(conf, parquetConfig);
         return new ParquetRecordReader(in, inputLength, conf, variables);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OLD_AVRO_ADD_LIST_ELEMENT_RECORDS_PROPERTY_NAME, AVRO_ADD_LIST_ELEMENT_RECORDS.getName());
+        config.renameProperty(OLD_AVRO_READ_COMPATIBILITY_PROPERTY_NAME, AVRO_READ_COMPATIBILITY.getName());
     }
 
     @Override
