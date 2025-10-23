@@ -255,7 +255,7 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
         final FlowRegistryClientNode registry = getFlowRegistryClient(registryId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(registry, logRepository, new StandardLoggingContext(null));
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(registry, logRepository, new StandardLoggingContext());
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final Map<String, String> effectiveProperties = properties == null ? Collections.emptyMap() : properties;

@@ -143,7 +143,7 @@ public class ControllerResource extends ApplicationResource {
     private static final String UPLOAD_CONTENT_TYPE = "application/octet-stream";
 
     public RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
-            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Flow Analysis Rule Config Thread");
+            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Flow Controller Config Thread");
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
