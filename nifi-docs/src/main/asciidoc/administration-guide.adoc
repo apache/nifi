@@ -76,7 +76,7 @@ See the <<system_properties>> section of this guide for more information about c
 
 == Build a Custom Distribution
 
-The binary build of Apache NiFi that is provided by the Apache mirrors does not contain every NAR file that is part of the official release. This is due to size constraints imposed by the mirrors to reduce the expenses associated with hosting such a large project. The Developer Guide <<developer-guide.adoc#nifi-developers-guide,has a list>> of optional Maven profiles that can be activated to build a binary distribution of NiFi with these extra capabilities.
+The binary build of Apache NiFi that is provided by the Apache mirrors does not contain every NAR file that is part of the official release. This is due to size constraints imposed by the mirrors to reduce the expenses associated with hosting such a large project. The Developer Guide <<developer-guide.adoc#build,has a list>> of optional Maven profiles that can be activated to build a binary distribution of NiFi with these extra capabilities.
 
 Java 21 is required for building and running Apache NiFi.
 
