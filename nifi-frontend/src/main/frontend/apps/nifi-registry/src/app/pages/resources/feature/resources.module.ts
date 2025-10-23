@@ -29,6 +29,7 @@ import { MatSortModule } from '@angular/material/sort';
 import { MatMenuModule } from '@angular/material/menu';
 import { DropletTableFilterComponent } from './ui/droplet-table-filter/droplet-table-filter.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DropletTableComponent } from './ui/droplet-table/droplet-table.component';
 import { ContextErrorBanner } from '../../../ui/common/context-error-banner/context-error-banner.component';
 import { HeaderComponent } from '../../../ui/header/header.component';
@@ -41,15 +42,15 @@ import { HeaderComponent } from '../../../ui/header/header.component';
         MatTableModule,
         MatSortModule,
         MatMenuModule,
-        DropletTableFilterComponent,
         MatButtonModule,
-        MatButtonModule,
-        DropletTableComponent,
-        ContextErrorBanner,
+        MatTooltipModule,
         ResourcesRoutingModule,
         StoreModule.forFeature(resourcesFeatureKey, reducers),
         EffectsModule.forFeature([DropletsEffects, BucketsEffects]),
-        HeaderComponent
+        HeaderComponent,
+        DropletTableFilterComponent,
+        DropletTableComponent,
+        ContextErrorBanner
     ]
 })
 export class ResourcesModule {}
