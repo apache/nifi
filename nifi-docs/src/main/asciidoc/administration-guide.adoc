@@ -18,6 +18,7 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
+:imagesdir: images
 
 [[system_requirements]]
 == System Requirements

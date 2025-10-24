@@ -18,6 +18,7 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: https://nifi.apache.org
 :linkattrs:
+:imagesdir: images
 
 
 == Who is This Guide For?
