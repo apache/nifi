@@ -20,6 +20,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -49,14 +50,17 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RE
 final class ReaderRecordProcessor {
 
     private final RecordReaderFactory recordReaderFactory;
+    private final KinesisRecordConverter recordConverter;
     private final RecordSetWriterFactory recordWriterFactory;
     private final ComponentLog logger;
 
     ReaderRecordProcessor(
             final RecordReaderFactory recordReaderFactory,
+            final KinesisRecordConverter recordConverter,
             final RecordSetWriterFactory recordWriterFactory,
             final ComponentLog logger) {
         this.recordReaderFactory = recordReaderFactory;
+        this.recordConverter = recordConverter;
         this.recordWriterFactory = recordWriterFactory;
         this.logger = logger;
     }
@@ -81,7 +85,8 @@ final class ReaderRecordProcessor {
 
                 Record record;
                 while ((record = reader.nextRecord()) != null) {
-                    final RecordSchema writeSchema = recordWriterFactory.getSchema(emptyMap(), record.getSchema());
+                    final Record convertedRecord = recordConverter.convert(record, kinesisRecord, streamName, shardId);
+                    final RecordSchema writeSchema = recordWriterFactory.getSchema(emptyMap(), convertedRecord.getSchema());
 
                     if (activeFlowFile == null) {
                         activeFlowFile = ActiveFlowFile.startNewFile(logger, session, recordWriterFactory, writeSchema, streamName, shardId);
@@ -93,7 +98,7 @@ final class ReaderRecordProcessor {
                         activeFlowFile = ActiveFlowFile.startNewFile(logger, session, recordWriterFactory, writeSchema, streamName, shardId);
                     }
 
-                    activeFlowFile.writeRecord(record, kinesisRecord);
+                    activeFlowFile.writeRecord(convertedRecord, kinesisRecord);
                 }
             } catch (final IOException | MalformedRecordException | SchemaNotFoundException e) {
                 logger.error("Reader or Writer failed to process Kinesis Record with Stream Name [{}] Shard Id [{}] Sequence Number [{}] SubSequence Number [{}]",
