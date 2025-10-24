@@ -22,6 +22,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class ConfigVerificationResultDTO {
     private String outcome;
     private String verificationStepName;
+    private String subject;
     private String explanation;
 
     @Schema(description = "The outcome of the verification", allowableValues = {"SUCCESSFUL", "FAILED", "SKIPPED"})
@@ -40,6 +41,15 @@ public class ConfigVerificationResultDTO {
 
     public void setVerificationStepName(final String verificationStepName) {
         this.verificationStepName = verificationStepName;
+    }
+
+    @Schema(description = "The subject of the verification step")
+    public String getSubject() {
+        return subject;
+    }
+
+    public void setSubject(final String subject) {
+        this.subject = subject;
     }
 
     @Schema(description = "An explanation of why the step was or was not successful")

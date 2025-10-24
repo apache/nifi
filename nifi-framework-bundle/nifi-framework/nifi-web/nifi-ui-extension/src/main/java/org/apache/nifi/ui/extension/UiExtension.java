@@ -18,6 +18,8 @@ package org.apache.nifi.ui.extension;
 
 import org.apache.nifi.web.UiExtensionType;
 
+import java.util.Map;
+
 /**
  * Information about a UI extension required to be invoked.
  */
@@ -25,10 +27,16 @@ public class UiExtension {
 
     private final UiExtensionType extensionType;
     private final String contextPath;
+    private final Map<String, String> supportedRoutes;
 
     public UiExtension(final UiExtensionType extensionType, final String contextPath) {
+        this(extensionType, contextPath, null);
+    }
+
+    public UiExtension(final UiExtensionType extensionType, final String contextPath, final Map<String, String> supportedRoutes) {
         this.extensionType = extensionType;
         this.contextPath = contextPath;
+        this.supportedRoutes = supportedRoutes;
     }
 
     /**
@@ -43,6 +51,14 @@ public class UiExtension {
      */
     public String getContextPath() {
         return contextPath;
+    }
+
+    /**
+     * @return A map of route names to route paths for this UI extension, or null if routes are not applicable.
+     *         Route paths may include a hash prefix for hash-based routing (e.g., "#/wizard") or be path-based (e.g., "/wizard").
+     */
+    public Map<String, String> getSupportedRoutes() {
+        return supportedRoutes;
     }
 
 }
