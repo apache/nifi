@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.processors.aws.kinesis.converter;
 
-import jakarta.annotation.Nullable;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -26,46 +24,22 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.junit.jupiter.api.Test;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
 
-import java.nio.ByteBuffer;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverterTestUtil.INPUT_RECORD;
+import static org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverterTestUtil.KINESIS_METADATA;
+import static org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverterTestUtil.SCHEMA_METADATA;
+import static org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverterTestUtil.TEST_ARRIVAL_TIMESTAMP;
+import static org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverterTestUtil.TEST_SHARD_ID;
+import static org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverterTestUtil.TEST_STREAM_NAME;
+import static org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverterTestUtil.createTestKinesisRecord;
+import static org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverterTestUtil.verifyMetadata;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 class InjectMetadataRecordConverterTest {
 
-    private static final String KINESIS_METADATA = "kinesisMetadata";
-
-    private static final String TEST_STREAM_NAME = "test-stream";
-    private static final String TEST_SHARD_ID = "shardId-000000000001";
-    private static final String TEST_SEQUENCE_NUMBER = "49590338271490256608559692538361571095921575989136588801";
-    private static final long TEST_SUB_SEQUENCE_NUMBER = 2;
-    private static final String TEST_PARTITION_KEY = "test-partition-key";
-    private static final Instant TEST_ARRIVAL_TIMESTAMP = Instant.ofEpochMilli(1640995200000L);
-
-    private static final String EXPECTED_SHARDED_SEQUENCE_NUMBER = "4959033827149025660855969253836157109592157598913658880100000000000000000002";
-
-    private static final RecordSchema INPUT_SCHEMA = new SimpleRecordSchema(List.of(
-            new RecordField("name", RecordFieldType.STRING.getDataType()),
-            new RecordField("age", RecordFieldType.INT.getDataType())
-    ));
-    private static final Record INPUT_RECORD = new MapRecord(INPUT_SCHEMA, Map.of(
-            "name", "John Doe",
-            "age", 30
-    ));
-
-    private static final RecordSchema SCHEMA_METADATA = new SimpleRecordSchema(List.of(
-            new RecordField("stream", RecordFieldType.STRING.getDataType()),
-            new RecordField("shardId", RecordFieldType.STRING.getDataType()),
-            new RecordField("sequenceNumber", RecordFieldType.STRING.getDataType()),
-            new RecordField("subSequenceNumber", RecordFieldType.LONG.getDataType()),
-            new RecordField("shardedSequenceNumber", RecordFieldType.STRING.getDataType()),
-            new RecordField("partitionKey", RecordFieldType.STRING.getDataType()),
-            new RecordField("approximateArrival", RecordFieldType.TIMESTAMP.getDataType())
-    ));
     private static final RecordSchema EXPECTED_SCHEMA = new SimpleRecordSchema(List.of(
             new RecordField("name", RecordFieldType.STRING.getDataType()),
             new RecordField("age", RecordFieldType.INT.getDataType()),
@@ -106,30 +80,5 @@ class InjectMetadataRecordConverterTest {
         final Record metadata = record.getAsRecord(KINESIS_METADATA, SCHEMA_METADATA);
         final boolean expectTimestamp = false;
         verifyMetadata(metadata, expectTimestamp);
-    }
-
-    private KinesisClientRecord createTestKinesisRecord(final @Nullable Instant arrivalTimestamp) {
-        return KinesisClientRecord.builder()
-                .data(ByteBuffer.allocate(0))
-                .sequenceNumber(TEST_SEQUENCE_NUMBER)
-                .subSequenceNumber(TEST_SUB_SEQUENCE_NUMBER)
-                .partitionKey(TEST_PARTITION_KEY)
-                .approximateArrivalTimestamp(arrivalTimestamp)
-                .build();
-    }
-
-    private static void verifyMetadata(final Record metadata, final boolean expectTimestamp) {
-        assertEquals(TEST_STREAM_NAME, metadata.getValue("stream"));
-        assertEquals(TEST_SHARD_ID, metadata.getValue("shardId"));
-        assertEquals(TEST_SEQUENCE_NUMBER, metadata.getValue("sequenceNumber"));
-        assertEquals(TEST_SUB_SEQUENCE_NUMBER, metadata.getValue("subSequenceNumber"));
-        assertEquals(EXPECTED_SHARDED_SEQUENCE_NUMBER, metadata.getValue("shardedSequenceNumber"));
-        assertEquals(TEST_PARTITION_KEY, metadata.getValue("partitionKey"));
-
-        if (expectTimestamp) {
-            assertEquals(TEST_ARRIVAL_TIMESTAMP.toEpochMilli(), metadata.getValue("approximateArrival"));
-        } else {
-            assertNull(metadata.getValue("approximateArrival"));
-        }
     }
 }

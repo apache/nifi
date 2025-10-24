@@ -31,6 +31,7 @@ import java.util.Map;
 final class KinesisRecordMetadata {
 
     static final String METADATA = "kinesisMetadata";
+    static final String APPROX_ARRIVAL_TIMESTAMP = "approximateArrival";
 
     private static final String STREAM = "stream";
     private static final String SHARD_ID = "shardId";
@@ -38,7 +39,6 @@ final class KinesisRecordMetadata {
     private static final String SUB_SEQUENCE_NUMBER = "subSequenceNumber";
     private static final String SHARDED_SEQUENCE_NUMBER = "shardedSequenceNumber";
     private static final String PARTITION_KEY = "partitionKey";
-    private static final String APPROX_ARRIVAL_TIMESTAMP = "approximateArrival";
 
     private static final RecordField FIELD_STREAM = new RecordField(STREAM, RecordFieldType.STRING.getDataType());
     private static final RecordField FIELD_SHARD_ID = new RecordField(SHARD_ID, RecordFieldType.STRING.getDataType());

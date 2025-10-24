@@ -756,9 +756,9 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     enum OutputStrategy implements DescribedValue {
         USE_VALUE("Use Content as Value", "Write only the Kinesis Record value to the FlowFile record."),
-        USE_WRAPPER("Use Wrapper", "Write the Kinesis Record value and metadata into the FlowFile record. (See processor's additional details for more information.)"),
+        USE_WRAPPER("Use Wrapper", "Write the Kinesis Record value and metadata into the FlowFile record. (See additional details for more information.)"),
         INJECT_METADATA("Inject Metadata",
-                "Write the Kinesis Record value to the FlowFile record and add a sub-record to it with metadata. (See processor's additional details for more information.)");
+                "Write the Kinesis Record value to the FlowFile record and add a sub-record to it with metadata. (See additional details for more information.)");
 
         private final String displayName;
         private final String description;
