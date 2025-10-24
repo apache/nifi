@@ -18,8 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -27,92 +25,62 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.db.JdbcProperties;
-import org.apache.nifi.util.file.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Unit tests for the QueryDatabaseTableRecord processor
- */
-public class QueryDatabaseTableRecordTest {
+class QueryDatabaseTableRecordTest {
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
-    MockQueryDatabaseTableRecord processor;
-    protected TestRunner runner;
-    private final static String DB_LOCATION = "target/db_qdt";
     private final static String TABLE_NAME_KEY = "tableName";
     private final static String MAX_ROWS_KEY = "maxRows";
 
+    private static final String SERVICE_ID = EmbeddedDatabaseConnectionService.class.getSimpleName();
+
+    private static EmbeddedDatabaseConnectionService service;
+
+    MockQueryDatabaseTableRecord processor;
+    protected TestRunner runner;
 
     @BeforeAll
-    public static void setupBeforeClass() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        try {
-            FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignored) {
-            // Do nothing, may not have existed
-        }
+    static void setService(@TempDir final Path databaseLocation) {
+        service = new EmbeddedDatabaseConnectionService(databaseLocation);
     }
 
     @AfterAll
-    public static void cleanUpAfterClass() {
-        try {
-            DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (Exception ignored) {
-            // Do nothing, this is what happens at Derby shutdown
-        }
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        try {
-            FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignored) {
-            // Do nothing, may not have existed
-        }
-        System.clearProperty("derby.stream.error.file");
-    }
-
-    public String getDatabaseType() {
-        return "Generic";
-    }
-
-    public void createDbcpControllerService() throws InitializationException {
-        final DBCPService dbcp = new DBCPServiceSimpleImpl();
-        final Map<String, String> dbcpProperties = new HashMap<>();
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
-        runner.enableControllerService(dbcp);
+    static void shutdown() {
+        service.close();
     }
 
     @BeforeEach
-    public void setup() throws InitializationException, IOException {
+    void setRunner() throws InitializationException, IOException {
         processor = new MockQueryDatabaseTableRecord();
         runner = TestRunners.newTestRunner(processor);
-        createDbcpControllerService();
-        runner.setProperty(QueryDatabaseTableRecord.DBCP_SERVICE, "dbcp");
-        runner.setProperty(QueryDatabaseTableRecord.DB_TYPE, getDatabaseType());
+
+        runner.addControllerService(SERVICE_ID, service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(QueryDatabaseTableRecord.DBCP_SERVICE, SERVICE_ID);
+        runner.setProperty(QueryDatabaseTableRecord.DB_TYPE, "Generic");
         runner.getStateManager().clear(Scope.CLUSTER);
         MockRecordWriter recordWriter = new MockRecordWriter(null, true, -1);
         runner.addControllerService("writer", recordWriter);
@@ -123,23 +91,39 @@ public class QueryDatabaseTableRecordTest {
     }
 
     @AfterEach
-    public void teardown() throws IOException {
+    void shutdownRunner() throws IOException {
         runner.getStateManager().clear(Scope.CLUSTER);
         runner = null;
     }
 
+    @AfterEach
+    void dropTables() {
+        final List<String> tables = List.of(
+                "TEST_QUERY_DB_TABLE",
+                "TEST_QUERY_DB_TABLE2",
+                "TEST_NULL_INT",
+                "TEST_NO_ROWS",
+                "TYPE_LIST"
+        );
+
+        for (final String table : tables) {
+            try (
+                    Connection connection = service.getConnection();
+                    Statement statement = connection.createStatement()
+            ) {
+                statement.execute("DROP TABLE %s".formatted(table));
+
+            } catch (final SQLException ignored) {
+
+            }
+        }
+    }
+
     @Test
     public void testAddedRows() throws SQLException, IOException {
-
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
@@ -154,14 +138,14 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 2);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute(QueryDatabaseTableRecord.RESULT_TABLENAME));
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         runner.setProperty(QueryDatabaseTableRecord.FETCH_SIZE, "2");
         flowFile.assertAttributeEquals("record.count", "2");
 
         flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(1);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -177,8 +161,8 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (3, 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "3");
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
+        assertEquals("3", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
 
         // Sanity check - run again, this time no flowfiles/rows should be transferred
@@ -194,9 +178,9 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (4, 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "4");
-        assertEquals(flowFile.getAttribute("maxvalue.created_on"), "2011-01-01 03:23:34.234");
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
+        assertEquals("4", flowFile.getAttribute("maxvalue.id"));
+        assertEquals("2011-01-01 03:23:34.234", flowFile.getAttribute("maxvalue.created_on"));
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -210,7 +194,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (6, 'Mr. NiFi', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -219,7 +203,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "name");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "7");
         runner.clearTransferState();
 
@@ -227,7 +211,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (7, 'NULK', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -236,7 +220,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "scale");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "8");
         runner.clearTransferState();
 
@@ -244,7 +228,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (8, 'NULK', 100.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -253,7 +237,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "bignum");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "9");
         runner.clearTransferState();
 
@@ -261,23 +245,16 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on, bignum) VALUES (9, 'Alice Bob', 100.0, '2012-01-01 03:23:34.234', 1)");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
     }
 
     @Test
-    public void testAddedRowsAutoCommitTrue() throws SQLException, IOException {
-
+    public void testAddedRowsAutoCommitTrue() throws SQLException {
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
@@ -294,28 +271,21 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 2);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute(QueryDatabaseTableRecord.RESULT_TABLENAME));
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "2");
 
         flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(1);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
     }
 
     @Test
-    public void testAddedRowsAutoCommitFalse() throws SQLException, IOException {
-
+    public void testAddedRowsAutoCommitFalse() throws SQLException {
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
@@ -332,34 +302,21 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 2);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute(QueryDatabaseTableRecord.RESULT_TABLENAME));
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "2");
 
         flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(1);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
     }
 
     @Test
     public void testAddedRowsTwoTables() throws SQLException {
-
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE2");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (0, 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
@@ -374,12 +331,12 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 2);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute(QueryDatabaseTableRecord.RESULT_TABLENAME));
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "2");
         flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(1);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -394,9 +351,9 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
 
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE2", flowFile.getAttribute(QueryDatabaseTableRecord.RESULT_TABLENAME));
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "2");
+        assertEquals("2", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "3");
         runner.clearTransferState();
 
@@ -404,8 +361,8 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE2 (id, name, scale, created_on) VALUES (3, 'Mary West', 15.0, '2000-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "3");
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
+        assertEquals("3", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
 
         // Sanity check - run again, this time no flowfiles/rows should be transferred
@@ -417,16 +374,9 @@ public class QueryDatabaseTableRecordTest {
 
     @Test
     public void testMultiplePartitions() throws SQLException {
-
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, bucket integer not null)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (0, 0)");
@@ -439,7 +389,7 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
         assertEquals("2",
-                runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0).getAttribute(QueryDatabaseTableRecord.RESULT_ROW_COUNT)
+                runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst().getAttribute(QueryDatabaseTableRecord.RESULT_ROW_COUNT)
         );
         runner.clearTransferState();
 
@@ -448,7 +398,7 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
         assertEquals("1",
-                runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0).getAttribute(QueryDatabaseTableRecord.RESULT_ROW_COUNT)
+                runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst().getAttribute(QueryDatabaseTableRecord.RESULT_ROW_COUNT)
         );
         runner.clearTransferState();
 
@@ -457,7 +407,7 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
         assertEquals("1",
-                runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0).getAttribute(QueryDatabaseTableRecord.RESULT_ROW_COUNT)
+                runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst().getAttribute(QueryDatabaseTableRecord.RESULT_ROW_COUNT)
         );
         runner.clearTransferState();
 
@@ -471,23 +421,16 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
         assertEquals("1",
-                runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0).getAttribute(QueryDatabaseTableRecord.RESULT_ROW_COUNT)
+                runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst().getAttribute(QueryDatabaseTableRecord.RESULT_ROW_COUNT)
         );
         runner.clearTransferState();
     }
 
     @Test
     public void testTimestampNanos() throws SQLException {
-
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (1, 'Carrie Jones', 5.0, '2000-01-01 03:23:34.000123456')");
@@ -498,7 +441,7 @@ public class QueryDatabaseTableRecordTest {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -517,7 +460,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, name, scale, created_on) VALUES (3, 'Mary West', 15.0, '2000-01-01 03:23:34.0003')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -530,14 +473,8 @@ public class QueryDatabaseTableRecordTest {
     @Test
     public void testWithNullIntColumn() throws SQLException {
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
-        }
 
         stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
@@ -549,20 +486,14 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0).assertAttributeEquals(QueryDatabaseTableRecord.RESULT_ROW_COUNT, "2");
+        runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst().assertAttributeEquals(QueryDatabaseTableRecord.RESULT_ROW_COUNT, "2");
     }
 
     @Test
     public void testWithSqlException() throws SQLException {
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NO_ROWS");
-        } catch (final SQLException ignored) {
-            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
-        }
 
         stmt.execute("create table TEST_NO_ROWS (id integer)");
 
@@ -579,15 +510,9 @@ public class QueryDatabaseTableRecordTest {
     public void testOutputBatchSize() throws SQLException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
         MockFlowFile mff;
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         int rowCount = 0;
@@ -632,15 +557,9 @@ public class QueryDatabaseTableRecordTest {
     public void testMaxRowsPerFlowFile() throws IOException, SQLException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
         MockFlowFile mff;
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         int rowCount = 0;
@@ -690,7 +609,7 @@ public class QueryDatabaseTableRecordTest {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        mff = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        mff = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         mff.assertAttributeExists("fragment.identifier");
         assertEquals(Integer.toString(0), mff.getAttribute("fragment.index"));
         assertEquals("1", mff.getAttribute("fragment.count"));
@@ -705,7 +624,7 @@ public class QueryDatabaseTableRecordTest {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 2);
-        mff = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        mff = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         mff.assertAttributeEquals("record.count", "9");
         mff = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(1);
         mff.assertAttributeEquals("record.count", "5");
@@ -732,15 +651,9 @@ public class QueryDatabaseTableRecordTest {
     public void testMaxRowsPerFlowFileWithMaxFragments() throws SQLException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
         MockFlowFile mff;
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         int rowCount = 0;
@@ -754,8 +667,8 @@ public class QueryDatabaseTableRecordTest {
         runner.setIncomingConnection(false);
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "9");
-        Integer maxFragments = 3;
-        runner.setProperty(QueryDatabaseTableRecord.MAX_FRAGMENTS, maxFragments.toString());
+        int maxFragments = 3;
+        runner.setProperty(QueryDatabaseTableRecord.MAX_FRAGMENTS, Integer.toString(maxFragments));
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, maxFragments);
@@ -766,7 +679,7 @@ public class QueryDatabaseTableRecordTest {
 
             mff.assertAttributeExists("fragment.identifier");
             assertEquals(Integer.toString(i), mff.getAttribute("fragment.index"));
-            assertEquals(maxFragments.toString(), mff.getAttribute("fragment.count"));
+            assertEquals(Integer.toString(maxFragments), mff.getAttribute("fragment.count"));
         }
 
         runner.clearTransferState();
@@ -776,14 +689,8 @@ public class QueryDatabaseTableRecordTest {
     public void testInitialMaxValue() throws SQLException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
@@ -808,7 +715,7 @@ public class QueryDatabaseTableRecordTest {
         // Initial run with no previous state. Should get only last 4 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "4");
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
@@ -825,14 +732,8 @@ public class QueryDatabaseTableRecordTest {
     public void testInitialMaxValueWithEL() throws SQLException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
@@ -857,7 +758,7 @@ public class QueryDatabaseTableRecordTest {
         // Initial run with no previous state. Should get only last 4 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "4");
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
@@ -875,7 +776,7 @@ public class QueryDatabaseTableRecordTest {
 
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:10:00.0", Scope.CLUSTER);
         runner.clearTransferState();
@@ -885,14 +786,8 @@ public class QueryDatabaseTableRecordTest {
     public void testInitialLoadStrategyStartAtBeginning() throws SQLException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
 
@@ -915,7 +810,7 @@ public class QueryDatabaseTableRecordTest {
         // Initial run with no previous state. Should get all 10 records
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "10");
         runner.getStateManager().assertStateEquals("test_query_db_table" + AbstractDatabaseFetchProcessor.NAMESPACE_DELIMITER + "created_on", "1970-01-01 00:09:00.0", Scope.CLUSTER);
         runner.clearTransferState();
@@ -932,7 +827,7 @@ public class QueryDatabaseTableRecordTest {
     public void testInitialLoadStrategyStartAtCurrentMaximumValues() throws SQLException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
 
         try {
@@ -977,14 +872,8 @@ public class QueryDatabaseTableRecordTest {
     public void testAddedRowsCustomWhereClause() throws SQLException, IOException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, type varchar(20), name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (0, 'male', 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
@@ -1000,9 +889,9 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute(QueryDatabaseTableRecord.RESULT_TABLENAME));
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "0");
+        assertEquals("0", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
 
         runner.clearTransferState();
@@ -1033,9 +922,9 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (4, 'male', 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "4");
-        assertEquals(flowFile.getAttribute("maxvalue.created_on"), "2011-01-01 03:23:34.234");
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
+        assertEquals("4", flowFile.getAttribute("maxvalue.id"));
+        assertEquals("2011-01-01 03:23:34.234", flowFile.getAttribute("maxvalue.created_on"));
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -1049,7 +938,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (6, 'male', 'Mr. NiFi', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -1058,7 +947,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "name");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "4");
         runner.clearTransferState();
 
@@ -1066,7 +955,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (7, 'male', 'NULK', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -1075,7 +964,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "scale");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "5");
         runner.clearTransferState();
 
@@ -1083,7 +972,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (8, 'male', 'NULK', 100.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -1092,7 +981,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "bignum");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "6");
         runner.clearTransferState();
 
@@ -1107,20 +996,8 @@ public class QueryDatabaseTableRecordTest {
     public void testCustomSQL() throws SQLException, IOException {
 
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
-
-        try {
-            stmt.execute("drop table TYPE_LIST");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, type varchar(20), name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (0, 'male', 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
@@ -1143,9 +1020,9 @@ public class QueryDatabaseTableRecordTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute(QueryDatabaseTableRecord.RESULT_TABLENAME));
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "0");
+        assertEquals("0", flowFile.getAttribute("maxvalue.id"));
         flowFile.assertAttributeEquals("record.count", "1");
 
         runner.clearTransferState();
@@ -1176,9 +1053,9 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (4, 'male', 'Marty Johnson', 15.0, '2011-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
-        assertEquals(flowFile.getAttribute("maxvalue.id"), "4");
-        assertEquals(flowFile.getAttribute("maxvalue.created_on"), "2011-01-01 03:23:34.234");
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
+        assertEquals("4", flowFile.getAttribute("maxvalue.id"));
+        assertEquals("2011-01-01 03:23:34.234", flowFile.getAttribute("maxvalue.created_on"));
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -1192,7 +1069,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (6, 'male', 'Mr. NiFi', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -1201,7 +1078,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "name");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "4");
         runner.clearTransferState();
 
@@ -1209,7 +1086,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (7, 'male', 'NULK', 1.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -1218,7 +1095,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "scale");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "5");
         runner.clearTransferState();
 
@@ -1226,7 +1103,7 @@ public class QueryDatabaseTableRecordTest {
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (8, 'male', 'NULK', 100.0, '2012-01-01 03:23:34.234')");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "1");
         runner.clearTransferState();
 
@@ -1235,7 +1112,7 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "bignum");
         runner.run();
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 1);
-        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).get(0);
+        flowFile = runner.getFlowFilesForRelationship(QueryDatabaseTableRecord.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("record.count", "6");
         runner.clearTransferState();
 
@@ -1249,20 +1126,8 @@ public class QueryDatabaseTableRecordTest {
     @Test
     public void testMissingColumn() throws ProcessException, SQLException {
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = service.getConnection();
         Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_QUERY_DB_TABLE");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
-
-        try {
-            stmt.execute("drop table TYPE_LIST");
-        } catch (final SQLException ignored) {
-            // Ignore this error, probably a "table does not exist" since Derby doesn't yet support DROP IF EXISTS [DERBY-4842]
-        }
 
         stmt.execute("create table TEST_QUERY_DB_TABLE (id integer not null, type varchar(20), name varchar(100), scale float, created_on timestamp, bignum bigint default 0)");
         stmt.execute("insert into TEST_QUERY_DB_TABLE (id, type, name, scale, created_on) VALUES (0, 'male', 'Joe Smith', 1.0, '1962-09-23 03:23:34.234')");
@@ -1281,36 +1146,11 @@ public class QueryDatabaseTableRecordTest {
         runner.setProperty(QueryDatabaseTableRecord.MAX_VALUE_COLUMN_NAMES, "ID");
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "2");
 
-        assertThrows(AssertionError.class, () -> {
-            runner.run();
-        });
-    }
-
-    /**
-     * Simple implementation only for QueryDatabaseTableRecord processor testing.
-     */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
-
-        @Override
-        public String getIdentifier() {
-            return "dbcp";
-        }
-
-        @Override
-        public Connection getConnection() throws ProcessException {
-            try {
-                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                return DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-            } catch (final Exception e) {
-                throw new ProcessException("getConnection failed: " + e);
-            }
-        }
+        assertThrows(AssertionError.class, runner::run);
     }
 
     @Stateful(scopes = Scope.CLUSTER, description = "Mock for QueryDatabaseTableRecord processor")
     protected static class MockQueryDatabaseTableRecord extends QueryDatabaseTableRecord {
-        void putColumnType(String colName, Integer colType) {
-            columnTypeMap.put(colName, colType);
-        }
+
     }
 }
