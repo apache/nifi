@@ -257,6 +257,12 @@ public interface AuthorizableLookup {
     Authorizable getParameterContexts();
 
     /**
+     * Get the authorizable for Connectors
+     * @return authorizable
+     */
+    Authorizable getConnectors();
+
+    /**
      * Get the authorizable connectable. Note this does not include RemoteGroupPorts.
      *
      * @param id connectable id

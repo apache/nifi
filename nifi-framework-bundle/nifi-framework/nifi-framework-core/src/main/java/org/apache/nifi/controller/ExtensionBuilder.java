@@ -19,6 +19,9 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.bundle.Bundle;
@@ -497,11 +500,23 @@ public class ExtensionBuilder {
 
        final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, logger);
 
+       final Authorizable connectorsAuthorizable = new Authorizable() {
+           @Override
+           public Authorizable getParentAuthorizable() {
+               return null;
+           }
+
+           @Override
+           public Resource getResource() {
+               return ResourceFactory.getConnectorsResource();
+           }
+       };
+
        final ConnectorNode connectorNode = new StandardConnectorNode(
            identifier,
            flowController.getFlowManager(),
            extensionManager,
-           flowController,
+           connectorsAuthorizable,
            connectorDetails,
            componentType,
            activeConfigurationContext,

@@ -298,6 +298,24 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource CONNECTORS_RESOURCE = new Resource() {
+
+        @Override
+        public String getIdentifier() {
+            return ResourceType.Connector.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Connectors";
+        }
+
+        @Override
+        public String getSafeDescription() {
+            return "connectors";
+        }
+    };
+
 
     /**
      * Gets the Resource for accessing the Controller. This includes Controller level configuration, bulletins, reporting tasks, and the cluster.
@@ -340,6 +358,14 @@ public final class ResourceFactory {
      */
     public static Resource getParameterProvidersResource() {
         return PARAMETER_PROVIDERS_RESOURCE;
+    }
+
+    /**
+     * Gets the Resource for accessing Connectors.
+     * @return The resource for access Connectors
+     */
+    public static Resource getConnectorsResource() {
+        return CONNECTORS_RESOURCE;
     }
 
     /**
@@ -560,6 +586,7 @@ public final class ResourceFactory {
                     case Label -> "Label";
                     case ParameterContext -> "Parameter Context";
                     case ParameterProvider -> "Parameter Provider";
+                    case Connector -> "Connector";
                     default -> "Component";
                 };
                 return componentType + " with ID " + identifier;
