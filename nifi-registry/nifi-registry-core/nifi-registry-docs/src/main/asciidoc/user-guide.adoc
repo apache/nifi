@@ -17,6 +17,7 @@
 = Apache NiFi Registry User Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: https://nifi.apache.org
+:imagesdir: images
 
 
 == Introduction

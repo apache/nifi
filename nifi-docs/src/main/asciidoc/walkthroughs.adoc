@@ -18,6 +18,7 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
+:imagesdir: images
 // This document refers to NiFi version 1.11.4 and to 1.22.0 as well. Where you see 1.22.0, the steps were verified against that version.
 // Technically we could rename all 1.11.4 references to 1.22.0, because we are trying to be backward compatible, but it is better to double check.
 
