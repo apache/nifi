@@ -64,6 +64,11 @@ export class NiFiCommon {
             description: 'Allows users to view/modify Parameter Contexts'
         },
         {
+            text: 'access connectors',
+            value: 'connectors',
+            description: 'Allows users to view/modify Connectors'
+        },
+        {
             text: 'query provenance',
             value: 'provenance',
             description: 'Allows users to submit a Provenance Search and request Event Lineage'

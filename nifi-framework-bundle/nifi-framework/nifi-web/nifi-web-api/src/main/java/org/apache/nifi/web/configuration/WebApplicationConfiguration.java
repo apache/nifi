@@ -33,7 +33,9 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.NiFiServiceFacadeLock;
+import org.apache.nifi.web.NiFiConnectorWebContext;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.StandardNiFiConnectorWebContext;
 import org.apache.nifi.web.StandardNiFiContentAccess;
 import org.apache.nifi.web.StandardNiFiServiceFacade;
 import org.apache.nifi.web.StandardNiFiWebConfigurationContext;
@@ -47,6 +49,7 @@ import org.apache.nifi.web.api.metrics.jmx.StandardJmxMetricsService;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.controller.ControllerSearchService;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.impl.ComponentDAO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.nifi.web.search.query.RegexSearchQueryParser;
@@ -104,6 +107,8 @@ public class WebApplicationConfiguration {
 
     private NiFiServiceFacade serviceFacade;
 
+    private ConnectorDAO connectorDAO;
+
     public WebApplicationConfiguration(
             final Authorizer authorizer,
             final AccessPolicyDAO accessPolicyDao,
@@ -143,6 +148,11 @@ public class WebApplicationConfiguration {
     @Autowired
     public void setServiceFacade(final NiFiServiceFacade serviceFacade) {
         this.serviceFacade = serviceFacade;
+    }
+
+    @Autowired
+    public void setConnectorDAO(final ConnectorDAO connectorDAO) {
+        this.connectorDAO = connectorDAO;
     }
 
     @Bean
@@ -251,6 +261,13 @@ public class WebApplicationConfiguration {
         context.setRequestReplicator(requestReplicator);
         context.setReportingTaskProvider(flowController);
         context.setServiceFacade(serviceFacade);
+        return context;
+    }
+
+    @Bean
+    public NiFiConnectorWebContext nifiConnectorWebContext() {
+        final StandardNiFiConnectorWebContext context = new StandardNiFiConnectorWebContext();
+        context.setConnectorDAO(connectorDAO);
         return context;
     }
 

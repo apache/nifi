@@ -201,6 +201,7 @@ export class GlobalAccessPolicies implements OnInit, OnDestroy {
         return (
             resource === 'controller' ||
             resource === 'parameter-contexts' ||
+            resource === 'connectors' ||
             resource === 'counters' ||
             resource === 'policies' ||
             resource === 'tenants'

@@ -62,6 +62,7 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -70,6 +71,18 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.ConfigurationStep;
+import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
+import org.apache.nifi.components.connector.ConnectorConfiguration;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorPropertyGroup;
+import org.apache.nifi.components.connector.ConnectorValueReference;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.PropertyGroupConfiguration;
+import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -5218,4 +5231,206 @@ public final class DtoFactory {
         final byte[] digest = MessageDigestUtils.getDigest(bytes);
         return HexFormat.of().formatHex(digest);
     }
+
+    public ConnectorDTO createConnectorDto(final ConnectorNode connector) {
+        if (connector == null) {
+            return null;
+        }
+
+        final ConnectorDTO dto = new ConnectorDTO();
+        dto.setId(connector.getIdentifier());
+        dto.setName(connector.getName());
+
+        final String canonicalName = connector.getConnector().getClass().getCanonicalName();
+        dto.setType(canonicalName != null ? canonicalName : connector.getConnector().getClass().getName());
+
+        dto.setBundle(createBundleDto(connector.getBundleCoordinate()));
+        dto.setState(connector.getCurrentState().name());
+        dto.setActiveConfiguration(createConnectorConfigurationDtoFromFlowContext(connector, connector.getActiveFlowContext()));
+        dto.setWorkingConfiguration(createConnectorConfigurationDtoFromFlowContext(connector, connector.getWorkingFlowContext()));
+
+        return dto;
+    }
+
+    private ConnectorConfigurationDTO createConnectorConfigurationDtoFromFlowContext(final ConnectorNode connector, final FrameworkFlowContext flowContext) {
+        final List<ConfigurationStep> configurationSteps = connector.getConfigurationSteps();
+        if (configurationSteps == null || configurationSteps.isEmpty()) {
+            return null;
+        }
+
+        if (flowContext == null || flowContext.getConfigurationContext() == null) {
+            return null;
+        }
+
+        final ConnectorConfiguration configuration = flowContext.getConfigurationContext().toConnectorConfiguration();
+        final ConnectorConfigurationDTO dto = new ConnectorConfigurationDTO();
+        final List<ConfigurationStepConfigurationDTO> configurationStepDtos = configurationSteps.stream()
+                .map(step -> createConfigurationStepConfigurationDtoFromStep(step, configuration))
+                .collect(Collectors.toList());
+        dto.setConfigurationStepConfigurations(configurationStepDtos);
+        return dto;
+    }
+
+    private ConfigurationStepConfigurationDTO createConfigurationStepConfigurationDtoFromStep(final ConfigurationStep step, final ConnectorConfiguration configuration) {
+        if (step == null) {
+            return null;
+        }
+
+        final ConfigurationStepConfigurationDTO dto = new ConfigurationStepConfigurationDTO();
+        dto.setConfigurationStepName(step.getName());
+        dto.setConfigurationStepDescription(step.getDescription());
+
+        // Get the current configuration values for this step
+        final ConfigurationStepConfiguration stepConfig = configuration.getConfigurationStepConfigurations().stream()
+                .filter(c -> step.getName().equals(c.stepName()))
+                .findFirst()
+                .orElse(null);
+
+        // Convert property groups from the schema, merging in current values
+        final List<PropertyGroupConfigurationDTO> propertyGroupDtos = step.getPropertyGroups().stream()
+                .map(propertyGroup -> createPropertyGroupConfigurationDtoFromGroup(propertyGroup, stepConfig))
+                .collect(Collectors.toList());
+        dto.setPropertyGroupConfigurations(propertyGroupDtos);
+        return dto;
+    }
+
+    private PropertyGroupConfigurationDTO createPropertyGroupConfigurationDtoFromGroup(final ConnectorPropertyGroup propertyGroup, final ConfigurationStepConfiguration stepConfig) {
+        if (propertyGroup == null) {
+            return null;
+        }
+
+        final PropertyGroupConfigurationDTO dto = new PropertyGroupConfigurationDTO();
+        dto.setPropertyGroupName(propertyGroup.getName());
+        dto.setPropertyGroupDescription(propertyGroup.getDescription());
+
+        // Convert property descriptors from the schema, keyed by property name
+        // Use LinkedHashMap to preserve the order from the connector
+        final Map<String, ConnectorPropertyDescriptorDTO> propertyDescriptorMap = new LinkedHashMap<>();
+        for (final ConnectorPropertyDescriptor propertyDescriptor : propertyGroup.getProperties()) {
+            final ConnectorPropertyDescriptorDTO descriptorDto = createConnectorPropertyDescriptorDto(propertyDescriptor);
+            propertyDescriptorMap.put(descriptorDto.getName(), descriptorDto);
+        }
+        dto.setPropertyDescriptors(propertyDescriptorMap);
+
+        // Get the current property values for this group if they exist
+        // Use LinkedHashMap to preserve the order from the connector
+        final Map<String, ConnectorValueReferenceDTO> propertyValues = new LinkedHashMap<>();
+        if (stepConfig != null) {
+            final PropertyGroupConfiguration groupConfig = stepConfig.propertyGroupConfigurations().stream()
+                    .filter(g -> propertyGroup.getName().equals(g.groupName()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (groupConfig != null) {
+                for (final Map.Entry<String, ConnectorValueReference> entry : groupConfig.propertyValues().entrySet()) {
+                    propertyValues.put(entry.getKey(), createConnectorValueReferenceDto(entry.getValue()));
+                }
+            }
+        }
+
+        dto.setPropertyValues(propertyValues);
+        return dto;
+    }
+
+    private ConnectorValueReferenceDTO createConnectorValueReferenceDto(final ConnectorValueReference valueReference) {
+        if (valueReference == null) {
+            return null;
+        }
+
+        final ConnectorValueReferenceDTO dto = new ConnectorValueReferenceDTO();
+        dto.setValueType(valueReference.getValueType() != null ? valueReference.getValueType().name() : null);
+
+        switch (valueReference) {
+            case StringLiteralValue stringLiteral -> dto.setValue(stringLiteral.getValue());
+            case AssetReference assetRef -> dto.setAssetIdentifier(assetRef.getAssetIdentifier());
+            case SecretReference secretRef -> {
+                dto.setSecretProviderId(secretRef.getProviderId());
+                dto.setSecretProviderName(secretRef.getProviderName());
+                dto.setSecretName(secretRef.getSecretName());
+            }
+        }
+
+        return dto;
+    }
+
+    private ConnectorPropertyDescriptorDTO createConnectorPropertyDescriptorDto(final ConnectorPropertyDescriptor propertyDescriptor) {
+        if (propertyDescriptor == null) {
+            return null;
+        }
+
+        final ConnectorPropertyDescriptorDTO dto = new ConnectorPropertyDescriptorDTO();
+        dto.setName(propertyDescriptor.getName());
+        dto.setDescription(propertyDescriptor.getDescription());
+        dto.setDefaultValue(propertyDescriptor.getDefaultValue());
+        dto.setRequired(propertyDescriptor.isRequired());
+        dto.setType(propertyDescriptor.getType() != null ? propertyDescriptor.getType().name() : null);
+        dto.setAllowableValuesFetchable(propertyDescriptor.isAllowableValuesFetchable());
+
+        // Convert allowable values if present
+        if (propertyDescriptor.getAllowableValues() != null && !propertyDescriptor.getAllowableValues().isEmpty()) {
+            final List<AllowableValueEntity> allowableValueEntities = propertyDescriptor.getAllowableValues().stream()
+                    .map(describedValue -> {
+                        final AllowableValueDTO allowableValueDto = new AllowableValueDTO();
+                        allowableValueDto.setValue(describedValue.getValue());
+                        allowableValueDto.setDisplayName(describedValue.getDisplayName());
+                        allowableValueDto.setDescription(describedValue.getDescription());
+
+                        final AllowableValueEntity entity = new AllowableValueEntity();
+                        entity.setAllowableValue(allowableValueDto);
+                        entity.setCanRead(true);
+                        return entity;
+                    })
+                    .collect(Collectors.toList());
+            dto.setAllowableValues(allowableValueEntities);
+        }
+
+        // Convert dependencies if present
+        if (propertyDescriptor.getDependencies() != null && !propertyDescriptor.getDependencies().isEmpty()) {
+            final Set<ConnectorPropertyDependencyDTO> dependencyDtos = propertyDescriptor.getDependencies().stream()
+                    .map(dependency -> {
+                        final ConnectorPropertyDependencyDTO dependencyDto = new ConnectorPropertyDependencyDTO();
+                        dependencyDto.setPropertyName(dependency.getPropertyName());
+                        dependencyDto.setDependentValues(dependency.getDependentValues());
+                        return dependencyDto;
+                    })
+                    .collect(Collectors.toSet());
+            dto.setDependencies(dependencyDtos);
+        }
+
+        return dto;
+    }
+
+    /**
+     * Creates an AllowableValueDTO from the specified AllowableValue.
+     *
+     * @param allowableValue the allowable value
+     * @return the DTO
+     */
+    public AllowableValueDTO createAllowableValueDto(final AllowableValue allowableValue) {
+        if (allowableValue == null) {
+            return null;
+        }
+
+        final AllowableValueDTO dto = new AllowableValueDTO();
+        dto.setValue(allowableValue.getValue());
+        dto.setDisplayName(allowableValue.getDisplayName());
+        dto.setDescription(allowableValue.getDescription());
+        return dto;
+    }
+
+    /**
+     * Creates a ConfigVerificationResultDTO from the specified ConfigVerificationResult.
+     *
+     * @param result the verification result
+     * @return the DTO
+     */
+    public ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {
+        final ConfigVerificationResultDTO dto = new ConfigVerificationResultDTO();
+        dto.setExplanation(result.getExplanation());
+        dto.setOutcome(result.getOutcome().name());
+        dto.setVerificationStepName(result.getVerificationStepName());
+        dto.setSubject(result.getSubject());
+        return dto;
+    }
+
 }

@@ -37,6 +37,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProviderEndp
 import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpointMerger;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
@@ -674,6 +675,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator, Closeable
         // Processors, which is done by issuing a request to DELETE /processors/<id>/threads
         return ConnectionEndpointMerger.CONNECTION_URI_PATTERN.matcher(uriPath).matches()
             || ProcessorEndpointMerger.PROCESSOR_URI_PATTERN.matcher(uriPath).matches()
+            || ConnectorEndpointMerger.CONNECTOR_URI_PATTERN.matcher(uriPath).matches()
             || FunnelEndpointMerger.FUNNEL_URI_PATTERN.matcher(uriPath).matches()
             || PortEndpointMerger.INPUT_PORT_URI_PATTERN.matcher(uriPath).matches()
             || PortEndpointMerger.OUTPUT_PORT_URI_PATTERN.matcher(uriPath).matches()

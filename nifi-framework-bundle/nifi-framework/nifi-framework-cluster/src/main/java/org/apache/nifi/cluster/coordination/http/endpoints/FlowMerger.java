@@ -65,6 +65,17 @@ public class FlowMerger extends AbstractSingleDTOEndpoint<ProcessGroupFlowEntity
     protected void mergeResponses(final ProcessGroupFlowDTO clientDto, final Map<NodeIdentifier, ProcessGroupFlowDTO> dtoMap,
         final Set<NodeResponse> successfulResponses, final Set<NodeResponse> problematicResponses) {
 
+        mergeProcessGroupFlowDto(clientDto, dtoMap);
+    }
+
+    /**
+     * Merges the ProcessGroupFlowDTO responses from all nodes into the client DTO.
+     * This method is package-private to allow reuse by other endpoint mergers (e.g., ConnectorFlowEndpointMerger).
+     *
+     * @param clientDto the client DTO to merge responses into
+     * @param dtoMap the responses from all nodes
+     */
+    static void mergeProcessGroupFlowDto(final ProcessGroupFlowDTO clientDto, final Map<NodeIdentifier, ProcessGroupFlowDTO> dtoMap) {
         final FlowDTO flowDto = clientDto.getFlow();
         final Set<ConnectionEntity> clientConnections = flowDto.getConnections();
         final Set<ProcessorEntity> clientProcessors = flowDto.getProcessors();

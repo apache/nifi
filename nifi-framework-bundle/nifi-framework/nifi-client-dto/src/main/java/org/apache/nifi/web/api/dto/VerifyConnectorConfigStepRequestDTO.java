@@ -1,0 +1,69 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.web.api.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Schema.AccessMode;
+import jakarta.xml.bind.annotation.XmlType;
+
+import java.util.List;
+
+@XmlType(name = "verifyConnectorConfigStepRequest")
+public class VerifyConnectorConfigStepRequestDTO extends AsynchronousRequestDTO<VerifyConfigUpdateStepDTO> {
+
+    private String connectorId;
+    private String configurationStepName;
+    private ConfigurationStepConfigurationDTO configurationStep;
+    private List<ConfigVerificationResultDTO> results;
+
+    @Schema(description = "The ID of the connector whose configuration step is being verified")
+    public String getConnectorId() {
+        return connectorId;
+    }
+
+    public void setConnectorId(final String connectorId) {
+        this.connectorId = connectorId;
+    }
+
+    @Schema(description = "The name of the configuration step being verified")
+    public String getConfigurationStepName() {
+        return configurationStepName;
+    }
+
+    public void setConfigurationStepName(final String configurationStepName) {
+        this.configurationStepName = configurationStepName;
+    }
+
+    @Schema(description = "The configuration step being verified")
+    public ConfigurationStepConfigurationDTO getConfigurationStep() {
+        return configurationStep;
+    }
+
+    public void setConfigurationStep(final ConfigurationStepConfigurationDTO configurationStep) {
+        this.configurationStep = configurationStep;
+    }
+
+    @Schema(description = "The results of the verification", accessMode = AccessMode.READ_ONLY)
+    public List<ConfigVerificationResultDTO> getResults() {
+        return results;
+    }
+
+    public void setResults(final List<ConfigVerificationResultDTO> results) {
+        this.results = results;
+    }
+}
+
