@@ -33,6 +33,7 @@ import {
     selectFlowAnalysisRuleTypes,
     selectParameterProviderTypes,
     selectProcessorTypes,
+    selectRegistryClientTypes,
     selectReportingTaskTypes
 } from '../../../state/extension-types/extension-types.selectors';
 import { ComponentType, isDefinedAndNotNull, NiFiCommon, selectCurrentRoute } from '@nifi/shared';
@@ -72,6 +73,9 @@ export class Documentation implements OnInit, AfterViewInit {
     reportingTaskTypes$ = this.store
         .select(selectReportingTaskTypes)
         .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
+    registryClientTypes$ = this.store
+        .select(selectRegistryClientTypes)
+        .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
     parameterProviderTypes$ = this.store
         .select(selectParameterProviderTypes)
         .pipe(map((extensionTypes) => this.sortExtensions(extensionTypes)));
@@ -93,6 +97,7 @@ export class Documentation implements OnInit, AfterViewInit {
     controllerServicesExpanded = false;
     reportingTasksExpanded = false;
     parameterProvidersExpanded = false;
+    registryClientsExpanded = false;
 
     constructor() {
         this.store
@@ -126,6 +131,9 @@ export class Documentation implements OnInit, AfterViewInit {
                         break;
                     case ComponentType.ParameterProvider:
                         this.parameterProvidersExpanded = true;
+                        break;
+                    case ComponentType.FlowRegistryClient:
+                        this.registryClientsExpanded = true;
                         break;
                 }
             });
