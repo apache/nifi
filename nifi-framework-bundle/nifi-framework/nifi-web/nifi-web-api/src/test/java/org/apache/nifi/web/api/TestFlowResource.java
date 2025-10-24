@@ -29,6 +29,8 @@ import io.prometheus.client.exporter.common.TextFormat;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.connectable.Port;
@@ -54,10 +56,12 @@ import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 import org.apache.nifi.web.api.dto.DifferenceDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupRequestEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.request.FlowMetricsProducer;
 import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -94,6 +98,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -138,7 +143,17 @@ public class TestFlowResource {
     private NiFiServiceFacade serviceFacade;
 
     @Mock
-    private NiFiProperties niFiProperties;
+    private NiFiProperties properties;
+
+    @Mock
+    private ConnectorResource connectorResource;
+
+    @BeforeEach
+    public void setUp() {
+        lenient().when(properties.isNode()).thenReturn(Boolean.FALSE);
+        resource.properties = properties;
+        resource.setConnectorResource(connectorResource);
+    }
 
     @Test
     public void testGetFlowMetricsProducerInvalid() {
@@ -450,7 +465,7 @@ public class TestFlowResource {
         entity.setId(PROCESS_GROUP_ID);
         entity.setState("ENABLED");
 
-        when(niFiProperties.isNode()).thenReturn(false);
+        when(properties.isNode()).thenReturn(false);
         resource.httpServletRequest = new MockHttpServletRequest();
 
         final ArgumentCaptor<Function<ProcessGroup, Set<String>>> revisionsCaptor = ArgumentCaptor.captor();
@@ -599,6 +614,31 @@ public class TestFlowResource {
         assertTrue(componentIds.contains("controller-service-1"), "Authorized controller service should be included");
         assertFalse(componentIds.contains("controller-service-2"), "Unauthorized controller service should be excluded");
         assertEquals(5, componentIds.size(), "Should have exactly 5 authorized components");
+    }
+
+    @Test
+    public void testGetConnectors() {
+        final ConnectorEntity connectorEntity = new ConnectorEntity();
+
+        when(serviceFacade.getConnectors()).thenReturn(Set.of(connectorEntity));
+
+        try (Response response = resource.getConnectors()) {
+            assertEquals(200, response.getStatus());
+            assertNotNull(response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectors();
+    }
+
+    @Test
+    public void testGetConnectorsNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () -> resource.getConnectors());
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getConnectors();
     }
 
     private void setUpGetVersionDifference() {

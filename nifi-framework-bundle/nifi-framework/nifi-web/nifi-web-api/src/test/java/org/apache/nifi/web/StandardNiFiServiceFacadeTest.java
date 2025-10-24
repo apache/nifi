@@ -36,6 +36,8 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -94,6 +96,7 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
+import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
@@ -106,6 +109,7 @@ import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
+import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 import org.apache.nifi.web.dao.UserDAO;
@@ -1548,6 +1552,38 @@ public class StandardNiFiServiceFacadeTest {
         verify(dtoFactory, times(1)).createCounterDto(counter1);
         verify(dtoFactory, times(1)).createCounterDto(counter2);
         verify(dtoFactory, times(1)).createCountersDto(any());
+    }
+
+    @Test
+    public void testSearchConnector() {
+        final String connectorId = "connector-id";
+        final String searchQuery = "test-search";
+        final String managedGroupId = "managed-group-id";
+
+        final ConnectorDAO connectorDAO = mock(ConnectorDAO.class);
+        serviceFacade.setConnectorDAO(connectorDAO);
+
+        final ConnectorNode connectorNode = mock(ConnectorNode.class);
+        final FrameworkFlowContext flowContext = mock(FrameworkFlowContext.class);
+        final ProcessGroup managedProcessGroup = mock(ProcessGroup.class);
+
+        when(connectorDAO.getConnector(connectorId)).thenReturn(connectorNode);
+        when(connectorNode.getActiveFlowContext()).thenReturn(flowContext);
+        when(flowContext.getManagedProcessGroup()).thenReturn(managedProcessGroup);
+        when(managedProcessGroup.getIdentifier()).thenReturn(managedGroupId);
+
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        final SearchResultsDTO expectedResults = new SearchResultsDTO();
+        when(controllerFacade.searchConnector(searchQuery, managedProcessGroup)).thenReturn(expectedResults);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        final SearchResultsDTO results = serviceFacade.searchConnector(connectorId, searchQuery);
+
+        assertNotNull(results);
+        verify(connectorDAO).getConnector(connectorId);
+        verify(connectorNode).getActiveFlowContext();
+        verify(flowContext).getManagedProcessGroup();
+        verify(controllerFacade).searchConnector(searchQuery, managedProcessGroup);
     }
 
     @Test
