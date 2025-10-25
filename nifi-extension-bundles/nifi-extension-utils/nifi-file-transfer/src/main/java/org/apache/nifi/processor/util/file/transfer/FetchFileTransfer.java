@@ -402,7 +402,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                             getLogger().info("Generated filename [{}] to resolve conflict with initial filename [{}] for {}", destinationFileName, simpleFilename, flowFile);
                             break;
                         case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
-                            getLogger().debug("Configured to IGNORE move conflict for {}. Original remote file will be left in place.", flowFile);
+                            getLogger().debug("Ignored conflicting destination filename [{}] for {}", destinationFilename, flowFile);
                             return;
                         case FileTransfer.CONFLICT_RESOLUTION_REJECT:
                         case FileTransfer.CONFLICT_RESOLUTION_FAIL:
