@@ -106,14 +106,33 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             .required(false)
             .build();
     public static final PropertyDescriptor MOVE_DESTINATION_DIR = new PropertyDescriptor.Builder()
-        .name("Move Destination Directory")
-        .description(String.format("The directory on the remote server to move the original file to once it has been ingested into NiFi. "
-            + "This property is ignored unless the %s is set to '%s'. The specified directory must already exist on "
-            + "the remote system if '%s' is disabled, or the rename will fail.",
-                COMPLETION_STRATEGY.getDisplayName(), COMPLETION_MOVE.getDisplayName(), MOVE_CREATE_DIRECTORY.getDisplayName()))
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .required(false)
+            .name("Move Destination Directory")
+            .description("""
+                    The directory on the remote server to move the original file to once it has been ingested into NiFi.
+                    This property is ignored unless the %s is set to '%s'.
+                    The specified directory must already exist on the remote system if '%s' is disabled, or the rename will fail.
+                    """.formatted(
+                    COMPLETION_STRATEGY.getDisplayName(),
+                    COMPLETION_MOVE.getDisplayName(),
+                    MOVE_CREATE_DIRECTORY.getDisplayName()))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor MOVE_CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
+        .name("Move Conflict Resolution")
+        .description(String.format("Determines how to handle filename collisions when '%s' is '%s'. " +
+                        "This setting controls behavior when the target file exists in the %s.",
+                COMPLETION_STRATEGY.getDisplayName(), COMPLETION_MOVE.getDisplayName(), MOVE_DESTINATION_DIR.getDisplayName()))
+        .required(true)
+        .dependsOn(COMPLETION_STRATEGY, COMPLETION_MOVE.getValue())
+        .allowableValues(FileTransfer.CONFLICT_RESOLUTION_REPLACE_ALLOWABLE,
+                FileTransfer.CONFLICT_RESOLUTION_IGNORE_ALLOWABLE,
+                FileTransfer.CONFLICT_RESOLUTION_RENAME_ALLOWABLE,
+                FileTransfer.CONFLICT_RESOLUTION_REJECT_ALLOWABLE,
+                FileTransfer.CONFLICT_RESOLUTION_FAIL_ALLOWABLE)
+        .defaultValue(FileTransfer.CONFLICT_RESOLUTION_IGNORE_ALLOWABLE)
         .build();
 
     public static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
@@ -147,7 +166,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         REMOTE_FILENAME,
         COMPLETION_STRATEGY,
         MOVE_DESTINATION_DIR,
-        MOVE_CREATE_DIRECTORY
+        MOVE_CREATE_DIRECTORY,
+        MOVE_CONFLICT_RESOLUTION
     );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -363,7 +383,40 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                     transfer.ensureDirectoryExists(flowFile, new File(absoluteTargetDirPath));
                 }
 
-                final String destinationPath = String.format("%s/%s", absoluteTargetDirPath, simpleFilename);
+                String destinationFileName = simpleFilename;
+                final FileInfo remoteFileInfo = transfer.getRemoteFileInfo(flowFile, absoluteTargetDirPath, destinationFileName);
+                if (remoteFileInfo != null) {
+                    final String strategy = context.getProperty(MOVE_CONFLICT_RESOLUTION).getValue();
+                    switch (strategy.toUpperCase()) {
+                        case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
+                            try {
+                                transfer.deleteFile(flowFile, absoluteTargetDirPath, destinationFileName);
+                            } catch (final IOException deleteEx) {
+                                getLogger().warn("Failed to delete existing destination file {} on {}:{}",
+                                        destinationFileName, host, port, deleteEx);
+                            }
+                            break;
+                        case FileTransfer.CONFLICT_RESOLUTION_RENAME:
+
+                            destinationFileName = FileTransferConflictUtil.generateUniqueFilename(transfer, absoluteTargetDirPath, destinationFileName, flowFile, getLogger());
+                            getLogger().info("Generated filename [{}] to resolve conflict with initial filename [{}] for {}", destinationFileName, simpleFilename, flowFile);
+                            break;
+                        case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
+                            getLogger().debug("Ignored conflicting destination filename [{}] for {}", destinationFilename, flowFile);
+                            return;
+                        case FileTransfer.CONFLICT_RESOLUTION_REJECT:
+                        case FileTransfer.CONFLICT_RESOLUTION_FAIL:
+                            getLogger().warn("Configured to {} on move conflict for {}. Original remote file will be left in place.", strategy, flowFile);
+                            return;
+                        case FileTransfer.CONFLICT_RESOLUTION_NONE:
+                        default:
+                            // Treat as IGNORE for move
+                            getLogger().info("Ignoring conflicting destination filename [{}] for {}", destinationFilename, flowFile);
+                            return;
+                    }
+                }
+
+                final String destinationPath = String.format("%s/%s", absoluteTargetDirPath, destinationFileName);
                 transfer.rename(flowFile, filename, destinationPath);
 
             } catch (final IOException ioe) {
