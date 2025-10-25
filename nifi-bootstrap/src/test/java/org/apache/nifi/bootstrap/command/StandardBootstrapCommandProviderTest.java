@@ -16,18 +16,30 @@
  */
 package org.apache.nifi.bootstrap.command;
 
+import org.apache.nifi.bootstrap.command.io.FileResponseStreamHandler;
+import org.apache.nifi.bootstrap.configuration.ConfigurationProvider;
+import org.apache.nifi.bootstrap.configuration.ManagementServerPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 class StandardBootstrapCommandProviderTest {
+
     private StandardBootstrapCommandProvider provider;
 
     @BeforeEach
     void setProvider() {
-        provider = new StandardBootstrapCommandProvider();
+        ConfigurationProvider configurationProvider = mock(ConfigurationProvider.class);
+        provider = new StandardBootstrapCommandProvider(configurationProvider);
     }
 
     @Test
@@ -36,5 +48,48 @@ class StandardBootstrapCommandProviderTest {
 
         assertNotNull(bootstrapCommand);
         assertInstanceOf(UnknownBootstrapCommand.class, bootstrapCommand);
+    }
+
+    @Test
+    void testGetBootstrapCommandWillBeDiagnosticIfDiagnosticArgumentIsProvided() {
+        final BootstrapCommand bootstrapCommand = provider.getBootstrapCommand(new String[]{"diagnostics"});
+
+        assertNotNull(bootstrapCommand);
+        assertInstanceOf(ManagementServerBootstrapCommand.class, bootstrapCommand);
+
+        ManagementServerBootstrapCommand command = (ManagementServerBootstrapCommand) bootstrapCommand;
+        assertEquals(ManagementServerPath.HEALTH_DIAGNOSTICS, command.getManagementServerPath());
+    }
+
+    @Test
+    void testThatDiagnosticCommandWillSavetoFileIfFileParameterIsProvided() {
+        final BootstrapCommand bootstrapCommand = provider.getBootstrapCommand(new String[]{"diagnostics", "/tmp/file-to-save"});
+
+        assertNotNull(bootstrapCommand);
+        assertInstanceOf(ManagementServerBootstrapCommand.class, bootstrapCommand);
+
+        ManagementServerBootstrapCommand command = (ManagementServerBootstrapCommand) bootstrapCommand;
+        assertEquals(ManagementServerPath.HEALTH_DIAGNOSTICS, command.getManagementServerPath());
+        assertInstanceOf(FileResponseStreamHandler.class, command.getResponseStreamHandler());
+    }
+
+    static Stream<Arguments> diagnosticsArguments() {
+        return Stream.of(
+                Arguments.of((Object) (new String[]{"diagnostics", "--verbose", "/tmp/file-to-save"})),
+                Arguments.of((Object) (new String[]{"diagnostics", "/tmp/file-to-save", "--verbose" }))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("diagnosticsArguments")
+    void testThatDiagnosticCommandWillSavetoFileIfFileParameterIsProvidedAndVerboseIsUsed(String[] arguments) {
+        final BootstrapCommand bootstrapCommand = provider.getBootstrapCommand(arguments);
+
+        assertNotNull(bootstrapCommand);
+        assertInstanceOf(ManagementServerBootstrapCommand.class, bootstrapCommand);
+
+        ManagementServerBootstrapCommand command = (ManagementServerBootstrapCommand) bootstrapCommand;
+        assertEquals(ManagementServerPath.HEALTH_DIAGNOSTICS, command.getManagementServerPath());
+        assertInstanceOf(FileResponseStreamHandler.class, command.getResponseStreamHandler());
     }
 }

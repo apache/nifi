@@ -21,6 +21,8 @@ import org.apache.nifi.bootstrap.command.BootstrapCommandProvider;
 import org.apache.nifi.bootstrap.command.CommandStatus;
 import org.apache.nifi.bootstrap.command.StandardBootstrapCommandProvider;
 import org.apache.nifi.bootstrap.configuration.ApplicationClassName;
+import org.apache.nifi.bootstrap.configuration.ConfigurationProvider;
+import org.apache.nifi.bootstrap.configuration.StandardConfigurationProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,7 +36,8 @@ public class BootstrapProcess {
      * @param arguments Array of arguments
      */
     public static void main(final String[] arguments) {
-        final BootstrapCommandProvider bootstrapCommandProvider = new StandardBootstrapCommandProvider();
+        final ConfigurationProvider configurationProvider = new StandardConfigurationProvider(System.getenv(), System.getProperties());
+        final BootstrapCommandProvider bootstrapCommandProvider = new StandardBootstrapCommandProvider(configurationProvider);
         final BootstrapCommand bootstrapCommand = bootstrapCommandProvider.getBootstrapCommand(arguments);
         run(bootstrapCommand);
     }
