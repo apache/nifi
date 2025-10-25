@@ -23,11 +23,16 @@ import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -138,6 +143,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that failed to be processed").build();
 
+    public static final int VALIDATION_TIMEOUT_MINUTES = 5;
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SCRIPT_FILE,
             SCRIPT_BODY,
@@ -149,7 +156,6 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             REL_SUCCESS,
             REL_FAILURE
     );
-
     //parameters evaluated on Start or on Validate
     File scriptFile = null;  //SCRIPT_FILE
     String scriptBody = null; //SCRIPT_BODY
@@ -211,13 +217,27 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH
         this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property
 
-        final Collection<ValidationResult> results = new HashSet<>();
+        String errorText = null;
+        ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
-            getGroovyScript();
-        } catch (Throwable t) {
-            results.add(new ValidationResult.Builder().subject("GroovyScript").input(this.scriptFile != null ? this.scriptFile.toString() : null).valid(false).explanation(t.toString()).build());
+            Future<Script> groovyFuture = executor.submit(this::getGroovyScript);
+            groovyFuture.get(VALIDATION_TIMEOUT_MINUTES, TimeUnit.MINUTES);
+        } catch (ExecutionException e) {
+            errorText = e.getCause().toString();
+        } catch (Exception e) {
+            errorText = e.toString();
+        } finally {
+            if (!executor.isTerminated()) {
+                executor.shutdownNow();
+            }
         }
-        return results;
+        return errorText == null ? Collections.emptyList() :
+                Collections.singletonList(new ValidationResult.Builder()
+                        .subject("GroovyScript")
+                        .input(this.scriptFile != null ? this.scriptFile.toString() : null)
+                        .valid(false)
+                        .explanation(errorText)
+                        .build());
     }
 
     /**
@@ -287,7 +307,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     // used in validation and processing
     @SuppressWarnings("unchecked")
-    Script getGroovyScript() throws Throwable {
+    Script getGroovyScript() throws Exception {
         GroovyMethods.init();
         if (scriptBody != null && scriptFile != null) {
             throw new ProcessException("Only one parameter accepted: `" + SCRIPT_BODY.getDisplayName() + "` or `" + SCRIPT_FILE.getDisplayName() + "`");
