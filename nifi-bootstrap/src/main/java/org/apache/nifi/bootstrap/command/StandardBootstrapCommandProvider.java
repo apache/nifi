@@ -27,7 +27,6 @@ import org.apache.nifi.bootstrap.command.process.ProcessHandleProvider;
 import org.apache.nifi.bootstrap.command.process.VirtualMachineProcessHandleProvider;
 import org.apache.nifi.bootstrap.configuration.ApplicationClassName;
 import org.apache.nifi.bootstrap.configuration.ConfigurationProvider;
-import org.apache.nifi.bootstrap.configuration.StandardConfigurationProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +36,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.net.HttpURLConnection.HTTP_ACCEPTED;
 import static java.net.HttpURLConnection.HTTP_OK;
@@ -77,6 +77,12 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
 
     private static final Logger commandLogger = LoggerFactory.getLogger(ApplicationClassName.BOOTSTRAP_COMMAND.getName());
 
+    private final ConfigurationProvider configurationProvider;
+
+    public StandardBootstrapCommandProvider(ConfigurationProvider configurationProvider) {
+        this.configurationProvider = configurationProvider;
+    }
+
     /**
      * Get Bootstrap Command
      *
@@ -99,7 +105,6 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
     }
 
     private BootstrapCommand getBootstrapCommand(final BootstrapArgument bootstrapArgument, final String[] arguments) {
-        final ConfigurationProvider configurationProvider = new StandardConfigurationProvider(System.getenv(), System.getProperties());
         final ProcessHandleProvider processHandleProvider = getProcessHandleProvider(configurationProvider);
         final ResponseStreamHandler commandLoggerStreamHandler = new LoggerResponseStreamHandler(commandLogger);
         final BootstrapCommand stopBootstrapCommand = new StopBootstrapCommand(processHandleProvider, configurationProvider);
@@ -152,8 +157,12 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
     private ResponseStreamHandler getDiagnosticsResponseStreamHandler(final String[] arguments) {
         final ResponseStreamHandler responseStreamHandler;
 
-        if (arguments.length == PATH_ARGUMENTS) {
-            final String outputPathArgument = arguments[FIRST_ARGUMENT];
+        String[] filteredArguments = Stream.of(arguments)
+                .filter(argument -> !VERBOSE_REQUESTED.contentEquals(argument))
+                .toArray(String[]::new);
+
+        if (filteredArguments.length == PATH_ARGUMENTS) {
+            final String outputPathArgument = filteredArguments[FIRST_ARGUMENT];
             final Path outputPath = Paths.get(outputPathArgument);
             responseStreamHandler = new FileResponseStreamHandler(outputPath);
         } else {

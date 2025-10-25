@@ -107,6 +107,14 @@ class ManagementServerBootstrapCommand implements BootstrapCommand {
         }
     }
 
+    public ManagementServerPath getManagementServerPath() {
+        return managementServerPath;
+    }
+
+    public ResponseStreamHandler getResponseStreamHandler() {
+        return responseStreamHandler;
+    }
+
     protected void run(final ProcessHandle applicationProcessHandle) {
         final ManagementServerAddressProvider managementServerAddressProvider = getManagementServerAddressProvider(applicationProcessHandle);
         final Optional<String> managementServerAddress = managementServerAddressProvider.getAddress();
