@@ -223,7 +223,6 @@ public class NiFiProperties extends ApplicationProperties {
     // cluster common properties
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "nifi.cluster.protocol.heartbeat.interval";
     public static final String CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX = "nifi.cluster.protocol.heartbeat.missable.max";
-    public static final String CLUSTER_PROTOCOL_IS_SECURE = "nifi.cluster.protocol.is.secure";
     public static final String CLUSTER_LEADER_ELECTION_IMPLEMENTATION = "nifi.cluster.leader.election.implementation";
 
     // cluster node properties
@@ -924,11 +923,12 @@ public class NiFiProperties extends ApplicationProperties {
     }
 
     public String getClusterProtocolManagerToNodeApiScheme() {
-        final String isSecureProperty = getProperty(CLUSTER_PROTOCOL_IS_SECURE);
-        if (Boolean.valueOf(isSecureProperty)) {
-            return "https";
-        } else {
+        final String httpsPort = getProperty(WEB_HTTPS_PORT);
+
+        if (httpsPort == null || httpsPort.isBlank()) {
             return "http";
+        } else {
+            return "https";
         }
     }
 
@@ -1313,7 +1313,7 @@ public class NiFiProperties extends ApplicationProperties {
             port = getPort();
 
             if (port == null) {
-                throw new RuntimeException(String.format("The %s must be specified if running in a cluster with %s set to false.", WEB_HTTP_PORT, CLUSTER_PROTOCOL_IS_SECURE));
+                throw new IllegalStateException("Application property [%s] must be specified".formatted(WEB_HTTP_PORT));
             }
         } else {
             // get host
@@ -1326,7 +1326,7 @@ public class NiFiProperties extends ApplicationProperties {
             port = getSslPort();
 
             if (port == null) {
-                throw new RuntimeException(String.format("The %s must be specified if running in a cluster with %s set to true.", WEB_HTTPS_PORT, CLUSTER_PROTOCOL_IS_SECURE));
+                throw new IllegalStateException("Application property [%s] must be specified".formatted(WEB_HTTPS_PORT));
             }
         }
 
