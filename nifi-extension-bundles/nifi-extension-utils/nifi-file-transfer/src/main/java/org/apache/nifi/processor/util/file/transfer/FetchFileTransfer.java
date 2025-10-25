@@ -411,7 +411,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                         case FileTransfer.CONFLICT_RESOLUTION_NONE:
                         default:
                             // Treat as IGNORE for move
-                            getLogger().info("Configured to NONE for move conflict on {}. Original remote file will be left in place.", flowFile);
+                            getLogger().info("Ignoring conflicting destination filename [{}] for {}", destinationFilename, flowFile);
                             return;
                     }
                 }
