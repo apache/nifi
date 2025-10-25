@@ -397,8 +397,9 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                             }
                             break;
                         case FileTransfer.CONFLICT_RESOLUTION_RENAME:
-                            getLogger().info("Configured to RENAME on move conflict for {}. A unique filename will be generated.", flowFile);
+
                             destinationFileName = FileTransferConflictUtil.generateUniqueFilename(transfer, absoluteTargetDirPath, destinationFileName, flowFile, getLogger());
+                            getLogger().info("Generated filename [{}] to resolve conflict with initial filename [{}] for {}", destinationFileName, simpleFilename, flowFile);
                             break;
                         case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
                             getLogger().debug("Configured to IGNORE move conflict for {}. Original remote file will be left in place.", flowFile);
