@@ -28,6 +28,7 @@ import {
 } from '../../state/controller-services/controller-services.selectors';
 import { ControllerServicesState } from '../../state/controller-services';
 import {
+    clearControllerServiceBulletins,
     loadControllerServices,
     navigateToAdvancedServiceUi,
     navigateToEditService,
@@ -43,7 +44,7 @@ import {
     selectControllerService
 } from '../../state/controller-services/controller-services.actions';
 import { initialState } from '../../state/controller-services/controller-services.reducer';
-import { ComponentType, isDefinedAndNotNull, TextTip } from '@nifi/shared';
+import { ComponentType, isDefinedAndNotNull, NiFiCommon, TextTip } from '@nifi/shared';
 import { ControllerServiceEntity } from '../../../../state/shared';
 import { BreadcrumbEntity } from '../../state/shared';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
@@ -62,6 +63,7 @@ import { DocumentationRequest } from '../../../../state/documentation';
 })
 export class ControllerServices implements OnDestroy {
     private store = inject<Store<NiFiState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
 
     // Convert observables to signals
     serviceState = this.store.selectSignal(selectControllerServicesState);
@@ -356,6 +358,26 @@ export class ControllerServices implements OnDestroy {
                 request: {
                     processGroupId: this.currentProcessGroupId,
                     id: entity.id
+                }
+            })
+        );
+    }
+
+    clearBulletinsControllerService(entity: ControllerServiceEntity): void {
+        // Get the most recent bulletin timestamp from the entity's bulletins
+        // This will be reconstructed from the time-only string to a full timestamp
+        const fromTimestamp = this.nifiCommon.getMostRecentBulletinTimestamp(entity.bulletins || []);
+        if (fromTimestamp === null) {
+            return; // no bulletins to clear
+        }
+
+        this.store.dispatch(
+            clearControllerServiceBulletins({
+                request: {
+                    uri: entity.uri,
+                    fromTimestamp,
+                    componentId: entity.id,
+                    componentType: ComponentType.ControllerService
                 }
             })
         );

@@ -20,6 +20,8 @@ import {
     CenterComponentRequest,
     ChangeColorRequest,
     ChangeVersionDialogRequest,
+    ClearBulletinsForGroupRequest,
+    ClearBulletinsForGroupResponse,
     ComponentEntity,
     ConfirmStopVersionControlRequest,
     CreateComponentRequest,
@@ -110,9 +112,15 @@ import {
     VersionControlInformationEntity
 } from './index';
 import { StatusHistoryRequest } from '../../../../state/status-history';
-import { FetchComponentVersionsRequest, RegistryClientEntity } from '../../../../state/shared';
+import {
+    ClearBulletinsRequest,
+    ClearBulletinsResponse,
+    FetchComponentVersionsRequest,
+    RegistryClientEntity
+} from '../../../../state/shared';
 import { ErrorContext } from '../../../../state/error';
 import { CopyResponseContext, CopyResponseEntity } from '../../../../state/copy';
+import { BulletinEntity } from '@nifi/shared';
 
 const CANVAS_PREFIX = '[Canvas]';
 
@@ -656,6 +664,30 @@ export const disableCurrentProcessGroup = createAction(`${CANVAS_PREFIX} Disable
 export const runOnce = createAction(`${CANVAS_PREFIX} Run Once`, props<{ request: RunOnceRequest }>());
 
 export const runOnceSuccess = createAction(`${CANVAS_PREFIX} Run Once Success`, props<{ response: RunOnceResponse }>());
+
+/*
+    Clear Bulletins
+*/
+
+export const clearBulletinsForComponent = createAction(
+    `${CANVAS_PREFIX} Clear Bulletins For Component`,
+    props<{ request: ClearBulletinsRequest }>()
+);
+
+export const clearBulletinsForComponentSuccess = createAction(
+    `${CANVAS_PREFIX} Clear Bulletins For Component Success`,
+    props<{ response: ClearBulletinsResponse }>()
+);
+
+export const clearBulletinsForProcessGroup = createAction(
+    `${CANVAS_PREFIX} Clear Bulletins For Process Group`,
+    props<{ request: ClearBulletinsForGroupRequest }>()
+);
+
+export const clearBulletinsForProcessGroupSuccess = createAction(
+    `${CANVAS_PREFIX} Clear Bulletins For Process Group Success`,
+    props<{ response: ClearBulletinsForGroupResponse }>()
+);
 
 export const startComponent = createAction(
     `${CANVAS_PREFIX} Start Component`,

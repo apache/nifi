@@ -27,6 +27,7 @@ import {
     LoadRegistryClientsResponse,
     SelectRegistryClientRequest
 } from './index';
+import { ClearBulletinsRequest, ClearBulletinsResponse } from '../../../../state/shared';
 
 export const resetRegistryClientsState = createAction('[Registry Clients] Reset Registry Clients State');
 
@@ -102,4 +103,14 @@ export const deleteRegistryClientSuccess = createAction(
 export const selectClient = createAction(
     '[Registry Clients] Select Registry Client',
     props<{ request: SelectRegistryClientRequest }>()
+);
+
+export const clearRegistryClientBulletins = createAction(
+    '[Registry Clients] Clear Registry Client Bulletins',
+    props<{ request: ClearBulletinsRequest }>()
+);
+
+export const clearRegistryClientBulletinsSuccess = createAction(
+    '[Registry Clients] Clear Registry Client Bulletins Success',
+    props<{ response: ClearBulletinsResponse }>()
 );

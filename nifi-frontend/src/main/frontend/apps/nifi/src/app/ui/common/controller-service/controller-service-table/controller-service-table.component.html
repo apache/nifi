@@ -162,6 +162,12 @@
                                         View State
                                     </button>
                                 }
+                                @if (canClearBulletins(item)) {
+                                    <button mat-menu-item (click)="clearBulletinsClicked(item)">
+                                        <i class="fa fa-eraser primary-color mr-2"></i>
+                                        Clear Bulletins
+                                    </button>
+                                }
                                 @if (canRead(item)) {
                                     <button mat-menu-item (click)="viewDocumentationClicked(item)">
                                         <i class="fa fa-book primary-color mr-2"></i>

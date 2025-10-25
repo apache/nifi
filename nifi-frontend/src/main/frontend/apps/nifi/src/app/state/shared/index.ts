@@ -20,6 +20,7 @@ import { GarbageCollection } from '../system-diagnostics';
 import {
     AffectedComponentEntity,
     BulletinEntity,
+    ComponentType,
     Parameter,
     ParameterContextReferenceEntity,
     Permissions,
@@ -585,4 +586,18 @@ export interface OpenChangeComponentVersionDialogRequest {
 export interface ExternalControllerServiceReference {
     identifier: string;
     name: string;
+}
+
+export interface ClearBulletinsRequest {
+    uri: string;
+    fromTimestamp: string;
+    componentId: string;
+    componentType: ComponentType;
+}
+
+export interface ClearBulletinsResponse {
+    componentId: string;
+    bulletinsCleared: number;
+    bulletins: BulletinEntity[];
+    componentType: ComponentType;
 }

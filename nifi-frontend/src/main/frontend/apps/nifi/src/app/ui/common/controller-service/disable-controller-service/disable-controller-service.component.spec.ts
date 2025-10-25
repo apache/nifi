@@ -51,6 +51,7 @@ describe('EnableControllerService', () => {
                     groupId: 'asdf',
                     sourceId: 'asdf',
                     timestamp: '14:08:44 EST',
+                    timestampIso: new Date().toISOString(),
                     canRead: true,
                     bulletin: {
                         id: 0,
@@ -61,7 +62,8 @@ describe('EnableControllerService', () => {
                         sourceType: ComponentType.Processor,
                         level: 'ERROR',
                         message: 'asdf',
-                        timestamp: '14:08:44 EST'
+                        timestamp: '14:08:44 EST',
+                        timestampIso: new Date().toISOString()
                     }
                 }
             ],
@@ -306,7 +308,8 @@ describe('EnableControllerService', () => {
                                     sourceName: 'asdf',
                                     level: 'ERROR',
                                     message: 'asdf',
-                                    timestamp: '14:08:44 EST'
+                                    timestamp: '14:08:44 EST',
+                                    timestampIso: new Date().toISOString()
                                 }
                             }
                         ],

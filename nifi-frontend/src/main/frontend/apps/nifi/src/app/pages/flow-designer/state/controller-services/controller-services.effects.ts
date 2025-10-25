@@ -871,4 +871,30 @@ export class ControllerServicesEffects {
             return ['/settings', 'registry-clients', reference.id];
         }
     }
+
+    clearControllerServiceBulletins$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.clearControllerServiceBulletins),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.controllerServiceService.clearBulletins({
+                        uri: request.uri,
+                        fromTimestamp: request.fromTimestamp
+                    })
+                ).pipe(
+                    map((response) =>
+                        ControllerServicesActions.clearControllerServiceBulletinsSuccess({
+                            response: {
+                                componentId: request.componentId,
+                                bulletinsCleared: response.bulletinsCleared || 0,
+                                bulletins: response.bulletins || [],
+                                componentType: request.componentType
+                            }
+                        })
+                    )
+                )
+            )
+        )
+    );
 }

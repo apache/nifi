@@ -28,6 +28,7 @@ import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.HttpMethod;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -46,6 +47,8 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
+import org.apache.nifi.web.api.entity.ClearBulletinsRequestEntity;
+import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortRunStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -54,6 +57,7 @@ import org.apache.nifi.web.api.request.LongParameter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
+import java.time.Instant;
 import java.util.Set;
 
 /**
@@ -385,6 +389,72 @@ public class InputPortResource extends ApplicationResource {
         dto.setId(id);
         dto.setState(runStatus);
         return dto;
+    }
+
+    /**
+     * Clears the bulletins for the specified input port.
+     *
+     * @param id The id of the input port
+     * @param requestClearBulletinEntity A clearBulletinsRequestEntity
+     * @return A clearBulletinsResultEntity
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/bulletins/clear-requests")
+    @Operation(
+            summary = "Clears bulletins for an input port",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ClearBulletinsResultEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /input-ports/{uuid}")
+            }
+    )
+    public Response clearBulletins(
+            @Parameter(description = "The input port id.", required = true)
+            @PathParam("id") final String id,
+            @Parameter(description = "The request to clear bulletins.", required = true)
+            final ClearBulletinsRequestEntity requestClearBulletinEntity) {
+
+        // Verify the request
+        if (requestClearBulletinEntity == null) {
+            throw new IllegalArgumentException("Clear bulletin request must be specified.");
+        }
+
+        final Instant fromTimestamp = requestClearBulletinEntity.getFromTimestamp();
+        if (fromTimestamp == null) {
+            throw new IllegalArgumentException("From timestamp must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestClearBulletinEntity);
+        }
+
+        final PortEntity requestPortEntity = new PortEntity();
+        requestPortEntity.setId(id);
+
+        return withWriteLock(
+                serviceFacade,
+                requestPortEntity,
+                lookup -> {
+                    final Authorizable inputPort = lookup.getInputPort(id);
+                    inputPort.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> { },
+                (portEntity) -> {
+                    // clear the bulletins
+                    final ClearBulletinsResultEntity entity = serviceFacade.clearBulletinsForComponent(portEntity.getId(), fromTimestamp);
+
+                    // generate the response
+                    return generateOkResponse(entity).build();
+                }
+        );
     }
 
     @Autowired

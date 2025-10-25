@@ -575,4 +575,37 @@ export class FlowAnalysisRulesEffects {
             ),
         { dispatch: false }
     );
+
+    clearFlowAnalysisRuleBulletins$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowAnalysisRuleActions.clearFlowAnalysisRuleBulletins),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.flowAnalysisRuleService.clearBulletins({
+                        uri: request.uri,
+                        fromTimestamp: request.fromTimestamp
+                    })
+                ).pipe(
+                    map((response) =>
+                        FlowAnalysisRuleActions.clearFlowAnalysisRuleBulletinsSuccess({
+                            response: {
+                                componentId: request.componentId,
+                                bulletinsCleared: response.bulletinsCleared || 0,
+                                bulletins: response.bulletins || [],
+                                componentType: request.componentType
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            FlowAnalysisRuleActions.flowAnalysisRuleSnackbarApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
 }
