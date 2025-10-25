@@ -392,7 +392,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                             try {
                                 transfer.deleteFile(flowFile, absoluteTargetDirPath, destinationFileName);
                             } catch (final IOException deleteEx) {
-                                getLogger().warn("Failed to delete existing destination file {} on {}:{}. Move will be attempted regardless.",
+                                getLogger().warn("Failed to delete existing destination file {} on {}:{}",
                                         destinationFileName, host, port, deleteEx);
                             }
                             break;
