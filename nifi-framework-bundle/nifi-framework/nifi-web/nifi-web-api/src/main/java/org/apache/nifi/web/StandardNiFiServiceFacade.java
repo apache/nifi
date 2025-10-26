@@ -189,9 +189,11 @@ import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.StandardVersionControlInformation;
 import org.apache.nifi.registry.flow.VerifiableFlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
+import org.apache.nifi.registry.flow.VersionedFlowStatus;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
 import org.apache.nifi.registry.flow.diff.ConciseEvolvingDifferenceDescriptor;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
@@ -5730,6 +5732,143 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 processGroup -> dtoFactory.createVersionControlInformationDto(processGroup));
 
         return entityFactory.createVersionControlInformationEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()));
+    }
+
+    @Override
+    public VersionControlInformationEntity createFlowBranch(final Revision revision, final String processGroupId, final String newBranchName,
+                                                            final String sourceBranch, final String sourceVersion) {
+        final ProcessGroup group = processGroupDAO.getProcessGroup(processGroupId);
+        final VersionControlInformation versionControlInformation = group.getVersionControlInformation();
+
+        if (versionControlInformation == null) {
+            throw new IllegalStateException("Process Group with ID " + processGroupId + " is not currently under Version Control");
+        }
+
+        final String trimmedBranchName = org.apache.commons.lang3.StringUtils.trimToNull(newBranchName);
+        if (trimmedBranchName == null) {
+            throw new IllegalArgumentException("Branch name must be specified");
+        }
+        if (trimmedBranchName.equals(versionControlInformation.getBranch())) {
+            throw new IllegalArgumentException("Process Group is already tracking branch " + trimmedBranchName);
+        }
+
+        final String resolvedSourceBranch = org.apache.commons.lang3.StringUtils.isNotBlank(sourceBranch) ? sourceBranch : versionControlInformation.getBranch();
+        if (org.apache.commons.lang3.StringUtils.isBlank(resolvedSourceBranch)) {
+            throw new IllegalArgumentException("Source branch must be specified");
+        }
+
+        final String resolvedSourceVersion = org.apache.commons.lang3.StringUtils.isNotBlank(sourceVersion) ? sourceVersion : versionControlInformation.getVersion();
+
+        final FlowVersionLocation sourceLocation = new FlowVersionLocation(resolvedSourceBranch,
+                versionControlInformation.getBucketIdentifier(),
+                versionControlInformation.getFlowIdentifier(),
+                resolvedSourceVersion);
+
+        final FlowRegistryClientUserContext clientUserContext = FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser());
+
+        try {
+            flowRegistryDAO.createBranchForUser(clientUserContext, versionControlInformation.getRegistryIdentifier(), sourceLocation, trimmedBranchName);
+        } catch (final UnsupportedOperationException e) {
+            throw new IllegalArgumentException("Configured Flow Registry does not support branch creation.", e);
+        }
+
+        final VersionControlInformationDTO updatedVersionControlInformation = new VersionControlInformationDTO();
+        updatedVersionControlInformation.setGroupId(processGroupId);
+        updatedVersionControlInformation.setRegistryId(versionControlInformation.getRegistryIdentifier());
+        updatedVersionControlInformation.setRegistryName(versionControlInformation.getRegistryName());
+        updatedVersionControlInformation.setBucketId(versionControlInformation.getBucketIdentifier());
+        updatedVersionControlInformation.setBucketName(versionControlInformation.getBucketName());
+        updatedVersionControlInformation.setFlowId(versionControlInformation.getFlowIdentifier());
+        updatedVersionControlInformation.setFlowName(versionControlInformation.getFlowName());
+        updatedVersionControlInformation.setFlowDescription(versionControlInformation.getFlowDescription());
+        updatedVersionControlInformation.setStorageLocation(versionControlInformation.getStorageLocation());
+        updatedVersionControlInformation.setBranch(trimmedBranchName);
+        updatedVersionControlInformation.setVersion(resolvedSourceVersion);
+
+        final VersionedFlowStatus status = versionControlInformation.getStatus();
+        VersionedFlowState updatedState = null;
+        String stateExplanation = status == null ? null : status.getStateExplanation();
+        if (status != null) {
+            final VersionedFlowState state = status.getState();
+            if (state != null) {
+                switch (state) {
+                    case LOCALLY_MODIFIED_AND_STALE:
+                        updatedState = VersionedFlowState.LOCALLY_MODIFIED;
+                        stateExplanation = "Process Group has local modifications";
+                        break;
+                    case STALE:
+                        updatedState = VersionedFlowState.UP_TO_DATE;
+                        break;
+                    default:
+                        updatedState = state;
+                        break;
+                }
+            }
+        }
+
+        if (updatedState != null) {
+            updatedVersionControlInformation.setState(updatedState.name());
+            updatedVersionControlInformation.setStateExplanation(stateExplanation);
+        }
+
+        final FlowManager flowManager = controllerFacade.getFlowManager();
+
+        VersionedProcessGroup registrySnapshot = null;
+        if (flowManager == null) {
+            logger.warn("Failed to synchronize Process Group {} with Flow Registry after creating branch {} because Flow Manager is unavailable", group.getIdentifier(), trimmedBranchName);
+        } else {
+            try {
+                final FlowRegistryClientNode registryClient = flowManager.getFlowRegistryClient(versionControlInformation.getRegistryIdentifier());
+                if (registryClient == null) {
+                    logger.warn("Unable to retrieve Flow Registry client with identifier {} for Process Group {}", versionControlInformation.getRegistryIdentifier(), group.getIdentifier());
+                } else {
+                    final FlowVersionLocation branchLocation = new FlowVersionLocation(trimmedBranchName,
+                            versionControlInformation.getBucketIdentifier(),
+                            versionControlInformation.getFlowIdentifier(),
+                            resolvedSourceVersion);
+
+                    final FlowSnapshotContainer snapshotContainer = registryClient.getFlowContents(clientUserContext, branchLocation, false);
+                    final RegisteredFlowSnapshot flowSnapshot = snapshotContainer == null ? null : snapshotContainer.getFlowSnapshot();
+                    if (flowSnapshot != null) {
+                        registrySnapshot = flowSnapshot.getFlowContents();
+                    }
+                }
+            } catch (final IOException | FlowRegistryException e) {
+                logger.warn("Failed to retrieve Flow Registry snapshot for Process Group {} on branch {} due to {}", group.getIdentifier(), trimmedBranchName, e.getMessage());
+                logger.debug("Failed to retrieve Flow Registry snapshot for Process Group {}", group.getIdentifier(), e);
+            }
+        }
+
+        final RevisionUpdate<VersionControlInformationDTO> snapshot = updateComponent(revision,
+                group,
+                () -> processGroupDAO.updateVersionControlInformation(updatedVersionControlInformation, Collections.emptyMap()),
+                processGroup -> dtoFactory.createVersionControlInformationDto(processGroup));
+
+        final VersionControlInformation updatedVci = group.getVersionControlInformation();
+        if (registrySnapshot != null) {
+            final StandardVersionControlInformation restoredInfo = StandardVersionControlInformation.Builder.fromDto(updatedVersionControlInformation)
+                    .flowSnapshot(registrySnapshot)
+                    .build();
+            restoredInfo.setBucketName(updatedVersionControlInformation.getBucketName());
+            restoredInfo.setFlowName(updatedVersionControlInformation.getFlowName());
+            restoredInfo.setFlowDescription(updatedVersionControlInformation.getFlowDescription());
+            restoredInfo.setStorageLocation(updatedVersionControlInformation.getStorageLocation());
+
+            group.setVersionControlInformation(restoredInfo, Collections.emptyMap());
+        } else if (updatedVci instanceof StandardVersionControlInformation) {
+            ((StandardVersionControlInformation) updatedVci).setFlowSnapshot(null);
+        }
+
+        if (flowManager != null) {
+            try {
+                group.synchronizeWithFlowRegistry(flowManager);
+            } catch (final Exception e) {
+                logger.warn("Failed to synchronize Process Group {} with Flow Registry after creating branch {}", group.getIdentifier(), trimmedBranchName, e);
+            }
+        }
+
+        final VersionControlInformationDTO refreshedDto = dtoFactory.createVersionControlInformationDto(group);
+        return entityFactory.createVersionControlInformationEntity(refreshedDto, dtoFactory.createRevisionDTO(snapshot.getLastModification()));
     }
 
     @Override

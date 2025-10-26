@@ -21,6 +21,7 @@ package org.apache.nifi.github;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
@@ -461,6 +462,56 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
                 throwPathOrBranchNotFound(fnf, resolvedPath, branch);
                 return null;
             }
+        });
+    }
+
+    @Override
+    public void createBranch(final String newBranchName, final String sourceBranch, final Optional<String> sourceCommitSha)
+            throws IOException, FlowRegistryException {
+        if (StringUtils.isBlank(newBranchName)) {
+            throw new IllegalArgumentException("Branch name must be specified");
+        }
+        if (StringUtils.isBlank(sourceBranch)) {
+            throw new IllegalArgumentException("Source branch must be specified");
+        }
+
+        final String trimmedNewBranch = newBranchName.trim();
+        final String trimmedSourceBranch = sourceBranch.trim();
+        final String newBranchRefPath = "heads/" + trimmedNewBranch;
+        final String sourceBranchRefPath = "heads/" + trimmedSourceBranch;
+
+        try {
+            execute(() -> repository.getRef(newBranchRefPath));
+            throw new FlowRegistryException("Branch [" + trimmedNewBranch + "] already exists");
+        } catch (final FileNotFoundException notFound) {
+            logger.debug("Branch [{}] does not exist and will be created", trimmedNewBranch, notFound);
+        }
+
+        final GHRef sourceBranchRef;
+        try {
+            sourceBranchRef = execute(() -> repository.getRef(sourceBranchRefPath));
+        } catch (final FileNotFoundException notFound) {
+            throw new FlowRegistryException("Source branch [" + trimmedSourceBranch + "] does not exist", notFound);
+        }
+
+        final String baseCommitSha;
+        if (sourceCommitSha.isPresent()) {
+            final String requestedCommitSha = sourceCommitSha.get();
+            try {
+                baseCommitSha = execute(() -> repository.getCommit(requestedCommitSha).getSHA1());
+            } catch (final FileNotFoundException notFound) {
+                throw new FlowRegistryException("Commit [" + requestedCommitSha + "] was not found in the repository", notFound);
+            }
+        } else {
+            baseCommitSha = sourceBranchRef.getObject().getSha();
+        }
+
+        logger.info("Creating branch [{}] from [{}] at commit [{}] for repository [{}]",
+                trimmedNewBranch, trimmedSourceBranch, baseCommitSha, repository.getFullName());
+
+        execute(() -> {
+            repository.createRef(BRANCH_REF_PATTERN.formatted(trimmedNewBranch), baseCommitSha);
+            return null;
         });
     }
 

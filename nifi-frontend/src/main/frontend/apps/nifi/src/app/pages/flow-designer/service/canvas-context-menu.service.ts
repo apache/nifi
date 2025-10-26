@@ -40,6 +40,7 @@ import {
     openChangeProcessorVersionDialog,
     openChangeVersionDialogRequest,
     openCommitLocalChangesDialogRequest,
+    openCreateBranchDialogRequest,
     openForceCommitLocalChangesDialogRequest,
     openRevertLocalChangesDialogRequest,
     openSaveVersionDialogRequest,
@@ -213,6 +214,31 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         processGroupId: pgId
                     };
                     this.store.dispatch(openChangeVersionDialogRequest({ request }));
+                }
+            },
+            {
+                isSeparator: true
+            },
+            {
+                condition: (selection: d3.Selection<any, any, any, any>) => {
+                    return this.canvasUtils.supportsCreateFlowBranch(selection);
+                },
+                clazz: 'fa fa-code-fork',
+                text: 'Create Branch',
+                action: (selection: d3.Selection<any, any, any, any>) => {
+                    let pgId;
+                    if (selection.empty()) {
+                        pgId = this.canvasUtils.getProcessGroupId();
+                    } else {
+                        pgId = selection.datum().id;
+                    }
+                    this.store.dispatch(
+                        openCreateBranchDialogRequest({
+                            request: {
+                                processGroupId: pgId
+                            }
+                        })
+                    );
                 }
             },
             {

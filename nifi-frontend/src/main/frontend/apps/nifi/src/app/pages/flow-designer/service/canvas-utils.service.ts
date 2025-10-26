@@ -26,7 +26,8 @@ import {
     selectConnections,
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
-    selectParentProcessGroupId
+    selectParentProcessGroupId,
+    selectRegistryClients
 } from '../state/flow/flow.selectors';
 import { initialState as initialFlowState } from '../state/flow/flow.reducer';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -39,6 +40,7 @@ import { selectCurrentUser } from '../../../state/current-user/current-user.sele
 import { FlowConfiguration } from '../../../state/flow-configuration';
 import { initialState as initialFlowConfigurationState } from '../../../state/flow-configuration/flow-configuration.reducer';
 import { selectFlowConfiguration } from '../../../state/flow-configuration/flow-configuration.selectors';
+import type { RegistryClientEntity } from '../state/flow';
 import { CopiedSnippet, VersionControlInformation } from '../state/flow';
 import { Overlay, OverlayRef, PositionStrategy } from '@angular/cdk/overlay';
 import { ComponentPortal } from '@angular/cdk/portal';
@@ -67,6 +69,7 @@ export class CanvasUtils {
     private flowConfiguration: FlowConfiguration | null = initialFlowConfigurationState.flowConfiguration;
     private scale: number = initialTransformState.scale;
     private connections: any[] = [];
+    private registryClients: RegistryClientEntity[] = initialFlowState.registryClients;
     private breadcrumbs: BreadcrumbEntity | null = null;
     private copiedSnippet: CopiedSnippet | null = null;
 
@@ -102,6 +105,13 @@ export class CanvasUtils {
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((connections) => {
                 this.connections = connections;
+            });
+
+        this.store
+            .select(selectRegistryClients)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe((registryClients) => {
+                this.registryClients = registryClients;
             });
 
         this.store
@@ -2194,6 +2204,25 @@ export class CanvasUtils {
             versionControlInformation.state !== 'LOCALLY_MODIFIED_AND_STALE' &&
             versionControlInformation.state !== 'SYNC_FAILURE'
         );
+    }
+
+    public supportsCreateFlowBranch(selection: d3.Selection<any, any, any, any>): boolean {
+        if (!this.canVersionFlows()) {
+            return false;
+        }
+
+        const versionControlInformation = this.getFlowVersionControlInformation(selection);
+
+        if (!versionControlInformation) {
+            return false;
+        }
+
+        if (!versionControlInformation.registryId || versionControlInformation.state === 'SYNC_FAILURE') {
+            return false;
+        }
+
+        const registryClient = this.registryClients.find((client) => client.id === versionControlInformation.registryId);
+        return !!registryClient?.component.supportsBranching;
     }
 
     /**
