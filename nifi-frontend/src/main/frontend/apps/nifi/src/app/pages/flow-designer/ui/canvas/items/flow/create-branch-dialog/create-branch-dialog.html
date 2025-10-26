@@ -1,0 +1,36 @@
+<h2 mat-dialog-title>Create Branch</h2>
+
+<mat-dialog-content>
+    <div class="dialog-description">
+        Current branch:
+        <span class="branch-name">{{ currentBranch || 'Not specified' }}</span>
+    </div>
+
+    <form [formGroup]="createBranchForm">
+        <mat-form-field appearance="fill">
+            <mat-label>Branch name</mat-label>
+            <input matInput formControlName="branch" autocomplete="off" />
+            <mat-error *ngIf="createBranchForm.controls.branch.hasError('required')">
+                Branch name is required.
+            </mat-error>
+            <mat-error *ngIf="createBranchForm.controls.branch.hasError('pattern')">
+                Branch name cannot be blank.
+            </mat-error>
+            <mat-error *ngIf="createBranchForm.controls.branch.hasError('branchConflicts')">
+                Branch name must differ from the current branch.
+            </mat-error>
+        </mat-form-field>
+    </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>Cancel</button>
+    <button
+        mat-flat-button
+        color="primary"
+        (click)="submit()"
+        [disabled]="createBranchForm.invalid"
+    >
+        Create
+    </button>
+</mat-dialog-actions>

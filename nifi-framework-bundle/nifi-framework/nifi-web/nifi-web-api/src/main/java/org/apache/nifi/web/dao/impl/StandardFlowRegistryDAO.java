@@ -20,6 +20,12 @@ package org.apache.nifi.web.dao.impl;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.logging.repository.NopLogRepository;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.registry.flow.BucketLocation;
 import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryBranch;
@@ -27,20 +33,15 @@ import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
 import org.apache.nifi.registry.flow.FlowRegistryException;
+import org.apache.nifi.registry.flow.FlowVersionLocation;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
-import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.logging.LogRepository;
-import org.apache.nifi.logging.StandardLoggingContext;
-import org.apache.nifi.logging.repository.NopLogRepository;
-import org.apache.nifi.processor.SimpleProcessLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -206,6 +207,22 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
             return flowRegistry.getFlow(context, flowLocation);
         } catch (final IOException | FlowRegistryException ioe) {
             throw new NiFiCoreException("Unable to obtain listing of flows for bucket with ID " + bucketId + ": " + ioe.getMessage(), ioe);
+        }
+    }
+
+    @Override
+    public void createBranchForUser(final FlowRegistryClientUserContext context, final String registryId, final FlowVersionLocation sourceLocation, final String newBranchName) {
+        final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
+        if (flowRegistry == null) {
+            throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
+        }
+
+        try {
+            flowRegistry.createBranch(context, sourceLocation, newBranchName);
+        } catch (final UnsupportedOperationException e) {
+            throw e;
+        } catch (final IOException | FlowRegistryException ioe) {
+            throw new NiFiCoreException("Unable to create branch [" + newBranchName + "] in registry with ID " + registryId + ": " + ioe.getMessage(), ioe);
         }
     }
 
