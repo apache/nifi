@@ -43,6 +43,7 @@ import {
     ReplayLastProvenanceEventRequest,
     RunOnceRequest,
     SaveToVersionControlRequest,
+    CreateFlowBranchRequest,
     StartComponentRequest,
     StartProcessGroupRequest,
     StopComponentRequest,
@@ -488,7 +489,6 @@ export class FlowService implements PropertyDescriptorRetriever {
     /*
         Clear Bulletins
     */
-
     clearBulletinForComponent(request: ClearBulletinsRequest): Observable<any> {
         const path = this.nifiCommon.getComponentTypeApiPath(request.componentType);
         const payload = {
@@ -511,5 +511,29 @@ export class FlowService implements PropertyDescriptorRetriever {
             `${FlowService.API}/flow/process-groups/${request.processGroupId}/bulletins/clear-requests`,
             payload
         );
+    }
+
+    /*
+        Create Branch
+    */
+    createFlowBranch(request: CreateFlowBranchRequest): Observable<VersionControlInformationEntity> {
+        const payload: any = {
+            processGroupRevision: request.revision,
+            branch: request.branch,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+        };
+
+        if (request.sourceBranch) {
+            payload.sourceBranch = request.sourceBranch;
+        }
+
+        if (request.sourceVersion) {
+            payload.sourceVersion = request.sourceVersion;
+        }
+
+        return this.httpClient.post(
+            `${FlowService.API}/versions/process-groups/${request.processGroupId}/branches`,
+            payload
+        ) as Observable<VersionControlInformationEntity>;
     }
 }
