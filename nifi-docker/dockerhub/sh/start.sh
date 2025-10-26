@@ -44,7 +44,6 @@ prop_replace 'nifi.web.proxy.host'              "${NIFI_WEB_PROXY_HOST}"
 prop_replace 'nifi.remote.input.host'           "${NIFI_REMOTE_INPUT_HOST:-$HOSTNAME}"
 prop_replace 'nifi.remote.input.socket.port'    "${NIFI_REMOTE_INPUT_SOCKET_PORT:-10000}"
 prop_replace 'nifi.remote.input.secure'         'true'
-prop_replace 'nifi.cluster.protocol.is.secure'  'true'
 
 # Set nifi-toolkit properties files and baseUrl
 "${scripts_dir}/toolkit.sh"

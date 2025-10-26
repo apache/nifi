@@ -320,7 +320,7 @@ configure the web server to WANT certificate base client authentication. This wi
 may be logging in with credentials. See <<user_authentication>> for more details.
 
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
-accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`. These communications
+accomplished by setting the `nifi.remote.input.secure` property to `true`. These communications
 will always REQUIRE two way SSL as the nodes will use their configured keystore/truststore for authentication.
 
 Automatic refreshing of NiFi's web SSL context factory can be enabled using the following properties:
@@ -3595,7 +3595,6 @@ When setting up a NiFi cluster, these properties should be configured the same w
 |*Property*|*Description*
 |`nifi.cluster.protocol.heartbeat.interval`|The interval at which nodes should emit heartbeats to the Cluster Coordinator. The default value is `5 sec`.
 |`nifi.cluster.protocol.heartbeat.missable.max`|Maximum number of heartbeats a Cluster Coordinator can miss for a node in the cluster before the Cluster Coordinator updates the node status to Disconnected. The default value is `8`.
-|`nifi.cluster.protocol.is.secure`|This indicates whether cluster communications are secure. The default value is `false`.
 |====
 
 [[cluster_node_properties]]
