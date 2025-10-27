@@ -168,3 +168,10 @@ static onUnscheduled(ProcessContext context) {
 flowFile.'trigger.count' = Const.triggerCount.incrementAndGet()
 REL_SUCCESS << flowFile
 ```
+
+
+## Validation timeout
+
+When using `@Grab` annotation to pull dependencies for your script, the validation can take an excessive time if the
+dependency resolution takes too long (e.g. network issue). This can block the entire NiFi startup, so a timeout of
+5 minutes is defined for the validation of this processor.

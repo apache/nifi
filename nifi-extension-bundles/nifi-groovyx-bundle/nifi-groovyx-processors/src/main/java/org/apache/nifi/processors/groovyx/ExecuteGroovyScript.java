@@ -143,7 +143,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure").description("FlowFiles that failed to be processed").build();
 
-    public static final int VALIDATION_TIMEOUT_MINUTES = 5;
+    private static final int VALIDATION_TIMEOUT_MINUTES = 5;
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             SCRIPT_FILE,
@@ -218,7 +218,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property
 
         String errorText = null;
-        ExecutorService executor = Executors.newSingleThreadExecutor();
+        ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
         try {
             Future<Script> groovyFuture = executor.submit(this::getGroovyScript);
             groovyFuture.get(VALIDATION_TIMEOUT_MINUTES, TimeUnit.MINUTES);
@@ -227,9 +227,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         } catch (Exception e) {
             errorText = e.toString();
         } finally {
-            if (!executor.isTerminated()) {
-                executor.shutdownNow();
-            }
+            executor.shutdownNow();
         }
         return errorText == null ? Collections.emptyList() :
                 Collections.singletonList(new ValidationResult.Builder()
