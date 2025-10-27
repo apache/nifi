@@ -54,6 +54,7 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
  * This class contains variables and methods common to scripting processors, reporting tasks, etc.
  */
 public class ScriptingComponentHelper {
+    public static final String SCRIPT_ENGINE_PROPERTY = "Script Language";
     private static final String UNKNOWN_VERSION = "UNKNOWN";
 
     public PropertyDescriptor SCRIPT_ENGINE;
@@ -175,7 +176,7 @@ public class ScriptingComponentHelper {
             AllowableValue[] engines = engineList.toArray(new AllowableValue[0]);
 
             final PropertyDescriptor.Builder enginePropertyBuilder = new PropertyDescriptor.Builder()
-                    .name("Script Engine")
+                    .name(SCRIPT_ENGINE_PROPERTY)
                     .required(true)
                     .description("Language Engine for executing scripts")
                     .required(true)

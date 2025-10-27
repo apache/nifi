@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.sink.RecordSinkService;
@@ -48,8 +49,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
     private static final String SLACK_API_URL = "https://slack.com/api";
 
     public static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
-            .name("api-url")
-            .displayName("API URL")
+            .name("API URL")
             .description("Slack Web API URL for posting text messages to channels." +
                     " It only needs to be changed if Slack changes its API URL.")
             .required(true)
@@ -58,8 +58,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
             .build();
 
     public static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
-            .name("access-token")
-            .displayName("Access Token")
+            .name("Access Token")
             .description("Bot OAuth Token used for authenticating and authorizing the Slack request sent by NiFi.")
             .required(true)
             .sensitive(true)
@@ -67,16 +66,14 @@ public class SlackRecordSink extends AbstractControllerService implements Record
             .build();
 
     public static final PropertyDescriptor CHANNEL_ID = new PropertyDescriptor.Builder()
-            .name("channel-id")
-            .displayName("Channel ID")
+            .name("Channel ID")
             .description("Slack channel, private group, or IM channel to send the message to. Use Channel ID instead of the name.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor INPUT_CHARACTER_SET = new PropertyDescriptor.Builder()
-            .name("input-character-set")
-            .displayName("Input Character Set")
+            .name("Input Character Set")
             .description("Specifies the character set of the records used to generate the Slack message.")
             .required(true)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
@@ -84,8 +81,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
             .build();
 
     public static final PropertyDescriptor WEB_SERVICE_CLIENT_PROVIDER = new PropertyDescriptor.Builder()
-            .name("web-service-client-provider")
-            .displayName("Web Service Client Provider")
+            .name("Web Service Client Provider")
             .description("Controller service to provide HTTP client for communicating with Slack API")
             .required(true)
             .identifiesControllerService(WebClientServiceProvider.class)
@@ -118,6 +114,15 @@ public class SlackRecordSink extends AbstractControllerService implements Record
         final String apiUrl = context.getProperty(API_URL).getValue();
         final String charset = context.getProperty(INPUT_CHARACTER_SET).getValue();
         service = new SlackRestService(webClientServiceProvider, accessToken, apiUrl, charset, getLogger());
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("api-url", API_URL.getName());
+        config.renameProperty("access-token", ACCESS_TOKEN.getName());
+        config.renameProperty("channel-id", CHANNEL_ID.getName());
+        config.renameProperty("input-character-set", INPUT_CHARACTER_SET.getName());
+        config.renameProperty("web-service-client-provider", WEB_SERVICE_CLIENT_PROVIDER.getName());
     }
 
     @Override

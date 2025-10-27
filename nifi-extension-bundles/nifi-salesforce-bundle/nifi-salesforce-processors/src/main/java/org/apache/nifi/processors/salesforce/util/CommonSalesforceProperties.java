@@ -22,10 +22,13 @@ import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 
 public final class CommonSalesforceProperties {
+    public static final String OLD_SALESFORCE_INSTANCE_URL_PROPERTY_NAME = "salesforce-url";
+    public static final String OLD_API_VERSION_PROPERTY_NAME = "salesforce-api-version";
+    public static final String OLD_READ_TIMEOUT_PROPERTY_NAME = "read-timeout";
+    public static final String OLD_TOKEN_PROVIDER_PROPERTY_NAME = "oauth2-access-token-provider";
 
     public static final PropertyDescriptor SALESFORCE_INSTANCE_URL = new PropertyDescriptor.Builder()
-            .name("salesforce-url")
-            .displayName("Salesforce Instance URL")
+            .name("Salesforce Instance URL")
             .description("The URL of the Salesforce instance including the domain without additional path information, such as https://MyDomainName.my.salesforce.com")
             .required(true)
             .addValidator(StandardValidators.URL_VALIDATOR)
@@ -33,8 +36,7 @@ public final class CommonSalesforceProperties {
             .build();
 
     public static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
-            .name("salesforce-api-version")
-            .displayName("API Version")
+            .name("API Version")
             .description(
                     "The version number of the Salesforce REST API appended to the URL after the services/data path. See Salesforce documentation for supported versions")
             .required(true)
@@ -44,8 +46,7 @@ public final class CommonSalesforceProperties {
             .build();
 
     public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("read-timeout")
-            .displayName("Read Timeout")
+            .name("Read Timeout")
             .description("Maximum time allowed for reading a response from the Salesforce REST API")
             .required(true)
             .defaultValue("15 s")
@@ -54,8 +55,7 @@ public final class CommonSalesforceProperties {
             .build();
 
     public static final PropertyDescriptor TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-            .name("oauth2-access-token-provider")
-            .displayName("OAuth2 Access Token Provider")
+            .name("OAuth2 Access Token Provider")
             .description("Service providing OAuth2 Access Tokens for authenticating using the HTTP Authorization Header")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(true)

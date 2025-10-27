@@ -22,6 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -70,8 +71,7 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
             .build();
 
     static final PropertyDescriptor LANGUAGE = new PropertyDescriptor.Builder()
-            .name("Script Engine")
-            .displayName("Script Language")
+            .name(ScriptingComponentHelper.SCRIPT_ENGINE_PROPERTY)
             .description("The Language to use for the script")
             .allowableValues(SCRIPT_OPTIONS)
             .defaultValue("Groovy")
@@ -137,6 +137,11 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
     @Override
     public Collection<SearchResult> search(final SearchContext context) {
         return ScriptingComponentUtils.search(context, getLogger());
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Script Engine", LANGUAGE.getName());
     }
 
     protected static Bindings setupBindings(final ScriptEngine scriptEngine) {

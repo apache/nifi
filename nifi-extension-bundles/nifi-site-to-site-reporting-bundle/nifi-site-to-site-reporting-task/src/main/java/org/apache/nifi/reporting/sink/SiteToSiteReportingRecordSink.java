@@ -81,6 +81,7 @@ public class SiteToSiteReportingRecordSink extends AbstractControllerService imp
     public void migrateProperties(final PropertyConfiguration config) {
         ProxyServiceMigration.migrateProxyProperties(config, SiteToSiteUtils.PROXY_CONFIGURATION_SERVICE,
                 SiteToSiteUtils.OBSOLETE_PROXY_HOST, SiteToSiteUtils.OBSOLETE_PROXY_PORT, SiteToSiteUtils.OBSOLETE_PROXY_USERNAME, SiteToSiteUtils.OBSOLETE_PROXY_PASSWORD);
+        config.renameProperty(SiteToSiteUtils.OBSOLETE_TRANSPORT_PROTOCOL, SiteToSiteUtils.TRANSPORT_PROTOCOL.getName());
     }
 
     @OnEnabled
