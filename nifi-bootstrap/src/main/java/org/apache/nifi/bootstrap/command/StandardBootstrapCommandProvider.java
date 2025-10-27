@@ -44,7 +44,6 @@ import static org.apache.nifi.bootstrap.command.io.HttpRequestMethod.DELETE;
 import static org.apache.nifi.bootstrap.command.io.HttpRequestMethod.GET;
 import static org.apache.nifi.bootstrap.configuration.ManagementServerPath.HEALTH;
 import static org.apache.nifi.bootstrap.configuration.ManagementServerPath.HEALTH_CLUSTER;
-import static org.apache.nifi.bootstrap.configuration.ManagementServerPath.HEALTH_DIAGNOSTICS;
 import static org.apache.nifi.bootstrap.configuration.ManagementServerPath.HEALTH_STATUS_HISTORY;
 
 /**
@@ -52,10 +51,6 @@ import static org.apache.nifi.bootstrap.configuration.ManagementServerPath.HEALT
  */
 public class StandardBootstrapCommandProvider implements BootstrapCommandProvider {
     private static final String SHUTDOWN_REQUESTED = "--shutdown=true";
-
-    private static final String VERBOSE_REQUESTED = "--verbose";
-
-    private static final String VERBOSE_QUERY = "verbose=true";
 
     private static final String DAYS_QUERY = "days=%d";
 
@@ -111,7 +106,8 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
         } else if (BootstrapArgument.DECOMMISSION == bootstrapArgument) {
             bootstrapCommand = getDecommissionCommand(processHandleProvider, stopBootstrapCommand, arguments);
         } else if (BootstrapArgument.DIAGNOSTICS == bootstrapArgument) {
-            bootstrapCommand = getDiagnosticsCommand(processHandleProvider, arguments);
+            final DiagnosticsBootstrapCommandProvider diagnosticsBootstrapCommandProvider = new DiagnosticsBootstrapCommandProvider(processHandleProvider);
+            bootstrapCommand = diagnosticsBootstrapCommandProvider.getBootstrapCommand(arguments);
         } else if (BootstrapArgument.GET_RUN_COMMAND == bootstrapArgument) {
             bootstrapCommand = new GetRunCommandBootstrapCommand(configurationProvider, processHandleProvider, System.out);
         } else if (BootstrapArgument.START == bootstrapArgument) {
@@ -143,27 +139,6 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
         return new SequenceBootstrapCommand(bootstrapCommands);
     }
 
-    private BootstrapCommand getDiagnosticsCommand(final ProcessHandleProvider processHandleProvider, final String[] arguments) {
-        final String verboseQuery = getVerboseQuery(arguments);
-        final ResponseStreamHandler responseStreamHandler = getDiagnosticsResponseStreamHandler(arguments);
-        return new ManagementServerBootstrapCommand(processHandleProvider, GET, HEALTH_DIAGNOSTICS, verboseQuery, HTTP_OK, responseStreamHandler);
-    }
-
-    private ResponseStreamHandler getDiagnosticsResponseStreamHandler(final String[] arguments) {
-        final ResponseStreamHandler responseStreamHandler;
-
-        if (arguments.length == PATH_ARGUMENTS) {
-            final String outputPathArgument = arguments[FIRST_ARGUMENT];
-            final Path outputPath = Paths.get(outputPathArgument);
-            responseStreamHandler = new FileResponseStreamHandler(outputPath);
-        } else {
-            final Logger logger = LoggerFactory.getLogger(StandardBootstrapCommandProvider.class);
-            responseStreamHandler = new LoggerResponseStreamHandler(logger);
-        }
-
-        return responseStreamHandler;
-    }
-
     private BootstrapCommand getStatusHistoryCommand(final ProcessHandleProvider processHandleProvider, final String[] arguments) {
         final String daysQuery = getStatusHistoryDaysQuery(arguments);
         final ResponseStreamHandler responseStreamHandler = getStatusHistoryResponseStreamHandler(arguments);
@@ -181,19 +156,6 @@ public class StandardBootstrapCommandProvider implements BootstrapCommandProvide
         }
 
         return shutdownRequested;
-    }
-
-    private String getVerboseQuery(final String[] arguments) {
-        String query = null;
-
-        for (final String argument : arguments) {
-            if (VERBOSE_REQUESTED.contentEquals(argument)) {
-                query = VERBOSE_QUERY;
-                break;
-            }
-        }
-
-        return query;
     }
 
     private String getStatusHistoryDaysQuery(final String[] arguments) {
