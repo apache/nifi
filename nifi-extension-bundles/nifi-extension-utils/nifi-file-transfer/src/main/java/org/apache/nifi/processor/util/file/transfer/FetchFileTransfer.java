@@ -25,6 +25,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -43,6 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -111,10 +113,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                     The directory on the remote server to move the original file to once it has been ingested into NiFi.
                     This property is ignored unless the %s is set to '%s'.
                     The specified directory must already exist on the remote system if '%s' is disabled, or the rename will fail.
-                    """.formatted(
-                    COMPLETION_STRATEGY.getDisplayName(),
-                    COMPLETION_MOVE.getDisplayName(),
-                    MOVE_CREATE_DIRECTORY.getDisplayName()))
+                    """.formatted( COMPLETION_STRATEGY.getDisplayName(),  COMPLETION_MOVE.getDisplayName(), MOVE_CREATE_DIRECTORY.getDisplayName())
+            )
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(false)
@@ -398,20 +398,16 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                             break;
                         case FileTransfer.CONFLICT_RESOLUTION_RENAME:
 
-                            destinationFileName = FileTransferConflictUtil.generateUniqueFilename(transfer, absoluteTargetDirPath, destinationFileName, flowFile, getLogger());
+                            destinationFileName = generateUniqueFilename(transfer, absoluteTargetDirPath, destinationFileName, flowFile, getLogger());
                             getLogger().info("Generated filename [{}] to resolve conflict with initial filename [{}] for {}", destinationFileName, simpleFilename, flowFile);
                             break;
                         case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
-                            getLogger().debug("Ignored conflicting destination filename [{}] for {}", destinationFilename, flowFile);
-                            return;
                         case FileTransfer.CONFLICT_RESOLUTION_REJECT:
                         case FileTransfer.CONFLICT_RESOLUTION_FAIL:
-                            getLogger().warn("Configured to {} on move conflict for {}. Original remote file will be left in place.", strategy, flowFile);
-                            return;
                         case FileTransfer.CONFLICT_RESOLUTION_NONE:
                         default:
                             // Treat as IGNORE for move
-                            getLogger().info("Ignoring conflicting destination filename [{}] for {}", destinationFilename, flowFile);
+                            getLogger().warn("Configured to {} on move conflict for {}. Original remote file will be left in place.", strategy, flowFile);
                             return;
                     }
                 }
@@ -455,5 +451,20 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         public long getLastUsed() {
             return this.lastUsed;
         }
+    }
+    /**
+     * Generates a unique filename by using a UUID prefix.
+     * This approach virtually eliminates the possibility of name collisions without requiring multiple remote file checks.
+     */
+    private static String generateUniqueFilename(final FileTransfer transfer,
+                                                 final String path,
+                                                 final String baseFileName,
+                                                 final FlowFile flowFile,
+                                                 final ComponentLog logger) throws IOException {
+        String uuid = UUID.randomUUID().toString();
+        String uniqueFilename = uuid + "." + baseFileName;
+
+        logger.info("Attempting to resolve filename conflict for {} on the remote server by using a newly generated filename of: {}", flowFile, uniqueFilename);
+        return uniqueFilename;
     }
 }
