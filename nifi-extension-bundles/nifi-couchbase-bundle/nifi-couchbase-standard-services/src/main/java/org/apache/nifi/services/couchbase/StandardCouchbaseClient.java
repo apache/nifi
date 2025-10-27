@@ -45,20 +45,34 @@ import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.codec.RawBinaryTranscoder;
 import com.couchbase.client.java.codec.RawJsonTranscoder;
 import com.couchbase.client.java.codec.Transcoder;
+import com.couchbase.client.java.json.JsonArray;
+import com.couchbase.client.java.json.JsonObject;
+import com.couchbase.client.java.kv.ExistsResult;
 import com.couchbase.client.java.kv.GetOptions;
 import com.couchbase.client.java.kv.GetResult;
+import com.couchbase.client.java.kv.InsertOptions;
+import com.couchbase.client.java.kv.LookupInResult;
+import com.couchbase.client.java.kv.LookupInSpec;
 import com.couchbase.client.java.kv.MutationResult;
 import com.couchbase.client.java.kv.PersistTo;
+import com.couchbase.client.java.kv.ReplaceOptions;
 import com.couchbase.client.java.kv.ReplicateTo;
 import com.couchbase.client.java.kv.UpsertOptions;
+import org.apache.nifi.services.couchbase.exception.CouchbaseCasMismatchException;
+import org.apache.nifi.services.couchbase.exception.CouchbaseDocExistsException;
+import org.apache.nifi.services.couchbase.exception.CouchbaseDocNotFoundException;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
+import org.apache.nifi.services.couchbase.utils.CouchbaseLookupInResult;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
 import org.apache.nifi.services.couchbase.utils.DocumentType;
 import org.apache.nifi.services.couchbase.utils.JsonValidator;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
@@ -117,6 +131,8 @@ class StandardCouchbaseClient implements CouchbaseClient {
             final GetResult result = collection.get(documentId, GetOptions.getOptions().transcoder(getTranscoder(documentType)));
 
             return new CouchbaseGetResult(result.contentAsBytes(), result.cas());
+        } catch (DocumentNotFoundException e) {
+            throw new CouchbaseDocNotFoundException("Couchbase document with key [%s] not found".formatted(documentId), e);
         } catch (Exception e) {
             throw new CouchbaseException("Failed to get document [%s] from Couchbase".formatted(documentId), e);
         }
@@ -124,11 +140,11 @@ class StandardCouchbaseClient implements CouchbaseClient {
 
     @Override
     public CouchbaseUpsertResult upsertDocument(String documentId, byte[] content) throws CouchbaseException {
-        try {
-            if (!getInputValidator(documentType).test(content)) {
-                throw new CouchbaseException("The provided input is invalid");
-            }
+        if (!getInputValidator(documentType).test(content)) {
+            throw new CouchbaseException("The provided input is invalid for document [%s]".formatted(documentId));
+        }
 
+        try {
             final MutationResult result = collection.upsert(documentId, content,
                     UpsertOptions.upsertOptions()
                             .durability(persistTo, replicateTo)
@@ -138,6 +154,93 @@ class StandardCouchbaseClient implements CouchbaseClient {
             return new CouchbaseUpsertResult(result.cas());
         } catch (Exception e) {
             throw new CouchbaseException("Failed to upsert document [%s] in Couchbase".formatted(documentId), e);
+        }
+    }
+
+    @Override
+    public boolean documentExists(String documentId) throws CouchbaseException {
+        try {
+            final ExistsResult result = collection.exists(documentId);
+            return result.exists();
+        } catch (Exception e) {
+            throw new CouchbaseException("Failed to check document [%s] in Couchbase".formatted(documentId), e);
+        }
+    }
+
+    @Override
+    public void insertDocument(String documentId, byte[] content) throws CouchbaseException {
+        if (!getInputValidator(documentType).test(content)) {
+            throw new CouchbaseException("The provided input is invalid for document [%s]".formatted(documentId));
+        }
+
+        try {
+            collection.insert(documentId, content,
+                    InsertOptions.insertOptions()
+                            .durability(persistTo, replicateTo)
+                            .transcoder(getTranscoder(documentType))
+                            .clientContext(new HashMap<>()));
+        } catch (DocumentExistsException e) {
+            throw new CouchbaseDocExistsException("Document with key [%s] already exists".formatted(documentId), e);
+        } catch (Exception e) {
+            throw new CouchbaseException("Failed to insert document [%s] in Couchbase".formatted(documentId), e);
+        }
+    }
+
+    @Override
+    public void removeDocument(String documentId) throws CouchbaseException {
+        try {
+            collection.remove(documentId);
+        } catch (DocumentNotFoundException e) {
+            throw new CouchbaseDocNotFoundException("Couchbase document with key [%s] not found".formatted(documentId), e);
+        } catch (Exception e) {
+            throw new CouchbaseException("Failed to remove document [%s] in Couchbase".formatted(documentId), e);
+        }
+    }
+
+    @Override
+    public void replaceDocument(String documentId, byte[] content, long cas) throws CouchbaseException {
+        if (!getInputValidator(documentType).test(content)) {
+            throw new CouchbaseException("The provided input is invalid for document [%s]".formatted(documentId));
+        }
+
+        try {
+            collection.replace(documentId, content,
+                    ReplaceOptions.replaceOptions()
+                            .cas(cas)
+                            .durability(persistTo, replicateTo)
+                            .transcoder(getTranscoder(documentType))
+                            .clientContext(new HashMap<>()));
+        } catch (CasMismatchException e) {
+            throw new CouchbaseCasMismatchException("Couchbase document with key [%s] has been concurrently modified".formatted(documentId), e);
+        } catch (DocumentNotFoundException e) {
+            throw new CouchbaseDocNotFoundException("Couchbase document with key [%s] not found".formatted(documentId), e);
+        } catch (Exception e) {
+            throw new CouchbaseException("Failed to replace document [%s] in Couchbase".formatted(documentId), e);
+        }
+    }
+
+    @Override
+    public CouchbaseLookupInResult lookupIn(String documentId, String subDocPath) throws CouchbaseException {
+        try {
+            final String documentPath = subDocPath == null ? "" : subDocPath;
+            final LookupInResult result = collection.lookupIn(documentId, Collections.singletonList(LookupInSpec.get(documentPath)));
+
+            if (!result.exists(0)) {
+                throw new CouchbaseException("No value found on the requested path [%s] in Couchbase".formatted(subDocPath));
+            }
+
+            Object lookupInResult;
+            try {
+                lookupInResult = result.contentAs(0, Object.class);
+            } catch (DecodingFailureException e) {
+                lookupInResult = result.contentAs(0, byte[].class);
+            }
+
+            return new CouchbaseLookupInResult(deserializeLookupInResult(lookupInResult), result.cas());
+        } catch (DocumentNotFoundException e) {
+            throw new CouchbaseDocNotFoundException("Couchbase document with key [%s] not found".formatted(documentId), e);
+        } catch (Exception e) {
+            throw new CouchbaseException("Failed to look up in document [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
@@ -158,5 +261,17 @@ class StandardCouchbaseClient implements CouchbaseClient {
             case JSON -> new JsonValidator();
             case BINARY -> v -> true;
         };
+    }
+
+    private String deserializeLookupInResult(Object result) {
+        return switch (result) {
+            case null -> null;
+            case String s -> s;
+            case Map map -> JsonObject.from(map).toString();
+            case List list -> JsonArray.from(list).toString();
+            case byte[] bytes -> new String(bytes, StandardCharsets.UTF_8);
+            default -> result.toString();
+        };
+
     }
 }

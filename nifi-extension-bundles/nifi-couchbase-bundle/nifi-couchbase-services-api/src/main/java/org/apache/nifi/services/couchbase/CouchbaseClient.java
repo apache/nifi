@@ -19,6 +19,7 @@ package org.apache.nifi.services.couchbase;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
+import org.apache.nifi.services.couchbase.utils.CouchbaseLookupInResult;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
 
 public interface CouchbaseClient {
@@ -26,6 +27,16 @@ public interface CouchbaseClient {
     CouchbaseGetResult getDocument(String documentId) throws CouchbaseException;
 
     CouchbaseUpsertResult upsertDocument(String documentId, byte[] content) throws CouchbaseException;
+
+    boolean documentExists(String documentId) throws CouchbaseException;
+
+    void insertDocument(String documentId, byte[] content) throws CouchbaseException;
+
+    void removeDocument(String documentId) throws CouchbaseException;
+
+    void replaceDocument(String documentId, byte[] content, long cas) throws CouchbaseException;
+
+    CouchbaseLookupInResult lookupIn(String documentId, String subDocPath) throws CouchbaseException;
 
     ExceptionCategory getExceptionCategory(Throwable throwable);
 }
