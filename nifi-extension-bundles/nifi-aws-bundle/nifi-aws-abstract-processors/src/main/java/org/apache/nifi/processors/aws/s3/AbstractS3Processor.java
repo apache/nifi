@@ -92,7 +92,7 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
             .build();
     public static final PropertyDescriptor CANNED_ACL = new PropertyDescriptor.Builder()
             .name("Canned ACL")
-            .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, LogDeliveryWrite, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
+            .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
                 "will be ignored if any other ACL/permission/owner property is specified")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -153,7 +153,6 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
             "PublicRead", ObjectCannedACL.PUBLIC_READ,
             "PublicReadWrite", ObjectCannedACL.PUBLIC_READ_WRITE,
             "AuthenticatedRead", ObjectCannedACL.AUTHENTICATED_READ,
-            "LogDeliveryWrite", ObjectCannedACL.UNKNOWN_TO_SDK_VERSION,
             "BucketOwnerRead", ObjectCannedACL.BUCKET_OWNER_READ,
             "BucketOwnerFullControl", ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL,
             "AwsExecRead", ObjectCannedACL.AWS_EXEC_READ
@@ -172,6 +171,7 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
         config.renameProperty("use-path-style-access", USE_PATH_STYLE_ACCESS.getName());
 
         migrateAttributeDefinedRegion(config);
+        migrateCannedAcl(config);
 
         config.removeProperty(OBSOLETE_SIGNER_OVERRIDE);
         config.removeProperty(OBSOLETE_CUSTOM_SIGNER_CLASS_NAME_1);
@@ -181,10 +181,17 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
     }
 
     private void migrateAttributeDefinedRegion(final PropertyConfiguration config) {
-        if (config.getPropertyValue(REGION).map(region -> region.equals(OBSOLETE_ATTRIBUTE_DEFINED_REGION)).orElse(false)) {
+        if (config.getPropertyValue(REGION).map(OBSOLETE_ATTRIBUTE_DEFINED_REGION::equals).orElse(false)) {
             // migrate Use 's3.region' Attribute option into Use Custom Region
             config.setProperty(REGION, USE_CUSTOM_REGION.getValue());
             config.setProperty(CUSTOM_REGION, String.format("${%s}",  OBSOLETE_S3_REGION_ATTRIBUTE));
+        }
+    }
+
+    private void migrateCannedAcl(final PropertyConfiguration config) {
+        if (config.getPropertyValue(CANNED_ACL).map("LogDeliveryWrite"::equals).orElse(false)) {
+            // ObjectCannedACL in v2 does not include LogDeliveryWrite, it is a bucket level-permission that has no effect on object-level operations
+            config.setProperty(CANNED_ACL, null);
         }
     }
 

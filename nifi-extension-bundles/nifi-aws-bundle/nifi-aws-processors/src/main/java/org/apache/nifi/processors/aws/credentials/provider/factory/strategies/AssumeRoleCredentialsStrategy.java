@@ -36,7 +36,6 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 import javax.net.ssl.SSLContext;
 import java.net.Proxy;
 import java.net.URI;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -160,15 +159,15 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
 
         final AssumeRoleRequest.Builder roleRequestBuilder = AssumeRoleRequest.builder()
                 .roleArn(assumeRoleArn)
-                .roleSessionName(assumeRoleName);
+                .roleSessionName(assumeRoleName)
+                .durationSeconds(maxSessionTime);
 
         if (assumeRoleExternalId != null && !assumeRoleExternalId.isEmpty()) {
             roleRequestBuilder.externalId(assumeRoleExternalId);
         }
 
         builder.refreshRequest(roleRequestBuilder.build())
-                .stsClient(stsClient)
-                .staleTime(Duration.ofSeconds(maxSessionTime));
+                .stsClient(stsClient);
 
         return builder.build();
     }

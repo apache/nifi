@@ -212,7 +212,7 @@ public class CopyS3Object extends AbstractS3Processor {
                     .sourceBucket(sourceBucket)
                     .sourceKey(sourceKey)
                     .destinationBucket(destinationBucket)
-                    .destinationBucket(destinationKey)
+                    .destinationKey(destinationKey)
                     .uploadId(createResponse.uploadId())
                     .copySourceRange(createRangeSpec(bytePosition, lastByte))
                     .partNumber(partNumber++)
