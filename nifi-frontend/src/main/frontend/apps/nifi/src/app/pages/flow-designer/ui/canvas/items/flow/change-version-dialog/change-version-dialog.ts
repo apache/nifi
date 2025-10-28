@@ -16,16 +16,17 @@
  */
 
 import { Component, EventEmitter, Output, inject } from '@angular/core';
-import { MatButton } from '@angular/material/button';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatCell, MatCellDef, MatColumnDef, MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { VersionedFlowSnapshotMetadata } from '../../../../../../../state/shared';
 import { ChangeVersionDialogRequest, VersionControlInformation } from '../../../../../state/flow';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
-import { NiFiCommon, CloseOnEscapeDialog, NifiTooltipDirective, TextTip } from '@nifi/shared';
+import { NiFiCommon, CloseOnEscapeDialog, NifiTooltipDirective, TextTip, LARGE_DIALOG } from '@nifi/shared';
+import { FlowDiffDialog, FlowDiffDialogData } from '../flow-diff-dialog/flow-diff-dialog';
 
 @Component({
     selector: 'change-version-dialog',
@@ -37,7 +38,8 @@ import { NiFiCommon, CloseOnEscapeDialog, NifiTooltipDirective, TextTip } from '
         MatDialogModule,
         MatSortModule,
         MatTableModule,
-        NifiTooltipDirective
+        NifiTooltipDirective,
+        MatIconButton
     ],
     templateUrl: './change-version-dialog.html',
     styleUrl: './change-version-dialog.scss'
@@ -47,16 +49,18 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
     private nifiCommon = inject(NiFiCommon);
     private store = inject<Store<CanvasState>>(Store);
 
-    displayedColumns: string[] = ['current', 'version', 'created', 'comments'];
+    displayedColumns: string[] = ['actions', 'current', 'version', 'created', 'comments'];
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
     selectedFlowVersion: VersionedFlowSnapshotMetadata | null = null;
+    private allFlowVersions: VersionedFlowSnapshotMetadata[] = [];
     sort: Sort = {
         active: 'created',
         direction: 'desc'
     };
     versionControlInformation: VersionControlInformation;
     private timeOffset = this.store.selectSignal(selectTimeOffset);
+    private dialog = inject(MatDialog);
 
     @Output() changeVersion: EventEmitter<VersionedFlowSnapshotMetadata> =
         new EventEmitter<VersionedFlowSnapshotMetadata>();
@@ -66,6 +70,7 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
         const dialogRequest = this.dialogRequest;
 
         const flowVersions = dialogRequest.versions.map((entity) => entity.versionedFlowSnapshotMetadata);
+        this.allFlowVersions = flowVersions;
         const sortedFlowVersions = this.sortVersions(flowVersions, this.sort);
         this.selectedFlowVersion = sortedFlowVersions[0];
         this.dataSource.data = sortedFlowVersions;
@@ -149,6 +154,28 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
 
     isCurrentVersion(flowVersion: VersionedFlowSnapshotMetadata): boolean {
         return flowVersion.version === this.versionControlInformation.version;
+    }
+
+    openFlowDiff(flowVersion: VersionedFlowSnapshotMetadata, event: MouseEvent) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!this.versionControlInformation) {
+            return;
+        }
+
+        const dialogData: FlowDiffDialogData = {
+            versionControlInformation: this.versionControlInformation,
+            versions: this.allFlowVersions,
+            currentVersion: this.versionControlInformation.version,
+            selectedVersion: flowVersion.version
+        };
+
+        this.dialog.open(FlowDiffDialog, {
+            ...LARGE_DIALOG,
+            data: dialogData,
+            autoFocus: false
+        });
     }
 
     protected readonly TextTip = TextTip;

@@ -78,6 +78,24 @@
                         (matSortChange)="sortData($event)"
                         [matSortActive]="sort.active"
                         [matSortDirection]="sort.direction">
+                        <!-- Actions Column -->
+                        <ng-container matColumnDef="actions">
+                            <th mat-header-cell *matHeaderCellDef></th>
+                            <td mat-cell *matCellDef="let item">
+                                <button
+                                    mat-icon-button
+                                    type="button"
+                                    (click)="openFlowDiff(item, $event)"
+                                    aria-label="View flow version diff"
+                                    nifiTooltip
+                                    [tooltipComponentType]="TextTip"
+                                    tooltipInputData="View flow version diff"
+                                    data-qa="view-flow-diff-button">
+                                    <i class="fa fa-exchange"></i>
+                                </button>
+                            </td>
+                        </ng-container>
+
                         <!-- Current Version Column -->
                         <ng-container matColumnDef="current">
                             <th mat-header-cell *matHeaderCellDef></th>
