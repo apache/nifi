@@ -19,15 +19,10 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -35,34 +30,13 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class TestListDatabaseTables {
-
-    private static final String SERVICE_ID = EmbeddedDatabaseConnectionService.class.getSimpleName();
-
-    private static EmbeddedDatabaseConnectionService service;
+class TestListDatabaseTables extends AbstractDatabaseConnectionServiceTest {
 
     TestRunner runner;
 
-    ListDatabaseTables processor;
-
-    @BeforeAll
-    static void setService(@TempDir final Path databaseLocation) {
-        service = new EmbeddedDatabaseConnectionService(databaseLocation);
-    }
-
-    @AfterAll
-    static void shutdown() {
-        service.close();
-    }
-
     @BeforeEach
     void setRunner() throws Exception {
-        processor = new ListDatabaseTables();
-
-        runner = TestRunners.newTestRunner(ListDatabaseTables.class);
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
-        runner.setProperty(ListDatabaseTables.DBCP_SERVICE, SERVICE_ID);
+        runner = newTestRunner(ListDatabaseTables.class);
     }
 
     @AfterEach
@@ -74,7 +48,7 @@ class TestListDatabaseTables {
 
         for (final String table : tables) {
             try (
-                    Connection connection = service.getConnection();
+                    Connection connection = getConnection();
                     Statement statement = connection.createStatement()
             ) {
                 statement.execute("DROP TABLE %s".formatted(table));
@@ -193,7 +167,7 @@ class TestListDatabaseTables {
 
     private void createFirstTable() throws SQLException {
         try (
-                Connection connection = service.getConnection();
+                Connection connection = getConnection();
                 Statement statement = connection.createStatement()
         ) {
             statement.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
@@ -202,7 +176,7 @@ class TestListDatabaseTables {
 
     private void createSecondTable() throws SQLException {
         try (
-                Connection connection = service.getConnection();
+                Connection connection = getConnection();
                 Statement statement = connection.createStatement()
         ) {
             statement.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
@@ -211,7 +185,7 @@ class TestListDatabaseTables {
 
     private void insertFirstTableRows() throws SQLException {
         try (
-                Connection connection = service.getConnection();
+                Connection connection = getConnection();
                 Statement statement = connection.createStatement()
         ) {
             statement.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
