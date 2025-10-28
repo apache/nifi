@@ -29,6 +29,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.json.OutputGrouping;
 import org.apache.nifi.json.WriteJsonResult;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -55,6 +56,10 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.API_VERSION;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.OLD_API_VERSION_PROPERTY_NAME;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.OLD_READ_TIMEOUT_PROPERTY_NAME;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.OLD_SALESFORCE_INSTANCE_URL_PROPERTY_NAME;
+import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.OLD_TOKEN_PROVIDER_PROPERTY_NAME;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.READ_TIMEOUT;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.SALESFORCE_INSTANCE_URL;
 import static org.apache.nifi.processors.salesforce.util.CommonSalesforceProperties.TOKEN_PROVIDER;
@@ -73,8 +78,7 @@ public class PutSalesforceObject extends AbstractProcessor {
     private static final String ATTR_ERROR_MESSAGE = "error.message";
 
     protected static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description(
                     "Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
             .identifiesControllerService(RecordReaderFactory.class)
@@ -153,6 +157,15 @@ public class PutSalesforceObject extends AbstractProcessor {
             getLogger().error("Failed to put records to Salesforce.", e);
             transferToFailure(session, flowFile, e.getMessage());
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
+        config.renameProperty(OLD_SALESFORCE_INSTANCE_URL_PROPERTY_NAME, SALESFORCE_INSTANCE_URL.getName());
+        config.renameProperty(OLD_API_VERSION_PROPERTY_NAME, API_VERSION.getName());
+        config.renameProperty(OLD_READ_TIMEOUT_PROPERTY_NAME, READ_TIMEOUT.getName());
+        config.renameProperty(OLD_TOKEN_PROVIDER_PROPERTY_NAME, TOKEN_PROVIDER.getName());
     }
 
     private void processRecords(FlowFile flowFile, String objectType, ProcessContext context, ProcessSession session) throws IOException, MalformedRecordException, SchemaNotFoundException {

@@ -46,6 +46,7 @@ public class SiteToSiteUtils {
     public static final String OBSOLETE_PROXY_PORT = "s2s-http-proxy-port";
     public static final String OBSOLETE_PROXY_USERNAME = "s2s-http-proxy-username";
     public static final String OBSOLETE_PROXY_PASSWORD = "s2s-http-proxy-password";
+    public static final String OBSOLETE_TRANSPORT_PROTOCOL = "s2s-transport-protocol";
 
     public static final PropertyDescriptor DESTINATION_URL = new PropertyDescriptor.Builder()
             .name("Destination URL")
@@ -99,8 +100,7 @@ public class SiteToSiteUtils {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
     public static final PropertyDescriptor TRANSPORT_PROTOCOL = new PropertyDescriptor.Builder()
-            .name("s2s-transport-protocol")
-            .displayName("Transport Protocol")
+            .name("Transport Protocol")
             .description("Specifies which transport protocol to use for Site-to-Site communication.")
             .required(true)
             .allowableValues(SiteToSiteTransportProtocol.values())

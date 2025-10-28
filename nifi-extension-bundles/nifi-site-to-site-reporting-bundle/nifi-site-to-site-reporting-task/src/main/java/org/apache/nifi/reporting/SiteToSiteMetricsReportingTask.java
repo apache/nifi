@@ -50,6 +50,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
@@ -70,8 +71,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             + " have the description of the default schema.");
 
     static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
-            .name("s2s-metrics-application-id")
-            .displayName("Application ID")
+            .name("Application ID")
             .description("The Application ID to be included in the metrics")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -80,8 +80,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             .build();
 
     static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-            .name("s2s-metrics-hostname")
-            .displayName("Hostname")
+            .name("Hostname")
             .description("The Hostname of this NiFi instance to be included in the metrics")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -90,8 +89,7 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
             .build();
 
     static final PropertyDescriptor FORMAT = new PropertyDescriptor.Builder()
-            .name("s2s-metrics-format")
-            .displayName("Output Format")
+            .name("Output Format")
             .description("The output format that will be used for the metrics. If " + RECORD_FORMAT.getDisplayName() + " is selected, "
                     + "a Record Writer must be provided. If " + AMBARI_FORMAT.getDisplayName() + " is selected, the Record Writer property "
                     + "should be empty.")
@@ -231,4 +229,11 @@ public class SiteToSiteMetricsReportingTask extends AbstractSiteToSiteReportingT
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("s2s-metrics-application-id", APPLICATION_ID.getName());
+        config.renameProperty("s2s-metrics-hostname", HOSTNAME.getName());
+        config.renameProperty("s2s-metrics-format", FORMAT.getName());
+    }
 }

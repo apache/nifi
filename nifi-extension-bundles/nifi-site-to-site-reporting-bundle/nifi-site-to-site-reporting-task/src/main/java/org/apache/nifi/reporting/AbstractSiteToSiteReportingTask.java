@@ -87,16 +87,14 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     protected static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(TIMESTAMP_FORMAT).withZone(ZoneOffset.UTC);
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Controller Service to use for writing out the records.")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(false)
             .build();
 
     static final PropertyDescriptor ALLOW_NULL_VALUES = new PropertyDescriptor.Builder()
-            .name("include-null-values")
-            .displayName("Include Null Values")
+            .name("Include Null Values")
             .description("Indicate if null values should be included in records. Default will be false")
             .required(true)
             .allowableValues("true", "false")
@@ -127,6 +125,9 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
     public void migrateProperties(final PropertyConfiguration config) {
         ProxyServiceMigration.migrateProxyProperties(config, SiteToSiteUtils.PROXY_CONFIGURATION_SERVICE,
                 SiteToSiteUtils.OBSOLETE_PROXY_HOST, SiteToSiteUtils.OBSOLETE_PROXY_PORT, SiteToSiteUtils.OBSOLETE_PROXY_USERNAME, SiteToSiteUtils.OBSOLETE_PROXY_PASSWORD);
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("include-null-values", ALLOW_NULL_VALUES.getName());
+        config.renameProperty(SiteToSiteUtils.OBSOLETE_TRANSPORT_PROTOCOL, SiteToSiteUtils.TRANSPORT_PROTOCOL.getName());
     }
 
     public void setup(final PropertyContext reportContext) {
