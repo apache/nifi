@@ -22,9 +22,9 @@ import java.io.File;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,10 +68,11 @@ import org.codehaus.groovy.runtime.StackTraceUtils;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"script", "groovy", "groovyx"})
-@CapabilityDescription(
-        "Experimental Extended Groovy script processor. The script is responsible for "
-        + "handling the incoming flow file (transfer to SUCCESS or remove, e.g.) as well as any flow files created by "
-        + "the script. If the handling is incomplete or incorrect, the session will be rolled back.")
+@CapabilityDescription("""
+        Execute custom Groovy script to handle input FlowFiles and route to standard relationships.
+        Script validation includes a timeout of 5 minutes to avoid potential issues with dynamic dependency resolution.
+        """
+)
 @Restricted(
         restrictions = {
                 @Restriction(
@@ -211,13 +212,29 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         this.addClasspath = context.getProperty(ADD_CLASSPATH).evaluateAttributeExpressions().getValue(); //ADD_CLASSPATH
         this.groovyClasspath = context.newPropertyValue(GROOVY_CLASSPATH).evaluateAttributeExpressions().getValue(); //evaluated from ${groovy.classes.path} global property
 
-        final Collection<ValidationResult> results = new HashSet<>();
+        final ValidationResult.Builder builder = new ValidationResult.Builder()
+                .subject("GroovyScript")
+                .input(scriptFile == null ? null : scriptFile.toString());
+
+        final Thread validationThread = Thread.startVirtualThread(() -> {
+            try {
+                getGroovyScript();
+                builder.valid(true);
+            } catch (final Throwable e) {
+                builder.explanation(e.toString());
+                builder.valid(false);
+            }
+        });
+
         try {
-            getGroovyScript();
-        } catch (Throwable t) {
-            results.add(new ValidationResult.Builder().subject("GroovyScript").input(this.scriptFile != null ? this.scriptFile.toString() : null).valid(false).explanation(t.toString()).build());
+            validationThread.join(Duration.ofMinutes(5));
+        } catch (final InterruptedException e) {
+            builder.valid(false);
+            builder.explanation("Groovy Script validation interrupted after 5 minutes");
         }
-        return results;
+
+        final ValidationResult result = builder.build();
+        return List.of(result);
     }
 
     /**
