@@ -31,6 +31,25 @@ describe('Common', () => {
         expect(service).toBeTruthy();
     });
 
+    describe('time conversion constants', () => {
+        it('should have correct millisecond conversion constants', () => {
+            expect(NiFiCommon.MILLIS_PER_SECOND).toBe(1000);
+            expect(NiFiCommon.MILLIS_PER_MINUTE).toBe(60000);
+            expect(NiFiCommon.MILLIS_PER_HOUR).toBe(3600000);
+            expect(NiFiCommon.MILLIS_PER_DAY).toBe(86400000);
+        });
+
+        it('should have correct nanosecond conversion constant', () => {
+            expect(NiFiCommon.NANOS_PER_MILLI).toBe(1000000);
+        });
+
+        it('should correctly convert nanoseconds to milliseconds', () => {
+            const nanoseconds = 5000000000; // 5 seconds in nanos
+            const milliseconds = nanoseconds / NiFiCommon.NANOS_PER_MILLI;
+            expect(milliseconds).toBe(5000); // 5 seconds in millis
+        });
+    });
+
     describe('formatInteger', () => {
         describe('traditional formatting (default)', () => {
             it('should format small numbers with commas', () => {

@@ -31,6 +31,7 @@ export class NiFiCommon {
     public static readonly MILLIS_PER_HOUR: number = 3600000;
     public static readonly MILLIS_PER_MINUTE: number = 60000;
     public static readonly MILLIS_PER_SECOND: number = 1000;
+    public static readonly NANOS_PER_MILLI: number = 1000000;
 
     /**
      * Constants for formatting data size.

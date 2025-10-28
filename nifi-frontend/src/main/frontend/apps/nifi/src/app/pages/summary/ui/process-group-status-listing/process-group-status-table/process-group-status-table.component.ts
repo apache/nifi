@@ -181,7 +181,9 @@ export class ProcessGroupStatusTable extends ComponentStatusTable<ProcessGroupSt
             this.rootProcessGroup.processingNanos
         );
 
-        return `${this.nifiCommon.formatDuration(pg.processGroupStatusSnapshot.processingNanos)} (${percentage}%)`;
+        // Convert nanoseconds to milliseconds for formatDuration (which expects millis)
+        const processingMillis = pg.processGroupStatusSnapshot.processingNanos / NiFiCommon.NANOS_PER_MILLI;
+        return `${this.nifiCommon.formatDuration(processingMillis)} (${percentage}%)`;
     }
 
     private calculatePercent(used: number, total: number): number {
