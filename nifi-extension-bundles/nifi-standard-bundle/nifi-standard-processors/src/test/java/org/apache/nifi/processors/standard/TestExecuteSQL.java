@@ -21,31 +21,22 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.db.AvroUtil;
 import org.apache.nifi.util.db.SimpleCommerceDataSet;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -62,11 +53,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestExecuteSQL {
-
-    private final Logger LOGGER = LoggerFactory.getLogger(TestExecuteSQL.class);
-
-    final static String DB_LOCATION = "target/db";
+public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
 
     final static String QUERY_WITH_EL = "select "
         + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
@@ -92,27 +79,40 @@ public class TestExecuteSQL {
             + " from persons PER, products PRD, relationships REL"
             + " where PER.ID < ? AND REL.ID < ?";
 
-    @BeforeAll
-    public static void setupClass() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-    }
+    private static final int BATCH_SIZE = 250;
 
-    @AfterAll
-    public static void cleanupClass() {
-        System.clearProperty("derby.stream.error.file");
-    }
+    private static final int FRAGMENT_SIZE = 50;
 
-    private TestRunner runner;
+    private static final int LAST_BATCH_RECORD_INDEX = 49;
+
+    TestRunner runner;
 
     @BeforeEach
-    public void setup() throws InitializationException {
-        final DBCPService dbcp = new DBCPServiceSimpleImpl();
-        final Map<String, String> dbcpProperties = new HashMap<>();
+    void setup() throws InitializationException {
+        runner = newTestRunner(ExecuteSQL.class);
+    }
 
-        runner = TestRunners.newTestRunner(ExecuteSQL.class);
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
-        runner.enableControllerService(dbcp);
-        runner.setProperty(ExecuteSQL.DBCP_SERVICE, "dbcp");
+    @AfterEach
+    void dropTables() {
+        final List<String> tables = List.of(
+                "TEST_DROP_TABLE",
+                "TEST_TRUNCATE_TABLE",
+                "TEST_NULL_INT",
+                "host1",
+                "host2"
+        );
+
+        for (final String table : tables) {
+            try (
+                    Connection connection = getConnection();
+                    Statement statement = connection.createStatement()
+            ) {
+                statement.execute("DROP TABLE %s".formatted(table));
+
+            } catch (final SQLException ignored) {
+
+            }
+        }
     }
 
     @Test
@@ -185,23 +185,9 @@ public class TestExecuteSQL {
 
     @Test
     public void testWithNullIntColumn() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, 1, 1)");
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        executeSql("insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
+        executeSql("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, 1, 1)");
 
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
@@ -214,23 +200,9 @@ public class TestExecuteSQL {
 
     @Test
     public void testDropTableWithOverwrite() throws SQLException, IOException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_DROP_TABLE");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_DROP_TABLE (id integer not null, val1 integer, val2 integer)");
-
-        stmt.execute("insert into TEST_DROP_TABLE (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_DROP_TABLE (id, val1, val2) VALUES (1, 1, 1)");
+        executeSql("create table TEST_DROP_TABLE (id integer not null, val1 integer, val2 integer)");
+        executeSql("insert into TEST_DROP_TABLE (id, val1, val2) VALUES (0, NULL, 1)");
+        executeSql("insert into TEST_DROP_TABLE (id, val1, val2) VALUES (1, 1, 1)");
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_QUERY, "DROP TABLE TEST_DROP_TABLE");
@@ -248,24 +220,10 @@ public class TestExecuteSQL {
     }
 
     @Test
-    public void testDropTableNoOverwrite() throws SQLException, IOException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_TRUNCATE_TABLE");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_TRUNCATE_TABLE (id integer not null, val1 integer, val2 integer)");
-
-        stmt.execute("insert into TEST_TRUNCATE_TABLE (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_TRUNCATE_TABLE (id, val1, val2) VALUES (1, 1, 1)");
+    public void testDropTableNoOverwrite() throws SQLException {
+        executeSql("create table TEST_TRUNCATE_TABLE (id integer not null, val1 integer, val2 integer)");
+        executeSql("insert into TEST_TRUNCATE_TABLE (id, val1, val2) VALUES (0, NULL, 1)");
+        executeSql("insert into TEST_TRUNCATE_TABLE (id, val1, val2) VALUES (1, 1, 1)");
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.CONTENT_OUTPUT_STRATEGY, AbstractExecuteSQL.ContentOutputStrategy.ORIGINAL);
@@ -279,23 +237,9 @@ public class TestExecuteSQL {
 
     @Test
     public void testCompression() throws SQLException, IOException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, 1, 1)");
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        executeSql("insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
+        executeSql("insert into TEST_NULL_INT (id, val1, val2) VALUES (1, 1, 1)");
 
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.COMPRESSION_FORMAT, AvroUtil.CodecType.BZIP2.name());
@@ -313,24 +257,8 @@ public class TestExecuteSQL {
 
     @Test
     public void testWithOutputBatching() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-
-        for (int i = 0; i < 1000; i++) {
-            stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
-        }
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        insertRecords();
 
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
@@ -338,7 +266,7 @@ public class TestExecuteSQL {
         runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 200);
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, FRAGMENT_SIZE);
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
@@ -349,33 +277,17 @@ public class TestExecuteSQL {
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
+        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
-        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
+        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), Integer.toString(LAST_BATCH_RECORD_INDEX));
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
     }
 
     @Test
     public void testWithOutputBatchingAndIncomingFlowFile() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-
-        for (int i = 0; i < 1000; i++) {
-            stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
-        }
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        insertRecords();
 
         Map<String, String> attrMap = new HashMap<>();
         String testAttrName = "attr1";
@@ -389,7 +301,7 @@ public class TestExecuteSQL {
         MockFlowFile inputFlowFile = runner.enqueue("SELECT * FROM TEST_NULL_INT", attrMap);
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 200);
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, FRAGMENT_SIZE);
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
 
@@ -400,35 +312,18 @@ public class TestExecuteSQL {
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
-
+        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
-        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
+        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), Integer.toString(LAST_BATCH_RECORD_INDEX));
         lastFlowFile.assertAttributeEquals(testAttrName, testAttrValue);
         lastFlowFile.assertAttributeEquals(AbstractExecuteSQL.INPUT_FLOWFILE_UUID, inputFlowFile.getAttribute(CoreAttributes.UUID.key()));
     }
 
     @Test
     public void testMaxRowsPerFlowFile() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-
-        for (int i = 0; i < 1000; i++) {
-            stmt.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (" + i + ", 1, 1)");
-        }
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        insertRecords();
 
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.MAX_ROWS_PER_FLOW_FILE, "5");
@@ -437,7 +332,7 @@ public class TestExecuteSQL {
         runner.setProperty(ExecuteSQL.SQL_QUERY, "SELECT * FROM TEST_NULL_INT");
         runner.run();
 
-        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, 200);
+        runner.assertAllFlowFilesTransferred(ExecuteSQL.REL_SUCCESS, FRAGMENT_SIZE);
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_INDEX.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_ID.key());
         runner.assertAllFlowFilesContainAttribute(ExecuteSQL.REL_SUCCESS, FragmentAttributes.FRAGMENT_COUNT.key());
@@ -448,29 +343,16 @@ public class TestExecuteSQL {
         firstFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "0");
         firstFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
 
-        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(199);
+        MockFlowFile lastFlowFile = runner.getFlowFilesForRelationship(ExecuteSQL.REL_SUCCESS).get(LAST_BATCH_RECORD_INDEX);
 
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULT_ROW_COUNT, "5");
-        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), "199");
+        lastFlowFile.assertAttributeEquals(FragmentAttributes.FRAGMENT_INDEX.key(), Integer.toString(LAST_BATCH_RECORD_INDEX));
         lastFlowFile.assertAttributeEquals(ExecuteSQL.RESULTSET_INDEX, "0");
     }
 
     @Test
     public void testInsertStatementCreatesFlowFile() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.SQL_QUERY, "insert into TEST_NULL_INT (id, val1, val2) VALUES (0, NULL, 1)");
@@ -482,20 +364,7 @@ public class TestExecuteSQL {
 
     @Test
     public void testNoRowsStatementCreatesEmptyFlowFile() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
@@ -524,25 +393,11 @@ public class TestExecuteSQL {
 
     @Test
     public void testWithDuplicateColumns() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table host1");
-            stmt.execute("drop table host2");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table host1 (id integer not null, host varchar(45))");
-        stmt.execute("create table host2 (id integer not null, host varchar(45))");
-        stmt.execute("insert into host1 values(1,'host1')");
-        stmt.execute("insert into host2 values(1,'host2')");
-        stmt.execute("select a.host as hostA,b.host as hostB from host1 a join host2 b on b.id=a.id");
+        executeSql("create table host1 (id integer not null, host varchar(45))");
+        executeSql("create table host2 (id integer not null, host varchar(45))");
+        executeSql("insert into host1 values(1,'host1')");
+        executeSql("insert into host2 values(1,'host2')");
+        executeSql("select a.host as hostA,b.host as hostB from host1 a join host2 b on b.id=a.id");
         runner.setIncomingConnection(false);
         runner.setProperty(ExecuteSQL.SQL_QUERY, "select a.host as hostA,b.host as hostB from host1 a join host2 b on b.id=a.id");
         runner.run();
@@ -553,20 +408,7 @@ public class TestExecuteSQL {
 
     @Test
     public void testWithSqlException() throws SQLException {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NO_ROWS");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NO_ROWS (id integer)");
+        executeSql("create table TEST_NO_ROWS (id integer)");
 
         runner.setIncomingConnection(false);
         // Try a valid SQL statement that will generate an error (val1 does not exist, e.g.)
@@ -617,16 +459,11 @@ public class TestExecuteSQL {
             runner.setProperty(ExecuteSQL.QUERY_TIMEOUT, queryTimeout + " secs");
         }
 
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
         // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        final Connection con = getConnection();
         SimpleCommerceDataSet.loadTestData2Database(con, 100, 200, 100);
-        LOGGER.info("test data loaded");
 
-        //commit loaded data if auto-commit is dissabled
+        //commit loaded data if auto-commit is disabled
         if (!con.getAutoCommit()) {
             con.commit();
         }
@@ -677,28 +514,14 @@ public class TestExecuteSQL {
                 recordsFromStream += 1;
             }
 
-            LOGGER.info("total nr of records from stream: {}", recordsFromStream);
             assertEquals(nrOfRows, recordsFromStream);
         }
     }
 
     @Test
     public void testPreQuery() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-        stmt.execute("insert into TEST_NULL_INT values(1,2,3)");
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        executeSql("insert into TEST_NULL_INT values(1,2,3)");
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
@@ -729,21 +552,8 @@ public class TestExecuteSQL {
 
     @Test
     public void testPostQuery() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
-        stmt.execute("insert into TEST_NULL_INT values(1,2,3)");
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        executeSql("insert into TEST_NULL_INT values(1,2,3)");
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
@@ -775,20 +585,7 @@ public class TestExecuteSQL {
 
     @Test
     public void testPreQueryFail() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
         runner.setIncomingConnection(true);
         // Simulate failure by not provide parameter
@@ -802,20 +599,7 @@ public class TestExecuteSQL {
 
     @Test
     public void testPostQueryFail() throws Exception {
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        dbLocation.delete();
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_NULL_INT");
-        } catch (final SQLException ignored) {
-        }
-
-        stmt.execute("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
+        executeSql("create table TEST_NULL_INT (id integer not null, val1 integer, val2 integer, constraint my_pk primary key (id))");
 
         runner.setIncomingConnection(true);
         runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
@@ -830,27 +614,14 @@ public class TestExecuteSQL {
         firstFlowFile.assertContentEquals("test");
     }
 
-    /**
-     * Simple implementation only for ExecuteSQL processor testing.
-     *
-     */
-    class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
-
-        @Override
-        public String getIdentifier() {
-            return "dbcp";
-        }
-
-        @Override
-        public Connection getConnection() throws ProcessException {
-            try {
-                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                final Connection con = DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-                return Mockito.spy(con);
-            } catch (final Exception e) {
-                throw new ProcessException("getConnection failed: " + e);
+    private void insertRecords() throws SQLException {
+        try (
+                Connection connection = getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            for (int i = 0; i < BATCH_SIZE; i++) {
+                statement.execute("insert into TEST_NULL_INT (id, val1, val2) VALUES (%d, 1, 1)".formatted(i));
             }
         }
     }
-
 }
