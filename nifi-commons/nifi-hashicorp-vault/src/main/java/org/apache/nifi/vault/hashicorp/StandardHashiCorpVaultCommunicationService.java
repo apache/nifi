@@ -32,6 +32,7 @@ import org.springframework.vault.support.Ciphertext;
 import org.springframework.vault.support.Plaintext;
 import org.springframework.vault.support.VaultResponseSupport;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -152,7 +153,27 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
 
     @Override
     public List<String> listKeyValueSecrets(final String keyValuePath, final String version) {
-        return vaultTemplate.opsForKeyValue(keyValuePath, KeyValueBackend.valueOf(version)).list("/");
+        final VaultKeyValueOperations keyValueOperations = vaultTemplate.opsForKeyValue(keyValuePath, KeyValueBackend.valueOf(version));
+        return listKeyValueSecrets(keyValueOperations, "");
+    }
+
+    private List<String> listKeyValueSecrets(final VaultKeyValueOperations keyValueOperations, final String path) {
+        final String requestPath = path.isEmpty() ? "/" : path;
+        final List<String> keys = keyValueOperations.list(requestPath);
+        if (keys == null || keys.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        final List<String> secretPaths = new ArrayList<>();
+        for (final String key : keys) {
+            final String fullKey = path.isEmpty() ? key : path + key;
+            if (key.endsWith("/")) {
+                secretPaths.addAll(listKeyValueSecrets(keyValueOperations, fullKey));
+            } else {
+                secretPaths.add(fullKey);
+            }
+        }
+        return secretPaths;
     }
 
     private static class SecretData {
