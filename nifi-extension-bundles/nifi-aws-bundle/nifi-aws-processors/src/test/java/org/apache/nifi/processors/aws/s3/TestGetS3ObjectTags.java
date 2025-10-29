@@ -17,25 +17,21 @@
 
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.s3.api.TagsTarget;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -49,26 +45,25 @@ import static org.mockito.Mockito.when;
 class TestGetS3ObjectTags {
     private TestRunner runner;
 
-    private AmazonS3Client mockS3Client;
+    private S3Client mockS3Client;
 
-    private GetObjectTaggingResult mockTags;
+    private GetObjectTaggingResponse mockTags;
 
     @BeforeEach
     void setUp() {
-        mockS3Client = mock(AmazonS3Client.class);
+        mockS3Client = mock(S3Client.class);
         GetS3ObjectTags mockGetS3ObjectTags = new GetS3ObjectTags() {
             @Override
-            protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                                  final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+            protected S3Client getClient(final ProcessContext context, final Map<String, String> attributes) {
                 return mockS3Client;
             }
         };
         runner = TestRunners.newTestRunner(mockGetS3ObjectTags);
         AuthUtils.enableAccessKey(runner, "accessKeyId", "secretKey");
 
-        mockTags = mock(GetObjectTaggingResult.class);
-        List<Tag> tags = List.of(new Tag("foo", "bar"), new Tag("zip", "zap"));
-        when(mockTags.getTagSet()).thenReturn(tags);
+        mockTags = mock(GetObjectTaggingResponse.class);
+        List<Tag> tags = List.of(Tag.builder().key("foo").value("bar").build(), Tag.builder().key("zip").value("zap").build());
+        when(mockTags.tagSet()).thenReturn(tags);
     }
 
     private void run() {
@@ -82,9 +77,9 @@ class TestGetS3ObjectTags {
     }
 
     private List<Tag> setupObjectTags() {
-        final List<Tag> rawTags = List.of(new Tag("raw1", "x"), new Tag("user2", "y"), new Tag("mightHaveTo", "z"));
+        final List<Tag> rawTags = List.of(Tag.builder().key("raw1").value("x").build(), Tag.builder().key("user2").value("y").build(), Tag.builder().key("mightHaveTo").value("z").build());
 
-        when(mockTags.getTagSet()).thenReturn(rawTags);
+        when(mockTags.tagSet()).thenReturn(rawTags);
 
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenReturn(mockTags);
 
@@ -104,9 +99,9 @@ class TestGetS3ObjectTags {
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetS3ObjectTags.REL_FOUND).getFirst();
         tags.forEach(tag -> {
-            final String key = String.format("s3.tag.%s", tag.getKey());
+            final String key = String.format("s3.tag.%s", tag.key());
             final String val = flowFile.getAttribute(key);
-            assertEquals(tag.getValue(), val);
+            assertEquals(tag.value(), val);
         });
     }
 
@@ -117,16 +112,16 @@ class TestGetS3ObjectTags {
         runner.setProperty(GetS3ObjectTags.ATTRIBUTE_INCLUDE_PATTERN, "(raw|user)");
 
         final List<Tag> tags = setupObjectTags();
-        final List<Tag> mustHave = tags.stream().filter(tag -> !"mightHaveTo".equals(tag.getKey())).toList();
+        final List<Tag> mustHave = tags.stream().filter(tag -> !"mightHaveTo".equals(tag.key())).toList();
 
         run();
         runner.assertTransferCount(GetS3ObjectTags.REL_FOUND, 1);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(GetS3ObjectTags.REL_FOUND).getFirst();
         mustHave.forEach(tag -> {
-            final String key = String.format("s3.tag.%s", tag.getKey());
+            final String key = String.format("s3.tag.%s", tag.key());
             final String val = flowFile.getAttribute(key);
-            assertEquals(tag.getValue(), val);
+            assertEquals(tag.value(), val);
         });
 
         assertNull(flowFile.getAttribute("s3.tag.mightHaveTo"));
@@ -135,8 +130,7 @@ class TestGetS3ObjectTags {
     @DisplayName("Validate fetch to attribute mode routes to failure on S3 error")
     @Test
     void testFetchTagsToAttributeS3Error() {
-        final AmazonS3Exception exception = new AmazonS3Exception("test");
-        exception.setStatusCode(501);
+        final AwsServiceException exception = S3Exception.builder().message("test").statusCode(501).build();
 
         runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.ATTRIBUTES);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenThrow(exception);
@@ -148,8 +142,7 @@ class TestGetS3ObjectTags {
     @DisplayName("Validate fetch tags to attribute routes to not-found when when the file doesn't exist")
     @Test
     void testFetchTagsToAttributeNotExist() {
-        final AmazonS3Exception exception = new AmazonS3Exception("test");
-        exception.setStatusCode(404);
+        final AwsServiceException exception = S3Exception.builder().message("test").statusCode(404).build();
 
         runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.ATTRIBUTES);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenThrow(exception);
@@ -171,8 +164,7 @@ class TestGetS3ObjectTags {
     @DisplayName("Validate fetch tags to FlowFile body routes to not-found when when the file doesn't exist")
     @Test
     void testFetchTagsToBodyNotExist() {
-        final AmazonS3Exception exception = new AmazonS3Exception("test");
-        exception.setStatusCode(404);
+        final AwsServiceException exception = S3Exception.builder().message("test").statusCode(404).build();
 
         runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.FLOWFILE_BODY);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenThrow(exception);
@@ -184,23 +176,12 @@ class TestGetS3ObjectTags {
     @DisplayName("Validate fetch to FlowFile body mode routes to failure on S3 error")
     @Test
     void testFetchTagsToBodyS3Error() {
-        final AmazonS3Exception exception = new AmazonS3Exception("test");
-        exception.setStatusCode(501);
+        final AwsServiceException exception = S3Exception.builder().message("test").statusCode(501).build();
 
         runner.setProperty(GetS3ObjectTags.TAGS_TARGET, TagsTarget.FLOWFILE_BODY);
         when(mockS3Client.getObjectTagging(any(GetObjectTaggingRequest.class))).thenThrow(exception);
         run();
 
         runner.assertTransferCount(GetS3ObjectTags.REL_FAILURE, 1);
-    }
-
-    @Test
-    void testMigration() {
-        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expectedRenamed =
-                Map.of("custom-signer-class-name", AbstractS3Processor.S3_CUSTOM_SIGNER_CLASS_NAME.getName(),
-                        "custom-signer-module-location", AbstractS3Processor.S3_CUSTOM_SIGNER_MODULE_LOCATION.getName());
-
-        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 }

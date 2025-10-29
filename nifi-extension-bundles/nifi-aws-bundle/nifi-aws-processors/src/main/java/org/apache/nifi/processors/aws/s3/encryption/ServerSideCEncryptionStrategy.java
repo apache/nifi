@@ -16,15 +16,13 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.SSECustomerKey;
-import com.amazonaws.services.s3.model.UploadPartRequest;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.ValidationResult;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 
 /**
  * This strategy uses a customer key to perform server-side encryption.  Use this strategy when you want the server to perform the encryption,
@@ -33,33 +31,40 @@ import org.apache.nifi.components.ValidationResult;
  * See <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/ServerSideEncryptionCustomerKeys.html">Server Side Encryption Customer Keys</a>.
  */
 public class ServerSideCEncryptionStrategy implements S3EncryptionStrategy {
+
+    private static final String SSE_CUSTOMER_ALGORITHM = "AES256";
+
     @Override
-    public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
-        SSECustomerKey customerKey = new SSECustomerKey(keyValue);
-        request.setSSECustomerKey(customerKey);
+    public void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+        requestBuilder.sseCustomerAlgorithm(SSE_CUSTOMER_ALGORITHM);
+        requestBuilder.sseCustomerKey(keySpec.material());
+        requestBuilder.sseCustomerKeyMD5(keySpec.md5());
     }
 
     @Override
-    public void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
-        SSECustomerKey customerKey = new SSECustomerKey(keyValue);
-        request.setSSECustomerKey(customerKey);
+    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+        requestBuilder.sseCustomerAlgorithm(SSE_CUSTOMER_ALGORITHM);
+        requestBuilder.sseCustomerKey(keySpec.material());
+        requestBuilder.sseCustomerKeyMD5(keySpec.md5());
     }
 
     @Override
-    public void configureGetObjectRequest(GetObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
-        SSECustomerKey customerKey = new SSECustomerKey(keyValue);
-        request.setSSECustomerKey(customerKey);
+    public void configureGetObjectRequest(GetObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+        requestBuilder.sseCustomerAlgorithm(SSE_CUSTOMER_ALGORITHM);
+        requestBuilder.sseCustomerKey(keySpec.material());
+        requestBuilder.sseCustomerKeyMD5(keySpec.md5());
     }
 
     @Override
-    public void configureUploadPartRequest(UploadPartRequest request, ObjectMetadata objectMetadata, String keyValue) {
-        SSECustomerKey customerKey = new SSECustomerKey(keyValue);
-        request.setSSECustomerKey(customerKey);
+    public void configureUploadPartRequest(UploadPartRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+        requestBuilder.sseCustomerAlgorithm(SSE_CUSTOMER_ALGORITHM);
+        requestBuilder.sseCustomerKey(keySpec.material());
+        requestBuilder.sseCustomerKeyMD5(keySpec.md5());
     }
 
     @Override
-    public ValidationResult validateKey(String keyValue) {
-        if (StringUtils.isBlank(keyValue)) {
+    public ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
+        if (StringUtils.isBlank(keySpec.material())) {
             return new ValidationResult.Builder()
                     .subject("Key Material")
                     .valid(false)
@@ -70,10 +75,10 @@ public class ServerSideCEncryptionStrategy implements S3EncryptionStrategy {
         byte[] keyMaterial;
 
         try {
-            if (!Base64.isBase64(keyValue)) {
+            if (!Base64.isBase64(keySpec.material())) {
                 throw new Exception();
             }
-            keyMaterial = Base64.decodeBase64(keyValue);
+            keyMaterial = Base64.decodeBase64(keySpec.material());
         } catch (Exception e) {
             return new ValidationResult.Builder()
                     .subject("Key Material")

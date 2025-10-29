@@ -30,7 +30,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.SqsClientBuilder;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequest;
@@ -38,6 +38,9 @@ import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchRequestEntry;
 import software.amazon.awssdk.services.sqs.model.DeleteMessageBatchResponse;
 
 import java.util.List;
+
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
 @SupportsBatching
 @SeeAlso({GetSQS.class, PutSQS.class})
@@ -66,6 +69,7 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         QUEUE_URL,
         REGION,
+        CUSTOM_REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
         SSL_CONTEXT_SERVICE,
         RECEIPT_HANDLE,

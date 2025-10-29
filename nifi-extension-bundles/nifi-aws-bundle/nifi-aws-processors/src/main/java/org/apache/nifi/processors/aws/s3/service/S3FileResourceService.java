@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3.service;
 
-import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.S3Object;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -37,16 +31,25 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.s3.AbstractS3Processor;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
-import org.apache.nifi.processors.aws.util.RegionUtilV1;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveS3Region;
+import static org.apache.nifi.processors.aws.AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.apache.nifi.util.StringUtils.isBlank;
 
 @Tags({"Amazon", "S3", "AWS", "file", "resource"})
@@ -61,7 +64,7 @@ import static org.apache.nifi.util.StringUtils.isBlank;
 
                 The "Region" property must be set to denote the S3 region that the Bucket resides in.
 
-                The "AWS Credentials Provider Service" property should specify an instance of the AWSCredentialsProviderService in order to provide credentials for accessing the bucket.
+                The "AWS Credentials Provider Service" property should specify an instance of the AwsCredentialsProviderService in order to provide credentials for accessing the bucket.
                 """
 )
 public class S3FileResourceService extends AbstractControllerService implements FileResourceService {
@@ -74,17 +77,14 @@ public class S3FileResourceService extends AbstractControllerService implements 
             .fromPropertyDescriptor(AbstractS3Processor.KEY)
             .build();
 
-    public static final PropertyDescriptor S3_REGION = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(RegionUtilV1.S3_REGION)
-            .build();
-
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BUCKET_WITH_DEFAULT_VALUE,
             KEY,
-            S3_REGION,
+            REGION,
+            CUSTOM_REGION,
             AWS_CREDENTIALS_PROVIDER_SERVICE);
 
-    private final Cache<Region, AmazonS3> clientCache = Caffeine.newBuilder().build();
+    private final Cache<Region, S3Client> clientCache = Caffeine.newBuilder().build();
 
     private volatile PropertyContext context;
 
@@ -101,20 +101,20 @@ public class S3FileResourceService extends AbstractControllerService implements 
     @OnDisabled
     public void onDisabled() {
         this.context = null;
-        clientCache.asMap().values().forEach(AmazonS3::shutdown);
+        clientCache.asMap().values().forEach(S3Client::close);
         clientCache.invalidateAll();
         clientCache.cleanUp();
     }
 
     @Override
     public FileResource getFileResource(Map<String, String> attributes) {
-        final AWSCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
-                .asControllerService(AWSCredentialsProviderService.class);
-        final AmazonS3 client = getS3Client(attributes, awsCredentialsProviderService.getCredentialsProvider());
+        final AwsCredentialsProviderService awsCredentialsProviderService = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
+                .asControllerService(AwsCredentialsProviderService.class);
+        final S3Client client = getS3Client(attributes, awsCredentialsProviderService.getAwsCredentialsProvider());
 
         try {
             return fetchObject(client, attributes);
-        } catch (final ProcessException | SdkClientException e) {
+        } catch (final ProcessException | SdkException e) {
             throw new ProcessException("Failed to fetch s3 object", e);
         }
     }
@@ -127,8 +127,7 @@ public class S3FileResourceService extends AbstractControllerService implements 
      * @return fetched s3 object as FileResource
      * @throws ProcessException if the object 'bucketName/key' does not exist
      */
-    private FileResource fetchObject(final AmazonS3 client, final Map<String, String> attributes) throws ProcessException,
-            SdkClientException {
+    private FileResource fetchObject(final S3Client client, final Map<String, String> attributes) throws ProcessException {
         final String bucketName = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
@@ -136,19 +135,24 @@ public class S3FileResourceService extends AbstractControllerService implements 
             throw new ProcessException("Bucket name or key value is missing");
         }
 
-        if (!client.doesObjectExist(bucketName, key)) {
+        final GetObjectRequest request = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
+        final ResponseInputStream<GetObjectResponse> responseStream;
+        try {
+            responseStream = client.getObject(request);
+        } catch (NoSuchKeyException e) {
             throw new ProcessException(String.format("Object '%s/%s' does not exist in s3", bucketName, key));
         }
-
-        final S3Object object = client.getObject(bucketName, key);
-        return new FileResource(object.getObjectContent(), object.getObjectMetadata().getContentLength());
+        return new FileResource(responseStream, responseStream.response().contentLength());
     }
 
-    protected AmazonS3 getS3Client(Map<String, String> attributes, AWSCredentialsProvider credentialsProvider) {
-        final Region region = resolveS3Region(context, attributes);
-        return clientCache.get(region, ignored -> AmazonS3Client.builder()
-                .withRegion(region.getName())
-                .withCredentials(credentialsProvider)
+    protected S3Client getS3Client(Map<String, String> attributes, AwsCredentialsProvider credentialsProvider) {
+        final Region region = RegionUtil.getRegion(context, attributes);
+        return clientCache.get(region, ignored -> S3Client.builder()
+                .region(region)
+                .credentialsProvider(credentialsProvider)
                 .build());
     }
 }

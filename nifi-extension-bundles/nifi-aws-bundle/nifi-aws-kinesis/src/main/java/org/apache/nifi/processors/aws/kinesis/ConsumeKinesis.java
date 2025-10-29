@@ -37,7 +37,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.kinesis.MemoryBoundRecordBuffer.Lease;
 import org.apache.nifi.processors.aws.kinesis.ReaderRecordProcessor.ProcessingResult;
 import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ShardBufferId;
@@ -45,7 +45,7 @@ import org.apache.nifi.processors.aws.kinesis.converter.InjectMetadataRecordConv
 import org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverter;
 import org.apache.nifi.processors.aws.kinesis.converter.ValueRecordConverter;
 import org.apache.nifi.processors.aws.kinesis.converter.WrapperRecordConverter;
-import org.apache.nifi.processors.aws.region.RegionUtilV2;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
@@ -102,6 +102,8 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.PA
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_ERROR_MESSAGE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.SHARD_ID;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"amazon", "aws", "kinesis", "consume", "stream", "record"})
@@ -183,15 +185,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                     (See processor's additional details for more information.)
                     """)
             .required(true)
-            .identifiesControllerService(AWSCredentialsProviderService.class)
-            .build();
-
-    static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
-            .name("Region")
-            .description("AWS Region in which the Kinesis stream is located.")
-            .required(true)
-            .allowableValues(RegionUtilV2.getAvailableRegions())
-            .defaultValue(RegionUtilV2.createAllowableValue(Region.US_WEST_2).getValue())
+            .identifiesControllerService(AwsCredentialsProviderService.class)
             .build();
 
     static final PropertyDescriptor PROCESSING_STRATEGY = new PropertyDescriptor.Builder()
@@ -289,6 +283,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             APPLICATION_NAME,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
+            CUSTOM_REGION,
             PROCESSING_STRATEGY,
             RECORD_READER,
             RECORD_WRITER,
@@ -355,9 +350,9 @@ public class ConsumeKinesis extends AbstractProcessor {
             case RECORD -> createReaderRecordProcessor(context);
         };
 
-        final Region region = Region.of(context.getProperty(REGION).getValue());
+        final Region region = RegionUtil.getRegion(context);
         final AwsCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE)
-                .asControllerService(AWSCredentialsProviderService.class).getAwsCredentialsProvider();
+                .asControllerService(AwsCredentialsProviderService.class).getAwsCredentialsProvider();
 
         kinesisClient = KinesisAsyncClient.builder()
                 .region(region)

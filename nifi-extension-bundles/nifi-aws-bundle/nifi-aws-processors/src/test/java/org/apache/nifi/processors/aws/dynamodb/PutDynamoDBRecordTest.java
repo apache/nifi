@@ -18,7 +18,7 @@ package org.apache.nifi.processors.aws.dynamodb;
 
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -70,7 +70,7 @@ public class PutDynamoDBRecordTest {
     private DynamoDbClient client;
 
     @Mock
-    private AWSCredentialsProviderService credentialsProviderService;
+    private AwsCredentialsProviderService credentialsProviderService;
 
     private ArgumentCaptor<BatchWriteItemRequest> captor;
 

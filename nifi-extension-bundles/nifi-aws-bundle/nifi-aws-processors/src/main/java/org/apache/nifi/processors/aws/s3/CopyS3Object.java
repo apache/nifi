@@ -16,39 +16,41 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.AmazonWebServiceRequest;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.AbortMultipartUploadRequest;
-import com.amazonaws.services.s3.model.AccessControlList;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
-import com.amazonaws.services.s3.model.CopyObjectRequest;
-import com.amazonaws.services.s3.model.CopyPartRequest;
-import com.amazonaws.services.s3.model.CopyPartResult;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PartETag;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.StringUtils;
+import software.amazon.awssdk.core.SdkRequest;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
+import software.amazon.awssdk.services.s3.model.CompletedPart;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+import software.amazon.awssdk.services.s3.model.UploadPartCopyRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartCopyResponse;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION_WITH_FF_EL;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.createRangeSpec;
 
 @Tags({"Amazon", "S3", "AWS", "Archive", "Copy"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
@@ -88,20 +90,16 @@ public class CopyS3Object extends AbstractS3Processor {
             DESTINATION_BUCKET,
             DESTINATION_KEY,
             AWS_CREDENTIALS_PROVIDER_SERVICE,
-            S3_REGION,
+            REGION,
+            CUSTOM_REGION_WITH_FF_EL,
             TIMEOUT,
             FULL_CONTROL_USER_LIST,
             READ_USER_LIST,
-            WRITE_USER_LIST,
             READ_ACL_LIST,
             WRITE_ACL_LIST,
             CANNED_ACL,
-            OWNER,
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE,
-            SIGNER_OVERRIDE,
-            S3_CUSTOM_SIGNER_CLASS_NAME,
-            S3_CUSTOM_SIGNER_MODULE_LOCATION,
             PROXY_CONFIGURATION_SERVICE
     );
 
@@ -111,15 +109,23 @@ public class CopyS3Object extends AbstractS3Processor {
     }
 
     @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+
+        config.removeProperty(OBSOLETE_WRITE_USER_LIST);
+        config.removeProperty(OBSOLETE_OWNER);
+    }
+
+    @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
 
-        final AmazonS3Client s3;
+        final S3Client client;
         try {
-            s3 = getS3Client(context, flowFile.getAttributes());
+            client = getClient(context, flowFile.getAttributes());
         } catch (Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
@@ -138,27 +144,32 @@ public class CopyS3Object extends AbstractS3Processor {
         boolean multipartUploadRequired = false;
 
         try {
-            final GetObjectMetadataRequest sourceMetadataRequest = new GetObjectMetadataRequest(sourceBucket, sourceKey);
-            final ObjectMetadata metadataResult = s3.getObjectMetadata(sourceMetadataRequest);
-            final long contentLength = metadataResult.getContentLength();
+            final HeadObjectRequest sourceMetadataRequest = HeadObjectRequest.builder()
+                    .bucket(sourceBucket)
+                    .key(sourceKey)
+                    .build();
+            final HeadObjectResponse sourceMetadataResponse = client.headObject(sourceMetadataRequest);
+            final long contentLength = sourceMetadataResponse.contentLength();
             multipartUploadRequired = contentLength > MULTIPART_THRESHOLD;
-            final AccessControlList acl = createACL(context, flowFile);
-            final CannedAccessControlList cannedAccessControlList = createCannedACL(context, flowFile);
 
             if (multipartUploadRequired) {
-                copyMultipart(s3, acl, cannedAccessControlList, sourceBucket, sourceKey, destinationBucket,
+                copyMultipart(client, context, flowFile, sourceBucket, sourceKey, destinationBucket,
                         destinationKey, multipartIdRef, contentLength);
             } else {
-                copyObject(s3, acl, cannedAccessControlList, sourceBucket, sourceKey, destinationBucket, destinationKey);
+                copyObject(client, context, flowFile, sourceBucket, sourceKey, destinationBucket, destinationKey);
             }
             session.getProvenanceReporter().send(flowFile, getTransitUrl(destinationBucket, destinationKey));
             session.transfer(flowFile, REL_SUCCESS);
         } catch (final Exception e) {
             if (multipartUploadRequired && StringUtils.isNotEmpty(multipartIdRef.get())) {
                 try {
-                    final AbortMultipartUploadRequest abortRequest = new AbortMultipartUploadRequest(destinationBucket, destinationKey, multipartIdRef.get());
-                    s3.abortMultipartUpload(abortRequest);
-                } catch (final AmazonS3Exception s3e) {
+                    final AbortMultipartUploadRequest abortRequest = AbortMultipartUploadRequest.builder()
+                            .bucket(destinationBucket)
+                            .key(destinationKey)
+                            .uploadId(multipartIdRef.get())
+                            .build();
+                    client.abortMultipartUpload(abortRequest);
+                } catch (final S3Exception s3e) {
                     getLogger().warn("Abort Multipart Upload failed for Bucket [{}] Key [{}]", destinationBucket, destinationKey, s3e);
                 }
             }
@@ -173,54 +184,64 @@ public class CopyS3Object extends AbstractS3Processor {
      * Sections of this code were derived from example code from the official AWS S3 documentation. Specifically this example:
      * https://github.com/awsdocs/aws-doc-sdk-examples/blob/df606a664bf2f7cfe3abc76c187e024451d0279c/java/example_code/s3/src/main/java/aws/example/s3/LowLevelMultipartCopy.java
      */
-    private void copyMultipart(final AmazonS3Client s3, final AccessControlList acl, final CannedAccessControlList cannedAccessControlList,
+    private void copyMultipart(final S3Client client, final ProcessContext context, final FlowFile flowFile,
                                final String sourceBucket, final String sourceKey,
                                final String destinationBucket, final String destinationKey, final AtomicReference<String> multipartIdRef,
                                final long contentLength) {
-        InitiateMultipartUploadRequest initRequest = new InitiateMultipartUploadRequest(destinationBucket,
-                destinationKey);
-        if (acl != null) {
-            initRequest.setAccessControlList(acl);
-        }
-        if (cannedAccessControlList != null) {
-            initRequest.setCannedACL(cannedAccessControlList);
-        }
+        final CreateMultipartUploadRequest createRequest = CreateMultipartUploadRequest.builder()
+                .bucket(destinationBucket)
+                .key(destinationKey)
+                .grantFullControl(getFullControlGranteeSpec(context, flowFile))
+                .grantRead(getReadGranteeSpec(context, flowFile))
+                .grantReadACP(getReadACPGranteeSpec(context, flowFile))
+                .grantWriteACP(getWriteACPGranteeSpec(context, flowFile))
+                .acl(createCannedACL(context, flowFile))
+                .build();
 
-        final InitiateMultipartUploadResult initResult = s3.initiateMultipartUpload(initRequest);
+        final CreateMultipartUploadResponse createResponse = client.createMultipartUpload(createRequest);
 
-        multipartIdRef.set(initResult.getUploadId());
+        multipartIdRef.set(createResponse.uploadId());
 
         long bytePosition = 0;
         int partNumber = 1;
-        final List<CopyPartResult> copyPartResults = new ArrayList<>();
+        final List<UploadPartCopyResponse> copyResponses = new ArrayList<>();
         while (bytePosition < contentLength) {
             long lastByte = Math.min(bytePosition + MULTIPART_THRESHOLD - 1, contentLength - 1);
 
-            final CopyPartRequest copyPartRequest = new CopyPartRequest()
-                    .withSourceBucketName(sourceBucket)
-                    .withSourceKey(sourceKey)
-                    .withDestinationBucketName(destinationBucket)
-                    .withDestinationKey(destinationKey)
-                    .withUploadId(initResult.getUploadId())
-                    .withFirstByte(bytePosition)
-                    .withLastByte(lastByte)
-                    .withPartNumber(partNumber++);
+            final UploadPartCopyRequest copyRequest = UploadPartCopyRequest.builder()
+                    .sourceBucket(sourceBucket)
+                    .sourceKey(sourceKey)
+                    .destinationBucket(destinationBucket)
+                    .destinationKey(destinationKey)
+                    .uploadId(createResponse.uploadId())
+                    .copySourceRange(createRangeSpec(bytePosition, lastByte))
+                    .partNumber(partNumber++)
+                    .build();
 
-            doRetryLoop(partRequest -> copyPartResults.add(s3.copyPart((CopyPartRequest) partRequest)), copyPartRequest);
+            doRetryLoop(request -> copyResponses.add(client.uploadPartCopy((UploadPartCopyRequest) request)), copyRequest);
 
             bytePosition += MULTIPART_THRESHOLD;
         }
 
-        final CompleteMultipartUploadRequest completeRequest = new CompleteMultipartUploadRequest(
-                destinationBucket,
-                destinationKey,
-                initResult.getUploadId(),
-                copyPartResults.stream().map(response -> new PartETag(response.getPartNumber(), response.getETag()))
-                        .collect(Collectors.toList()));
-        doRetryLoop(complete -> s3.completeMultipartUpload(completeRequest), completeRequest);
+        final List<CompletedPart> completedParts = IntStream.range(0, copyResponses.size())
+                .mapToObj(i -> CompletedPart.builder()
+                        .partNumber(i + 1)
+                        .eTag(copyResponses.get(i).copyPartResult().eTag())
+                        .build())
+                .toList();
+
+        final CompleteMultipartUploadRequest completeRequest = CompleteMultipartUploadRequest.builder()
+                .bucket(destinationBucket)
+                .key(destinationKey)
+                .uploadId(createResponse.uploadId())
+                .multipartUpload(CompletedMultipartUpload.builder()
+                        .parts(completedParts)
+                        .build())
+                .build();
+        doRetryLoop(complete -> client.completeMultipartUpload(completeRequest), completeRequest);
     }
 
-    private void doRetryLoop(Consumer<AmazonWebServiceRequest> consumer, AmazonWebServiceRequest request) {
+    private void doRetryLoop(Consumer<SdkRequest> consumer, SdkRequest request) {
         boolean requestComplete = false;
         int retryIndex = 0;
 
@@ -228,8 +249,8 @@ public class CopyS3Object extends AbstractS3Processor {
             try {
                 consumer.accept(request);
                 requestComplete = true;
-            } catch (AmazonS3Exception e) {
-                if (e.getStatusCode() == 503 && retryIndex < 3) {
+            } catch (S3Exception e) {
+                if (e.statusCode() == 503 && retryIndex < 3) {
                     retryIndex++;
                 } else {
                     throw e;
@@ -238,21 +259,23 @@ public class CopyS3Object extends AbstractS3Processor {
         }
     }
 
-    private void copyObject(final AmazonS3Client s3, final AccessControlList acl,
-                               final CannedAccessControlList cannedAcl,
+    private void copyObject(final S3Client client, final ProcessContext context,
+                               final FlowFile flowFile,
                                final String sourceBucket, final String sourceKey,
                                final String destinationBucket, final String destinationKey) {
-        final CopyObjectRequest request = new CopyObjectRequest(sourceBucket, sourceKey, destinationBucket, destinationKey);
+        final CopyObjectRequest request = CopyObjectRequest.builder()
+                .sourceBucket(sourceBucket)
+                .sourceKey(sourceKey)
+                .destinationBucket(destinationBucket)
+                .destinationKey(destinationKey)
+                .grantFullControl(getFullControlGranteeSpec(context, flowFile))
+                .grantRead(getReadGranteeSpec(context, flowFile))
+                .grantReadACP(getReadACPGranteeSpec(context, flowFile))
+                .grantWriteACP(getWriteACPGranteeSpec(context, flowFile))
+                .acl(createCannedACL(context, flowFile))
+                .build();
 
-        if (acl != null) {
-            request.setAccessControlList(acl);
-        }
-
-        if (cannedAcl != null) {
-            request.setCannedAccessControlList(cannedAcl);
-        }
-
-        s3.copyObject(request);
+        client.copyObject(request);
     }
 
     private String getTransitUrl(final String destinationBucket, final String destinationKey) {

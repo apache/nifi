@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
 import org.apache.nifi.components.ValidationResult;
-
-import java.util.function.Consumer;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.encryption.s3.S3EncryptionClient;
 
 /**
  * This interface defines the API for S3 encryption strategies.  The methods have empty defaults
@@ -36,55 +32,51 @@ public interface S3EncryptionStrategy {
 
     /**
      * Configure a {@link PutObjectRequest} for encryption.
-     * @param request the request to configure.
-     * @param objectMetadata the request metadata to configure.
-     * @param keyValue the key id or key material.
+     * @param requestBuilder the builder of the request to configure
+     * @param keySpec key specification
      */
-    default void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
     }
 
     /**
-     * Configure an {@link InitiateMultipartUploadRequest} for encryption.
-     * @param request the request to configure.
-     * @param objectMetadata the request metadata to configure.
-     * @param keyValue the key id or key material.
+     * Configure an {@link CreateMultipartUploadRequest} for encryption.
+     * @param requestBuilder the builder of the request to configure
+     * @param keySpec key specification
      */
-    default void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
     }
 
     /**
      * Configure a {@link GetObjectRequest} for encryption.
-     * @param request the request to configure.
-     * @param objectMetadata the request metadata to configure.
-     * @param keyValue the key id or key material.
+     * @param requestBuilder the builder of the request to configure
+     * @param keySpec key specification
      */
-    default void configureGetObjectRequest(GetObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configureGetObjectRequest(GetObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
     }
 
     /**
      * Configure an {@link UploadPartRequest} for encryption.
-     * @param request the request to configure.
-     * @param objectMetadata the request metadata to configure.
-     * @param keyValue the key id or key material.
+     * @param requestBuilder the builder of the request to configure
+     * @param keySpec key specification
      */
-    default void configureUploadPartRequest(UploadPartRequest request, ObjectMetadata objectMetadata, String keyValue) {
+    default void configureUploadPartRequest(UploadPartRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
     }
 
     /**
-     * Create an S3 encryption client.
+     * Create an S3 encryption client builder.
      *
      */
-    default AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, String kmsRegion, String keyIdOrMaterial) {
+    default S3EncryptionClient.Builder createEncryptionClientBuilder(S3EncryptionKeySpec keySpec) {
         return null;
     }
 
     /**
-     * Validate a key id or key material.
+     * Validate the key specification.
      *
-     * @param keyValue key id or key material to validate.
-     * @return ValidationResult instance.
+     * @param keySpec key specification
+     * @return ValidationResult instance
      */
-    default ValidationResult validateKey(String keyValue) {
+    default ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
         return new ValidationResult.Builder().valid(true).build();
     }
 }

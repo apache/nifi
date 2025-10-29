@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -49,6 +48,7 @@ import java.util.Map;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_ORIGINAL;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_SUCCESS;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
@@ -162,7 +162,7 @@ public class StartAwsPollyJobTest {
     @Test
     void testMigration() {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expected = Map.of("aws-region", AbstractAwsProcessor.REGION.getName(),
+        final Map<String, String> expected = Map.of("aws-region", REGION.getName(),
                 "json-payload", AbstractAwsMachineLearningJobStarter.JSON_PAYLOAD.getName());
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());

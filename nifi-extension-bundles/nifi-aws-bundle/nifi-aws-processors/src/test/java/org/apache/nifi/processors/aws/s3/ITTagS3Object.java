@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
-import com.amazonaws.services.s3.model.GetObjectTaggingResult;
-import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectTaggingResponse;
+import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.util.HashMap;
 import java.util.List;
@@ -39,8 +39,8 @@ public class ITTagS3Object extends AbstractS3IT {
     private static final String TAG_KEY_NIFI = "nifi-key";
     private static final String TAG_VALUE_NIFI = "nifi-val";
     private static final String TEST_FILE = "test-file";
-    private static final Tag OLD_TAG = new Tag("oldkey", "oldvalue");
-    private static final Tag TAG = new Tag(TAG_KEY_NIFI, TAG_VALUE_NIFI);
+    private static final Tag OLD_TAG = Tag.builder().key("oldkey").value("oldvalue").build();
+    private static final Tag TAG = Tag.builder().key(TAG_KEY_NIFI).value(TAG_VALUE_NIFI).build();
 
     private TestRunner initRunner() {
         final TestRunner runner = initRunner(TagS3Object.class);
@@ -71,13 +71,13 @@ public class ITTagS3Object extends AbstractS3IT {
 
     private void assertTagsCorrect(final boolean expectOldTag) {
         // Verify tag exists on S3 object
-        GetObjectTaggingResult res = getClient().getObjectTagging(new GetObjectTaggingRequest(BUCKET_NAME, TEST_FILE));
-        assertTrue(res.getTagSet().contains(TAG), "Expected tag not found on S3 object");
+        GetObjectTaggingResponse res = getClient().getObjectTagging(GetObjectTaggingRequest.builder().bucket(BUCKET_NAME).key(TEST_FILE).build());
+        assertTrue(res.tagSet().contains(TAG), "Expected tag not found on S3 object");
 
         if (expectOldTag) {
-            assertTrue(res.getTagSet().contains(OLD_TAG), "Expected existing tag not found on S3 object");
+            assertTrue(res.tagSet().contains(OLD_TAG), "Expected existing tag not found on S3 object");
         } else {
-            assertFalse(res.getTagSet().contains(OLD_TAG), "Existing tag found on S3 object");
+            assertFalse(res.tagSet().contains(OLD_TAG), "Existing tag found on S3 object");
         }
     }
 
@@ -112,7 +112,7 @@ public class ITTagS3Object extends AbstractS3IT {
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("filename", TEST_FILE);
-        attrs.put("s3.tag." + OLD_TAG.getKey(), OLD_TAG.getValue());
+        attrs.put("s3.tag." + OLD_TAG.key(), OLD_TAG.value());
         runner.enqueue(new byte[0], attrs);
 
         // tag file
@@ -123,7 +123,7 @@ public class ITTagS3Object extends AbstractS3IT {
 
         // Verify flowfile attributes match s3 tags
         MockFlowFile flowFiles = runner.getFlowFilesForRelationship(TagS3Object.REL_SUCCESS).get(0);
-        flowFiles.assertAttributeNotExists(OLD_TAG.getKey());
+        flowFiles.assertAttributeNotExists(OLD_TAG.key());
         flowFiles.assertAttributeEquals("s3.tag." + TAG_KEY_NIFI, TAG_VALUE_NIFI);
 
         assertTagsCorrect(false);

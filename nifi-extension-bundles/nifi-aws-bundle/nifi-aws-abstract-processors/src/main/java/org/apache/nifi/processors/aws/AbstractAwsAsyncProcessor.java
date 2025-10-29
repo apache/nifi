@@ -14,56 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.aws.v2;
+package org.apache.nifi.processors.aws;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import software.amazon.awssdk.awscore.AwsClient;
 import software.amazon.awssdk.awscore.client.builder.AwsAsyncClientBuilder;
 import software.amazon.awssdk.awscore.client.builder.AwsClientBuilder;
-import software.amazon.awssdk.core.SdkClient;
 import software.amazon.awssdk.http.TlsKeyManagersProvider;
 import software.amazon.awssdk.http.TlsTrustManagersProvider;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
 import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
-import software.amazon.awssdk.regions.Region;
 
 import java.time.Duration;
 
 /**
  * Base class for aws async client processors using the AWS v2 SDK.
  *
- * @param <T> client type
- * @param <U> client builder type
+ * @param <C> client type
+ * @param <B> client builder type
  *
  * @see <a href="https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/AwsCredentialsProvider.html">AwsCredentialsProvider</a>
  */
 public abstract class AbstractAwsAsyncProcessor<
-            T extends SdkClient,
-            U extends AwsAsyncClientBuilder<U, T> & AwsClientBuilder<U, T>
+            C extends AwsClient,
+            B extends AwsClientBuilder<B, C> & AwsAsyncClientBuilder<B, C>
         >
-        extends AbstractAwsProcessor<T> {
-
-    /**
-     * Construct the AWS SDK client builder and perform any service-specific configuration of the builder.
-     * @param context The process context
-     * @return The SDK client builder
-     */
-    protected abstract U createClientBuilder(final ProcessContext context);
-
-    /**
-     * Creates the AWS SDK client.
-     * @param context The process context
-     * @return The created client
-     */
-    @Override
-    public T createClient(final ProcessContext context, final Region region) {
-        final U clientBuilder = createClientBuilder(context);
-        this.configureClientBuilder(clientBuilder, region, context);
-        return clientBuilder.build();
-    }
+        extends AbstractAwsProcessor<C, B> {
 
     @Override
-    protected <B extends AwsClientBuilder<?, ?>> void configureHttpClient(final B clientBuilder, final ProcessContext context) {
+    protected void configureHttpClient(final AwsClientBuilder<?, ?> clientBuilder, final ProcessContext context) {
         ((AwsAsyncClientBuilder<?, ?>) clientBuilder).httpClient(createSdkAsyncHttpClient(clientBuilder, context));
     }
 

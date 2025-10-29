@@ -22,6 +22,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
@@ -397,7 +398,7 @@ class ConsumeKinesisIT {
         runner.setProperty(ConsumeKinesis.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials");
         runner.setProperty(ConsumeKinesis.STREAM_NAME, streamName);
         runner.setProperty(ConsumeKinesis.APPLICATION_NAME, applicationName);
-        runner.setProperty(ConsumeKinesis.REGION, localstack.getRegion());
+        runner.setProperty(RegionUtil.REGION, localstack.getRegion());
         runner.setProperty(ConsumeKinesis.INITIAL_STREAM_POSITION, ConsumeKinesis.InitialPosition.TRIM_HORIZON);
         runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, ConsumeKinesis.ProcessingStrategy.FLOW_FILE);
 

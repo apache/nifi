@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.SSEAlgorithm;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -51,7 +44,16 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.s3.util.Expiration;
 import org.apache.nifi.processors.aws.sqs.GetSQS;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.exception.SdkException;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.ChecksumMode;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -63,7 +65,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION_WITH_FF_EL;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.createRangeSpec;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.getRequestPayer;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.getResourceUrl;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.nullIfBlank;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.parseExpirationHeader;
+import static org.apache.nifi.processors.aws.s3.util.S3Util.sanitizeETag;
 
 @SupportsBatching
 @SeeAlso({PutS3Object.class, DeleteS3Object.class, ListS3.class, CopyS3Object.class, GetS3ObjectMetadata.class, GetS3ObjectTags.class, TagS3Object.class})
@@ -237,8 +246,8 @@ public class FetchS3Object extends AbstractS3Processor {
             .description("If true, indicates that the requester consents to pay any charges associated with retrieving objects from "
                     + "the S3 bucket.  This sets the 'x-amz-request-payer' header to 'requester'.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues(new AllowableValue("true", "True", "Indicates that the requester consents to pay any charges associated "
-                    + "with retrieving objects from the S3 bucket."), new AllowableValue("false", "False", "Does not consent to pay "
+            .allowableValues(new AllowableValue("true", "true", "Indicates that the requester consents to pay any charges associated "
+                    + "with retrieving objects from the S3 bucket."), new AllowableValue("false", "false", "Does not consent to pay "
                             + "requester charges for retrieving objects from the S3 bucket."))
             .defaultValue("false")
             .build();
@@ -264,15 +273,13 @@ public class FetchS3Object extends AbstractS3Processor {
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         BUCKET_WITH_DEFAULT_VALUE,
         KEY,
-        S3_REGION,
+        REGION,
+        CUSTOM_REGION_WITH_FF_EL,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
         TIMEOUT,
         VERSION_ID,
         SSL_CONTEXT_SERVICE,
         ENDPOINT_OVERRIDE,
-        SIGNER_OVERRIDE,
-        S3_CUSTOM_SIGNER_CLASS_NAME,
-        S3_CUSTOM_SIGNER_MODULE_LOCATION,
         ENCRYPTION_SERVICE,
         PROXY_CONFIGURATION_SERVICE,
         REQUESTER_PAYS,
@@ -312,12 +319,12 @@ public class FetchS3Object extends AbstractS3Processor {
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
 
-        final AmazonS3Client client = createClient(context, attributes);
-        final GetObjectMetadataRequest request = createGetObjectMetadataRequest(context, attributes);
+        final S3Client client = createClient(context, attributes);
+        final HeadObjectRequest request = createHeadObjectRequest(context, attributes);
 
         try {
-            final ObjectMetadata objectMetadata = client.getObjectMetadata(request);
-            final long byteCount = objectMetadata.getContentLength();
+            final HeadObjectResponse response = client.headObject(request);
+            final long byteCount = response.contentLength();
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("HEAD S3 Object")
                     .outcome(Outcome.SUCCESSFUL)
@@ -342,9 +349,9 @@ public class FetchS3Object extends AbstractS3Processor {
             return;
         }
 
-        final AmazonS3Client client;
+        final S3Client client;
         try {
-            client = getS3Client(context, flowFile.getAttributes());
+            client = getClient(context, flowFile.getAttributes());
         } catch (Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
@@ -356,25 +363,22 @@ public class FetchS3Object extends AbstractS3Processor {
 
         final Map<String, String> attributes = new HashMap<>();
 
-        final AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
-        if (encryptionService != null) {
-            attributes.put("s3.encryptionStrategy", encryptionService.getStrategyName());
-        }
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         final GetObjectRequest request = createGetObjectRequest(context, flowFile.getAttributes());
 
-        try (final S3Object s3Object = client.getObject(request)) {
-            if (s3Object == null) {
+        try (final ResponseInputStream<GetObjectResponse> responseStream = client.getObject(request)) {
+            if (responseStream == null) {
                 throw new IOException("AWS refused to execute this request.");
             }
-            flowFile = session.importFrom(s3Object.getObjectContent(), flowFile);
-            attributes.put("s3.bucket", s3Object.getBucketName());
+            flowFile = session.importFrom(responseStream, flowFile);
+            attributes.put("s3.bucket", bucket);
 
-            final ObjectMetadata metadata = s3Object.getObjectMetadata();
-            if (metadata.getContentDisposition() != null) {
-                final String contentDisposition = URLDecoder.decode(metadata.getContentDisposition(), StandardCharsets.UTF_8);
+            final GetObjectResponse response = responseStream.response();
+
+            if (response.contentDisposition() != null) {
+                final String contentDisposition = URLDecoder.decode(response.contentDisposition(), StandardCharsets.UTF_8);
 
                 if (contentDisposition.equals(PutS3Object.CONTENT_DISPOSITION_INLINE) || contentDisposition.startsWith("attachment; filename=")) {
                     setFilePathAttributes(attributes, key);
@@ -382,45 +386,66 @@ public class FetchS3Object extends AbstractS3Processor {
                     setFilePathAttributes(attributes, contentDisposition);
                 }
             }
-            if (metadata.getContentMD5() != null) {
-                attributes.put("hash.value", metadata.getContentMD5());
-                attributes.put("hash.algorithm", "MD5");
+
+            String hashValue = null;
+            String hashAlgorithm = null;
+
+            if (response.checksumCRC32() != null) {
+                hashValue = response.checksumCRC32();
+                hashAlgorithm = "CRC32";
+            } else if (response.checksumCRC32C() != null) {
+                hashValue = response.checksumCRC32C();
+                hashAlgorithm = "CRC32C";
+            } else if (response.checksumCRC64NVME() != null) {
+                hashValue = response.checksumCRC64NVME();
+                hashAlgorithm = "CRC64NVME";
+            } else if (response.checksumSHA256() != null) {
+                hashValue = response.checksumSHA256();
+                hashAlgorithm = "SHA256";
+            } else if (response.checksumSHA1() != null) {
+                hashValue = response.checksumSHA1();
+                hashAlgorithm = "SHA1";
             }
-            if (metadata.getContentType() != null) {
-                attributes.put(CoreAttributes.MIME_TYPE.key(), metadata.getContentType());
+
+            if (hashValue != null) {
+                attributes.put("hash.value", hashValue);
+                attributes.put("hash.algorithm", hashAlgorithm);
             }
-            if (metadata.getETag() != null) {
-                attributes.put("s3.etag", metadata.getETag());
+
+            if (response.contentType() != null) {
+                attributes.put(CoreAttributes.MIME_TYPE.key(), response.contentType());
             }
-            if (metadata.getExpirationTime() != null) {
-                attributes.put("s3.expirationTime", String.valueOf(metadata.getExpirationTime().getTime()));
+
+            if (response.eTag() != null) {
+                attributes.put("s3.etag", sanitizeETag(response.eTag()));
             }
-            if (metadata.getExpirationTimeRuleId() != null) {
-                attributes.put("s3.expirationTimeRuleId", metadata.getExpirationTimeRuleId());
-            }
-            if (metadata.getUserMetadata() != null) {
-                attributes.putAll(metadata.getUserMetadata());
-            }
-            if (metadata.getSSEAlgorithm() != null) {
-                String sseAlgorithmName = metadata.getSSEAlgorithm();
-                attributes.put("s3.sseAlgorithm", sseAlgorithmName);
-                if (sseAlgorithmName.equals(SSEAlgorithm.AES256.getAlgorithm())) {
-                    attributes.put("s3.encryptionStrategy", AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3);
-                } else if (sseAlgorithmName.equals(SSEAlgorithm.KMS.getAlgorithm())) {
-                    attributes.put("s3.encryptionStrategy", AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS);
+
+            if (response.expiration() != null) {
+                final Expiration expiration = parseExpirationHeader(response.expiration());
+                if (expiration != null) {
+                    attributes.put("s3.expirationTime", String.valueOf(expiration.expirationTime().toEpochMilli()));
+                    attributes.put("s3.expirationTimeRuleId", expiration.expirationTimeRuleId());
                 }
             }
-            if (metadata.getVersionId() != null) {
-                attributes.put("s3.version", metadata.getVersionId());
+
+            if (response.metadata() != null) {
+                attributes.putAll(response.metadata());
             }
-        } catch (final IllegalArgumentException | IOException | AmazonClientException ioe) {
-            flowFile = extractExceptionDetails(ioe, session, flowFile);
-            getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", flowFile, ioe);
+
+            final AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+            setEncryptionAttributes(attributes, response.serverSideEncryption(), response.sseCustomerAlgorithm(), encryptionService);
+
+            if (response.versionId() != null) {
+                attributes.put("s3.version", response.versionId());
+            }
+        } catch (final IllegalArgumentException | IOException | SdkException e) {
+            flowFile = extractExceptionDetails(e, session, flowFile);
+            getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", flowFile, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (final FlowFileAccessException ffae) {
-            if (ExceptionUtils.indexOfType(ffae, AmazonClientException.class) != -1) {
+            if (ExceptionUtils.indexOfType(ffae, SdkException.class) != -1) {
                 getLogger().error("Failed to retrieve S3 Object for {}; routing to failure", flowFile, ffae);
                 flowFile = extractExceptionDetails(ffae, session, flowFile);
                 flowFile = session.penalize(flowFile);
@@ -430,7 +455,7 @@ public class FetchS3Object extends AbstractS3Processor {
             throw ffae;
         }
 
-        final String url = client.getResourceUrl(bucket, key);
+        final String url = getResourceUrl(client, bucket, key);
         attributes.put("s3.url", url);
         flowFile = session.putAllAttributes(flowFile, attributes);
 
@@ -448,19 +473,19 @@ public class FetchS3Object extends AbstractS3Processor {
         config.renameProperty("range-length", RANGE_LENGTH.getName());
     }
 
-    private GetObjectMetadataRequest createGetObjectMetadataRequest(final ProcessContext context, final Map<String, String> attributes) {
+    private HeadObjectRequest createHeadObjectRequest(final ProcessContext context, final Map<String, String> attributes) {
         final String bucket = context.getProperty(BUCKET_WITH_DEFAULT_VALUE).evaluateAttributeExpressions(attributes).getValue();
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(attributes).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(attributes).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
 
-        final GetObjectMetadataRequest request;
-        if (versionId == null) {
-            request = new GetObjectMetadataRequest(bucket, key);
-        } else {
-            request = new GetObjectMetadataRequest(bucket, key, versionId);
-        }
-        request.setRequesterPays(requesterPays);
+        final HeadObjectRequest request = HeadObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .versionId(nullIfBlank(versionId))
+                .requestPayer(getRequestPayer(requesterPays))
+                .build();
+
         return request;
     }
 
@@ -472,13 +497,12 @@ public class FetchS3Object extends AbstractS3Processor {
         final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(attributes).asDataSize(DataUnit.B).longValue() : 0L);
         final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(attributes).asDataSize(DataUnit.B).longValue() : null);
 
-        final GetObjectRequest request;
-        if (versionId == null) {
-            request = new GetObjectRequest(bucket, key);
-        } else {
-            request = new GetObjectRequest(bucket, key, versionId);
-        }
-        request.setRequesterPays(requesterPays);
+        final GetObjectRequest.Builder requestBuilder = GetObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .versionId(nullIfBlank(versionId))
+                .requestPayer(getRequestPayer(requesterPays))
+                .checksumMode(ChecksumMode.ENABLED);
 
         // tl;dr don't setRange(0) on GetObjectRequest because it results in
         // InvalidRange errors on zero byte objects.
@@ -494,16 +518,16 @@ public class FetchS3Object extends AbstractS3Processor {
         // the single argument setRange() only needs to be called when the
         // first byte position is greater than zero.
         if (rangeLength != null) {
-            request.setRange(rangeStart, rangeStart + rangeLength - 1);
+            requestBuilder.range(createRangeSpec(rangeStart, rangeStart + rangeLength - 1));
         } else if (rangeStart > 0) {
-            request.setRange(rangeStart);
+            requestBuilder.range(createRangeSpec(rangeStart));
         }
 
         final AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
         if (encryptionService != null) {
-            encryptionService.configureGetObjectRequest(request, new ObjectMetadata());
+            encryptionService.configureGetObjectRequest(requestBuilder);
         }
-        return request;
+        return requestBuilder.build();
     }
 
     protected void setFilePathAttributes(Map<String, String> attributes, String filePathName) {

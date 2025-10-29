@@ -36,7 +36,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.v2.AbstractAwsSyncProcessor;
+import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClientBuilder;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
@@ -55,6 +55,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
@@ -179,6 +182,7 @@ public class PutCloudWatchMetric extends AbstractAwsSyncProcessor<CloudWatchClie
         NAMESPACE,
         METRIC_NAME,
         REGION,
+        CUSTOM_REGION,
         AWS_CREDENTIALS_PROVIDER_SERVICE,
         VALUE,
         MAXIMUM,

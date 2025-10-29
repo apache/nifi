@@ -69,5 +69,24 @@
             <version>${software.amazon.awssdk.version}</version>
             <scope>compile</scope>
         </dependency>
+        <!-- Shared dependencies for S3 -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.encryption.s3</groupId>
+            <artifactId>amazon-s3-encryption-client-java</artifactId>
+            <version>${software.amazon.encryption.s3.version}</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 </project>

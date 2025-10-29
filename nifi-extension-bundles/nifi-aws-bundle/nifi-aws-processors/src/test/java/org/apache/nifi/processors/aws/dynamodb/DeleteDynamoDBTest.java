@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
@@ -68,7 +69,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
         final TestRunner deleteRunner = TestRunners.newTestRunner(processor);
         AuthUtils.enableAccessKey(deleteRunner, "abcd", "cdef");
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        deleteRunner.setProperty(RegionUtil.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.TABLE, stringHashStringRangeTableName);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_NAME, "hashS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE, "h1");
@@ -138,7 +139,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
     public void testStringHashStringRangeDeleteNoHashValueFailure() throws InitializationException {
         final TestRunner deleteRunner = createRunner(new DeleteDynamoDB());
 
-        deleteRunner.setProperty(AbstractDynamoDBProcessor.REGION, REGION);
+        deleteRunner.setProperty(RegionUtil.REGION, REGION);
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_NAME, "rangeS");
         deleteRunner.setProperty(AbstractDynamoDBProcessor.RANGE_KEY_VALUE, "r1");
         deleteRunner.removeProperty(AbstractDynamoDBProcessor.HASH_KEY_VALUE);
