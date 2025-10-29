@@ -64,17 +64,13 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
         final List<InputStream> streams = new ArrayList<>();
         for (int index = 0; index < parts.size(); index++) {
             final Part part = parts.get(index);
-            final String boundaryPrefix = (index == 0 ? BOUNDARY_SEPARATOR + boundary + CARRIAGE_RETURN_LINE_FEED
-                    : CARRIAGE_RETURN_LINE_FEED + BOUNDARY_SEPARATOR + boundary + CARRIAGE_RETURN_LINE_FEED);
-
-            streams.add(new ByteArrayInputStream(boundaryPrefix.getBytes(HEADERS_CHARACTER_SET)));
+            streams.add(new ByteArrayInputStream(getBoundaryPrefix(index).getBytes(HEADERS_CHARACTER_SET)));
             final String partHeaders = getPartHeaders(part);
             streams.add(new ByteArrayInputStream(partHeaders.getBytes(HEADERS_CHARACTER_SET)));
             streams.add(part.inputStream);
         }
 
-        final String closingBoundary = CARRIAGE_RETURN_LINE_FEED + BOUNDARY_SEPARATOR + boundary + BOUNDARY_SEPARATOR;
-        streams.add(new ByteArrayInputStream(closingBoundary.getBytes(HEADERS_CHARACTER_SET)));
+        streams.add(new ByteArrayInputStream(getFooter().getBytes(HEADERS_CHARACTER_SET)));
 
         final Enumeration<InputStream> enumeratedStreams = Collections.enumeration(streams);
         return new SequenceInputStream(enumeratedStreams);
@@ -164,6 +160,15 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
 
         headersBuilder.append(CARRIAGE_RETURN_LINE_FEED);
         return headersBuilder.toString();
+    }
+
+    private String getBoundaryPrefix(final int index) {
+        final String prefix = index == 0 ? "" : CARRIAGE_RETURN_LINE_FEED;
+        return prefix + BOUNDARY_SEPARATOR + boundary + CARRIAGE_RETURN_LINE_FEED;
+    }
+
+    private String getFooter() {
+        return CARRIAGE_RETURN_LINE_FEED + BOUNDARY_SEPARATOR + boundary + BOUNDARY_SEPARATOR;
     }
 
     private record MultipartHttpContentType(String contentType) implements HttpContentType {

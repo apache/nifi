@@ -21,7 +21,7 @@ import org.apache.nifi.components.DescribedValue;
 
 public enum BitbucketAuthenticationType implements DescribedValue {
 
-    BASIC_AUTH("Basic Auth & API Token", """
+    BASIC_AUTH("Basic Auth", """
             Username (not email) and App Password (https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/).
             Or email and API Token (https://support.atlassian.com/bitbucket-cloud/docs/using-api-tokens/).
             Required permissions: repository, repository:read.

@@ -56,10 +56,28 @@ public interface MultipartFormDataStreamBuilder {
      */
     MultipartFormDataStreamBuilder addPart(String name, HttpContentType httpContentType, byte[] bytes);
 
+    /**
+     * Add Part using specified Name and File Name with Content-Type and Stream
+     *
+     * @param name Name field of part to be added
+     * @param fileName File Name field of part to be added
+     * @param httpContentType Content-Type of part to be added
+     * @param inputStream Stream content of part to be added
+     * @return Builder
+     */
     default MultipartFormDataStreamBuilder addPart(String name, String fileName, HttpContentType httpContentType, InputStream inputStream) {
         return addPart(name, httpContentType, inputStream);
     }
 
+    /**
+     * Add Part using specified Name and File Name with Content-Type and byte array
+     *
+     * @param name Name field of part to be added
+     * @param fileName File Name field of part to be added
+     * @param httpContentType Content-Type of part to be added
+     * @param bytes Byte array content of part to be added
+     * @return Builder
+     */
     default MultipartFormDataStreamBuilder addPart(String name, String fileName, HttpContentType httpContentType, byte[] bytes) {
         return addPart(name, httpContentType, bytes);
     }
