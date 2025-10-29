@@ -27,6 +27,7 @@ import {
     inlineCreateControllerServiceSuccess,
     loadManagementControllerServices,
     loadManagementControllerServicesSuccess,
+    loadManagementControllerServicesError,
     managementControllerServicesBannerApiError,
     managementControllerServicesSnackbarApiError,
     resetManagementControllerServicesState
@@ -54,6 +55,10 @@ export const managementControllerServicesReducer = createReducer(
         controllerServices: response.controllerServices,
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
+    })),
+    on(loadManagementControllerServicesError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(managementControllerServicesBannerApiError, managementControllerServicesSnackbarApiError, (state) => ({
         ...state,

@@ -19,6 +19,11 @@ import { GlobalAccessPolicies } from './global-access-policies.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/access-policy/access-policy.reducer';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { accessPoliciesFeatureKey } from '../../state';
+import { accessPolicyFeatureKey } from '../../state/access-policy';
+import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
 
 describe('GlobalAccessPolicies', () => {
     let component: GlobalAccessPolicies;
@@ -27,7 +32,17 @@ describe('GlobalAccessPolicies', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [GlobalAccessPolicies],
-            providers: [provideMockStore({ initialState })]
+            imports: [NgxSkeletonLoaderComponent],
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [accessPoliciesFeatureKey]: {
+                            [accessPolicyFeatureKey]: initialState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(GlobalAccessPolicies);
         component = fixture.componentInstance;

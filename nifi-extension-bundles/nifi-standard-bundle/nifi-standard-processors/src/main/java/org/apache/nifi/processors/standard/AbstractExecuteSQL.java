@@ -319,7 +319,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                     JdbcCommon.setSensitiveParameters(st, sqlParameters);
                 }
 
-                logger.debug("Executing query {}", selectQuery);
+                logger.info("Executing query {}", selectQuery);
 
                 int fragmentIndex = 0;
                 final String fragmentId = UUID.randomUUID().toString();

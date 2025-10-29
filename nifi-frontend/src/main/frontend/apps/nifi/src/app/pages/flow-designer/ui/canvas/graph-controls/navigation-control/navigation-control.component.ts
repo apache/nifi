@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
 import { zoomActual, zoomFit, zoomIn, zoomOut } from '../../../../state/transform/transform.actions';
@@ -34,6 +34,10 @@ import { MatButtonModule } from '@angular/material/button';
     styleUrls: ['./navigation-control.component.scss']
 })
 export class NavigationControl {
+    private store = inject<Store<CanvasState>>(Store);
+    private canvasUtils = inject(CanvasUtils);
+    private storage = inject(Storage);
+
     private static readonly CONTROL_VISIBILITY_KEY: string = 'graph-control-visibility';
     private static readonly NAVIGATION_KEY: string = 'navigation-control';
 
@@ -41,11 +45,7 @@ export class NavigationControl {
 
     navigationCollapsed: boolean = initialState.navigationCollapsed;
 
-    constructor(
-        private store: Store<CanvasState>,
-        private canvasUtils: CanvasUtils,
-        private storage: Storage
-    ) {
+    constructor() {
         try {
             const item: { [key: string]: boolean } | null = this.storage.getItem(
                 NavigationControl.CONTROL_VISIBILITY_KEY

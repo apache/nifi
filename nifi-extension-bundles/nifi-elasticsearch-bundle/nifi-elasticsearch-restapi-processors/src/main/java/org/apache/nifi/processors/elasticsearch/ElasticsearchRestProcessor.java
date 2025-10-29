@@ -33,6 +33,7 @@ import org.apache.nifi.elasticsearch.SearchResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -65,8 +66,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             StringUtils.startsWith(entry.getKey().getName(), DYNAMIC_PROPERTY_PREFIX_REQUEST_HEADER);
 
     PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
-            .name("el-rest-fetch-index")
-            .displayName("Index")
+            .name("Index")
             .description("The name of the index to use.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -74,8 +74,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor TYPE = new PropertyDescriptor.Builder()
-            .name("el-rest-type")
-            .displayName("Type")
+            .name("Type")
             .description("The type of this document (used by Elasticsearch for indexing and searching).")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -83,8 +82,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor QUERY_DEFINITION_STYLE = new PropertyDescriptor.Builder()
-            .name("el-rest-query-definition-style")
-            .displayName("Query Definition Style")
+            .name("Query Definition Style")
             .description("How the JSON Query will be defined for use by the processor.")
             .required(true)
             .allowableValues(QueryDefinitionType.class)
@@ -92,8 +90,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-            .name("el-rest-query")
-            .displayName("Query")
+            .name("Query")
             .description("A query in JSON syntax, not Lucene syntax. Ex: {\"query\":{\"match\":{\"somefield\":\"somevalue\"}}}. " +
                     "If this parameter is not set, the query will be read from the flowfile content. " +
                     "If the query (property and flowfile content) is empty, a default empty JSON Object will be used, " +
@@ -105,8 +102,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor QUERY_CLAUSE = new PropertyDescriptor.Builder()
-            .name("el-rest-query-clause")
-            .displayName("Query Clause")
+            .name("Query Clause")
             .description("A \"query\" clause in JSON syntax, not Lucene syntax. Ex: {\"match\":{\"somefield\":\"somevalue\"}}. " +
                     "If the query is empty, a default JSON Object will be used, which will result in a \"match_all\" query in Elasticsearch.")
             .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
@@ -116,8 +112,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor SCRIPT = new PropertyDescriptor.Builder()
-            .name("el-rest-script")
-            .displayName("Script")
+            .name("Script")
             .description("A \"script\" to execute during the operation, in JSON syntax. " +
                     "Ex: {\"source\": \"ctx._source.count++\", \"lang\": \"painless\"}")
             .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
@@ -127,8 +122,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor SIZE = new PropertyDescriptor.Builder()
-            .name("es-rest-size")
-            .displayName("Size")
+            .name("Size")
             .description("The maximum number of documents to retrieve in the query. If the query is paginated, " +
                     "this \"size\" applies to each page of the query, not the \"size\" of the entire result set.")
             .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
@@ -138,8 +132,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor AGGREGATIONS = new PropertyDescriptor.Builder()
-            .name("es-rest-query-aggs")
-            .displayName("Aggregations")
+            .name("Aggregations")
             .description("One or more query aggregations (or \"aggs\"), in JSON syntax. " +
                     "Ex: {\"items\": {\"terms\": {\"field\": \"product\", \"size\": 10}}}")
             .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
@@ -149,8 +142,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor SORT = new PropertyDescriptor.Builder()
-            .name("es-rest-query-sort")
-            .displayName("Sort")
+            .name("Sort")
             .description("Sort results by one or more fields, in JSON syntax. " +
                     "Ex: [{\"price\" : {\"order\" : \"asc\", \"mode\" : \"avg\"}}, {\"post_date\" : {\"format\": \"strict_date_optional_time_nanos\"}}]")
             .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
@@ -160,8 +152,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor FIELDS = new PropertyDescriptor.Builder()
-            .name("es-rest-query-fields")
-            .displayName("Fields")
+            .name("Fields")
             .description("Fields of indexed documents to be retrieved, in JSON syntax. " +
                     "Ex: [\"user.id\", \"http.response.*\", {\"field\": \"@timestamp\", \"format\": \"epoch_millis\"}]")
             .dependsOn(QUERY_DEFINITION_STYLE, QueryDefinitionType.BUILD_QUERY)
@@ -171,8 +162,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor SCRIPT_FIELDS = new PropertyDescriptor.Builder()
-            .name("es-rest-query-script-fields")
-            .displayName("Script Fields")
+            .name("Script Fields")
             .description("Fields to created using script evaluation at query runtime, in JSON syntax. " +
                     "Ex: {\"test1\": {\"script\": {\"lang\": \"painless\", \"source\": \"doc['price'].value * 2\"}}, " +
                     "\"test2\": {\"script\": {\"lang\": \"painless\", \"source\": \"doc['price'].value * params.factor\", \"params\": {\"factor\": 2.0}}}}")
@@ -183,8 +173,7 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("el-query-attribute")
-            .displayName("Query Attribute")
+            .name("Query Attribute")
             .description("If set, the executed query will be set on each result flowfile in the specified attribute.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(Validator.VALID)
@@ -200,16 +189,14 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("el-rest-client-service")
-            .displayName("Client Service")
+            .name("Client Service")
             .description("An Elasticsearch client service to use for running queries.")
             .identifiesControllerService(ElasticSearchClientService.class)
             .required(true)
             .build();
 
     PropertyDescriptor LOG_ERROR_RESPONSES = new PropertyDescriptor.Builder()
-            .name("put-es-record-log-error-responses")
-            .displayName("Log Error Responses")
+            .name("Log Error Responses")
             .description("If this is enabled, errors will be logged to the NiFi logs at the error log level. Otherwise, they will " +
                     "only be logged if debug logging is enabled on NiFi as a whole. The purpose of this option is to give the user " +
                     "the ability to debug failed operations without having to turn on debug logging.")
@@ -228,6 +215,24 @@ public interface ElasticsearchRestProcessor extends Processor, VerifiableProcess
             .build();
 
     String DEFAULT_QUERY_JSON = "{}";
+
+    @Override
+    default void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("el-rest-fetch-index", INDEX.getName());
+        config.renameProperty("el-rest-type", TYPE.getName());
+        config.renameProperty("el-rest-query-definition-style", QUERY_DEFINITION_STYLE.getName());
+        config.renameProperty("el-rest-query", QUERY.getName());
+        config.renameProperty("el-rest-query-clause", QUERY_CLAUSE.getName());
+        config.renameProperty("el-rest-script", SCRIPT.getName());
+        config.renameProperty("es-rest-size", SIZE.getName());
+        config.renameProperty("es-rest-query-aggs", AGGREGATIONS.getName());
+        config.renameProperty("es-rest-query-sort", SORT.getName());
+        config.renameProperty("es-rest-query-fields", FIELDS.getName());
+        config.renameProperty("es-rest-query-script-fields", SCRIPT_FIELDS.getName());
+        config.renameProperty("el-query-attribute", QUERY_ATTRIBUTE.getName());
+        config.renameProperty("el-rest-client-service", CLIENT_SERVICE.getName());
+        config.renameProperty("put-es-record-log-error-responses", LOG_ERROR_RESPONSES.getName());
+    }
 
     default ObjectMapper buildObjectMapper(final ProcessContext context) {
         final int maxStringLength = context.getProperty(MAX_JSON_FIELD_STRING_LENGTH).asDataSize(DataUnit.B).intValue();

@@ -30,6 +30,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -79,8 +80,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
     }
 
     static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-            .name("mongo-agg-query")
-            .displayName("Query")
+            .name("Query")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .description("The aggregation query to be executed.")
             .required(true)
@@ -88,8 +88,7 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
             .build();
 
     static final PropertyDescriptor ALLOW_DISK_USE = new PropertyDescriptor.Builder()
-            .name("allow-disk-use")
-            .displayName("Allow Disk Use")
+            .name("Allow Disk Use")
             .description("Set this to true to enable writing data to temporary files to prevent exceeding the " +
                     "maximum memory use limit during aggregation pipeline staged when handling large datasets.")
             .required(true)
@@ -207,5 +206,12 @@ public class RunMongoAggregation extends AbstractMongoProcessor {
                 iter.close();
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("mongo-agg-query", QUERY.getName());
+        config.renameProperty("allow-disk-use", ALLOW_DISK_USE.getName());
     }
 }

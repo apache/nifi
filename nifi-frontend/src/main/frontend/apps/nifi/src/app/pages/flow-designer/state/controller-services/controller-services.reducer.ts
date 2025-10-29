@@ -20,6 +20,7 @@ import {
     configureControllerService,
     configureControllerServiceSuccess,
     controllerServicesBannerApiError,
+    loadControllerServicesError,
     createControllerService,
     createControllerServiceSuccess,
     deleteControllerService,
@@ -70,6 +71,10 @@ export const controllerServicesReducer = createReducer(
         parameterContext: response.parameterContext,
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
+    })),
+    on(loadControllerServicesError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(controllerServicesBannerApiError, (state) => ({
         ...state,

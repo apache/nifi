@@ -62,6 +62,10 @@ import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
     styleUrls: ['./component-state.component.scss']
 })
 export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterViewInit {
+    private store = inject<Store<ComponentStateState>>(Store);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() initialSortColumn: 'key' | 'value' = 'key';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
 
@@ -81,11 +85,7 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     canClear = false;
     private destroyRef: DestroyRef = inject(DestroyRef);
 
-    constructor(
-        private store: Store<ComponentStateState>,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super();
         this.filterForm = this.formBuilder.group({ filterTerm: '' });
 

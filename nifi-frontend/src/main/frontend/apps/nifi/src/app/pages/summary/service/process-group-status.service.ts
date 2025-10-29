@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { LoadSummaryRequest } from '../state/summary-listing';
 
 @Injectable({ providedIn: 'root' })
 export class ProcessGroupStatusService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-api';
 
     getProcessGroupsStatus(request: LoadSummaryRequest): Observable<any> {
         let params: HttpParams = new HttpParams();

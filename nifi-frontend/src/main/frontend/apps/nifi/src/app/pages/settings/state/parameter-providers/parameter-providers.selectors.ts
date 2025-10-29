@@ -30,9 +30,9 @@ export const selectSaving = createSelector(
     (state: ParameterProvidersState) => state.saving
 );
 
-export const selectStatus = createSelector(
+export const selectLoadedTimestamp = createSelector(
     selectParameterProvidersState,
-    (state: ParameterProvidersState) => state.status
+    (state: ParameterProvidersState) => state.loadedTimestamp
 );
 
 export const selectParameterProviderIdFromRoute = createSelector(selectCurrentRoute, (route) => {

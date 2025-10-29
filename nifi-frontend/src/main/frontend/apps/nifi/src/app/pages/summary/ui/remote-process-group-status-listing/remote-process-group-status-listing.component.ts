@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
     selectRemoteProcessGroupIdFromRoute,
     selectRemoteProcessGroupStatus,
@@ -53,6 +53,8 @@ import { RemoteProcessGroupStatusTable } from './remote-process-group-status-tab
     styleUrls: ['./remote-process-group-status-listing.component.scss']
 })
 export class RemoteProcessGroupStatusListing {
+    private store = inject<Store<SummaryListingState>>(Store);
+
     loadedTimestamp$ = this.store.select(selectSummaryListingLoadedTimestamp);
     summaryListingStatus$ = this.store.select(selectSummaryListingStatus);
     currentUser$ = this.store.select(selectCurrentUser);
@@ -68,7 +70,7 @@ export class RemoteProcessGroupStatusListing {
     );
     selectedClusterNode$ = this.store.select(selectSelectedClusterNode);
 
-    constructor(private store: Store<SummaryListingState>) {
+    constructor() {
         this.store
             .select(selectViewStatusHistory)
             .pipe(

@@ -22,6 +22,10 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { documentationFeatureKey } from '../../state';
 import { externalDocumentationFeatureKey } from '../../state/external-documentation';
 import { initialState } from '../../state/external-documentation/external-documentation.reducer';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('Overview', () => {
     let component: Overview;
@@ -33,6 +37,8 @@ describe('Overview', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [documentationFeatureKey]: {
                             [externalDocumentationFeatureKey]: initialState
                         }

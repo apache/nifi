@@ -26,6 +26,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -128,5 +129,11 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         } else {
             throw new IOException("Parser not supported");
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(CSVUtils.OLD_CHARSET_PROPERTY_NAME, CSVUtils.CHARSET.getName());
     }
 }

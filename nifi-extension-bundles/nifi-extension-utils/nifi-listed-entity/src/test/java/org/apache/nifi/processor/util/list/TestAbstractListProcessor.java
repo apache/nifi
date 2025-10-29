@@ -46,7 +46,6 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.glassfish.jersey.internal.guava.Predicates;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -405,8 +404,7 @@ public class TestAbstractListProcessor {
                 .addValidator(Validator.VALID)
                 .build();
         private static final PropertyDescriptor LISTING_FILTER = new PropertyDescriptor.Builder()
-                .name("listing-filter")
-                .displayName("Listing Filter")
+                .name("Listing Filter")
                 .description("Filters listed entities by name.")
                 .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
                 .build();
@@ -489,7 +487,7 @@ public class TestAbstractListProcessor {
             final PropertyValue listingFilter = context.getProperty(LISTING_FILTER);
             Predicate<ListableEntity> filter = listingFilter.isSet()
                     ? entity -> entity.getName().matches(listingFilter.getValue())
-                    : Predicates.alwaysTrue();
+                    : entity -> true;
             return getEntityList().stream().filter(filter).collect(Collectors.toList());
         }
 

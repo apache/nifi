@@ -20,7 +20,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createKey;
+import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createCustomerKeySpec;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,63 +35,63 @@ public class TestClientSideCEncryptionStrategyKeyValidation {
 
     @Test
     public void testValid256BitKey() {
-        String key = createKey(256);
+        S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
 
-        ValidationResult result = strategy.validateKey(key);
+        ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertTrue(result.isValid());
     }
 
     @Test
     public void testValid192BitKey() {
-        String key = createKey(192);
+        S3EncryptionKeySpec keySpec = createCustomerKeySpec(192);
 
-        ValidationResult result = strategy.validateKey(key);
+        ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertTrue(result.isValid());
     }
 
     @Test
     public void testValid128BitKey() {
-        String key = createKey(128);
+        S3EncryptionKeySpec keySpec = createCustomerKeySpec(128);
 
-        ValidationResult result = strategy.validateKey(key);
+        ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertTrue(result.isValid());
     }
 
     @Test
     public void testNotSupportedKeySize() {
-        String key = createKey(512);
+        S3EncryptionKeySpec keySpec = createCustomerKeySpec(512);
 
-        ValidationResult result = strategy.validateKey(key);
+        ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertFalse(result.isValid());
     }
 
     @Test
     public void testNullKey() {
-        String key = null;
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, null, null);
 
-        ValidationResult result = strategy.validateKey(key);
+        ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertFalse(result.isValid());
     }
 
     @Test
     public void testEmptyKey() {
-        String key = "";
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "", null);
 
-        ValidationResult result = strategy.validateKey(key);
+        ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertFalse(result.isValid());
     }
 
     @Test
     public void testNotBase64EncodedKey() {
-        String key = "NotBase64EncodedKey";
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "NotBase64EncodedKey", null);
 
-        ValidationResult result = strategy.validateKey(key);
+        ValidationResult result = strategy.validateKeySpec(keySpec);
 
         assertFalse(result.isValid());
     }

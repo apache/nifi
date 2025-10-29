@@ -27,7 +27,7 @@ import org.apache.nifi.controller.ControllerService;
  * Distributed Cache that functions similarly to a {@link java.util.Set Set}.
  */
 @Tags({"distributed", "client", "cluster", "set", "cache"})
-@CapabilityDescription("Provides the ability to communicate with a DistributedSetCacheServer. This allows "
+@CapabilityDescription("Provides the ability to communicate with a SetCacheServer. This allows "
         + "multiple nodes to coordinate state with a single remote entity.")
 public interface DistributedSetCacheClient extends ControllerService {
 

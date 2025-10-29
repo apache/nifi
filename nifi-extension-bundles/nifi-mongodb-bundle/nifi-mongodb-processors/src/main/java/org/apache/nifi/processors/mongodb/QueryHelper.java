@@ -34,10 +34,10 @@ public interface QueryHelper {
             "Fetch the entire query result and then make it available to downstream processors.");
     AllowableValue MODE_MANY_COMMITS = new AllowableValue("streaming", "Stream Query Results",
             "As soon as the query start sending results to the downstream processors at regular intervals.");
+    String OLD_OPERATION_MODE_PROPERTY_NAME = "mongo-operation-mode";
 
     PropertyDescriptor OPERATION_MODE = new PropertyDescriptor.Builder()
-            .name("mongo-operation-mode")
-            .displayName("Operation Mode")
+            .name("Operation Mode")
             .allowableValues(MODE_ONE_COMMIT, MODE_MANY_COMMITS)
             .defaultValue(MODE_ONE_COMMIT.getValue())
             .required(true)

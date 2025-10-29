@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { setOperationCollapsed } from '../../../../state/flow/flow.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../state';
@@ -36,6 +36,13 @@ import { CanvasActionsService } from '../../../../service/canvas-actions.service
     styleUrls: ['./operation-control.component.scss']
 })
 export class OperationControl {
+    private store = inject<Store<CanvasState>>(Store);
+    canvasUtils = inject(CanvasUtils);
+    private canvasView = inject(CanvasView);
+    private client = inject(Client);
+    private storage = inject(Storage);
+    private canvasActionsService = inject(CanvasActionsService);
+
     private static readonly CONTROL_VISIBILITY_KEY: string = 'graph-control-visibility';
     private static readonly OPERATION_KEY: string = 'operation-control';
 
@@ -44,14 +51,7 @@ export class OperationControl {
 
     operationCollapsed: boolean = initialState.operationCollapsed;
 
-    constructor(
-        private store: Store<CanvasState>,
-        public canvasUtils: CanvasUtils,
-        private canvasView: CanvasView,
-        private client: Client,
-        private storage: Storage,
-        private canvasActionsService: CanvasActionsService
-    ) {
+    constructor() {
         try {
             const item: { [key: string]: boolean } | null = this.storage.getItem(
                 OperationControl.CONTROL_VISIBILITY_KEY

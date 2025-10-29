@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -59,9 +60,7 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_SOURCE_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_SOURCE_FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
@@ -85,8 +84,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
     public static final String IGNORE_RESOLUTION = "ignore";
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("conflict-resolution-strategy")
-            .displayName("Conflict Resolution Strategy")
+            .name("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file with the same name already exists in the output directory")
             .required(true)
             .defaultValue(FAIL_RESOLUTION)
@@ -94,8 +92,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             .build();
 
     public static final PropertyDescriptor SOURCE_FILESYSTEM = new PropertyDescriptor.Builder()
-            .name("source-filesystem-name")
-            .displayName("Source Filesystem")
+            .name("Source Filesystem")
             .description("Name of the Azure Storage File System from where the move should happen.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -104,8 +101,7 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             .build();
 
     public static final PropertyDescriptor SOURCE_DIRECTORY = new PropertyDescriptor.Builder()
-            .name("source-directory-name")
-            .displayName("Source Directory")
+            .name("Source Directory")
             .description("Name of the Azure Storage Directory from where the move should happen. The Directory Name cannot contain a leading '/'." +
                     " The root directory can be designated by the empty string value.")
             .addValidator(new DirectoryValidator("Source Directory"))
@@ -115,19 +111,21 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             .build();
 
     public static final PropertyDescriptor DESTINATION_FILESYSTEM = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(FILESYSTEM)
-            .displayName("Destination Filesystem")
+            .name("Destination Filesystem")
             .description("Name of the Azure Storage File System where the files will be moved.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(true)
             .build();
 
     public static final PropertyDescriptor DESTINATION_DIRECTORY = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(DIRECTORY)
-            .displayName("Destination Directory")
+            .name("Destination Directory")
             .description("Name of the Azure Storage Directory where the files will be moved. The Directory Name cannot contain a leading '/'." +
                     " The root directory can be designated by the empty string value. Non-existing directories will be created." +
                     " If the original directory structure should be kept, the full directory path needs to be provided after the destination directory." +
                     " e.g.: destdir/${azure.directory}")
             .addValidator(new DirectoryValidator("Destination Directory"))
+            .required(true)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -224,5 +222,16 @@ public class MoveAzureDataLakeStorage extends AbstractAzureDataLakeStorageProces
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DESTINATION_DIRECTORY.getName());
+        config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, DESTINATION_FILESYSTEM.getName());
+        config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, FILE.getName());
+        config.renameProperty("conflict-resolution-strategy", CONFLICT_RESOLUTION.getName());
+        config.renameProperty("source-filesystem-name", SOURCE_FILESYSTEM.getName());
+        config.renameProperty("source-directory-name", SOURCE_DIRECTORY.getName());
     }
 }

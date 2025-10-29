@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NiFiCommon } from '@nifi/shared';
 import { ConfigurableExtensionDefinition, Stateful } from '../../../state';
 import { PropertiesDefinitionComponent } from '../properties-definition/properties-definition.component';
@@ -39,9 +39,9 @@ import { AdditionalDetailsComponent } from '../additional-details/additional-det
     styleUrl: './configurable-extension-definition.component.scss'
 })
 export class ConfigurableExtensionDefinitionComponent {
-    @Input() configurableExtensionDefinition: ConfigurableExtensionDefinition | null = null;
+    private nifiCommon = inject(NiFiCommon);
 
-    constructor(private nifiCommon: NiFiCommon) {}
+    @Input() configurableExtensionDefinition: ConfigurableExtensionDefinition | null = null;
 
     formatExtensionName(extensionType: string): string {
         return this.nifiCommon.getComponentTypeLabel(extensionType);

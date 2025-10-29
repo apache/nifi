@@ -16,18 +16,16 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.UploadPartRequest;
-import org.apache.commons.codec.binary.Base64;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
+import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.encryption.s3.S3EncryptionClient;
 
-import java.security.SecureRandom;
-
+import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createCustomerKeySpec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -35,159 +33,211 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestS3EncryptionStrategies {
 
-    private static final String REGION = Regions.DEFAULT_REGION.getName();
-    private static final String KEY_ID = "key-id";
-
-    private String randomKeyMaterial = "";
-
-    private ObjectMetadata metadata = null;
-    private PutObjectRequest putObjectRequest = null;
-    private InitiateMultipartUploadRequest initUploadRequest = null;
-    private GetObjectRequest getObjectRequest = null;
-    private UploadPartRequest uploadPartRequest = null;
+    private PutObjectRequest.Builder putObjectRequestBuilder;
+    private CreateMultipartUploadRequest.Builder createMultipartUploadRequestBuilder;
+    private GetObjectRequest.Builder getObjectRequestBuilder;
+    private UploadPartRequest.Builder uploadPartRequestBuilder;
 
     @BeforeEach
     public void setup() {
-        byte[] keyRawBytes = new byte[32];
-        SecureRandom secureRandom = new SecureRandom();
-        secureRandom.nextBytes(keyRawBytes);
-        randomKeyMaterial = Base64.encodeBase64String(keyRawBytes);
-
-        metadata = new ObjectMetadata();
-        putObjectRequest = new PutObjectRequest("", "", "");
-        initUploadRequest = new InitiateMultipartUploadRequest("", "");
-        getObjectRequest = new GetObjectRequest("", "");
-        uploadPartRequest = new UploadPartRequest();
+        putObjectRequestBuilder = PutObjectRequest.builder();
+        createMultipartUploadRequestBuilder = CreateMultipartUploadRequest.builder();
+        getObjectRequestBuilder = GetObjectRequest.builder();
+        uploadPartRequestBuilder = UploadPartRequest.builder();
     }
 
     @Test
     public void testClientSideCEncryptionStrategy() {
         S3EncryptionStrategy strategy = new ClientSideCEncryptionStrategy();
 
-        // This shows that the strategy builds a client:
-        assertNotNull(strategy.createEncryptionClient(builder -> {
-            builder.withRegion(REGION);
-        }, null, randomKeyMaterial));
+        S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
 
-        // This shows that the strategy does not modify the metadata or any of the requests:
-        assertNull(metadata.getSSEAlgorithm());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(putObjectRequest.getSSECustomerKey());
+        // This shows that the strategy creates a client builder:
+        S3EncryptionClient.Builder builder = strategy.createEncryptionClientBuilder(keySpec);
+        assertNotNull(builder);
 
-        assertNull(initUploadRequest.getSSEAwsKeyManagementParams());
-        assertNull(initUploadRequest.getSSECustomerKey());
-
-        assertNull(getObjectRequest.getSSECustomerKey());
-
-        assertNull(uploadPartRequest.getSSECustomerKey());
+        // This shows that the strategy does not modify other requests:
+        testPutObjectRequestNotModified(strategy, keySpec);
+        testCreateMultipartUploadRequestBuilderNotModified(strategy, keySpec);
+        testGetObjectRequestNotModified(strategy, keySpec);
+        testUploadPartRequestBuilderNotModified(strategy, keySpec);
     }
 
     @Test
     public void testClientSideKMSEncryptionStrategy() {
         S3EncryptionStrategy strategy = new ClientSideKMSEncryptionStrategy();
 
-        // This shows that the strategy builds a client:
-        assertNotNull(strategy.createEncryptionClient(builder -> {
-            builder.withRegion(REGION);
-        }, REGION, KEY_ID));
+        String keyId = "key-id";
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(keyId, null, null);
 
-        // This shows that the strategy does not modify the metadata or any of the requests:
-        assertNull(metadata.getSSEAlgorithm());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(putObjectRequest.getSSECustomerKey());
+        // This shows that the strategy creates a client builder:
+        S3EncryptionClient.Builder builder = strategy.createEncryptionClientBuilder(keySpec);
+        assertNotNull(builder);
 
-        assertNull(initUploadRequest.getSSEAwsKeyManagementParams());
-        assertNull(initUploadRequest.getSSECustomerKey());
-
-        assertNull(getObjectRequest.getSSECustomerKey());
-
-        assertNull(uploadPartRequest.getSSECustomerKey());
+        // This shows that the strategy does not modify other requests:
+        testPutObjectRequestNotModified(strategy, keySpec);
+        testCreateMultipartUploadRequestBuilderNotModified(strategy, keySpec);
+        testGetObjectRequestNotModified(strategy, keySpec);
+        testUploadPartRequestBuilderNotModified(strategy, keySpec);
     }
 
     @Test
     public void testServerSideCEncryptionStrategy() {
         S3EncryptionStrategy strategy = new ServerSideCEncryptionStrategy();
 
-        // This shows that the strategy does *not* build a client:
-        assertNull(strategy.createEncryptionClient(null, null, ""));
+        S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
+        String keyMaterial = keySpec.material();
+        String keyMaterialMd5 = keySpec.md5();
+        String keyAlgorithm = "AES256";
 
         // This shows that the strategy sets the SSE customer key as expected:
-        strategy.configurePutObjectRequest(putObjectRequest, metadata, randomKeyMaterial);
-        assertEquals(randomKeyMaterial, putObjectRequest.getSSECustomerKey().getKey());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(metadata.getSSEAlgorithm());
+        strategy.configurePutObjectRequest(putObjectRequestBuilder, keySpec);
+        PutObjectRequest putObjectRequest = putObjectRequestBuilder.build();
+        assertEquals(keyMaterial, putObjectRequest.sseCustomerKey());
+        assertEquals(keyMaterialMd5, putObjectRequest.sseCustomerKeyMD5());
+        assertEquals(keyAlgorithm, putObjectRequest.sseCustomerAlgorithm());
+        assertNull(putObjectRequest.serverSideEncryption());
+        assertNull(putObjectRequest.ssekmsKeyId());
 
-        // Same for InitiateMultipartUploadRequest:
-        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, randomKeyMaterial);
-        assertEquals(randomKeyMaterial, initUploadRequest.getSSECustomerKey().getKey());
-        assertNull(initUploadRequest.getSSEAwsKeyManagementParams());
-        assertNull(metadata.getSSEAlgorithm());
+        // Same for CreateMultipartUploadRequest:
+        strategy.configureCreateMultipartUploadRequest(createMultipartUploadRequestBuilder, keySpec);
+        CreateMultipartUploadRequest createMultipartUploadRequest = createMultipartUploadRequestBuilder.build();
+        assertEquals(keyMaterial, createMultipartUploadRequest.sseCustomerKey());
+        assertEquals(keyMaterialMd5, createMultipartUploadRequest.sseCustomerKeyMD5());
+        assertEquals(keyAlgorithm, createMultipartUploadRequest.sseCustomerAlgorithm());
+        assertNull(createMultipartUploadRequest.serverSideEncryption());
+        assertNull(createMultipartUploadRequest.ssekmsKeyId());
 
         // Same for GetObjectRequest:
-        strategy.configureGetObjectRequest(getObjectRequest, metadata, randomKeyMaterial);
-        assertEquals(randomKeyMaterial, initUploadRequest.getSSECustomerKey().getKey());
-        assertNull(metadata.getSSEAlgorithm());
+        strategy.configureGetObjectRequest(getObjectRequestBuilder, keySpec);
+        GetObjectRequest getObjectRequest = getObjectRequestBuilder.build();
+        assertEquals(keyMaterial, getObjectRequest.sseCustomerKey());
+        assertEquals(keyMaterialMd5, getObjectRequest.sseCustomerKeyMD5());
+        assertEquals(keyAlgorithm, getObjectRequest.sseCustomerAlgorithm());
 
         // Same for UploadPartRequest:
-        strategy.configureUploadPartRequest(uploadPartRequest, metadata, randomKeyMaterial);
-        assertEquals(randomKeyMaterial, uploadPartRequest.getSSECustomerKey().getKey());
-        assertNull(metadata.getSSEAlgorithm());
+        strategy.configureUploadPartRequest(uploadPartRequestBuilder, keySpec);
+        UploadPartRequest uploadPartRequest = uploadPartRequestBuilder.build();
+        assertEquals(keyMaterial, uploadPartRequest.sseCustomerKey());
+        assertEquals(keyMaterialMd5, uploadPartRequest.sseCustomerKeyMD5());
+        assertEquals(keyAlgorithm, uploadPartRequest.sseCustomerAlgorithm());
+        testEncryptionClientBuilderNotCreated(strategy, keySpec);
     }
 
     @Test
     public void testServerSideKMSEncryptionStrategy() {
         S3EncryptionStrategy strategy = new ServerSideKMSEncryptionStrategy();
 
-        // This shows that the strategy does *not* build a client:
-        assertNull(strategy.createEncryptionClient(null, null, null));
+        String keyId = "key-id";
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(keyId, null, null);
 
         // This shows that the strategy sets the SSE KMS key id as expected:
-        strategy.configurePutObjectRequest(putObjectRequest, metadata, KEY_ID);
-        assertEquals(KEY_ID, putObjectRequest.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
-        assertNull(putObjectRequest.getSSECustomerKey());
-        assertNull(metadata.getSSEAlgorithm());
+        strategy.configurePutObjectRequest(putObjectRequestBuilder, keySpec);
+        PutObjectRequest putObjectRequest = putObjectRequestBuilder.build();
+        assertEquals(ServerSideEncryption.AWS_KMS, putObjectRequest.serverSideEncryption());
+        assertEquals(keyId, putObjectRequest.ssekmsKeyId());
+        assertNull(putObjectRequest.sseCustomerKey());
+        assertNull(putObjectRequest.sseCustomerKeyMD5());
+        assertNull(putObjectRequest.sseCustomerAlgorithm());
 
-        // Same for InitiateMultipartUploadRequest:
-        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, KEY_ID);
-        assertEquals(KEY_ID, initUploadRequest.getSSEAwsKeyManagementParams().getAwsKmsKeyId());
-        assertNull(initUploadRequest.getSSECustomerKey());
-        assertNull(metadata.getSSEAlgorithm());
+        // Same for CreateMultipartUploadRequest:
+        strategy.configureCreateMultipartUploadRequest(createMultipartUploadRequestBuilder, keySpec);
+        CreateMultipartUploadRequest createMultipartUploadRequest = createMultipartUploadRequestBuilder.build();
+        assertEquals(ServerSideEncryption.AWS_KMS, createMultipartUploadRequest.serverSideEncryption());
+        assertEquals(keyId, createMultipartUploadRequest.ssekmsKeyId());
+        assertNull(createMultipartUploadRequest.sseCustomerKey());
+        assertNull(createMultipartUploadRequest.sseCustomerKeyMD5());
+        assertNull(createMultipartUploadRequest.sseCustomerAlgorithm());
+
+        // This shows that the strategy does not modify other requests:
+        testGetObjectRequestNotModified(strategy, keySpec);
+        testUploadPartRequestBuilderNotModified(strategy, keySpec);
+        testEncryptionClientBuilderNotCreated(strategy, keySpec);
     }
 
     @Test
     public void testServerSideS3EncryptionStrategy() {
         S3EncryptionStrategy strategy = new ServerSideS3EncryptionStrategy();
 
-        // This shows that the strategy does *not* build a client:
-        assertNull(strategy.createEncryptionClient(null, null, null));
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, null, null);
 
         // This shows that the strategy sets the SSE algorithm field as expected:
-        strategy.configurePutObjectRequest(putObjectRequest, metadata, null);
-        assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.getSSEAlgorithm());
+        strategy.configurePutObjectRequest(putObjectRequestBuilder, keySpec);
+        PutObjectRequest putObjectRequest = putObjectRequestBuilder.build();
+        assertEquals(ServerSideEncryption.AES256, putObjectRequest.serverSideEncryption());
 
-        // Same for InitiateMultipartUploadRequest:
-        strategy.configureInitiateMultipartUploadRequest(initUploadRequest, metadata, null);
-        assertEquals(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION, metadata.getSSEAlgorithm());
+        // Same for CreateMultipartUploadRequest:
+        strategy.configureCreateMultipartUploadRequest(createMultipartUploadRequestBuilder, keySpec);
+        CreateMultipartUploadRequest createMultipartUploadRequest = createMultipartUploadRequestBuilder.build();
+        assertEquals(ServerSideEncryption.AES256, createMultipartUploadRequest.serverSideEncryption());
+
+        // This shows that the strategy does not modify other requests:
+        testGetObjectRequestNotModified(strategy, keySpec);
+        testUploadPartRequestBuilderNotModified(strategy, keySpec);
+        testEncryptionClientBuilderNotCreated(strategy, keySpec);
     }
 
     @Test
     public void testNoOpEncryptionStrategy() {
         S3EncryptionStrategy strategy = new NoOpEncryptionStrategy();
 
-        // This shows that the strategy does *not* build a client:
-        assertNull(strategy.createEncryptionClient(null, "", ""));
+        // This shows that the strategy does not modify other requests:
+        testPutObjectRequestNotModified(strategy, null);
+        testCreateMultipartUploadRequestBuilderNotModified(strategy, null);
+        testGetObjectRequestNotModified(strategy, null);
+        testUploadPartRequestBuilderNotModified(strategy, null);
+        testEncryptionClientBuilderNotCreated(strategy, null);
+    }
 
-        // This shows the request and metadata start with various null objects:
-        assertNull(metadata.getSSEAlgorithm());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(putObjectRequest.getSSECustomerKey());
-
+    private void testPutObjectRequestNotModified(S3EncryptionStrategy strategy, S3EncryptionKeySpec keySpec) {
         // Act:
-        strategy.configurePutObjectRequest(putObjectRequest, metadata, "");
+        strategy.configurePutObjectRequest(putObjectRequestBuilder, keySpec);
+        PutObjectRequest putObjectRequest = putObjectRequestBuilder.build();
 
-        // This shows that the request and metadata were not changed:
-        assertNull(metadata.getSSEAlgorithm());
-        assertNull(putObjectRequest.getSSEAwsKeyManagementParams());
-        assertNull(putObjectRequest.getSSECustomerKey());
+        // This shows that the request was not changed:
+        assertNull(putObjectRequest.ssekmsKeyId());
+        assertNull(putObjectRequest.sseCustomerKey());
+        assertNull(putObjectRequest.sseCustomerKeyMD5());
+        assertNull(putObjectRequest.sseCustomerAlgorithm());
+        assertNull(putObjectRequest.serverSideEncryption());
+    }
+
+    private void testCreateMultipartUploadRequestBuilderNotModified(S3EncryptionStrategy strategy, S3EncryptionKeySpec keySpec) {
+        // Act:
+        strategy.configureCreateMultipartUploadRequest(createMultipartUploadRequestBuilder, keySpec);
+        CreateMultipartUploadRequest createMultipartUploadRequest = createMultipartUploadRequestBuilder.build();
+
+        // This shows that the request was not changed:
+        assertNull(createMultipartUploadRequest.ssekmsKeyId());
+        assertNull(createMultipartUploadRequest.sseCustomerKey());
+        assertNull(createMultipartUploadRequest.sseCustomerKeyMD5());
+        assertNull(createMultipartUploadRequest.sseCustomerAlgorithm());
+        assertNull(createMultipartUploadRequest.serverSideEncryption());
+    }
+
+    private void testGetObjectRequestNotModified(S3EncryptionStrategy strategy, S3EncryptionKeySpec keySpec) {
+        // Act:
+        strategy.configureGetObjectRequest(getObjectRequestBuilder, keySpec);
+        GetObjectRequest getObjectRequest = getObjectRequestBuilder.build();
+
+        // This shows that the request was not changed:
+        assertNull(getObjectRequest.sseCustomerKey());
+        assertNull(getObjectRequest.sseCustomerKeyMD5());
+        assertNull(getObjectRequest.sseCustomerAlgorithm());
+    }
+
+    private void testUploadPartRequestBuilderNotModified(S3EncryptionStrategy strategy, S3EncryptionKeySpec keySpec) {
+        // Act:
+        strategy.configureUploadPartRequest(uploadPartRequestBuilder, keySpec);
+        UploadPartRequest uploadPartRequest = uploadPartRequestBuilder.build();
+
+        // This shows that the request was not changed:
+        assertNull(uploadPartRequest.sseCustomerKey());
+        assertNull(uploadPartRequest.sseCustomerKeyMD5());
+        assertNull(uploadPartRequest.sseCustomerAlgorithm());
+    }
+
+    private void testEncryptionClientBuilderNotCreated(S3EncryptionStrategy strategy, S3EncryptionKeySpec keySpec) {
+        assertNull(strategy.createEncryptionClientBuilder(keySpec));
     }
 }

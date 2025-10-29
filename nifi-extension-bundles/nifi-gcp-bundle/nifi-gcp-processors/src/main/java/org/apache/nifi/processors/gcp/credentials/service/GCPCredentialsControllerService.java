@@ -34,6 +34,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
@@ -131,6 +132,14 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         } catch (final IOException e) {
             throw new InitializationException(e);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("application-default-credentials", USE_APPLICATION_DEFAULT_CREDENTIALS.getName());
+        config.renameProperty("compute-engine-credentials", USE_COMPUTE_ENGINE_CREDENTIALS.getName());
+        config.renameProperty("service-account-json-file", SERVICE_ACCOUNT_JSON_FILE.getName());
+        config.renameProperty("service-account-json", SERVICE_ACCOUNT_JSON.getName());
     }
 
     private GoogleCredentials getGoogleCredentials(final ConfigurationContext context) throws IOException {

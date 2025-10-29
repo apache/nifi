@@ -49,7 +49,8 @@
                             }
                             @if (hasBulletins(item)) {
                                 <div
-                                    class="pointer fa fa-sticky-note-o primary-color"
+                                    class="pointer fa fa-sticky-note"
+                                    [ngClass]="getBulletinSeverityClass(item)"
                                     [delayClose]="true"
                                     nifiTooltip
                                     [tooltipComponentType]="BulletinsTip"

@@ -156,7 +156,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
         assertTrue(runner.getProcessContext().getProperties().keySet().stream().noneMatch(pd -> "put-es-json-not_found-is-error".equals(pd.getName())));
         assertTrue(runner.getProcessContext().getProperties().keySet().stream().noneMatch(pd -> "put-es-json-error-documents".equals(pd.getName())));
 
-        assertEquals(1, result.getPropertiesRenamed().size());
+        assertTrue(1 < result.getPropertiesRenamed().size());
         assertEquals(AbstractPutElasticsearch.NOT_FOUND_IS_SUCCESSFUL.getName(), result.getPropertiesRenamed().get("put-es-json-not_found-is-error"));
         assertEquals(1, result.getPropertiesRemoved().size());
         assertTrue(result.getPropertiesRemoved().contains("put-es-json-error-documents"));

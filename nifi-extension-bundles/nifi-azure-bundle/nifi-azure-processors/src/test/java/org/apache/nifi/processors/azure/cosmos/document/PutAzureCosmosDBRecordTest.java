@@ -37,6 +37,7 @@ import org.apache.nifi.serialization.record.MockSchemaRegistry;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -252,6 +253,26 @@ public class PutAzureCosmosDBRecordTest extends MockTestBase {
         Object[] check  = (Object[]) arrayTestResult.get("arrayTest");
         assertArrayEquals(new Object[]{"a", "b", "c"}, check);
     }
+
+    @Test
+    void testMigration() {
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        final Map<String, String> expected = Map.of(
+                AzureCosmosDBUtils.OLD_URI_DESCRIPTOR_NAME, AzureCosmosDBUtils.URI.getName(),
+                AzureCosmosDBUtils.OLD_DB_ACCESS_KEY_DESCRIPTOR_NAME, AzureCosmosDBUtils.DB_ACCESS_KEY.getName(),
+                AzureCosmosDBUtils.OLD_CONSISTENCY_DESCRIPTOR_NAME, AzureCosmosDBUtils.CONSISTENCY.getName(),
+                "azure-cosmos-db-connection-service", AbstractAzureCosmosDBProcessor.CONNECTION_SERVICE.getName(),
+                "azure-cosmos-db-name", AbstractAzureCosmosDBProcessor.DATABASE_NAME.getName(),
+                "azure-cosmos-db-container-id", AbstractAzureCosmosDBProcessor.CONTAINER_ID.getName(),
+                "azure-cosmos-db-partition-key", AbstractAzureCosmosDBProcessor.PARTITION_KEY.getName(),
+                "record-reader", PutAzureCosmosDBRecord.RECORD_READER_FACTORY.getName(),
+                "insert-batch-size", PutAzureCosmosDBRecord.INSERT_BATCH_SIZE.getName(),
+                "azure-cosmos-db-conflict-handling-strategy", PutAzureCosmosDBRecord.CONFLICT_HANDLE_STRATEGY.getName()
+        );
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private void prepareMockTest() throws Exception {
         // this setup connection service and basic mock properties
         setBasicMockProperties(true);

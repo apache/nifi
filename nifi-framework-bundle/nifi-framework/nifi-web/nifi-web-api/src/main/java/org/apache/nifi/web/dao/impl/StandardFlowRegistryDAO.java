@@ -18,6 +18,7 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.registry.flow.BucketLocation;
 import org.apache.nifi.registry.flow.FlowLocation;
@@ -28,21 +29,30 @@ import org.apache.nifi.registry.flow.FlowRegistryClientUserContext;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.logging.LogRepository;
+import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.logging.repository.NopLogRepository;
+import org.apache.nifi.processor.SimpleProcessLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 @Repository
 public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistryDAO {
@@ -233,6 +243,38 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
         flowController.getFlowManager().removeFlowRegistryClient(flowRegistry);
 
         return flowRegistry;
+    }
+
+    @Override
+    public void verifyConfigVerification(final String registryId) {
+        getFlowRegistryClient(registryId);
+    }
+
+    @Override
+    public List<ConfigVerificationResultDTO> verifyConfiguration(final String registryId, final Map<String, String> properties, final Map<String, String> variables) {
+        final FlowRegistryClientNode registry = getFlowRegistryClient(registryId);
+
+        final LogRepository logRepository = new NopLogRepository();
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(registry, logRepository, new StandardLoggingContext());
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+
+        final Map<String, String> effectiveProperties = properties == null ? Collections.emptyMap() : properties;
+        final Map<String, String> effectiveVariables = variables == null ? Collections.emptyMap() : variables;
+
+        final List<ConfigVerificationResult> verificationResults =
+                registry.verifyConfiguration(effectiveProperties, effectiveVariables, configVerificationLog, extensionManager);
+
+        return verificationResults.stream()
+                .map(this::createConfigVerificationResultDto)
+                .collect(Collectors.toList());
+    }
+
+    private ConfigVerificationResultDTO createConfigVerificationResultDto(final ConfigVerificationResult result) {
+        final ConfigVerificationResultDTO dto = new ConfigVerificationResultDTO();
+        dto.setVerificationStepName(result.getVerificationStepName());
+        dto.setOutcome(result.getOutcome().name());
+        dto.setExplanation(result.getExplanation());
+        return dto;
     }
 
     @Autowired

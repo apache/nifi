@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CanvasUtils } from '../canvas-utils.service';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../state';
@@ -25,10 +25,8 @@ import { navigateToEditComponent } from '../../state/flow/flow.actions';
     providedIn: 'root'
 })
 export class QuickSelectBehavior {
-    constructor(
-        private canvasUtils: CanvasUtils,
-        private store: Store<CanvasState>
-    ) {}
+    private canvasUtils = inject(CanvasUtils);
+    private store = inject<Store<CanvasState>>(Store);
 
     /**
      * Attempts to show configuration or details dialog for the specified slection.

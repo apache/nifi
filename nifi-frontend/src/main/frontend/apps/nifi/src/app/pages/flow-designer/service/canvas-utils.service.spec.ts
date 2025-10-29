@@ -131,4 +131,282 @@ describe('CanvasUtils', () => {
             expect(service.getFlowVersionControlInformation(selection)).toBe(versionControlInformation);
         });
     });
+
+    describe('isStoppable', () => {
+        it('should return false for empty selection', () => {
+            const emptySelection = d3.select(null);
+            expect(service.isStoppable(emptySelection)).toBe(false);
+        });
+
+        it('should return false for multiple selections', () => {
+            const div1 = document.createElement('g');
+            const div2 = document.createElement('g');
+            const multiSelection = d3.selectAll([div1, div2]);
+            expect(service.isStoppable(multiSelection)).toBe(false);
+        });
+
+        it('should return true for process groups', () => {
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: { canRead: true, canWrite: true },
+                operatePermissions: { canWrite: true }
+            };
+            const selection = d3.select(document.createElement('g')).classed('process-group', true).datum(pgDatum);
+            expect(service.isStoppable(selection)).toBe(true);
+        });
+
+        it('should return false when lacking operate permissions', () => {
+            const processorDatum = {
+                id: '1',
+                type: ComponentType.Processor,
+                permissions: { canRead: true, canWrite: false },
+                operatePermissions: { canWrite: false },
+                status: {
+                    aggregateSnapshot: { runStatus: 'Running' }
+                },
+                physicalState: 'RUNNING'
+            };
+            const selection = d3.select(document.createElement('g')).classed('processor', true).datum(processorDatum);
+            expect(service.isStoppable(selection)).toBe(false);
+        });
+
+        describe('for processors', () => {
+            it('should return true when runStatus is Running', () => {
+                const processorDatum = {
+                    id: '1',
+                    type: ComponentType.Processor,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Running' }
+                    },
+                    physicalState: 'RUNNING'
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('processor', true)
+                    .datum(processorDatum);
+                expect(service.isStoppable(selection)).toBe(true);
+            });
+
+            it('should return false when runStatus is Stopped', () => {
+                const processorDatum = {
+                    id: '1',
+                    type: ComponentType.Processor,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Stopped' }
+                    },
+                    physicalState: 'STOPPED'
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('processor', true)
+                    .datum(processorDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+
+            it('should return true when runStatus is Invalid and physicalState is STARTING', () => {
+                const processorDatum = {
+                    id: '1',
+                    type: ComponentType.Processor,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Invalid' }
+                    },
+                    physicalState: 'STARTING'
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('processor', true)
+                    .datum(processorDatum);
+                expect(service.isStoppable(selection)).toBe(true);
+            });
+
+            it('should return false when runStatus is Invalid and physicalState is STOPPED', () => {
+                const processorDatum = {
+                    id: '1',
+                    type: ComponentType.Processor,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Invalid' }
+                    },
+                    physicalState: 'STOPPED'
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('processor', true)
+                    .datum(processorDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+
+            it('should return false when runStatus is Invalid and physicalState is DISABLED', () => {
+                const processorDatum = {
+                    id: '1',
+                    type: ComponentType.Processor,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Invalid' }
+                    },
+                    physicalState: 'DISABLED'
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('processor', true)
+                    .datum(processorDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+
+            it('should return false when runStatus is Invalid and physicalState is null', () => {
+                const processorDatum = {
+                    id: '1',
+                    type: ComponentType.Processor,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Invalid' }
+                    },
+                    physicalState: null
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('processor', true)
+                    .datum(processorDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+
+            it('should return false when runStatus is Invalid and physicalState is undefined', () => {
+                const processorDatum = {
+                    id: '1',
+                    type: ComponentType.Processor,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Invalid' }
+                    }
+                    // physicalState is undefined
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('processor', true)
+                    .datum(processorDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+        });
+
+        describe('for input ports', () => {
+            it('should return true when runStatus is Running', () => {
+                const inputPortDatum = {
+                    id: '1',
+                    type: ComponentType.InputPort,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Running' }
+                    }
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('input-port', true)
+                    .datum(inputPortDatum);
+                expect(service.isStoppable(selection)).toBe(true);
+            });
+
+            it('should return false when runStatus is Stopped', () => {
+                const inputPortDatum = {
+                    id: '1',
+                    type: ComponentType.InputPort,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Stopped' }
+                    }
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('input-port', true)
+                    .datum(inputPortDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+        });
+
+        describe('for output ports', () => {
+            it('should return true when runStatus is Running', () => {
+                const outputPortDatum = {
+                    id: '1',
+                    type: ComponentType.OutputPort,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Running' }
+                    }
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('output-port', true)
+                    .datum(outputPortDatum);
+                expect(service.isStoppable(selection)).toBe(true);
+            });
+
+            it('should return false when runStatus is Stopped', () => {
+                const outputPortDatum = {
+                    id: '1',
+                    type: ComponentType.OutputPort,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true },
+                    status: {
+                        aggregateSnapshot: { runStatus: 'Stopped' }
+                    }
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('output-port', true)
+                    .datum(outputPortDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+        });
+
+        describe('for other component types', () => {
+            it('should return false for connections', () => {
+                const connectionDatum = {
+                    id: '1',
+                    type: ComponentType.Connection,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true }
+                };
+                const selection = d3
+                    .select(document.createElement('g'))
+                    .classed('connection', true)
+                    .datum(connectionDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+
+            it('should return false for labels', () => {
+                const labelDatum = {
+                    id: '1',
+                    type: ComponentType.Label,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true }
+                };
+                const selection = d3.select(document.createElement('g')).classed('label', true).datum(labelDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+
+            it('should return false for funnels', () => {
+                const funnelDatum = {
+                    id: '1',
+                    type: ComponentType.Funnel,
+                    permissions: { canRead: true, canWrite: true },
+                    operatePermissions: { canWrite: true }
+                };
+                const selection = d3.select(document.createElement('g')).classed('funnel', true).datum(funnelDatum);
+                expect(service.isStoppable(selection)).toBe(false);
+            });
+        });
+    });
 });

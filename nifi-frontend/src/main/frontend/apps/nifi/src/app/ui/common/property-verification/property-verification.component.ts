@@ -16,13 +16,12 @@
  */
 
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { MatIconButton } from '@angular/material/button';
 import { ConfigVerificationResult, Outcome } from '../../../state/property-verification';
 
 @Component({
     selector: 'property-verification',
-    imports: [CommonModule, MatIconButton],
+    imports: [MatIconButton],
     templateUrl: './property-verification.component.html',
     styleUrl: './property-verification.component.scss'
 })

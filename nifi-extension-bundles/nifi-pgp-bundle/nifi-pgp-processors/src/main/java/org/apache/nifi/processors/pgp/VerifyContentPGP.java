@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.pgp.service.api.PGPPublicKeyService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -91,8 +92,7 @@ public class VerifyContentPGP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PUBLIC_KEY_SERVICE = new PropertyDescriptor.Builder()
-            .name("public-key-service")
-            .displayName("Public Key Service")
+            .name("Public Key Service")
             .description("PGP Public Key Service for verifying signatures with Public Key Encryption")
             .identifiesControllerService(PGPPublicKeyService.class)
             .required(true)
@@ -157,6 +157,11 @@ public class VerifyContentPGP extends AbstractProcessor {
             getLogger().error("Processing Failed {}", flowFile, e);
             session.transfer(flowFile, FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("public-key-service", PUBLIC_KEY_SERVICE.getName());
     }
 
     private class VerifyStreamCallback implements StreamCallback {

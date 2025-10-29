@@ -72,6 +72,10 @@ interface FilterableColumn {
     styleUrls: ['./flow-configuration-history-listing.component.scss']
 })
 export class FlowConfigurationHistoryListing implements OnInit, OnDestroy {
+    private store = inject<Store<FlowConfigurationHistoryListingState>>(Store);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     private static readonly DEFAULT_START_TIME: string = '00:00:00';
     private static readonly DEFAULT_END_TIME: string = '23:59:59';
     private static readonly TIME_REGEX = /^([0-1]\d|2[0-3]):([0-5]\d):([0-5]\d)$/;
@@ -97,11 +101,7 @@ export class FlowConfigurationHistoryListing implements OnInit, OnDestroy {
         { key: 'userIdentity', label: 'user' }
     ];
 
-    constructor(
-        private store: Store<FlowConfigurationHistoryListingState>,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         this.queryRequest$
             .pipe(takeUntilDestroyed(), isDefinedAndNotNull())
             .subscribe((queryRequest) => (this.queryRequest = queryRequest));

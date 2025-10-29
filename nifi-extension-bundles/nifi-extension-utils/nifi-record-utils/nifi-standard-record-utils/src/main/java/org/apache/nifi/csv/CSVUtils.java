@@ -44,6 +44,10 @@ public class CSVUtils {
     public static final AllowableValue INFORMIX_UNLOAD_CSV = new AllowableValue("informix-unload-csv", "Informix Unload Escape Disabled",
         "The format used by Informix when issuing the UNLOAD TO file_name command with escaping disabled");
     public static final AllowableValue MYSQL = new AllowableValue("mysql", "MySQL Format", "CSV data follows the format used by MySQL");
+    public static final String OLD_FIRST_LINE_IS_HEADER_PROPERTY_NAME = "Skip Header Line";
+    public static final String OLD_IGNORE_CSV_HEADER_PROPERTY_NAME = "ignore-csv-header";
+    public static final String OLD_CHARSET_PROPERTY_NAME = "csvutils-character-set";
+    public static final String OLD_ALLOW_DUPLICATE_HEADER_NAMES_PROPERTY_NAME = "csvutils-allow-duplicate-header-names";
 
     public static final PropertyDescriptor CSV_FORMAT = new PropertyDescriptor.Builder()
         .name("CSV Format")
@@ -74,8 +78,7 @@ public class CSVUtils {
         .required(true)
         .build();
     public static final PropertyDescriptor FIRST_LINE_IS_HEADER = new PropertyDescriptor.Builder()
-        .name("Skip Header Line")
-        .displayName("Treat First Line as Header")
+        .name("Treat First Line as Header")
         .description("Specifies whether or not the first line of CSV should be considered a Header or should be considered a record. If the Schema Access Strategy "
             + "indicates that the columns must be defined in the header, then this property will be ignored, since the header must always be "
             + "present and won't be processed as a Record. Otherwise, if 'true', then the first line of CSV data will not be processed as a record and if 'false',"
@@ -87,8 +90,7 @@ public class CSVUtils {
         .required(true)
         .build();
     public static final PropertyDescriptor IGNORE_CSV_HEADER = new PropertyDescriptor.Builder()
-        .name("ignore-csv-header")
-        .displayName("Ignore CSV Header Column Names")
+        .name("Ignore CSV Header Column Names")
         .description("If the first line of a CSV is a header, and the configured schema does not match the fields named in the header line, this controls how "
             + "the Reader will interpret the fields. If this property is true, then the field names mapped to each column are driven only by the configured schema and "
             + "any fields not in the schema will be ignored. If this property is false, then the field names found in the CSV Header will be used as the names of the "
@@ -135,8 +137,7 @@ public class CSVUtils {
         .required(true)
         .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-        .name("csvutils-character-set")
-        .displayName("Character Set")
+        .name("Character Set")
         .description("The Character Encoding that is used to encode/decode the CSV file")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
@@ -144,8 +145,7 @@ public class CSVUtils {
         .required(true)
         .build();
     public static final PropertyDescriptor ALLOW_DUPLICATE_HEADER_NAMES = new PropertyDescriptor.Builder()
-        .name("csvutils-allow-duplicate-header-names")
-        .displayName("Allow Duplicate Header Names")
+        .name("Allow Duplicate Header Names")
         .description("""
             Whether duplicate header names are allowed. Header names are case-sensitive, for example "name" and "Name" are treated as separate fields.
             Handling of duplicate header names is CSV Parser specific (where applicable):

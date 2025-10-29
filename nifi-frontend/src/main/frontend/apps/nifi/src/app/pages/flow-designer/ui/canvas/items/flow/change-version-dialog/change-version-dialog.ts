@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MatButton } from '@angular/material/button';
 import { MatCell, MatCellDef, MatColumnDef, MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -25,16 +25,29 @@ import { ChangeVersionDialogRequest, VersionControlInformation } from '../../../
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../../../state';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
-import { NiFiCommon, CloseOnEscapeDialog } from '@nifi/shared';
+import { NiFiCommon, CloseOnEscapeDialog, NifiTooltipDirective, TextTip } from '@nifi/shared';
 
 @Component({
     selector: 'change-version-dialog',
-    imports: [MatButton, MatCell, MatCellDef, MatColumnDef, MatDialogModule, MatSortModule, MatTableModule],
+    imports: [
+        MatButton,
+        MatCell,
+        MatCellDef,
+        MatColumnDef,
+        MatDialogModule,
+        MatSortModule,
+        MatTableModule,
+        NifiTooltipDirective
+    ],
     templateUrl: './change-version-dialog.html',
     styleUrl: './change-version-dialog.scss'
 })
 export class ChangeVersionDialog extends CloseOnEscapeDialog {
-    displayedColumns: string[] = ['version', 'created', 'comments'];
+    private dialogRequest = inject<ChangeVersionDialogRequest>(MAT_DIALOG_DATA);
+    private nifiCommon = inject(NiFiCommon);
+    private store = inject<Store<CanvasState>>(Store);
+
+    displayedColumns: string[] = ['current', 'version', 'created', 'comments'];
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
     selectedFlowVersion: VersionedFlowSnapshotMetadata | null = null;
@@ -48,12 +61,10 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
     @Output() changeVersion: EventEmitter<VersionedFlowSnapshotMetadata> =
         new EventEmitter<VersionedFlowSnapshotMetadata>();
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) private dialogRequest: ChangeVersionDialogRequest,
-        private nifiCommon: NiFiCommon,
-        private store: Store<CanvasState>
-    ) {
+    constructor() {
         super();
+        const dialogRequest = this.dialogRequest;
+
         const flowVersions = dialogRequest.versions.map((entity) => entity.versionedFlowSnapshotMetadata);
         const sortedFlowVersions = this.sortVersions(flowVersions, this.sort);
         this.selectedFlowVersion = sortedFlowVersions[0];
@@ -135,4 +146,10 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
         }
         return this.selectedFlowVersion.version !== this.versionControlInformation.version;
     }
+
+    isCurrentVersion(flowVersion: VersionedFlowSnapshotMetadata): boolean {
+        return flowVersion.version === this.versionControlInformation.version;
+    }
+
+    protected readonly TextTip = TextTip;
 }

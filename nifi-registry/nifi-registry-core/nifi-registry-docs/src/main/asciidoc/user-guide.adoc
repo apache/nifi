@@ -17,6 +17,7 @@
 = Apache NiFi Registry User Guide
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: https://nifi.apache.org
+:imagesdir: images
 
 
 == Introduction
@@ -24,7 +25,7 @@ Apache NiFi Registry—a subproject of Apache NiFi—is a complementary applicat
 
 The first implementation of the Registry supports versioned flows.  Process group level dataflows created in NiFi can be placed under version control and stored in a registry. The registry organizes where flows are stored and manages the permissions to access, create, modify or delete them.
 
-See the link:administration-guide.html[System Administrator’s Guide] for information about Registry system requirements, installation, and configuration. Once NiFi Registry is installed, use a supported web browser to view the UI.
+See the <<administration-guide.adoc#apache-nifi-registry-system-administrators-guide,System Administrator’s Guide>> for information about Registry system requirements, installation, and configuration. Once NiFi Registry is installed, use a supported web browser to view the UI.
 
 
 == Browser Support
@@ -67,7 +68,7 @@ NOTE: The minimum recommended screen size is 1080px X 445px.
 
 The NiFi Registry UI displays the shared resources available and provides mechanisms for creating and administering users/groups, buckets and policies.
 
-When the application is started, the user is able to navigate to the UI by going to the default address of `http://<hostname>:18080/nifi-registry` in a web browser. There are no permissions configured by default, so anyone is able to view and modify the flows and buckets. For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
+When the application is started, the user is able to navigate to the UI by going to the default address of `http://<hostname>:18080/nifi-registry` in a web browser. There are no permissions configured by default, so anyone is able to view and modify the flows and buckets. For information on securing the system, see the <<administration-guide.adocc#apache-nifi-registry-system-administrators-guide,System Administrator’s Guide>>.
 
 When an administrator navigates to the UI for the first time, the registry is empty as there are no flow resources available to share yet:
 
@@ -78,7 +79,7 @@ The Buckets menu is available at the top left of the screen.  It allows the user
 [[logging-in]]
 == Logging In
 
-If NiFi Registry is configured to run securely, users will have to be granted permissions to buckets by an administrator. For information on configuring NiFi Registry to run securely, see the link:administration-guide.html[System Administrator’s Guide].
+If NiFi Registry is configured to run securely, users will have to be granted permissions to buckets by an administrator. For information on configuring NiFi Registry to run securely, see the <<administration-guide.adoc#apache-nifi-registry-system-administrators-guide,System Administrator’s Guide>>.
 
 If the user is logging in with their username/password they will be presented with a screen to do so.
 
@@ -483,4 +484,4 @@ An example of using `curl` to download `my-processors-1.0.0.nar` by id and versi
 
 === Additional Actions
 
-For additional actions that can be performed related to bundles, please consult the link:../rest-api/index.html[REST API documentation].
+For additional actions that can be performed related to bundles, please consult the link:https://nifi.apache.org/docs/nifi-registry-docs/rest-api/index.html[REST API documentation].

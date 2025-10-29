@@ -85,7 +85,7 @@ import {
     selectCurrentParameterContext,
     selectCurrentProcessGroupId,
     selectCurrentProcessGroupRevision,
-    selectFlowLoadingStatus,
+    selectHasFlowData,
     selectInputPort,
     selectMaxZIndex,
     selectOutputPort,
@@ -180,34 +180,34 @@ import { ParameterContextService } from '../../../parameter-contexts/service/par
 
 @Injectable()
 export class FlowEffects {
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private storage = inject(Storage);
+    private flowService = inject(FlowService);
+    private controllerServiceService = inject(ControllerServiceService);
+    private registryService = inject(RegistryService);
+    private client = inject(Client);
+    private canvasUtils = inject(CanvasUtils);
+    private canvasView = inject(CanvasView);
+    private birdseyeView = inject(BirdseyeView);
+    private connectionManager = inject(ConnectionManager);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private snippetService = inject(SnippetService);
+    private router = inject(Router);
+    private dialog = inject(MatDialog);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private parameterHelperService = inject(ParameterHelperService);
+    private parameterContextService = inject(ParameterContextService);
+    private extensionTypesService = inject(ExtensionTypesService);
+    private errorHelper = inject(ErrorHelper);
+    private copyPasteService = inject(CopyPasteService);
+
     private createProcessGroupDialogRef: MatDialogRef<CreateProcessGroup, any> | undefined;
     private editProcessGroupDialogRef: MatDialogRef<EditProcessGroup, any> | undefined;
     private destroyRef = inject(DestroyRef);
     private lastReload: number = 0;
 
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private storage: Storage,
-        private flowService: FlowService,
-        private controllerServiceService: ControllerServiceService,
-        private registryService: RegistryService,
-        private client: Client,
-        private canvasUtils: CanvasUtils,
-        private canvasView: CanvasView,
-        private birdseyeView: BirdseyeView,
-        private connectionManager: ConnectionManager,
-        private clusterConnectionService: ClusterConnectionService,
-        private snippetService: SnippetService,
-        private router: Router,
-        private dialog: MatDialog,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private parameterHelperService: ParameterHelperService,
-        private parameterContextService: ParameterContextService,
-        private extensionTypesService: ExtensionTypesService,
-        private errorHelper: ErrorHelper,
-        private copyPasteService: CopyPasteService
-    ) {
+    constructor() {
         this.store
             .select(selectDocumentVisibilityState)
             .pipe(
@@ -249,11 +249,11 @@ export class FlowEffects {
             ofType(FlowActions.loadProcessGroup),
             map((action) => action.request),
             concatLatestFrom(() => [
-                this.store.select(selectFlowLoadingStatus),
+                this.store.select(selectHasFlowData),
                 this.store.select(selectConnectedStateChanged)
             ]),
             tap(() => this.store.dispatch(resetConnectedStateChanged())),
-            switchMap(([request, status, connectedStateChanged]) =>
+            switchMap(([request, hasFlowData, connectedStateChanged]) =>
                 combineLatest([
                     this.flowService.getFlow(request.id),
                     this.flowService.getFlowStatus(),
@@ -274,7 +274,7 @@ export class FlowEffects {
                         });
                     }),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(this.errorHelper.handleLoadingError(hasFlowData, errorResponse))
                     )
                 )
             )

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import {
     selectBreadcrumbs,
@@ -34,9 +34,9 @@ import { NiFiState } from '../../../../../state';
     styleUrls: ['./graph-controls.component.scss']
 })
 export class GraphControls {
+    private store = inject<Store<NiFiState>>(Store);
+
     navigationCollapsed$ = this.store.select(selectNavigationCollapsed);
     operationCollapsed$ = this.store.select(selectOperationCollapsed);
     breadcrumbEntity$ = this.store.select(selectBreadcrumbs);
-
-    constructor(private store: Store<NiFiState>) {}
 }

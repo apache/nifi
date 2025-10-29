@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { ProcessorDefinition } from '../state/processor-definition';
@@ -25,12 +25,13 @@ import { AdditionalDetailsEntity } from '../state/additional-details';
 import { ReportingTaskDefinition } from '../state/reporting-task-definition';
 import { ParameterProviderDefinition } from '../state/parameter-provider-definition';
 import { FlowAnalysisRuleDefinition } from '../state/flow-analysis-rule-definition';
+import { FlowRegistryClientDefinition } from '../state/flow-registry-client-definition';
 
 @Injectable({ providedIn: 'root' })
 export class DocumentationService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-api';
 
     getProcessorDefinition(coordinates: DefinitionCoordinates): Observable<ProcessorDefinition> {
         return this.httpClient.get<ProcessorDefinition>(
@@ -47,6 +48,12 @@ export class DocumentationService {
     getReportingTaskDefinition(coordinates: DefinitionCoordinates): Observable<ReportingTaskDefinition> {
         return this.httpClient.get<ReportingTaskDefinition>(
             `${DocumentationService.API}/flow/reporting-task-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
+        );
+    }
+
+    getFlowRegistryClientDefinition(coordinates: DefinitionCoordinates): Observable<FlowRegistryClientDefinition> {
+        return this.httpClient.get<FlowRegistryClientDefinition>(
+            `${DocumentationService.API}/flow/flow-registry-client-definition/${coordinates.group}/${coordinates.artifact}/${coordinates.version}/${coordinates.type}`
         );
     }
 

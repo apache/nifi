@@ -15,16 +15,17 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { ErrorHelper } from '../../../../service/error-helper.service';
+import { initialHistoryState } from './flow-configuration-history-listing.reducer';
 import { MatDialog } from '@angular/material/dialog';
 import * as HistoryActions from './flow-configuration-history-listing.actions';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
-import { selectHistoryQuery, selectHistoryStatus } from './flow-configuration-history-listing.selectors';
+import { selectHistoryLoadedTimestamp, selectHistoryQuery } from './flow-configuration-history-listing.selectors';
 import { FlowConfigurationHistoryService } from '../../service/flow-configuration-history.service';
 import { HistoryEntity } from './index';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -37,21 +38,19 @@ import { selectAbout } from '../../../../state/about/about.selectors';
 
 @Injectable()
 export class FlowConfigurationHistoryListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private historyService: FlowConfigurationHistoryService,
-        private router: Router
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private historyService = inject(FlowConfigurationHistoryService);
+    private router = inject(Router);
 
     loadHistory$ = createEffect(() =>
         this.actions$.pipe(
             ofType(HistoryActions.loadHistory),
             map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectHistoryStatus)),
-            switchMap(([request, status]) =>
+            concatLatestFrom(() => this.store.select(selectHistoryLoadedTimestamp)),
+            switchMap(([request, loadedTimestamp]) =>
                 from(this.historyService.getHistory(request)).pipe(
                     map((response: HistoryEntity) =>
                         HistoryActions.loadHistorySuccess({
@@ -59,8 +58,26 @@ export class FlowConfigurationHistoryListingEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            HistoryActions.loadHistoryError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialHistoryState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
+                )
+            )
+        )
+    );
+
+    loadHistoryError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(HistoryActions.loadHistoryError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialHistoryState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

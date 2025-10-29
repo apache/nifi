@@ -25,7 +25,7 @@ import { clearBannerErrors } from '../../../state/error/error.actions';
 import { Observable } from 'rxjs';
 import { selectBannerErrors } from '../../../state/error/error.selectors';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ErrorBanner } from '../error-banner/error-banner.component';
+import { ErrorBanner } from '@nifi/shared';
 import { ErrorContextKey } from '../../../state/error';
 
 @Component({
@@ -35,6 +35,8 @@ import { ErrorContextKey } from '../../../state/error';
     styleUrl: './context-error-banner.component.scss'
 })
 export class ContextErrorBanner implements OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     private _context!: ErrorContextKey;
     @Input({ required: true }) set context(context: ErrorContextKey) {
         this._context = context;
@@ -47,8 +49,6 @@ export class ContextErrorBanner implements OnDestroy {
 
     messages$: Observable<string[]> | null = null;
     private destroyRef: DestroyRef = inject(DestroyRef);
-
-    constructor(private store: Store<NiFiState>) {}
 
     ngOnDestroy(): void {
         this.store.dispatch(clearBannerErrors({ context: this.context }));

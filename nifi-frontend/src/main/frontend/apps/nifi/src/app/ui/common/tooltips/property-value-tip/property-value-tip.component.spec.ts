@@ -110,7 +110,7 @@ describe('PropertyValueTip', () => {
             expect(names).toEqual(['PARAM_A']);
         });
 
-        it('should capture multiple occurrences of the same parameter', () => {
+        it('should deduplicate multiple occurrences of the same parameter', () => {
             const data: PropertyValueTipInput = {
                 property: {
                     property: 'prop',
@@ -123,9 +123,29 @@ describe('PropertyValueTip', () => {
             component.data = data;
             fixture.detectChanges();
 
-            expect(component.parameterReferences.length).toBe(2);
+            expect(component.parameterReferences.length).toBe(1);
             expect(component.parameterReferences[0].name).toBe('PARAM_A');
-            expect(component.parameterReferences[1].name).toBe('PARAM_A');
+        });
+
+        it('should deduplicate parameters while preserving different parameter references', () => {
+            const data: PropertyValueTipInput = {
+                property: {
+                    property: 'prop',
+                    value: "#{PARAM_A} then #{PARAM_B} and #{PARAM_A} again and #{'PARAM_B'}",
+                    descriptor: buildDescriptor()
+                },
+                parameters: [
+                    { parameter: { name: 'PARAM_A', description: '', sensitive: false, value: 'a' } },
+                    { parameter: { name: 'PARAM_B', description: '', sensitive: false, value: 'b' } }
+                ]
+            };
+
+            component.data = data;
+            fixture.detectChanges();
+
+            expect(component.parameterReferences.length).toBe(2);
+            const names = component.parameterReferences.map((p) => p.name).sort();
+            expect(names).toEqual(['PARAM_A', 'PARAM_B']);
         });
 
         it('should handle null or empty property values', () => {

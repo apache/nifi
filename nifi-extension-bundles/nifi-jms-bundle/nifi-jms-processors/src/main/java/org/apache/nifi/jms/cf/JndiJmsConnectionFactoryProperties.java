@@ -40,10 +40,15 @@ import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDA
 public class JndiJmsConnectionFactoryProperties {
 
     public static final String URL_SCHEMES_ALLOWED_PROPERTY = "org.apache.nifi.jms.cf.jndi.provider.url.schemes.allowed";
+    public static final String OLD_JNDI_INITIAL_CONTEXT_FACTORY_PROPERTY_NAME = "java.naming.factory.initial";
+    public static final String OLD_JNDI_PROVIDER_URL_PROPERTY_NAME = "java.naming.provider.url";
+    public static final String OLD_JNDI_CONNECTION_FACTORY_NAME_PROPERTY_NAME = "connection.factory.name";
+    public static final String OLD_JNDI_CLIENT_LIBRARIES_PROPERTY_NAME = "naming.factory.libraries";
+    public static final String OLD_JNDI_PRINCIPAL_PROPERTY_NAME = "java.naming.security.principal";
+    public static final String OLD_JNDI_CREDENTIALS_PROPERTY_NAME = "java.naming.security.credentials";
 
     public static final PropertyDescriptor JNDI_INITIAL_CONTEXT_FACTORY = new Builder()
-            .name("java.naming.factory.initial")
-            .displayName("JNDI Initial Context Factory Class")
+            .name("JNDI Initial Context Factory Class")
             .description("The fully qualified class name of the JNDI Initial Context Factory Class (java.naming.factory.initial).")
             .required(true)
             .addValidator(NON_EMPTY_VALIDATOR)
@@ -51,8 +56,7 @@ public class JndiJmsConnectionFactoryProperties {
             .build();
 
     public static final PropertyDescriptor JNDI_PROVIDER_URL = new Builder()
-            .name("java.naming.provider.url")
-            .displayName("JNDI Provider URL")
+            .name("JNDI Provider URL")
             .description("The URL of the JNDI Provider to use as the value for java.naming.provider.url. See additional details documentation for allowed URL schemes.")
             .required(true)
             .addValidator(new JndiJmsProviderUrlValidator())
@@ -60,8 +64,7 @@ public class JndiJmsConnectionFactoryProperties {
             .build();
 
     public static final PropertyDescriptor JNDI_CONNECTION_FACTORY_NAME = new Builder()
-            .name("connection.factory.name")
-            .displayName("JNDI Name of the Connection Factory")
+            .name("JNDI Name of the Connection Factory")
             .description("The name of the JNDI Object to lookup for the Connection Factory.")
             .required(true)
             .addValidator(NON_EMPTY_VALIDATOR)
@@ -69,8 +72,7 @@ public class JndiJmsConnectionFactoryProperties {
             .build();
 
     public static final PropertyDescriptor JNDI_CLIENT_LIBRARIES = new Builder()
-            .name("naming.factory.libraries")
-            .displayName("JNDI / JMS Client Libraries")
+            .name("JNDI / JMS Client Libraries")
             .description("Specifies jar files and/or directories to add to the ClassPath " +
                     "in order to load the JNDI / JMS client libraries. This should be a comma-separated list of files, directories, and/or URLs. If a directory is given, any files in that directory" +
                     " will be included, but subdirectories will not be included (i.e., it is not recursive).")
@@ -81,8 +83,7 @@ public class JndiJmsConnectionFactoryProperties {
             .build();
 
     public static final PropertyDescriptor JNDI_PRINCIPAL = new Builder()
-            .name("java.naming.security.principal")
-            .displayName("JNDI Principal")
+            .name("JNDI Principal")
             .description("The Principal to use when authenticating with JNDI (java.naming.security.principal).")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -90,8 +91,7 @@ public class JndiJmsConnectionFactoryProperties {
             .build();
 
     public static final PropertyDescriptor JNDI_CREDENTIALS = new Builder()
-            .name("java.naming.security.credentials")
-            .displayName("JNDI Credentials")
+            .name("JNDI Credentials")
             .description("The Credentials to use when authenticating with JNDI (java.naming.security.credentials).")
             .required(false)
             .addValidator(Validator.VALID)

@@ -24,12 +24,12 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.images.builder.Transferable;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.neo4j.Neo4jContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import javax.security.auth.x500.X500Principal;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -56,13 +56,12 @@ import static org.apache.nifi.graph.Neo4JCypherClientService.SSL_TRUST_STORE_FIL
 import static org.apache.nifi.graph.Neo4JCypherClientService.USERNAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@Testcontainers
 public class ITNeo4JCypherClientServiceSSL {
     private static final String ADMIN_USER = "neo4j";
 
     private static final String ADMIN_ACCESS = UUID.randomUUID().toString();
 
-    private static final String IMAGE_NAME = System.getProperty("neo4j.docker.image", "neo4j:5.19");
+    private static final String IMAGE_NAME = System.getProperty("neo4j.docker.image", "neo4j:2025.09");
 
     private static final Map<String, String> CONTAINER_ENVIRONMENT = new LinkedHashMap<>();
 
@@ -88,7 +87,7 @@ public class ITNeo4JCypherClientServiceSSL {
 
     private static final String CONTAINER_KEY_PATH = String.format("%s/%s", SSL_DIRECTORY, KEY_FILE);
 
-    private static Neo4jContainer<?> container;
+    private static Neo4jContainer container;
 
     private static String trustStoreFilePath;
 
@@ -96,7 +95,7 @@ public class ITNeo4JCypherClientServiceSSL {
 
     @BeforeAll
     public static void setContainerEnvironment() throws Exception {
-        container = new Neo4jContainer<>(DockerImageName.parse(IMAGE_NAME)).withAdminPassword(ADMIN_ACCESS);
+        container = new Neo4jContainer(DockerImageName.parse(IMAGE_NAME)).withAdminPassword(ADMIN_ACCESS);
         setCertificatePrivateKey();
 
         // Set Neo4j Environment Variables based on https://neo4j.com/developer/kb/setting-up-ssl-with-docker/

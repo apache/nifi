@@ -17,12 +17,13 @@
 package org.apache.nifi.processors.aws.dynamodb;
 
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.localstack.LocalStackContainer;
 import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -55,8 +56,7 @@ public class AbstractDynamoDBIT {
 
     private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:latest");
 
-    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage)
-            .withServices(LocalStackContainer.Service.DYNAMODB);
+    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage).withServices("dynamodb");
 
     @BeforeAll
     public static void oneTimeSetup() {
@@ -107,8 +107,8 @@ public class AbstractDynamoDBIT {
         TestRunner runner = TestRunners.newTestRunner(processorClass);
         AuthUtils.enableAccessKey(runner, localstack.getAccessKey(), localstack.getSecretKey());
 
-        runner.setProperty(AbstractDynamoDBProcessor.REGION, localstack.getRegion());
-        runner.setProperty(AbstractDynamoDBProcessor.ENDPOINT_OVERRIDE, localstack.getEndpointOverride(LocalStackContainer.Service.DYNAMODB).toString());
+        runner.setProperty(RegionUtil.REGION, localstack.getRegion());
+        runner.setProperty(AbstractDynamoDBProcessor.ENDPOINT_OVERRIDE, localstack.getEndpoint().toString());
         return runner;
     }
 

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
@@ -42,8 +42,8 @@ import {
 } from 'rxjs';
 import {
     selectApplyParameterProviderParametersRequest,
-    selectSaving,
-    selectStatus
+    selectLoadedTimestamp,
+    selectSaving
 } from './parameter-providers.selectors';
 import {
     selectExtensionTypesLoadingStatus,
@@ -59,6 +59,7 @@ import * as ErrorActions from '../../../../state/error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
+import { initialParameterProvidersState } from './parameter-providers.reducer';
 import {
     resetPropertyVerificationState,
     verifyProperties
@@ -73,23 +74,21 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ParameterProvidersEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private client: Client,
-        private dialog: MatDialog,
-        private router: Router,
-        private parameterProviderService: ParameterProviderService,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private managementControllerServiceService: ManagementControllerServiceService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private client = inject(Client);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private parameterProviderService = inject(ParameterProviderService);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private managementControllerServiceService = inject(ManagementControllerServiceService);
+    private errorHelper = inject(ErrorHelper);
 
     loadParameterProviders$ = createEffect(() =>
         this.actions$.pipe(
             ofType(loadParameterProviders),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.parameterProviderService.getParameterProviders()).pipe(
                     map((response) =>
                         ParameterProviderActions.loadParameterProvidersSuccess({
@@ -99,7 +98,30 @@ export class ParameterProvidersEffects {
                             }
                         })
                     ),
-                    catchError((error: HttpErrorResponse) => of(this.errorHelper.handleLoadingError(status, error)))
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            ParameterProviderActions.loadParameterProvidersError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status:
+                                    loadedTimestamp !== initialParameterProvidersState.loadedTimestamp
+                                        ? 'success'
+                                        : 'pending'
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
+
+    loadParameterProvidersError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.loadParameterProvidersError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialParameterProvidersState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

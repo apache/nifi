@@ -20,7 +20,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ConnectionStatusListing } from './connection-status-listing.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/summary-listing/summary-listing.reducer';
+import { initialState as initialSummaryListingState } from '../../state/summary-listing/summary-listing.reducer';
+import { summaryListingFeatureKey } from '../../state/summary-listing';
+import { summaryFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 
 describe('ConnectionStatusListing', () => {
     let component: ConnectionStatusListing;
@@ -29,7 +33,16 @@ describe('ConnectionStatusListing', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ConnectionStatusListing, NoopAnimationsModule],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [summaryFeatureKey]: {
+                            [summaryListingFeatureKey]: initialSummaryListingState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(ConnectionStatusListing);
         component = fixture.componentInstance;

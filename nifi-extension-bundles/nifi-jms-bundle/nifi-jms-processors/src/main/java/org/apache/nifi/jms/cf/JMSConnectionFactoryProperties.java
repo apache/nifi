@@ -26,18 +26,17 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class JMSConnectionFactoryProperties {
 
-    private static final String BROKER = "broker";
-    private static final String CF_IMPL = "cf";
-    private static final String CF_LIB = "cflib";
+    public static final String OLD_JMS_BROKER_URI_PROPERTY_NAME = "broker";
+    public static final String OLD_JMS_CONNECTION_FACTORY_IMPL_PROPERTY_NAME = "cf";
+    public static final String OLD_JMS_CLIENT_LIBRARIES_PROPERTY_NAME = "cflib";
+    public static final String OLD_JMS_SSL_CONTEXT_SERVICE_PROPERTY_NAME = "SSL Context Service";
 
     public static final PropertyDescriptor JMS_CONNECTION_FACTORY_IMPL = new PropertyDescriptor.Builder()
-            .name(CF_IMPL)
-            .displayName("JMS Connection Factory Implementation Class")
+            .name("JMS Connection Factory Implementation Class")
             .description("The fully qualified name of the JMS ConnectionFactory implementation "
                     + "class (eg. org.apache.activemq.ActiveMQConnectionFactory).")
             .required(true)
@@ -46,8 +45,7 @@ public class JMSConnectionFactoryProperties {
             .build();
 
     public static final PropertyDescriptor JMS_CLIENT_LIBRARIES = new PropertyDescriptor.Builder()
-            .name(CF_LIB)
-            .displayName("JMS Client Libraries")
+            .name("JMS Client Libraries")
             .description("Path to the directory with additional resources (eg. JARs, configuration files etc.) to be added "
                     + "to the classpath (defined as a comma separated list of values). Such resources typically represent target JMS client libraries "
                     + "for the ConnectionFactory implementation.")
@@ -58,8 +56,7 @@ public class JMSConnectionFactoryProperties {
             .build();
 
     public static final PropertyDescriptor JMS_BROKER_URI = new PropertyDescriptor.Builder()
-            .name(BROKER)
-            .displayName("JMS Broker URI")
+            .name("JMS Broker URI")
             .description("URI pointing to the network location of the JMS Message broker. Example for ActiveMQ: "
                     + "'tcp://myhost:61616'. Examples for IBM MQ: 'myhost(1414)' and 'myhost01(1414),myhost02(1414)'.")
             .required(false)
@@ -68,14 +65,13 @@ public class JMSConnectionFactoryProperties {
             .build();
 
     public static final PropertyDescriptor JMS_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("SSL Context Service")
-            .displayName("JMS SSL Context Service")
+            .name("JMS SSL Context Service")
             .description("The SSL Context Service used to provide client certificate information for TLS/SSL connections.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Arrays.asList(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL,
             JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES,
             JMSConnectionFactoryProperties.JMS_BROKER_URI,

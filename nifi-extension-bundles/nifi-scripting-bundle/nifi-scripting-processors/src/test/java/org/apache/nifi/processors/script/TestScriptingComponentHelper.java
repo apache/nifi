@@ -29,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestScriptingComponentHelper {
-    private static final String SCRIPT_ENGINE_PROPERTY = "Script Engine";
 
     @Test
     public void testScriptEngineAllowableValuesWithDescriptions() {
@@ -38,7 +37,7 @@ public class TestScriptingComponentHelper {
 
         final List<PropertyDescriptor> descriptors = helper.getDescriptors();
         final Optional<PropertyDescriptor> optionalScriptEngine = descriptors.stream().filter(
-                descriptor -> descriptor.getName().equals(SCRIPT_ENGINE_PROPERTY)
+                descriptor -> descriptor.getName().equals(ScriptingComponentHelper.SCRIPT_ENGINE_PROPERTY)
         ).findFirst();
 
         assertTrue(optionalScriptEngine.isPresent());

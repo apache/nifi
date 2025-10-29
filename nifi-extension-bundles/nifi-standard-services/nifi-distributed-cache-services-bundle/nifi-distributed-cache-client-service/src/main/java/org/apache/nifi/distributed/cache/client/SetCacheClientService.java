@@ -43,13 +43,13 @@ public class SetCacheClientService extends AbstractControllerService implements 
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Server Hostname")
-            .description("The name of the server that is running the DistributedSetCacheServer service")
+            .description("The name of the server that is running the SetCacheServer service")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Server Port")
-            .description("The port on the remote server that is to be used when communicating with the DistributedSetCacheServer service")
+            .description("The port on the remote server that is to be used when communicating with the SetCacheServer service")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .defaultValue("4557")

@@ -31,7 +31,7 @@ import java.util.Set;
  *
  */
 @Tags({"distributed", "client", "cluster", "map", "cache"})
-@CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This allows "
+@CapabilityDescription("Provides the ability to communicate with a MapCacheServer. This allows "
         + "multiple nodes to coordinate state with a single remote entity.")
 public interface DistributedMapCacheClient extends ControllerService {
 

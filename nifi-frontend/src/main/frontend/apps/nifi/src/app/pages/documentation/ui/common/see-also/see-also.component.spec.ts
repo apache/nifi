@@ -21,6 +21,10 @@ import { SeeAlsoComponent } from './see-also.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { extensionTypesFeatureKey } from '../../../../../state/extension-types';
 import { initialExtensionsTypesState } from '../../../../../state/extension-types/extension-types.reducer';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../state/current-user';
 
 describe('MultiProcessorUseCaseComponent', () => {
     let component: SeeAlsoComponent;
@@ -32,6 +36,8 @@ describe('MultiProcessorUseCaseComponent', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [extensionTypesFeatureKey]: initialExtensionsTypesState
                     }
                 })

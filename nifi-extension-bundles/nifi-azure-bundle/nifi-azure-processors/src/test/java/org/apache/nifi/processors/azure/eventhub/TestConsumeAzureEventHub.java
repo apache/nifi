@@ -25,6 +25,7 @@ import com.azure.messaging.eventhubs.models.PartitionContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStrategy;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -45,6 +46,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -407,6 +409,33 @@ public class TestConsumeAzureEventHub {
         final ProvenanceEventRecord provenanceEvent2 = provenanceEvents.get(1);
         assertEquals(ProvenanceEventType.RECEIVE, provenanceEvent2.getEventType());
         assertEquals(EXPECTED_TRANSIT_URI, provenanceEvent2.getTransitUri());
+    }
+
+    @Test
+    void testMigration() {
+        TestRunner testRunner = TestRunners.newTestRunner(ConsumeAzureEventHub.class);
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("event-hub-namespace", ConsumeAzureEventHub.NAMESPACE.getName()),
+                Map.entry("event-hub-name", ConsumeAzureEventHub.EVENT_HUB_NAME.getName()),
+                Map.entry("event-hub-shared-access-policy-name", ConsumeAzureEventHub.ACCESS_POLICY_NAME.getName()),
+                Map.entry("event-hub-consumer-group", ConsumeAzureEventHub.CONSUMER_GROUP.getName()),
+                Map.entry("record-reader", ConsumeAzureEventHub.RECORD_READER.getName()),
+                Map.entry("record-writer", ConsumeAzureEventHub.RECORD_WRITER.getName()),
+                Map.entry("event-hub-initial-offset", ConsumeAzureEventHub.INITIAL_OFFSET.getName()),
+                Map.entry("event-hub-prefetch-count", ConsumeAzureEventHub.PREFETCH_COUNT.getName()),
+                Map.entry("event-hub-batch-size", ConsumeAzureEventHub.BATCH_SIZE.getName()),
+                Map.entry("event-hub-message-receive-timeout", ConsumeAzureEventHub.RECEIVE_TIMEOUT.getName()),
+                Map.entry("checkpoint-strategy", ConsumeAzureEventHub.CHECKPOINT_STRATEGY.getName()),
+                Map.entry("storage-account-name", ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME.getName()),
+                Map.entry("storage-account-key", ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY.getName()),
+                Map.entry("storage-sas-token", ConsumeAzureEventHub.STORAGE_SAS_TOKEN.getName()),
+                Map.entry("storage-container-name", ConsumeAzureEventHub.STORAGE_CONTAINER_NAME.getName()),
+                Map.entry("event-hub-shared-access-policy-primary-key", ConsumeAzureEventHub.POLICY_PRIMARY_KEY.getName()),
+                Map.entry(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, ConsumeAzureEventHub.USE_MANAGED_IDENTITY.getName())
+        );
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void setProperties() {

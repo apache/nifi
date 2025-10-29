@@ -31,7 +31,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.parquet.stream.NifiParquetInputFile;
+import org.apache.nifi.parquet.shared.NifiParquetInputFile;
 import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -30,7 +30,7 @@ import { Client } from '../../../../../../../service/client.service';
 import { NifiSpinnerDirective } from '../../../../../../../ui/common/spinner/nifi-spinner.directive';
 import { EditComponentDialogRequest } from '../../../../../state/flow';
 import { ClusterConnectionService } from '../../../../../../../service/cluster-connection.service';
-import { TabbedDialog } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../../../../../../ui/common/tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../../../../state/error';
 import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
 import { openNewParameterContextDialog } from '../../../../../state/parameter/parameter.actions';
@@ -59,9 +59,21 @@ import { selectCurrentUser } from '../../../../../../../state/current-user/curre
         ContextErrorBanner,
         SortObjectByPropertyPipe
     ],
-    styleUrls: ['./edit-process-group.component.scss']
+    styleUrls: ['./edit-process-group.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-process-group-selected-index'
+        }
+    ]
 })
 export class EditProcessGroup extends TabbedDialog {
+    request = inject<EditComponentDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
+    private store = inject<Store<CanvasState>>(Store);
+
     @Input() set parameterContexts(parameterContexts: ParameterContextEntity[]) {
         if (parameterContexts !== undefined) {
             this.parameterContextsOptions = [];
@@ -181,14 +193,9 @@ export class EditProcessGroup extends TabbedDialog {
         }
     ];
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
-        private formBuilder: FormBuilder,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService,
-        private store: Store<CanvasState>
-    ) {
-        super('edit-process-group-selected-index');
+    constructor() {
+        super();
+        const request = this.request;
 
         this.readonly = !request.entity.permissions.canWrite;
 

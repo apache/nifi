@@ -28,6 +28,11 @@ export const loadClusterListingSuccess = createAction(
     props<{ response: ClusterListingEntity }>()
 );
 
+export const loadClusterListingError = createAction(
+    `${CLUSTER_LISTING_PREFIX} Load Cluster Listing Error`,
+    props<{ errorResponse: any; loadedTimestamp: string; status: 'pending' | 'success' }>()
+);
+
 export const confirmAndDisconnectNode = createAction(
     `${CLUSTER_LISTING_PREFIX} Confirm And Disconnect Node`,
     props<{ request: ClusterNode }>()

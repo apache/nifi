@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
 import { loadContentViewerOptions, resetContentViewerOptions } from '../state/viewer-options/viewer-options.actions';
@@ -46,6 +46,10 @@ interface SupportedContentViewer {
     standalone: false
 })
 export class ContentViewerComponent implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
+    private formBuilder = inject(FormBuilder);
+
     viewerForm: FormGroup;
     viewAsOptions: SelectGroup[] = [];
     panelWidth: string | null = 'auto';
@@ -65,11 +69,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     private queryParamsLoaded = false;
     private viewerOptionsLoaded = false;
 
-    constructor(
-        private store: Store<NiFiState>,
-        private nifiCommon: NiFiCommon,
-        private formBuilder: FormBuilder
-    ) {
+    constructor() {
         this.viewerForm = this.formBuilder.group({ viewAs: null });
 
         this.store

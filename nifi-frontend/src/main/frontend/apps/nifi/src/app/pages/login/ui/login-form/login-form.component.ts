@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { login } from '../../state/access/access.actions';
@@ -29,22 +29,23 @@ import { RouterLink } from '@angular/router';
 import { MatFormField } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
 import { MatLabel } from '@angular/material/select';
+import { MatButtonModule } from '@angular/material/button';
 
 @Component({
     selector: 'login-form',
     templateUrl: './login-form.component.html',
-    imports: [RouterLink, ReactiveFormsModule, MatFormField, MatInput, MatLabel],
+    imports: [RouterLink, ReactiveFormsModule, MatFormField, MatInput, MatLabel, MatButtonModule],
     styleUrls: ['./login-form.component.scss']
 })
 export class LoginForm {
+    private formBuilder = inject(FormBuilder);
+    private store = inject<Store<NiFiState>>(Store);
+
     logoutSupported = this.store.selectSignal(selectLogoutSupported);
 
     loginForm: FormGroup;
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private store: Store<NiFiState>
-    ) {
+    constructor() {
         // build the form
         this.loginForm = this.formBuilder.group({
             username: new FormControl('', Validators.required),

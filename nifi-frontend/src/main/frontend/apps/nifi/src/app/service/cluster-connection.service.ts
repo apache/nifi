@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ClusterSummaryState } from '../state/cluster-summary';
 import { selectDisconnectionAcknowledged } from '../state/cluster-summary/cluster-summary.selectors';
@@ -24,9 +24,9 @@ import { selectDisconnectionAcknowledged } from '../state/cluster-summary/cluste
     providedIn: 'root'
 })
 export class ClusterConnectionService {
-    private disconnectionAcknowledged = this.store.selectSignal(selectDisconnectionAcknowledged);
+    private store = inject<Store<ClusterSummaryState>>(Store);
 
-    constructor(private store: Store<ClusterSummaryState>) {}
+    private disconnectionAcknowledged = this.store.selectSignal(selectDisconnectionAcknowledged);
 
     isDisconnectionAcknowledged(): boolean {
         return this.disconnectionAcknowledged();

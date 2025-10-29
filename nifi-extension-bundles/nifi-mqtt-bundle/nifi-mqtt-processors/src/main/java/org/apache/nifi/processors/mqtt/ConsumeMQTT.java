@@ -36,6 +36,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -140,8 +141,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor.Builder()
-            .name("Quality of Service(QoS)")
-            .displayName("Quality of Service (QoS)")
+            .name("Quality of Service")
             .description("The Quality of Service (QoS) to receive the message with. Accepts values '0', '1' or '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'.")
             .required(true)
             .defaultValue(ALLOWABLE_VALUE_QOS_0.getValue())
@@ -180,8 +180,7 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
             .build();
 
     public static final PropertyDescriptor ADD_ATTRIBUTES_AS_FIELDS = new PropertyDescriptor.Builder()
-            .name("add-attributes-as-fields")
-            .displayName("Add attributes as fields")
+            .name("Add Attributes as Fields")
             .description("If setting this property to true, default fields "
                     + "are going to be added in each record: _topic, _qos, _isDuplicate, _isRetained.")
             .required(true)
@@ -376,6 +375,13 @@ public class ConsumeMQTT extends AbstractMQTTProcessor {
         } else {
             transferQueue(session);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("Quality of Service(QoS)", PROP_QOS.getName());
+        config.renameProperty("add-attributes-as-fields", ADD_ATTRIBUTES_AS_FIELDS.getName());
     }
 
     private void initializeClient(ProcessContext context) {

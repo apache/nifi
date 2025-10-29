@@ -16,21 +16,12 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.Regions;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2;
-import com.amazonaws.services.s3.AmazonS3EncryptionClientV2Builder;
-import com.amazonaws.services.s3.model.CryptoConfigurationV2;
-import com.amazonaws.services.s3.model.EncryptionMaterials;
-import com.amazonaws.services.s3.model.StaticEncryptionMaterialsProvider;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.ValidationResult;
+import software.amazon.encryption.s3.S3EncryptionClient;
 
 import javax.crypto.spec.SecretKeySpec;
-import java.util.function.Consumer;
 
 /**
  * This strategy uses a client master key to perform client-side encryption.   Use this strategy when you want the client to perform the encryption,
@@ -40,39 +31,23 @@ import java.util.function.Consumer;
  *
  */
 public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
-    /**
-     * Create an encryption client.
-     *
-     * @param clientBuilder A consumer that is responsible for configuring the client builder
-     * @param kmsRegion not used by this encryption strategy
-     * @param keyIdOrMaterial client master key, always base64 encoded
-     * @return AWS S3 client
-     */
     @Override
-    public AmazonS3 createEncryptionClient(final Consumer<AmazonS3Builder<?, ?>> clientBuilder, final String kmsRegion, final String keyIdOrMaterial) {
-        final ValidationResult keyValidationResult = validateKey(keyIdOrMaterial);
+    public S3EncryptionClient.Builder createEncryptionClientBuilder(S3EncryptionKeySpec keySpec) {
+        final ValidationResult keyValidationResult = validateKeySpec(keySpec);
         if (!keyValidationResult.isValid()) {
             throw new IllegalArgumentException("Invalid client key; " + keyValidationResult.getExplanation());
         }
 
-        final byte[] keyMaterial = Base64.decodeBase64(keyIdOrMaterial);
+        final byte[] keyMaterial = Base64.decodeBase64(keySpec.material());
         final SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
-        final StaticEncryptionMaterialsProvider encryptionMaterialsProvider = new StaticEncryptionMaterialsProvider(new EncryptionMaterials(symmetricKey));
 
-        final CryptoConfigurationV2 cryptoConfig = new CryptoConfigurationV2();
-        // A placeholder KMS Region needs to be set due to bug https://github.com/aws/aws-sdk-java/issues/2530
-        cryptoConfig.setAwsKmsRegion(Region.getRegion(Regions.DEFAULT_REGION));
-
-        final AmazonS3EncryptionClientV2Builder builder = AmazonS3EncryptionClientV2.encryptionBuilder()
-                .withCryptoConfiguration(cryptoConfig)
-                .withEncryptionMaterialsProvider(encryptionMaterialsProvider);
-        clientBuilder.accept(builder);
-        return builder.build();
+        return S3EncryptionClient.builder()
+                .aesKey(symmetricKey);
     }
 
     @Override
-    public ValidationResult validateKey(String keyValue) {
-        if (StringUtils.isBlank(keyValue)) {
+    public ValidationResult validateKeySpec(S3EncryptionKeySpec keySpec) {
+        if (StringUtils.isBlank(keySpec.material())) {
             return new ValidationResult.Builder()
                     .subject("Key Material")
                     .valid(false)
@@ -83,10 +58,10 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
         byte[] keyMaterial;
 
         try {
-            if (!Base64.isBase64(keyValue)) {
+            if (!Base64.isBase64(keySpec.material())) {
                 throw new Exception();
             }
-            keyMaterial = Base64.decodeBase64(keyValue);
+            keyMaterial = Base64.decodeBase64(keySpec.material());
         } catch (Exception e) {
             return new ValidationResult.Builder()
                     .subject("Key Material")

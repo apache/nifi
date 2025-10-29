@@ -48,12 +48,12 @@ import java.util.Set;
 @SupportsBatching
 @Tags({"map", "cache", "notify", "distributed", "signal", "release"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Caches a release signal identifier in the distributed cache, optionally along with "
+@CapabilityDescription("Caches a release signal identifier in the cache, optionally along with "
         + "the FlowFile's attributes.  Any flow files held at a corresponding Wait processor will be "
         + "released once this signal in the cache is discovered.")
 @WritesAttribute(attribute = "notified", description = "All FlowFiles will have an attribute 'notified'. The value of this " +
         "attribute is true, is the FlowFile is notified, otherwise false.")
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.MapCacheClientService", "org.apache.nifi.distributed.cache.server.map.MapCacheServer",
         "org.apache.nifi.processors.standard.Wait"})
 public class Notify extends AbstractProcessor {
 

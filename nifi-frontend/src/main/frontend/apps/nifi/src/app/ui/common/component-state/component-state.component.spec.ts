@@ -23,8 +23,12 @@ import { FormBuilder } from '@angular/forms';
 
 import { ComponentStateDialog } from './component-state.component';
 import { initialState } from '../../../state/component-state/component-state.reducer';
-import { ComponentState, ComponentStateState } from '../../../state/component-state';
+import { ComponentState, ComponentStateState, componentStateFeatureKey } from '../../../state/component-state';
 import * as ComponentStateActions from '../../../state/component-state/component-state.actions';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 import { NiFiCommon } from '@nifi/shared';
 
 describe('ComponentStateDialog', () => {
@@ -73,7 +77,13 @@ describe('ComponentStateDialog', () => {
         TestBed.configureTestingModule({
             imports: [ComponentStateDialog, NoopAnimationsModule],
             providers: [
-                provideMockStore({ initialState: { componentState: mockInitialState } }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [componentStateFeatureKey]: mockInitialState
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null },
                 { provide: NiFiCommon, useValue: nifiCommonSpy },
                 FormBuilder

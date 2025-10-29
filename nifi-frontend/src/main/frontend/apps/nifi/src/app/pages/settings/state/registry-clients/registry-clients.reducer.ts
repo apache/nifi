@@ -26,6 +26,7 @@ import {
     deleteRegistryClient,
     deleteRegistryClientSuccess,
     loadRegistryClients,
+    loadRegistryClientsError,
     loadRegistryClientsSuccess,
     registryClientsBannerApiError,
     registryClientsSnackbarApiError,
@@ -53,6 +54,10 @@ export const registryClientsReducer = createReducer(
         registryClients: response.registryClients,
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
+    })),
+    on(loadRegistryClientsError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(registryClientsBannerApiError, registryClientsSnackbarApiError, (state) => ({
         ...state,

@@ -24,6 +24,7 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
@@ -46,10 +47,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     public static final PropertyDescriptor GEO_DATABASE_FILE = new PropertyDescriptor.Builder()
-            // Name has been left untouched so that we don't cause a breaking change
-            // but ideally this should be renamed to MaxMind Database File or something similar
-            .name("Geo Database File")
-            .displayName("MaxMind Database File")
+            .name("MaxMind Database File")
             .description("Path to Maxmind IP Enrichment Database File")
             .required(true)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
@@ -131,6 +129,11 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
         stopWatch.stop();
         getLogger().info("Completed loading of Maxmind Database.  Elapsed time was {} milliseconds.", stopWatch.getDuration(TimeUnit.MILLISECONDS));
         databaseReaderRef.set(reader);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Geo Database File", GEO_DATABASE_FILE.getName());
     }
 
     @OnStopped

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -29,11 +29,13 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
     styleUrls: ['./override-policy-dialog.component.scss']
 })
 export class OverridePolicyDialog extends CloseOnEscapeDialog {
+    private formBuilder = inject(FormBuilder);
+
     @Output() copyInheritedPolicy: EventEmitter<boolean> = new EventEmitter<boolean>();
 
     overridePolicyForm: FormGroup;
 
-    constructor(private formBuilder: FormBuilder) {
+    constructor() {
         super();
         this.overridePolicyForm = this.formBuilder.group({
             override: new FormControl('copy')

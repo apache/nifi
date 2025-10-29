@@ -23,7 +23,7 @@ Apache NiFi Team <dev@nifi.apache.org>
 == Introduction
 
 This guide is intended to provide an introduction and some guidance to developing extensions for Apache NiFi using Python.
-This guide is not intended to be an alternative to the link:developer-guide.adoc[NiFi Developers Guide] document but rather
+This guide is not intended to be an alternative to the <<developer-guide.adoc#nifi-developers-guide,NiFi Developers Guide>> document but rather
 a supplement to it. The normal Developer Guide is far more in depth and discusses more topics. However, that guide is
 targeted toward Java developers. The philosophies and guidance offered in that guide, generally, still hold for Python extensions, though.
 
@@ -283,6 +283,33 @@ If the partition has more than one field in the dictionary, all fields in the di
 the Records to be written to the same output FlowFile.
 
 
+==== Working with Nested Records
+
+Manipulating just a small portion of an incoming record is a very common use case for `RecordTransform` processors. A
+practical approach is to rely on a dictionary traversal helper such as the https://pypi.org/project/glom/[glom] library.
+Python processors can declare third-party dependencies via the `dependencies` attribute on `ProcessorDetails`; NiFi downloads
+those packages when the processor is first loaded.
+
+The sample `HashRecordField` processor illustrates the pattern. It expects the processor configuration to supply a glom-style path
+(for example `customer.address.street` or `items.0.price`). That string can be passed directly to `glom(...)` to read values and
+`assign(...)` to update them without hand-coding dictionary traversal logic:
+
+----
+from glom import assign, glom
+
+_MISSING = object()
+path_spec = 'my.example'  # Glom-style path
+value = glom(record, path_spec, default=_MISSING)
+if value not in (None, _MISSING) and not isinstance(value, (dict, list)):
+    hashed = hashlib.sha256(str(value).encode('utf-8')).hexdigest()
+    assign(record, path_spec, hashed, missing=lambda: None)
+----
+
+The `HashRecordField` processor expects the Record Path property to contain a glom-style string such as `customer.address.street` or
+`items.0.price`. Supplying the same string to `glom(...)` and `assign(...)` makes it easy to read and update nested fields while
+`RecordTransformResult` persists the modified record using the configured Record Writer.
+
+
 [[flowfile-source]]
 === FlowFileSource
 
@@ -389,6 +416,68 @@ def getDynamicPropertyDescriptor(self, propertyname):
 If this method is not implemented and a user adds a property other than those that are explicitly supported, the Processor will become
 invalid. Of course, we might also specify explicit validators that can be used, etc.
 
+==== Dependent Properties
+
+Python-based processors can express property dependencies in the same way as Java processors. The
+`nifiapi.properties.PropertyDependency` class mirrors the Java builder's `dependsOn(...)` method and is exposed via the
+`dependencies` keyword argument on `PropertyDescriptor`.
+
+NiFi's discovery logic inspects the processor source code using Python's abstract syntax tree. When declaring a
+dependency, the referenced descriptor must therefore appear as a simple name, not as an attribute such as
+`self.output_mode`. The common pattern is to assign the descriptor to a local variable, reference that variable inside
+`PropertyDependency`, and only then assign the descriptor to an instance field for later reuse.
+
+----
+from nifiapi.properties import PropertyDescriptor, PropertyDependency
+
+output_mode = PropertyDescriptor(
+    name='Output Mode',
+    allowable_values=['text', 'json'],
+    default_value='text',
+    required=True,
+)
+
+uppercase = PropertyDescriptor(
+    name='Uppercase',
+    allowable_values=['true', 'false'],
+    default_value='false',
+    dependencies=[PropertyDependency(output_mode, 'text')],
+)
+
+json_field = PropertyDescriptor(
+    name='JSON Field Name',
+    required=True,
+    dependencies=[PropertyDependency(output_mode, 'json')],
+)
+
+# Optionally assign to instance attributes for reuse
+self.output_mode = output_mode
+self.uppercase = uppercase
+self.json_field = json_field
+----
+
+At runtime the NiFi UI hides or disables dependent properties until the prerequisite property is configured with one of the specified
+values, and the framework applies the same rules during validation.
+
+==== Referencing Controller Services
+
+Python processors can reference existing Java controller services using the same mechanism as Java processors. Set the
+`controller_service_definition` parameter on a `PropertyDescriptor` to the fully qualified class name of the controller service
+interface that should be exposed in the drop-down. For example:
+
+----
+self.lookup_service = PropertyDescriptor(
+    name='Lookup Service',
+    description='String lookup service used to enrich incoming records.',
+    required=True,
+    controller_service_definition='org.apache.nifi.lookup.StringLookupService'
+)
+----
+
+Within the processor implementation the configured service instance can be retrieved via the usual property accessors, for
+example `context.getProperty(self.lookup_service.name).asControllerService()`. NiFi ensures that only controller services
+implementing the referenced interface are eligible for selection. While simple class names work when type names are unique, using
+the fully qualified interface name avoids ambiguity when multiple controller services share the same simple name.
 
 
 [[relationships]]
@@ -618,7 +707,7 @@ because we know that the ListFile Processor will produce these attributes for us
 [[requirements]]
 == Requirements
 
-The Python API requires that Python 3.9, 3.10, 3.11, or 3.12 is available on the machine hosting NiFi.
+The Python API requires that Python 3.10, 3.11, or 3.12 is available on the machine hosting NiFi.
 
 Each Processor may have its own list of requirements / dependencies. These are made available to the Processor by creating a separate
 environment for each Processor implementation (not for each instance of a Processor on the canvas). PyPI is then used to install these

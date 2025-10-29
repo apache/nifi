@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 
 import { Store } from '@ngrx/store';
 import { BulletinBoardFilterArgs, BulletinBoardState, LoadBulletinBoardRequest } from '../../state/bulletin-board';
@@ -62,13 +62,13 @@ import { MatButtonModule } from '@angular/material/button';
     styleUrls: ['./bulletin-board.component.scss']
 })
 export class BulletinBoard implements OnInit, OnDestroy {
+    private store = inject<Store<BulletinBoardState>>(Store);
+
     bulletinBoardState$ = this.store.select(selectBulletinBoardState);
     private bulletinBoardFilter$ = this.store.select(selectBulletinBoardFilter);
     private currentFilter: BulletinBoardFilterArgs | null = null;
 
     autoRefresh = true;
-
-    constructor(private store: Store<BulletinBoardState>) {}
 
     ngOnInit(): void {
         this.store.dispatch(

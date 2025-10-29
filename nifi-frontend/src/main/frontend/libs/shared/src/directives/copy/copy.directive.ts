@@ -17,24 +17,22 @@
  * under the License.
  */
 
-import { Directive, ElementRef, HostListener, Input, NgZone, Renderer2 } from '@angular/core';
-import { fromEvent, Subscription, switchMap, take } from 'rxjs';
+import { Directive, ElementRef, HostListener, Input, NgZone, Renderer2, inject } from '@angular/core';
+import { fromEvent, Subscription, switchMap, take, tap } from 'rxjs';
 
 @Directive({
     selector: '[copy]',
     standalone: true
 })
 export class CopyDirective {
+    private elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+    private renderer = inject(Renderer2);
+    private zone = inject(NgZone);
+
     @Input({ required: true }) copy!: string;
 
     private copyButton: HTMLElement | null = null;
     private subscription: Subscription | null = null;
-
-    constructor(
-        private elementRef: ElementRef<HTMLElement>,
-        private renderer: Renderer2,
-        private zone: NgZone
-    ) {}
 
     isClipboardAvailable(): boolean {
         // system clipboard interaction requires the browser to be in a secured context.
@@ -51,8 +49,13 @@ export class CopyDirective {
 
                 // run outside the angular zone to prevent unnecessary change detection cycles
                 this.subscription = this.zone.runOutsideAngular(() => {
-                    return fromEvent(cb, 'click')
+                    return fromEvent<MouseEvent>(cb, 'click')
                         .pipe(
+                            tap((event: MouseEvent) => {
+                                // prevent copy click from triggering parent click handlers
+                                event.stopPropagation();
+                                event.preventDefault();
+                            }),
                             switchMap(() => navigator.clipboard.writeText(this.copy)),
                             take(1)
                         )

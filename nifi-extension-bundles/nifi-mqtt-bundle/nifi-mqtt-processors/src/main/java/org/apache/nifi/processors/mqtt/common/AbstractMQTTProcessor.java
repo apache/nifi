@@ -25,6 +25,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -227,22 +228,19 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .build();
 
     public static final PropertyDescriptor BASE_RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(false)
             .build();
 
     public static final PropertyDescriptor BASE_RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(false)
             .build();
 
     public static final PropertyDescriptor BASE_MESSAGE_DEMARCATOR = new PropertyDescriptor.Builder()
-            .name("message-demarcator")
-            .displayName("Message Demarcator")
+            .name("Message Demarcator")
             .required(false)
             .addValidator(Validator.VALID)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -353,6 +351,13 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     }
 
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", BASE_RECORD_READER.getName());
+        config.renameProperty("record-writer", BASE_RECORD_WRITER.getName());
+        config.renameProperty("message-demarcator", BASE_MESSAGE_DEMARCATOR.getName());
+    }
 
     protected boolean isConnected() {
         return (mqttClient != null && mqttClient.isConnected());

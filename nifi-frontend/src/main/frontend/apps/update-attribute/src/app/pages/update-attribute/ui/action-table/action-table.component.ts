@@ -77,6 +77,9 @@ export interface ActionItem {
     ]
 })
 export class ActionTable implements AfterViewInit, ControlValueAccessor {
+    private changeDetector = inject(ChangeDetectorRef);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() isNew: boolean = false;
 
     private destroyRef = inject(DestroyRef);
@@ -114,11 +117,6 @@ export class ActionTable implements AfterViewInit, ControlValueAccessor {
         overlayY: 'center'
     };
     public editorPositions: ConnectionPositionPair[] = [];
-
-    constructor(
-        private changeDetector: ChangeDetectorRef,
-        private nifiCommon: NiFiCommon
-    ) {}
 
     ngAfterViewInit(): void {
         this.valueTriggers.changes.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {

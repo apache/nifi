@@ -181,4 +181,62 @@ describe('NfEditor', () => {
         expect(mockNifiLanguagePackage.isValidParameter).toHaveBeenCalledWith('testParam');
         expect(mockNifiLanguagePackage.isValidElFunction).toHaveBeenCalledWith('uuid');
     });
+
+    it('should use default value and mark form dirty when item value is null', () => {
+        const mockItem: PropertyItem = {
+            property: 'test.property',
+            descriptor: {
+                name: 'test.property',
+                displayName: 'Test Property',
+                description: 'A test property',
+                required: false,
+                sensitive: false,
+                dynamic: false,
+                supportsEl: false,
+                expressionLanguageScope: 'NONE',
+                dependencies: [],
+                defaultValue: 'default-test-value'
+            },
+            value: null,
+            id: 1,
+            triggerEdit: false,
+            deleted: false,
+            added: false,
+            dirty: false,
+            savedValue: 'some-other-value',
+            type: 'optional'
+        };
+
+        // Mock the form controls to track setValue and markAsDirty calls
+        const mockValueControl = {
+            setValue: jest.fn(),
+            addValidators: jest.fn(),
+            removeValidators: jest.fn(),
+            disable: jest.fn(),
+            enable: jest.fn()
+        };
+        const mockEmptyStringControl = {
+            setValue: jest.fn(),
+            value: false
+        };
+        const mockForm = {
+            get: jest.fn((control: string) => {
+                if (control === 'value') return mockValueControl;
+                if (control === 'setEmptyString') return mockEmptyStringControl;
+                return null;
+            }),
+            markAsDirty: jest.fn()
+        };
+
+        component.nfEditorForm = mockForm as any;
+        component.item = mockItem;
+        component.parameterConfig = {
+            parameters: null,
+            supportsParameters: false
+        };
+
+        // Verify that the default value was set and form was marked dirty
+        expect(mockValueControl.setValue).toHaveBeenCalledWith('default-test-value');
+        expect(mockForm.markAsDirty).toHaveBeenCalled();
+    });
 });

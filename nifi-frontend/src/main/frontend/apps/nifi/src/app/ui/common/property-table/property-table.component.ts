@@ -90,6 +90,9 @@ import { PropertyValueTip } from '../tooltips/property-value-tip/property-value-
     ]
 })
 export class PropertyTable implements AfterViewInit, ControlValueAccessor {
+    private changeDetector = inject(ChangeDetectorRef);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() parameterContext: ParameterContextEntity | undefined;
@@ -148,11 +151,6 @@ export class PropertyTable implements AfterViewInit, ControlValueAccessor {
         overlayY: 'top',
         offsetY: 4
     };
-
-    constructor(
-        private changeDetector: ChangeDetectorRef,
-        private nifiCommon: NiFiCommon
-    ) {}
 
     ngAfterViewInit(): void {
         this.initFilter();

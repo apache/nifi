@@ -23,6 +23,7 @@ import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -285,6 +286,63 @@ public class TestStandardFlowComparator {
                         && difference.getComponentA().getComponentType() == ComponentType.CONTROLLER_SERVICE));
     }
 
+    @Test
+    public void testScheduledStateChangeDetectedForProcessorInNestedVersionedGroup() {
+        final String rootPgIdentifier = "rootPG";
+        final String nestedPgIdentifier = "nestedPG";
+        final String procIdentifier = "processorZ";
+        final VersionedProcessGroup registryRoot = new VersionedProcessGroup();
+        registryRoot.setIdentifier(rootPgIdentifier);
+
+        final VersionedProcessGroup localRoot = new VersionedProcessGroup();
+        localRoot.setIdentifier(rootPgIdentifier);
+
+        final VersionedProcessGroup registryNested = new VersionedProcessGroup();
+        registryNested.setIdentifier(nestedPgIdentifier);
+        registryNested.setVersionedFlowCoordinates(createVersionedFlowCoordinates());
+        registryRoot.getProcessGroups().add(registryNested);
+
+        final VersionedProcessGroup localNested = new VersionedProcessGroup();
+        localNested.setIdentifier(nestedPgIdentifier);
+        localNested.setVersionedFlowCoordinates(createVersionedFlowCoordinates());
+        localRoot.getProcessGroups().add(localNested);
+
+        final VersionedProcessor registryProcessor = new VersionedProcessor();
+        registryProcessor.setIdentifier(procIdentifier);
+        registryProcessor.setScheduledState(ScheduledState.ENABLED);
+        registryProcessor.setProperties(Collections.emptyMap());
+        registryProcessor.setPropertyDescriptors(Collections.emptyMap());
+        registryNested.getProcessors().add(registryProcessor);
+
+        final VersionedProcessor localProcessor = new VersionedProcessor();
+        localProcessor.setIdentifier(procIdentifier);
+        localProcessor.setScheduledState(ScheduledState.DISABLED);
+        localProcessor.setProperties(Collections.emptyMap());
+        localProcessor.setPropertyDescriptors(Collections.emptyMap());
+        localNested.getProcessors().add(localProcessor);
+
+        final ComparableDataFlow registryFlow = new StandardComparableDataFlow("registry", registryRoot);
+        final ComparableDataFlow localFlow = new StandardComparableDataFlow("local", localRoot);
+
+        final StandardFlowComparator testComparator = new StandardFlowComparator(
+                registryFlow,
+                localFlow,
+                Collections.emptySet(),
+                new StaticDifferenceDescriptor(),
+                Function.identity(),
+                VersionedComponent::getIdentifier,
+                FlowComparatorVersionedStrategy.SHALLOW);
+
+        final Set<FlowDifference> differences = testComparator.compare().getDifferences();
+
+        final boolean scheduledStateDiffFound = differences.stream()
+                .anyMatch(diff -> diff.getDifferenceType() == DifferenceType.SCHEDULED_STATE_CHANGED
+                        && diff.getComponentB() != null
+                        && procIdentifier.equals(diff.getComponentB().getIdentifier()));
+
+        assertTrue(scheduledStateDiffFound, "Expected scheduled state change for processor inside nested process group to be detected");
+    }
+
     private VersionedParameter createParameter(final String name, final String value, final boolean sensitive) {
         return createParameter(name, value, sensitive, null);
     }
@@ -303,5 +361,14 @@ public class TestStandardFlowComparator {
         asset.setIdentifier(id);
         asset.setName(name);
         return asset;
+    }
+
+    private VersionedFlowCoordinates createVersionedFlowCoordinates() {
+        final VersionedFlowCoordinates coordinates = new VersionedFlowCoordinates();
+        coordinates.setRegistryId("registry");
+        coordinates.setBucketId("bucketId");
+        coordinates.setFlowId("flowId");
+        coordinates.setVersion("1");
+        return coordinates;
     }
 }

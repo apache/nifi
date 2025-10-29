@@ -27,6 +27,10 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { provenanceFeatureKey } from '../state';
 import { provenanceEventListingFeatureKey } from '../state/provenance-event-listing';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 
 describe('Provenance', () => {
     let component: Provenance;
@@ -39,6 +43,8 @@ describe('Provenance', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [provenanceFeatureKey]: {
                             [provenanceEventListingFeatureKey]: initialState
                         }

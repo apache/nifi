@@ -19,6 +19,9 @@ import { UserListing } from './user-listing.component';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/user-listing/user-listing.reducer';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { usersFeatureKey } from '../../state';
 
 describe('UserListing', () => {
     let component: UserListing;
@@ -27,7 +30,16 @@ describe('UserListing', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [UserListing],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [usersFeatureKey]: {
+                            [usersFeatureKey]: initialState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(UserListing);
         component = fixture.componentInstance;

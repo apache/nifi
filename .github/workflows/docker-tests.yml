@@ -91,7 +91,7 @@ env:
     -pl nifi-docker/dockermaven
     -pl nifi-registry/nifi-registry-docker-maven/dockermaven
 
-  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.NIFI_DEVELOCITY_ACCESS_KEY }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

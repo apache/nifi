@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
@@ -23,26 +23,25 @@ import { NiFiState } from '../../../../state';
 import * as BulletinBoardActions from './bulletin-board.actions';
 import { asyncScheduler, catchError, from, interval, map, of, switchMap, takeUntil } from 'rxjs';
 import { BulletinBoardService } from '../../service/bulletin-board.service';
-import { selectBulletinBoardFilter, selectLastBulletinId, selectStatus } from './bulletin-board.selectors';
+import { selectBulletinBoardFilter, selectLastBulletinId, selectLoadedTimestamp } from './bulletin-board.selectors';
 import { LoadBulletinBoardRequest } from './index';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { initialBulletinBoardState } from './bulletin-board.reducer';
 
 @Injectable()
 export class BulletinBoardEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private bulletinBoardService: BulletinBoardService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private bulletinBoardService = inject(BulletinBoardService);
+    private errorHelper = inject(ErrorHelper);
 
     loadBulletinBoard$ = createEffect(() =>
         this.actions$.pipe(
             ofType(BulletinBoardActions.loadBulletinBoard),
             map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([request, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([request, loadedTimestamp]) =>
                 from(
                     this.bulletinBoardService.getBulletins(request).pipe(
                         map((response: any) =>
@@ -54,9 +53,30 @@ export class BulletinBoardEffects {
                             })
                         ),
                         catchError((errorResponse: HttpErrorResponse) =>
-                            of(this.errorHelper.handleLoadingError(status, errorResponse))
+                            of(
+                                BulletinBoardActions.loadBulletinBoardError({
+                                    errorResponse,
+                                    loadedTimestamp,
+                                    status:
+                                        loadedTimestamp !== initialBulletinBoardState.loadedTimestamp
+                                            ? 'success'
+                                            : 'pending'
+                                })
+                            )
                         )
                     )
+                )
+            )
+        )
+    );
+
+    bulletinBoardListingError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(BulletinBoardActions.loadBulletinBoardError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialBulletinBoardState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

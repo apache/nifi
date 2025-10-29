@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { Store } from '@ngrx/store';
@@ -36,13 +36,11 @@ import { ComponentState, ComponentStateEntity } from './index';
 
 @Injectable()
 export class ComponentStateEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private componentStateService: ComponentStateService,
-        private dialog: MatDialog,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private componentStateService = inject(ComponentStateService);
+    private dialog = inject(MatDialog);
+    private errorHelper = inject(ErrorHelper);
 
     getComponentStateAndOpenDialog$ = createEffect(() =>
         this.actions$.pipe(

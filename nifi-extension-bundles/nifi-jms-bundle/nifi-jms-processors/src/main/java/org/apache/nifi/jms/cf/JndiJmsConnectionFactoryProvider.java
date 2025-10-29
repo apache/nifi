@@ -28,6 +28,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 
 import jakarta.jms.ConnectionFactory;
+import org.apache.nifi.migration.PropertyConfiguration;
+
 import java.util.List;
 
 @Tags({"jms", "jndi", "messaging", "integration", "queue", "topic", "publish", "subscribe"})
@@ -71,5 +73,15 @@ public class JndiJmsConnectionFactoryProvider extends AbstractControllerService 
     @Override
     public void resetConnectionFactory(ConnectionFactory cachedFactory) {
         delegate.resetConnectionFactory(cachedFactory);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_INITIAL_CONTEXT_FACTORY_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_PROVIDER_URL_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_CONNECTION_FACTORY_NAME_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_CLIENT_LIBRARIES_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_CLIENT_LIBRARIES.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_PRINCIPAL_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_PRINCIPAL.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_CREDENTIALS_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_CREDENTIALS.getName());
     }
 }

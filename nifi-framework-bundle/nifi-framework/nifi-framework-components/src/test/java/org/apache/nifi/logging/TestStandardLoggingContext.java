@@ -38,7 +38,7 @@ class TestStandardLoggingContext {
 
     @Test
     void testNullComponent_ShouldReturnOptionalEmpty() {
-        LoggingContext context = new StandardLoggingContext(null);
+        LoggingContext context = new StandardLoggingContext();
 
         assertTrue(context.getLogFileSuffix().isEmpty());
     }
@@ -48,7 +48,7 @@ class TestStandardLoggingContext {
         //component with pg with no setting returns optional empty
         LoggingContext context = new StandardLoggingContext(processor);
         when(processor.getProcessGroup()).thenReturn(processGroup);
-        when(processGroup.getLogFileSuffix()).thenReturn(null, null);
+        when(processGroup.getLogFileSuffix()).thenReturn(null, (String[]) null);
         when(processGroup.isRootGroup()).thenReturn(Boolean.FALSE, Boolean.TRUE);
         when(processGroup.getParent()).thenReturn(processGroup);
 

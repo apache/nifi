@@ -19,7 +19,9 @@ package org.apache.nifi.graph;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
@@ -28,9 +30,7 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Session;
-import org.testcontainers.containers.Neo4jContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.neo4j.Neo4jContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
@@ -43,13 +43,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Neo4J Cypher integration tests.
  */
-@Testcontainers
 @DisabledIfSystemProperty(named = "neo4j.ssl.test", matches = "true")
 public class ITNeo4JCypherExecutorNoSSL {
-    @Container
-    private static Neo4jContainer<?> neo4jContainer =
-            new Neo4jContainer<>(DockerImageName.parse(System.getProperty("neo4j.docker.image")))
-                    .withAdminPassword("testing1234");
+
+    private static Neo4jContainer neo4jContainer = new Neo4jContainer(DockerImageName.parse(System.getProperty("neo4j.docker.image"))).withAdminPassword("testing1234");
 
     protected TestRunner runner;
     protected Driver driver;
@@ -58,6 +55,16 @@ public class ITNeo4JCypherExecutorNoSSL {
 
     private GraphClientService clientService;
     private GraphQueryResultCallback EMPTY_CALLBACK = (record, hasMore) -> { };
+
+    @BeforeAll
+    public static void start() {
+        neo4jContainer.start();
+    }
+
+    @AfterAll
+    public static void stop() {
+        neo4jContainer.stop();
+    }
 
     @BeforeEach
     public void setUp() throws Exception {

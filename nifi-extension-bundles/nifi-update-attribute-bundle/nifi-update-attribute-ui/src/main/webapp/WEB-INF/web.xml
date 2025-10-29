@@ -15,8 +15,8 @@
 -->
 <web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
-         version="6.0">
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+         version="6.1">
     <servlet>
         <servlet-name>api</servlet-name>
         <servlet-class>org.glassfish.jersey.servlet.ServletContainer</servlet-class>
@@ -26,7 +26,7 @@
         </init-param>
         <init-param>
             <param-name>jersey.config.server.provider.classnames</param-name>
-            <param-value>org.apache.nifi.web.util.ObjectMapperResolver;org.glassfish.jersey.jackson.JacksonFeature</param-value>
+            <param-value>org.apache.nifi.update.attributes.mapper.ObjectMapperResolver;org.glassfish.jersey.jackson.JacksonFeature</param-value>
         </init-param>
     </servlet>
     <servlet-mapping>

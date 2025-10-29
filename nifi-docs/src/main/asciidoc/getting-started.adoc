@@ -18,13 +18,14 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: https://nifi.apache.org
 :linkattrs:
+:imagesdir: images
 
 
 == Who is This Guide For?
 
 This guide is written for users who have never used, have had limited exposure to, or only accomplished specific tasks within NiFi.
 This guide is not intended to be an exhaustive instruction manual or a reference guide. The
-link:user-guide.html[User Guide] provides a great deal of information
+<<user-guide.adoc#apache-nifi-user-guide,User Guide>> provides a great deal of information
 and is intended to be a much more exhaustive resource and is very useful as a reference guide, as well.
 This guide, in comparison, is intended to provide users with just the information needed in order
 to understand how to work with NiFi in order to quickly and easily build powerful and agile dataflows.
@@ -36,7 +37,7 @@ the sections that are most appropriate for you.
 
 This guide does expect that the user has a basic understanding of what NiFi is and does not
 delve into this level of detail. This level of information can be found in the
-link:overview.html[Overview] documentation.
+<<overview.adoc#apache-nifi-overview,Overview>> documentation.
 
 
 
@@ -64,7 +65,7 @@ NiFi can be downloaded from the link:https://nifi.apache.org/download/[NiFi Down
 that you would like to use, simply extract the zip archive to the location that you wish to run the application from.
 
 For information on how to configure the instance of NiFi (for example, to configure security, data storage
-configuration, or the port that NiFi is running on), see the link:administration-guide.html[Admin Guide].
+configuration, or the port that NiFi is running on), see the <<administration-guide.adoc#nifi-system-administrators-guide,Admin Guide>>.
 
 
 == Starting NiFi
@@ -162,7 +163,7 @@ into NiFi and then removes the local file. We can then double-click the Processo
 
 Now that we have added the GetFile Processor, we can configure it by right-clicking on the Processor and choosing
 the `Configure` menu item. The provided dialog allows us to configure many different options that can be read about
-in the link:user-guide.html[User Guide], but for the sake of this guide, we will focus on the Properties tab. Once
+in the <<user-guide.adoc#apache-nifi-user-guide,User Guide>>, but for the sake of this guide, we will focus on the Properties tab. Once
 the Properties tab has been selected, we are given a list of several different properties that we can configure
 for the Processor. The properties that are available depend on the type of Processor and are generally different
 for each type. Properties that are in bold are required properties. The Processor cannot be started until all required
@@ -275,8 +276,8 @@ specific configurations needed to accomplish use cases where they are commonly u
 The toolbar that provides users the ability to drag and drop Processors onto the graph includes several other components
 that can be used to build a dataflow. These components include Input and Output Ports, Funnels, Process Groups, and Remote
 Process Groups. Due to the intended scope of this document, we will not discuss these elements here, but information is
-readily available in the link:user-guide.html#building-dataflow[Building a Dataflow section] of the
-link:user-guide.html[User Guide].
+readily available in the <<user-guide.adoc#building-dataflow,Building a Dataflow section>> of the
+<<user-guide.adoc#apache-nifi-user-guide,User Guide>>.
 
 
 
@@ -549,7 +550,7 @@ the value of the `attr2` Attribute, we can do this with the following expression
 The Expression Language contains many different functions that can be used in order to perform the tasks needed for routing and manipulating
 Attributes. Functions exist for parsing and manipulating strings, comparing string and numeric values, manipulating and replacing values,
 and comparing values. A full explanation of the different functions available is out of the scope of this document, but the
-link:expression-language-guide.html[Expression Language Guide] provides far greater detail for each of the functions.
+<<expression-language-guide.adoc#apache-nifi-expression-language-guide,Expression Language Guide>> provides far greater detail for each of the functions.
 
 In addition, this Expression Language guide is built in to the application so that users are able to easily see which functions are available
 and see their documentation while typing. When setting the value of a property that supports the Expression Language, if the cursor is within
@@ -689,18 +690,18 @@ see where this is occurring is a very powerful feature that will help users to u
 The NiFi community has built up a significant amount of documentation on how to use the software. The following guides are available, in
 addition to this Getting Started Guide:
 
-- link:overview.html[Apache NiFi Overview] - Provides an overview of what Apache NiFi is, what it does, and why it was created.
-- link:user-guide.html[Apache NiFi User Guide] - A fairly extensive guide that is often used more as a Reference Guide, as it has pretty
+- <<overview.adoc#apache-nifi-overview,Apache NiFi Overview>> - Provides an overview of what Apache NiFi is, what it does, and why it was created.
+- <<user-guide.adoc#apache-nifi-user-guide,Apache NiFi User Guide>> - A fairly extensive guide that is often used more as a Reference Guide, as it has pretty
   lengthy discussions of all of the different components that comprise the application. This guide is written with the NiFi Operator as its
 	audience. It provides information on each of the different components available in NiFi and explains how to use the different features
 	provided by the application.
-- link:administration-guide.html[Administrator's Guide] - A guide for setting up and administering Apache NiFi for production environments.
+- <<administration-guide.adoc#nifi-system-administrators-guide,Administrator's Guide>> - A guide for setting up and administering Apache NiFi for production environments.
   This guide provides information about the different system-level settings, such as setting up clusters of NiFi and securing access to the
 	web UI and data.
-- link:expression-language-guide.html[Expression Language Guide] - A far more exhaustive guide for understanding the Expression Language than
+- <<expression-language-guide.adoc#apache-nifi-expression-language-guide,Expression Language Guide>> - A far more exhaustive guide for understanding the Expression Language than
   is provided above. This guide is the definitive documentation for the NiFi Expression Language. It provides an introduction to the EL
 	and an explanation of each function, its arguments, and return types as well as providing examples.
-- link:developer-guide.html[Developer's Guide] - While not an exhaustive guide to All Things NiFi Development, this guide does provide a
+- <<developer-guide.adoc#nifi-developers-guide,Developer's Guide>> - While not an exhaustive guide to All Things NiFi Development, this guide does provide a
   comprehensive overview of the different API's available and how they should be used. In addition, it provides Best Practices for developing
 	NiFi components and common Processor idioms to help aid in understanding the logic behind many of the existing NiFi components.
 - link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[Contributor's Guide^] - A guide for explaining how to contribute

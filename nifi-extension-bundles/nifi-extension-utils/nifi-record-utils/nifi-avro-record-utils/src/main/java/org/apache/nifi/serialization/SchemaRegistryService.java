@@ -87,6 +87,14 @@ public abstract class SchemaRegistryService extends AbstractControllerService {
                 propertyConfiguration.setProperty(SCHEMA_REFERENCE_READER, serviceId);
             }
         }
+
+        propertyConfiguration.renameProperty(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, SCHEMA_ACCESS_STRATEGY.getName());
+        propertyConfiguration.renameProperty(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SCHEMA_REGISTRY.getName());
+        propertyConfiguration.renameProperty(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SCHEMA_NAME.getName());
+        propertyConfiguration.renameProperty(SchemaAccessUtils.OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME, SCHEMA_BRANCH_NAME.getName());
+        propertyConfiguration.renameProperty(SchemaAccessUtils.OLD_SCHEMA_VERSION_PROPERTY_NAME, SCHEMA_VERSION.getName());
+        propertyConfiguration.renameProperty(SchemaAccessUtils.OLD_SCHEMA_TEXT_PROPERTY_NAME, SCHEMA_TEXT.getName());
+        propertyConfiguration.renameProperty(SchemaAccessUtils.OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME, SCHEMA_REFERENCE_READER.getName());
     }
 
     @Override

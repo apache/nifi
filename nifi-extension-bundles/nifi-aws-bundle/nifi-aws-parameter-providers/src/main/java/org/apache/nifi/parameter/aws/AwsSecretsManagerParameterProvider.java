@@ -33,7 +33,7 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterGroup;
 import org.apache.nifi.parameter.VerifiableParameterProvider;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
@@ -142,7 +142,7 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
             .displayName("AWS Credentials Provider Service")
             .description("Service used to obtain an Amazon Web Services Credentials Provider")
             .required(true)
-            .identifiesControllerService(AWSCredentialsProviderService.class)
+            .identifiesControllerService(AwsCredentialsProviderService.class)
             .build();
 
     public static final PropertyDescriptor REGION = new PropertyDescriptor.Builder()
@@ -369,15 +369,15 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
     }
 
     /**
-     * Get credentials provider using the {@link AWSCredentialsProviderService}
+     * Get credentials provider using the {@link AwsCredentialsProviderService}
      * @param context the configuration context
-     * @return AWSCredentialsProvider the credential provider
+     * @return AwsCredentialsProvider the credential provider
      * @see  <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/AWSCredentialsProvider.html">AWSCredentialsProvider</a>
      */
     protected AwsCredentialsProvider getCredentialsProvider(final ConfigurationContext context) {
 
-        final AWSCredentialsProviderService awsCredentialsProviderService =
-                context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AWSCredentialsProviderService.class);
+        final AwsCredentialsProviderService awsCredentialsProviderService =
+                context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).asControllerService(AwsCredentialsProviderService.class);
 
         return awsCredentialsProviderService.getAwsCredentialsProvider();
 

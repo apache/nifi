@@ -24,6 +24,12 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../../state/current-user';
+import { canvasFeatureKey } from '../../../../../state';
+import { flowFeatureKey } from '../../../../../state/flow';
 
 describe('GroupComponents', () => {
     let component: GroupComponents;
@@ -861,7 +867,21 @@ describe('GroupComponents', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [GroupComponents, NoopAnimationsModule],
-            providers: [{ provide: MAT_DIALOG_DATA, useValue: data }, provideMockStore({ initialState })]
+            providers: [
+                {
+                    provide: MAT_DIALOG_DATA,
+                    useValue: data
+                },
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(GroupComponents);
         component = fixture.componentInstance;

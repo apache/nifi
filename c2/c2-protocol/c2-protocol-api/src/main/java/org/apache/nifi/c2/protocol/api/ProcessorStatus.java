@@ -37,6 +37,7 @@ public class ProcessorStatus implements Serializable {
     private long processingNanos;
     private int activeThreadCount;
     private int terminatedThreadCount;
+    private RunStatus runStatus;
 
     @Schema(description = "The id of the processor")
     public String getId() {
@@ -144,5 +145,14 @@ public class ProcessorStatus implements Serializable {
 
     public void setTerminatedThreadCount(int terminatedThreadCount) {
         this.terminatedThreadCount = terminatedThreadCount;
+    }
+
+    @Schema(description = "The run status of the processor (e.g. RUNNING or STOPPED)")
+    public RunStatus getRunStatus() {
+        return runStatus;
+    }
+
+    public void setRunStatus(RunStatus runStatus) {
+        this.runStatus = runStatus;
     }
 }

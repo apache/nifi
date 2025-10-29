@@ -95,20 +95,20 @@
     <ng-template #authorizedInheritedParameterContext let-item let-i="i" let-canClose="canClose">
         @if (!isDisabled) {
             <div class="flex items-center">
-                <span class="grip pr-5"></span>
+                <span class="grip mr-2"></span>
                 <div class="parameter-context-inheritance-name" [title]="item.component.name">
                     {{ item.component.name }}
                 </div>
                 @if (hasDescription(item)) {
                     <i
-                        class="pl-1 fa fa-info-circle neutral-color"
+                        class="ml-2 fa fa-info-circle neutral-color"
                         nifiTooltip
                         [tooltipComponentType]="TextTip"
                         [tooltipInputData]="item.component.description"></i>
                 }
             </div>
             @if (canClose) {
-                <button class="pr-1" type="button" (click)="removeSelected(item, i)">
+                <button class="mr-2" type="button" (click)="removeSelected(item, i)">
                     <i class="fa fa-times neutral-contrast"></i>
                 </button>
             }
@@ -117,7 +117,7 @@
                 <div>{{ item.component.name }}</div>
                 @if (hasDescription(item)) {
                     <i
-                        class="pl-1 fa fa-info-circle neutral-color"
+                        class="ml-2 fa fa-info-circle neutral-color"
                         nifiTooltip
                         [tooltipComponentType]="TextTip"
                         [tooltipInputData]="item.description"></i>

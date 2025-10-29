@@ -23,6 +23,7 @@ import {
     createUserGroup,
     createUserGroupSuccess,
     loadTenants,
+    loadTenantsError,
     loadTenantsSuccess,
     resetUsersState,
     updateUser,
@@ -56,6 +57,10 @@ export const userListingReducer = createReducer(
         userGroups: response.userGroups,
         loadedTimestamp: response.loadedTimestamp,
         status: 'success' as const
+    })),
+    on(loadTenantsError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(createUser, updateUser, createUserGroup, updateUserGroup, (state) => ({
         ...state,

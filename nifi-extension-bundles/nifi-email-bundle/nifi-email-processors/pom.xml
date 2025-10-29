@@ -19,13 +19,13 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-email-bundle</artifactId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.7.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-email-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <spring.integration.version>6.5.2</spring.integration.version>
+        <spring.integration.version>6.5.3</spring.integration.version>
     </properties>
 
     <dependencies>
@@ -48,12 +48,12 @@
         <dependency>
             <groupId>jakarta.mail</groupId>
             <artifactId>jakarta.mail-api</artifactId>
-            <version>2.1.4</version>
+            <version>2.1.5</version>
         </dependency>
         <dependency>
             <groupId>jakarta.activation</groupId>
             <artifactId>jakarta.activation-api</artifactId>
-            <version>2.1.3</version>
+            <version>${jakarta.activation-api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -62,7 +62,7 @@
         <dependency>
             <groupId>org.eclipse.angus</groupId>
             <artifactId>angus-mail</artifactId>
-            <version>2.0.4</version>
+            <version>2.0.5</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.integration</groupId>
@@ -99,8 +99,14 @@
         <dependency>
             <groupId>com.icegreen</groupId>
             <artifactId>greenmail</artifactId>
-            <version>2.1.5</version>
+            <version>2.1.7</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>junit</groupId>
+                    <artifactId>junit</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>

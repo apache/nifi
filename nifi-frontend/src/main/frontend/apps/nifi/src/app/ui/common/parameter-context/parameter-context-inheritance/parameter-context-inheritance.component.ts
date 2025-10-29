@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, forwardRef, Input } from '@angular/core';
+import { Component, forwardRef, Input, inject } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -62,6 +62,9 @@ import {
     styleUrls: ['./parameter-context-inheritance.component.scss']
 })
 export class ParameterContextInheritance implements ControlValueAccessor {
+    private nifiCommon = inject(NiFiCommon);
+    private sortObjectByPropertyPipe = inject(SortObjectByPropertyPipe);
+
     @Input() set allParameterContexts(allParameterContexts: ParameterContextEntity[]) {
         this._allParameterContexts = [...allParameterContexts];
         this.processParameterContexts();
@@ -80,11 +83,6 @@ export class ParameterContextInheritance implements ControlValueAccessor {
     selectedParameterContexts: ParameterContextEntity[] = [];
 
     inheritedParameterContexts!: ParameterContextReferenceEntity[];
-
-    constructor(
-        private nifiCommon: NiFiCommon,
-        private sortObjectByPropertyPipe: SortObjectByPropertyPipe
-    ) {}
 
     private processParameterContexts(): void {
         this.availableParameterContexts = [];

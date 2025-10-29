@@ -16,102 +16,51 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
-import java.io.File;
-import java.io.IOException;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/**
- * Unit tests for ListDatabaseTables processor.
- */
-public class TestListDatabaseTables {
+class TestListDatabaseTables extends AbstractDatabaseConnectionServiceTest {
 
     TestRunner runner;
-    ListDatabaseTables processor;
-
-    private final static String DB_LOCATION = "target/db_ldt";
-
-    @BeforeAll
-    public static void setupBeforeClass() {
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        try {
-            FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignored) {
-            // Do nothing, may not have existed
-        }
-    }
-
-    @AfterAll
-    public static void cleanUpAfterClass() throws Exception {
-        try {
-            DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";shutdown=true");
-        } catch (SQLNonTransientConnectionException ignored) {
-            // Do nothing, this is what happens at Derby shutdown
-        }
-        // remove previous test database, if any
-        final File dbLocation = new File(DB_LOCATION);
-        try {
-            FileUtils.deleteFile(dbLocation, true);
-        } catch (IOException ignored) {
-            // Do nothing, may not have existed
-        }
-        System.clearProperty("derby.stream.error.file");
-    }
 
     @BeforeEach
-    public void setUp() throws Exception {
-        processor = new ListDatabaseTables();
-        final DBCPService dbcp = new DBCPServiceSimpleImpl();
-        final Map<String, String> dbcpProperties = new HashMap<>();
+    void setRunner() throws Exception {
+        runner = newTestRunner(ListDatabaseTables.class);
+    }
 
-        runner = TestRunners.newTestRunner(ListDatabaseTables.class);
-        runner.addControllerService("dbcp", dbcp, dbcpProperties);
-        runner.enableControllerService(dbcp);
-        runner.setProperty(ListDatabaseTables.DBCP_SERVICE, "dbcp");
+    @AfterEach
+    void dropTables() {
+        final List<String> tables = List.of(
+                "TEST_TABLE1",
+                "TEST_TABLE2"
+        );
+
+        for (final String table : tables) {
+            try (
+                    Connection connection = getConnection();
+                    Statement statement = connection.createStatement()
+            ) {
+                statement.execute("DROP TABLE %s".formatted(table));
+            } catch (final SQLException ignored) {
+
+            }
+        }
     }
 
     @Test
-    public void testListTablesNoCount() throws Exception {
-
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_TABLE1");
-            stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException ignored) {
-            // Do nothing, may not have existed
-        }
-
-        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+    void testListTablesNoCount() throws SQLException {
+        createTables();
 
         runner.run();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
@@ -122,24 +71,11 @@ public class TestListDatabaseTables {
     }
 
     @Test
-    public void testListTablesWithCount() throws Exception {
+    void testListTablesWithCount() throws Exception {
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
 
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_TABLE1");
-            stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException ignored) {
-            // Do nothing, may not have existed
-        }
-
-        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
-        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+        createTables();
+        insertFirstTableRows();
 
         runner.run();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
@@ -149,24 +85,11 @@ public class TestListDatabaseTables {
     }
 
     @Test
-    public void testListTablesWithCountAsRecord() throws Exception {
+    void testListTablesWithCountAsRecord() throws Exception {
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
 
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_TABLE1");
-            stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException ignored) {
-            // Do nothing, may not have existed
-        }
-
-        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
-        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+        createTables();
+        insertFirstTableRows();
 
         final MockRecordWriter recordWriter = new MockRecordWriter(null, false);
         runner.addControllerService("record-writer", recordWriter);
@@ -176,31 +99,18 @@ public class TestListDatabaseTables {
         runner.run();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(
-            "TEST_TABLE1,,APP,APP.TEST_TABLE1,TABLE,,2\n" +
-                "TEST_TABLE2,,APP,APP.TEST_TABLE2,TABLE,,0\n");
+                """
+                        TEST_TABLE1,,APP,APP.TEST_TABLE1,TABLE,,2
+                        TEST_TABLE2,,APP,APP.TEST_TABLE2,TABLE,,0
+                        """);
     }
 
-    @DisabledOnOs(OS.WINDOWS)
     @Test
-    public void testListTablesAfterRefresh() throws Exception {
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_TABLE1");
-            stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException ignored) {
-            // Do nothing, may not have existed
-        }
-
-        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
-        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
-        stmt.close();
+    void testListTablesAfterRefresh() throws Exception {
+        createTables();
+        insertFirstTableRows();
 
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
         runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "100 millis");
@@ -219,23 +129,10 @@ public class TestListDatabaseTables {
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
     }
 
-    @DisabledOnOs(OS.WINDOWS)
     @Test
-    public void testListTablesMultipleRefresh() throws Exception {
-        // load test data to database
-        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
-        Statement stmt = con.createStatement();
-
-        try {
-            stmt.execute("drop table TEST_TABLE1");
-            stmt.execute("drop table TEST_TABLE2");
-        } catch (final SQLException ignored) {
-            // Do nothing, may not have existed
-        }
-
-        stmt.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
-        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
-        stmt.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
+    void testListTablesMultipleRefresh() throws Exception {
+        createFirstTable();
+        insertFirstTableRows();
 
         runner.setProperty(ListDatabaseTables.INCLUDE_COUNT, "true");
         runner.setProperty(ListDatabaseTables.REFRESH_INTERVAL, "200 millis");
@@ -243,18 +140,18 @@ public class TestListDatabaseTables {
         long startTimer = System.currentTimeMillis();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
-        assertEquals("2", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
+        assertEquals("2", results.getFirst().getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
         runner.clearTransferState();
 
         // Add another table immediately, the first table should not be listed again but the second should
-        stmt.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
-        stmt.close();
+        createSecondTable();
+
         runner.run();
         long endTimer = System.currentTimeMillis();
         // Expect 1 or 2 tables (whether execution has taken longer than the refresh time)
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, (endTimer - startTimer > 200) ? 2 : 1);
         results = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS);
-        assertEquals((endTimer - startTimer > 200) ? "2" : "0", results.get(0).getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
+        assertEquals((endTimer - startTimer > 200) ? "2" : "0", results.getFirst().getAttribute(ListDatabaseTables.DB_TABLE_COUNT));
         runner.clearTransferState();
 
         // Now wait longer than the refresh interval and assert the refresh has happened (i.e. the two tables are re-listed)
@@ -263,24 +160,36 @@ public class TestListDatabaseTables {
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
     }
 
-    /**
-     * Simple implementation only for ListDatabaseTables processor testing.
-     */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private void createTables() throws SQLException {
+        createFirstTable();
+        createSecondTable();
+    }
 
-        @Override
-        public String getIdentifier() {
-            return "dbcp";
+    private void createFirstTable() throws SQLException {
+        try (
+                Connection connection = getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            statement.execute("create table TEST_TABLE1 (id integer not null, val1 integer, val2 integer, constraint my_pk1 primary key (id))");
         }
+    }
 
-        @Override
-        public Connection getConnection() throws ProcessException {
-            try {
-                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                return DriverManager.getConnection("jdbc:derby:" + DB_LOCATION + ";create=true");
-            } catch (final Exception e) {
-                throw new ProcessException("getConnection failed: " + e);
-            }
+    private void createSecondTable() throws SQLException {
+        try (
+                Connection connection = getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            statement.execute("create table TEST_TABLE2 (id integer not null, val1 integer, val2 integer, constraint my_pk2 primary key (id))");
+        }
+    }
+
+    private void insertFirstTableRows() throws SQLException {
+        try (
+                Connection connection = getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            statement.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (0, NULL, 1)");
+            statement.execute("insert into TEST_TABLE1 (id, val1, val2) VALUES (1, 1, 1)");
         }
     }
 }

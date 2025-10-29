@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-server-nar-bom</artifactId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.7.0-SNAPSHOT</version>
         <relativePath>../../../nifi-server-nar-bom</relativePath>
     </parent>
     <artifactId>nifi-web-api</artifactId>
@@ -131,7 +131,7 @@
                     <dependency>
                         <groupId>org.apache.nifi</groupId>
                         <artifactId>nifi-swagger-integration</artifactId>
-                        <version>2.6.0-SNAPSHOT</version>
+                        <version>2.7.0-SNAPSHOT</version>
                         <exclusions>
                             <exclusion>
                                 <groupId>io.swagger.core.v3</groupId>
@@ -181,24 +181,19 @@
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
-            <scope>provided</scope> <!-- expected to be provided by parent classloader -->
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-servlet-shared</artifactId>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-site-to-site</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-cluster-protocol</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -243,13 +238,13 @@
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-flow-diff</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-client</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -265,7 +260,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -294,7 +289,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-content-viewer-utils</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -305,7 +300,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-status-history-shared</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -336,7 +331,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>c2-protocol-component-api</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -350,8 +345,8 @@
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlet</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-servlet</artifactId>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -367,13 +362,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-components</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-data-provenance-utils</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -409,31 +404,31 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-security</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-optimistic-locking</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-ui-extension</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-administration</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-user-actions</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
@@ -497,11 +492,6 @@
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
         </dependency>
         <dependency>
-            <groupId>org.glassfish.jersey.core</groupId>
-            <artifactId>jersey-client</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
             <artifactId>jersey-media-json-jackson</artifactId>
             <scope>provided</scope> <!-- expected to be provided by parent classloader -->
@@ -534,19 +524,19 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-webapp</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-webapp</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlets</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-servlets</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-volatile-provenance-repository</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

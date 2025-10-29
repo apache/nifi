@@ -24,6 +24,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -99,13 +100,18 @@ public abstract class AbstractMongoQueryProcessor extends AbstractMongoProcessor
             .build();
 
     static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
-            .name("results-per-flowfile")
-            .displayName("Results Per FlowFile")
+            .name("Results Per FlowFile")
             .description("How many results to put into a FlowFile at once. The whole body will be treated as a JSON array of results.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("results-per-flowfile", RESULTS_PER_FLOWFILE.getName());
+    }
 
     protected Document getQuery(ProcessContext context, ProcessSession session, FlowFile input) {
         Document query = null;

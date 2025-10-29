@@ -38,6 +38,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -84,8 +85,7 @@ import java.util.stream.Collectors;
 public class GetShopify extends AbstractProcessor {
 
     static final PropertyDescriptor STORE_DOMAIN = new PropertyDescriptor.Builder()
-            .name("store-domain")
-            .displayName("Store Domain")
+            .name("Store Domain")
             .description("The domain of the Shopify store, e.g. nifistore.myshopify.com")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -93,8 +93,7 @@ public class GetShopify extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor ACCESS_TOKEN = new PropertyDescriptor.Builder()
-            .name("access-token")
-            .displayName("Access Token")
+            .name("Access Token")
             .description("Access Token to authenticate requests")
             .required(true)
             .sensitive(true)
@@ -103,8 +102,7 @@ public class GetShopify extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor API_VERSION = new PropertyDescriptor.Builder()
-            .name("api-version")
-            .displayName("API Version")
+            .name("API Version")
             .description("The Shopify REST API version")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -113,16 +111,14 @@ public class GetShopify extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor OBJECT_CATEGORY = new PropertyDescriptor.Builder()
-            .name("object-category")
-            .displayName("Object Category")
+            .name("Object Category")
             .description("Shopify object category")
             .required(true)
             .allowableValues(ResourceType.class)
             .build();
 
     static final PropertyDescriptor RESULT_LIMIT = new PropertyDescriptor.Builder()
-            .name("result-limit")
-            .displayName("Result Limit")
+            .name("Result Limit")
             .description("The maximum number of results to request for each invocation of the Processor")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
@@ -130,8 +126,7 @@ public class GetShopify extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor IS_INCREMENTAL = new PropertyDescriptor.Builder()
-            .name("is-incremental")
-            .displayName("Incremental Loading")
+            .name("Incremental Loading")
             .description("The processor can incrementally load the queried objects so that each object is queried exactly once." +
                     " For each query, the processor queries objects which were created or modified after the previous run time" +
                     " but before the current time.")
@@ -141,8 +136,7 @@ public class GetShopify extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor INCREMENTAL_DELAY = new PropertyDescriptor.Builder()
-            .name("incremental-delay")
-            .displayName("Incremental Delay")
+            .name("Incremental Delay")
             .description("The ending timestamp of the time window will be adjusted earlier by the amount configured in this property." +
                     " For example, with a property value of 10 seconds, an ending timestamp of 12:30:45 would be changed to 12:30:35." +
                     " Set this property to avoid missing objects when the clock of your local machines and Shopify servers' clock are not in sync.")
@@ -154,8 +148,7 @@ public class GetShopify extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor INCREMENTAL_INITIAL_START_TIME = new PropertyDescriptor.Builder()
-            .name("incremental-initial-start-time")
-            .displayName("Incremental Initial Start Time")
+            .name("Incremental Initial Start Time")
             .description("This property specifies the start time when running the first request." +
                     " Represents an ISO 8601-encoded date and time string. For example, 3:50 pm on September 7, 2019" +
                     " in the time zone of UTC (Coordinated Universal Time) is represented as \"2019-09-07T15:50:00Z\".")
@@ -166,8 +159,7 @@ public class GetShopify extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor WEB_CLIENT_PROVIDER = new PropertyDescriptor.Builder()
-            .name("web-client-service-provider")
-            .displayName("Web Client Service Provider")
+            .name("Web Client Service Provider")
             .description("Controller service for HTTP client operations")
             .required(true)
             .identifiesControllerService(WebClientServiceProvider.class)
@@ -356,6 +348,19 @@ public class GetShopify extends AbstractProcessor {
             }
 
         } while (cursor != null);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("store-domain", STORE_DOMAIN.getName());
+        config.renameProperty("access-token", ACCESS_TOKEN.getName());
+        config.renameProperty("api-version", API_VERSION.getName());
+        config.renameProperty("object-category", OBJECT_CATEGORY.getName());
+        config.renameProperty("result-limit", RESULT_LIMIT.getName());
+        config.renameProperty("is-incremental", IS_INCREMENTAL.getName());
+        config.renameProperty("incremental-delay", INCREMENTAL_DELAY.getName());
+        config.renameProperty("incremental-initial-start-time", INCREMENTAL_INITIAL_START_TIME.getName());
+        config.renameProperty("web-client-service-provider", WEB_CLIENT_PROVIDER.getName());
     }
 
     private String getPageCursor(HttpResponseEntity response) {

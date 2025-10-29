@@ -29,6 +29,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.pgp.service.api.PGPPrivateKeyService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -98,8 +99,7 @@ public class SignContentPGP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor FILE_ENCODING = new PropertyDescriptor.Builder()
-            .name("file-encoding")
-            .displayName("File Encoding")
+            .name("File Encoding")
             .description("File Encoding for signing")
             .required(true)
             .defaultValue(FileEncoding.BINARY.name())
@@ -107,8 +107,7 @@ public class SignContentPGP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor HASH_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("hash-algorithm")
-            .displayName("Hash Algorithm")
+            .name("Hash Algorithm")
             .description("Hash Algorithm for signing")
             .required(true)
             .defaultValue(HashAlgorithm.SHA512.name())
@@ -116,8 +115,7 @@ public class SignContentPGP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SIGNING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("signing-strategy")
-            .displayName("Signing Strategy")
+            .name("Signing Strategy")
             .description("Strategy for writing files to success after signing")
             .required(true)
             .defaultValue(SigningStrategy.SIGNED.name())
@@ -129,16 +127,14 @@ public class SignContentPGP extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PRIVATE_KEY_SERVICE = new PropertyDescriptor.Builder()
-            .name("private-key-service")
-            .displayName("Private Key Service")
+            .name("Private Key Service")
             .description("PGP Private Key Service for generating content signatures")
             .identifiesControllerService(PGPPrivateKeyService.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor PRIVATE_KEY_ID = new PropertyDescriptor.Builder()
-            .name("private-key-id")
-            .displayName("Private Key ID")
+            .name("Private Key ID")
             .description("PGP Private Key Identifier formatted as uppercase hexadecimal string of 16 characters used for signing")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -205,6 +201,15 @@ public class SignContentPGP extends AbstractProcessor {
             getLogger().error("Signing Failed {}", flowFile, e);
             session.transfer(flowFile, FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("file-encoding", FILE_ENCODING.getName());
+        config.renameProperty("hash-algorithm", HASH_ALGORITHM.getName());
+        config.renameProperty("signing-strategy", SIGNING_STRATEGY.getName());
+        config.renameProperty("private-key-service", PRIVATE_KEY_SERVICE.getName());
+        config.renameProperty("private-key-id", PRIVATE_KEY_ID.getName());
     }
 
     private SignatureStreamCallback getStreamCallback(final ProcessContext context, final FlowFile flowFile) {

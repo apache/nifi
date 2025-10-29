@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as QueueListingActions from './queue-listing.actions';
@@ -38,14 +38,12 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class QueueListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<CanvasState>,
-        private queueService: QueueService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private nifiCommon: NiFiCommon
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<CanvasState>>(Store);
+    private queueService = inject(QueueService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private nifiCommon = inject(NiFiCommon);
 
     loadConnectionLabel$ = createEffect(() =>
         this.actions$.pipe(

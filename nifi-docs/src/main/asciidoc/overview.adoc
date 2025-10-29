@@ -18,6 +18,7 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
+:imagesdir: images
 
 == What is Apache NiFi?
 Put simply, NiFi was built to automate the flow of data between systems.  While

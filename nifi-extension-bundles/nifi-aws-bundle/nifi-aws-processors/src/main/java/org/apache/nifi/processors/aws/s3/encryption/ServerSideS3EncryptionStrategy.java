@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
-import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-
+import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
 /**
  * This strategy uses S3-managed keys to perform server-side encryption.  Use this strategy when you want the server to
@@ -31,12 +30,12 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
  */
 public class ServerSideS3EncryptionStrategy implements S3EncryptionStrategy {
     @Override
-    public void configurePutObjectRequest(PutObjectRequest request, ObjectMetadata objectMetadata, String keyValue) {
-        objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+    public void configurePutObjectRequest(PutObjectRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+        requestBuilder.serverSideEncryption(ServerSideEncryption.AES256);
     }
 
     @Override
-    public void configureInitiateMultipartUploadRequest(InitiateMultipartUploadRequest request, ObjectMetadata objectMetadata, String keyValue) {
-        objectMetadata.setSSEAlgorithm(ObjectMetadata.AES_256_SERVER_SIDE_ENCRYPTION);
+    public void configureCreateMultipartUploadRequest(CreateMultipartUploadRequest.Builder requestBuilder, S3EncryptionKeySpec keySpec) {
+        requestBuilder.serverSideEncryption(ServerSideEncryption.AES256);
     }
 }

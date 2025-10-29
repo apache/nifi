@@ -67,8 +67,8 @@ export class ErrorHelper {
         return [400, 403, 404, 409, 413, 503].includes(status);
     }
 
-    handleLoadingError(status: string, errorResponse: HttpErrorResponse): Action {
-        if (status === 'success') {
+    handleLoadingError(hasExistingData: boolean, errorResponse: HttpErrorResponse): Action {
+        if (hasExistingData) {
             if (this.showErrorInContext(errorResponse.status)) {
                 return ErrorActions.snackBarError({ error: this.getErrorString(errorResponse) });
             } else {

@@ -38,7 +38,6 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -71,7 +70,7 @@ import java.util.concurrent.atomic.AtomicLong;
         The last known position of the Box stream is stored in the processor state and is used to
         resume the stream from the last known position when the processor is restarted.
         """, scopes = { Scope.CLUSTER })
-public class ConsumeBoxEvents extends AbstractProcessor implements VerifiableProcessor {
+public class ConsumeBoxEvents extends AbstractBoxProcessor implements VerifiableProcessor {
 
     private final static String POSITION_KEY = "position";
 
@@ -88,7 +87,7 @@ public class ConsumeBoxEvents extends AbstractProcessor implements VerifiablePro
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            BoxClientService.BOX_CLIENT_SERVICE,
+            BOX_CLIENT_SERVICE,
             QUEUE_CAPACITY
     );
 
@@ -116,7 +115,7 @@ public class ConsumeBoxEvents extends AbstractProcessor implements VerifiablePro
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
         boxAPIConnection = boxClientService.getBoxApiConnection();
 
         try {
@@ -184,7 +183,7 @@ public class ConsumeBoxEvents extends AbstractProcessor implements VerifiablePro
     public List<ConfigVerificationResult> verify(ProcessContext context, ComponentLog verificationLogger, Map<String, String> attributes) {
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
-        BoxClientService boxClientService = context.getProperty(BoxClientService.BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
+        BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
         boxAPIConnection = boxClientService.getBoxApiConnection();
 
         try {

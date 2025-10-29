@@ -17,9 +17,6 @@
 package org.apache.nifi.processors.standard;
 
 import jakarta.xml.bind.DatatypeConverter;
-import org.apache.commons.io.FileUtils;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -33,13 +30,11 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -57,7 +52,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.UUID;
 import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -70,29 +64,21 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestPutSQL {
     private static final String createPersons = "CREATE TABLE PERSONS (id integer primary key, name varchar(100), code integer)";
     private static final String createPersonsAutoId = "CREATE TABLE PERSONS_AI (id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1), name VARCHAR(100), code INTEGER check(code <= 100))";
 
-    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
-    private static final Path SYSTEM_TEMP_DIR = Paths.get(System.getProperty("java.io.tmpdir"));
-    private static final String TEST_DIRECTORY_NAME = "%s-%s".formatted(TestPutSQL.class.getSimpleName(), UUID.randomUUID());
-    private static final Path DB_DIRECTORY = SYSTEM_TEMP_DIR.resolve(TEST_DIRECTORY_NAME);
     private static final Random random = new Random();
 
-    /**
-     * Setting up Connection pooling is expensive operation.
-     * So let's do this only once and reuse MockDBCPService in each test.
-     */
-    static protected MockDBCPService service;
+    private static final String SERVICE_ID = FilteringEmbeddedDatabaseConnectionService.class.getSimpleName();
+
+    private static FilteringEmbeddedDatabaseConnectionService service;
 
     @BeforeAll
-    public static void setupBeforeAll() throws ProcessException, SQLException {
-        System.setProperty(DERBY_LOG_PROPERTY, "target/derby.log");
-        service = new MockDBCPService(DB_DIRECTORY.toAbsolutePath().toString());
+    static void setService(@TempDir final Path databaseLocation) throws SQLException {
+        service = new FilteringEmbeddedDatabaseConnectionService(databaseLocation);
+
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createPersons);
@@ -102,14 +88,8 @@ public class TestPutSQL {
     }
 
     @AfterAll
-    public static void cleanupAfterAll() {
-        System.clearProperty(DERBY_LOG_PROPERTY);
-
-        try {
-            FileUtils.deleteDirectory(DB_DIRECTORY.toFile());
-        } catch (final Exception ignored) {
-
-        }
+    static void shutdown() {
+        service.close();
     }
 
     @Test
@@ -183,7 +163,7 @@ public class TestPutSQL {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 1);
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(PutSQL.REL_SUCCESS).getFirst();
         mff.assertAttributeEquals("sql.generated.key", "1");
 
         try (final Connection conn = service.getConnection()) {
@@ -311,7 +291,6 @@ public class TestPutSQL {
             assertEquals(String.valueOf(i), event.getAttribute("sql.args.1.value"));
         }
     }
-
 
     @Test
     public void testFailInMiddleWithBadStatementAndSupportTransaction() throws InitializationException, ProcessException {
@@ -1088,7 +1067,6 @@ public class TestPutSQL {
         }
     }
 
-
     @Test
     public void testMultipleStatementsWithinFlowFile() throws InitializationException, ProcessException, SQLException {
         final TestRunner runner = initTestRunner();
@@ -1259,47 +1237,14 @@ public class TestPutSQL {
         }
     }
 
-
-    @Test
-    public void testRetryableFailure() throws InitializationException, ProcessException {
-        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        final DBCPService service = new SQLExceptionService(null);
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-
-        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
-
-        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
-                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
-        final Map<String, String> attributes = new HashMap<>();
-        attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
-        attributes.put("sql.args.1.value", "1");
-
-        attributes.put("sql.args.2.type", String.valueOf(Types.VARCHAR));
-        attributes.put("sql.args.2.value", "Mark");
-
-        attributes.put("sql.args.3.type", String.valueOf(Types.INTEGER));
-        attributes.put("sql.args.3.value", "84");
-
-        attributes.put("sql.args.4.type", String.valueOf(Types.INTEGER));
-        attributes.put("sql.args.4.value", "1");
-
-        runner.enqueue(sql.getBytes(), attributes);
-        runner.run();
-
-        // should fail because of the semicolon
-        runner.assertAllFlowFilesTransferred(PutSQL.REL_RETRY, 1);
-        assertNonSQLErrorRelatedAttributes(runner, PutSQL.REL_RETRY);
-    }
-
     @Test
     public void testRetryableFailureRollbackOnFailure() throws InitializationException, ProcessException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-        final DBCPService service = new SQLExceptionService(null);
-        runner.addControllerService("dbcp", service);
+
+        runner.addControllerService(SERVICE_ID, service);
         runner.enableControllerService(service);
 
-        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(PutSQL.CONNECTION_POOL, SERVICE_ID);
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
@@ -1405,7 +1350,6 @@ public class TestPutSQL {
 
         // No FlowFiles should be transferred because there were not enough FlowFiles with the same fragment identifier
         runner.assertAllFlowFilesTransferred(PutSQL.REL_SUCCESS, 0);
-
     }
 
     @Test
@@ -1492,7 +1436,6 @@ public class TestPutSQL {
 
         final Map<String, String> attribute2 = new HashMap<>();
         attribute2.put("fragment.identifier", "1");
-//        attribute2.put("fragment.count", null);
         attribute2.put("fragment.index", "1");
 
         runner.enqueue(new byte[]{}, attribute1);
@@ -1703,32 +1646,11 @@ public class TestPutSQL {
         return attributes;
     }
 
-    /**
-     * Simple implementation only for testing purposes
-     */
-    private static class MockDBCPService extends AbstractControllerService implements DBCPService {
-        private final String dbLocation;
+    private static class FilteringEmbeddedDatabaseConnectionService extends EmbeddedDatabaseConnectionService {
         private volatile FlowFileFilter flowFileFilter;
 
-        public MockDBCPService(final String dbLocation) {
-            this.dbLocation = dbLocation;
-        }
-
-        @Override
-        public String getIdentifier() {
-            return "dbcp";
-        }
-
-        @Override
-        public Connection getConnection() throws ProcessException {
-            try {
-                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                final Connection conn = DriverManager.getConnection("jdbc:derby:" + dbLocation + ";create=true");
-                return conn;
-            } catch (final Exception e) {
-                e.printStackTrace();
-                throw new ProcessException("getConnection failed: " + e);
-            }
+        FilteringEmbeddedDatabaseConnectionService(final Path databaseLocation) {
+            super(databaseLocation);
         }
 
         @Override
@@ -1736,45 +1658,10 @@ public class TestPutSQL {
             return flowFileFilter;
         }
 
-        public void setFlowFileFilter(FlowFileFilter flowFileFilter) {
+        void setFlowFileFilter(FlowFileFilter flowFileFilter) {
             this.flowFileFilter = flowFileFilter;
         }
     }
-
-    /**
-     * Simple implementation only for testing purposes
-     */
-    private static class SQLExceptionService extends AbstractControllerService implements DBCPService {
-        private final DBCPService service;
-        private int allowedBeforeFailure = 0;
-        private int successful = 0;
-
-        public SQLExceptionService(final DBCPService service) {
-            this.service = service;
-        }
-
-        @Override
-        public String getIdentifier() {
-            return "dbcp";
-        }
-
-        @Override
-        public Connection getConnection() throws ProcessException {
-            try {
-                if (++successful > allowedBeforeFailure) {
-                    final Connection conn = mock(Connection.class);
-                    when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException"));
-                    return conn;
-                } else {
-                    return service.getConnection();
-                }
-            } catch (final Exception e) {
-                e.printStackTrace();
-                throw new ProcessException("getConnection failed: " + e);
-            }
-        }
-    }
-
 
     private void recreateTable(String tableName, String createSQL) throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
@@ -1814,9 +1701,9 @@ public class TestPutSQL {
     private TestRunner initTestRunner() throws InitializationException {
         final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
 
-        runner.addControllerService("dbcp", service);
+        runner.addControllerService(SERVICE_ID, service);
         runner.enableControllerService(service);
-        runner.setProperty(PutSQL.CONNECTION_POOL, "dbcp");
+        runner.setProperty(PutSQL.CONNECTION_POOL, SERVICE_ID);
 
         return runner;
     }
@@ -1832,9 +1719,7 @@ public class TestPutSQL {
 
     private static void assertNonSQLErrorRelatedAttributes(final TestRunner runner,  Relationship relationship) {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
-        flowFiles.forEach(ff -> {
-            ff.assertAttributeExists("error.message");
-        });
+        flowFiles.forEach(ff -> ff.assertAttributeExists("error.message"));
     }
 
     private static void assertOriginalAttributesAreKept(final TestRunner runner) {
@@ -1853,9 +1738,7 @@ public class TestPutSQL {
 
     private static void assertErrorAttributesNotSet(final TestRunner runner, Relationship relationship) {
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(relationship);
-        flowFiles.forEach(ff -> {
-            ff.assertAttributeNotExists("error.message");
-        });
+        flowFiles.forEach(ff -> ff.assertAttributeNotExists("error.message"));
     }
 
     private static boolean errorAttributesAreSet(MockFlowFile ff) {

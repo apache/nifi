@@ -25,10 +25,15 @@ import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.LoggingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.slf4j.event.Level;
+import org.slf4j.spi.LoggingEventBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class SimpleProcessLogger implements ComponentLog {
 
@@ -458,17 +463,24 @@ public class SimpleProcessLogger implements ComponentLog {
         return lastThrowable;
     }
 
-    private String getDiscriminatorKey() {
-        return loggingContext.getDiscriminatorKey();
-    }
-
-    private String getLogFileSuffix() {
-        return loggingContext.getLogFileSuffix().orElse(null);
-    }
-
     private void log(final Level level, final String message, final Object... arguments) {
-        logger.makeLoggingEventBuilder(level)
-                .addKeyValue(getDiscriminatorKey(), getLogFileSuffix())
-                .log(message, arguments);
+        LoggingEventBuilder builder = logger.makeLoggingEventBuilder(level);
+
+        final Optional<String> loggingFileSuffixFound = loggingContext.getLogFileSuffix();
+        if (loggingFileSuffixFound.isPresent()) {
+            final String logFileSuffix = loggingFileSuffixFound.get();
+            builder = builder.addKeyValue(loggingContext.getDiscriminatorKey(), logFileSuffix);
+        }
+
+        // Add attributes to Mapped Diagnostic Context for logging
+        final Map<String, String> attributes = loggingContext.getAttributes();
+        final Set<String> attributeKeys = attributes.keySet();
+        try {
+            attributes.forEach(MDC::put);
+            builder.log(message, arguments);
+        } finally {
+            // Remove MDC attributes after logging
+            attributeKeys.forEach(MDC::remove);
+        }
     }
 }

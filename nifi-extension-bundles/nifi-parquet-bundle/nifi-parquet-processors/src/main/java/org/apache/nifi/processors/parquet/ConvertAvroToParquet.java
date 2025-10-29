@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.parquet.stream.NifiParquetOutputFile;
 import org.apache.nifi.parquet.utils.ParquetConfig;
 import org.apache.nifi.parquet.utils.ParquetUtils;
@@ -174,6 +175,18 @@ public class ConvertAvroToParquet extends AbstractProcessor {
             getLogger().error("Transferring to failure since failed to convert {} from Avro to Parquet", flowFile, pe);
             session.transfer(flowFile, FAILURE);
         }
+
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(ParquetUtils.OLD_ROW_GROUP_SIZE_PROPERTY_NAME, ParquetUtils.ROW_GROUP_SIZE.getName());
+        config.renameProperty(ParquetUtils.OLD_PAGE_SIZE_PROPERTY_NAME, ParquetUtils.PAGE_SIZE.getName());
+        config.renameProperty(ParquetUtils.OLD_DICTIONARY_PAGE_SIZE_PROPERTY_NAME, ParquetUtils.DICTIONARY_PAGE_SIZE.getName());
+        config.renameProperty(ParquetUtils.OLD_MAX_PADDING_SIZE_PROPERTY_NAME, ParquetUtils.MAX_PADDING_SIZE.getName());
+        config.renameProperty(ParquetUtils.OLD_ENABLE_DICTIONARY_ENCODING_PROPERTY_NAME, ParquetUtils.ENABLE_DICTIONARY_ENCODING.getName());
+        config.renameProperty(ParquetUtils.OLD_ENABLE_VALIDATION_PROPERTY_NAME, ParquetUtils.ENABLE_VALIDATION.getName());
+        config.renameProperty(ParquetUtils.OLD_WRITER_VERSION_PROPERTY_NAME, ParquetUtils.WRITER_VERSION.getName());
 
     }
 

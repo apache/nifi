@@ -27,6 +27,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -186,6 +187,15 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         } else {
             throw new IOException("Parser not supported");
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(CSVUtils.OLD_FIRST_LINE_IS_HEADER_PROPERTY_NAME, CSVUtils.FIRST_LINE_IS_HEADER.getName());
+        config.renameProperty(CSVUtils.OLD_IGNORE_CSV_HEADER_PROPERTY_NAME, CSVUtils.IGNORE_CSV_HEADER.getName());
+        config.renameProperty(CSVUtils.OLD_CHARSET_PROPERTY_NAME, CSVUtils.CHARSET.getName());
+        config.renameProperty(CSVUtils.OLD_ALLOW_DUPLICATE_HEADER_NAMES_PROPERTY_NAME, CSVUtils.ALLOW_DUPLICATE_HEADER_NAMES.getName());
     }
 
     @Override

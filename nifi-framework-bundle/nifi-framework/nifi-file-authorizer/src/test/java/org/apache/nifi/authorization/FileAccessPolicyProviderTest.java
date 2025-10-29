@@ -91,6 +91,20 @@ public class FileAccessPolicyProviderTest {
             "  </policies>" +
             "</authorizations>";
 
+    private static final String FINGERPRINT = """
+            <?xml version="1.0" ?>
+            <accessPolicies>
+            <policy identifier="policy-1" resource="/flow" actions="READ">
+            <policyUser identifier="user-1"></policyUser>
+            <policyGroup identifier="group-1"></policyGroup>
+            <policyGroup identifier="group-2"></policyGroup>
+            </policy>
+            <policy identifier="policy-2" resource="/flow" actions="WRITE">
+            <policyUser identifier="user-2"></policyUser>
+            </policy>
+            </accessPolicies>
+            """.replaceAll("[\\r\\n]", "");
+
     private static final String TENANTS =
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
             "<tenants>" +
@@ -1028,6 +1042,30 @@ public class FileAccessPolicyProviderTest {
 
         final AccessPolicy deletedAccessPolicy = accessPolicyProvider.deleteAccessPolicy(policy);
         assertNull(deletedAccessPolicy);
+    }
+
+    @Test
+    public void testGetFingerprint() throws Exception {
+        writeFile(primaryAuthorizations, AUTHORIZATIONS);
+        writeFile(primaryTenants, TENANTS);
+
+        userGroupProvider.onConfigured(configurationContext);
+        accessPolicyProvider.onConfigured(configurationContext);
+
+        assertEquals(2, accessPolicyProvider.getAccessPolicies().size());
+
+        final String fingerprint = accessPolicyProvider.getFingerprint();
+        assertEquals(FINGERPRINT, fingerprint);
+    }
+
+    @Test
+    public void testInheritFingerprint() {
+        userGroupProvider.onConfigured(configurationContext);
+        accessPolicyProvider.onConfigured(configurationContext);
+
+        accessPolicyProvider.inheritFingerprint(FINGERPRINT);
+
+        assertEquals(2, accessPolicyProvider.getAccessPolicies().size());
     }
 
     private static void writeFile(final File file, final String content) throws Exception {

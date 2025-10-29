@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { OkDialogRequest } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,11 +28,9 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
     styleUrls: ['./ok-dialog.component.scss']
 })
 export class OkDialog extends CloseOnEscapeDialog {
-    @Output() ok: EventEmitter<void> = new EventEmitter<void>();
+    request = inject<OkDialogRequest>(MAT_DIALOG_DATA);
 
-    constructor(@Inject(MAT_DIALOG_DATA) public request: OkDialogRequest) {
-        super();
-    }
+    @Output() ok: EventEmitter<void> = new EventEmitter<void>();
 
     okClicked(): void {
         this.ok.next();

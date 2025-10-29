@@ -281,7 +281,7 @@ public class StandardFlowAnalysisRuleDAO extends ComponentDAO implements FlowAna
         final FlowAnalysisRuleNode ruleNode = locateFlowAnalysisRule(flowAnalysisRuleId);
 
         final LogRepository logRepository = new NopLogRepository();
-        final ComponentLog configVerificationLog = new SimpleProcessLogger(ruleNode.getFlowAnalysisRule(), logRepository, new StandardLoggingContext(null));
+        final ComponentLog configVerificationLog = new SimpleProcessLogger(ruleNode.getFlowAnalysisRule(), logRepository, new StandardLoggingContext());
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final ParameterLookup parameterLookup = ParameterLookup.EMPTY;

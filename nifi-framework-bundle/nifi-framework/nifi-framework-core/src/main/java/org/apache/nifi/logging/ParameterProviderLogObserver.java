@@ -39,7 +39,7 @@ public class ParameterProviderLogObserver implements LogObserver {
         final String bulletinLevel = message.getLogLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLogLevel().toString();
 
         final Bulletin bulletin = BulletinFactory.createBulletin(null, parameterProviderNode.getIdentifier(), ComponentType.PARAMETER_PROVIDER,
-            parameterProviderNode.getName(), "Log Message", bulletinLevel, message.getMessage());
+            parameterProviderNode.getName(), "Log Message", bulletinLevel, message.getMessage(), message.getThrowable());
         bulletinRepository.addBulletin(bulletin);
     }
 

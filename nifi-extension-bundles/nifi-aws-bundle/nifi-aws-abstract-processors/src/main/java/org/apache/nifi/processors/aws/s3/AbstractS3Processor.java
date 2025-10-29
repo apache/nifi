@@ -16,58 +16,47 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.Signer;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Builder;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.AccessControlList;
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
-import com.amazonaws.services.s3.model.CanonicalGrantee;
-import com.amazonaws.services.s3.model.EmailAddressGrantee;
-import com.amazonaws.services.s3.model.Grantee;
-import com.amazonaws.services.s3.model.Owner;
-import com.amazonaws.services.s3.model.Permission;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.components.ConfigVerificationResult;
-import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.resource.ResourceCardinality;
-import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
-import org.apache.nifi.processors.aws.signer.AwsCustomSignerUtil;
-import org.apache.nifi.processors.aws.signer.AwsSignerType;
+import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
+import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V2_SIGNER;
-import static org.apache.nifi.processors.aws.signer.AwsSignerType.AWS_S3_V4_SIGNER;
-import static org.apache.nifi.processors.aws.signer.AwsSignerType.CUSTOM_SIGNER;
-import static org.apache.nifi.processors.aws.signer.AwsSignerType.DEFAULT_SIGNER;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.ATTRIBUTE_DEFINED_REGION;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.S3_REGION;
-import static org.apache.nifi.processors.aws.util.RegionUtilV1.resolveS3Region;
+import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.apache.nifi.processors.aws.region.RegionUtil.USE_CUSTOM_REGION;
 
-public abstract class AbstractS3Processor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
+public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Client, S3ClientBuilderWrapper> {
+
+    // Obsolete property names
+    protected static final String OBSOLETE_WRITE_USER_LIST = "Write Permission User List";
+    protected static final String OBSOLETE_OWNER = "Owner";
+
+    private static final String OBSOLETE_SIGNER_OVERRIDE = "Signer Override";
+    private static final String OBSOLETE_CUSTOM_SIGNER_CLASS_NAME_1 = "custom-signer-class-name";
+    private static final String OBSOLETE_CUSTOM_SIGNER_CLASS_NAME_2 = "Custom Signer Class Name";
+    private static final String OBSOLETE_CUSTOM_SIGNER_MODULE_LOCATION_1 = "custom-signer-module-location";
+    private static final String OBSOLETE_CUSTOM_SIGNER_MODULE_LOCATION_2 = "Custom Signer Module Location";
+
+    // Obsolete property value and attribute name
+    private static final String OBSOLETE_ATTRIBUTE_DEFINED_REGION = "attribute-defined-region";
+    private static final String OBSOLETE_S3_REGION_ATTRIBUTE = "s3.region";
 
     public static final PropertyDescriptor FULL_CONTROL_USER_LIST = new PropertyDescriptor.Builder()
             .name("FullControl User List")
@@ -84,14 +73,6 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("${s3.permissions.read.users}")
-            .build();
-    public static final PropertyDescriptor WRITE_USER_LIST = new PropertyDescriptor.Builder()
-            .name("Write Permission User List")
-            .description("A comma-separated list of Amazon User ID's or E-mail addresses that specifies who should have Write Access for an object")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("${s3.permissions.write.users}")
             .build();
     public static final PropertyDescriptor READ_ACL_LIST = new PropertyDescriptor.Builder()
             .name("Read ACL User List")
@@ -111,20 +92,12 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .build();
     public static final PropertyDescriptor CANNED_ACL = new PropertyDescriptor.Builder()
             .name("Canned ACL")
-            .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, LogDeliveryWrite, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
+            .description("Amazon Canned ACL for an object, one of: BucketOwnerFullControl, BucketOwnerRead, AuthenticatedRead, PublicReadWrite, PublicRead, Private; " +
                 "will be ignored if any other ACL/permission/owner property is specified")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .defaultValue("${s3.permissions.cannedacl}")
-            .build();
-    public static final PropertyDescriptor OWNER = new PropertyDescriptor.Builder()
-            .name("Owner")
-            .description("The Amazon ID to use for the object's owner")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("${s3.owner}")
             .build();
     public static final PropertyDescriptor BUCKET_WITHOUT_DEFAULT_VALUE = new PropertyDescriptor.Builder()
             .name("Bucket")
@@ -152,44 +125,11 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
-    public static final PropertyDescriptor SIGNER_OVERRIDE = new PropertyDescriptor.Builder()
-            .name("Signer Override")
-            .description("The AWS S3 library uses Signature Version 4 by default but this property allows you to specify the Version 2 signer to support older S3-compatible services" +
-                    " or even to plug in your own custom signer implementation.")
-            .required(false)
-            .allowableValues(EnumSet.of(
-                            DEFAULT_SIGNER,
-                            AWS_S3_V4_SIGNER,
-                            AWS_S3_V2_SIGNER,
-                            CUSTOM_SIGNER))
-            .defaultValue(DEFAULT_SIGNER.getValue())
-            .build();
-
-    public static final PropertyDescriptor S3_CUSTOM_SIGNER_CLASS_NAME = new PropertyDescriptor.Builder()
-            .name("Custom Signer Class Name")
-            .description(String.format("Fully qualified class name of the custom signer class. The signer must implement %s interface.", Signer.class.getName()))
-            .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(SIGNER_OVERRIDE, CUSTOM_SIGNER)
-            .build();
-
-    public static final PropertyDescriptor S3_CUSTOM_SIGNER_MODULE_LOCATION = new PropertyDescriptor.Builder()
-            .name("Custom Signer Module Location")
-            .description("Comma-separated list of paths to files and/or directories which contain the custom signer's JAR file and its dependencies (if any).")
-            .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-            .dependsOn(SIGNER_OVERRIDE, CUSTOM_SIGNER)
-            .dynamicallyModifiesClasspath(true)
-            .build();
 
     public static final PropertyDescriptor ENCRYPTION_SERVICE = new PropertyDescriptor.Builder()
             .name("Encryption Service")
             .description("Specifies the Encryption Service Controller used to configure requests. " +
-                    "PutS3Object: For backward compatibility, this value is ignored when 'Server Side Encryption' is set. " +
-                    "FetchS3Object: Only needs to be configured in case of Server-side Customer Key, Client-side KMS and Client-side Customer Key encryptions.")
+                    "FetchS3Object: Only needs to be configured in case of Server-side Customer Key encryption.")
             .required(false)
             .identifiesControllerService(AmazonS3EncryptionService.class)
             .build();
@@ -207,230 +147,127 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
             .defaultValue("false")
             .build();
 
-    /**
-     * Create client using credentials provider. This is the preferred way for creating clients
-     */
-    @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region,
-                                          final ClientConfiguration config, final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
-        getLogger().info("Creating client with credentials provider");
-        initializeSignerOverride(context, config);
-        AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+    // maps AWS SDK v1 CannedAccessControlList to v2 ObjectCannedACL
+    private static final Map<String, ObjectCannedACL> CANNED_ACL_MAPPING = Map.of(
+            "Private", ObjectCannedACL.PRIVATE,
+            "PublicRead", ObjectCannedACL.PUBLIC_READ,
+            "PublicReadWrite", ObjectCannedACL.PUBLIC_READ_WRITE,
+            "AuthenticatedRead", ObjectCannedACL.AUTHENTICATED_READ,
+            "BucketOwnerRead", ObjectCannedACL.BUCKET_OWNER_READ,
+            "BucketOwnerFullControl", ObjectCannedACL.BUCKET_OWNER_FULL_CONTROL,
+            "AwsExecRead", ObjectCannedACL.AWS_EXEC_READ
+    );
 
-        final Consumer<AmazonS3Builder<?, ?>> clientBuilder = builder -> {
-            if (endpointConfiguration == null) {
-                builder.withRegion(region.getName());
-            } else {
-                builder.withEndpointConfiguration(endpointConfiguration);
-            }
-            builder.withClientConfiguration(config);
-            builder.withCredentials(credentialsProvider);
-
-            final Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
-            if (useChunkedEncoding == Boolean.FALSE) {
-                builder.disableChunkedEncoding();
-            }
-
-            final Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
-            final boolean endpointOverrideSet = !StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()).isEmpty();
-            if (usePathStyleAccess == Boolean.TRUE || endpointOverrideSet) {
-                builder.withPathStyleAccessEnabled(true);
-            }
-        };
-
-        AmazonS3 s3Client = null;
-        if (encryptionService != null) {
-            s3Client = encryptionService.createEncryptionClient(clientBuilder);
-        }
-        if (s3Client == null) {
-            final AmazonS3ClientBuilder builder = AmazonS3Client.builder();
-            clientBuilder.accept(builder);
-            s3Client = builder.build();
-        }
-
-        return (AmazonS3Client) s3Client;
-    }
-
+    static final String S3_ENCRYPTION_STRATEGY = "s3.encryptionStrategy";
+    static final String S3_SSE_ALGORITHM = "s3.sseAlgorithm";
 
     @Override
-    public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
-        final List<ConfigVerificationResult> results = new ArrayList<>();
-
-        try {
-            createClient(context, attributes);
-            results.add(new ConfigVerificationResult.Builder()
-                    .outcome(Outcome.SUCCESSFUL)
-                    .verificationStepName("Create S3 Client")
-                    .explanation("Successfully created S3 Client")
-                    .build());
-        } catch (final Exception e) {
-            verificationLogger.error("Failed to create S3 Client", e);
-            results.add(new ConfigVerificationResult.Builder()
-                    .outcome(Outcome.FAILED)
-                    .verificationStepName("Create S3 Client")
-                    .explanation("Failed to crete S3 Client: " + e.getMessage())
-                    .build());
-        }
-
-        return results;
-    }
-
-    /**
-     * Creates and configures the client from the context and FlowFile attributes or returns an existing client from cache
-     * @param context the process context
-     * @param attributes FlowFile attributes
-     * @return The created S3 client
-     */
-    protected AmazonS3Client getS3Client(final ProcessContext context, final Map<String, String> attributes) {
-        final Region region = resolveS3Region(context, attributes);
-        return getClient(context, region);
-    }
-
-    /**
-     * Creates the client from the context and FlowFile attributes
-     * @param context the process context
-     * @param attributes FlowFile attributes
-     * @return The newly created S3 client
-     */
-    protected AmazonS3Client createClient(final ProcessContext context, final Map<String, String> attributes) {
-        final Region region = resolveS3Region(context, attributes);
-        return createClient(context, region);
-    }
-
-    @Override
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        if (!isAttributeDefinedRegion(context)) {
-            getClient(context);
-        }
-    }
-
-    @Override
-    public void migrateProperties(PropertyConfiguration config) {
+    public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
+
         config.renameProperty("canned-acl", CANNED_ACL.getName());
-        config.renameProperty("custom-signer-class-name", S3_CUSTOM_SIGNER_CLASS_NAME.getName());
-        config.renameProperty("custom-signer-module-location", S3_CUSTOM_SIGNER_MODULE_LOCATION.getName());
         config.renameProperty("encryption-service", ENCRYPTION_SERVICE.getName());
         config.renameProperty("use-chunked-encoding", USE_CHUNKED_ENCODING.getName());
         config.renameProperty("use-path-style-access", USE_PATH_STYLE_ACCESS.getName());
+
+        migrateAttributeDefinedRegion(config);
+        migrateCannedAcl(config);
+
+        config.removeProperty(OBSOLETE_SIGNER_OVERRIDE);
+        config.removeProperty(OBSOLETE_CUSTOM_SIGNER_CLASS_NAME_1);
+        config.removeProperty(OBSOLETE_CUSTOM_SIGNER_CLASS_NAME_2);
+        config.removeProperty(OBSOLETE_CUSTOM_SIGNER_MODULE_LOCATION_1);
+        config.removeProperty(OBSOLETE_CUSTOM_SIGNER_MODULE_LOCATION_2);
     }
 
-    private void initializeSignerOverride(final ProcessContext context, final ClientConfiguration config) {
-        final String signer = context.getProperty(SIGNER_OVERRIDE).getValue();
-        final AwsSignerType signerType = AwsSignerType.forValue(signer);
+    private void migrateAttributeDefinedRegion(final PropertyConfiguration config) {
+        if (config.getPropertyValue(REGION).map(OBSOLETE_ATTRIBUTE_DEFINED_REGION::equals).orElse(false)) {
+            // migrate Use 's3.region' Attribute option into Use Custom Region
+            config.setProperty(REGION, USE_CUSTOM_REGION.getValue());
+            config.setProperty(CUSTOM_REGION, String.format("${%s}",  OBSOLETE_S3_REGION_ATTRIBUTE));
+        }
+    }
 
-        if (signerType == CUSTOM_SIGNER) {
-            final String signerClassName = context.getProperty(S3_CUSTOM_SIGNER_CLASS_NAME).evaluateAttributeExpressions().getValue();
-
-            config.setSignerOverride(AwsCustomSignerUtil.registerCustomSigner(signerClassName));
-        } else if (signerType != DEFAULT_SIGNER) {
-            config.setSignerOverride(signer);
+    private void migrateCannedAcl(final PropertyConfiguration config) {
+        if (config.getPropertyValue(CANNED_ACL).map("LogDeliveryWrite"::equals).orElse(false)) {
+            // ObjectCannedACL in v2 does not include LogDeliveryWrite, it is a bucket level-permission that has no effect on object-level operations
+            config.setProperty(CANNED_ACL, null);
         }
     }
 
     @Override
-    protected boolean isCustomSignerConfigured(final ProcessContext context) {
-        final AwsSignerType signerType = context.getProperty(SIGNER_OVERRIDE).asAllowableValue(AwsSignerType.class);
-        return signerType == CUSTOM_SIGNER;
+    protected S3ClientBuilderWrapper createClientBuilder(ProcessContext context) {
+        final AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
+
+        final S3ClientBuilderWrapper clientBuilder = Optional.ofNullable(encryptionService)
+                .map(AmazonS3EncryptionService::createEncryptionClientBuilder)
+                .map(S3ClientBuilderWrapper::new)
+                .orElse(new S3ClientBuilderWrapper(S3Client.builder()));
+
+        final S3Configuration.Builder configurationBuilder = S3Configuration.builder();
+
+        final Boolean useChunkedEncoding = context.getProperty(USE_CHUNKED_ENCODING).asBoolean();
+        if (useChunkedEncoding == Boolean.FALSE) {
+            configurationBuilder.chunkedEncodingEnabled(false);
+        }
+
+        final Boolean usePathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).asBoolean();
+        final boolean endpointOverrideSet = StringUtils.isNotBlank(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
+        if (usePathStyleAccess == Boolean.TRUE || endpointOverrideSet) {
+            configurationBuilder.pathStyleAccessEnabled(true);
+        }
+
+        clientBuilder.serviceConfiguration(configurationBuilder.build());
+
+        return clientBuilder;
     }
 
+    protected String getFullControlGranteeSpec(final PropertyContext context, final FlowFile flowFile) {
+        return getGranteeSpec(context, flowFile, FULL_CONTROL_USER_LIST);
+    }
 
-    protected Grantee createGrantee(final String value) {
-        if (StringUtils.isEmpty(value)) {
+    protected String getReadGranteeSpec(final PropertyContext context, final FlowFile flowFile) {
+        return getGranteeSpec(context, flowFile, READ_USER_LIST);
+    }
+
+    protected String getReadACPGranteeSpec(final PropertyContext context, final FlowFile flowFile) {
+        return getGranteeSpec(context, flowFile, READ_ACL_LIST);
+    }
+
+    protected String getWriteACPGranteeSpec(final PropertyContext context, final FlowFile flowFile) {
+        return getGranteeSpec(context, flowFile, WRITE_ACL_LIST);
+    }
+
+    private String getGranteeSpec(final PropertyContext context, final FlowFile flowFile, final PropertyDescriptor propertyDescriptor) {
+        final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
+        if (StringUtils.isBlank(value)) {
             return null;
         }
 
-        if (value.contains("@")) {
-            return new EmailAddressGrantee(value);
-        } else {
-            return new CanonicalGrantee(value);
-        }
-    }
-
-    protected final List<Grantee> createGrantees(final String value) {
-        if (StringUtils.isEmpty(value)) {
-            return Collections.emptyList();
-        }
-
-        final List<Grantee> grantees = new ArrayList<>();
-        final String[] vals = value.split(",");
-        for (final String val : vals) {
-            final String identifier = val.trim();
-            final Grantee grantee = createGrantee(identifier);
-            if (grantee != null) {
-                grantees.add(grantee);
-            }
-        }
-        return grantees;
-    }
-
-    /**
-     * Create AccessControlList if appropriate properties are configured.
-     *
-     * @param context ProcessContext
-     * @param flowFile FlowFile
-     * @return AccessControlList or null if no ACL properties were specified
-     */
-    protected final AccessControlList createACL(final ProcessContext context, final FlowFile flowFile) {
-        // lazy-initialize ACL, as it should not be used if no properties were specified
-        AccessControlList acl = null;
-
-        final String ownerId = context.getProperty(OWNER).evaluateAttributeExpressions(flowFile).getValue();
-        if (!StringUtils.isEmpty(ownerId)) {
-            final Owner owner = new Owner();
-            owner.setId(ownerId);
-            acl = new AccessControlList();
-            acl.setOwner(owner);
-        }
-
-        for (final Grantee grantee : createGrantees(context.getProperty(FULL_CONTROL_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
-            if (acl == null) {
-                acl = new AccessControlList();
-            }
-            acl.grantPermission(grantee, Permission.FullControl);
-        }
-
-        for (final Grantee grantee : createGrantees(context.getProperty(READ_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
-            if (acl == null) {
-                acl = new AccessControlList();
-            }
-            acl.grantPermission(grantee, Permission.Read);
-        }
-
-        for (final Grantee grantee : createGrantees(context.getProperty(WRITE_USER_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
-            if (acl == null) {
-                acl = new AccessControlList();
-            }
-            acl.grantPermission(grantee, Permission.Write);
-        }
-
-        for (final Grantee grantee : createGrantees(context.getProperty(READ_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
-            if (acl == null) {
-                acl = new AccessControlList();
-            }
-            acl.grantPermission(grantee, Permission.ReadAcp);
-        }
-
-        for (final Grantee grantee : createGrantees(context.getProperty(WRITE_ACL_LIST).evaluateAttributeExpressions(flowFile).getValue())) {
-            if (acl == null) {
-                acl = new AccessControlList();
-            }
-            acl.grantPermission(grantee, Permission.WriteAcp);
-        }
-
-        return acl;
+        return Arrays.stream(value.split(","))
+                .filter(grantee -> !grantee.isBlank())
+                .map(grantee -> {
+                    if (grantee.contains("@")) {
+                        // email address grantee
+                        return String.format("emailAddress=%s", grantee);
+                    } else {
+                        // canonical user grantee
+                        return String.format("id=%s", grantee);
+                    }
+                })
+                .collect(Collectors.joining(","));
     }
 
     protected FlowFile extractExceptionDetails(final Exception e, final ProcessSession session, FlowFile flowFile) {
         flowFile = session.putAttribute(flowFile, "s3.exception", e.getClass().getName());
-        if (e instanceof AmazonS3Exception) {
-            flowFile = putAttribute(session, flowFile, "s3.additionalDetails", ((AmazonS3Exception) e).getAdditionalDetails());
-        }
-        if (e instanceof final AmazonServiceException ase) {
-            flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.getStatusCode());
-            flowFile = putAttribute(session, flowFile, "s3.errorCode", ase.getErrorCode());
-            flowFile = putAttribute(session, flowFile, "s3.errorMessage", ase.getErrorMessage());
+        if (e instanceof final AwsServiceException ase) {
+            flowFile = putAttribute(session, flowFile, "s3.statusCode", ase.statusCode());
+            final AwsErrorDetails errorDetails = ase.awsErrorDetails();
+            if (errorDetails != null) {
+                flowFile = putAttribute(session, flowFile, "s3.errorCode", errorDetails.errorCode());
+                flowFile = putAttribute(session, flowFile, "s3.errorMessage", errorDetails.errorMessage());
+                flowFile = putAttribute(session, flowFile, "s3.additionalDetails", errorDetails.sdkHttpResponse().headers());
+            }
         }
         return flowFile;
     }
@@ -440,25 +277,42 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
     }
 
     /**
-     * Create CannedAccessControlList if {@link #CANNED_ACL} property specified.
+     * Create ObjectCannedACL if {@link #CANNED_ACL} property specified.
      *
      * @param context ProcessContext
      * @param flowFile FlowFile
-     * @return CannedAccessControlList or null if not specified
+     * @return ObjectCannedACL or null if not specified
      */
-    protected final CannedAccessControlList createCannedACL(final ProcessContext context, final FlowFile flowFile) {
-        CannedAccessControlList cannedAcl = null;
+    protected final ObjectCannedACL createCannedACL(final ProcessContext context, final FlowFile flowFile) {
+        if (getFullControlGranteeSpec(context, flowFile) != null
+                || getReadGranteeSpec(context, flowFile) != null
+                || getReadACPGranteeSpec(context, flowFile) != null
+                || getWriteACPGranteeSpec(context, flowFile) != null) {
+            return null;
+        }
 
-        final String cannedAclString = context.getProperty(CANNED_ACL).evaluateAttributeExpressions(flowFile).getValue();
-        if (!StringUtils.isEmpty(cannedAclString)) {
-            cannedAcl = CannedAccessControlList.valueOf(cannedAclString);
+        ObjectCannedACL cannedAcl = null;
+
+        final String cannedAclName = context.getProperty(CANNED_ACL).evaluateAttributeExpressions(flowFile).getValue();
+        if (!StringUtils.isEmpty(cannedAclName)) {
+            cannedAcl = CANNED_ACL_MAPPING.get(cannedAclName);
         }
 
         return cannedAcl;
     }
 
-    private boolean isAttributeDefinedRegion(final ProcessContext context) {
-        String regionValue = context.getProperty(S3_REGION).getValue();
-        return ATTRIBUTE_DEFINED_REGION.getValue().equals(regionValue);
+    protected void setEncryptionAttributes(final Map<String, String> attributes, final ServerSideEncryption serverSideEncryption, final String customerAlgorithm,
+                                           final AmazonS3EncryptionService encryptionService) {
+        if (serverSideEncryption == ServerSideEncryption.AES256) {
+            attributes.put(S3_ENCRYPTION_STRATEGY, AmazonS3EncryptionService.STRATEGY_NAME_SSE_S3);
+            attributes.put(S3_SSE_ALGORITHM, serverSideEncryption.toString());
+        } else if (serverSideEncryption == ServerSideEncryption.AWS_KMS) {
+            attributes.put(S3_ENCRYPTION_STRATEGY, AmazonS3EncryptionService.STRATEGY_NAME_SSE_KMS);
+            attributes.put(S3_SSE_ALGORITHM, serverSideEncryption.toString());
+        } else if (customerAlgorithm != null) {
+            attributes.put(S3_ENCRYPTION_STRATEGY, AmazonS3EncryptionService.STRATEGY_NAME_SSE_C);
+        } else if (encryptionService != null) {
+            attributes.put(S3_ENCRYPTION_STRATEGY, encryptionService.getStrategyName());
+        }
     }
 }

@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.schemaregistry.services;
 
-import com.networknt.schema.JsonSchemaFactory;
-import com.networknt.schema.SpecVersion;
+import com.networknt.schema.InputFormat;
+import com.networknt.schema.SchemaRegistry;
+import com.networknt.schema.SchemaLocation;
+import com.networknt.schema.SpecificationVersion;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -63,14 +65,14 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
     );
 
     private final ConcurrentMap<String, JsonSchema> jsonSchemas;
-    private final ConcurrentMap<SchemaVersion, JsonSchemaFactory> schemaFactories;
+    private final ConcurrentMap<SchemaVersion, SchemaRegistry> schemaRegistries;
     private volatile SchemaVersion schemaVersion;
 
     public StandardJsonSchemaRegistry() {
         jsonSchemas = new ConcurrentHashMap<>();
-        schemaFactories = Arrays.stream(SchemaVersion.values())
+        schemaRegistries = Arrays.stream(SchemaVersion.values())
                 .collect(Collectors.toConcurrentMap(Function.identity(),
-                        schemaDraftVersion -> JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.fromId(schemaDraftVersion.getUri()).get())));
+                        schemaDraftVersion -> SchemaRegistry.withDefaultDialect(mapToSpecification(schemaDraftVersion))));
         schemaVersion = SchemaVersion.valueOf(SCHEMA_VERSION.getDefaultValue());
     }
 
@@ -83,8 +85,8 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
         } else if (descriptor.isDynamic() && isNotBlank(newValue)) {
             try {
                 final String schemaName = descriptor.getName();
-                final JsonSchemaFactory jsonSchemaFactory = schemaFactories.get(schemaVersion);
-                jsonSchemaFactory.getSchema(newValue);
+                final SchemaRegistry schemaRegistry = schemaRegistries.get(schemaVersion);
+                schemaRegistry.getSchema(SchemaLocation.DOCUMENT, newValue, InputFormat.JSON);
                 jsonSchemas.put(schemaName, new JsonSchema(schemaVersion, newValue));
             } catch (final Exception e) {
                 getLogger().debug("Exception thrown when changing value of schema name '{}' from '{}' to '{}'",
@@ -115,8 +117,8 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
                         String input = entry.getValue();
                         if (isNotBlank(input)) {
                             try {
-                                final JsonSchemaFactory jsonSchemaFactory = schemaFactories.get(schemaVersion);
-                                jsonSchemaFactory.getSchema(input);
+                                final SchemaRegistry schemaRegistry = schemaRegistries.get(schemaVersion);
+                                schemaRegistry.getSchema(SchemaLocation.DOCUMENT, input, InputFormat.JSON);
                             } catch (Exception e) {
                                 results.add(new ValidationResult.Builder()
                                         .input(input)
@@ -155,5 +157,21 @@ public class StandardJsonSchemaRegistry extends AbstractControllerService implem
                 .dynamic(true)
                 .expressionLanguageSupported(ExpressionLanguageScope.NONE)
                 .build();
+    }
+
+    private SpecificationVersion mapToSpecification(final SchemaVersion schemaVersion) {
+        switch (schemaVersion) {
+            case DRAFT_4:
+                return SpecificationVersion.DRAFT_4;
+            case DRAFT_6:
+                return SpecificationVersion.DRAFT_6;
+            case DRAFT_7:
+                return SpecificationVersion.DRAFT_7;
+            case DRAFT_2019_09:
+                return SpecificationVersion.DRAFT_2019_09;
+            case DRAFT_2020_12:
+                return SpecificationVersion.DRAFT_2020_12;
+        }
+        throw new IllegalArgumentException("Unsupported schema version: " + schemaVersion);
     }
 }

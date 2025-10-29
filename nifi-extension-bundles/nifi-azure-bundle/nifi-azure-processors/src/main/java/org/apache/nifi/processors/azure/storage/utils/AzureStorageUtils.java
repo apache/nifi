@@ -49,26 +49,36 @@ public final class AzureStorageUtils {
     public static final String STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME = "storage-account-key";
     public static final String STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME = "storage-sas-token";
     public static final String STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME = "storage-endpoint-suffix";
+    public static final String OLD_CONFLICT_RESOLUTION_DESCRIPTOR_NAME = "conflict-resolution-strategy";
+    public static final String OLD_CREATE_CONTAINER_DESCRIPTOR_NAME = "create-container";
+    public static final String OLD_CONTAINER_DESCRIPTOR_NAME = "container-name";
+    public static final String OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME = "storage-credentials-service";
+    public static final String OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME = "adls-credentials-service";
+    public static final String OLD_FILESYSTEM_DESCRIPTOR_NAME = "filesystem-name";
+    public static final String OLD_DIRECTORY_DESCRIPTOR_NAME = "directory-name";
+    public static final String OLD_FILE_DESCRIPTOR_NAME = "file-name";
+    public static final String OLD_CREDENTIALS_TYPE_DESCRIPTOR_NAME = "credentials-type";
+    public static final String OLD_MANAGED_IDENTITY_CLIENT_ID_DESCRIPTOR_NAME = "managed-identity-client-id";
+    public static final String OLD_SERVICE_PRINCIPAL_TENANT_ID_DESCRIPTOR_NAME = "service-principal-tenant-id";
+    public static final String OLD_SERVICE_PRINCIPAL_CLIENT_ID_DESCRIPTOR_NAME = "service-principal-client-id";
+    public static final String OLD_SERVICE_PRINCIPAL_CLIENT_SECRET_DESCRIPTOR_NAME = "service-principal-client-secret";
 
     public static final PropertyDescriptor ADLS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("adls-credentials-service")
-            .displayName("ADLS Credentials")
+            .name("ADLS Credentials")
             .description("Controller Service used to obtain Azure Credentials.")
             .identifiesControllerService(ADLSCredentialsService.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor BLOB_STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
-            .name("storage-credentials-service")
-            .displayName("Storage Credentials")
+            .name("Storage Credentials")
             .description("Controller Service used to obtain Azure Blob Storage Credentials.")
             .identifiesControllerService(AzureStorageCredentialsService_v12.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor CREDENTIALS_TYPE = new PropertyDescriptor.Builder()
-            .name("credentials-type")
-            .displayName("Credentials Type")
+            .name("Credentials Type")
             .description("Credentials type to be used for authenticating to Azure")
             .required(true)
             .allowableValues(EnumSet.of(
@@ -80,7 +90,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor FILESYSTEM = new PropertyDescriptor.Builder()
-            .name("filesystem-name").displayName("Filesystem Name")
+            .name("Filesystem Name")
             .description("Name of the Azure Storage File System (also called Container). It is assumed to be already existing.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -88,8 +98,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name("directory-name")
-            .displayName("Directory Name")
+            .name("Directory Name")
             .description("Name of the Azure Storage Directory. The Directory Name cannot contain a leading '/'. The root directory can be designated by the empty string value. " +
                     "In case of the PutAzureDataLakeStorage processor, the directory will be created if not already existing.")
             .addValidator(new DirectoryValidator())
@@ -98,7 +107,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()
-            .name("file-name").displayName("File Name")
+            .name("File Name")
             .description("The filename")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -118,8 +127,7 @@ public final class AzureStorageUtils {
             "In addition, the provenance repositories may be put on encrypted disk partitions.";
 
     public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
-            .name(STORAGE_ACCOUNT_KEY_PROPERTY_DESCRIPTOR_NAME)
-            .displayName("Account Key")
+            .name("Account Key")
             .description(ACCOUNT_KEY_BASE_DESCRIPTION)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -138,8 +146,7 @@ public final class AzureStorageUtils {
             "In addition, the provenance repositories may be put on encrypted disk partitions.";
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
-            .name(STORAGE_ACCOUNT_NAME_PROPERTY_DESCRIPTOR_NAME)
-            .displayName("Storage Account Name")
+            .name("Storage Account Name")
             .description(ACCOUNT_NAME_BASE_DESCRIPTION)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -148,8 +155,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
-            .name(STORAGE_ENDPOINT_SUFFIX_PROPERTY_DESCRIPTOR_NAME)
-            .displayName("Endpoint Suffix")
+            .name("Endpoint Suffix")
             .description("Storage accounts in public Azure always use a common FQDN suffix. " +
                     "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -158,8 +164,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor CONTAINER = new PropertyDescriptor.Builder()
-            .name("container-name")
-            .displayName("Container Name")
+            .name("Container Name")
             .description("Name of the Azure storage container. In case of PutAzureBlobStorage processor, container can be created if it does not exist.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -167,8 +172,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor CREATE_CONTAINER = new PropertyDescriptor.Builder()
-            .name("create-container")
-            .displayName("Create Container")
+            .name("Create Container")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -180,8 +184,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("conflict-resolution-strategy")
-            .displayName("Conflict Resolution Strategy")
+            .name("Conflict Resolution Strategy")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .allowableValues(AzureStorageConflictResolutionStrategy.class)
@@ -199,8 +202,7 @@ public final class AzureStorageUtils {
             "In addition, the provenance repositories may be put on encrypted disk partitions.";
 
     public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
-            .name(STORAGE_SAS_TOKEN_PROPERTY_DESCRIPTOR_NAME)
-            .displayName("SAS Token")
+            .name("SAS Token")
             .description(SAS_TOKEN_BASE_DESCRIPTION)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -210,8 +212,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor MANAGED_IDENTITY_CLIENT_ID = new PropertyDescriptor.Builder()
-            .name("managed-identity-client-id")
-            .displayName("Managed Identity Client ID")
+            .name("Managed Identity Client ID")
             .description("Client ID of the managed identity. The property is required when User Assigned Managed Identity is used for authentication. " +
                     "It must be empty in case of System Assigned Managed Identity.")
             .sensitive(true)
@@ -222,8 +223,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
-            .name("service-principal-tenant-id")
-            .displayName("Service Principal Tenant ID")
+            .name("Service Principal Tenant ID")
             .description("Tenant ID of the Azure Active Directory hosting the Service Principal.")
             .sensitive(true)
             .required(true)
@@ -233,8 +233,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = new PropertyDescriptor.Builder()
-            .name("service-principal-client-id")
-            .displayName("Service Principal Client ID")
+            .name("Service Principal Client ID")
             .description("Client ID (or Application ID) of the Client/Application having the Service Principal.")
             .sensitive(true)
             .required(true)
@@ -244,8 +243,7 @@ public final class AzureStorageUtils {
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = new PropertyDescriptor.Builder()
-            .name("service-principal-client-secret")
-            .displayName("Service Principal Client Secret")
+            .name("Service Principal Client Secret")
             .description("Password of the Client/Application.")
             .sensitive(true)
             .required(true)

@@ -55,6 +55,9 @@ interface LocalChange {
     styleUrl: './local-changes-table.scss'
 })
 export class LocalChangesTable implements AfterViewInit {
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     private destroyRef: DestroyRef = inject(DestroyRef);
     initialSortColumn: 'componentName' | 'changeType' | 'difference' = 'componentName';
     initialSortDirection: 'asc' | 'desc' = 'asc';
@@ -95,10 +98,7 @@ export class LocalChangesTable implements AfterViewInit {
 
     @Output() goToChange: EventEmitter<NavigateToComponentRequest> = new EventEmitter<NavigateToComponentRequest>();
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: 'componentName' });
     }
 
@@ -125,7 +125,7 @@ export class LocalChangesTable implements AfterViewInit {
     }
 
     canGoTo(item: LocalChange): boolean {
-        return item.differenceType !== 'Component Removed';
+        return (item.differenceType !== 'Component Removed') && (item.differenceType !== 'Component Bundle Changed');
     }
 
     formatDifference(item: LocalChange): string {

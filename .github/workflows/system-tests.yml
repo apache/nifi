@@ -68,7 +68,7 @@ env:
     -pl :nifi-py4j-integration-tests
     -pl nifi-system-tests/nifi-system-test-suite
     -pl nifi-system-tests/nifi-stateless-system-test-suite
-  DEVELOCITY_ACCESS_KEY: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+  DEVELOCITY_ACCESS_KEY: ${{ secrets.NIFI_DEVELOCITY_ACCESS_KEY }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ControllerServicesActions from './controller-services.actions';
@@ -40,9 +40,9 @@ import {
 import { Router } from '@angular/router';
 import {
     selectCurrentProcessGroupId,
+    selectLoadedTimestamp,
     selectParameterContext,
-    selectSaving,
-    selectStatus
+    selectSaving
 } from './controller-services.selectors';
 import { ControllerServiceService } from '../../service/controller-service.service';
 import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
@@ -53,6 +53,7 @@ import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ParameterHelperService } from '../../service/parameter-helper.service';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
+import { initialState } from './controller-services.reducer';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import {
     resetPropertyVerificationState,
@@ -70,27 +71,25 @@ import { ParameterContextService } from '../../../parameter-contexts/service/par
 
 @Injectable()
 export class ControllerServicesEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private storage: Storage,
-        private client: Client,
-        private controllerServiceService: ControllerServiceService,
-        private parameterContextService: ParameterContextService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private parameterHelperService: ParameterHelperService,
-        private extensionTypesService: ExtensionTypesService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private storage = inject(Storage);
+    private client = inject(Client);
+    private controllerServiceService = inject(ControllerServiceService);
+    private parameterContextService = inject(ParameterContextService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private parameterHelperService = inject(ParameterHelperService);
+    private extensionTypesService = inject(ExtensionTypesService);
 
     loadControllerServices$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ControllerServicesActions.loadControllerServices),
             map((action) => action.request),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([request, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([request, loadedTimestamp]) =>
                 combineLatest([
                     this.controllerServiceService.getControllerServices(request.processGroupId),
                     this.controllerServiceService.getFlow(request.processGroupId)
@@ -107,8 +106,26 @@ export class ControllerServicesEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            ControllerServicesActions.loadControllerServicesError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
+                )
+            )
+        )
+    );
+
+    controllerServicesListingError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ControllerServicesActions.loadControllerServicesError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

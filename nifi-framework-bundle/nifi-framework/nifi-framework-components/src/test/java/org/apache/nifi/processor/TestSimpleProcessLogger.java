@@ -20,7 +20,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
-import org.apache.nifi.logging.StandardLoggingContext;
+import org.apache.nifi.logging.LoggingContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +32,9 @@ import org.slf4j.Logger;
 import org.slf4j.event.Level;
 import org.slf4j.spi.LoggingEventBuilder;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -59,8 +61,6 @@ public class TestSimpleProcessLogger {
 
     private static final String EXCEPTION_STRING = EXCEPTION.toString();
 
-    private static final Throwable NULL_THROWABLE = null;
-
     private static final String FIRST = "FIRST";
 
     private static final int SECOND = 2;
@@ -85,6 +85,8 @@ public class TestSimpleProcessLogger {
 
     private static final String LOG_FILE_SUFFIX = "myGroup";
 
+    private static final String GROUP_ID_KEY = "groupId";
+
     @Mock
     private ConfigurableComponent component;
 
@@ -98,7 +100,7 @@ public class TestSimpleProcessLogger {
     LoggingEventBuilder loggingEventBuilder;
 
     @Mock
-    StandardLoggingContext loggingContext;
+    LoggingContext loggingContext;
 
     private Object[] componentArguments;
 
@@ -482,5 +484,23 @@ public class TestSimpleProcessLogger {
 
             verify(logRepository).addLogMessage(eq(logLevel), eq(LOG_ARGUMENTS_MESSAGE_WITH_COMPONENT_AND_CAUSES), eq(componentValueCausesArguments), eq(EXCEPTION));
         }
+    }
+
+    @Test
+    public void testLoggingContextGetAttributes() {
+        final String groupId = UUID.randomUUID().toString();
+
+        final Map<String, String> attributes = Map.of(
+                GROUP_ID_KEY, groupId
+        );
+
+        when(loggingContext.getAttributes()).thenReturn(attributes);
+
+        for (final LogLevel logLevel : LogLevel.values()) {
+            componentLog.log(logLevel, LOG_MESSAGE);
+        }
+
+        final int expectedLevels = LogLevel.values().length - 1;
+        verify(loggingContext, times(expectedLevels)).getAttributes();
     }
 }

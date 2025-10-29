@@ -50,7 +50,11 @@
                 <div class="flex justify-between align-middle">
                     <div class="text-sm flex items-center gap-x-2">
                         <button mat-icon-button class="primary-icon-button" (click)="refresh()">
-                            <i class="fa fa-refresh" [class.fa-spin]="listingStatus() === 'loading'"></i>
+                            <i
+                                class="fa fa-refresh"
+                                [class.fa-spin]="
+                                    listingStatus() === 'loading' || systemDiagnosticsStatus() === 'loading'
+                                "></i>
                         </button>
                         <div>Last updated:</div>
                         <div class="tertiary-color font-medium">{{ loadedTimestamp() }}</div>

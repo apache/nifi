@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, forwardRef, Input } from '@angular/core';
+import { Component, forwardRef, Input, inject } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -55,6 +55,8 @@ import {
     styleUrls: ['./prioritizers.component.scss']
 })
 export class Prioritizers implements ControlValueAccessor {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set allPrioritizers(allPrioritizers: DocumentedType[]) {
         this._allPrioritizers = [...allPrioritizers];
         this.processPrioritizers();
@@ -73,8 +75,6 @@ export class Prioritizers implements ControlValueAccessor {
     selectedPrioritizers: DocumentedType[] = [];
 
     value!: string[];
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     private processPrioritizers(): void {
         if (this._allPrioritizers && this.value) {
@@ -167,11 +167,15 @@ export class Prioritizers implements ControlValueAccessor {
         // mark the component as touched if not already
         if (!this.isTouched) {
             this.isTouched = true;
-            this.onTouched();
+            if (this.onTouched) {
+                this.onTouched();
+            }
         }
 
         // emit the changes
-        this.onChange(this.serializeSelectedPrioritizers());
+        if (this.onChange) {
+            this.onChange(this.serializeSelectedPrioritizers());
+        }
     }
 
     private serializeSelectedPrioritizers(): string[] {

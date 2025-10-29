@@ -27,6 +27,8 @@ import { Navigation } from '../../../ui/common/navigation/navigation.component';
 import { summaryFeatureKey } from '../state';
 import { summaryListingFeatureKey } from '../state/summary-listing';
 import { BannerText } from '../../../ui/common/banner-text/banner-text.component';
+import { initialState as initialClusterSummaryState } from '../../../state/cluster-summary/cluster-summary.reducer';
+import { clusterSummaryFeatureKey } from '../../../state/cluster-summary';
 
 describe('Summary', () => {
     let component: Summary;
@@ -45,6 +47,7 @@ describe('Summary', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [clusterSummaryFeatureKey]: initialClusterSummaryState,
                         [summaryFeatureKey]: {
                             [summaryListingFeatureKey]: initialState
                         }

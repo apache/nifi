@@ -31,6 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -76,16 +77,14 @@ import java.util.stream.Stream;
 public class JoltTransformRecord extends AbstractJoltTransform {
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("jolt-record-record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("jolt-record-record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Controller Service to use for writing out the records")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
@@ -245,6 +244,12 @@ public class JoltTransformRecord extends AbstractJoltTransform {
             session.transfer(transformed, REL_SUCCESS);
         }
         session.transfer(original, REL_ORIGINAL);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+       config.renameProperty("jolt-record-record-reader", RECORD_READER.getName());
+       config.renameProperty("jolt-record-record-writer", RECORD_WRITER.getName());
     }
 
     private List<Record> transform(final Record record, final JoltTransform transform) {

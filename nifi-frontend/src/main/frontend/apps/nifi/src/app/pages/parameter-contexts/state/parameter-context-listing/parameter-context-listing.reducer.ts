@@ -25,12 +25,14 @@ import {
     editParameterContextComplete,
     loadParameterContexts,
     loadParameterContextsSuccess,
+    loadParameterContextsError,
     parameterContextListingSnackbarApiError,
     parameterContextListingBannerApiError,
     pollParameterContextUpdateRequestSuccess,
     submitParameterContextUpdateRequest,
     submitParameterContextUpdateRequestSuccess,
-    deleteParameterContextUpdateRequestSuccess
+    deleteParameterContextUpdateRequestSuccess,
+    deleteParameterContextUpdateRequest
 } from './parameter-context-listing.actions';
 import { ParameterContextUpdateRequestEntity } from '../../../../state/shared';
 import { Revision } from '@nifi/shared';
@@ -40,6 +42,7 @@ export const initialState: ParameterContextListingState = {
     updateRequestEntity: null,
     saving: false,
     loadedTimestamp: '',
+    deleteUpdateRequestInitiated: false,
     status: 'pending'
 };
 
@@ -55,6 +58,10 @@ export const parameterContextListingReducer = createReducer(
         loadedTimestamp: response.loadedTimestamp,
         error: null,
         status: 'success' as const
+    })),
+    on(loadParameterContextsError, (state, { status }) => ({
+        ...state,
+        status
     })),
     on(parameterContextListingSnackbarApiError, parameterContextListingBannerApiError, (state) => ({
         ...state,
@@ -83,6 +90,10 @@ export const parameterContextListingReducer = createReducer(
             updateRequestEntity: response.requestEntity
         })
     ),
+    on(deleteParameterContextUpdateRequest, (state) => ({
+        ...state,
+        deleteUpdateRequestInitiated: true
+    })),
     on(deleteParameterContextUpdateRequestSuccess, (state) => ({
         ...state,
         saving: false
@@ -93,25 +104,30 @@ export const parameterContextListingReducer = createReducer(
 
             if (updateRequestEntity) {
                 const revision: Revision = updateRequestEntity.parameterContextRevision;
-                const parameterContext: any = updateRequestEntity.request.parameterContext;
 
-                const componentIndex: number = draftState.parameterContexts.findIndex(
-                    (f: any) => parameterContext.id === f.id
-                );
-                if (componentIndex > -1) {
-                    draftState.parameterContexts[componentIndex] = {
-                        ...draftState.parameterContexts[componentIndex],
-                        revision: {
-                            ...revision
-                        },
-                        component: {
-                            ...parameterContext
-                        }
-                    };
+                // update state if completed, otherwise there won't be a parameter context on the request
+                if (updateRequestEntity.request.complete) {
+                    const parameterContext: any = updateRequestEntity.request.parameterContext;
+
+                    const componentIndex: number = draftState.parameterContexts.findIndex(
+                        (f: any) => parameterContext.id === f.id
+                    );
+                    if (componentIndex > -1) {
+                        draftState.parameterContexts[componentIndex] = {
+                            ...draftState.parameterContexts[componentIndex],
+                            revision: {
+                                ...revision
+                            },
+                            component: {
+                                ...parameterContext
+                            }
+                        };
+                    }
                 }
 
                 draftState.updateRequestEntity = null;
                 draftState.saving = false;
+                draftState.deleteUpdateRequestInitiated = false;
             }
         });
     }),

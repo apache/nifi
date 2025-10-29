@@ -166,6 +166,8 @@ public class ListenTCP extends AbstractProcessor {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.removeProperty("max-receiving-threads");
+        config.renameProperty(ListenerProperties.OLD_WORKER_THREADS_PROPERTY_NAME, ListenerProperties.WORKER_THREADS.getName());
+        config.renameProperty(ListenerProperties.OLD_MESSAGE_DELIMITER_PROPERTY_NAME, ListenerProperties.MESSAGE_DELIMITER.getName());
     }
 
     @OnScheduled

@@ -38,13 +38,16 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
             }
         }
+
+        // Merge physical state
+        mergePhysicalState(clientEntity, entityMap);
     }
 
     /**
      * Merges the ProcessorEntity responses.
      *
      * @param clientEntity the entity being returned to the client
-     * @param entityMap all node responses
+     * @param entityMap    all node responses
      */
     @Override
     public void mergeComponents(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap) {
@@ -111,11 +114,39 @@ public class ProcessorEntityMerger implements ComponentEntityMerger<ProcessorEnt
         }
 
         final Set<String> statuses = dtoMap.values().stream()
-            .map(ProcessorDTO::getValidationStatus)
-            .collect(Collectors.toSet());
+                .map(ProcessorDTO::getValidationStatus)
+                .collect(Collectors.toSet());
         clientDto.setValidationStatus(ErrorMerger.mergeValidationStatus(statuses));
 
         // set the merged the validation errors
         clientDto.setValidationErrors(ErrorMerger.normalizedMergedErrors(validationErrorMap, dtoMap.size()));
     }
+
+    /**
+     * Merges physical state from cluster nodes, giving precedence to transition states (STARTING, STOPPING)
+     * over stable states since they indicate a processor is actively changing state.
+     */
+    private static void mergePhysicalState(final ProcessorEntity clientEntity, final Map<NodeIdentifier, ProcessorEntity> entityMap) {
+        String mergedPhysicalState = clientEntity.getPhysicalState();
+
+        for (final ProcessorEntity nodeEntity : entityMap.values()) {
+            final String nodePhysicalState = nodeEntity.getPhysicalState();
+            if (nodePhysicalState != null) {
+                final boolean nodeIsTransition = isTransitionState(nodePhysicalState);
+                final boolean mergedIsTransition = isTransitionState(mergedPhysicalState);
+
+                // Always use transition states, or use any state if merged has none
+                if (nodeIsTransition || !mergedIsTransition) {
+                    mergedPhysicalState = nodePhysicalState;
+                }
+            }
+        }
+
+        clientEntity.setPhysicalState(mergedPhysicalState);
+    }
+
+    private static boolean isTransitionState(final String physicalState) {
+        return "STARTING".equals(physicalState) || "STOPPING".equals(physicalState);
+    }
+
 }

@@ -98,7 +98,6 @@ under the License.
     <rule ref="category/java/errorprone.xml/ReturnFromFinallyBlock" />
     <rule ref="category/java/errorprone.xml/UnconditionalIfStatement" />
     <rule ref="category/java/errorprone.xml/UnnecessaryConversionTemporary" />
-    <rule ref="category/java/errorprone.xml/UselessOperationOnImmutable" />
 
     <rule ref="category/java/multithreading.xml/AvoidThreadGroup" />
     <rule ref="category/java/multithreading.xml/DontCallThreadRun" />

@@ -36,6 +36,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -96,8 +97,7 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.e
 public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
     public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
-            .name("range-start")
-            .displayName("Range Start")
+            .name("Range Start")
             .description("The byte position at which to start reading from the object. An empty value or a value of " +
                     "zero will start reading at the beginning of the object.")
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -106,8 +106,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .build();
 
     public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
-            .name("range-length")
-            .displayName("Range Length")
+            .name("Range Length")
             .description("The number of bytes to download from the object, starting from the Range Start. An empty " +
                     "value or a value that extends beyond the end of the object will read to the end of the object.")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
@@ -116,8 +115,7 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             .build();
 
     public static final PropertyDescriptor NUM_RETRIES = new PropertyDescriptor.Builder()
-            .name("number-of-retries")
-            .displayName("Number of Retries")
+            .name("Number of Retries")
             .description("The number of automatic retries to perform if the download fails.")
             .addValidator(StandardValidators.createLongValidator(0L, Integer.MAX_VALUE, true))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -189,5 +187,16 @@ public class FetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageProce
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName());
+        config.renameProperty(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, DIRECTORY.getName());
+        config.renameProperty(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, FILE.getName());
+        config.renameProperty("number-of-retries", NUM_RETRIES.getName());
+        config.renameProperty("range-start", RANGE_START.getName());
+        config.renameProperty("range-length", RANGE_LENGTH.getName());
     }
 }

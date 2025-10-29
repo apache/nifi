@@ -16,95 +16,69 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.dbcp.DBCPService;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.db.impl.DerbyDatabaseAdapter;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestUpdateDatabaseTable {
+class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
 
     private static final String createPersons = "CREATE TABLE \"persons\" (\"id\" integer primary key, \"name\" varchar(100), \"code\" integer)";
 
     private static final String createSchema = "CREATE SCHEMA \"testSchema\"";
 
-
-    @TempDir
-    public static File tempDir;
-
-    private static String derbyErrorFile;
-
     private TestRunner runner;
-    private UpdateDatabaseTable processor;
-    private static DBCPService service;
-
-    @BeforeAll
-    public static void setupClass() throws ProcessException {
-        derbyErrorFile = System.getProperty("derby.stream.error.file", "");
-        System.setProperty("derby.stream.error.file", "target/derby.log");
-        final File dbDir = new File(tempDir, "db");
-        service = new MockDBCPService(dbDir.getAbsolutePath());
-    }
-
-    @AfterAll
-    public static void restoreDefaults() {
-        System.setProperty("derby.stream.error.file", derbyErrorFile);
-        final File dbDir = new File(tempDir, "db");
-        dbDir.deleteOnExit();
-        try {
-            DriverManager.getConnection("jdbc:derby:" + dbDir + ";shutdown=true");
-        } catch (SQLException ignored) {
-            // Ignore, most likely the DB has already been shutdown
-        }
-    }
 
     @BeforeEach
-    public void setup() {
-        processor = new UpdateDatabaseTable();
+    void setRunner() throws InitializationException {
+        runner = newTestRunner(UpdateDatabaseTable.class);
+    }
 
-        try (Statement s = service.getConnection().createStatement()) {
-            s.execute("DROP TABLE \"persons\"");
-        } catch (SQLException ignored) {
-            // Ignore, table probably doesn't exist
+    @AfterEach
+    void dropTables() {
+        final List<String> tables = List.of(
+                "\"persons\"",
+                "\"newTable\""
+        );
+
+        for (final String table : tables) {
+            try (
+                    Connection connection = getConnection();
+                    Statement statement = connection.createStatement()
+            ) {
+                statement.execute("DROP TABLE %s".formatted(table));
+            } catch (final SQLException ignored) {
+
+            }
         }
 
-        try (Statement s = service.getConnection().createStatement()) {
-            s.execute("DROP TABLE \"newTable\"");
-        } catch (SQLException ignored) {
-            // Ignore, table probably doesn't exist
-        }
+        try (
+                Connection connection = getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            statement.execute("DROP SCHEMA \"testSchema\"");
+        } catch (final SQLException ignored) {
 
-        try (Statement s = service.getConnection().createStatement()) {
-            s.execute("DROP SCHEMA \"testSchema\"");
-        } catch (SQLException ignored) {
-            // Ignore, schema probably doesn't exist
         }
-
-        runner = TestRunners.newTestRunner(processor);
     }
 
     @Test
@@ -126,9 +100,7 @@ public class TestUpdateDatabaseTable {
         runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "false");
         runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "true");
         runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-        runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
+
         Map<String, String> attrs = new HashMap<>();
         attrs.put("db.name", "default");
         attrs.put("table.name", "newTable");
@@ -136,10 +108,10 @@ public class TestUpdateDatabaseTable {
         runner.run();
 
         runner.assertTransferCount(UpdateDatabaseTable.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "newTable");
         // Verify the table has been created with the expected fields
-        try (Statement s = service.getConnection().createStatement()) {
+        try (Statement s = getConnection().createStatement()) {
             // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
             ResultSet rs = s.executeQuery("select * from sys.syscolumns where referenceid = (select tableid from sys.systables where tablename = 'NEWTABLE') order by columnnumber");
             assertTrue(rs.next());
@@ -170,7 +142,7 @@ public class TestUpdateDatabaseTable {
 
     @Test
     public void testAddColumnToExistingTable() throws Exception {
-        try (final Connection conn = service.getConnection()) {
+        try (final Connection conn = getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createPersons);
             }
@@ -192,9 +164,7 @@ public class TestUpdateDatabaseTable {
             runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "true");
             runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "false");
             runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
-            runner.addControllerService("dbcp", service);
-            runner.enableControllerService(service);
-            runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
+
             Map<String, String> attrs = new HashMap<>();
             attrs.put("db.name", "default");
             attrs.put("table.name", "persons");
@@ -202,7 +172,7 @@ public class TestUpdateDatabaseTable {
             runner.run();
 
             runner.assertTransferCount(UpdateDatabaseTable.REL_SUCCESS, 1);
-            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).getFirst();
             flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "persons");
             // Verify the table has been updated with the expected field(s)
             try (Statement s = conn.createStatement()) {
@@ -238,7 +208,7 @@ public class TestUpdateDatabaseTable {
 
     @Test
     public void testAddExistingColumnTranslateFieldNames() throws Exception {
-        try (final Connection conn = service.getConnection()) {
+        try (final Connection conn = getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createPersons);
             }
@@ -260,9 +230,7 @@ public class TestUpdateDatabaseTable {
             runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "true");
             runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "false");
             runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
-            runner.addControllerService("dbcp", service);
-            runner.enableControllerService(service);
-            runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
+
             Map<String, String> attrs = new HashMap<>();
             attrs.put("db.name", "default");
             attrs.put("table.name", "persons");
@@ -270,7 +238,7 @@ public class TestUpdateDatabaseTable {
             runner.run();
 
             runner.assertTransferCount(UpdateDatabaseTable.REL_SUCCESS, 1);
-            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).getFirst();
             flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "persons");
             // Verify the table has been updated with the expected field(s)
             try (Statement s = conn.createStatement()) {
@@ -301,7 +269,7 @@ public class TestUpdateDatabaseTable {
 
     @Test
     public void testAddExistingColumnNoTranslateFieldNames() throws Exception {
-        try (final Connection conn = service.getConnection()) {
+        try (final Connection conn = getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createPersons);
                 stmt.execute("ALTER TABLE \"persons\" ADD COLUMN \"ID\" INTEGER");
@@ -324,9 +292,7 @@ public class TestUpdateDatabaseTable {
             runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "true");
             runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "false");
             runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
-            runner.addControllerService("dbcp", service);
-            runner.enableControllerService(service);
-            runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
+
             Map<String, String> attrs = new HashMap<>();
             attrs.put("db.name", "default");
             attrs.put("table.name", "persons");
@@ -334,7 +300,7 @@ public class TestUpdateDatabaseTable {
             runner.run();
 
             runner.assertTransferCount(UpdateDatabaseTable.REL_SUCCESS, 1);
-            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).getFirst();
             flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "persons");
             // Verify the table has been updated with the expected field(s)
             try (Statement s = conn.createStatement()) {
@@ -375,7 +341,7 @@ public class TestUpdateDatabaseTable {
 
     @Test
     public void testAddColumnToExistingTableUpdateFieldNames() throws Exception {
-        try (final Connection conn = service.getConnection()) {
+        try (final Connection conn = getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createPersons);
             }
@@ -404,9 +370,7 @@ public class TestUpdateDatabaseTable {
             runner.setProperty(UpdateDatabaseTable.RECORD_WRITER_FACTORY, "mock-writer-factory");
 
             runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
-            runner.addControllerService("dbcp", service);
-            runner.enableControllerService(service);
-            runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
+
             Map<String, String> attrs = new HashMap<>();
             attrs.put("db.name", "default");
             attrs.put("table.name", "persons");
@@ -414,7 +378,7 @@ public class TestUpdateDatabaseTable {
             runner.run();
 
             runner.assertTransferCount(UpdateDatabaseTable.REL_SUCCESS, 1);
-            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
+            final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).getFirst();
             // Ensure the additional field is written out to the FlowFile
             flowFile.assertContentEquals("\"1\",\"name1\",\"0\",\"test\"\n");
         }
@@ -422,8 +386,7 @@ public class TestUpdateDatabaseTable {
 
     @Test
     public void testCreateTableNonDefaultSchema() throws Exception {
-
-        try (final Connection conn = service.getConnection()) {
+        try (final Connection conn = getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate(createSchema);
             }
@@ -446,9 +409,7 @@ public class TestUpdateDatabaseTable {
         runner.setProperty(UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER, "false");
         runner.setProperty(UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS, "true");
         runner.setProperty(UpdateDatabaseTable.DB_TYPE, new DerbyDatabaseAdapter().getName());
-        runner.addControllerService("dbcp", service);
-        runner.enableControllerService(service);
-        runner.setProperty(UpdateDatabaseTable.DBCP_SERVICE, "dbcp");
+
         Map<String, String> attrs = new HashMap<>();
         attrs.put("db.name", "default");
         attrs.put("table.name", "newTable");
@@ -456,10 +417,10 @@ public class TestUpdateDatabaseTable {
         runner.run();
 
         runner.assertTransferCount(UpdateDatabaseTable.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(UpdateDatabaseTable.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(UpdateDatabaseTable.ATTR_OUTPUT_TABLE, "newTable");
         // Verify the table has been created with the expected fields
-        try (Statement s = service.getConnection().createStatement()) {
+        try (Statement s = getConnection().createStatement()) {
             // The Derby equivalent of DESCRIBE TABLE (using a query rather than the ij tool)
             ResultSet rs = s.executeQuery("select * from sys.syscolumns where referenceid = (select tableid from sys.systables "
                     + "join sys.sysschemas on sys.systables.schemaid = sys.sysschemas.schemaid where tablename = 'NEWTABLE' and sys.sysschemas.schemaname = 'TESTSCHEMA') order by columnnumber");
@@ -488,32 +449,4 @@ public class TestUpdateDatabaseTable {
             assertFalse(rs.next());
         }
     }
-
-
-    /**
-     * Simple implementation only for testing purposes
-     */
-    private static class MockDBCPService extends AbstractControllerService implements DBCPService {
-        private final String dbLocation;
-
-        public MockDBCPService(final String dbLocation) {
-            this.dbLocation = dbLocation;
-        }
-
-        @Override
-        public String getIdentifier() {
-            return "dbcp";
-        }
-
-        @Override
-        public Connection getConnection() throws ProcessException {
-            try {
-                Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-                return DriverManager.getConnection("jdbc:derby:" + dbLocation + ";create=true");
-            } catch (final Exception e) {
-                throw new ProcessException("getConnection failed: " + e);
-            }
-        }
-    }
-
 }

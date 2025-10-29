@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { loadBannerText } from '../../../state/banner-text/banner-text.actions';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../state';
@@ -28,9 +28,9 @@ import { selectBannerText } from '../../../state/banner-text/banner-text.selecto
     styleUrls: ['./banner-text.component.scss']
 })
 export class BannerText implements OnInit {
-    bannerText = this.store.selectSignal(selectBannerText);
+    private store = inject<Store<NiFiState>>(Store);
 
-    constructor(private store: Store<NiFiState>) {}
+    bannerText = this.store.selectSignal(selectBannerText);
 
     ngOnInit(): void {
         this.store.dispatch(loadBannerText());

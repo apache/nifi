@@ -22,6 +22,10 @@
 
     .listing-table {
         table {
+            .mat-column-current {
+                width: 42px;
+            }
+
             .mat-column-version {
                 width: 180px;
             }

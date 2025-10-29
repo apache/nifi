@@ -21,10 +21,13 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
 public class JdbcProperties {
+    public static final String OLD_NORMALIZE_NAMES_FOR_AVRO_PROPERTY_NAME = "dbf-normalize";
+    public static final String OLD_USE_AVRO_LOGICAL_TYPES_PROPERTY_NAME = "dbf-user-logical-types";
+    public static final String OLD_DEFAULT_PRECISION_PROPERTY_NAME = "dbf-default-precision";
+    public static final String OLD_DEFAULT_SCALE_PROPERTY_NAME = "dbf-default-scale";
 
     public static final PropertyDescriptor NORMALIZE_NAMES_FOR_AVRO = new PropertyDescriptor.Builder()
-            .name("dbf-normalize")
-            .displayName("Normalize Table/Column Names")
+            .name("Normalize Table and Column Names")
             .description("Whether to change non-Avro-compatible characters in column names to Avro-compatible characters. For example, colons and periods "
                     + "will be changed to underscores in order to build a valid Avro record.")
             .allowableValues("true", "false")
@@ -33,8 +36,7 @@ public class JdbcProperties {
             .build();
 
     public static final PropertyDescriptor USE_AVRO_LOGICAL_TYPES = new PropertyDescriptor.Builder()
-            .name("dbf-user-logical-types")
-            .displayName("Use Avro Logical Types")
+            .name("Use Avro Logical Types")
             .description("Whether to use Avro Logical Types for DECIMAL/NUMBER, DATE, TIME and TIMESTAMP columns. "
                     + "If disabled, written as string. "
                     + "If enabled, Logical types are used and written as its underlying type, specifically, "
@@ -49,8 +51,7 @@ public class JdbcProperties {
             .build();
 
     public static final PropertyDescriptor DEFAULT_PRECISION = new PropertyDescriptor.Builder()
-            .name("dbf-default-precision")
-            .displayName("Default Decimal Precision")
+            .name("Default Decimal Precision")
             .description("When a DECIMAL/NUMBER value is written as a 'decimal' Avro logical type,"
                     + " a specific 'precision' denoting number of available digits is required."
                     + " Generally, precision is defined by column data type definition or database engines default."
@@ -63,8 +64,7 @@ public class JdbcProperties {
             .build();
 
     public static final PropertyDescriptor DEFAULT_SCALE = new PropertyDescriptor.Builder()
-            .name("dbf-default-scale")
-            .displayName("Default Decimal Scale")
+            .name("Default Decimal Scale")
             .description("When a DECIMAL/NUMBER value is written as a 'decimal' Avro logical type,"
                     + " a specific 'scale' denoting number of available decimal digits is required."
                     + " Generally, scale is defined by column data type definition or database engines default."

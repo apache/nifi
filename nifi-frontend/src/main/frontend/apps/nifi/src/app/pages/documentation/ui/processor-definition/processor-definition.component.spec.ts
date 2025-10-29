@@ -22,6 +22,10 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { processorDefinitionFeatureKey } from '../../state/processor-definition';
 import { initialState } from '../../state/processor-definition/processor-definition.reducer';
 import { documentationFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('ProcessorDefinition', () => {
     let component: ProcessorDefinition;
@@ -33,6 +37,8 @@ describe('ProcessorDefinition', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [documentationFeatureKey]: {
                             [processorDefinitionFeatureKey]: initialState
                         }

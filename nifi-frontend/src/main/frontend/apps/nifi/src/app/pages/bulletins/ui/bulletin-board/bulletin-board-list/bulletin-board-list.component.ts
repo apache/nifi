@@ -32,7 +32,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { BulletinEntity, ComponentType, NiFiCommon } from '@nifi/shared';
+import { BulletinEntity, ComponentType, CopyDirective, NiFiCommon } from '@nifi/shared';
 import { BulletinBoardEvent, BulletinBoardFilterArgs, BulletinBoardItem } from '../../../state/bulletin-board';
 import { debounceTime, delay, Subject } from 'rxjs';
 import { RouterLink } from '@angular/router';
@@ -40,11 +40,23 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
     selector: 'bulletin-board-list',
-    imports: [MatFormFieldModule, MatInputModule, MatOptionModule, MatSelectModule, ReactiveFormsModule, RouterLink],
+    standalone: true,
+    imports: [
+        MatFormFieldModule,
+        MatInputModule,
+        MatOptionModule,
+        MatSelectModule,
+        ReactiveFormsModule,
+        RouterLink,
+        CopyDirective
+    ],
     templateUrl: './bulletin-board-list.component.html',
     styleUrls: ['./bulletin-board-list.component.scss']
 })
 export class BulletinBoardList implements AfterViewInit, OnDestroy {
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     filterTerm = '';
     filterColumn: 'message' | 'name' | 'id' | 'groupId' = 'message';
     filterForm: FormGroup;
@@ -55,6 +67,8 @@ export class BulletinBoardList implements AfterViewInit, OnDestroy {
     private destroyRef: DestroyRef = inject(DestroyRef);
 
     @ViewChild('scrollContainer') private scroll!: ElementRef;
+
+    expandedBulletinIds: Set<number> = new Set<number>();
 
     @Input() set bulletinBoardItems(items: BulletinBoardItem[]) {
         this._items = items;
@@ -67,10 +81,7 @@ export class BulletinBoardList implements AfterViewInit, OnDestroy {
 
     @Output() filterChanged: EventEmitter<BulletinBoardFilterArgs> = new EventEmitter<BulletinBoardFilterArgs>();
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: 'message' });
     }
 
@@ -215,5 +226,24 @@ export class BulletinBoardList implements AfterViewInit, OnDestroy {
             default:
                 return null;
         }
+    }
+
+    isExpanded(bulletin: BulletinEntity): boolean {
+        return this.expandedBulletinIds.has(bulletin.bulletin.id);
+    }
+
+    toggleStackTrace(bulletin: BulletinEntity): void {
+        const id = bulletin.bulletin.id;
+        if (this.expandedBulletinIds.has(id)) {
+            this.expandedBulletinIds.delete(id);
+        } else {
+            this.expandedBulletinIds.add(id);
+        }
+    }
+    getBulletinCopyMessage(bulletin: BulletinEntity): string {
+        if (bulletin.bulletin.stackTrace) {
+            return bulletin.bulletin.message + '\n\n' + bulletin.bulletin.stackTrace;
+        }
+        return bulletin.bulletin.message;
     }
 }

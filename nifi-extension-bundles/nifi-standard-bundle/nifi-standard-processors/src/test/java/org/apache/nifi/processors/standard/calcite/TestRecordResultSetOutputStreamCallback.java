@@ -23,6 +23,7 @@ import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processors.standard.QueryRecord;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
@@ -58,7 +59,7 @@ public class TestRecordResultSetOutputStreamCallback {
 
         final RecordSetWriterFactory writerService = new CSVRecordSetWriter();
         runner.addControllerService(writerId, writerService);
-        runner.setProperty(writerService, "schema-access-strategy", "inherit-record-schema");
+        runner.setProperty(writerService, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY.getName(), "inherit-record-schema");
         runner.enableControllerService(writerService);
 
         final ResultSet resultSet = getResultSet();

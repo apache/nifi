@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -161,9 +161,6 @@
         <nifi.security.allow.anonymous.authentication>false</nifi.security.allow.anonymous.authentication>
         <nifi.security.user.login.identity.provider>single-user-provider</nifi.security.user.login.identity.provider>
         <nifi.security.user.jws.key.rotation.period>PT1H</nifi.security.user.jws.key.rotation.period>
-        <nifi.security.x509.principal.extractor />
-        <nifi.security.ocsp.responder.url />
-        <nifi.security.ocsp.responder.certificate />
 
         <!-- nifi.properties: openid connect -->
         <nifi.security.user.oidc.discovery.url />
@@ -197,7 +194,6 @@
         <!-- nifi.properties: cluster common properties (cluster manager and nodes must have same values) -->
         <nifi.cluster.protocol.heartbeat.interval>5 sec</nifi.cluster.protocol.heartbeat.interval>
         <nifi.cluster.protocol.heartbeat.missable.max>8</nifi.cluster.protocol.heartbeat.missable.max>
-        <nifi.cluster.protocol.is.secure>false</nifi.cluster.protocol.is.secure>
 
         <!-- nifi.properties: cluster node properties (only configure for cluster nodes) -->
         <nifi.cluster.is.node>false</nifi.cluster.is.node>

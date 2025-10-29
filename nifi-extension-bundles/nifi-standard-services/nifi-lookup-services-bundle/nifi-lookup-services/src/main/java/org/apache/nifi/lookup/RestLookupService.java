@@ -211,7 +211,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
     static final String MIME_TYPE_KEY = "mime.type";
     static final String BODY_KEY = "request.body";
     static final String METHOD_KEY = "request.method";
-
+    static final Integer INPUT_STREAM_BUFFER_SIZE = 8388608; // 8MB
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         URL,
         RECORD_READER,
@@ -383,7 +383,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
             final Record record;
             try (final InputStream is = responseBody.byteStream();
-                final InputStream bufferedIn = new BufferedInputStream(is)) {
+                 final InputStream bufferedIn = new BufferedInputStream(is, INPUT_STREAM_BUFFER_SIZE)) {
                 record = handleResponse(bufferedIn, responseBody.contentLength(), context);
             }
 

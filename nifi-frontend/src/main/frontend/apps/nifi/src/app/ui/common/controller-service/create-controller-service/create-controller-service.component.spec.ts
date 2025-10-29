@@ -21,12 +21,15 @@ import { CreateControllerService } from './create-controller-service.component';
 import { MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialExtensionsTypesState } from '../../../../state/extension-types/extension-types.reducer';
+import { extensionTypesFeatureKey } from '../../../../state/extension-types';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { MockComponent } from 'ng-mocks';
 import { ExtensionCreation } from '../../extension-creation/extension-creation.component';
 import { DocumentedType } from '../../../../state/shared';
 import { of } from 'rxjs';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 
 describe('CreateControllerService', () => {
     let component: CreateControllerService;
@@ -65,7 +68,12 @@ describe('CreateControllerService', () => {
                 MockComponent(ExtensionCreation)
             ],
             providers: [
-                provideMockStore({ initialState: initialExtensionsTypesState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

@@ -36,6 +36,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -61,8 +62,7 @@ import java.util.stream.Stream;
 })
 public class GetMongo extends AbstractMongoQueryProcessor {
     public static final PropertyDescriptor SEND_EMPTY_RESULTS = new PropertyDescriptor.Builder()
-        .name("get-mongo-send-empty")
-        .displayName("Send Empty Result")
+        .name("Send Empty Result")
         .description("If a query executes successfully, but returns no results, send an empty JSON document " +
                 "signifying no result.")
         .allowableValues("true", "false")
@@ -75,8 +75,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
     static final AllowableValue NO_PP  = new AllowableValue("false", "False");
 
     static final PropertyDescriptor USE_PRETTY_PRINTING = new PropertyDescriptor.Builder()
-            .name("use-pretty-printing")
-            .displayName("Pretty Print Results JSON")
+            .name("Pretty Print Results JSON")
             .description("Choose whether or not to pretty print the JSON from the results of the query. " +
                     "Choosing 'True' can greatly increase the space requirements on disk depending on the complexity of the JSON document")
             .required(true)
@@ -110,8 +109,8 @@ public class GetMongo extends AbstractMongoQueryProcessor {
     ).toList();
 
     private ComponentLog logger;
-
     private boolean sendEmpty;
+
     @OnScheduled
     public void onScheduled(PropertyContext context) {
         sendEmpty = context.getProperty(SEND_EMPTY_RESULTS).asBoolean();
@@ -125,6 +124,13 @@ public class GetMongo extends AbstractMongoQueryProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("get-mongo-send-empty", SEND_EMPTY_RESULTS.getName());
+        config.renameProperty("use-pretty-printing", USE_PRETTY_PRINTING.getName());
     }
 
     //Turn a list of Mongo result documents into a String representation of a JSON array

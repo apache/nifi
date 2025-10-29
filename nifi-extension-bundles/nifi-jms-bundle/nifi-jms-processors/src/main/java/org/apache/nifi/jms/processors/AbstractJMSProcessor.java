@@ -115,8 +115,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("character-set")
-            .displayName("Character Set")
+            .name("Character Set")
             .description("The name of the character set to use to construct or interpret TextMessages")
             .required(true)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
@@ -159,15 +158,13 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
     );
 
     static final PropertyDescriptor BASE_RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(false)
             .build();
 
     static final PropertyDescriptor BASE_RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .dependsOn(BASE_RECORD_READER)
             .required(true)
@@ -197,6 +194,19 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
         config.removeProperty("Session Cache size");
+        config.renameProperty("character-set", CHARSET.getName());
+        config.renameProperty("record-reader", BASE_RECORD_READER.getName());
+        config.renameProperty("record-writer", BASE_RECORD_WRITER.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_INITIAL_CONTEXT_FACTORY_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_INITIAL_CONTEXT_FACTORY.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_PROVIDER_URL_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_PROVIDER_URL.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_CONNECTION_FACTORY_NAME_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_CONNECTION_FACTORY_NAME.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_CLIENT_LIBRARIES_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_CLIENT_LIBRARIES.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_PRINCIPAL_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_PRINCIPAL.getName());
+        config.renameProperty(JndiJmsConnectionFactoryProperties.OLD_JNDI_CREDENTIALS_PROPERTY_NAME, JndiJmsConnectionFactoryProperties.JNDI_CREDENTIALS.getName());
+        config.renameProperty(JMSConnectionFactoryProperties.OLD_JMS_CONNECTION_FACTORY_IMPL_PROPERTY_NAME, JMSConnectionFactoryProperties.JMS_CONNECTION_FACTORY_IMPL.getName());
+        config.renameProperty(JMSConnectionFactoryProperties.OLD_JMS_CLIENT_LIBRARIES_PROPERTY_NAME, JMSConnectionFactoryProperties.JMS_CLIENT_LIBRARIES.getName());
+        config.renameProperty(JMSConnectionFactoryProperties.OLD_JMS_BROKER_URI_PROPERTY_NAME, JMSConnectionFactoryProperties.JMS_BROKER_URI.getName());
+        config.renameProperty(JMSConnectionFactoryProperties.OLD_JMS_SSL_CONTEXT_SERVICE_PROPERTY_NAME, JMSConnectionFactoryProperties.JMS_SSL_CONTEXT_SERVICE.getName());
     }
 
     @Override

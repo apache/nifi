@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ExtensionTypesActions from './extension-types.actions';
 import { catchError, combineLatest, map, of, switchMap } from 'rxjs';
@@ -26,11 +26,9 @@ import { ErrorHelper } from '../../service/error-helper.service';
 
 @Injectable()
 export class ExtensionTypesEffects {
-    constructor(
-        private actions$: Actions,
-        private extensionTypesService: ExtensionTypesService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private extensionTypesService = inject(ExtensionTypesService);
+    private errorHelper = inject(ErrorHelper);
 
     loadExtensionTypesForCanvas$ = createEffect(() =>
         this.actions$.pipe(
@@ -136,6 +134,7 @@ export class ExtensionTypesEffects {
                     this.extensionTypesService.getProcessorTypes(),
                     this.extensionTypesService.getControllerServiceTypes(),
                     this.extensionTypesService.getReportingTaskTypes(),
+                    this.extensionTypesService.getRegistryClientTypes(),
                     this.extensionTypesService.getParameterProviderTypes(),
                     this.extensionTypesService.getFlowAnalysisRuleTypes()
                 ]).pipe(
@@ -144,6 +143,7 @@ export class ExtensionTypesEffects {
                             processorTypes,
                             controllerServiceTypes,
                             reportingTaskTypes,
+                            registryClientTypes,
                             parameterProviderTypes,
                             flowAnalysisRuleTypes
                         ]) =>
@@ -152,6 +152,7 @@ export class ExtensionTypesEffects {
                                     processorTypes: processorTypes.processorTypes,
                                     controllerServiceTypes: controllerServiceTypes.controllerServiceTypes,
                                     reportingTaskTypes: reportingTaskTypes.reportingTaskTypes,
+                                    registryClientTypes: registryClientTypes.flowRegistryClientTypes,
                                     parameterProviderTypes: parameterProviderTypes.parameterProviderTypes,
                                     flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes
                                 }

@@ -858,6 +858,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Map<String, String> getLoggingAttributes() {
+        return Map.of();
+    }
+
+    @Override
     public String getLogFileSuffix() {
         return null;
     }

@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ParameterProviders } from './parameter-providers.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialParameterProvidersState } from '../../state/parameter-providers/parameter-providers.reducer';
+import { parameterProvidersFeatureKey } from '../../state/parameter-providers';
+import { settingsFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('ParameterProviders', () => {
     let component: ParameterProviders;
@@ -30,7 +36,13 @@ describe('ParameterProviders', () => {
             imports: [ParameterProviders],
             providers: [
                 provideMockStore({
-                    initialState: initialParameterProvidersState
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [settingsFeatureKey]: {
+                            [parameterProvidersFeatureKey]: initialParameterProvidersState
+                        }
+                    }
                 })
             ]
         });

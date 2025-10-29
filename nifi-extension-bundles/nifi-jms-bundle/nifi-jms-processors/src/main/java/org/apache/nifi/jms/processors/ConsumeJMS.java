@@ -145,8 +145,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .build();
 
     static final PropertyDescriptor DURABLE_SUBSCRIBER = new PropertyDescriptor.Builder()
-            .name("Durable subscription")
-            .displayName("Durable Subscription")
+            .name("Durable Subscription")
             .description("If destination is Topic if present then make it the consumer durable. " +
                          "@see https://jakarta.ee/specifications/platform/9/apidocs/jakarta/jms/session#createDurableConsumer-jakarta.jms.Topic-java.lang.String-")
             .required(false)
@@ -156,8 +155,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor SHARED_SUBSCRIBER = new PropertyDescriptor.Builder()
-            .name("Shared subscription")
-            .displayName("Shared Subscription")
+            .name("Shared Subscription")
             .description("If destination is Topic if present then make it the consumer shared. " +
                          "@see https://jakarta.ee/specifications/platform/9/apidocs/jakarta/jms/session#createSharedConsumer-jakarta.jms.Topic-java.lang.String-")
             .required(false)
@@ -201,8 +199,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .build();
 
     static final PropertyDescriptor OUTPUT_STRATEGY = new PropertyDescriptor.Builder()
-            .name("output-strategy")
-            .displayName("Output Strategy")
+            .name("Output Strategy")
             .description("The format used to output the JMS message into a FlowFile record.")
             .dependsOn(RECORD_READER)
             .required(true)
@@ -264,6 +261,9 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
+        config.renameProperty("Durable subscription", DURABLE_SUBSCRIBER.getName());
+        config.renameProperty("Shared subscription", SHARED_SUBSCRIBER.getName());
+        config.renameProperty("output-strategy", OUTPUT_STRATEGY.getName());
 
         if (!config.hasProperty(MAX_BATCH_SIZE)) {
             if (config.isPropertySet(BASE_RECORD_READER)) {

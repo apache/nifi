@@ -24,6 +24,11 @@ export const selectFlowState = createSelector(selectCanvasState, (state: CanvasS
 
 export const selectFlowLoadingStatus = createSelector(selectFlowState, (state: FlowState) => state.status);
 
+export const selectHasFlowData = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.flow.processGroupFlow.id !== ''
+);
+
 export const selectChangeVersionRequest = createSelector(
     selectFlowState,
     (state: FlowState) => state.changeVersionRequest

@@ -23,8 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
+import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
-import org.apache.nifi.processors.aws.v2.AbstractAwsProcessor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -158,7 +158,7 @@ public class StartAwsTranslateJobTest {
     @Test
     void testMigration() {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expected = Map.of("aws-region", AbstractAwsProcessor.REGION.getName(),
+        final Map<String, String> expected = Map.of("aws-region", RegionUtil.REGION.getName(),
                 "json-payload", AbstractAwsMachineLearningJobStarter.JSON_PAYLOAD.getName());
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());

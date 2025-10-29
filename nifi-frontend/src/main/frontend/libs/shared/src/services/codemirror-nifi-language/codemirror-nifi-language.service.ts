@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { EnvironmentInjector, Injectable, createComponent } from '@angular/core';
+import { EnvironmentInjector, Injectable, createComponent, inject } from '@angular/core';
 import { LRLanguage, LanguageSupport, syntaxTree, HighlightStyle } from '@codemirror/language';
 import { parser } from './nfel/nfel';
 import {
@@ -46,6 +46,10 @@ export interface NifiLanguageOptions {
 
 @Injectable({ providedIn: 'root' })
 export class CodemirrorNifiLanguageService {
+    private elService = inject(ElService);
+    private nifiCommon = inject(NiFiCommon);
+    private environmentInjector = inject(EnvironmentInjector);
+
     private functions: string[] = [];
     private subjectlessFunctions: string[] = [];
     private functionDetails: { [key: string]: ElFunction } = {};
@@ -61,11 +65,7 @@ export class CodemirrorNifiLanguageService {
     private functionsLoaded = false;
     private functionsLoadPromise: Promise<void> | null = null;
 
-    constructor(
-        private elService: ElService,
-        private nifiCommon: NiFiCommon,
-        private environmentInjector: EnvironmentInjector
-    ) {
+    constructor() {
         this.updateLanguageConfiguration();
     }
 

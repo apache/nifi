@@ -18,10 +18,11 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: https://nifi.apache.org
 :linkattrs:
+:imagesdir: images
 
 
 == Who is This Guide For?
-This guide is written for users who have basic experience with NiFi but have little familiarity with the NiFi Registry. This guide is not intended to be an exhaustive instruction manual or a reference guide. The link:user-guide.html[NiFi Registry User Guide] and link:https://nifi.apache.org/docs/nifi-docs/html/user-guide.html[NiFi User Guide^] provide a great deal more information about using the Registry and integrating it with NiFi. This guide, in comparison, is intended to provide users with just the information needed in order to understand how to configure NiFi Registry, connect with NiFi and start using versioned NiFi dataflows.
+This guide is written for users who have basic experience with NiFi but have little familiarity with the NiFi Registry. This guide is not intended to be an exhaustive instruction manual or a reference guide. The <<user-guide.adoc#apache-nifi-registry-user-guide,NiFi Registry User Guide>> and link:https://nifi.apache.org/docs/nifi-docs/html/user-guide.html[NiFi User Guide^] provide a great deal more information about using the Registry and integrating it with NiFi. This guide, in comparison, is intended to provide users with just the information needed in order to understand how to configure NiFi Registry, connect with NiFi and start using versioned NiFi dataflows.
 
 
 == Terminology Used in This Guide
@@ -37,7 +38,7 @@ NiFi Registry can be downloaded from the link:https://nifi.apache.org/registry.h
 
 For users who are not running OS X, after downloading NiFi Registry simply extract the archive to the location that you wish to run the application from. The registry is unsecured by default.
 
-For information on how to configure an instance of NiFi Registry (for example, to implement security or change the port that NiFi Registry is running on), see the link:administration-guide.html[System Administrator's Guide].
+For information on how to configure an instance of NiFi Registry (for example, to implement security or change the port that NiFi Registry is running on), see the <<administration-guide.adoc#apache-nifi-registry-system-administrators-guide,System Administrator's Guide>>.
 
 
 == Starting NiFi Registry
@@ -79,7 +80,7 @@ The "Test" bucket is created:
 
 image:test_bucket.png["Test Bucket"]
 
-There are no permissions configured by default, so anyone is able to view, create and modify buckets in this instance. For information on securing the system, see the link:administration-guide.html[System Administrator's Guide].
+There are no permissions configured by default, so anyone is able to view, create and modify buckets in this instance. For information on securing the system, see the <<administration-guide.adoc#apache-nifi-registry-system-administrators-guide,System Administrator's Guide>>.
 
 
 === Connect NiFi to the Registry
@@ -169,8 +170,8 @@ image::two_ABCD_flows.png["Two ABCD Flow on Canvas"]
 == Where To Go For More Information
 In addition to this Getting Started Guide, more information about NiFi Registry and related features in NiFi can be found in the following guides:
 
-- link:user-guide.html[Apache NiFi Registry User Guide] - This guide provides information on how to navigate the Registry UI and explains in detail how to manage flows/policies/special privileges and configure users/groups when the Registry is secured.
-- link:administration-guide.html[Apache NiFi Registry System Administrator's Guide] - A guide for setting up and administering Apache NiFi Registry. Topics covered include: system requirements, security configuration, user authentication, authorization, proxy configuration and details about the different system-level settings.
+- <<user-guide.adoc#apache-nifi-registry-user-guide,Apache NiFi Registry User Guide>> - This guide provides information on how to navigate the Registry UI and explains in detail how to manage flows/policies/special privileges and configure users/groups when the Registry is secured.
+- <<administration-guide.adoc#apache-nifi-registry-system-administrators-guide,Apache NiFi Registry System Administrator's Guide>> - A guide for setting up and administering Apache NiFi Registry. Topics covered include: system requirements, security configuration, user authentication, authorization, proxy configuration and details about the different system-level settings.
 - link:https://nifi.apache.org/docs/nifi-docs/html/user-guide.html[Apache NiFi User Guide^] - A fairly extensive guide that is often used more as a Reference Guide, as it provides information on each of the different components available in NiFi and explains how to use the different features provided by the application. It includes the section link:https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#versioning_dataflow["Versioning a Dataflow"] which covers the integration of NiFi with NiFi Registry. Topics covered include: connecting to a registry, version states, importing a versioned flow and managing local changes.
 - link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide[Contributor's Guide^] - A guide for explaining how to contribute work back to the Apache NiFi community so that others can make use of it.
 

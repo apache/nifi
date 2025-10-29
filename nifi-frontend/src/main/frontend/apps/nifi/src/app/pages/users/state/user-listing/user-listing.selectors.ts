@@ -24,7 +24,10 @@ export const selectUserListingState = createSelector(selectUserState, (state: Us
 
 export const selectSaving = createSelector(selectUserListingState, (state: UserListingState) => state.saving);
 
-export const selectStatus = createSelector(selectUserListingState, (state: UserListingState) => state.status);
+export const selectLoadedTimestamp = createSelector(
+    selectUserListingState,
+    (state: UserListingState) => state.loadedTimestamp
+);
 
 export const selectUsers = createSelector(selectUserListingState, (state: UserListingState) => state.users);
 

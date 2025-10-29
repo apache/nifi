@@ -21,12 +21,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.vault.core.VaultKeyValueOperations;
+import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
+import org.springframework.vault.core.VaultTemplate;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
 public class TestStandardHashiCorpVaultCommunicationService {
@@ -71,5 +78,30 @@ public class TestStandardHashiCorpVaultCommunicationService {
         when(properties.getConnectionTimeout()).thenReturn(Optional.of("20 secs"));
         when(properties.getReadTimeout()).thenReturn(Optional.of("40 secs"));
         this.configureService();
+    }
+
+    @Test
+    public void testListKeyValueSecretsRecursesNestedPaths() throws Exception {
+        when(properties.getKvVersion()).thenReturn(2);
+
+        final StandardHashiCorpVaultCommunicationService service = (StandardHashiCorpVaultCommunicationService) this.configureService();
+
+        final VaultTemplate vaultTemplate = Mockito.mock(VaultTemplate.class);
+        final VaultKeyValueOperations keyValueOperations = Mockito.mock(VaultKeyValueOperations.class);
+
+        final Field vaultTemplateField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("vaultTemplate");
+        vaultTemplateField.setAccessible(true);
+        vaultTemplateField.set(service, vaultTemplate);
+
+        final Field keyValueBackendField = StandardHashiCorpVaultCommunicationService.class.getDeclaredField("keyValueBackend");
+        keyValueBackendField.setAccessible(true);
+        final KeyValueBackend keyValueBackend = (KeyValueBackend) keyValueBackendField.get(service);
+
+        when(vaultTemplate.opsForKeyValue("kv", keyValueBackend)).thenReturn(keyValueOperations);
+        when(keyValueOperations.list("/")).thenReturn(Arrays.asList("test", "nested/"));
+        when(keyValueOperations.list("nested/")).thenReturn(List.of("nifi"));
+
+        final List<String> secrets = service.listKeyValueSecrets("kv", keyValueBackend.name());
+        assertEquals(Arrays.asList("test", "nested/nifi"), secrets);
     }
 }

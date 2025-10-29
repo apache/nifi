@@ -24,6 +24,12 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../../../../state/flow/flow.reducer';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../../state/current-user';
+import { canvasFeatureKey } from '../../../../../state';
+import { flowFeatureKey } from '../../../../../state/flow';
 
 describe('CreatePort', () => {
     let component: CreatePort;
@@ -46,7 +52,15 @@ describe('CreatePort', () => {
             imports: [CreatePort, NoopAnimationsModule],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({ initialState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialState
+                        }
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

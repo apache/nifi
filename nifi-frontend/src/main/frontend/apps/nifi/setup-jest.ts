@@ -14,9 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';
 
 setupZoneTestEnv({
     errorOnUnknownElements: true,
-    errorOnUnknownProperties: true
+    errorOnUnknownProperties: true,
+    teardown: {
+        destroyAfterEach: true
+    }
 });

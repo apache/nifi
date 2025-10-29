@@ -19,10 +19,12 @@ package org.apache.nifi.processors.azure.eventhub;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.azure.messaging.eventhubs.models.SendOptions;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,6 +85,20 @@ public class PutAzureEventHubTest {
         testRunner.assertValid();
         configureProxyControllerService();
         testRunner.assertValid();
+    }
+
+    @Test
+    void testMigration() {
+        TestRunner testRunner = TestRunners.newTestRunner(PutAzureEventHub.class);
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        final Map<String, String> expected = Map.of(
+                "partitioning-key-attribute-name", PutAzureEventHub.PARTITIONING_KEY_ATTRIBUTE_NAME.getName(),
+                "max-batch-size", PutAzureEventHub.MAX_BATCH_SIZE.getName(),
+                AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, PutAzureEventHub.POLICY_PRIMARY_KEY.getName(),
+                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, PutAzureEventHub.USE_MANAGED_IDENTITY.getName()
+        );
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void configureProxyControllerService() throws InitializationException {

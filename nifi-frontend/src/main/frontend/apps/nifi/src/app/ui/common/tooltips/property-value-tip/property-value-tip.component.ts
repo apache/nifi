@@ -65,6 +65,8 @@ export class PropertyValueTip {
             }, '');
             this.parameterRegex = new RegExp(allParamsRegex, 'gm');
 
+            const addedParameterNames = new Set<string>();
+
             let matched;
             while ((matched = this.parameterRegex.exec(propertyValue)) !== null) {
                 // pull out the parameter name matched from the capturing groups, ignore any quote group
@@ -73,9 +75,10 @@ export class PropertyValueTip {
                 // get the Parameter object that was matched
                 const param = parameters.find((param) => param.name === paramName);
 
-                // if matched, add it to the list of parameter references
-                if (param) {
+                // if matched and not already added, add it to the list of parameter references
+                if (param && !addedParameterNames.has(param.name)) {
                     this.parameterReferences.push(param);
+                    addedParameterNames.add(param.name);
                 }
             }
         }

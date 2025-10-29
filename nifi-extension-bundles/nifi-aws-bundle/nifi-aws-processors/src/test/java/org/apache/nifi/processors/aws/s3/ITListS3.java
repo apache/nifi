@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import com.amazonaws.services.s3.model.Tag;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.services.s3.model.Tag;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -123,8 +123,8 @@ public class ITListS3 extends AbstractS3IT {
     @Test
     public void testObjectTagsWritten() throws InitializationException {
         List<Tag> objectTags = new ArrayList<>();
-        objectTags.add(new Tag("dummytag1", "dummyvalue1"));
-        objectTags.add(new Tag("dummytag2", "dummyvalue2"));
+        objectTags.add(Tag.builder().key("dummytag1").value("dummyvalue1").build());
+        objectTags.add(Tag.builder().key("dummytag2").value("dummyvalue2").build());
 
         putFileWithObjectTag("t/fileWithTag", getFileFromResourceName(SAMPLE_FILE_RESOURCE_NAME), objectTags);
         waitForFilesAvailable();

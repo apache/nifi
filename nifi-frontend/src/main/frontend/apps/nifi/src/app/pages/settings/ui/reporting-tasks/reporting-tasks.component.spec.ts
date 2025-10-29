@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReportingTasks } from './reporting-tasks.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/reporting-tasks/reporting-tasks.reducer';
+import { reportingTasksFeatureKey } from '../../state/reporting-tasks';
+import { settingsFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('ReportingTasks', () => {
     let component: ReportingTasks;
@@ -30,7 +36,13 @@ describe('ReportingTasks', () => {
             imports: [ReportingTasks],
             providers: [
                 provideMockStore({
-                    initialState
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [settingsFeatureKey]: {
+                            [reportingTasksFeatureKey]: initialState
+                        }
+                    }
                 })
             ]
         });

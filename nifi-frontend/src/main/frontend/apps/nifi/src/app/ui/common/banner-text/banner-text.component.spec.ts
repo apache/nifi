@@ -20,6 +20,10 @@ import { BannerText } from './banner-text.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import * as fromBannerText from '../../../state/banner-text/banner-text.reducer';
 import { bannerTextFeatureKey } from '../../../state/banner-text';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 
 describe('BannerText', () => {
     let component: BannerText;
@@ -31,6 +35,8 @@ describe('BannerText', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [bannerTextFeatureKey]: fromBannerText.initialState
                     }
                 })

@@ -16,15 +16,12 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.regions.Region;
-import com.amazonaws.services.s3.AmazonS3Client;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
 import java.util.List;
 
@@ -32,11 +29,8 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_EXTERNAL_ID;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE;
-import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME;
-import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_ENDPOINT;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION;
-import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_SIGNER_OVERRIDE;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.MAX_SESSION_TIME;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.PROFILE_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.USE_ANONYMOUS_CREDENTIALS;
@@ -46,7 +40,7 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 /**
  * Mock Processor implementation used to test CredentialsProviderFactory.
  */
-public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<AmazonS3Client> {
+public class MockAWSProcessor extends AbstractAwsSyncProcessor<S3Client, S3ClientBuilder> {
 
     public static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             USE_DEFAULT_CREDENTIALS,
@@ -58,10 +52,7 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
             ASSUME_ROLE_EXTERNAL_ID,
             ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE,
             ASSUME_ROLE_STS_REGION,
-            ASSUME_ROLE_STS_ENDPOINT,
-            ASSUME_ROLE_STS_SIGNER_OVERRIDE,
-            ASSUME_ROLE_STS_CUSTOM_SIGNER_CLASS_NAME,
-            ASSUME_ROLE_STS_CUSTOM_SIGNER_MODULE_LOCATION
+            ASSUME_ROLE_STS_ENDPOINT
     );
 
     @Override
@@ -75,8 +66,7 @@ public class MockAWSProcessor extends AbstractAWSCredentialsProviderProcessor<Am
     }
 
     @Override
-    protected AmazonS3Client createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final Region region, final ClientConfiguration config,
-                                          final AwsClientBuilder.EndpointConfiguration endpointConfiguration) {
+    protected S3ClientBuilder createClientBuilder(ProcessContext context) {
         return null;
     }
 }

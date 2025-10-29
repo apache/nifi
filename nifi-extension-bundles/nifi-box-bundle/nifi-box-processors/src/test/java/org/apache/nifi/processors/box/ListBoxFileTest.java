@@ -21,15 +21,20 @@ import static java.util.Collections.singletonList;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
 import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.box.sdk.BoxFolder;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
+import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -95,6 +100,17 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
         testRunner.run();
 
         testRunner.assertContents(ListBoxFile.REL_SUCCESS, expectedContents);
+    }
+
+    @Test
+    void testMigration() {
+        TestRunner runner = TestRunners.newTestRunner(ListBoxFile.class);
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        // NOTE: Only ensuring migration of property defined outside of this class.
+        final Map<String, String> expectedRenamed =
+                Map.of(AbstractBoxProcessor.OLD_BOX_CLIENT_SERVICE_PROPERTY_NAME, AbstractBoxProcessor.BOX_CLIENT_SERVICE.getName());
+
+        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
     }
 
     private void addJsonRecordWriterFactory() throws InitializationException {

@@ -27,6 +27,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -55,8 +56,7 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
     private final ConcurrentMap<String, RecordSchema> recordSchemas = new ConcurrentHashMap<>();
 
     static final PropertyDescriptor VALIDATE_FIELD_NAMES = new PropertyDescriptor.Builder()
-            .name("avro-reg-validated-field-names")
-            .displayName("Validate Field Names")
+            .name("Validate Field Names")
             .description("Whether or not to validate the field names in the Avro schema based on Avro naming rules. If set to true, all field names must be valid Avro names, "
                     + "which must begin with [A-Za-z_], and subsequently contain only [A-Za-z0-9_]. If set to false, no validation will be performed on the field names.")
             .allowableValues("true", "false")
@@ -134,6 +134,11 @@ public class AvroSchemaRegistry extends AbstractControllerService implements Sch
         } else {
             throw new SchemaNotFoundException("This Schema Registry only supports retrieving a schema by name.");
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("avro-reg-validated-field-names", VALIDATE_FIELD_NAMES.getName());
     }
 
     @Override

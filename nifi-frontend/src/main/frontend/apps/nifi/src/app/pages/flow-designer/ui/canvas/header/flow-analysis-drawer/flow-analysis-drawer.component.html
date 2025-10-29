@@ -1,26 +1,26 @@
 <!--
-  ~ Licensed to the Apache Software Foundation (ASF) under one or more
-  ~ contributor license agreements.  See the NOTICE file distributed with
-  ~ this work for additional information regarding copyright ownership.
-  ~ The ASF licenses this file to You under the Apache License, Version 2.0
-  ~ (the "License"); you may not use this file except in compliance with
-  ~ the License.  You may obtain a copy of the License at
-  ~
-  ~     http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
-  -->
+~ Licensed to the Apache Software Foundation (ASF) under one or more
+~ contributor license agreements.  See the NOTICE file distributed with
+~ this work for additional information regarding copyright ownership.
+~ The ASF licenses this file to You under the Apache License, Version 2.0
+~ (the "License"); you may not use this file except in compliance with
+~ the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~ Unless required by applicable law or agreed to in writing, software
+~ distributed under the License is distributed on an "AS IS" BASIS,
+~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~ See the License for the specific language governing permissions and
+~ limitations under the License.
+-->
 <div class="flow-analysis-drawer h-full w-96 p-5">
     <component-context type="ProcessGroup" [name]="processGroupName" [id]="currentProcessGroupId"></component-context>
     <div class="flex items-center w-full">
-        <ng-container *ngIf="isAnalysisPending">
+        @if (isAnalysisPending) {
             <span *nifiSpinner="isAnalysisPending"></span>
             <div class="ml-1">Rules analysis pending...</div>
-        </ng-container>
+        }
     </div>
     <div class="mt-5">
         <div class="flex items-center justify-between">
@@ -84,9 +84,13 @@
                                 @for (violation of violationsMap.get(rule.id); track violation.scope) {
                                     <div class="flex align-center justify-between mt-2">
                                         <div class="flex flex-col items-start ml-2">
-                                            <div *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
-                                                {{ violation.subjectDisplayName }}
-                                            </div>
+                                            @if (violation?.subjectPermissionDto?.canRead) {
+                                                <div>
+                                                    {{ violation.subjectDisplayName }}
+                                                </div>
+                                            } @else {
+                                                Unauthorized
+                                            }
                                             <span class="text-sm">
                                                 {{ violation.subjectId }}
                                             </span>
@@ -149,10 +153,13 @@
                                     @for (violation of violationsMap.get(rule.id); track violation.scope) {
                                         <li class="flex align-center justify-between mt-2">
                                             <div class="flex flex-col items-start ml-2">
-                                                <div
-                                                    *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
-                                                    {{ violation.subjectDisplayName }}
-                                                </div>
+                                                @if (violation?.subjectPermissionDto?.canRead) {
+                                                    <div>
+                                                        {{ violation.subjectDisplayName }}
+                                                    </div>
+                                                } @else {
+                                                    Unauthorized
+                                                }
                                                 <span class="text-sm">
                                                     {{ violation.subjectId }}
                                                 </span>
@@ -186,9 +193,13 @@
                     <div class="error-color">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="flex align-center justify-between ml-2">
                         <div class="flex flex-col items-start">
-                            <div *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
-                                {{ violation.subjectDisplayName }}
-                            </div>
+                            @if (violation?.subjectPermissionDto?.canRead) {
+                                <div>
+                                    {{ violation.subjectDisplayName }}
+                                </div>
+                            } @else {
+                                Unauthorized
+                            }
                             <span class="text-sm">{{ violation.subjectId }}</span>
                         </div>
 
@@ -215,9 +226,13 @@
                     <div class="error-color">{{ getRuleName(violation.ruleId) }}</div>
                     <div class="flex align-center justify-between ml-2">
                         <div class="flex flex-col items-start">
-                            <div *ngIf="violation?.subjectPermissionDto?.canRead; else unauthorized">
-                                {{ violation.subjectDisplayName }}
-                            </div>
+                            @if (violation?.subjectPermissionDto?.canRead) {
+                                <div>
+                                    {{ violation.subjectDisplayName }}
+                                </div>
+                            } @else {
+                                Unauthorized
+                            }
                             <span class="text-sm">{{ violation.subjectId }}</span>
                         </div>
 
@@ -246,13 +261,10 @@
             [disabled]="!violation?.subjectPermissionDto?.canRead">
             <i class="fa fa-info-circle mr-2 primary-color"></i>Violation details
         </button>
-        <button
-            mat-menu-item
-            [routerLink]="getProcessorLink(violation)"
-            *ngIf="violation?.subjectComponentType === 'PROCESSOR' && violation?.subjectPermissionDto?.canRead">
-            <i class="fa mr-2 fa-long-arrow-right primary-color"></i>Go to component
-        </button>
+        @if (violation?.subjectComponentType === 'PROCESSOR' && violation?.subjectPermissionDto?.canRead) {
+            <button mat-menu-item [routerLink]="getProcessorLink(violation)">
+                <i class="fa mr-2 fa-long-arrow-right primary-color"></i>Go to component
+            </button>
+        }
     </mat-menu>
 </ng-template>
-
-<ng-template #unauthorized> Unauthorized </ng-template>

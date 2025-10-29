@@ -33,8 +33,7 @@ import java.util.List;
 public class FakeRedisProcessor extends AbstractProcessor {
 
     public static final PropertyDescriptor REDIS_SERVICE = new PropertyDescriptor.Builder()
-            .name("redis-service")
-            .displayName("Redis Service")
+            .name("Redis Service")
             .identifiesControllerService(RedisConnectionPool.class)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)

@@ -27,6 +27,10 @@ import {
     StatusHistoryEntity,
     statusHistoryFeatureKey
 } from '../../../state/status-history';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 import { ComponentType } from '@nifi/shared';
 import { NiFiCommon } from '@nifi/shared';
 
@@ -83,6 +87,8 @@ describe('StatusHistory', () => {
                 { provide: MAT_DIALOG_DATA, useValue: {} },
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [statusHistoryFeatureKey]: statusHistoryState
                     }
                 }),

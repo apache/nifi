@@ -25,6 +25,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -38,8 +39,7 @@ import java.util.Set;
 
 public abstract class AbstractGridFSProcessor extends AbstractProcessor {
     static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
-        .name("gridfs-client-service")
-        .displayName("Client Service")
+        .name("Client Service")
         .description("The MongoDB client service to use for database connections.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .required(true)
@@ -47,8 +47,7 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
-        .name("gridfs-database-name")
-        .displayName("Mongo Database Name")
+        .name("Mongo Database Name")
         .description("The name of the database to use")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -56,8 +55,7 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor BUCKET_NAME = new PropertyDescriptor.Builder()
-        .name("gridfs-bucket-name")
-        .displayName("Bucket Name")
+        .name("Bucket Name")
         .description("The GridFS bucket where the files will be stored. If left blank, it will use the default value 'fs' " +
                 "that the MongoDB client driver uses.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -66,8 +64,7 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor FILE_NAME = new PropertyDescriptor.Builder()
-        .name("gridfs-file-name")
-        .displayName("File Name")
+        .name("File Name")
         .description("The name of the file in the bucket that is the target of this processor.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(false)
@@ -75,8 +72,7 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor QUERY_ATTRIBUTE = new PropertyDescriptor.Builder()
-        .name("mongo-query-attribute")
-        .displayName("Query Output Attribute")
+        .name("Query Output Attribute")
         .description("If set, the query will be written to a specified attribute on the output flowfiles.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
@@ -105,6 +101,15 @@ public abstract class AbstractGridFSProcessor extends AbstractProcessor {
     );
 
     protected volatile MongoDBClientService clientService;
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("gridfs-client-service", CLIENT_SERVICE.getName());
+        config.renameProperty("gridfs-database-name", DATABASE_NAME.getName());
+        config.renameProperty("gridfs-bucket-name", BUCKET_NAME.getName());
+        config.renameProperty("gridfs-file-name", FILE_NAME.getName());
+        config.renameProperty("mongo-query-attribute", QUERY_ATTRIBUTE.getName());
+    }
 
     protected static List<PropertyDescriptor> getCommonPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;

@@ -34,6 +34,8 @@ import { currentUserFeatureKey } from '../../../state/current-user';
 import { navigationFeatureKey } from '../../../state/navigation';
 import { MockComponent } from 'ng-mocks';
 import { Navigation } from '../navigation/navigation.component';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
 
 describe('AdvancedUi', () => {
     let component: AdvancedUi;
@@ -45,6 +47,7 @@ describe('AdvancedUi', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
                         [currentUserFeatureKey]: fromUser.initialState,
                         [navigationFeatureKey]: fromNavigation.initialState
                     },

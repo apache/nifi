@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Directive, Input, TemplateRef, ViewContainerRef } from '@angular/core';
+import { Directive, Input, TemplateRef, ViewContainerRef, inject } from '@angular/core';
 import { Spinner } from './spinner.component';
 
 @Directive({
@@ -23,6 +23,9 @@ import { Spinner } from './spinner.component';
     standalone: true
 })
 export class NifiSpinnerDirective {
+    private templateRef = inject<TemplateRef<any>>(TemplateRef);
+    private viewContainerRef = inject(ViewContainerRef);
+
     @Input() set nifiSpinner(nifiSpinner: boolean) {
         this.viewContainerRef.clear();
         if (nifiSpinner) {
@@ -31,9 +34,4 @@ export class NifiSpinnerDirective {
             this.viewContainerRef.createEmbeddedView(this.templateRef);
         }
     }
-
-    constructor(
-        private templateRef: TemplateRef<any>,
-        private viewContainerRef: ViewContainerRef
-    ) {}
 }

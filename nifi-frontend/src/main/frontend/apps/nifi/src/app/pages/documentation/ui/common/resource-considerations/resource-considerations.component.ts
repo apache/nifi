@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Input } from '@angular/core';
+import { Component, Input, inject } from '@angular/core';
 import { NiFiCommon } from '@nifi/shared';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { SystemResourceConsideration } from '../../../state';
@@ -27,14 +27,14 @@ import { SystemResourceConsideration } from '../../../state';
     styleUrl: './resource-considerations.component.scss'
 })
 export class ResourceConsiderationsComponent {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set resourceConsiderations(resourceConsideration: SystemResourceConsideration[]) {
         this.dataSource.data = this.sortResourceConsiderations(resourceConsideration);
     }
 
     displayedColumns: string[] = ['resource', 'description'];
     dataSource: MatTableDataSource<SystemResourceConsideration> = new MatTableDataSource<SystemResourceConsideration>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     sortResourceConsiderations(items: SystemResourceConsideration[]): SystemResourceConsideration[] {
         const data: SystemResourceConsideration[] = items.slice();

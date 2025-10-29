@@ -55,6 +55,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
 import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
 import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
@@ -188,6 +189,7 @@ import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.VerifiableFlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.diff.ComparableDataFlow;
@@ -666,6 +668,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyCanVerifyFlowRegistryClientConfig(final String registryClientId) {
+        flowRegistryDAO.verifyConfigVerification(registryClientId);
+    }
+
+    @Override
     public void verifyDeleteProcessor(final String processorId) {
         processorDAO.verifyDelete(processorId);
     }
@@ -752,6 +759,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void verifyDeleteControllerService(final String controllerServiceId) {
         controllerServiceDAO.verifyDelete(controllerServiceId);
+    }
+
+    @Override
+    public void reloadControllerService(final String controllerServiceId) {
+        final ControllerServiceNode controllerServiceNode = controllerServiceDAO.getControllerService(controllerServiceId);
+        controllerServiceNode.verifyCanUpdate();
+        controllerServiceNode.reloadAdditionalResourcesIfNecessary();
     }
 
     @Override
@@ -1076,6 +1090,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             return ((ControllerServiceNode) componentNode).getControllerServiceImplementation() instanceof VerifiableControllerService;
         } else if (componentNode instanceof ReportingTaskNode) {
             return ((ReportingTaskNode) componentNode).getReportingTask() instanceof VerifiableReportingTask;
+        } else if (componentNode instanceof FlowRegistryClientNode) {
+            return componentNode.getComponent() instanceof VerifiableFlowRegistryClient;
         } else {
             return false;
         }
@@ -2114,6 +2130,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void reloadProcessor(final String processorId) {
+        final ProcessorNode processorNode = processorDAO.getProcessor(processorId);
+        processorNode.verifyCanUpdate();
+        processorNode.reloadAdditionalResourcesIfNecessary();
+    }
+
+    @Override
     public LabelEntity deleteLabel(final Revision revision, final String labelId) {
         final Label label = labelDAO.getLabel(labelId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(label);
@@ -2559,7 +2582,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public BulletinEntity createBulletin(final BulletinDTO bulletinDTO, final Boolean canRead) {
         final Bulletin bulletin = BulletinFactory.createBulletin(bulletinDTO.getCategory(), bulletinDTO.getLevel(), bulletinDTO.getMessage());
         bulletinRepository.addBulletin(bulletin);
-        return entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), canRead);
+        return entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), canRead);
     }
 
     @Override
@@ -3535,6 +3558,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public List<ConfigVerificationResultDTO> performFlowRegistryClientConfigVerification(final String registryClientId, final Map<String, String> properties, final Map<String, String> variables) {
+        return flowRegistryDAO.verifyConfiguration(registryClientId, properties, variables);
+    }
+
+    @Override
+    public ConfigurationAnalysisEntity analyzeFlowRegistryClientConfiguration(final String registryClientId, final Map<String, String> properties) {
+        final FlowRegistryClientNode registryClientNode = flowRegistryDAO.getFlowRegistryClient(registryClientId);
+        final ConfigurationAnalysisEntity configurationAnalysisEntity = analyzeConfiguration(registryClientNode, properties, null);
+        return configurationAnalysisEntity;
+    }
+
+    @Override
     public ParameterProviderEntity deleteParameterProvider(final Revision revision, final String parameterProviderId) {
         final ParameterProviderNode parameterProvider = parameterProviderDAO.getParameterProvider(parameterProviderId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(parameterProvider);
@@ -3950,6 +3985,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public FlowRegistryClientDefinition getFlowRegistryClientDefinition(String group, String artifact, String version, String type) {
+        final FlowRegistryClientDefinition flowRegistryClientDefinition = controllerFacade.getFlowRegistryClientDefinition(group, artifact, version, type);
+        if (flowRegistryClientDefinition == null) {
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
+        }
+        return flowRegistryClientDefinition;
+    }
+
+    @Override
     public RuntimeManifest getRuntimeManifest() {
         return controllerFacade.getRuntimeManifest();
     }
@@ -4095,7 +4139,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final List<BulletinEntity> bulletinEntities = new ArrayList<>();
         for (final ListIterator<Bulletin> bulletinIter = results.listIterator(results.size()); bulletinIter.hasPrevious(); ) {
             final Bulletin bulletin = bulletinIter.previous();
-            bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), authorizeBulletin(bulletin)));
+            bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, true), authorizeBulletin(bulletin)));
         }
 
         // create the bulletin board
@@ -4451,7 +4495,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final Authorizable controllerServiceAuthorizable = authorizableLookup.getControllerService(bulletin.getSourceId()).getAuthorizable();
                 final boolean controllerServiceAuthorized = controllerServiceAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
 
-                final BulletinEntity controllerServiceBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), controllerServiceAuthorized);
+                final BulletinEntity controllerServiceBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), controllerServiceAuthorized);
                 controllerServiceBulletinEntities.add(controllerServiceBulletin);
                 controllerBulletinEntities.add(controllerServiceBulletin);
             } catch (final ResourceNotFoundException ignored) {
@@ -4469,7 +4513,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final Authorizable reportingTaskAuthorizable = authorizableLookup.getReportingTask(bulletin.getSourceId()).getAuthorizable();
                 final boolean reportingTaskAuthorizableAuthorized = reportingTaskAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
 
-                final BulletinEntity reportingTaskBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), reportingTaskAuthorizableAuthorized);
+                final BulletinEntity reportingTaskBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), reportingTaskAuthorizableAuthorized);
                 reportingTaskBulletinEntities.add(reportingTaskBulletin);
                 controllerBulletinEntities.add(reportingTaskBulletin);
             } catch (final ResourceNotFoundException ignored) {
@@ -4487,7 +4531,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final Authorizable flowAnalysisRuleAuthorizable = authorizableLookup.getFlowAnalysisRule(bulletin.getSourceId()).getAuthorizable();
                 final boolean flowAnalysisRuleAuthorizableAuthorized = flowAnalysisRuleAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
 
-                final BulletinEntity flowAnalysisRuleBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), flowAnalysisRuleAuthorizableAuthorized);
+                final BulletinEntity flowAnalysisRuleBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), flowAnalysisRuleAuthorizableAuthorized);
                 flowAnalysisRuleBulletinEntities.add(flowAnalysisRuleBulletin);
                 controllerBulletinEntities.add(flowAnalysisRuleBulletin);
             } catch (final ResourceNotFoundException ignored) {
@@ -4505,7 +4549,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final Authorizable parameterProviderAuthorizable = authorizableLookup.getParameterProvider(bulletin.getSourceId()).getAuthorizable();
                 final boolean parameterProviderAuthorizableAuthorized = parameterProviderAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
 
-                final BulletinEntity parameterProviderBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), parameterProviderAuthorizableAuthorized);
+                final BulletinEntity parameterProviderBulletin = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), parameterProviderAuthorizableAuthorized);
                 parameterProviderBulletinEntities.add(parameterProviderBulletin);
                 controllerBulletinEntities.add(parameterProviderBulletin);
             } catch (final ResourceNotFoundException ignored) {
@@ -4523,7 +4567,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 final Authorizable flowRegistryClientAuthorizable = authorizableLookup.getFlowRegistryClient(bulletin.getSourceId()).getAuthorizable();
                 final boolean flowRegistryClientkAuthorizableAuthorized = flowRegistryClientAuthorizable.isAuthorized(authorizer, RequestAction.READ, user);
 
-                final BulletinEntity flowRegistryClient = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), flowRegistryClientkAuthorizableAuthorized);
+                final BulletinEntity flowRegistryClient = entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), flowRegistryClientkAuthorizableAuthorized);
                 flowRegistryClientBulletinEntities.add(flowRegistryClient);
                 controllerBulletinEntities.add(flowRegistryClient);
             } catch (final ResourceNotFoundException ignored) {
@@ -4781,7 +4825,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         List<BulletinEntity> bulletinEntities = new ArrayList<>();
         for (final Bulletin bulletin : bulletins) {
-            bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin), authorizeBulletin(bulletin)));
+            bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, false), authorizeBulletin(bulletin)));
         }
 
         return pruneAndSortBulletins(bulletinEntities, BulletinRepository.MAX_BULLETINS_PER_COMPONENT);
@@ -5567,12 +5611,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     + " but cannot find a Flow Registry with that identifier");
         }
 
-        VersionedProcessGroup registryGroup = null;
-        final VersionControlInformation vci = processGroup.getVersionControlInformation();
-        if (vci != null) {
-            registryGroup = vci.getFlowSnapshot();
-        }
-
+        VersionedProcessGroup registryGroup = versionControlInfo.getFlowSnapshot();
         if (registryGroup == null) {
             try {
                 final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(versionControlInfo.getBranch(), versionControlInfo.getBucketIdentifier(),
@@ -5771,6 +5810,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .filter(diff -> !FlowDifferenceFilters.isScheduledStateNew(diff))
                 .filter(diff -> !FlowDifferenceFilters.isLocalScheduleStateChange(diff))
                 .filter(diff -> !FlowDifferenceFilters.isPropertyMissingFromGhostComponent(diff, flowManager))
+                .filter(diff -> !FlowDifferenceFilters.isStaticPropertyRemoved(diff, flowManager))
                 .filter(difference -> difference.getDifferenceType() != DifferenceType.POSITION_CHANGED)
                 .map(difference -> {
                     final VersionedComponent localComponent = difference.getComponentA();
@@ -6584,7 +6624,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionDTO revisionDto = dtoFactory.createRevisionDTO(revision);
         final PermissionsDTO permissionsDto = dtoFactory.createPermissionsDto(processor);
         final List<BulletinEntity> bulletins = bulletinRepository.findBulletinsForSource(id).stream()
-                .map(bulletin -> dtoFactory.createBulletinDto(bulletin))
+                .map(bulletin -> dtoFactory.createBulletinDto(bulletin, false))
                 .map(bulletin -> entityFactory.createBulletinEntity(bulletin, permissionsDto.getCanRead()))
                 .collect(Collectors.toList());
 

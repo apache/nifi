@@ -170,6 +170,7 @@
                         mat-row
                         *matRowDef="let row; let even = even; columns: displayedColumns"
                         (click)="selectParameter(row)"
+                        (dblclick)="doubleClicked(row)"
                         [class.selected]="isSelected(row)"
                         [class.even]="even"></tr>
                 </table>

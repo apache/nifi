@@ -21,31 +21,55 @@
     </header>
     <div class="pb-5 px-5 flex-1 flex flex-col">
         <h3 class="primary-color">Controller Services</h3>
-        @if (serviceState$ | async; as serviceState) {
+        @if (serviceState(); as serviceState) {
             @if (isInitialLoading(serviceState)) {
                 <div>
                     <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
                 </div>
             } @else {
                 <div class="flex flex-col h-full gap-y-2">
-                    <div class="flex justify-between">
-                        <breadcrumbs
-                            [entity]="serviceState.breadcrumb"
-                            [currentProcessGroupId]="serviceState.processGroupId"></breadcrumbs>
-                        @if (serviceState.breadcrumb.permissions.canWrite) {
-                            <button
-                                mat-icon-button
-                                class="primary-icon-button"
-                                (click)="openNewControllerServiceDialog()">
-                                <i class="fa fa-plus"></i>
-                            </button>
-                        }
+                    <div class="flex justify-between items-center w-full">
+                        <div class="flex-1 min-w-0 mr-4">
+                            <breadcrumbs
+                                [entity]="serviceState.breadcrumb"
+                                [currentProcessGroupId]="serviceState.processGroupId"></breadcrumbs>
+                        </div>
+                        <div class="flex items-center gap-x-3 shrink-0">
+                            @if (shouldShowFilter()) {
+                                <div class="flex items-center justify-between gap-x-2 current-scope-only">
+                                    <mat-checkbox [(ngModel)]="showCurrentScopeOnly" data-qa="current-scope-filter">
+                                    </mat-checkbox>
+                                    <div class="flex items-center justify-between gap-x-1">
+                                        <label
+                                            class="cursor-pointer select-none whitespace-nowrap nifi-body"
+                                            (click)="toggleFilter()"
+                                            data-qa="current-scope-label">
+                                            Show current scope only
+                                        </label>
+                                        <i
+                                            class="fa fa-info-circle"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            [tooltipInputData]="getFilterTooltip(serviceState.breadcrumb)"
+                                            data-qa="current-scope-help"></i>
+                                    </div>
+                                </div>
+                            }
+                            @if (serviceState.breadcrumb.permissions.canWrite) {
+                                <button
+                                    mat-icon-button
+                                    class="primary-icon-button"
+                                    (click)="openNewControllerServiceDialog()">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            }
+                        </div>
                     </div>
                     @if (flowConfiguration$ | async; as flowConfiguration) {
                         <div class="flex-1">
                             <controller-service-table
                                 [selectedServiceId]="selectedServiceId$ | async"
-                                [controllerServices]="serviceState.controllerServices"
+                                [controllerServices]="filteredControllerServices()"
                                 [formatScope]="formatScope(serviceState.breadcrumb)"
                                 [definedByCurrentGroup]="definedByCurrentGroup(serviceState.breadcrumb)"
                                 [currentUser]="(currentUser$ | async)!"

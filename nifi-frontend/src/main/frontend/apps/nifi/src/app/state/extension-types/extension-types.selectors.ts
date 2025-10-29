@@ -75,6 +75,9 @@ export const selectTypesToIdentifyComponentRestrictions = createSelector(
         if (state.reportingTaskTypes) {
             types.push(...state.reportingTaskTypes);
         }
+        if (state.registryClientTypes) {
+            types.push(...state.registryClientTypes);
+        }
         if (state.parameterProviderTypes) {
             types.push(...state.parameterProviderTypes);
         }
@@ -134,6 +137,7 @@ export const selectExtensionFromTypes = (extensionTypes: string[]) =>
             processorTypes: state.processorTypes.filter(typeFilter),
             controllerServiceTypes: state.controllerServiceTypes.filter(typeFilter),
             reportingTaskTypes: state.reportingTaskTypes.filter(typeFilter),
+            registryClientTypes: state.registryClientTypes.filter(typeFilter),
             parameterProviderTypes: state.parameterProviderTypes.filter(typeFilter),
             flowAnalysisRuleTypes: state.flowAnalysisRuleTypes.filter(typeFilter)
         } as LoadExtensionTypesForDocumentationResponse;

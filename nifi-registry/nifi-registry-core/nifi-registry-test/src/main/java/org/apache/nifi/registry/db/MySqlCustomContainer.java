@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.db;
 
-import org.testcontainers.containers.MySQLContainer;
+import org.testcontainers.mysql.MySQLContainer;
 
 /**
  * Custom container to override the JDBC URL and add additional query parameters.

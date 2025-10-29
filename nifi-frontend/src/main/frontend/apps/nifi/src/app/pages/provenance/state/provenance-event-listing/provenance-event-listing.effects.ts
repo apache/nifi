@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ProvenanceEventListingActions from './provenance-event-listing.actions';
@@ -49,16 +49,14 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ProvenanceEventListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private provenanceService: ProvenanceService,
-        private errorHelper: ErrorHelper,
-        private clusterService: ClusterService,
-        private nifiCommon: NiFiCommon,
-        private dialog: MatDialog,
-        private router: Router
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private provenanceService = inject(ProvenanceService);
+    private errorHelper = inject(ErrorHelper);
+    private clusterService = inject(ClusterService);
+    private nifiCommon = inject(NiFiCommon);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
 
     loadProvenanceOptions$ = createEffect(() =>
         this.actions$.pipe(

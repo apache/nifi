@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ManagementControllerServicesActions from './management-controller-services.actions';
@@ -39,13 +39,14 @@ import {
     UpdateControllerServiceRequest
 } from '../../../../state/shared';
 import { Router } from '@angular/router';
-import { selectSaving, selectStatus } from './management-controller-services.selectors';
+import { selectLoadedTimestamp, selectSaving } from './management-controller-services.selectors';
 import { EnableControllerService } from '../../../../ui/common/controller-service/enable-controller-service/enable-controller-service.component';
 import { DisableControllerService } from '../../../../ui/common/controller-service/disable-controller-service/disable-controller-service.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { ComponentType, LARGE_DIALOG, SMALL_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
+import { initialState } from './management-controller-services.reducer';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
 import {
@@ -62,23 +63,21 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ManagementControllerServicesEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private client: Client,
-        private managementControllerServiceService: ManagementControllerServiceService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private extensionTypesService: ExtensionTypesService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private client = inject(Client);
+    private managementControllerServiceService = inject(ManagementControllerServiceService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private extensionTypesService = inject(ExtensionTypesService);
 
     loadManagementControllerServices$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ManagementControllerServicesActions.loadManagementControllerServices),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.managementControllerServiceService.getControllerServices()).pipe(
                     map((response) =>
                         ManagementControllerServicesActions.loadManagementControllerServicesSuccess({
@@ -89,8 +88,26 @@ export class ManagementControllerServicesEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            ManagementControllerServicesActions.loadManagementControllerServicesError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
+                )
+            )
+        )
+    );
+
+    loadManagementControllerServicesError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManagementControllerServicesActions.loadManagementControllerServicesError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )

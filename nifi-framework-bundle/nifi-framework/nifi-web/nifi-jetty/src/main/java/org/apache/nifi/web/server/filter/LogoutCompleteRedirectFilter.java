@@ -38,6 +38,8 @@ public class LogoutCompleteRedirectFilter implements Filter {
 
     private static final String FRAGMENT_PATH = "/logout-complete";
 
+    private static final String LOCATION_HEADER = "Location";
+
     @Override
     public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse, final FilterChain filterChain) throws IOException, ServletException {
         if (servletRequest instanceof HttpServletRequest httpServletRequest) {
@@ -53,12 +55,13 @@ public class LogoutCompleteRedirectFilter implements Filter {
         }
     }
 
-    private void doRedirect(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse) throws IOException {
+    private void doRedirect(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse) {
         final URI redirectUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest)
                 .path(USER_INTERFACE_PATH)
                 .fragment(FRAGMENT_PATH)
                 .build();
         final String redirectLocation = redirectUri.toString();
-        httpServletResponse.sendRedirect(redirectLocation);
+        httpServletResponse.setStatus(HttpServletResponse.SC_FOUND);
+        httpServletResponse.setHeader(LOCATION_HEADER, redirectLocation);
     }
 }

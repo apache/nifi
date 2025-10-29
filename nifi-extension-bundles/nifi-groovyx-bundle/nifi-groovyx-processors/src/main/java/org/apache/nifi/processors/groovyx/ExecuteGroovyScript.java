@@ -50,6 +50,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -96,8 +97,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             + "import org.apache.nifi.processor.util.*;" + "import org.apache.nifi.processors.script.*;" + "import org.apache.nifi.logging.ComponentLog;";
 
     public static final PropertyDescriptor SCRIPT_FILE = new PropertyDescriptor.Builder()
-            .name("groovyx-script-file")
-            .displayName("Script File")
+            .name("Script File")
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
@@ -105,8 +105,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SCRIPT_BODY = new PropertyDescriptor.Builder()
-            .name("groovyx-script-body")
-            .displayName("Script Body")
+            .name("Script Body")
             .required(false)
             .description("Body of script to execute. Only one of Script File or Script Body may be used")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -115,8 +114,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
 
     public static String[] VALID_FAIL_STRATEGY = {"rollback", "transfer to failure"};
     public static final PropertyDescriptor FAIL_STRATEGY = new PropertyDescriptor.Builder()
-            .name("groovyx-failure-strategy")
-            .displayName("Failure strategy")
+            .name("Failure Strategy")
             .description("What to do with unhandled exceptions. If you want to manage exception by code then keep the default value `rollback`."
                     + " If `transfer to failure` selected and unhandled exception occurred then all flowFiles received from incoming queues in this session"
                     + " will be transferred to `failure` relationship with additional attributes set: ERROR_MESSAGE and ERROR_STACKTRACE."
@@ -129,8 +127,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor ADD_CLASSPATH = new PropertyDescriptor.Builder()
-            .name("groovyx-additional-classpath")
-            .displayName("Additional classpath")
+            .name("Additional Classpath")
             .required(false)
             .description("Classpath list separated by semicolon or comma. You can use masks like `*`, `*.jar` in file name.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -340,6 +337,14 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         }
         Thread.currentThread().setContextClassLoader(shell.getClassLoader());
         return script;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("groovyx-script-file", SCRIPT_FILE.getName());
+        config.renameProperty("groovyx-script-body", SCRIPT_BODY.getName());
+        config.renameProperty("groovyx-failure-strategy", FAIL_STRATEGY.getName());
+        config.renameProperty("groovyx-additional-classpath", ADD_CLASSPATH.getName());
     }
 
     /**

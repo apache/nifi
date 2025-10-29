@@ -18,5 +18,6 @@
         <identifier>login-identity-provider</identifier>
         <class>org.apache.nifi.web.security.spring.mock.MockLoginIdentityProvider</class>
         <property name="strategy">MOCK</property>
+        <property name="unused"/>
     </provider>
 </loginIdentityProviders>

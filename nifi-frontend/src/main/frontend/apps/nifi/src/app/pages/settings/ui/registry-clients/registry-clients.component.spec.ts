@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { RegistryClients } from './registry-clients.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialState } from '../../state/registry-clients/registry-clients.reducer';
+import { registryClientsFeatureKey } from '../../state/registry-clients';
+import { settingsFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('RegistryClients', () => {
     let component: RegistryClients;
@@ -28,7 +34,17 @@ describe('RegistryClients', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [RegistryClients],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [settingsFeatureKey]: {
+                            [registryClientsFeatureKey]: initialState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(RegistryClients);
         component = fixture.componentInstance;

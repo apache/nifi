@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ContentActions from './content.actions';
 import { map, tap } from 'rxjs';
@@ -24,11 +24,9 @@ import { NiFiCommon } from '@nifi/shared';
 
 @Injectable()
 export class ContentEffects {
-    constructor(
-        private actions$: Actions,
-        private router: Router,
-        private nifiCommon: NiFiCommon
-    ) {}
+    private actions$ = inject(Actions);
+    private router = inject(Router);
+    private nifiCommon = inject(NiFiCommon);
 
     navigateToBundledContentViewer$ = createEffect(
         () =>

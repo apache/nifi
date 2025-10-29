@@ -18,16 +18,53 @@ package org.apache.nifi.logging;
 
 import org.apache.nifi.groups.ProcessGroup;
 
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-
-
 
 public class StandardLoggingContext implements LoggingContext {
     private static final String KEY = "logFileSuffix";
+
     private volatile GroupedComponent component;
 
+    /**
+     * Standard Logging Context default constructor for separate component initialization
+     *
+     */
+    public StandardLoggingContext() {
+        this.component = null;
+    }
+
+    /**
+     * Standard Logging Context constructor with Grouped Component required
+     *
+     * @param component Grouped Component required
+     */
     public StandardLoggingContext(final GroupedComponent component) {
-        this.component = component;
+        this.component = Objects.requireNonNull(component, "Group Component required");
+    }
+
+    /**
+     * Get Attributes from Component Process Group
+     *
+     * @return Attributes from Process Group or empty when Component or Process Group not found
+     */
+    @Override
+    public Map<String, String> getAttributes() {
+        final Map<String, String> attributes;
+
+        if (component == null) {
+            attributes = Map.of();
+        } else {
+            final ProcessGroup processGroup = component.getProcessGroup();
+            if (processGroup == null) {
+                attributes = Map.of();
+            } else {
+                attributes = processGroup.getLoggingAttributes();
+            }
+        }
+
+        return attributes;
     }
 
     @Override

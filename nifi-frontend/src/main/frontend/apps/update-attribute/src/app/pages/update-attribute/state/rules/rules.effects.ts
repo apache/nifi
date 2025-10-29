@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as RulesActions from './rules.actions';
 import { UpdateAttributeService } from '../../service/update-attribute.service';
@@ -34,13 +34,11 @@ import { loadEvaluationContext } from '../evaluation-context/evaluation-context.
 
 @Injectable()
 export class RulesEffects {
-    constructor(
-        private actions$: Actions,
-        private dialog: MatDialog,
-        private snackBar: MatSnackBar,
-        private store: Store<UpdateAttributeApplicationState>,
-        private updateAttributeService: UpdateAttributeService
-    ) {}
+    private actions$ = inject(Actions);
+    private dialog = inject(MatDialog);
+    private snackBar = inject(MatSnackBar);
+    private store = inject<Store<UpdateAttributeApplicationState>>(Store);
+    private updateAttributeService = inject(UpdateAttributeService);
 
     loadRules$ = createEffect(() =>
         this.actions$.pipe(

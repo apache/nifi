@@ -1,0 +1,46 @@
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<div class="about-dialog">
+    <h2 mat-dialog-title>About NiFi Registry</h2>
+    <mat-dialog-content>
+        <div class="flex flex-col justify-between gap-y-5">
+            @if (about$ | async; as about) {
+                <div class="flex justify-center">
+                    <img
+                        ngSrc="assets/icons/registry-logo-web-app.svg"
+                        priority
+                        width="300"
+                        height="385"
+                        alt="NiFi Registry Logo" />
+                </div>
+                <div class="flex flex-col gap-y-1">
+                    <div class="font-bold" data-automation-id="registry-version">
+                        Registry Version: {{ about.registryVersion }}
+                    </div>
+                </div>
+                <div>
+                    NiFi Registry is a complementary application to Apache NiFi that provides a central location for
+                    storage and management of shared resources across one or more NiFi and/or MiNiFi instances.
+                </div>
+            }
+        </div>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+        <button mat-button mat-dialog-close>Close</button>
+    </mat-dialog-actions>
+</div>

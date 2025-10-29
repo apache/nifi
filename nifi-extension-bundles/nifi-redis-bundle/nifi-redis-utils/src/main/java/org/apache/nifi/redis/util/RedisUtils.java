@@ -59,17 +59,17 @@ public class RedisUtils {
     private static final Logger LOGGER = LoggerFactory.getLogger(RedisUtils.class);
 
     // These properties are shared among the controller service(s) and processor(s) that use a RedisConnectionPool
+    public static final String OLD_REDIS_CONNECTION_POOL_PROPERTY_NAME = "redis-connection-pool";
+    public static final String OLD_TTL_PROPERTY_NAME = "redis-cache-ttl";
 
     public static final PropertyDescriptor REDIS_CONNECTION_POOL = new PropertyDescriptor.Builder()
-            .name("redis-connection-pool")
-            .displayName("Redis Connection Pool")
+            .name("Redis Connection Pool")
             .identifiesControllerService(RedisConnectionPool.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
-            .name("redis-cache-ttl")
-            .displayName("TTL")
+            .name("TTL")
             .description("Indicates how long the data should exist in Redis. Setting '0 secs' would mean the data would exist forever")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)

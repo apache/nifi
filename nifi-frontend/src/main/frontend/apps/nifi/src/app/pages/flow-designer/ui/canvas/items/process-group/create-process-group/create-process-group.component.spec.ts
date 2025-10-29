@@ -27,6 +27,12 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { CurrentUser } from '../../../../../../../state/current-user';
 import { of } from 'rxjs';
 import { By } from '@angular/platform-browser';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../../../state/current-user';
+import { canvasFeatureKey } from '../../../../../state';
+import { flowFeatureKey } from '../../../../../state/flow';
 
 const noPermissionsParameterContextId = '95d509b9-018b-1000-daff-b7957ea7935e';
 const parameterContextId = '95d509b9-018b-1000-daff-b7957ea7934f';
@@ -89,7 +95,15 @@ describe('CreateProcessGroup', () => {
                 imports: [CreateProcessGroup, NoopAnimationsModule],
                 providers: [
                     { provide: MAT_DIALOG_DATA, useValue: data },
-                    provideMockStore({ initialState }),
+                    provideMockStore({
+                        initialState: {
+                            [errorFeatureKey]: initialErrorState,
+                            [currentUserFeatureKey]: initialCurrentUserState,
+                            [canvasFeatureKey]: {
+                                [flowFeatureKey]: initialState
+                            }
+                        }
+                    }),
                     { provide: MatDialogRef, useValue: null }
                 ]
             });
@@ -142,7 +156,15 @@ describe('CreateProcessGroup', () => {
                 imports: [CreateProcessGroup, NoopAnimationsModule],
                 providers: [
                     { provide: MAT_DIALOG_DATA, useValue: data },
-                    provideMockStore({ initialState }),
+                    provideMockStore({
+                        initialState: {
+                            [errorFeatureKey]: initialErrorState,
+                            [currentUserFeatureKey]: initialCurrentUserState,
+                            [canvasFeatureKey]: {
+                                [flowFeatureKey]: initialState
+                            }
+                        }
+                    }),
                     { provide: MatDialogRef, useValue: null }
                 ]
             });

@@ -19,7 +19,13 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ContextMenu } from './context-menu.component';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../../pages/flow-designer/state/flow/flow.reducer';
+import { initialState as initialFlowState } from '../../../pages/flow-designer/state/flow/flow.reducer';
+import { flowFeatureKey } from '../../../pages/flow-designer/state/flow';
+import { canvasFeatureKey } from '../../../pages/flow-designer/state';
+import { initialState as initialErrorState } from '../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../state/current-user';
 
 describe('ContextMenu', () => {
     let component: ContextMenu;
@@ -28,7 +34,17 @@ describe('ContextMenu', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             imports: [ContextMenu],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [canvasFeatureKey]: {
+                            [flowFeatureKey]: initialFlowState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(ContextMenu);
         component = fixture.componentInstance;

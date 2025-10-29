@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import {
@@ -29,14 +29,12 @@ import { ClusterConnectionService } from './cluster-connection.service';
 
 @Injectable({ providedIn: 'root' })
 export class ControllerServiceStateService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
+    private nifiCommon = inject(NiFiCommon);
+    private client = inject(Client);
+    private clusterConnectionService = inject(ClusterConnectionService);
 
-    constructor(
-        private httpClient: HttpClient,
-        private nifiCommon: NiFiCommon,
-        private client: Client,
-        private clusterConnectionService: ClusterConnectionService
-    ) {}
+    private static readonly API: string = '../nifi-api';
 
     getControllerService(id: string): Observable<any> {
         const uiOnly: any = { uiOnly: true };

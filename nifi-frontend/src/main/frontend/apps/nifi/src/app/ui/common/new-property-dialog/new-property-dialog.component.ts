@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { NewPropertyDialogRequest, NewPropertyDialogResponse } from '../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
@@ -50,16 +50,18 @@ import { CloseOnEscapeDialog } from '@nifi/shared';
     styleUrls: ['./new-property-dialog.component.scss']
 })
 export class NewPropertyDialog extends CloseOnEscapeDialog {
+    request = inject<NewPropertyDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+
     @Output() newProperty: EventEmitter<NewPropertyDialogResponse> = new EventEmitter<NewPropertyDialogResponse>();
 
     newPropertyForm: FormGroup;
     name: FormControl;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: NewPropertyDialogRequest,
-        private formBuilder: FormBuilder
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         this.name = new FormControl('', [
             Validators.required,
             this.existingPropertyValidator(request.existingProperties)

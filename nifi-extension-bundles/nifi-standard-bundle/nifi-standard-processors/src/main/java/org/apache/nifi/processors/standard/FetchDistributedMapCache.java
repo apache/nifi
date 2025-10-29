@@ -60,16 +60,16 @@ import java.util.Set;
 @SupportsBatching
 @Tags({"map", "cache", "fetch", "distributed"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@CapabilityDescription("Computes cache key(s) from FlowFile attributes, for each incoming FlowFile, and fetches the value(s) from the Distributed Map Cache associated "
-        + "with each key. If configured without a destination attribute, the incoming FlowFile's content is replaced with the binary data received by the Distributed Map Cache. "
+@CapabilityDescription("Computes cache key(s) from FlowFile attributes, for each incoming FlowFile, and fetches the value(s) from the Map Cache associated "
+        + "with each key. If configured without a destination attribute, the incoming FlowFile's content is replaced with the binary data received by the Map Cache. "
         + "If there is no value stored under that key then the flow file will be routed to 'not-found'. Note that the processor will always attempt to read the entire cached value into "
         + "memory before placing it in it's destination. This could be potentially problematic if the cached value is very large.")
 @WritesAttribute(attribute = "user-defined", description = "If the 'Put Cache Value In Attribute' property is set then whatever it is set to "
-        + "will become the attribute key and the value would be whatever the response was from the Distributed Map Cache. If multiple cache entry identifiers are selected, "
+        + "will become the attribute key and the value would be whatever the response was from the Map Cache. If multiple cache entry identifiers are selected, "
         + "multiple attributes will be written, using the evaluated value of this property, appended by a period (.) and the name of the cache entry identifier. For example, if "
         + "the Cache Entry Identifier property is set to 'id,name', and the user-defined property is named 'fetched', then two attributes will be written, "
         + "fetched.id and fetched.name, containing their respective values.")
-@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.DistributedMapCacheClientService", "org.apache.nifi.distributed.cache.server.map.DistributedMapCacheServer",
+@SeeAlso(classNames = {"org.apache.nifi.distributed.cache.client.MapCacheClientService", "org.apache.nifi.distributed.cache.server.map.MapCacheServer",
         "org.apache.nifi.processors.standard.PutDistributedMapCache"})
 public class FetchDistributedMapCache extends AbstractProcessor {
 

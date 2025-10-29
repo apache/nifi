@@ -45,6 +45,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -54,6 +55,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.json.JSONObject;
 
@@ -120,8 +122,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
     public static final int MAX_ALLOWED_CHUNK_SIZE_IN_BYTES = 1024 * 1024 * 1024;
 
     public static final PropertyDescriptor FOLDER_ID = new PropertyDescriptor.Builder()
-            .name("folder-id")
-            .displayName("Folder ID")
+            .name("Folder ID")
             .description("The ID of the shared folder." +
                     " Please see Additional Details to set up access to Google Drive and obtain Folder ID.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -130,8 +131,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .build();
 
     public static final PropertyDescriptor FILE_NAME = new PropertyDescriptor.Builder()
-            .name("file-name")
-            .displayName("Filename")
+            .name("Filename")
             .description("The name of the file to upload to the specified Google Drive folder.")
             .required(true)
             .defaultValue("${filename}")
@@ -140,8 +140,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .build();
 
     public static final PropertyDescriptor CONFLICT_RESOLUTION = new PropertyDescriptor.Builder()
-            .name("conflict-resolution-strategy")
-            .displayName("Conflict Resolution Strategy")
+            .name("Conflict Resolution Strategy")
             .description("Indicates what should happen when a file with the same name already exists in the specified Google Drive folder.")
             .required(true)
             .defaultValue(FAIL.getValue())
@@ -149,8 +148,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .build();
 
     public static final PropertyDescriptor CHUNKED_UPLOAD_SIZE = new PropertyDescriptor.Builder()
-            .name("chunked-upload-size")
-            .displayName("Chunked Upload Size")
+            .name("Chunked Upload Size")
             .description("Defines the size of a chunk. Used when a FlowFile's size exceeds 'Chunked Upload Threshold' and content is uploaded in smaller chunks. "
                     + "Minimum allowed chunk size is 256 KB, maximum allowed chunk size is 1 GB.")
             .addValidator(createChunkSizeValidator())
@@ -159,8 +157,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
             .build();
 
     public static final PropertyDescriptor CHUNKED_UPLOAD_THRESHOLD = new PropertyDescriptor.Builder()
-            .name("chunked-upload-threshold")
-            .displayName("Chunked Upload Threshold")
+            .name("Chunked Upload Threshold")
             .description("The maximum size of the content which is uploaded at once. FlowFiles larger than this threshold are uploaded in chunks.")
             .defaultValue("100 MB")
             .addValidator(DATA_SIZE_VALIDATOR)
@@ -320,6 +317,19 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         final HttpTransport httpTransport = new ProxyAwareTransportFactory(proxyConfiguration).create();
 
         driveService = createDriveService(context, httpTransport, DriveScopes.DRIVE, DriveScopes.DRIVE_METADATA);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OLD_CONNECT_TIMEOUT_PROPERTY_NAME, CONNECT_TIMEOUT.getName());
+        config.renameProperty(OLD_READ_TIMEOUT_PROPERTY_NAME, READ_TIMEOUT.getName());
+        config.renameProperty("folder-id", FOLDER_ID.getName());
+        config.renameProperty("file-name", FILE_NAME.getName());
+        config.renameProperty("conflict-resolution-strategy", CONFLICT_RESOLUTION.getName());
+        config.renameProperty("chunked-upload-size", CHUNKED_UPLOAD_SIZE.getName());
+        config.renameProperty("chunked-upload-threshold", CHUNKED_UPLOAD_THRESHOLD.getName());
+        config.renameProperty(GoogleUtils.OLD_GCP_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, GCP_CREDENTIALS_PROVIDER_SERVICE.getName());
+
     }
 
     private FlowFile addAttributes(File file, FlowFile flowFile, ProcessSession session) {

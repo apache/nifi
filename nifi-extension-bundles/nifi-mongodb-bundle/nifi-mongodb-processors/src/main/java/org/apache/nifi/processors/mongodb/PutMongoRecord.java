@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -78,16 +79,14 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .description("All FlowFiles that cannot be written to MongoDB are routed to this relationship").build();
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor INSERT_COUNT = new PropertyDescriptor.Builder()
-            .name("insert_count")
-            .displayName("Batch Size")
+            .name("Batch Size")
             .description("The number of records to group together for one single insert/upsert operation against MongoDB.")
             .defaultValue("100")
             .required(true)
@@ -95,8 +94,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .build();
 
     static final PropertyDescriptor ORDERED = new PropertyDescriptor.Builder()
-            .name("ordered")
-            .displayName("Ordered")
+            .name("Ordered")
             .description("Perform ordered or unordered operations")
             .allowableValues("True", "False")
             .defaultValue("False")
@@ -105,8 +103,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .build();
 
     static final PropertyDescriptor BYPASS_VALIDATION = new PropertyDescriptor.Builder()
-            .name("bypass-validation")
-            .displayName("Bypass Validation")
+            .name("Bypass Validation")
             .description("""
                     Enable or disable bypassing document schema validation during insert or update operations.
                     Bypassing document validation is a Privilege Action in MongoDB.
@@ -119,8 +116,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .build();
 
     static final PropertyDescriptor UPDATE_KEY_FIELDS = new PropertyDescriptor.Builder()
-            .name("update-key-fields")
-            .displayName("Update Key Fields")
+            .name("Update Key Fields")
             .description("Comma separated list of fields based on which to identify documents that need to be updated. " +
                 "If this property is set NiFi will attempt an upsert operation on all documents. " +
                 "If this property is not set all documents will be inserted.")
@@ -129,8 +125,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             .build();
 
     static final PropertyDescriptor UPDATE_MODE = new PropertyDescriptor.Builder()
-        .name("update-mode")
-        .displayName("Update Mode")
+        .name("Update Mode")
         .dependsOn(UPDATE_KEY_FIELDS)
         .description("Choose between updating a single document or multiple documents per incoming record.")
         .allowableValues(UpdateMethod.class)
@@ -261,6 +256,17 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 getLogger().info("Written {} records into MongoDB", written);
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
+        config.renameProperty("insert_count", INSERT_COUNT.getName());
+        config.renameProperty("ordered", ORDERED.getName());
+        config.renameProperty("bypass-validation", BYPASS_VALIDATION.getName());
+        config.renameProperty("update-key-fields", UPDATE_KEY_FIELDS.getName());
+        config.renameProperty("update-mode", UPDATE_MODE.getName());
     }
 
     private Document convertArrays(Document doc) {

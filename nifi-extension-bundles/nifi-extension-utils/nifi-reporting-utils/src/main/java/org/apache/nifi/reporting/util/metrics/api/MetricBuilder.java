@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.reporting.util.metrics.api;
 
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-import javax.json.JsonValue;
+import jakarta.json.JsonBuilderFactory;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
+import jakarta.json.JsonValue;
 
 /**
  * Builds the JsonObject for an individual metric.

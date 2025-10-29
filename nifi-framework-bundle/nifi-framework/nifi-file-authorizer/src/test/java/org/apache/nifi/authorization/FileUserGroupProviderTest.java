@@ -85,6 +85,21 @@ public class FileUserGroupProviderTest {
             "  </users>" +
             "</tenants>";
 
+    private static final String FINGERPRINT = """
+            <?xml version="1.0" ?>
+            <tenants>
+            <user identifier="user-1" identity="user-1"></user>
+            <user identifier="user-2" identity="user-2"></user>
+            <group identifier="group-1" name="group-1">
+            <groupUser identifier="user-1"></groupUser>
+            </group>
+            <group identifier="group-2" name="group-2">
+            <groupUser identifier="user-2">
+            </groupUser>
+            </group>
+            </tenants>
+            """.replaceAll("[\\r\\n]", "");
+
     private FileUserGroupProvider userGroupProvider;
     private File primaryTenants;
     private File restoreTenants;
@@ -652,7 +667,28 @@ public class FileUserGroupProviderTest {
         assertEquals(2, userGroupProvider.getGroups().size());
     }
 
-    private static void writeFile(final File file, final String content) throws Exception {
+    @Test
+    public void testGetFingerprint() throws IOException {
+        writeFile(primaryTenants, TENANTS);
+        userGroupProvider.onConfigured(configurationContext);
+        assertEquals(2, userGroupProvider.getGroups().size());
+
+        final String fingerprint = userGroupProvider.getFingerprint();
+        assertEquals(FINGERPRINT, fingerprint);
+    }
+
+    @Test
+    public void testInheritFingerprint() throws IOException {
+        writeFile(primaryTenants, EMPTY_TENANTS);
+        userGroupProvider.onConfigured(configurationContext);
+
+        userGroupProvider.inheritFingerprint(FINGERPRINT);
+
+        assertEquals(2, userGroupProvider.getUsers().size());
+        assertEquals(2, userGroupProvider.getGroups().size());
+    }
+
+    private static void writeFile(final File file, final String content) throws IOException {
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
         try (final FileOutputStream fos = new FileOutputStream(file)) {
             fos.write(bytes);

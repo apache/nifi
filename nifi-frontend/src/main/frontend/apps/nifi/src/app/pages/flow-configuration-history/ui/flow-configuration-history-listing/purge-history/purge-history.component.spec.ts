@@ -20,6 +20,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PurgeHistory } from './purge-history.component';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialHistoryState } from '../../../state/flow-configuration-history-listing/flow-configuration-history-listing.reducer';
+import { flowConfigurationHistoryListingFeatureKey } from '../../../state/flow-configuration-history-listing';
+import { flowConfigurationHistoryFeatureKey } from '../../../state';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../../state/current-user';
 import { MatNativeDateModule } from '@angular/material/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialogRef } from '@angular/material/dialog';
@@ -32,7 +38,15 @@ describe('PurgeHistory', () => {
         TestBed.configureTestingModule({
             imports: [PurgeHistory, MatNativeDateModule, NoopAnimationsModule],
             providers: [
-                provideMockStore({ initialState: initialHistoryState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
+                        [flowConfigurationHistoryFeatureKey]: {
+                            [flowConfigurationHistoryListingFeatureKey]: initialHistoryState
+                        }
+                    }
+                }),
                 {
                     provide: MatDialogRef,
                     useValue: null

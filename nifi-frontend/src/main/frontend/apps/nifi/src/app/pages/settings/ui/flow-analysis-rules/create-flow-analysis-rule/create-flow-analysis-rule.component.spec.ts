@@ -23,10 +23,15 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DocumentedType } from '../../../../../state/shared';
 import { initialExtensionsTypesState } from '../../../../../state/extension-types/extension-types.reducer';
+import { extensionTypesFeatureKey } from '../../../../../state/extension-types';
+import { initialState as initialFlowAnalysisRulesState } from '../../../state/flow-analysis-rules/flow-analysis-rules.reducer';
+import { flowAnalysisRulesFeatureKey } from '../../../state/flow-analysis-rules';
 import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { MockComponent } from 'ng-mocks';
 import { ExtensionCreation } from '../../../../../ui/common/extension-creation/extension-creation.component';
 import { of } from 'rxjs';
+import { initialState as initialErrorState } from '../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../state/error';
 
 describe('CreateFlowAnalysisRule', () => {
     let component: CreateFlowAnalysisRule;
@@ -56,7 +61,15 @@ describe('CreateFlowAnalysisRule', () => {
                 MockComponent(ExtensionCreation)
             ],
             providers: [
-                provideMockStore({ initialState: initialExtensionsTypesState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState,
+                        settings: {
+                            [flowAnalysisRulesFeatureKey]: initialFlowAnalysisRulesState
+                        }
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ManagementControllerServicesState } from '../../state/management-controller-services';
 import {
@@ -61,12 +61,14 @@ import { ControllerServiceTable } from '../../../../ui/common/controller-service
     styleUrls: ['./management-controller-services.component.scss']
 })
 export class ManagementControllerServices implements OnInit, OnDestroy {
+    private store = inject<Store<NiFiState>>(Store);
+
     serviceState$ = this.store.select(selectManagementControllerServicesState);
     selectedServiceId$ = this.store.select(selectControllerServiceIdFromRoute);
     currentUser$ = this.store.select(selectCurrentUser);
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
 
-    constructor(private store: Store<NiFiState>) {
+    constructor() {
         this.store
             .select(selectSingleEditedService)
             .pipe(

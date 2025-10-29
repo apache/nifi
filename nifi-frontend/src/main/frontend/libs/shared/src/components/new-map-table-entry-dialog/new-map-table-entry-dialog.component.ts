@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Output } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import {
     AbstractControl,
     FormBuilder,
@@ -43,7 +42,6 @@ import { MapTableEntryData } from '../../types';
 @Component({
     selector: 'new-map-table-entry-dialog',
     imports: [
-        CommonModule,
         MatButton,
         MatDialogActions,
         MatDialogClose,
@@ -59,16 +57,18 @@ import { MapTableEntryData } from '../../types';
     styleUrl: './new-map-table-entry-dialog.component.scss'
 })
 export class NewMapTableEntryDialog extends CloseOnEscapeDialog {
+    private formBuilder = inject(FormBuilder);
+    data = inject<MapTableEntryData>(MAT_DIALOG_DATA);
+
     @Output() newEntry: EventEmitter<string> = new EventEmitter<string>();
 
     newEntryForm: FormGroup;
     name: FormControl;
 
-    constructor(
-        private formBuilder: FormBuilder,
-        @Inject(MAT_DIALOG_DATA) public data: MapTableEntryData
-    ) {
+    constructor() {
         super();
+        const formBuilder = this.formBuilder;
+
         this.name = new FormControl(null, [
             Validators.required,
             this.existingEntryValidator(this.data.existingEntries)

@@ -17,6 +17,7 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ControllerServices } from './controller-services.component';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { ControllerServiceTable } from '../../../../ui/common/controller-service/controller-service-table/controller-service-table.component';
@@ -24,18 +25,23 @@ import { ControllerServicesRoutingModule } from './controller-services-routing.m
 import { Breadcrumbs } from '../common/breadcrumbs/breadcrumbs.component';
 import { Navigation } from '../../../../ui/common/navigation/navigation.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { NifiTooltipDirective } from '@nifi/shared';
 
 @NgModule({
     declarations: [ControllerServices],
     exports: [ControllerServices],
     imports: [
         CommonModule,
+        FormsModule,
         NgxSkeletonLoaderModule,
         ControllerServicesRoutingModule,
         ControllerServiceTable,
         Breadcrumbs,
         Navigation,
-        MatButtonModule
+        MatButtonModule,
+        MatCheckboxModule,
+        NifiTooltipDirective
     ]
 })
 export class ControllerServicesModule {}

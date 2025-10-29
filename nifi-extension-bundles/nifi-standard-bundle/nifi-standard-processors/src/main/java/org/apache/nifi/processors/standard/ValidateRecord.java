@@ -43,6 +43,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.validation.SchemaValidationContext;
@@ -128,8 +129,7 @@ public class ValidateRecord extends AbstractProcessor {
         .required(false)
         .build();
     static final PropertyDescriptor SCHEMA_ACCESS_STRATEGY = new PropertyDescriptor.Builder()
-        .name("schema-access-strategy")
-        .displayName("Schema Access Strategy")
+        .name(SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY.getName())
         .description("Specifies how to obtain the schema that should be used to validate records")
         .allowableValues(READER_SCHEMA, SCHEMA_NAME_PROPERTY, SCHEMA_TEXT_PROPERTY)
         .defaultValue(READER_SCHEMA.getValue())
@@ -246,6 +246,13 @@ public class ValidateRecord extends AbstractProcessor {
                 }
             });
         }
+
+        config.renameProperty(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SCHEMA_REGISTRY.getName());
+        config.renameProperty(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SCHEMA_NAME.getName());
+        config.renameProperty(SchemaAccessUtils.OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME, SCHEMA_BRANCH_NAME.getName());
+        config.renameProperty(SchemaAccessUtils.OLD_SCHEMA_VERSION_PROPERTY_NAME, SCHEMA_VERSION.getName());
+        config.renameProperty(SchemaAccessUtils.OLD_SCHEMA_TEXT_PROPERTY_NAME, SCHEMA_TEXT.getName());
+        config.renameProperty(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, SCHEMA_ACCESS_STRATEGY.getName());
     }
 
     @Override

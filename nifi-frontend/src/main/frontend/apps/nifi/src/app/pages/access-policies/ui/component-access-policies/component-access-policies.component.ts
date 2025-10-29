@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, TemplateRef, ViewChild, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { selectCurrentUser } from '../../../../state/current-user/current-user.selectors';
 import {
@@ -55,6 +55,10 @@ import { ErrorContextKey } from '../../../../state/error';
     standalone: false
 })
 export class ComponentAccessPolicies implements OnInit, OnDestroy {
+    private store = inject<Store<AccessPolicyState>>(Store);
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     flowConfiguration$ = this.store.select(selectFlowConfiguration);
     accessPolicyState$ = this.store.select(selectAccessPolicyState);
     policyComponentState$ = this.store.select(selectPolicyComponentState);
@@ -134,11 +138,7 @@ export class ComponentAccessPolicies implements OnInit, OnDestroy {
     @ViewChild('inheritedFromGlobalParameterContexts') inheritedFromGlobalParameterContexts!: TemplateRef<any>;
     @ViewChild('inheritedFromProcessGroup') inheritedFromProcessGroup!: TemplateRef<any>;
 
-    constructor(
-        private store: Store<AccessPolicyState>,
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         this.policyForm = this.formBuilder.group({
             policyAction: new FormControl(this.policyActionOptions[0].value, Validators.required)
         });

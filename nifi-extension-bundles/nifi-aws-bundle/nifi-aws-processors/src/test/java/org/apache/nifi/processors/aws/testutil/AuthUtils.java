@@ -17,7 +17,7 @@
 
 package org.apache.nifi.processors.aws.testutil;
 
-import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -34,7 +34,7 @@ public class AuthUtils {
         runner.setProperty(credentialsService, AWSCredentialsProviderControllerService.CREDENTIALS_FILE, credentialsFile);
         runner.enableControllerService(credentialsService);
 
-        runner.setProperty(AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
+        runner.setProperty(AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
     }
 
     public static void enableAccessKey(final TestRunner runner, final String accessKeyId, final String secretKey) {
@@ -49,6 +49,6 @@ public class AuthUtils {
         runner.setProperty(credentialsService, AWSCredentialsProviderControllerService.SECRET_KEY, secretKey);
         runner.enableControllerService(credentialsService);
 
-        runner.setProperty(AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
+        runner.setProperty(AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE, "creds");
     }
 }

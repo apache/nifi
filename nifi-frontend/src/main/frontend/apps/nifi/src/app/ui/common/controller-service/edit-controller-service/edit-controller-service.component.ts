@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Client } from '../../../../service/client.service';
@@ -50,7 +50,7 @@ import {
     ModifiedProperties,
     VerifyPropertiesRequestContext
 } from '../../../../state/property-verification';
-import { TabbedDialog } from '../../tabbed-dialog/tabbed-dialog.component';
+import { TabbedDialog, TABBED_DIALOG_ID } from '../../tabbed-dialog/tabbed-dialog.component';
 import { ErrorContextKey } from '../../../../state/error';
 import { ContextErrorBanner } from '../../context-error-banner/context-error-banner.component';
 
@@ -76,9 +76,21 @@ import { ContextErrorBanner } from '../../context-error-banner/context-error-ban
         ContextErrorBanner,
         CopyDirective
     ],
-    styleUrls: ['./edit-controller-service.component.scss']
+    styleUrls: ['./edit-controller-service.component.scss'],
+    providers: [
+        {
+            provide: TABBED_DIALOG_ID,
+            useValue: 'edit-controller-service-selected-index'
+        }
+    ]
 })
 export class EditControllerService extends TabbedDialog {
+    request = inject<EditControllerServiceDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private client = inject(Client);
+    private nifiCommon = inject(NiFiCommon);
+    private clusterConnectionService = inject(ClusterConnectionService);
+
     @Input() createNewProperty!: (existingProperties: string[], allowsSensitive: boolean) => Observable<Property>;
     @Input() createNewService!: (request: InlineServiceCreationRequest) => Observable<InlineServiceCreationResponse>;
     @Input() parameterContext: ParameterContextEntity | undefined;
@@ -125,14 +137,9 @@ export class EditControllerService extends TabbedDialog {
         }
     ];
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditControllerServiceDialogRequest,
-        private formBuilder: FormBuilder,
-        private client: Client,
-        private nifiCommon: NiFiCommon,
-        private clusterConnectionService: ClusterConnectionService
-    ) {
-        super('edit-controller-service-selected-index');
+    constructor() {
+        super();
+        const request = this.request;
 
         this.readonly =
             !request.controllerService.permissions.canWrite ||

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ReportingTaskActions from './reporting-tasks.actions';
@@ -35,7 +35,8 @@ import { ManagementControllerServiceService } from '../../service/management-con
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import * as ErrorActions from '../../../../state/error/error.actions';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { selectStatus } from './reporting-tasks.selectors';
+import { selectLoadedTimestamp } from './reporting-tasks.selectors';
+import { initialState } from './reporting-tasks.reducer';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeComponentVersionDialog } from '../../../../ui/common/change-component-version-dialog/change-component-version-dialog';
 import { ExtensionTypesService } from '../../../../service/extension-types.service';
@@ -53,23 +54,21 @@ import { ErrorContextKey } from '../../../../state/error';
 
 @Injectable()
 export class ReportingTasksEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private reportingTaskService: ReportingTaskService,
-        private managementControllerServiceService: ManagementControllerServiceService,
-        private errorHelper: ErrorHelper,
-        private dialog: MatDialog,
-        private router: Router,
-        private propertyTableHelperService: PropertyTableHelperService,
-        private extensionTypesService: ExtensionTypesService
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private reportingTaskService = inject(ReportingTaskService);
+    private managementControllerServiceService = inject(ManagementControllerServiceService);
+    private errorHelper = inject(ErrorHelper);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private propertyTableHelperService = inject(PropertyTableHelperService);
+    private extensionTypesService = inject(ExtensionTypesService);
 
     loadReportingTasks$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ReportingTaskActions.loadReportingTasks),
-            concatLatestFrom(() => this.store.select(selectStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.reportingTaskService.getReportingTasks()).pipe(
                     map((response) =>
                         ReportingTaskActions.loadReportingTasksSuccess({
@@ -79,10 +78,26 @@ export class ReportingTasksEffects {
                             }
                         })
                     ),
-                    catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
-                    )
+                    catchError((errorResponse: HttpErrorResponse) => {
+                        const status = loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending';
+                        return of(
+                            ReportingTaskActions.loadReportingTasksError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status
+                            })
+                        );
+                    })
                 )
+            )
+        )
+    );
+
+    loadReportingTasksError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ReportingTaskActions.loadReportingTasksError),
+            switchMap((action) =>
+                of(this.errorHelper.handleLoadingError(action.status === 'success', action.errorResponse))
             )
         )
     );

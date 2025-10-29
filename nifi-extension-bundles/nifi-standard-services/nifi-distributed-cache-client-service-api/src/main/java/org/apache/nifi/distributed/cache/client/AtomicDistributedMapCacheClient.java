@@ -34,7 +34,7 @@ import java.io.IOException;
  *           Otherwise set the cached value and check if the key is not updated at {@link #replace(AtomicCacheEntry, Serializer, Serializer)}
  */
 @Tags({"distributed", "client", "cluster", "map", "cache"})
-@CapabilityDescription("Provides the ability to communicate with a DistributedMapCacheServer. This allows "
+@CapabilityDescription("Provides the ability to communicate with a MapCacheServer. This allows "
         + "multiple nodes to coordinate state with a single remote entity.")
 public interface AtomicDistributedMapCacheClient<R> extends DistributedMapCacheClient {
 

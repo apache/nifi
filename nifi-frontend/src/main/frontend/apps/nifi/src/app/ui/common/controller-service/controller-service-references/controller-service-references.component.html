@@ -107,7 +107,8 @@
                                 }
                                 @if (hasBulletins(reference)) {
                                     <div
-                                        class="pointer fa fa-sticky-note-o primary-color"
+                                        class="pointer fa fa-sticky-note"
+                                        [ngClass]="getBulletinSeverityClass(reference)"
                                         nifiTooltip
                                         [tooltipComponentType]="BulletinsTip"
                                         [tooltipInputData]="getBulletinsTipData(reference)"
@@ -150,7 +151,8 @@
 
                                     @if (hasBulletins(service)) {
                                         <div
-                                            class="pointer fa fa-sticky-note-o primary-color"
+                                            class="pointer fa fa-sticky-note"
+                                            [ngClass]="getBulletinSeverityClass(service)"
                                             nifiTooltip
                                             [delayClose]="true"
                                             [tooltipComponentType]="BulletinsTip"

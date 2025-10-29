@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+  http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-aws-bundle</artifactId>
+        <version>2.7.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nifi-aws-kinesis-nar</artifactId>
+    <packaging>nar</packaging>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Mark AWS SDK v2 dependencies as provided from nifi-aws-service-api-nar -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>sdk-core</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>aws-core</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>auth</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>regions</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>profiles</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>utils</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>http-client-spi</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>annotations</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>json-utils</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>metrics-spi</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>endpoints-spi</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>apache-client</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>aws-query-protocol</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>protocol-core</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>aws-json-protocol</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>sts</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>third-party-jackson-core</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Additional AWS SDK v2 core components -->
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>utils-lite</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>http-auth-aws</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>http-auth-spi</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>http-auth</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>http-auth-aws-eventstream</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>identity-spi</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>retries-spi</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>retries</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>checksums-spi</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>checksums</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>netty-nio-client</artifactId>
+                <version>${software.amazon.awssdk.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- AWS EventStream -->
+            <dependency>
+                <groupId>software.amazon.eventstream</groupId>
+                <artifactId>eventstream</artifactId>
+                <version>1.0.1</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Apache HTTP Components -->
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${org.apache.httpcomponents.httpclient.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>${org.apache.httpcomponents.httpcore.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Google Guava and related -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <!-- Reactive Streams -->
+            <dependency>
+                <groupId>org.reactivestreams</groupId>
+                <artifactId>reactive-streams</artifactId>
+                <version>1.0.4</version>
+                <scope>provided</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-aws-kinesis</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-aws-service-api-nar</artifactId>
+            <version>${project.version}</version>
+            <type>nar</type>
+        </dependency>
+    </dependencies>
+</project>

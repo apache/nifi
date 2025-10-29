@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-extension-utils</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.7.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -27,14 +27,19 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.json</artifactId>
-            <version>1.1.4</version>
+            <groupId>org.eclipse.parsson</groupId>
+            <artifactId>parsson</artifactId>
+            <version>1.1.7</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.json</groupId>
+            <artifactId>jakarta.json-api</artifactId>
+            <version>2.1.3</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-metrics</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

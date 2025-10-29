@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { ReportingTaskEntity } from '../../../state/reporting-tasks';
@@ -45,6 +45,8 @@ import { MatMenu, MatMenuItem, MatMenuTrigger } from '@angular/material/menu';
     ]
 })
 export class ReportingTaskTable {
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() initialSortColumn: 'name' | 'type' | 'bundle' | 'state' = 'name';
     @Input() initialSortDirection: 'asc' | 'desc' = 'asc';
     activeSort: Sort = {
@@ -78,8 +80,6 @@ export class ReportingTaskTable {
 
     displayedColumns: string[] = ['moreDetails', 'name', 'type', 'bundle', 'state', 'actions'];
     dataSource: MatTableDataSource<ReportingTaskEntity> = new MatTableDataSource<ReportingTaskEntity>();
-
-    constructor(private nifiCommon: NiFiCommon) {}
 
     canRead(entity: ReportingTaskEntity): boolean {
         return entity.permissions.canRead;
@@ -123,6 +123,10 @@ export class ReportingTaskTable {
         return {
             bulletins: entity.bulletins
         };
+    }
+
+    getBulletinSeverityClass(entity: ReportingTaskEntity): string {
+        return this.nifiCommon.getBulletinSeverityClass(entity.bulletins);
     }
 
     getStateIcon(entity: ReportingTaskEntity): string {

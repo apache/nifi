@@ -33,7 +33,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -53,6 +52,8 @@ public class LogoutCompleteRedirectFilterTest {
 
     private static final String CONTEXT_PATH_HEADER = "X-ProxyContextPath";
 
+    private static final String LOCATION_HEADER = "Location";
+
     @Mock
     private ServletContext servletContext;
 
@@ -71,6 +72,9 @@ public class LogoutCompleteRedirectFilterTest {
     @Captor
     private ArgumentCaptor<String> redirectCaptor;
 
+    @Captor
+    private ArgumentCaptor<Integer> statusCaptor;
+
     private LogoutCompleteRedirectFilter filter;
 
     @BeforeEach
@@ -85,7 +89,7 @@ public class LogoutCompleteRedirectFilterTest {
 
         filter.doFilter(request, response, filterChain);
 
-        verify(response, never()).sendRedirect(anyString());
+        verify(response, never()).setHeader(eq(LOCATION_HEADER), redirectCaptor.capture());
     }
 
     @Test
@@ -97,9 +101,13 @@ public class LogoutCompleteRedirectFilterTest {
 
         filter.doFilter(request, response, filterChain);
 
-        verify(response).sendRedirect(redirectCaptor.capture());
+        verify(response).setHeader(eq(LOCATION_HEADER), redirectCaptor.capture());
+        verify(response).setStatus(statusCaptor.capture());
 
         final String redirect = redirectCaptor.getValue();
         assertEquals(LOGOUT_COMPLETE_EXPECTED, redirect);
+
+        final int status = statusCaptor.getValue();
+        assertEquals(HttpServletResponse.SC_FOUND, status);
     }
 }

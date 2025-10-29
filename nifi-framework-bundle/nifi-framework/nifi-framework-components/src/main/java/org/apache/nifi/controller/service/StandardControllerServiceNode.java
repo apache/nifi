@@ -635,7 +635,8 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
                     enablingAttemptCount.incrementAndGet();
                     if (enablingAttemptCount.get() == 120 || enablingAttemptCount.get() % 3600 == 0) {
-                        final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this,
+                        final ControllerService controllerService = getControllerServiceImplementation();
+                        final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), controllerService,
                                 new StandardLoggingContext(StandardControllerServiceNode.this));
                         componentLog.error("Enabling {} failed: Validation Status [{}] Errors {}",
                                 service, validationStatus, validationState.getValidationErrors());
@@ -655,9 +656,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     return;
                 }
 
+                final ControllerService controllerService = getControllerServiceImplementation();
                 try {
-                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
-                        ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, getControllerServiceImplementation(), configContext);
+                    try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), controllerService.getClass(), getIdentifier())) {
+                        ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, controllerService, configContext);
                     }
 
                     boolean shouldEnable;
@@ -681,7 +683,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     }
 
                     final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-                    final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this,
+                    final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), controllerService,
                             new StandardLoggingContext(StandardControllerServiceNode.this));
                     componentLog.error("Failed to invoke @OnEnabled method", cause);
                     invokeDisable(configContext);
@@ -753,12 +755,13 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
 
     private void invokeDisable(ConfigurationContext configContext) {
-        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), getControllerServiceImplementation().getClass(), getIdentifier())) {
-            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, StandardControllerServiceNode.this.getControllerServiceImplementation(), configContext);
+        final ControllerService controllerService = getControllerServiceImplementation();
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), controllerService.getClass(), getIdentifier())) {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnDisabled.class, controllerService, configContext);
             LOG.debug("Successfully disabled {}", this);
         } catch (Exception e) {
             final Throwable cause = e instanceof InvocationTargetException ? e.getCause() : e;
-            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), StandardControllerServiceNode.this, new StandardLoggingContext(StandardControllerServiceNode.this));
+            final ComponentLog componentLog = new SimpleProcessLogger(getIdentifier(), controllerService, new StandardLoggingContext(StandardControllerServiceNode.this));
             componentLog.error("Failed to invoke @OnDisabled method due to {}", cause);
             LOG.error("Failed to invoke @OnDisabled method of {} due to {}", getControllerServiceImplementation(), cause.toString());
         }

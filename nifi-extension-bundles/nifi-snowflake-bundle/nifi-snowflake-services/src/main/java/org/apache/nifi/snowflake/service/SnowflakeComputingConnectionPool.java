@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -35,6 +36,8 @@ import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.key.service.api.PrivateKeyService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -47,15 +50,19 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormat;
 import org.apache.nifi.snowflake.service.util.ConnectionUrlFormatParameters;
 
+import java.nio.charset.StandardCharsets;
+import java.security.PrivateKey;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static net.snowflake.client.core.SFSessionProperty.AUTHENTICATOR;
+import static net.snowflake.client.core.SFSessionProperty.PRIVATE_KEY_BASE64;
 import static net.snowflake.client.core.SFSessionProperty.TOKEN;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER;
@@ -140,6 +147,13 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .description("The password for the Snowflake user.")
             .build();
 
+    public static final PropertyDescriptor PRIVATE_KEY_SERVICE = new PropertyDescriptor.Builder()
+            .name("Private Key Service")
+            .description("Provides RSA Private Key for Key Pair Authentication")
+            .identifiesControllerService(PrivateKeyService.class)
+            .required(false)
+            .build();
+
     public static final PropertyDescriptor ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
             .name("OAuth2 Access Token Provider")
             .description("Service providing OAuth2 Access Tokens for authenticating using the HTTP Authorization Header")
@@ -153,6 +167,10 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
+
+    private static final String AUTHENTICATOR_SNOWFLAKE_JWT = "SNOWFLAKE_JWT";
+
+    private static final String PEM_CONTENT_FORMAT = "-----BEGIN PRIVATE KEY-----%n%s%n-----END PRIVATE KEY-----%n";
 
     private volatile OAuth2AccessTokenProvider accessTokenProvider;
 
@@ -169,6 +187,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             SnowflakeProperties.DATABASE,
             SnowflakeProperties.SCHEMA,
             SNOWFLAKE_WAREHOUSE,
+            PRIVATE_KEY_SERVICE,
             ACCESS_TOKEN_PROVIDER,
             ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE,
             VALIDATION_QUERY,
@@ -181,6 +200,17 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             MIN_EVICTABLE_IDLE_TIME,
             SOFT_MIN_EVICTABLE_IDLE_TIME
     );
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName());
+        config.renameProperty(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName());
+        config.renameProperty(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName());
+        config.renameProperty(DBCPProperties.OLD_MAX_CONN_LIFETIME_PROPERTY_NAME, MAX_CONN_LIFETIME.getName());
+        config.renameProperty(DBCPProperties.OLD_EVICTION_RUN_PERIOD_PROPERTY_NAME, EVICTION_RUN_PERIOD.getName());
+        config.renameProperty(DBCPProperties.OLD_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, MIN_EVICTABLE_IDLE_TIME.getName());
+        config.renameProperty(DBCPProperties.OLD_SOFT_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, SOFT_MIN_EVICTABLE_IDLE_TIME.getName());
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -291,6 +321,15 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             connectionProperties.put(TOKEN.getPropertyKey(), tokenProvider.getAccessDetails().getAccessToken());
         }
 
+        final PropertyValue privateKeyServiceProperty = context.getProperty(PRIVATE_KEY_SERVICE);
+        if (privateKeyServiceProperty.isSet()) {
+            final PrivateKeyService privateKeyService = privateKeyServiceProperty.asControllerService(PrivateKeyService.class);
+            final PrivateKey privateKey = privateKeyService.getPrivateKey();
+            final String privateKeyBase64 = getPrivateKeyBase64(privateKey);
+            connectionProperties.put(PRIVATE_KEY_BASE64.getPropertyKey(), privateKeyBase64);
+            connectionProperties.put(AUTHENTICATOR.getPropertyKey(), AUTHENTICATOR_SNOWFLAKE_JWT);
+        }
+
         final ProxyConfigurationService proxyConfigurationService = context
                 .getProperty(ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE)
                 .asControllerService(ProxyConfigurationService.class);
@@ -336,5 +375,14 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
                 context.getProperty(SNOWFLAKE_CLOUD_REGION).evaluateAttributeExpressions().getValue(),
                 context.getProperty(SNOWFLAKE_CLOUD_TYPE).evaluateAttributeExpressions().getValue()
         );
+    }
+
+    private String getPrivateKeyBase64(final PrivateKey privateKey) {
+        final byte[] privateKeyEncoded = privateKey.getEncoded();
+        final Base64.Encoder encoder = Base64.getEncoder();
+        final String privateKeyEncodedBase64 = encoder.encodeToString(privateKeyEncoded);
+        final String pemPrivateKey = PEM_CONTENT_FORMAT.formatted(privateKeyEncodedBase64);
+        final byte[] pemPrivateKeyBinary = pemPrivateKey.getBytes(StandardCharsets.UTF_8);
+        return encoder.encodeToString(pemPrivateKeyBinary);
     }
 }

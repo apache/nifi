@@ -23,6 +23,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
 import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
 import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
@@ -502,6 +503,8 @@ public interface NiFiServiceFacade {
      */
     Set<DocumentedTypeDTO> getFlowRegistryTypes();
 
+    FlowRegistryClientDefinition getFlowRegistryClientDefinition(String group, String artifact, String version, String type);
+
     /**
      * Returns the RuntimeManifest for this NiFi instance.
      *
@@ -762,6 +765,13 @@ public interface NiFiServiceFacade {
      * @return snapshot
      */
     ProcessorEntity deleteProcessor(Revision revision, String processorId);
+
+    /**
+     * Reloads the underlying processor if the additional classpath resources have changed.
+     *
+     * @param processorId the id of the processor to reload
+     */
+    void reloadProcessor(String processorId);
 
     // ----------------------------------------
     // Connections methods
@@ -1771,6 +1781,12 @@ public interface NiFiServiceFacade {
     void verifyCanVerifyParameterProviderConfig(String parameterProviderId);
 
     /**
+     * Verifies that the Flow Registry Client with the given identifier is in a state where its configuration can be verified
+     * @param registryClientId the ID of the registry client
+     */
+    void verifyCanVerifyFlowRegistryClientConfig(String registryClientId);
+
+    /**
      * Verifies that the Process Group with the given identifier can be saved to the flow registry
      *
      * @param groupId the ID of the Process Group
@@ -2269,6 +2285,13 @@ public interface NiFiServiceFacade {
      */
     void verifyDeleteControllerService(String controllerServiceId);
 
+    /**
+     * Reloads the underlying controller service if the additional classpath resources have changed.
+     *
+     * @param controllerServiceId the id of the controller service to reload
+     */
+    void reloadControllerService(String controllerServiceId);
+
     // ----------------------------------------
     // Parameter Provider methods
     // ----------------------------------------
@@ -2563,6 +2586,10 @@ public interface NiFiServiceFacade {
      * @return the buckets
      */
     Set<FlowRegistryBucketEntity> getBucketsForUser(String registryClientId, String branch);
+
+    List<ConfigVerificationResultDTO> performFlowRegistryClientConfigVerification(String registryClientId, Map<String, String> properties, Map<String, String> variables);
+
+    ConfigurationAnalysisEntity analyzeFlowRegistryClientConfiguration(String registryClientId, Map<String, String> properties);
 
     /**
      * Gets the flows for the current user for the specified registry and bucket.

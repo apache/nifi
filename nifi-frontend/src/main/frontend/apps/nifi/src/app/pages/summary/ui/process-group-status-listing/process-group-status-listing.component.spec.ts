@@ -20,7 +20,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ProcessGroupStatusListing } from './process-group-status-listing.component';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { provideMockStore } from '@ngrx/store/testing';
-import { initialState } from '../../state/summary-listing/summary-listing.reducer';
+import { initialState as initialSummaryListingState } from '../../state/summary-listing/summary-listing.reducer';
+import { summaryListingFeatureKey } from '../../state/summary-listing';
+import { summaryFeatureKey } from '../../state';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
 
 describe('ProcessGroupStatusListing', () => {
     let component: ProcessGroupStatusListing;
@@ -30,7 +34,16 @@ describe('ProcessGroupStatusListing', () => {
         TestBed.configureTestingModule({
             declarations: [],
             imports: [ProcessGroupStatusListing, NoopAnimationsModule],
-            providers: [provideMockStore({ initialState })]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [summaryFeatureKey]: {
+                            [summaryListingFeatureKey]: initialSummaryListingState
+                        }
+                    }
+                })
+            ]
         });
         fixture = TestBed.createComponent(ProcessGroupStatusListing);
         component = fixture.componentInstance;

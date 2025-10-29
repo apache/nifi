@@ -15,16 +15,16 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ImportFromRegistryRequest } from '../state/flow';
 
 @Injectable({ providedIn: 'root' })
 export class RegistryService {
-    private static readonly API: string = '../nifi-api';
+    private httpClient = inject(HttpClient);
 
-    constructor(private httpClient: HttpClient) {}
+    private static readonly API: string = '../nifi-api';
 
     getRegistryClients(): Observable<any> {
         return this.httpClient.get(`${RegistryService.API}/flow/registries`);

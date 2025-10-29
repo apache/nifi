@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, EventEmitter, Inject, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatInputModule } from '@angular/material/input';
@@ -54,6 +54,11 @@ import { ContextErrorBanner } from '../../../../../../../ui/common/context-error
     styleUrls: ['./edit-remote-process-group.component.scss']
 })
 export class EditRemoteProcessGroup extends CloseOnEscapeDialog {
+    request = inject<EditComponentDialogRequest>(MAT_DIALOG_DATA);
+    private formBuilder = inject(FormBuilder);
+    private canvasUtils = inject(CanvasUtils);
+    private client = inject(Client);
+
     @Input() saving$!: Observable<boolean>;
     @Output() editRemoteProcessGroup: EventEmitter<any> = new EventEmitter<any>();
 
@@ -62,13 +67,10 @@ export class EditRemoteProcessGroup extends CloseOnEscapeDialog {
     editRemoteProcessGroupForm: FormGroup;
     readonly: boolean;
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: EditComponentDialogRequest,
-        private formBuilder: FormBuilder,
-        private canvasUtils: CanvasUtils,
-        private client: Client
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         this.readonly =
             !request.entity.permissions.canWrite ||
             !this.canvasUtils.remoteProcessGroupSupportsModification(request.entity);

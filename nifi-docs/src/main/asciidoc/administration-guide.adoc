@@ -18,13 +18,14 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
+:imagesdir: images
 
 [[system_requirements]]
 == System Requirements
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
 * Requires Java 21
-* Use of Python-based Processors (beta feature) requires Python 3.9, 3.10, 3.11, or 3.12
+* Use of Python-based Processors (beta feature) requires Python 3.10, 3.11, or 3.12
 * Supported Operating Systems:
 ** Linux
 ** Unix
@@ -76,7 +77,7 @@ See the <<system_properties>> section of this guide for more information about c
 
 == Build a Custom Distribution
 
-The binary build of Apache NiFi that is provided by the Apache mirrors does not contain every NAR file that is part of the official release. This is due to size constraints imposed by the mirrors to reduce the expenses associated with hosting such a large project. The Developer Guide link:developer-guide.html#build[has a list] of optional Maven profiles that can be activated to build a binary distribution of NiFi with these extra capabilities.
+The binary build of Apache NiFi that is provided by the Apache mirrors does not contain every NAR file that is part of the official release. This is due to size constraints imposed by the mirrors to reduce the expenses associated with hosting such a large project. The Developer Guide <<developer-guide.adoc#build,has a list>> of optional Maven profiles that can be activated to build a binary distribution of NiFi with these extra capabilities.
 
 Java 21 is required for building and running Apache NiFi.
 
@@ -197,6 +198,29 @@ The standard logback configuration includes the following appender definitions a
 | `nifi-user.log`        | User log containing authentication and authorization messages
 |=========================
 
+=== Mapped Diagnostic Context Properties
+Logging for extension components such as Processors and Controller Services include variables in the
+link:https://www.slf4j.org/api/org/slf4j/MDC.html[Mapped Diagnostic Context] that provide additional information about
+the component location. link:https://logback.qos.ch/manual/layouts.html#mdc[MDC] values can be added to log messages
+with custom layout configuration.
+
+Component logs provide the following MDC named values:
+
+- `processGroupId` contains the UUID of the Process Group
+- `processGroupIdPath` contains the hierarchy of UUIDs for Process Groups with separators
+- `processGroupName` contains the name of the Process Group
+- `processGroupNamePath` contains of the hierarchy of names for Process Groups with separators
+
+MDC named values can be added to a Logback pattern layout using the `mdc` conversion word.
+
+[source, xml]
+----
+<pattern>%date %level [%thread] %mdc{processGroupId} %logger{40} %msg%n</pattern>
+----
+
+Logs from classes other than extension components do not have MDC named values. Logs formatted using the pattern layout
+will include an empty space when an MDC named value is not found.
+
 === Deprecation Logging
 The `nifi-deprecation.log` contains warning messages describing components and features that will be removed in
 subsequent versions. Deprecation warnings should be evaluated and addressed to avoid breaking changes when upgrading to
@@ -226,7 +250,7 @@ The `name` attribute must start with `deprecation`, followed by the component cl
 
 NiFi is a Java-based application. NiFi 2.0 introduces support for a Python-based Processor API. This capability is still
 considered to be in "Beta" mode and should not be used in production. By default, support for Python-based Processors is disabled. In order to enable it,
-Python 3.9, 3.10, 3.11, or 3.12 must be installed on the NiFi node.
+Python 3.10, 3.11, or 3.12 must be installed on the NiFi node.
 
 The following properties may be used to configure the Python 3 installation and process management. These properties are all located under the
 "Python Extensions" heading in the _nifi.properties_ file:
@@ -296,7 +320,7 @@ configure the web server to WANT certificate base client authentication. This wi
 may be logging in with credentials. See <<user_authentication>> for more details.
 
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
-accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`. These communications
+accomplished by setting the `nifi.remote.input.secure` property to `true`. These communications
 will always REQUIRE two way SSL as the nodes will use their configured keystore/truststore for authentication.
 
 Automatic refreshing of NiFi's web SSL context factory can be enabled using the following properties:
@@ -332,8 +356,8 @@ link:https://docs.oracle.com/en/java/javase/21/docs/specs/security/standard-name
 
 The semantics match the use of the following Jetty APIs:
 
-* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setIncludeCipherSuites(java.lang.String\...)[SslContextFactory.setIncludeCipherSuites()]
-* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setExcludeCipherSuites(java.lang.String\...)[SslContextFactory.setExcludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/util/ssl/SslContextFactory.Server.html[SslContextFactory.setIncludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/util/ssl/SslContextFactory.Server.html[SslContextFactory.setExcludeCipherSuites()]
 
 [[user_authentication]]
 == User Authentication
@@ -358,6 +382,8 @@ NiFi will require client certificates for authenticating users over HTTPS if no 
 A user cannot anonymously authenticate with a secured instance of NiFi unless `nifi.security.allow.anonymous.authentication` is set to `true`.
 If this is the case, NiFi must also be configured with an Authorizer that supports authorizing an anonymous user. Currently, NiFi does not ship
 with any Authorizers that support this. There is a feature request here to help support it (link:https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730^]).
+
+NOTE: Allowing anonymous authentication is deprecated for removal in subsequent releases.
 
 There are three scenarios to consider when setting `nifi.security.allow.anonymous.authentication`. When the user is directly calling an endpoint
 with no attempted authentication then `nifi.security.allow.anonymous.authentication` will control whether the request is authenticated or rejected.
@@ -843,42 +869,6 @@ The LdapUserGroupProvider has the following properties:
 |==================================================================================================================================================
 
 NOTE: Any identity mapping rules specified in _nifi.properties_ will also be applied to the user identities. Group names are not mapped.
-
-==== AzureGraphUserGroupProvider
-
-The AzureGraphUserGroupProvider fetches users and groups from Azure Active Directory (AAD) using the Microsoft Graph API.
-
-A subset of groups are fetched based on filter conditions (`Group Filter Prefix`, `Group Filter Suffix`, `Group Filter Substring`, and `Group Filter List Inclusion`) evaluated against the _displayName_ property of the Azure AD group. Member users are then loaded from these groups. At least one filter condition should be specified.
-
-This provider requires an Azure app registration with:
-
-* Microsoft Graph Group.Read.All and User.Read.All API permissions with admin consent
-* A client secret or application password
-* ID token claims for upn and/or email
-
-See link:https://docs.microsoft.com/en-us/graph/auth-v2-service[here^] and link:https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-daemon-app-registration[here^] for more information on how to create a valid app registration.
-
-The AzureGraphUserGroupProvider has the following properties:
-
-[options="header,footer"]
-|==================================================================================================================================================
-| Property Name | Description
-|`Refresh Delay` | Duration of delay between each user and group refresh. Default is `5 mins`.
-|`Authority Endpoint` | The endpoint of the Azure AD login. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoints. For example, the global authority endpoint is `https://login.microsoftonline.com`.
-|`Graph Endpoint` | The endpoint of the Azure Graph API, with the version identifier attached. The base url can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoints. For example, the global graph endpoint is `https://graph.microsoft.com/v1.0`, which is also the default setting.
-|`Graph Scope` | The url for the Graph api scope.  See https://learn.microsoft.com/en-us/azure/active-directory/develop/scopes-oidc for an explanation of scopes.  This usually only needs to be changed if you are connecting to a different `Graph Endpoint`.  The Azure global default scope is `https://graph.microsoft.com/.default`, which is also the default setting.
-|`Directory ID` | Tenant ID or Directory ID of the Azure AD tenant. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID.
-|`Application ID` | Client ID or Application ID of the Azure app registration. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Overview -> Application (client) ID.
-|`Client Secret` | A client secret from the Azure app registration. Secrets can be created in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Certificates & secrets -> Client secrets -> [+] New client secret.
-|`Group Filter Prefix` | Prefix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names starting with the provided prefix.
-|`Group Filter Suffix` | Suffix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names ending with the provided suffix.
-|`Group Filter Substring` | Substring filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names containing the provided substring.
-|`Group Filter List Inclusion` | Comma-separated list of Azure AD groups. If no string-based matching filter (i.e., prefix, suffix, and substring) is specified, set this property to avoid fetching all groups and users in the Azure AD tenant.
-|`Page Size` | Page size to use with the Microsoft Graph API. Set to 0 to disable paging API calls. Default: 50, Max: 999.
-|`Claim for Username` | The property of the user directory object mapped to the NiFi user name field. Default is 'upn'. 'email' is another option when `nifi.security.user.oidc.fallback.claims.identifying.user` is set to 'upn'.
-|==================================================================================================================================================
-
-Like LdapUserGroupProvider, the AzureGraphUserGroupProvider configuration is commented out in the _authorizers.xml_ file. Refer to the comment for a starter configuration.
 
 ==== Composite Implementations
 
@@ -1918,7 +1908,7 @@ The NiFi Toolkit also contains command line utilities for administrators to supp
 
 * CLI -- The `cli` tool enables administrators to interact with NiFi and NiFi Registry instances to automate tasks such as deploying versioned flows and managing process groups and cluster nodes.
 
-For more information about each utility, see the link:toolkit-guide.html[NiFi Toolkit Guide].
+For more information about each utility, see the <<toolkit-guide.adoc#apache-nifi-toolkit-guide,NiFi Toolkit Guide>>.
 
 [[clustering]]
 == Clustering Configuration
@@ -2008,7 +1998,11 @@ nodes and waits for each node to respond, indicating that it has made the change
 
 ==== Disconnect Nodes
 
-A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. The DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes can be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
+A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. Until the issue with the node is resolved, the DFM will have limited ability to make changes to the remaining cluster's dataflow. Changing component state or adding a component is allowed, but removing a component is not.
+
+A node that was disconnected maybe fully working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
+
+It should be noted that a disconnected node's dataflow is allowed to be changed.  Any changes should be done with caution, however, as they will be reverted when the node is re-attached to the cluster.  In addition, if reverting the changes will cause a loss of data then it will not be allowed to rejoin the cluster.  This can occur if a new dataflow has since been made on the disconnected node.
 
 To manually disconnect a node, select the "Disconnect" icon (image:iconDisconnect.png["Disconnect Icon"]) from the node's row.
 
@@ -2052,7 +2046,7 @@ As an alternative to the UI, the following NiFi CLI commands can be used for ret
 * `nifi offload-node`
 * `nifi delete-node`
 
-For more information, see the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
+For more information, see the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>> section in the <<toolkit-guide.adoc#apache-nifi-toolkit-guide,NiFi Toolkit Guide>>.
 
 === Flow Election
 When a cluster first starts up, NiFi must determine which of the nodes have the
@@ -3522,7 +3516,7 @@ blank meaning all requests containing a proxy context path are rejected. Configu
 |`nifi.web.request.timeout`|The request timeout for web requests. Requests running longer than this time will be forced to end with a HTTP 503 Service Unavailable response. Default value is `60 secs`.
 |`nifi.web.request.log.format`|The parameterized format for HTTP request log messages.
 The format property supports the modifiers and codes described in the Jetty
-link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/server/CustomRequestLog.html[CustomRequestLog^].
+link:https://www.eclipse.org/jetty/javadoc/jetty-12/org/eclipse/jetty/server/CustomRequestLog.html[CustomRequestLog^].
 
 The default value uses the Combined Log Format, which follows the
 link:https://en.wikipedia.org/wiki/Common_Log_Format[Common Log Format^] with the addition of `Referer` and `User-Agent`
@@ -3559,8 +3553,6 @@ These properties pertain to various security features in NiFi. Many of these pro
 |`nifi.security.user.authorizer`|Specifies which of the configured Authorizers in the _authorizers.xml_ file to use.  By default, it is set to `single-user-authorizer`.
 |`nifi.security.allow.anonymous.authentication`|Whether anonymous authentication is allowed when running over HTTPS. If set to true, client certificates are not required to connect via TLS. The default value is `false`.
 |`nifi.security.user.login.identity.provider`|This indicates what type of login identity provider to use. It can be set to the identifier from a provider in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication. The default value is `single-user-provider`.
-|`nifi.security.ocsp.responder.url`|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
-|`nifi.security.ocsp.responder.certificate`|This is the location of the OCSP responder certificate if one is being used. It is blank by default.
 |====
 
 === Identity Mapping Properties
@@ -3603,7 +3595,6 @@ When setting up a NiFi cluster, these properties should be configured the same w
 |*Property*|*Description*
 |`nifi.cluster.protocol.heartbeat.interval`|The interval at which nodes should emit heartbeats to the Cluster Coordinator. The default value is `5 sec`.
 |`nifi.cluster.protocol.heartbeat.missable.max`|Maximum number of heartbeats a Cluster Coordinator can miss for a node in the cluster before the Cluster Coordinator updates the node status to Disconnected. The default value is `8`.
-|`nifi.cluster.protocol.is.secure`|This indicates whether cluster communications are secure. The default value is `false`.
 |====
 
 [[cluster_node_properties]]
@@ -4187,4 +4178,3 @@ An example output would look like this:
      "attributeValue" : integer-value
    }
  ]
-

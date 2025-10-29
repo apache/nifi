@@ -18,11 +18,12 @@
 Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
+:imagesdir: images
 // This document refers to NiFi version 1.11.4 and to 1.22.0 as well. Where you see 1.22.0, the steps were verified against that version.
 // Technically we could rename all 1.11.4 references to 1.22.0, because we are trying to be backward compatible, but it is better to double check.
 
 == Purpose
-The intent of this document is to provide a canonical source of prescriptive instruction sets for common administrator and user tasks using Apache NiFi. It is intended to complement the link:overview.html[NiFi Overview^], link:administration-guide.html[NiFi System Administrator's Guide^], and link:user-guide.html[NiFi User's Guide^]. Those documents provide extensive reference information about various features and configuration values, but they do not provide information on _how_ to accomplish tasks.
+The intent of this document is to provide a canonical source of prescriptive instruction sets for common administrator and user tasks using Apache NiFi. It is intended to complement the <<overview.adoc#apache-nifi-overview,NiFi Overview>>, <<administration-guide.adoc#nifi-system-administrators-guide,NiFi System Administrator's Guide>>, and <<user-guide.adoc#apache-nifi-user-guide,NiFi User's Guide>>. Those documents provide extensive reference information about various features and configuration values, but they do not provide information on _how_ to accomplish tasks.
 
 This document is _not_ intended to be a comprehensive repository of all possible admin or user activities, but rather a collection of well-documented reference activities which can be followed directly or adapted to custom scenarios. This document requires continued updates as application or ecosystem behavior changes, and corrections and improvements where the content is unclear to the community. To contribute to this document, please link:https://issues.apache.org/jira/secure/CreateIssue!default.jspa[open a Jira^] (see link:https://cwiki.apache.org/confluence/display/NIFI/Contributor+Guide#ContributorGuide-WheretoStart?[further instructions in the Contributor Guide^]) and link:https://github.com/apache/nifi/pulls[submit a pull request (PR)^].
 
@@ -217,7 +218,7 @@ Apache NiFi requires link:https://en.wikipedia.org/wiki/Transport_Layer_Security
 . To prevent malicious users from intercepting data or impersonating the server
 . To enable any authentication & authorization mechanisms
 
-NiFi intentionally does not allow any authentication or authorization features over plaintext HTTP. Without the confidentiality and integrity provided by TLS and the user & group access controls, any malicious entity can intercept and modify NiFi API requests, corrupt and steal data, and otherwise interfere with the NiFi instance. Because of NiFi's robust feature set, this can even lead to complete control over the host running NiFi. For more information, see link:administration-guide.html#security_configuration[Administrator's Guide: Security Configuration^].
+NiFi intentionally does not allow any authentication or authorization features over plaintext HTTP. Without the confidentiality and integrity provided by TLS and the user & group access controls, any malicious entity can intercept and modify NiFi API requests, corrupt and steal data, and otherwise interfere with the NiFi instance. Because of NiFi's robust feature set, this can even lead to complete control over the host running NiFi. For more information, see <<administration-guide.adoc#security_configuration,Administrator's Guide: Security Configuration>>.
 
 === Securing NiFi with Provided Certificates
 
@@ -629,7 +630,7 @@ Certificate was added to keystore
 
 == Deploying a NiFi Cluster
 
-Apache NiFi can run in either _standalone_ or _clustered_ mode. A standalone node is often sufficient for dataflow operations, but in a production or high-volume environment, a cluster is more performant and resilient. For more information, see link:administration-guide.html#clustering[NiFi Administrator's Guide: Clustering^].
+Apache NiFi can run in either _standalone_ or _clustered_ mode. A standalone node is often sufficient for dataflow operations, but in a production or high-volume environment, a cluster is more performant and resilient. For more information, see <<administration-guide.adoc#clustering,NiFi Administrator's Guide: Clustering>>.
 
 === Configuring a Host to Resolve Arbitrary DNS Hostnames
 

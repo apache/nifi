@@ -24,6 +24,7 @@ import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.DefinedType;
 import org.apache.nifi.c2.protocol.component.api.ExtensionComponent;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
+import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
 import org.apache.nifi.c2.protocol.component.api.MultiProcessorUseCase;
 import org.apache.nifi.c2.protocol.component.api.ParameterProviderDefinition;
 import org.apache.nifi.c2.protocol.component.api.ProcessorConfiguration;
@@ -53,6 +54,7 @@ import org.apache.nifi.extension.manifest.DynamicProperty;
 import org.apache.nifi.extension.manifest.DynamicRelationship;
 import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.extension.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.ExtensionType;
 import org.apache.nifi.extension.manifest.Property;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
@@ -64,6 +66,8 @@ import org.apache.nifi.runtime.manifest.ComponentManifestBuilder;
 import org.apache.nifi.runtime.manifest.ExtensionManifestContainer;
 import org.apache.nifi.runtime.manifest.RuntimeManifestBuilder;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -83,6 +87,8 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
     private static final String DEFAULT_YIELD_PERIOD = "1 sec";
     private static final String DEFAULT_PENALIZATION_PERIOD = "30 sec";
     private static final String DEFAULT_BULLETIN_LEVEL = LogLevel.WARN.name();
+
+    private static final Logger logger = LoggerFactory.getLogger(StandardRuntimeManifestBuilder.class);
 
     private String identifier;
     private String version;
@@ -193,7 +199,13 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             throw new IllegalArgumentException("Extension cannot be null");
         }
 
-        switch (extension.getType()) {
+        final ExtensionType extensionType = extension.getType();
+        if (extensionType == null) {
+            logger.warn("Extension Type not found: Component Manifest Definition not added for [{}]", extension.getName());
+            return;
+        }
+
+        switch (extensionType) {
             case PROCESSOR:
                 addProcessorDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;
@@ -208,6 +220,9 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
                 break;
             case PARAMETER_PROVIDER:
                 addParameterProviderDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
+                break;
+            case FLOW_REGISTRY_CLIENT:
+                addFlowRegistryClientDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;
         }
     }
@@ -382,6 +397,15 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         populateExtensionComponent(extensionManifest, extension, additionalDetails, parameterProviderDefinition);
         populateConfigurableComponent(extension, parameterProviderDefinition);
         componentManifestBuilder.addParameterProvider(parameterProviderDefinition);
+    }
+
+    private void addFlowRegistryClientDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                                                 final ComponentManifestBuilder componentManifestBuilder) {
+        final FlowRegistryClientDefinition flowRegistryClientDefinition = new FlowRegistryClientDefinition();
+        populateDefinedType(extensionManifest, extension, flowRegistryClientDefinition);
+        populateExtensionComponent(extensionManifest, extension, additionalDetails, flowRegistryClientDefinition);
+        populateConfigurableComponent(extension, flowRegistryClientDefinition);
+        componentManifestBuilder.addFlowRegistryClient(flowRegistryClientDefinition);
     }
 
     private void addFlowAnalysisRuleDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,

@@ -58,6 +58,11 @@ import { ErrorHelper } from '../../../../../../service/error-helper.service';
     ]
 })
 export class Search implements OnInit {
+    private formBuilder = inject(FormBuilder);
+    private searchService = inject(SearchService);
+    private store = inject<Store<CanvasState>>(Store);
+    private errorHelper = inject(ErrorHelper);
+
     protected readonly ComponentType = ComponentType;
     protected readonly SearchMatchTip = SearchMatchTip;
 
@@ -98,12 +103,7 @@ export class Search implements OnInit {
     selectedComponentType: ComponentType | null = null;
     selectedComponentId: string | null = null;
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private searchService: SearchService,
-        private store: Store<CanvasState>,
-        private errorHelper: ErrorHelper
-    ) {
+    constructor() {
         this.searchForm = this.formBuilder.group({ searchBar: '' });
 
         this.store

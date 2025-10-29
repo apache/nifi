@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>2.6.0-SNAPSHOT</version>
+        <version>2.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-security</artifactId>
     <build>
@@ -43,29 +43,6 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.patrodyne.jvnet</groupId>
-                <artifactId>hisrc-higherjaxb40-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>current</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                        <configuration>
-                            <generatePackage>org.apache.nifi.authentication.generated</generatePackage>
-                            <schemaDirectory>src/main/xsd</schemaDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <configuration>
-                    <excludes>**/authentication/generated/*.java,</excludes>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
                 <configuration>
@@ -80,17 +57,17 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-deprecation-log</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.registry</groupId>
             <artifactId>nifi-registry-security-utils</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils-api</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -99,27 +76,22 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-servlet-shared</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-identity</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-cert</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-proxied-entity</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -128,32 +100,32 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-nar-utils</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-property-encryptor</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-core-api</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-authorization</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-framework-authorization-providers</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -163,19 +135,11 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-xml-processing</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk18on</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -208,10 +172,6 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.xml.bind</groupId>
-            <artifactId>jakarta.xml.bind-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -266,18 +226,6 @@
             <artifactId>oauth2-oidc-sdk</artifactId>
         </dependency>
         <dependency>
-            <groupId>jakarta.ws.rs</groupId>
-            <artifactId>jakarta.ws.rs-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.core</groupId>
-            <artifactId>jersey-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jersey.media</groupId>
-            <artifactId>jersey-media-json-jackson</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
@@ -294,23 +242,14 @@
             <artifactId>jackson-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-client-api</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-web-client</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.glassfish.jaxb</groupId>
-            <artifactId>jaxb-runtime</artifactId>
+            <version>2.7.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
@@ -320,13 +259,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-cert-builder</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-ssl</artifactId>
-            <version>2.6.0-SNAPSHOT</version>
+            <version>2.7.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

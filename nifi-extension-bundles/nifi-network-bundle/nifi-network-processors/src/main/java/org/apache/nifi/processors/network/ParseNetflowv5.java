@@ -34,6 +34,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -75,7 +76,8 @@ public class ParseNetflowv5 extends AbstractProcessor {
             "Parsed data routes as flowfile JSON content");
     public static final AllowableValue DESTINATION_ATTRIBUTES = new AllowableValue(FLOWFILE_ATTRIBUTE, FLOWFILE_ATTRIBUTE,
             "Parsed data routes as flowfile attributes");
-    public static final PropertyDescriptor FIELDS_DESTINATION = new PropertyDescriptor.Builder().name("FIELDS_DESTINATION").displayName("Parsed fields destination")
+    public static final PropertyDescriptor FIELDS_DESTINATION = new PropertyDescriptor.Builder()
+            .name("Parsed Fields Destination")
             .description("Indicates whether the results of the parser are written " + "to the FlowFile content or a FlowFile attribute; if using " + DESTINATION_ATTRIBUTES
                     + ", fields will be populated as attributes. If set to " + DESTINATION_CONTENT + ", the netflowv5 field will be converted into a flat JSON object.")
             .required(true).allowableValues(DESTINATION_CONTENT, DESTINATION_ATTRIBUTES).defaultValue(DESTINATION_CONTENT.getDisplayName()).build();
@@ -160,6 +162,11 @@ public class ParseNetflowv5 extends AbstractProcessor {
             // Create a provenance event recording the routing to failure
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("FIELDS_DESTINATION", FIELDS_DESTINATION.getName());
     }
 
     private void generateJSON(final List<FlowFile> multipleRecords, final ProcessSession session, final FlowFile flowFile, final Netflowv5Parser parser, final int processedRecord)

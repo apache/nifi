@@ -38,6 +38,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -107,8 +108,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each "
                     + "entity that is listed. If the Record Writer is specified, all entities will be written to a single FlowFile.")
             .required(false)
@@ -124,8 +124,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor FILE_FILTER_MODE = new PropertyDescriptor.Builder()
-            .name("file-filter-mode")
-            .displayName("File Filter Mode")
+            .name("File Filter Mode")
             .description("Determines how the regular expression in  " + FILE_FILTER.getDisplayName() + " will be used when retrieving listings.")
             .required(true)
             .allowableValues(FilterMode.class)
@@ -134,8 +133,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor MINIMUM_FILE_AGE = new PropertyDescriptor.Builder()
-            .name("minimum-file-age")
-            .displayName("Minimum File Age")
+            .name("Minimum File Age")
             .description("The minimum age that a file must be in order to be pulled; any file younger than this "
                     + "amount of time (based on last modification date) will be ignored")
             .required(false)
@@ -143,8 +141,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
             .build();
 
     public static final PropertyDescriptor MAXIMUM_FILE_AGE = new PropertyDescriptor.Builder()
-            .name("maximum-file-age")
-            .displayName("Maximum File Age")
+            .name("Maximum File Age")
             .description("The maximum age that a file must be in order to be pulled; any file older than this "
                     + "amount of time (based on last modification date) will be ignored. Minimum value is 100ms.")
             .required(false)
@@ -317,6 +314,15 @@ public class ListHDFS extends AbstractHadoopProcessor {
             context.yield();
         }
 
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("file-filter-mode", FILE_FILTER_MODE.getName());
+        config.renameProperty("minimum-file-age", MINIMUM_FILE_AGE.getName());
+        config.renameProperty("maximum-file-age", MAXIMUM_FILE_AGE.getName());
     }
 
     private PathFilter createPathFilter(final ProcessContext context) {

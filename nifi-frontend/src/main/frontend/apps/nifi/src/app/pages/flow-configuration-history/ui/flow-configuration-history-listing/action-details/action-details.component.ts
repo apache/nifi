@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import {
@@ -38,9 +38,7 @@ import { MatButtonModule } from '@angular/material/button';
     styleUrls: ['./action-details.component.scss']
 })
 export class ActionDetails extends CloseOnEscapeDialog {
-    constructor(@Inject(MAT_DIALOG_DATA) public actionEntity: ActionEntity) {
-        super();
-    }
+    actionEntity = inject<ActionEntity>(MAT_DIALOG_DATA);
 
     isRemoteProcessGroup(action: Action): boolean {
         return action.sourceType === 'RemoteProcessGroup';

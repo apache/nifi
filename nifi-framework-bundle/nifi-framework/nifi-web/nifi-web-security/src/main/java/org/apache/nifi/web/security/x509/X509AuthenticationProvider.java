@@ -28,6 +28,8 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
+import org.apache.nifi.security.cert.PrincipalFormatter;
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationProvider;
@@ -45,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -65,13 +68,13 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
         }
     };
 
-    private X509IdentityProvider certificateIdentityProvider;
-    private Authorizer authorizer;
+    private static final PrincipalFormatter principalFormatter = StandardPrincipalFormatter.getInstance();
+
+    private final Authorizer authorizer;
     final NiFiProperties properties;
 
-    public X509AuthenticationProvider(final X509IdentityProvider certificateIdentityProvider, final Authorizer authorizer, final NiFiProperties nifiProperties) {
+    public X509AuthenticationProvider(final Authorizer authorizer, final NiFiProperties nifiProperties) {
         super(nifiProperties, authorizer);
-        this.certificateIdentityProvider = certificateIdentityProvider;
         this.authorizer = authorizer;
         this.properties = nifiProperties;
     }
@@ -80,14 +83,12 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         final X509AuthenticationRequestToken request = (X509AuthenticationRequestToken) authentication;
 
-        // attempt to authenticate if certificates were found
         final X509Certificate[] certificates = request.getCertificates();
-        final AuthenticationResponse authenticationResponse;
-        try {
-            authenticationResponse = certificateIdentityProvider.authenticate(certificates);
-        } catch (final IllegalArgumentException iae) {
-            throw new InvalidAuthenticationException(iae.getMessage(), iae);
-        }
+        final X509Certificate peerCertificate = certificates[0];
+
+        final String principal = principalFormatter.getSubject(peerCertificate);
+        final String issuer = principalFormatter.getIssuer(peerCertificate);
+        final AuthenticationResponse authenticationResponse = new AuthenticationResponse(principal, principal, TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS), issuer);
 
         if (StringUtils.isBlank(request.getProxiedEntitiesChain())) {
             final String mappedIdentity = mapIdentity(authenticationResponse.getIdentity());

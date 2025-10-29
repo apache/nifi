@@ -31,6 +31,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -60,15 +61,13 @@ import java.util.Set;
 })
 public class GetMongoRecord extends AbstractMongoQueryProcessor {
     public static final PropertyDescriptor WRITER_FACTORY = new PropertyDescriptor.Builder()
-        .name("get-mongo-record-writer-factory")
-        .displayName("Record Writer")
+        .name("Record Writer")
         .description("The record writer to use to write the result sets.")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
     public static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
-        .name("mongodb-schema-name")
-        .displayName("Schema Name")
+        .name("Schema Name")
         .description("The name of the schema in the configured schema registry to use for the query results.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -188,5 +187,12 @@ public class GetMongoRecord extends AbstractMongoQueryProcessor {
                 session.transfer(input, REL_FAILURE);
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("get-mongo-record-writer-factory", WRITER_FACTORY.getName());
+        config.renameProperty("mongodb-schema-name", SCHEMA_NAME.getName());
     }
 }

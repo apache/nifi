@@ -18,7 +18,7 @@ package org.apache.nifi.registry.db;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.testcontainers.containers.MariaDBContainer;
+import org.testcontainers.mariadb.MariaDBContainer;
 
 @Configuration
 @Profile("mariadb-10-3")

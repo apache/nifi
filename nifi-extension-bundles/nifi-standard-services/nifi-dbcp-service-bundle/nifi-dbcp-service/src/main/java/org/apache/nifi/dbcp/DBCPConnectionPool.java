@@ -42,6 +42,7 @@ import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
+import org.apache.nifi.dbcp.utils.DBCPProperties;
 import org.apache.nifi.dbcp.utils.DataSourceConfiguration;
 import org.apache.nifi.dbcp.utils.DriverUtils;
 import org.apache.nifi.expression.AttributeExpression;
@@ -126,6 +127,15 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         config.removeProperty("kerberos-principal");
         config.removeProperty("kerberos-password");
         config.removeProperty("kerberos-credentials-service");
+        config.renameProperty(DBCPProperties.OLD_DB_DRIVER_LOCATION_PROPERTY_NAME, DB_DRIVER_LOCATION.getName());
+        config.renameProperty(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName());
+        config.renameProperty(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName());
+        config.renameProperty(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName());
+        config.renameProperty(DBCPProperties.OLD_MAX_CONN_LIFETIME_PROPERTY_NAME, MAX_CONN_LIFETIME.getName());
+        config.renameProperty(DBCPProperties.OLD_EVICTION_RUN_PERIOD_PROPERTY_NAME, EVICTION_RUN_PERIOD.getName());
+        config.renameProperty(DBCPProperties.OLD_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, MIN_EVICTABLE_IDLE_TIME.getName());
+        config.renameProperty(DBCPProperties.OLD_SOFT_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, SOFT_MIN_EVICTABLE_IDLE_TIME.getName());
+        config.renameProperty(DBCPProperties.OLD_KERBEROS_USER_SERVICE_PROPERTY_NAME, KERBEROS_USER_SERVICE.getName());
     }
 
     BasicDataSource getDataSource() {

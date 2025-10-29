@@ -36,6 +36,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -221,6 +222,12 @@ public class JoinEnrichment extends BinFiles {
     );
 
     private final SqlJoinCache sqlJoinCache = new SqlJoinCache(getLogger());
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());
+        config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName());
+    }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

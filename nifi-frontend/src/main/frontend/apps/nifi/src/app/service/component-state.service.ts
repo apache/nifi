@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ClearComponentStateRequest, ComponentStateEntity, LoadComponentStateRequest } from '../state/component-state';
 import { Observable } from 'rxjs';
@@ -23,10 +23,8 @@ import { NiFiCommon } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ComponentStateService {
-    constructor(
-        private httpClient: HttpClient,
-        private nifiCommon: NiFiCommon
-    ) {}
+    private httpClient = inject(HttpClient);
+    private nifiCommon = inject(NiFiCommon);
 
     getComponentState(request: LoadComponentStateRequest): Observable<ComponentStateEntity> {
         return this.httpClient.get<ComponentStateEntity>(

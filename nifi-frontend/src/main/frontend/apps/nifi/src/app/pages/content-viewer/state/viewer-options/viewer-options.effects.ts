@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ViewerOptionsActions from './viewer-options.actions';
 import { catchError, from, map, of, switchMap } from 'rxjs';
@@ -26,11 +26,9 @@ import { ContentViewerEntity } from './index';
 
 @Injectable()
 export class ViewerOptionsEffects {
-    constructor(
-        private actions$: Actions,
-        private contentViewerService: ContentViewerService,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private contentViewerService = inject(ContentViewerService);
+    private errorHelper = inject(ErrorHelper);
 
     loadContentViewerOptions$ = createEffect(() =>
         this.actions$.pipe(

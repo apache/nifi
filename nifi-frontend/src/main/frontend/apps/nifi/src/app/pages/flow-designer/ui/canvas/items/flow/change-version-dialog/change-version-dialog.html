@@ -78,6 +78,23 @@
                         (matSortChange)="sortData($event)"
                         [matSortActive]="sort.active"
                         [matSortDirection]="sort.direction">
+                        <!-- Current Version Column -->
+                        <ng-container matColumnDef="current">
+                            <th mat-header-cell *matHeaderCellDef></th>
+                            <td mat-cell *matCellDef="let item">
+                                @if (isCurrentVersion(item)) {
+                                    <div class="flex justify-center items-center">
+                                        <i
+                                            class="fa fa-check"
+                                            nifiTooltip
+                                            [tooltipComponentType]="TextTip"
+                                            tooltipInputData="Currently installed version"
+                                            data-qa="current-version-icon"></i>
+                                    </div>
+                                }
+                            </td>
+                        </ng-container>
+
                         <!-- Version Column -->
                         <ng-container matColumnDef="version">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Version</th>
@@ -113,7 +130,8 @@
                             (click)="select(row)"
                             (dblclick)="changeFlowVersion()"
                             [class.selected]="isSelected(row)"
-                            [class.even]="even"></tr>
+                            [class.even]="even"
+                            data-qa="version-row"></tr>
                     </table>
                 </div>
             </div>
@@ -121,7 +139,12 @@
     </mat-dialog-content>
     <mat-dialog-actions align="end">
         <button mat-button mat-dialog-close>Cancel</button>
-        <button [disabled]="!isSelectionValid()" type="button" (click)="changeFlowVersion()" mat-flat-button>
+        <button
+            [disabled]="!isSelectionValid()"
+            type="button"
+            (click)="changeFlowVersion()"
+            mat-flat-button
+            data-qa="change-button">
             Change
         </button>
     </mat-dialog-actions>

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Component, Inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -43,6 +43,9 @@ import { ComponentType, SelectOption, CloseOnEscapeDialog, NiFiCommon } from '@n
     styleUrls: ['./user-access-policies.component.scss']
 })
 export class UserAccessPolicies extends CloseOnEscapeDialog {
+    request = inject<UserAccessPoliciesDialogRequest>(MAT_DIALOG_DATA);
+    private nifiCommon = inject(NiFiCommon);
+
     displayedColumns: string[] = ['policy', 'action', 'actions'];
     dataSource: MatTableDataSource<AccessPolicySummaryEntity> = new MatTableDataSource<AccessPolicySummaryEntity>();
     selectedPolicyId: string | null = null;
@@ -52,11 +55,10 @@ export class UserAccessPolicies extends CloseOnEscapeDialog {
         direction: 'asc'
     };
 
-    constructor(
-        @Inject(MAT_DIALOG_DATA) public request: UserAccessPoliciesDialogRequest,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         super();
+        const request = this.request;
+
         this.dataSource.data = this.sortPolicies(request.accessPolicies, this.sort);
     }
 

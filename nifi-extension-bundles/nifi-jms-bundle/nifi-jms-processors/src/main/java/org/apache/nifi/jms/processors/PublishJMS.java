@@ -39,6 +39,7 @@ import org.apache.nifi.jms.processors.ioconcept.reader.FlowFileReader;
 import org.apache.nifi.jms.processors.ioconcept.reader.FlowFileReaderCallback;
 import org.apache.nifi.jms.processors.ioconcept.reader.StateTrackingFlowFileReader;
 import org.apache.nifi.jms.processors.ioconcept.reader.record.RecordSupplier;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
@@ -115,16 +116,14 @@ import static org.apache.nifi.jms.processors.ioconcept.reader.record.ProvenanceE
 public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
 
     static final PropertyDescriptor MESSAGE_BODY = new PropertyDescriptor.Builder()
-            .name("message-body-type")
-            .displayName("Message Body Type")
+            .name("Message Body Type")
             .description("The type of JMS message body to construct.")
             .required(true)
             .defaultValue(BYTES_MESSAGE)
             .allowableValues(BYTES_MESSAGE, TEXT_MESSAGE)
             .build();
     static final PropertyDescriptor ALLOW_ILLEGAL_HEADER_CHARS = new PropertyDescriptor.Builder()
-            .name("allow-illegal-chars-in-jms-header-names")
-            .displayName("Allow Illegal Characters in Header Names")
+            .name("Allow Illegal Characters in Header Names")
             .description("Specifies whether illegal characters in header names should be sent to the JMS broker. " +
                     "Usually hyphens and full-stops.")
             .required(true)
@@ -133,8 +132,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
-            .name("attributes-to-send-as-jms-headers-regex")
-            .displayName("Attributes to Send as JMS Headers (Regex)")
+            .name("Attributes to Send as JMS Headers")
             .description("Specifies the Regular Expression that determines the names of FlowFile attributes that" +
                     " should be sent as JMS Headers")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
@@ -203,6 +201,14 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
 
         readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
         writerFactory = readerFactory == null ? null : context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("message-body-type", MESSAGE_BODY.getName());
+        config.renameProperty("allow-illegal-chars-in-jms-header-names", ALLOW_ILLEGAL_HEADER_CHARS.getName());
+        config.renameProperty("attributes-to-send-as-jms-headers-regex", ATTRIBUTES_AS_HEADERS_REGEX.getName());
     }
 
     /**

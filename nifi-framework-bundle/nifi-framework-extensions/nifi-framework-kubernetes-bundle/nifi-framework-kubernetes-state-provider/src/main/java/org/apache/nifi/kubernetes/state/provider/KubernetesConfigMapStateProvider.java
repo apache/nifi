@@ -155,7 +155,8 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     public void setState(final Map<String, String> state, final String componentId) throws IOException {
         try {
             final ConfigMap configMap = createConfigMapBuilder(state, componentId).build();
-            final Resource<ConfigMap> configMapResource = kubernetesClient.configMaps().resource(configMap);
+            Resource<ConfigMap> configMapResource = kubernetesClient.configMaps().resource(configMap);
+            final String configMapName = configMap.getMetadata().getName();
 
             ConfigMap configMapCreated = null;
 
@@ -173,12 +174,37 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
                     break;
                 } catch (final KubernetesClientException e) {
                     final int returnCode = e.getCode();
-                    if (returnCode == 404) {
+                    if (returnCode == HttpURLConnection.HTTP_NOT_FOUND) {
                         // A 404 return code indicates that we need to create the resource instead of update it.
                         // Now, we will attempt to create the resource instead of update it, so we'll reset the attempt counter.
                         attempt = 0;
                         create = true;
                         continue;
+                    }
+
+                    if (returnCode == HttpURLConnection.HTTP_CONFLICT) {
+                        logger.debug("Update conflict detected when setting state for Component ID [{}]. Attempt {} of {}.", componentId, attempt + 1, MAX_UPDATE_ATTEMPTS);
+
+                        if (attempt < MAX_UPDATE_ATTEMPTS - 1) {
+                            final ConfigMap latestConfigMap = kubernetesClient.configMaps()
+                                    .inNamespace(namespace)
+                                    .withName(configMapName)
+                                    .get();
+
+                            if (latestConfigMap != null) {
+                                final ObjectMeta latestMetadata = latestConfigMap.getMetadata();
+                                final String latestResourceVersion = latestMetadata != null ? latestMetadata.getResourceVersion() : null;
+
+                                if (latestResourceVersion != null) {
+                                    configMap.getMetadata().setResourceVersion(latestResourceVersion);
+                                    configMapResource = kubernetesClient.configMaps().resource(configMap);
+                                    logger.debug("Retrying state update for Component ID [{}] with resource version [{}]", componentId, latestResourceVersion);
+                                    continue;
+                                }
+                            }
+                        }
+
+                        throw e;
                     }
 
                     if (returnCode >= 500) {

@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.processors.smb;
 
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.HostConfig;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports;
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.smb.SmbjClientProviderService;
@@ -28,12 +33,11 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.containers.FixedHostPortGenericContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.Transferable;
-import org.testcontainers.shaded.org.apache.commons.io.IOUtils;
+import org.testcontainers.utility.DockerImageName;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -56,8 +60,14 @@ class SmbDfsIT {
     private static final int DEFAULT_SMB_PORT = 445;
 
     // DFS works only on the default SMB port (445). Not sure if it is a generic DFS vs Samba DFS constraint, or an issue in the smbj client library.
-    private final GenericContainer<?> sambaContainer = new FixedHostPortGenericContainer<>("dperson/samba")
-            .withFixedExposedPort(DEFAULT_SMB_PORT, DEFAULT_SMB_PORT)
+    private final GenericContainer<?> sambaContainer = new GenericContainer<>(DockerImageName.parse("dperson/samba"))
+            .withExposedPorts(DEFAULT_SMB_PORT)
+            .withCreateContainerCmdModifier(cmd -> {
+                final HostConfig hostConfig = cmd.getHostConfig() != null ? cmd.getHostConfig() : new HostConfig();
+                final PortBinding portBinding = new PortBinding(Ports.Binding.bindPort(DEFAULT_SMB_PORT), new ExposedPort(DEFAULT_SMB_PORT));
+                hostConfig.withPortBindings(portBinding);
+                cmd.withHostConfig(hostConfig);
+            })
             .waitingFor(Wait.forListeningPort())
             .withLogConsumer(new Slf4jLogConsumer(LOGGER))
             .withCommand("-u", "myuser;mypass",

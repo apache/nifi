@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider.factory.strategies;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -35,11 +33,6 @@ public class ExplicitDefaultCredentialsStrategy extends AbstractBooleanCredentia
 
     public ExplicitDefaultCredentialsStrategy() {
         super("Default Credentials", AWSCredentialsProviderControllerService.USE_DEFAULT_CREDENTIALS);
-    }
-
-    @Override
-    public AWSCredentialsProvider getCredentialsProvider(final PropertyContext propertyContext) {
-      return new DefaultAWSCredentialsProviderChain();
     }
 
     @Override

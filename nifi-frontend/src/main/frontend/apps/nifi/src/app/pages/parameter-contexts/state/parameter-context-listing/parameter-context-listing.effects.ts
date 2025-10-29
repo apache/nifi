@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
@@ -41,16 +41,18 @@ import { Router } from '@angular/router';
 import { ParameterContextService } from '../../service/parameter-contexts.service';
 import { Parameter, YesNoDialog } from '@nifi/shared';
 import {
+    selectParameterContextLoadedTimestamp,
     selectParameterContexts,
-    selectParameterContextStatus,
     selectSaving,
-    selectUpdateRequest
+    selectUpdateRequest,
+    selectDeleteUpdateRequestInitiated
 } from './parameter-context-listing.selectors';
 import { EditParameterRequest, EditParameterResponse, ParameterContextUpdateRequest } from '../../../../state/shared';
 import { EditParameterDialog } from '../../../../ui/common/edit-parameter-dialog/edit-parameter-dialog.component';
 import { OkDialog } from '../../../../ui/common/ok-dialog/ok-dialog.component';
 import { ErrorHelper } from '../../../../service/error-helper.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { initialState } from './parameter-context-listing.reducer';
 import { BackNavigation } from '../../../../state/navigation';
 import { isDefinedAndNotNull, MEDIUM_DIALOG, SMALL_DIALOG, XL_DIALOG, NiFiCommon, Storage } from '@nifi/shared';
 import { ErrorContextKey } from '../../../../state/error';
@@ -58,21 +60,19 @@ import { EditParameterContext } from '../../../../ui/common/parameter-context/ed
 
 @Injectable()
 export class ParameterContextListingEffects {
-    constructor(
-        private actions$: Actions,
-        private store: Store<NiFiState>,
-        private storage: Storage,
-        private parameterContextService: ParameterContextService,
-        private dialog: MatDialog,
-        private router: Router,
-        private errorHelper: ErrorHelper
-    ) {}
+    private actions$ = inject(Actions);
+    private store = inject<Store<NiFiState>>(Store);
+    private storage = inject(Storage);
+    private parameterContextService = inject(ParameterContextService);
+    private dialog = inject(MatDialog);
+    private router = inject(Router);
+    private errorHelper = inject(ErrorHelper);
 
     loadParameterContexts$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.loadParameterContexts),
-            concatLatestFrom(() => this.store.select(selectParameterContextStatus)),
-            switchMap(([, status]) =>
+            concatLatestFrom(() => this.store.select(selectParameterContextLoadedTimestamp)),
+            switchMap(([, loadedTimestamp]) =>
                 from(this.parameterContextService.getParameterContexts()).pipe(
                     map((response) =>
                         ParameterContextListingActions.loadParameterContextsSuccess({
@@ -83,8 +83,26 @@ export class ParameterContextListingEffects {
                         })
                     ),
                     catchError((errorResponse: HttpErrorResponse) =>
-                        of(this.errorHelper.handleLoadingError(status, errorResponse))
+                        of(
+                            ParameterContextListingActions.loadParameterContextsError({
+                                errorResponse,
+                                loadedTimestamp,
+                                status: loadedTimestamp !== initialState.loadedTimestamp ? 'success' : 'pending'
+                            })
+                        )
                     )
+                )
+            )
+        )
+    );
+
+    loadParameterContextsError$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterContextListingActions.loadParameterContextsError),
+            map((action) =>
+                this.errorHelper.handleLoadingError(
+                    action.loadedTimestamp !== initialState.loadedTimestamp,
+                    action.errorResponse
                 )
             )
         )
@@ -385,6 +403,14 @@ export class ParameterContextListingEffects {
                             );
                         });
 
+                    editDialogReference.componentInstance.cancelUpdateRequest
+                        .pipe(takeUntil(editDialogReference.afterClosed()))
+                        .subscribe(() => {
+                            this.store.dispatch(
+                                ParameterContextListingActions.stopPollingParameterContextUpdateRequest()
+                            );
+                        });
+
                     editDialogReference.afterClosed().subscribe((response) => {
                         if (response != 'ROUTED') {
                             this.store.dispatch(
@@ -506,6 +532,8 @@ export class ParameterContextListingEffects {
     stopPollingParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.stopPollingParameterContextUpdateRequest),
+            concatLatestFrom(() => this.store.select(selectDeleteUpdateRequestInitiated)),
+            filter(([, deleteUpdateRequestInitiated]) => !deleteUpdateRequestInitiated),
             switchMap(() => of(ParameterContextListingActions.deleteParameterContextUpdateRequest()))
         )
     );

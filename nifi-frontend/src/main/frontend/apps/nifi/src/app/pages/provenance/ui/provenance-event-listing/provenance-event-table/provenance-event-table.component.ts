@@ -67,6 +67,9 @@ import { ErrorContextKey } from '../../../../../state/error';
     styleUrls: ['./provenance-event-table.component.scss']
 })
 export class ProvenanceEventTable implements AfterViewInit {
+    private formBuilder = inject(FormBuilder);
+    private nifiCommon = inject(NiFiCommon);
+
     @Input() set events(events: ProvenanceEventSummary[]) {
         if (events) {
             this.dataSource.data = this.sortEvents(events, this.sort);
@@ -221,10 +224,7 @@ export class ProvenanceEventTable implements AfterViewInit {
     initialEventTimestampThreshold = 0;
     currentEventTimestampThreshold = 0;
 
-    constructor(
-        private formBuilder: FormBuilder,
-        private nifiCommon: NiFiCommon
-    ) {
+    constructor() {
         this.filterForm = this.formBuilder.group({ filterTerm: '', filterColumn: this.filterColumnOptions[0] });
     }
 

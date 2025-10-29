@@ -22,6 +22,10 @@ import { provideMockStore } from '@ngrx/store/testing';
 import { documentationFeatureKey } from '../../state';
 import { controllerServiceDefinitionFeatureKey } from '../../state/controller-service-definition';
 import { initialState } from '../../state/controller-service-definition/controller-service-definition.reducer';
+import { initialState as initialErrorState } from '../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../state/error';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('ControllerServiceDefinition', () => {
     let component: ControllerServiceDefinition;
@@ -33,6 +37,8 @@ describe('ControllerServiceDefinition', () => {
             providers: [
                 provideMockStore({
                     initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [currentUserFeatureKey]: initialCurrentUserState,
                         [documentationFeatureKey]: {
                             [controllerServiceDefinitionFeatureKey]: initialState
                         }

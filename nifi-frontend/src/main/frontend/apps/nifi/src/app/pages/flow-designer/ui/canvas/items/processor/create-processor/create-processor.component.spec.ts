@@ -22,6 +22,9 @@ import { CreateProcessorDialogRequest } from '../../../../../state/flow';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { provideMockStore } from '@ngrx/store/testing';
 import { initialExtensionsTypesState } from '../../../../../../../state/extension-types/extension-types.reducer';
+import { extensionTypesFeatureKey } from '../../../../../../../state/extension-types';
+import { initialState as initialFlowState } from '../../../../../state/flow/flow.reducer';
+import { flowFeatureKey } from '../../../../../state/flow';
 import { ComponentType } from '@nifi/shared';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { DocumentedType } from '../../../../../../../state/shared';
@@ -29,6 +32,8 @@ import { MatIconTestingModule } from '@angular/material/icon/testing';
 import { MockComponent } from 'ng-mocks';
 import { ExtensionCreation } from '../../../../../../../ui/common/extension-creation/extension-creation.component';
 import { of } from 'rxjs';
+import { initialState as initialErrorState } from '../../../../../../../state/error/error.reducer';
+import { errorFeatureKey } from '../../../../../../../state/error';
 
 describe('CreateProcessor', () => {
     let component: CreateProcessor;
@@ -68,7 +73,15 @@ describe('CreateProcessor', () => {
             imports: [CreateProcessor, NoopAnimationsModule, MatIconTestingModule, MockComponent(ExtensionCreation)],
             providers: [
                 { provide: MAT_DIALOG_DATA, useValue: data },
-                provideMockStore({ initialState: initialExtensionsTypesState }),
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: initialErrorState,
+                        [extensionTypesFeatureKey]: initialExtensionsTypesState,
+                        canvas: {
+                            [flowFeatureKey]: initialFlowState
+                        }
+                    }
+                }),
                 { provide: MatDialogRef, useValue: null }
             ]
         });

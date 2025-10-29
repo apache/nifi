@@ -51,7 +51,7 @@ docker run --rm --entrypoint /bin/bash apache/nifi:1.12.0 -c 'readlink /opt/nifi
 ## Capabilities
 This image currently supports running in standalone mode either unsecured or with user authentication provided through:
   * [Single User Authentication](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#single_user_identity_provider)    
-  * [Mutual TLS with Client Certificates](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#security-configuration)
+  * [Mutual TLS with Client Certificates](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#security_configuration)
   * [Lightweight Directory Access Protocol (LDAP)](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#ldap_login_identity_provider)
 
 This image also contains the NiFi Toolkit (as of version 1.8.0) preconfigured to use either in secure and unsecure mode.
@@ -250,7 +250,7 @@ Start the container:
 
 After NiFi has been started, it is possible to run toolkit commands against the running instance:
 
-    docker exec -ti nifi nifi-toolkit-current/bin/cli.sh nifi current-user
+    docker exec -ti nifi /opt/nifi/nifi-toolkit-current/bin/cli.sh nifi current-user
     anonymous
 
 ## Configuration Information

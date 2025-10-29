@@ -65,8 +65,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
     public static final AllowableValue NO_SCHEMA = new AllowableValue("no-schema", "Do Not Write Schema", "Do not add any schema-related information to the FlowFile.");
 
     public static final PropertyDescriptor SCHEMA_CACHE = new Builder()
-        .name("schema-cache")
-        .displayName("Schema Cache")
+        .name("Schema Cache")
         .description("Specifies a Schema Cache to add the Record Schema to so that Record Readers can quickly lookup the schema.")
         .required(false)
         .identifiesControllerService(RecordSchemaCacheService.class)
@@ -107,6 +106,7 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
 
     @Override
     public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        super.migrateProperties(propertyConfiguration);
         propertyConfiguration.removeProperty(OBSOLETE_SCHEMA_PROTOCOL_VERSION);
 
         final Optional<String> schemaWriteStrategyFound = propertyConfiguration.getPropertyValue(SCHEMA_WRITE_STRATEGY);
@@ -119,6 +119,8 @@ public abstract class SchemaRegistryRecordSetWriter extends SchemaRegistryServic
                 propertyConfiguration.setProperty(SCHEMA_REFERENCE_WRITER_SERVICE, serviceId);
             }
         }
+
+        propertyConfiguration.renameProperty("schema-cache", SCHEMA_CACHE.getName());
     }
 
     @Override

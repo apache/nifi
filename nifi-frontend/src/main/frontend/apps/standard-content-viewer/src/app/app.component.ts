@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
-import { Storage, ThemingService } from '@nifi/shared';
+import { Component, inject } from '@angular/core';
+import { OS_SETTING, Storage, ThemingService } from '@nifi/shared';
 
 @Component({
     selector: 'app',
@@ -25,13 +25,13 @@ import { Storage, ThemingService } from '@nifi/shared';
     standalone: false
 })
 export class AppComponent {
+    private storage = inject(Storage);
+    private themingService = inject(ThemingService);
+
     title = 'standard-content-viewer';
 
-    constructor(
-        private storage: Storage,
-        private themingService: ThemingService
-    ) {
-        let theme = this.storage.getItem('theme');
+    constructor() {
+        let theme = this.storage.getItem('theme') ? this.storage.getItem('theme') : OS_SETTING;
 
         // Initially check if dark mode is enabled on system
         const darkModeOn = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -42,7 +42,7 @@ export class AppComponent {
         if (window.matchMedia) {
             // Watch for changes of the preference
             window.matchMedia('(prefers-color-scheme: dark)').addListener((e) => {
-                theme = this.storage.getItem('theme');
+                theme = this.storage.getItem('theme') ? this.storage.getItem('theme') : OS_SETTING;
                 this.themingService.toggleTheme(e.matches, theme);
             });
         }

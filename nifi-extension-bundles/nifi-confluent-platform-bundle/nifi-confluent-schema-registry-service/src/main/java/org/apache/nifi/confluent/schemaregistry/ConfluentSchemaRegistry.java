@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -50,6 +49,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -74,8 +74,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
 
     static final PropertyDescriptor SCHEMA_REGISTRY_URLS = new PropertyDescriptor.Builder()
-        .name("url")
-        .displayName("Schema Registry URLs")
+        .name("Schema Registry URLs")
         .description("A comma-separated list of URLs of the Schema Registry to interact with")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .defaultValue("http://localhost:8081")
@@ -84,16 +83,14 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .build();
 
     static final PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
-        .name("ssl-context")
-        .displayName("SSL Context Service")
+        .name("SSL Context Service")
         .description("Specifies the SSL Context Service to use for interacting with the Confluent Schema Registry")
         .identifiesControllerService(SSLContextProvider.class)
         .required(false)
         .build();
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
-        .name("cache-size")
-        .displayName("Cache Size")
+        .name("Cache Size")
         .description("Specifies how many Schemas should be cached from the Schema Registry")
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .defaultValue("1000")
@@ -101,8 +98,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .build();
 
     static final PropertyDescriptor CACHE_EXPIRATION = new PropertyDescriptor.Builder()
-        .name("cache-expiration")
-        .displayName("Cache Expiration")
+        .name("Cache Expiration")
         .description("Specifies how long a Schema that is cached should remain in the cache. Once this time period elapses, a "
             + "cached version of a schema will no longer be used, and the service will have to communicate with the "
             + "Schema Registry again in order to obtain the schema.")
@@ -112,8 +108,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .build();
 
     static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-        .name("timeout")
-        .displayName("Communications Timeout")
+        .name("Communications Timeout")
         .description("Specifies how long to wait to receive data from the Schema Registry before considering the communications a failure")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -122,8 +117,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         .build();
 
     static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
-            .name("authentication-type")
-            .displayName("Authentication Type")
+            .name("Authentication Type")
             .description("HTTP Client Authentication Type for Confluent Schema Registry")
             .required(false)
             .allowableValues(AuthenticationType.values())
@@ -131,8 +125,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             .build();
 
     static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
-            .name("username")
-            .displayName("Username")
+            .name("Username")
             .description("Username for authentication to Confluent Schema Registry")
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x39\\x3b-\\x7e\\x80-\\xff]+$")))
             .required(false)
@@ -140,8 +133,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
             .build();
 
     static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .name("password")
-            .displayName("Password")
+            .name("Password")
             .description("Password for authentication to Confluent Schema Registry")
             .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
             .required(false)
@@ -190,13 +182,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         final List<String> baseUrls = getBaseURLs(context);
         final int timeoutMillis = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
 
-        final SSLContext sslContext;
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextProvider.class);
-        if (sslContextProvider == null) {
-            sslContext = null;
-        } else {
-            sslContext = sslContextProvider.createContext();
-        }
 
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
@@ -213,7 +199,7 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
                         );
 
         final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis,
-                sslContext, username, password, getLogger(), httpHeaders);
+                sslContextProvider, username, password, getLogger(), httpHeaders);
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS);
@@ -325,5 +311,17 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
     @Override
     public SchemaDefinition retrieveSchemaDefinition(final SchemaIdentifier schemaIdentifier) throws IOException, SchemaNotFoundException {
         return client.getSchemaDefinition(schemaIdentifier);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("url", SCHEMA_REGISTRY_URLS.getName());
+        config.renameProperty("ssl-context", SSL_CONTEXT.getName());
+        config.renameProperty("cache-size", CACHE_SIZE.getName());
+        config.renameProperty("cache-expiration", CACHE_EXPIRATION.getName());
+        config.renameProperty("timeout", TIMEOUT.getName());
+        config.renameProperty("authentication-type", AUTHENTICATION_TYPE.getName());
+        config.renameProperty("username", USERNAME.getName());
+        config.renameProperty("password", PASSWORD.getName());
     }
 }
