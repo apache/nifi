@@ -18,8 +18,12 @@
 import { createAction, props } from '@ngrx/store';
 import { PolicySection } from '.';
 import { Policy, PolicyRevision, PolicySubject } from '../../service/buckets.service';
+import { ErrorContextKey } from '../error';
 
-export const loadPolicies = createAction('[Policies] Load Policies', props<{ request: { bucketId: string } }>());
+export const loadPolicies = createAction(
+    '[Policies] Load Policies',
+    props<{ request: { bucketId: string; context: ErrorContextKey } }>()
+);
 
 export const loadPoliciesSuccess = createAction(
     '[Policies] Load Policies Success',
@@ -28,7 +32,10 @@ export const loadPoliciesSuccess = createAction(
 
 export const loadPoliciesFailure = createAction('[Policies] Load Policies Failure');
 
-export const loadPolicyTenants = createAction('[Policies] Load Policy Tenants');
+export const loadPolicyTenants = createAction(
+    '[Policies] Load Policy Tenants',
+    props<{ request: { context: ErrorContextKey } }>()
+);
 
 export const loadPolicyTenantsSuccess = createAction(
     '[Policies] Load Policy Tenants Success',

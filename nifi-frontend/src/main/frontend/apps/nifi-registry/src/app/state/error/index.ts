@@ -27,6 +27,7 @@ export enum ErrorContextKey {
     CREATE_DROPLET = 'create droplet',
     IMPORT_DROPLET_VERSION = 'import droplet version',
     CREATE_BUCKET = 'create bucket',
+    MANAGE_ACCESS = 'manage access',
     UPDATE_BUCKET = 'update bucket',
     GLOBAL = 'global'
 }
