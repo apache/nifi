@@ -68,6 +68,11 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String BASIC = "Basic";
     private static final String BEARER = "Bearer";
+    private static final String FIELD_BRANCH = "branch";
+    private static final String FIELD_MESSAGE = "message";
+    private static final String FIELD_SOURCE_COMMIT_ID = "sourceCommitId";
+    private static final String FIELD_CONTENT = "content";
+    private static final String FIELD_FILES = "files";
 
     private final ObjectMapper objectMapper = JsonMapper.builder().build();
 
@@ -402,8 +407,8 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private String createContentCloud(final GitCreateContentRequest request, final String resolvedPath, final String branch) throws FlowRegistryException {
         final StandardMultipartFormDataStreamBuilder multipartBuilder = new StandardMultipartFormDataStreamBuilder();
         multipartBuilder.addPart(resolvedPath, StandardHttpContentType.APPLICATION_JSON, request.getContent().getBytes(StandardCharsets.UTF_8));
-        multipartBuilder.addPart("message", StandardHttpContentType.TEXT_PLAIN, request.getMessage().getBytes(StandardCharsets.UTF_8));
-        multipartBuilder.addPart("branch", StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
+        multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, request.getMessage().getBytes(StandardCharsets.UTF_8));
+        multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
 
         final URI uri = getRepositoryUriBuilder().addPathSegment("src").build();
         final HttpResponseEntity response = this.webClient.getWebClientService()
@@ -425,17 +430,18 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private String createContentDataCenter(final GitCreateContentRequest request, final String resolvedPath, final String branch) throws FlowRegistryException {
         final StandardMultipartFormDataStreamBuilder multipartBuilder = new StandardMultipartFormDataStreamBuilder();
         final String fileName = getFileName(resolvedPath);
-        multipartBuilder.addPart("content", fileName, StandardHttpContentType.APPLICATION_OCTET_STREAM, request.getContent().getBytes(StandardCharsets.UTF_8));
-        multipartBuilder.addPart("branch", StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
+        multipartBuilder.addPart(FIELD_CONTENT, fileName, StandardHttpContentType.APPLICATION_OCTET_STREAM, request.getContent().getBytes(StandardCharsets.UTF_8));
+        multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
 
         final String message = request.getMessage();
         if (message != null && !message.isEmpty()) {
-            multipartBuilder.addPart("message", StandardHttpContentType.TEXT_PLAIN, message.getBytes(StandardCharsets.UTF_8));
+            multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, message.getBytes(StandardCharsets.UTF_8));
         }
 
         final String existingContentSha = request.getExistingContentSha();
-        if (existingContentSha != null && !existingContentSha.isEmpty()) {
-            multipartBuilder.addPart("sourceCommitId", StandardHttpContentType.TEXT_PLAIN, existingContentSha.getBytes(StandardCharsets.UTF_8));
+        final boolean existingContentProvided = existingContentSha != null && !existingContentSha.isBlank();
+        if (existingContentProvided) {
+            multipartBuilder.addPart(FIELD_SOURCE_COMMIT_ID, StandardHttpContentType.TEXT_PLAIN, existingContentSha.getBytes(StandardCharsets.UTF_8));
         }
 
         final HttpUriBuilder uriBuilder = getRepositoryUriBuilder().addPathSegment("browse");
@@ -450,7 +456,8 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
                 .header(CONTENT_TYPE_HEADER, multipartBuilder.getHttpContentType().getContentType())
                 .retrieve();
 
-        if (response.statusCode() != HttpURLConnection.HTTP_OK && response.statusCode() != HttpURLConnection.HTTP_CREATED) {
+        final int expectedStatusCode = existingContentProvided ? HttpURLConnection.HTTP_OK : HttpURLConnection.HTTP_CREATED;
+        if (response.statusCode() != expectedStatusCode) {
             throw new FlowRegistryException(
                     String.format("Error while committing content for repository [%s] on branch %s at path %s: %s", repoName, branch, resolvedPath, getErrorMessage(response)));
         }
@@ -476,9 +483,9 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
     private void deleteContentCloud(final String resolvedPath, final String commitMessage, final String branch) throws FlowRegistryException {
         final StandardMultipartFormDataStreamBuilder multipartBuilder = new StandardMultipartFormDataStreamBuilder();
-        multipartBuilder.addPart("files", StandardHttpContentType.TEXT_PLAIN, resolvedPath.getBytes(StandardCharsets.UTF_8));
-        multipartBuilder.addPart("message", StandardHttpContentType.TEXT_PLAIN, commitMessage.getBytes(StandardCharsets.UTF_8));
-        multipartBuilder.addPart("branch", StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
+        multipartBuilder.addPart(FIELD_FILES, StandardHttpContentType.TEXT_PLAIN, resolvedPath.getBytes(StandardCharsets.UTF_8));
+        multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, commitMessage.getBytes(StandardCharsets.UTF_8));
+        multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
 
         final URI uri = getRepositoryUriBuilder().addPathSegment("src").build();
         final HttpResponseEntity response = this.webClient.getWebClientService()
@@ -499,11 +506,11 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final Optional<String> latestCommit = getLatestCommit(branch, resolvedPath);
         final HttpUriBuilder uriBuilder = getRepositoryUriBuilder().addPathSegment("browse");
         addPathSegments(uriBuilder, resolvedPath);
-        uriBuilder.addQueryParameter("branch", branch);
+        uriBuilder.addQueryParameter(FIELD_BRANCH, branch);
         if (commitMessage != null) {
-            uriBuilder.addQueryParameter("message", commitMessage);
+            uriBuilder.addQueryParameter(FIELD_MESSAGE, commitMessage);
         }
-        latestCommit.ifPresent(commit -> uriBuilder.addQueryParameter("sourceCommitId", commit));
+        latestCommit.ifPresent(commit -> uriBuilder.addQueryParameter(FIELD_SOURCE_COMMIT_ID, commit));
 
         final URI uri = uriBuilder.build();
         final HttpResponseEntity response = this.webClient.getWebClientService()
