@@ -28,6 +28,8 @@ import { PolicySelection, BucketPolicyOptionsView } from '../../../../../state/p
 import { PolicySubject } from '../../../../../service/buckets.service';
 import { AddPolicyToBucketDialogComponent } from '../add-policy-to-bucket-dialog/add-policy-to-bucket-dialog.component';
 import { EditPolicyDialogComponent } from '../edit-policy-dialog/edit-policy-dialog.component';
+import { provideMockStore } from '@ngrx/store/testing';
+import { errorFeatureKey } from '../../../../../state/error';
 
 const bucket: Bucket = {
     allowBundleRedeploy: false,
@@ -105,6 +107,8 @@ describe('ManageBucketPoliciesDialogComponent', () => {
         const selection$ = new BehaviorSubject(mockSelection);
         const loading$ = new BehaviorSubject<boolean>(false);
         const saving$ = new BehaviorSubject<boolean>(false);
+        const isAddPolicyDisabled$ = new BehaviorSubject<boolean>(false);
+        const isPolicyError$ = new BehaviorSubject<boolean>(false);
 
         const mockDialogRef = {
             close: jest.fn()
@@ -132,6 +136,14 @@ describe('ManageBucketPoliciesDialogComponent', () => {
         await TestBed.configureTestingModule({
             imports: [ManageBucketPoliciesDialogComponent, NoopAnimationsModule],
             providers: [
+                provideMockStore({
+                    initialState: {
+                        [errorFeatureKey]: {
+                            bannerErrors: {},
+                            dialogErrors: {}
+                        }
+                    }
+                }),
                 {
                     provide: MAT_DIALOG_DATA,
                     useValue: {
@@ -139,6 +151,8 @@ describe('ManageBucketPoliciesDialogComponent', () => {
                         options$,
                         selection$,
                         loading$,
+                        isPolicyError$,
+                        isAddPolicyDisabled$,
                         saving$
                     } as ManageBucketPoliciesDialogData
                 },

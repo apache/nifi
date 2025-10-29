@@ -49,7 +49,12 @@ export class PoliciesEffects {
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             PoliciesActions.loadPoliciesFailure(),
-                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            ErrorActions.addBannerError({
+                                errorContext: {
+                                    errors: [this.errorHelper.getErrorString(errorResponse)],
+                                    context: request.context
+                                }
+                            })
                         )
                     )
                 )
@@ -60,13 +65,18 @@ export class PoliciesEffects {
     loadPolicyTenants$ = createEffect(() =>
         this.actions$.pipe(
             ofType(PoliciesActions.loadPolicyTenants),
-            switchMap(() =>
+            switchMap(({ request }) =>
                 from(this.bucketsService.getBucketPolicyTenants()).pipe(
                     map((response) => PoliciesActions.loadPolicyTenantsSuccess({ response })),
                     catchError((errorResponse: HttpErrorResponse) =>
                         of(
                             PoliciesActions.loadPolicyTenantsFailure(),
-                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                            ErrorActions.addBannerError({
+                                errorContext: {
+                                    errors: [this.errorHelper.getErrorString(errorResponse)],
+                                    context: request.context
+                                }
+                            })
                         )
                     )
                 )

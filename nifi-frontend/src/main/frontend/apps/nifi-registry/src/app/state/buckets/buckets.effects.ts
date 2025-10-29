@@ -22,6 +22,7 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { from, of, take, takeUntil } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import * as BucketsActions from './buckets.actions';
+import { deleteBucket } from './buckets.actions';
 import { BucketsService } from '../../service/buckets.service';
 import { ErrorHelper } from '../../service/error-helper.service';
 import { ErrorContextKey } from '../error';
@@ -30,15 +31,16 @@ import { CreateBucketDialogComponent } from '../../pages/buckets/feature/ui/crea
 import { EditBucketDialogComponent } from '../../pages/buckets/feature/ui/edit-bucket-dialog/edit-bucket-dialog.component';
 import { ManageBucketPoliciesDialogComponent } from '../../pages/buckets/feature/ui/manage-bucket-policies-dialog/manage-bucket-policies-dialog.component';
 import { MEDIUM_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
-import { deleteBucket } from './buckets.actions';
 import { Store } from '@ngrx/store';
 import {
-    selectPolicyOptions,
-    selectPolicySelection,
     selectPoliciesLoading,
-    selectPoliciesSaving
+    selectPoliciesSaving,
+    selectPolicyOptions,
+    selectPolicySelection
 } from '../policies/policies.selectors';
+import { selectCurrentUser } from '../current-user/current-user.selectors';
 import * as PoliciesActions from '../policies/policies.actions';
+import { selectBannerErrors } from '../error/error.selectors';
 
 @Injectable()
 export class BucketsEffects {
@@ -209,10 +211,12 @@ export class BucketsEffects {
             this.actions$.pipe(
                 ofType(BucketsActions.openManageBucketPoliciesDialog),
                 tap(({ request }) => {
-                    this.store.dispatch(PoliciesActions.loadPolicyTenants());
+                    this.store.dispatch(
+                        PoliciesActions.loadPolicyTenants({ request: { context: ErrorContextKey.MANAGE_ACCESS } })
+                    );
                     this.store.dispatch(
                         PoliciesActions.loadPolicies({
-                            request: { bucketId: request.bucket.identifier }
+                            request: { bucketId: request.bucket.identifier, context: ErrorContextKey.MANAGE_ACCESS }
                         })
                     );
 
@@ -224,7 +228,32 @@ export class BucketsEffects {
                             options$: this.store.select(selectPolicyOptions),
                             selection$: this.store.select(selectPolicySelection),
                             loading$: this.store.select(selectPoliciesLoading),
-                            saving$: this.store.select(selectPoliciesSaving)
+                            saving$: this.store.select(selectPoliciesSaving),
+                            isPolicyError$: this.store.select(selectBannerErrors(ErrorContextKey.MANAGE_ACCESS)).pipe(
+                                map((bannerErrors) => {
+                                    if (bannerErrors.length > 0) {
+                                        return true;
+                                    }
+                                    return false;
+                                })
+                            ),
+                            isAddPolicyDisabled$: this.store.select(selectCurrentUser).pipe(
+                                map((currentUser) => {
+                                    // Disable if anonymous
+                                    if (currentUser.anonymous) {
+                                        return true;
+                                    }
+                                    // Disable if user can't write policies
+                                    if (!currentUser.resourcePermissions.policies.canWrite) {
+                                        return true;
+                                    }
+                                    // Disable if user can't read tenants
+                                    if (!currentUser.resourcePermissions.tenants.canRead) {
+                                        return true;
+                                    }
+                                    return false;
+                                })
+                            )
                         }
                     });
 

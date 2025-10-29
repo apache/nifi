@@ -23,7 +23,7 @@ import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatDialog } from '@angular/material/dialog';
-import { AsyncPipe, NgClass } from '@angular/common';
+import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs/operators';
@@ -36,6 +36,8 @@ import { EditPolicyDialogComponent, EditPolicyResult } from '../edit-policy-dial
 import { Bucket } from 'apps/nifi-registry/src/app/state/buckets';
 import { BucketPolicyOptionsView, PolicySelection, PolicySection } from 'apps/nifi-registry/src/app/state/policies';
 import { PolicySubject, PolicyRevision } from 'apps/nifi-registry/src/app/service/buckets.service';
+import { ContextErrorBanner } from '../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../../state/error';
 
 export interface PolicyTableRow {
     identity: string;
@@ -61,6 +63,8 @@ export interface ManageBucketPoliciesDialogData {
     selection$: Observable<Partial<Record<PolicySection, PolicySelection>>>;
     loading$: Observable<boolean>;
     saving$: Observable<boolean>;
+    isAddPolicyDisabled$: Observable<boolean>;
+    isPolicyError$: Observable<boolean>;
 }
 
 @Component({
@@ -76,7 +80,7 @@ export interface ManageBucketPoliciesDialogData {
         MatSortModule,
         MatMenuModule,
         AsyncPipe,
-        NgClass
+        ContextErrorBanner
     ]
 })
 export class ManageBucketPoliciesDialogComponent implements OnInit {
@@ -91,6 +95,8 @@ export class ManageBucketPoliciesDialogComponent implements OnInit {
     selection$ = this.data.selection$;
     loading$ = this.data.loading$;
     saving$ = this.data.saving$;
+    isPolicyError$ = this.data.isPolicyError$;
+    isAddPolicyDisabled$ = this.data.isAddPolicyDisabled$;
 
     @Output() savePolicies = new EventEmitter<SaveBucketPoliciesRequest>();
 
@@ -365,4 +371,6 @@ export class ManageBucketPoliciesDialogComponent implements OnInit {
     close(): void {
         this.dialogRef.close();
     }
+
+    protected readonly ErrorContextKey = ErrorContextKey;
 }

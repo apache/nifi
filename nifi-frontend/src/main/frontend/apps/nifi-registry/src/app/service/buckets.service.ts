@@ -137,10 +137,32 @@ export class BucketsService {
     }
 
     getPolicies(): Observable<Policy[]> {
+        // const mockError: HttpErrorResponse = new HttpErrorResponse({
+        //     status: 404,
+        //     statusText: 'Bad Gateway',
+        //     url: `${BucketsService.API}/policies`,
+        //     error: {
+        //         message: 'Mock error: unable to get policies.',
+        //         timestamp: new Date().toISOString()
+        //     }
+        // });
+        // return throwError(() => mockError);
+
         return this.httpClient.get<Policy[]>(`${BucketsService.API}/policies`);
     }
 
     getBucketPolicyTenants(): Observable<BucketPolicyTenants> {
+        // const mockError: HttpErrorResponse = new HttpErrorResponse({
+        //     status: 404,
+        //     statusText: 'Bad Gateway',
+        //     url: `${BucketsService.API}/tenants/users`,
+        //     error: {
+        //         message: 'Mock error: unable to get bucket policy tenents.',
+        //         timestamp: new Date().toISOString()
+        //     }
+        // });
+        // return throwError(() => mockError);
+
         return forkJoin({
             users: this.httpClient
                 .get<PolicySubject[]>(`${BucketsService.API}/tenants/users`)

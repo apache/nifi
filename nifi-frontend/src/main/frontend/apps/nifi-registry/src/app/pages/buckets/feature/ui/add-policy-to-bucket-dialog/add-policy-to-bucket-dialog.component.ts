@@ -21,7 +21,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
-import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NiFiCommon } from '@nifi/shared';
 import { PolicySubject } from 'apps/nifi-registry/src/app/service/buckets.service';
@@ -53,7 +52,7 @@ export interface AddPolicyResult {
     templateUrl: './add-policy-to-bucket-dialog.component.html',
     styleUrl: './add-policy-to-bucket-dialog.component.scss',
     standalone: true,
-    imports: [MatDialogModule, MatButtonModule, MatCheckboxModule, MatTableModule, MatSortModule, NgClass, FormsModule]
+    imports: [MatDialogModule, MatButtonModule, MatCheckboxModule, MatTableModule, MatSortModule, FormsModule]
 })
 export class AddPolicyToBucketDialogComponent implements OnInit {
     protected data = inject<AddPolicyToBucketDialogData>(MAT_DIALOG_DATA);

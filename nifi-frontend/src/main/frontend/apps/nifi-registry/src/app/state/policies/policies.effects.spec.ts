@@ -25,6 +25,7 @@ import { ErrorHelper } from '../../service/error-helper.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import * as PoliciesActions from './policies.actions';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ErrorContextKey } from '../error';
 
 const createPolicy = (overrides = {}): Policy => ({
     identifier: 'policy-1',
@@ -88,7 +89,11 @@ describe('PoliciesEffects', () => {
             const policies = [createPolicy(), createPolicy({ identifier: 'policy-2', action: 'write' })];
             bucketsService.getPolicies.mockReturnValue(of(policies));
 
-            actions$ = of(PoliciesActions.loadPolicies({ request: { bucketId: 'bucket-1' } }));
+            actions$ = of(
+                PoliciesActions.loadPolicies({
+                    request: { bucketId: 'bucket-1', context: ErrorContextKey.MANAGE_ACCESS }
+                })
+            );
 
             effects.loadPolicies$.subscribe((action) => {
                 expect(action).toEqual(
@@ -108,7 +113,11 @@ describe('PoliciesEffects', () => {
             bucketsService.getPolicies.mockReturnValue(throwError(() => error));
             errorHelper.getErrorString.mockReturnValue('Error loading policies');
 
-            actions$ = of(PoliciesActions.loadPolicies({ request: { bucketId: 'bucket-1' } }));
+            actions$ = of(
+                PoliciesActions.loadPolicies({
+                    request: { bucketId: 'bucket-1', context: ErrorContextKey.MANAGE_ACCESS }
+                })
+            );
 
             effects.loadPolicies$.subscribe((action) => {
                 if (action.type === PoliciesActions.loadPoliciesFailure.type) {
@@ -125,7 +134,7 @@ describe('PoliciesEffects', () => {
             const userGroups = [createPolicySubject({ identifier: 'group-1', identity: 'test-group', type: 'group' })];
             bucketsService.getBucketPolicyTenants.mockReturnValue(of({ users, userGroups }));
 
-            actions$ = of(PoliciesActions.loadPolicyTenants());
+            actions$ = of(PoliciesActions.loadPolicyTenants({ request: { context: ErrorContextKey.MANAGE_ACCESS } }));
 
             effects.loadPolicyTenants$.subscribe((action) => {
                 expect(action).toEqual(
@@ -142,7 +151,7 @@ describe('PoliciesEffects', () => {
             bucketsService.getBucketPolicyTenants.mockReturnValue(throwError(() => error));
             errorHelper.getErrorString.mockReturnValue('Error loading tenants');
 
-            actions$ = of(PoliciesActions.loadPolicyTenants());
+            actions$ = of(PoliciesActions.loadPolicyTenants({ request: { context: ErrorContextKey.MANAGE_ACCESS } }));
 
             effects.loadPolicyTenants$.subscribe((action) => {
                 if (action.type === PoliciesActions.loadPolicyTenantsFailure.type) {
