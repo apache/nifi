@@ -30,6 +30,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.LineEnding;
+import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.StringNettyEventSenderFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -284,6 +285,7 @@ public class PutSyslog extends AbstractSyslogProcessor {
             }
         }
 
+        factory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
         return factory.getEventSender();
     }
 
