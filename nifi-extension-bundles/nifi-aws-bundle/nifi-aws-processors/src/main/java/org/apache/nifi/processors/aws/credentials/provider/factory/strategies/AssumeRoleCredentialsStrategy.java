@@ -22,6 +22,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsStrategy;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.ssl.SSLContextProvider;
@@ -36,8 +37,8 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleRequest;
 import javax.net.ssl.SSLContext;
 import java.net.Proxy;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_EXTERNAL_ID;
@@ -47,7 +48,6 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_ENDPOINT;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.MAX_SESSION_TIME;
-
 
 /**
  * Supports AWS credentials via Assume Role.  Assume Role is a derived credential strategy, requiring a primary
@@ -73,6 +73,10 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
 
     @Override
     public boolean canCreateDerivedCredential(final PropertyContext propertyContext) {
+        if (propertyContext.getProperty(AWSCredentialsProviderControllerService.OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+            return false;
+        }
+
         final String assumeRoleArn = propertyContext.getProperty(ASSUME_ROLE_ARN).getValue();
         final String assumeRoleName = propertyContext.getProperty(ASSUME_ROLE_NAME).getValue();
         if (assumeRoleArn != null && !assumeRoleArn.isEmpty()
@@ -85,22 +89,11 @@ public class AssumeRoleCredentialsStrategy extends AbstractCredentialsStrategy {
     @Override
     public Collection<ValidationResult> validate(final ValidationContext validationContext,
                                                  final CredentialsStrategy primaryStrategy) {
-        final Collection<ValidationResult> validationFailureResults  = new ArrayList<>();
-
-        final boolean assumeRoleArnIsSet = validationContext.getProperty(ASSUME_ROLE_ARN).isSet();
-
-        if (assumeRoleArnIsSet) {
-            final Integer maxSessionTime = validationContext.getProperty(MAX_SESSION_TIME).asInteger();
-
-            // Session time only b/w 900 to 3600 sec (see software.amazon.awssdk.services.sts.model.AssumeRoleRequest#durationSeconds)
-            if (maxSessionTime < 900 || maxSessionTime > 3600) {
-                validationFailureResults.add(new ValidationResult.Builder().valid(false).input(maxSessionTime + "")
-                        .explanation(MAX_SESSION_TIME.getDisplayName() +
-                                " must be between 900 and 3600 seconds").build());
-            }
-        }
-
-        return validationFailureResults;
+        // Assume Role participates as a derived strategy or reused property group.
+        // Do not produce cross-strategy validation failures here; required/missing
+        // fields are enforced by PropertyDescriptor requirements and selected
+        // strategies, and derived selection is handled separately.
+        return Collections.emptyList();
     }
 
     @Override
