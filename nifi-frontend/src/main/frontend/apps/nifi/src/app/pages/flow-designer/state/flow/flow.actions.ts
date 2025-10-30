@@ -22,8 +22,10 @@ import {
     ChangeVersionDialogRequest,
     ComponentEntity,
     ConfirmStopVersionControlRequest,
+    CreateBranchDialogRequest,
     CreateComponentRequest,
     CreateComponentResponse,
+    CreateFlowBranchRequest,
     CreateConnection,
     CreateConnectionRequest,
     CreatePortRequest,
@@ -71,6 +73,7 @@ import {
     NavigateToParameterContext,
     NavigateToQueueListing,
     OpenChangeVersionDialogRequest,
+    OpenCreateBranchDialogRequest,
     OpenComponentDialogRequest,
     OpenGroupComponentsDialogRequest,
     OpenLocalChangesDialogRequest,
@@ -722,6 +725,26 @@ export const enableControllerServicesInProcessGroup = createAction(
 export const disableControllerServicesInProcessGroup = createAction(
     `${CANVAS_PREFIX} Disable Controller Services In Process Group`,
     props<{ id: string }>()
+);
+
+export const openCreateBranchDialogRequest = createAction(
+    `${CANVAS_PREFIX} Open Create Branch Dialog Request`,
+    props<{ request: OpenCreateBranchDialogRequest }>()
+);
+
+export const openCreateBranchDialog = createAction(
+    `${CANVAS_PREFIX} Open Create Branch Dialog`,
+    props<{ request: CreateBranchDialogRequest }>()
+);
+
+export const createFlowBranch = createAction(
+    `${CANVAS_PREFIX} Create Flow Branch`,
+    props<{ request: CreateFlowBranchRequest }>()
+);
+
+export const createFlowBranchSuccess = createAction(
+    `${CANVAS_PREFIX} Create Flow Branch Success`,
+    props<{ response: VersionControlInformationEntity }>()
 );
 
 export const openChangeVersionDialogRequest = createAction(

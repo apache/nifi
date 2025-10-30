@@ -42,6 +42,7 @@ import {
     ReplayLastProvenanceEventRequest,
     RunOnceRequest,
     SaveToVersionControlRequest,
+    CreateFlowBranchRequest,
     StartComponentRequest,
     StartProcessGroupRequest,
     StopComponentRequest,
@@ -474,5 +475,26 @@ export class FlowService implements PropertyDescriptorRetriever {
             '_blank',
             'noreferrer'
         );
+    }
+
+    createFlowBranch(request: CreateFlowBranchRequest): Observable<VersionControlInformationEntity> {
+        const payload: any = {
+            processGroupRevision: request.revision,
+            branch: request.branch,
+            disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
+        };
+
+        if (request.sourceBranch) {
+            payload.sourceBranch = request.sourceBranch;
+        }
+
+        if (request.sourceVersion) {
+            payload.sourceVersion = request.sourceVersion;
+        }
+
+        return this.httpClient.post(
+            `${FlowService.API}/versions/process-groups/${request.processGroupId}/branches`,
+            payload
+        ) as Observable<VersionControlInformationEntity>;
     }
 }

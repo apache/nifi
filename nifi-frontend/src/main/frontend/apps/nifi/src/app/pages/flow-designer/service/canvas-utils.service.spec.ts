@@ -24,7 +24,7 @@ import * as fromFlow from '../state/flow/flow.reducer';
 import { transformFeatureKey } from '../state/transform';
 import * as fromTransform from '../state/transform/transform.reducer';
 import { provideMockStore } from '@ngrx/store/testing';
-import { selectFlowState } from '../state/flow/flow.selectors';
+import { selectFlowState, selectRegistryClients } from '../state/flow/flow.selectors';
 import { controllerServicesFeatureKey } from '../state/controller-services';
 import * as fromControllerServices from '../state/controller-services/controller-services.reducer';
 import { selectCurrentUser } from '../../../state/current-user/current-user.selectors';
@@ -69,6 +69,10 @@ describe('CanvasUtils', () => {
                         {
                             selector: selectFlowConfiguration,
                             value: fromFlowConfiguration.initialState.flowConfiguration
+                        },
+                        {
+                            selector: selectRegistryClients,
+                            value: []
                         }
                     ]
                 })
@@ -129,6 +133,66 @@ describe('CanvasUtils', () => {
             };
             const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
             expect(service.getFlowVersionControlInformation(selection)).toBe(versionControlInformation);
+        });
+    });
+
+    describe('supportsCreateFlowBranch', () => {
+        it('should return true when process group is up to date and registry supports branching', () => {
+            const versionControlInformation = {
+                groupId: '1',
+                registryId: 'registry-1',
+                branch: 'main',
+                state: 'UP_TO_DATE'
+            };
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group',
+                    versionControlInformation
+                }
+            };
+            const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+
+            (service as any).registryClients = [
+                {
+                    id: 'registry-1',
+                    component: { supportsBranching: true }
+                }
+            ];
+
+            expect(service.supportsCreateFlowBranch(selection)).toBe(true);
+        });
+
+        it('should return true when process group has local changes', () => {
+            const versionControlInformation = {
+                groupId: '1',
+                registryId: 'registry-1',
+                branch: 'main',
+                state: 'LOCALLY_MODIFIED'
+            };
+            const pgDatum = {
+                id: '1',
+                type: ComponentType.ProcessGroup,
+                permissions: { canRead: true, canWrite: true },
+                component: {
+                    id: '1',
+                    name: 'Test Process Group',
+                    versionControlInformation
+                }
+            };
+            const selection = d3.select(document.createElement('div')).classed('process-group', true).datum(pgDatum);
+
+            (service as any).registryClients = [
+                {
+                    id: 'registry-1',
+                    component: { supportsBranching: true }
+                }
+            ];
+
+            expect(service.supportsCreateFlowBranch(selection)).toBe(true);
         });
     });
 
