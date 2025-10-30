@@ -88,6 +88,7 @@ import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
 import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 import org.apache.nifi.web.api.dto.ContentViewerDTO;
 import org.apache.nifi.web.api.dto.DifferenceDTO;
+import org.apache.nifi.web.api.dto.ListenPortDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -131,6 +132,7 @@ import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
+import org.apache.nifi.web.api.entity.ListenPortsEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
@@ -1392,6 +1394,73 @@ public class FlowResource extends ApplicationResource {
 
         // generate the response
         return noCache(Response.ok(entity)).build();
+    }
+
+    @GET
+    @Path("listen-ports")
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+        summary = "Gets all listen ports configured on this NiFi that the current user has access to",
+        responses = {
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ListenPortsEntity.class))),
+            @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+            @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+            @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+        },
+        security = {
+            @SecurityRequirement(name = "Read - /flow")
+        }
+    )
+    public Response getListenPorts() {
+        authorizeFlow();
+
+        final Set<ListenPortDTO> listenPorts;
+
+        final boolean useMockData = false;
+        if (useMockData) {
+            final ListenPortDTO listenPort1 = new ListenPortDTO();
+            listenPort1.setPortNumber(1000);
+            listenPort1.setTransportProtocol("TCP");
+            listenPort1.setApplicationProtocols(List.of("http/1.1", "h2"));
+            listenPort1.setComponentType("Processor");
+            listenPort1.setComponentId("fb67914a-3f92-4c4f-b44d-8a3ffb8c8284");
+            listenPort1.setComponentName("ListenHTTP");
+            listenPort1.setComponentClass("org.apache.nifi.processors.standard.ListenHTTP");
+            listenPort1.setParentGroupId("13cadd35-17ac-42ae-a31e-89c23b2b7413");
+            listenPort1.setParentGroupName("Jira Webhook Events to Snowflake");
+
+            final ListenPortDTO listenPort2 = new ListenPortDTO();
+            listenPort2.setPortNumber(2000);
+            listenPort2.setTransportProtocol("TCP");
+            listenPort2.setApplicationProtocols(List.of("ws"));
+            listenPort2.setComponentType("ControllerService");
+            listenPort2.setComponentId("fb67914a-3f92-4c4f-b44d-8a3ffb8c8284");
+            listenPort2.setComponentName("JettyWebSocketServer");
+            listenPort2.setComponentClass("org.apache.nifi.websocket.jetty.JettyWebSocketServer");
+            listenPort2.setParentGroupId("1e0d45de-8b41-454d-97f8-8c351049e5b4");
+            listenPort2.setParentGroupName("Root");
+
+            final ListenPortDTO listenPort3 = new ListenPortDTO();
+            listenPort3.setPortNumber(3000);
+            listenPort3.setTransportProtocol("TCP");
+            listenPort3.setApplicationProtocols(List.of("h2"));
+            listenPort3.setComponentType("Connector");
+            listenPort3.setComponentId("13bd2f1f-6b62-403f-bf97-7ba2283a09fc");
+            listenPort3.setComponentName("FutureConnector");
+            listenPort3.setComponentClass("org.apache.nifi.connectors.standard.FutureConnector");
+            listenPort3.setParentGroupId(null);
+            listenPort3.setParentGroupName(null);
+
+            listenPorts = Set.of(listenPort1, listenPort2, listenPort3);
+        } else {
+            listenPorts = serviceFacade.getListenPorts(NiFiUserUtils.getNiFiUser());
+        }
+
+        final ListenPortsEntity listenPortsEntity = new ListenPortsEntity(new ArrayList<>(listenPorts));
+
+        return generateOkResponse(listenPortsEntity).build();
     }
 
     /**
