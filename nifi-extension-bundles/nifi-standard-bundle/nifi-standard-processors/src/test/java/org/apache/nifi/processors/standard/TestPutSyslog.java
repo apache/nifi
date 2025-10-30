@@ -79,8 +79,6 @@ public class TestPutSyslog {
 
     private final TransportProtocol protocol = TransportProtocol.UDP;
 
-    private InetAddress address;
-
     private int port;
     private EventServer eventServer;
     private BlockingQueue<ByteArrayMessage> messages;
@@ -90,7 +88,7 @@ public class TestPutSyslog {
         final byte[] delimiter = DELIMITER.getBytes(CHARSET);
         messages = new LinkedBlockingQueue<>();
 
-        address = InetAddress.getByName(ADDRESS);
+        final InetAddress address = InetAddress.getByName(ADDRESS);
         final NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(
             new MockComponentLog("id", "TestPutSyslog"), address, 0, protocol, delimiter, MAX_FRAME_LENGTH, messages);
         serverFactory.setShutdownQuietPeriod(ShutdownQuietPeriod.QUICK.getDuration());
@@ -160,6 +158,7 @@ public class TestPutSyslog {
             runner.run();
 
             final ByteArrayMessage message = messages.poll(POLL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            assertNotNull(message);
             final String syslogMessage = new String(message.getMessage(), CHARSET);
             runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS);
 
@@ -173,7 +172,7 @@ public class TestPutSyslog {
     private void assertProvenanceRecordTransitUriFound() {
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertFalse(provenanceEvents.isEmpty(), "Provenance Events not found");
-        final ProvenanceEventRecord provenanceEventRecord = provenanceEvents.iterator().next();
+        final ProvenanceEventRecord provenanceEventRecord = provenanceEvents.getFirst();
         assertEquals(ProvenanceEventType.SEND, provenanceEventRecord.getEventType());
 
         final String transitUri = provenanceEventRecord.getTransitUri();
