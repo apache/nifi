@@ -24,8 +24,7 @@ import { RegistryService } from '../../../../../service/registry.service';
 import { FlowComparisonEntity } from '../../../../../state/flow';
 import { VersionedFlowSnapshotMetadata } from '../../../../../../../state/shared';
 import { By } from '@angular/platform-browser';
-import { provideMockStore } from '@ngrx/store/testing';
-import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
+import { ErrorContextKey } from '../../../../../../../state/error';
 
 describe('FlowDiffDialog', () => {
     const versions: VersionedFlowSnapshotMetadata[] = [
@@ -64,7 +63,10 @@ describe('FlowDiffDialog', () => {
         },
         versions,
         currentVersion: '2',
-        selectedVersion: '1'
+        selectedVersion: '1',
+        errorContext: ErrorContextKey.FLOW_VERSION,
+        clearBannerErrors: () => {},
+        addBannerError: () => {}
     };
 
     const comparison: FlowComparisonEntity = {
@@ -85,9 +87,13 @@ describe('FlowDiffDialog', () => {
     };
 
     let getFlowDiffSpy: jest.Mock;
+    let clearBannerErrorsMock: jest.Mock;
+    let addBannerErrorMock: jest.Mock;
 
     function configureTestingModule(dialogData: FlowDiffDialogData = baseDialogData) {
         getFlowDiffSpy = jest.fn().mockReturnValue(of(comparison));
+        clearBannerErrorsMock = jest.fn();
+        addBannerErrorMock = jest.fn();
 
         TestBed.configureTestingModule({
             imports: [FlowDiffDialog, NoopAnimationsModule],
@@ -100,16 +106,13 @@ describe('FlowDiffDialog', () => {
                 },
                 {
                     provide: MAT_DIALOG_DATA,
-                    useValue: dialogData
-                },
-                provideMockStore({
-                    selectors: [
-                        {
-                            selector: selectTimeOffset,
-                            value: 0
-                        }
-                    ]
-                })
+                    useValue: {
+                        ...dialogData,
+                        errorContext: ErrorContextKey.FLOW_VERSION,
+                        clearBannerErrors: clearBannerErrorsMock,
+                        addBannerError: addBannerErrorMock
+                    }
+                }
             ]
         }).compileComponents();
     }
@@ -137,10 +140,12 @@ describe('FlowDiffDialog', () => {
         const rows = fixture.debugElement.queryAll(By.css('[data-qa="flow-diff-table"] tbody tr'));
         expect(rows.length).toBe(1);
 
-        const summaryItems = fixture.debugElement.queryAll(By.css('[data-qa="flow-diff-message"] li'));
+        const summaryItems = fixture.debugElement.queryAll(By.css('[data-qa="flow-diff-summary-item"]'));
         expect(summaryItems.length).toBe(2);
-        expect(summaryItems[0].nativeElement.textContent).toContain('Version 2');
-        expect(summaryItems[1].nativeElement.textContent).toContain('Version 1');
+        expect(summaryItems[0].nativeElement.textContent).toContain('Current Version');
+        expect(summaryItems[0].nativeElement.textContent).toContain('2');
+        expect(summaryItems[1].nativeElement.textContent).toContain('Selected Version');
+        expect(summaryItems[1].nativeElement.textContent).toContain('1');
     }));
 
     it('should show empty state when there are no differences', fakeAsync(() => {
@@ -168,8 +173,9 @@ describe('FlowDiffDialog', () => {
         tick(250);
         fixture.detectChanges();
 
-        const errorMessage = fixture.debugElement.query(By.css('[data-qa="flow-diff-error"]'));
-        expect(errorMessage).toBeTruthy();
-        expect(errorMessage.nativeElement.textContent.trim()).toBe('Unable to retrieve version differences.');
+        const component = fixture.componentInstance;
+        expect(component.hasError).toBe(true);
+        expect(clearBannerErrorsMock).toHaveBeenCalled();
+        expect(addBannerErrorMock).toHaveBeenCalledWith(['Unable to retrieve version differences.']);
     }));
 });

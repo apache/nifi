@@ -27,6 +27,8 @@ import { CanvasState } from '../../../../../state';
 import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
 import { NiFiCommon, CloseOnEscapeDialog, NifiTooltipDirective, TextTip, LARGE_DIALOG } from '@nifi/shared';
 import { FlowDiffDialog, FlowDiffDialogData } from '../flow-diff-dialog/flow-diff-dialog';
+import { ErrorContextKey } from '../../../../../../../state/error';
+import * as ErrorActions from '../../../../../../../state/error/error.actions';
 
 @Component({
     selector: 'change-version-dialog',
@@ -49,7 +51,7 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
     private nifiCommon = inject(NiFiCommon);
     private store = inject<Store<CanvasState>>(Store);
 
-    displayedColumns: string[] = ['actions', 'current', 'version', 'created', 'comments'];
+    displayedColumns: string[] = ['current', 'version', 'created', 'comments', 'actions'];
     dataSource: MatTableDataSource<VersionedFlowSnapshotMetadata> =
         new MatTableDataSource<VersionedFlowSnapshotMetadata>();
     selectedFlowVersion: VersionedFlowSnapshotMetadata | null = null;
@@ -164,11 +166,24 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
             return;
         }
 
+        const errorContext = ErrorContextKey.FLOW_VERSION;
+
         const dialogData: FlowDiffDialogData = {
             versionControlInformation: this.versionControlInformation,
             versions: this.allFlowVersions,
             currentVersion: this.versionControlInformation.version,
-            selectedVersion: flowVersion.version
+            selectedVersion: flowVersion.version,
+            errorContext,
+            clearBannerErrors: () => this.store.dispatch(ErrorActions.clearBannerErrors({ context: errorContext })),
+            addBannerError: (errors: string[]) =>
+                this.store.dispatch(
+                    ErrorActions.addBannerError({
+                        errorContext: {
+                            context: errorContext,
+                            errors
+                        }
+                    })
+                )
         };
 
         this.dialog.open(FlowDiffDialog, {

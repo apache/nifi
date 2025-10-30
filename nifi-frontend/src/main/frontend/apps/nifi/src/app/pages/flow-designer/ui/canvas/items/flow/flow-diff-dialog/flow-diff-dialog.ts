@@ -15,16 +15,10 @@
  * limitations under the License.
  */
 
-import {
-    AfterViewInit,
-    Component,
-    DestroyRef,
-    ViewChild,
-    inject
-} from '@angular/core';
+import { AfterViewInit, Component, DestroyRef, ViewChild, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
-import { MatSort, MatSortModule } from '@angular/material/sort';
+import { MatSortModule, Sort } from '@angular/material/sort';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
@@ -32,7 +26,6 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatOption } from '@angular/material/core';
 import { MatInput } from '@angular/material/input';
 import { MatButton } from '@angular/material/button';
-import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { combineLatest, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, filter, map, startWith, switchMap, take } from 'rxjs/operators';
 import { FlowComparisonEntity, VersionControlInformation } from '../../../../../state/flow';
@@ -40,15 +33,17 @@ import { VersionedFlowSnapshotMetadata } from '../../../../../../../state/shared
 import { RegistryService } from '../../../../../service/registry.service';
 import { CloseOnEscapeDialog, NiFiCommon } from '@nifi/shared';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Store } from '@ngrx/store';
-import { CanvasState } from '../../../../../state';
-import { selectTimeOffset } from '../../../../../../../state/flow-configuration/flow-configuration.selectors';
+import { ContextErrorBanner } from '../../../../../../../ui/common/context-error-banner/context-error-banner.component';
+import { ErrorContextKey } from '../../../../../../../state/error';
 
 export interface FlowDiffDialogData {
     versionControlInformation: VersionControlInformation;
     versions: VersionedFlowSnapshotMetadata[];
     currentVersion: string;
     selectedVersion: string;
+    errorContext: ErrorContextKey;
+    clearBannerErrors?: () => void;
+    addBannerError?: (errors: string[]) => void;
 }
 
 interface FlowDiffRow {
@@ -72,7 +67,7 @@ interface FlowDiffRow {
         MatOption,
         MatInput,
         MatButton,
-        MatProgressSpinner
+        ContextErrorBanner
     ],
     templateUrl: './flow-diff-dialog.html',
     styleUrl: './flow-diff-dialog.scss'
@@ -83,15 +78,6 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
     private destroyRef = inject(DestroyRef);
     private formBuilder = inject(FormBuilder);
     private nifiCommon = inject(NiFiCommon);
-    private store = inject<Store<CanvasState>>(Store);
-    private timeOffset = this.store.selectSignal(selectTimeOffset);
-
-    @ViewChild(MatSort)
-    set matSort(sort: MatSort | undefined) {
-        if (sort) {
-            this.dataSource.sort = sort;
-        }
-    }
 
     displayedColumns: string[] = ['componentName', 'changeType', 'difference'];
     dataSource: MatTableDataSource<FlowDiffRow> = new MatTableDataSource<FlowDiffRow>();
@@ -99,14 +85,22 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
     filterControl: FormControl<string> = new FormControl<string>('', { nonNullable: true });
     currentVersionControl: FormControl<string>;
     selectedVersionControl: FormControl<string>;
+    sort: Sort = {
+        active: 'componentName',
+        direction: 'asc'
+    };
 
     versionOptions: string[];
     flowName: string;
-    comparisonSummary: { version: string; created?: string }[] = [];
+    comparisonSummary: { label: string; version: string; created?: number }[] = [];
     isLoading = false;
-    errorMessage: string | null = null;
+    hasError = false;
     noDifferences = false;
     private versionMetadataByVersion: Map<string, VersionedFlowSnapshotMetadata> = new Map();
+
+    readonly errorContext: ErrorContextKey;
+    private clearBannerErrors: () => void;
+    private addBannerError: (errors: string[]) => void;
 
     constructor() {
         super();
@@ -115,6 +109,9 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
         this.versionMetadataByVersion = new Map(versions.map((metadata) => [metadata.version, metadata]));
         const vci = this.data.versionControlInformation;
         this.flowName = vci.flowName || vci.flowId;
+        this.errorContext = this.data.errorContext;
+        this.clearBannerErrors = this.data.clearBannerErrors ?? (() => {});
+        this.addBannerError = this.data.addBannerError ?? (() => {});
 
         this.currentVersionControl = new FormControl<string>(this.data.currentVersion, { nonNullable: true });
         this.selectedVersionControl = new FormControl<string>(this.data.selectedVersion, { nonNullable: true });
@@ -156,10 +153,11 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
 
     formatVersionOption(version: string): string {
         const metadata = this.versionMetadataByVersion.get(version);
-        const formattedVersion =
-            version.length > 5 ? `${version.substring(0, 5)}...` : version;
-        const created = metadata ? this.formatTimestamp(metadata) : undefined;
-        return created ? `${formattedVersion} (${created})` : formattedVersion;
+        const formattedVersion = version.length > 5 ? `${version.substring(0, 5)}...` : version;
+        const created = metadata?.timestamp;
+        return this.nifiCommon.isDefinedAndNotNull(created)
+            ? `${formattedVersion} (${created})`
+            : formattedVersion;
     }
 
     ngAfterViewInit(): void {
@@ -196,15 +194,18 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
                 ),
                 switchMap(([current, selected]) => {
                     this.isLoading = true;
-                    this.errorMessage = null;
+                    this.hasError = false;
                     this.noDifferences = false;
+                    this.clearBannerErrors();
                     return this.fetchFlowDiff(current as string, selected as string).pipe(
-                        catchError((error) => {
+                        catchError((error: unknown) => {
                             this.isLoading = false;
-                            this.errorMessage = 'Unable to retrieve version differences.';
+                            this.hasError = true;
+                            const message = 'Unable to retrieve version differences.';
+                            this.addBannerError([message]);
                             console.error('Failed to load flow version diff', error);
                             this.dataSource.data = [];
-                            this.noDifferences = true;
+                            this.noDifferences = false;
                             return of(null);
                         })
                     );
@@ -216,11 +217,17 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
                 }
 
                 this.isLoading = false;
+                this.hasError = false;
                 this.setComparisonSummary(this.currentVersionControl.value, this.selectedVersionControl.value);
                 const rows = this.toRows(comparison);
-                this.dataSource.data = rows;
+                this.dataSource.data = this.sortRows(rows, this.sort);
                 this.noDifferences = rows.length === 0;
             });
+    }
+
+    sortData(sort: Sort): void {
+        this.sort = sort;
+        this.dataSource.data = this.sortRows(this.dataSource.data, sort);
     }
 
     private fetchFlowDiff(versionA: string, versionB: string) {
@@ -271,28 +278,49 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
         return rows;
     }
 
-    private setComparisonSummary(versionA: string, versionB: string): void {
-        this.comparisonSummary = [versionA, versionB].map((version) => {
-            const metadata = this.versionMetadataByVersion.get(version);
-            return {
-                version,
-                created: metadata ? this.formatTimestamp(metadata) : undefined
-            };
+    private sortRows(data: FlowDiffRow[], sort: Sort): FlowDiffRow[] {
+        if (!data) {
+            return [];
+        }
+
+        if (!sort.direction) {
+            return data.slice();
+        }
+
+        const direction = sort.direction === 'asc' ? 1 : -1;
+        return data.slice().sort((a, b) => {
+            const aValue = this.sortingValue(a, sort.active);
+            const bValue = this.sortingValue(b, sort.active);
+            return aValue.localeCompare(bValue) * direction;
         });
     }
 
-    private formatTimestamp(metadata: VersionedFlowSnapshotMetadata): string | undefined {
-        if (!metadata.timestamp) {
-            return undefined;
+    private sortingValue(row: FlowDiffRow, property: string): string {
+        switch (property) {
+            case 'componentName':
+                return (row.componentName || '').toLowerCase();
+            case 'changeType':
+                return (row.changeType || '').toLowerCase();
+            case 'difference':
+                return (row.difference || '').toLowerCase();
+            default:
+                return '';
         }
-
-        const now = new Date();
-        const userOffset = now.getTimezoneOffset() * 60 * 1000;
-        const date = new Date(metadata.timestamp + userOffset + this.getTimezoneOffset());
-        return this.nifiCommon.formatDateTime(date);
     }
 
-    private getTimezoneOffset(): number {
-        return this.timeOffset() || 0;
+    private setComparisonSummary(versionA: string, versionB: string): void {
+        this.comparisonSummary = [
+            this.toSummary('Current Version', versionA),
+            this.toSummary('Selected Version', versionB)
+        ];
+    }
+
+    private toSummary(label: string, version: string): { label: string; version: string; created?: number } {
+        const metadata = this.versionMetadataByVersion.get(version);
+        return {
+            label,
+            version,
+            created: metadata?.timestamp
+        };
     }
 }

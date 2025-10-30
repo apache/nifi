@@ -19,65 +19,67 @@
     Flow Version Diff - {{ flowName }}
 </h2>
 <div class="flow-diff">
+    <context-error-banner [context]="errorContext"></context-error-banner>
     <mat-dialog-content>
         <div class="dialog-content flex flex-col gap-y-4">
             <div
-                class="flow-diff-message"
+                class="space-y-3 text-sm"
                 data-qa="flow-diff-message"
                 *ngIf="comparisonSummary.length > 0">
-                <div class="flow-diff-message-title">Comparing versions:</div>
-                <ul class="flow-diff-message-list">
-                    <li *ngFor="let summary of comparisonSummary">
-                        <span class="flow-diff-version">Version {{ summary.version }}</span>
-                        <span *ngIf="summary.created" class="flow-diff-created">
-                            ({{ summary.created }})
-                        </span>
-                    </li>
-                </ul>
+                <div class="font-semibold">Comparing versions</div>
+                <div class="grid gap-y-3">
+                    <div *ngFor="let summary of comparisonSummary" class="space-y-1" data-qa="flow-diff-summary-item">
+                        <div>{{ summary.label }}</div>
+                        <div class="tertiary-color font-medium flex flex-wrap gap-x-1">
+                            <span>{{ summary.version }}</span>
+                            <span *ngIf="summary.created" class="opacity-80">
+                                ({{ summary.created }})
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="flow-diff-controls flex flex-wrap gap-4">
-                <mat-form-field class="flow-diff-select" appearance="outline">
-                    <mat-label>Current Version</mat-label>
-                    <mat-select [formControl]="currentVersionControl" data-qa="current-version-select">
-                        <mat-option *ngFor="let version of versionOptions" [value]="version">
-                            {{ formatVersionOption(version) }}
-                        </mat-option>
-                    </mat-select>
-                </mat-form-field>
-
-                <mat-form-field class="flow-diff-select" appearance="outline">
-                    <mat-label>Selected Version</mat-label>
-                    <mat-select [formControl]="selectedVersionControl" data-qa="selected-version-select">
-                        <mat-option *ngFor="let version of versionOptions" [value]="version">
-                            {{ formatVersionOption(version) }}
-                        </mat-option>
-                    </mat-select>
-                </mat-form-field>
-
-                <mat-form-field class="flow-diff-filter" appearance="outline">
-                    <mat-label>Filter</mat-label>
-                    <input
-                        matInput
-                        type="text"
-                        [formControl]="filterControl"
-                        placeholder="Filter differences"
-                        data-qa="flow-diff-filter" />
-                </mat-form-field>
-            </div>
-
-            <div class="flow-diff-table flex-1">
-                <div class="flow-diff-loading" *ngIf="isLoading">
-                    <mat-progress-spinner diameter="36" mode="indeterminate"></mat-progress-spinner>
+                <div class="w-52">
+                    <mat-form-field class="w-full" appearance="outline">
+                        <mat-label>Current Version</mat-label>
+                        <mat-select [formControl]="currentVersionControl" data-qa="current-version-select">
+                            <mat-option *ngFor="let version of versionOptions" [value]="version">
+                                {{ formatVersionOption(version) }}
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
                 </div>
 
-                <div *ngIf="!isLoading">
-                    <div *ngIf="errorMessage" class="flow-diff-error" data-qa="flow-diff-error">
-                        {{ errorMessage }}
-                    </div>
+                <div class="w-52">
+                    <mat-form-field class="w-full" appearance="outline">
+                        <mat-label>Selected Version</mat-label>
+                        <mat-select [formControl]="selectedVersionControl" data-qa="selected-version-select">
+                            <mat-option *ngFor="let version of versionOptions" [value]="version">
+                                {{ formatVersionOption(version) }}
+                            </mat-option>
+                        </mat-select>
+                    </mat-form-field>
+                </div>
 
-                    <ng-container *ngIf="!errorMessage">
-                        <div *ngIf="noDifferences" class="flow-diff-empty" data-qa="flow-diff-empty">
+                <div class="flex-1 basis-60">
+                    <mat-form-field class="w-full" appearance="outline">
+                        <mat-label>Filter</mat-label>
+                        <input
+                            matInput
+                            type="text"
+                            [formControl]="filterControl"
+                            placeholder="Filter differences"
+                            data-qa="flow-diff-filter" />
+                    </mat-form-field>
+                </div>
+            </div>
+
+            <div class="listing-table flex-1 relative">
+                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                    <ng-container *ngIf="!isLoading && !hasError">
+                        <div *ngIf="noDifferences" class="py-3 tertiary-color" data-qa="flow-diff-empty">
                             No differences to display.
                         </div>
 
@@ -86,6 +88,9 @@
                             *ngIf="dataSource.data.length > 0"
                             [dataSource]="dataSource"
                             matSort
+                            [matSortActive]="sort.active"
+                            [matSortDirection]="sort.direction"
+                            (matSortChange)="sortData($event)"
                             matSortDisableClear
                             data-qa="flow-diff-table">
                             <ng-container matColumnDef="componentName">
