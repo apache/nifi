@@ -158,7 +158,7 @@ export interface SystemResourceConsideration {
 export interface ExtensionComponent extends DefinedType {
     buildInfo: BuildInfo;
     providedApiImplementations?: DefinedType;
-    tags: string[];
+    tags?: string[];
     seeAlso?: string[];
     deprecated?: boolean;
     deprecationReason?: string;
