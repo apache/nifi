@@ -24,11 +24,13 @@ import org.apache.nifi.extension.manifest.DependentValues;
 import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.extension.manifest.ExtensionManifest;
 import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.ListenPortDefinition;
 import org.apache.nifi.extension.manifest.Property;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
 import org.apache.nifi.extension.manifest.ResourceType;
 import org.apache.nifi.extension.manifest.Restriction;
+import org.apache.nifi.extension.manifest.TransportProtocol;
 import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -287,6 +289,41 @@ public class TestJAXBExtensionManifestParser {
         assertNotNull(resourceTypes);
         assertEquals(1, resourceTypes.size());
         assertEquals(ResourceType.FILE, resourceTypes.get(0));
+    }
+
+    @Test
+    public void testDocsWithListenPortDefinitions() throws IOException {
+        final ExtensionManifest extensionManifest = parse("src/test/resources/manifests/extension-manifest-listen-port.xml");
+        assertNotNull(extensionManifest);
+        assertEquals("2.5.0-SNAPSHOT", extensionManifest.getSystemApiVersion());
+
+        final List<Extension> extensionDetails = extensionManifest.getExtensions();
+
+        final Extension jettyWebSocketServer = extensionDetails.stream()
+            .filter(e -> e.getName().equals("org.apache.nifi.websocket.jetty.JettyWebSocketServer"))
+            .findFirst()
+            .orElse(null);
+
+        assertNotNull(jettyWebSocketServer);
+        assertEquals(ExtensionType.CONTROLLER_SERVICE, jettyWebSocketServer.getType());
+
+        final List<Property> properties = jettyWebSocketServer.getProperties();
+        assertNotNull(properties);
+
+        final Property portProperty = properties.stream()
+            .filter(p -> p.getName().equals("Port"))
+            .findFirst()
+            .orElse(null);
+        assertNotNull(portProperty);
+
+        final ListenPortDefinition listenPortDefinition = portProperty.getListenPortDefinition();
+        assertNotNull(listenPortDefinition);
+        assertEquals(TransportProtocol.TCP, listenPortDefinition.getTransportProtocol());
+
+        final List<String> applicationProtocols = listenPortDefinition.getApplicationProtocols();
+        assertNotNull(applicationProtocols);
+        assertEquals(1, applicationProtocols.size());
+        assertEquals("ws", applicationProtocols.getFirst());
     }
 
     @Test

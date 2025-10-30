@@ -1,0 +1,458 @@
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<extensionManifest>
+    <groupId>org.apache.nifi</groupId>
+    <artifactId>nifi-websocket-services-jetty-nar</artifactId>
+    <version>2.7.0-SNAPSHOT</version>
+    <parentNar>
+        <groupId>org.apache.nifi</groupId>
+        <artifactId>nifi-websocket-services-api-nar</artifactId>
+        <version>2.7.0-SNAPSHOT</version>
+    </parentNar>
+    <systemApiVersion>2.5.0-SNAPSHOT</systemApiVersion>
+    <buildInfo>
+        <tag>HEAD</tag>
+        <branch>listen-ports</branch>
+        <revision>5ac640d</revision>
+    </buildInfo>
+    <extensions>
+        <extension>
+            <name>org.apache.nifi.websocket.jetty.JettyWebSocketClient</name>
+            <type>CONTROLLER_SERVICE</type>
+            <description>Implementation of WebSocketClientService. This service uses Jetty WebSocket client module to provide WebSocket session management throughout the application.</description>
+            <tags>
+                <tag>WebSocket</tag>
+                <tag>Jetty</tag>
+                <tag>client</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Input Buffer Size</name>
+                    <displayName>Input Buffer Size</displayName>
+                    <description>The size of the input (read from network layer) buffer size.</description>
+                    <defaultValue>4 kb</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Max Text Message Size</name>
+                    <displayName>Max Text Message Size</displayName>
+                    <description>The maximum size of a text message during parsing/generating.</description>
+                    <defaultValue>64 kb</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Max Binary Message Size</name>
+                    <displayName>Max Binary Message Size</displayName>
+                    <description>The maximum size of a binary message during parsing/generating.</description>
+                    <defaultValue>64 kb</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Idle Timeout</name>
+                    <displayName>Idle Timeout</displayName>
+                    <description>The maximum amount of time that a WebSocket connection may remain idle before it is closed. A value of 0 sec disables the timeout.</description>
+                    <defaultValue>0 sec</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>WebSocket URI</name>
+                    <displayName>WebSocket URI</displayName>
+                    <description>The WebSocket URI this client connects to.</description>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>SSL Context Service</name>
+                    <displayName>SSL Context Service</displayName>
+                    <description>The SSL Context Service to use in order to secure the server. If specified, the server will accept only WSS requests; otherwise, the server will accept only WS requests</description>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.ssl.SSLContextProvider</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>2.7.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Connection Timeout</name>
+                    <displayName>Connection Timeout</displayName>
+                    <description>The timeout to connect the WebSocket URI.</description>
+                    <defaultValue>3 sec</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Connection Attempt Count</name>
+                    <displayName>Connection Attempt Count</displayName>
+                    <description>The number of times to try and establish a connection.</description>
+                    <defaultValue>3</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Session Maintenance Interval</name>
+                    <displayName>Session Maintenance Interval</displayName>
+                    <description>The interval between session maintenance activities. A WebSocket session established with a WebSocket server can be terminated due to different reasons including restarting the WebSocket server or timing out inactive sessions. This session maintenance activity is periodically executed in order to reconnect those lost sessions, so that a WebSocket client can reuse the same session id transparently after it reconnects successfully.  The maintenance activity is executed until corresponding processors or this controller service is stopped.</description>
+                    <defaultValue>10 sec</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Username</name>
+                    <displayName>Username</displayName>
+                    <description>The user name for Basic Authentication.</description>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Password</name>
+                    <displayName>Password</displayName>
+                    <description>The user password for Basic Authentication.</description>
+                    <required>false</required>
+                    <sensitive>true</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Authentication Header Charset</name>
+                    <displayName>Authentication Header Charset</displayName>
+                    <description>The charset for Basic Authentication header base64 string.</description>
+                    <defaultValue>US-ASCII</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Custom Authorization</name>
+                    <displayName>Custom Authorization</displayName>
+                    <description>Configures a custom HTTP Authorization Header as described in RFC 7235 Section 4.2. Setting a custom Authorization Header excludes configuring the User Name and User Password properties for Basic Authentication.</description>
+                    <required>false</required>
+                    <sensitive>true</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>HTTP Proxy Host</name>
+                    <displayName>HTTP Proxy Host</displayName>
+                    <description>The host name of the HTTP Proxy.</description>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>HTTP Proxy Port</name>
+                    <displayName>HTTP Proxy Port</displayName>
+                    <description>The port number of the HTTP Proxy.</description>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <providedServiceAPIs>
+                <providedServiceAPI>
+                    <className>org.apache.nifi.websocket.WebSocketClientService</className>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-websocket-services-api-nar</artifactId>
+                    <version>2.7.0-SNAPSHOT</version>
+                </providedServiceAPI>
+                <providedServiceAPI>
+                    <className>org.apache.nifi.websocket.WebSocketService</className>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-websocket-services-api-nar</artifactId>
+                    <version>2.7.0-SNAPSHOT</version>
+                </providedServiceAPI>
+            </providedServiceAPIs>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.websocket.jetty.JettyWebSocketServer</name>
+            <type>CONTROLLER_SERVICE</type>
+            <description>Implementation of WebSocketServerService. This service uses Jetty WebSocket server module to provide WebSocket session management throughout the application.</description>
+            <tags>
+                <tag>WebSocket</tag>
+                <tag>Jetty</tag>
+                <tag>server</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Input Buffer Size</name>
+                    <displayName>Input Buffer Size</displayName>
+                    <description>The size of the input (read from network layer) buffer size.</description>
+                    <defaultValue>4 kb</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Max Text Message Size</name>
+                    <displayName>Max Text Message Size</displayName>
+                    <description>The maximum size of a text message during parsing/generating.</description>
+                    <defaultValue>64 kb</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Max Binary Message Size</name>
+                    <displayName>Max Binary Message Size</displayName>
+                    <description>The maximum size of a binary message during parsing/generating.</description>
+                    <defaultValue>64 kb</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Idle Timeout</name>
+                    <displayName>Idle Timeout</displayName>
+                    <description>The maximum amount of time that a WebSocket connection may remain idle before it is closed. A value of 0 sec disables the timeout.</description>
+                    <defaultValue>0 sec</defaultValue>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Port</name>
+                    <displayName>Port</displayName>
+                    <description>The port number on which this WebSocketServer listens to.</description>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <listenPortDefinition>
+                        <transportProtocol>TCP</transportProtocol>
+                        <applicationProtocols>
+                            <applicationProtocol>ws</applicationProtocol>
+                        </applicationProtocols>
+                    </listenPortDefinition>
+                </property>
+                <property>
+                    <name>SSL Context Service</name>
+                    <displayName>SSL Context Service</displayName>
+                    <description>The SSL Context Service to use in order to secure the server. If specified, the server will accept only WSS requests; otherwise, the server will accept only WS requests</description>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.ssl.SSLContextProvider</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>nifi-standard-services-api-nar</artifactId>
+                        <version>2.7.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Client Authentication</name>
+                    <displayName>Client Authentication</displayName>
+                    <description>Specifies whether or not the Processor should authenticate client by its certificate. This value is ignored if the &lt;SSL Context Service&gt; Property is not specified or the SSL Context provided uses only a KeyStore and not a TrustStore.</description>
+                    <defaultValue>no</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>No Authentication</displayName>
+                            <value>no</value>
+                            <description>Processor will not authenticate clients. Anyone can communicate with this Processor anonymously</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Want Authentication</displayName>
+                            <value>want</value>
+                            <description>Processor will try to verify the client but if unable to verify will allow the client to communicate anonymously</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Need Authentication</displayName>
+                            <value>need</value>
+                            <description>Processor will reject communications from any client unless the client provides a certificate that is trusted by the TrustStore specified in the SSL Context Service</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Basic Authentication Enabled</name>
+                    <displayName>Basic Authentication Enabled</displayName>
+                    <description>If enabled, client connection requests are authenticated with Basic authentication using the specified Login Provider.</description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description/>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description/>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Basic Authentication Path Spec</name>
+                    <displayName>Basic Authentication Path Spec</displayName>
+                    <description>Specify a Path Spec to apply Basic Authentication.</description>
+                    <defaultValue>/*</defaultValue>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Basic Authentication Roles</name>
+                    <displayName>Basic Authentication Roles</displayName>
+                    <description>The authenticated user must have one of specified role. Multiple roles can be set as comma separated string. '*' represents any role and so does '**' any role including no role.</description>
+                    <defaultValue>**</defaultValue>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Login Service</name>
+                    <displayName>Login Service</displayName>
+                    <description>Specify which Login Service to use for Basic Authentication.</description>
+                    <defaultValue>hash</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>HashLoginService</displayName>
+                            <value>hash</value>
+                            <description>See http://www.eclipse.org/jetty/javadoc/current/org/eclipse/jetty/security/HashLoginService.html for detail.</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>users-properties-file</name>
+                    <displayName>Users Properties File</displayName>
+                    <description>Specify a property file containing users for Basic Authentication using HashLoginService. See http://www.eclipse.org/jetty/documentation/current/configuring-security.html for detail.</description>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>ENVIRONMENT</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                    <resourceDefinition>
+                        <cardinality>SINGLE</cardinality>
+                        <resourceTypes>
+                            <resourceType>FILE</resourceType>
+                        </resourceTypes>
+                    </resourceDefinition>
+                </property>
+            </properties>
+            <providedServiceAPIs>
+                <providedServiceAPI>
+                    <className>org.apache.nifi.websocket.WebSocketServerService</className>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-websocket-services-api-nar</artifactId>
+                    <version>2.7.0-SNAPSHOT</version>
+                </providedServiceAPI>
+                <providedServiceAPI>
+                    <className>org.apache.nifi.websocket.WebSocketService</className>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-websocket-services-api-nar</artifactId>
+                    <version>2.7.0-SNAPSHOT</version>
+                </providedServiceAPI>
+            </providedServiceAPIs>
+        </extension>
+    </extensions>
+</extensionManifest>
