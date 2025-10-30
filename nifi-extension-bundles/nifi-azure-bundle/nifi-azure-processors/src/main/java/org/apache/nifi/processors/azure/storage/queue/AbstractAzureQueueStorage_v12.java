@@ -42,6 +42,7 @@ import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 import reactor.core.publisher.Mono;
@@ -51,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -177,8 +179,13 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
                         .build());
                 break;
             case ACCESS_TOKEN:
-                TokenCredential credential = tokenRequestContext -> Mono.just(storageCredentialsDetails.getAccessToken());
-                clientBuilder.credential(credential);
+                final TokenCredential accessTokenCredential = tokenRequestContext -> Mono.just(storageCredentialsDetails.getAccessToken());
+                clientBuilder.credential(accessTokenCredential);
+                break;
+            case IDENTITY_FEDERATION:
+                final AzureIdentityFederationTokenProvider identityTokenProvider = Objects.requireNonNull(
+                        storageCredentialsDetails.getIdentityTokenProvider(), "Identity Federation Token Provider is required");
+                clientBuilder.credential(identityTokenProvider.getCredentials());
                 break;
         }
     }

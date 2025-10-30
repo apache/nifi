@@ -30,6 +30,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.proxy.SocksVersion;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStrategy;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
@@ -87,7 +88,8 @@ public final class AzureStorageUtils {
                     AzureStorageCredentialsType.ACCOUNT_KEY,
                     AzureStorageCredentialsType.SAS_TOKEN,
                     AzureStorageCredentialsType.MANAGED_IDENTITY,
-                    AzureStorageCredentialsType.SERVICE_PRINCIPAL))
+                    AzureStorageCredentialsType.SERVICE_PRINCIPAL,
+                    AzureStorageCredentialsType.IDENTITY_FEDERATION))
             .defaultValue(AzureStorageCredentialsType.SAS_TOKEN)
             .build();
 
@@ -267,6 +269,14 @@ public final class AzureStorageUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
+            .build();
+
+    public static final PropertyDescriptor IDENTITY_FEDERATION_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Identity Federation Token Provider")
+            .description("Controller Service that provides Azure credentials via workload identity federation.")
+            .identifiesControllerService(AzureIdentityFederationTokenProvider.class)
+            .required(true)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.IDENTITY_FEDERATION)
             .build();
 
     private AzureStorageUtils() {

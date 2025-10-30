@@ -24,7 +24,8 @@ public enum AzureStorageCredentialsType implements DescribedValue {
     SAS_TOKEN("SAS Token", "SAS (Shared Access Signature) Token generated for accessing resources in the storage account"),
     MANAGED_IDENTITY("Managed Identity", "Azure Virtual Machine Managed Identity (it can only be used when NiFi is running on Azure)"),
     SERVICE_PRINCIPAL("Service Principal", "Azure Active Directory Service Principal with Client Id / Client Secret of a registered application"),
-    ACCESS_TOKEN("Access Token", "Access Token provided by custom controller service implementations");
+    ACCESS_TOKEN("Access Token", "Access Token provided by custom controller service implementations"),
+    IDENTITY_FEDERATION("Identity Federation", "Azure credential obtained via workload identity federation using an external identity token");
 
     private final String displayName;
     private final String description;

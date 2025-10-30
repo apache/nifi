@@ -18,6 +18,7 @@ package org.apache.nifi.services.azure.storage;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.http.ProxyOptions;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 
 import java.util.Objects;
 
@@ -40,6 +41,7 @@ public class ADLSCredentialsDetails {
     private final String servicePrincipalClientId;
     private final String servicePrincipalClientSecret;
 
+    private final AzureIdentityFederationTokenProvider identityTokenProvider;
     private final ProxyOptions proxyOptions;
 
     public ADLSCredentialsDetails(
@@ -53,6 +55,7 @@ public class ADLSCredentialsDetails {
             String servicePrincipalTenantId,
             String servicePrincipalClientId,
             String servicePrincipalClientSecret,
+            AzureIdentityFederationTokenProvider identityTokenProvider,
             ProxyOptions proxyOptions
     ) {
         this.accountName = accountName;
@@ -65,6 +68,7 @@ public class ADLSCredentialsDetails {
         this.servicePrincipalTenantId = servicePrincipalTenantId;
         this.servicePrincipalClientId = servicePrincipalClientId;
         this.servicePrincipalClientSecret = servicePrincipalClientSecret;
+        this.identityTokenProvider = identityTokenProvider;
         this.proxyOptions = proxyOptions;
     }
 
@@ -108,6 +112,10 @@ public class ADLSCredentialsDetails {
         return servicePrincipalClientSecret;
     }
 
+    public AzureIdentityFederationTokenProvider getIdentityTokenProvider() {
+        return identityTokenProvider;
+    }
+
     public ProxyOptions getProxyOptions() {
         return proxyOptions;
     }
@@ -133,6 +141,7 @@ public class ADLSCredentialsDetails {
                 && Objects.equals(servicePrincipalTenantId, that.servicePrincipalTenantId)
                 && Objects.equals(servicePrincipalClientId, that.servicePrincipalClientId)
                 && Objects.equals(servicePrincipalClientSecret, that.servicePrincipalClientSecret)
+                && Objects.equals(identityTokenProvider, that.identityTokenProvider)
                 && equalsProxyOptions(proxyOptions, that.proxyOptions);
     }
 
@@ -149,6 +158,7 @@ public class ADLSCredentialsDetails {
                 servicePrincipalTenantId,
                 servicePrincipalClientId,
                 servicePrincipalClientSecret,
+                identityTokenProvider,
                 hashCodeProxyOptions(proxyOptions)
         );
     }
@@ -164,6 +174,7 @@ public class ADLSCredentialsDetails {
         private String servicePrincipalTenantId;
         private String servicePrincipalClientId;
         private String servicePrincipalClientSecret;
+        private AzureIdentityFederationTokenProvider identityTokenProvider;
         private ProxyOptions proxyOptions;
 
         private Builder() { }
@@ -222,6 +233,11 @@ public class ADLSCredentialsDetails {
             return this;
         }
 
+        public Builder setIdentityTokenProvider(final AzureIdentityFederationTokenProvider identityTokenProvider) {
+            this.identityTokenProvider = identityTokenProvider;
+            return this;
+        }
+
         public Builder setProxyOptions(ProxyOptions proxyOptions) {
             this.proxyOptions = proxyOptions;
             return this;
@@ -229,7 +245,7 @@ public class ADLSCredentialsDetails {
 
         public ADLSCredentialsDetails build() {
             return new ADLSCredentialsDetails(accountName, accountKey, sasToken, endpointSuffix, accessToken, useManagedIdentity, managedIdentityClientId,
-                    servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, proxyOptions);
+                    servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, identityTokenProvider, proxyOptions);
         }
     }
 }

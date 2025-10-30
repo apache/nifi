@@ -48,6 +48,7 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.services.azure.MockIdentityFederationTokenProvider;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.shared.azure.eventhubs.BlobStorageAuthenticationStrategy;
@@ -106,7 +107,9 @@ public class TestConsumeAzureEventHub {
     private static final String APPLICATION_PROPERTY = "application";
     private static final String APPLICATION_ATTRIBUTE_NAME = String.format("eventhub.property.%s", APPLICATION_PROPERTY);
     private static final String EVENT_HUB_OAUTH_SERVICE_ID = "eventHubOauth";
+    private static final String EVENT_HUB_IDENTITY_SERVICE_ID = "eventHubIdentity";
     private static final String BLOB_OAUTH_SERVICE_ID = "blobOauth";
+    private static final String BLOB_IDENTITY_SERVICE_ID = "blobIdentity";
 
     private static final String EXPECTED_TRANSIT_URI = String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
             EVENT_HUB_NAMESPACE,
@@ -202,7 +205,7 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, STORAGE_TOKEN);
-        testRunner.assertNotValid();
+        testRunner.assertValid();
     }
 
     @Test
@@ -219,6 +222,20 @@ public class TestConsumeAzureEventHub {
     }
 
     @Test
+    public void testProcessorConfigValidityWithEventHubIdentityFederationRequiresTokenProvider() throws InitializationException {
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.setProperty(ConsumeAzureEventHub.CHECKPOINT_STRATEGY, CheckpointStrategy.COMPONENT_STATE.getValue());
+        testRunner.setProperty(ConsumeAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.IDENTITY_FEDERATION.getValue());
+
+        testRunner.assertNotValid();
+
+        configureEventHubIdentityTokenProvider();
+
+        testRunner.assertValid();
+    }
+
+    @Test
     public void testProcessorConfigValidityWithBlobOAuthRequiresTokenProvider() throws InitializationException {
         testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
@@ -227,6 +244,20 @@ public class TestConsumeAzureEventHub {
         testRunner.assertNotValid();
 
         configureBlobOAuthTokenProvider();
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithBlobIdentityFederationRequiresTokenProvider() throws InitializationException {
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY, BlobStorageAuthenticationStrategy.IDENTITY_FEDERATION.getValue());
+
+        testRunner.assertNotValid();
+
+        configureBlobIdentityTokenProvider();
 
         testRunner.assertValid();
     }
@@ -668,11 +699,25 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, EVENT_HUB_OAUTH_SERVICE_ID);
     }
 
+    private void configureEventHubIdentityTokenProvider() throws InitializationException {
+        final MockIdentityFederationTokenProvider provider = new MockIdentityFederationTokenProvider();
+        testRunner.addControllerService(EVENT_HUB_IDENTITY_SERVICE_ID, provider);
+        testRunner.enableControllerService(provider);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_IDENTITY_FEDERATION_TOKEN_PROVIDER, EVENT_HUB_IDENTITY_SERVICE_ID);
+    }
+
     private void configureBlobOAuthTokenProvider() throws InitializationException {
         final MockOAuth2AccessTokenProvider provider = new MockOAuth2AccessTokenProvider();
         testRunner.addControllerService(BLOB_OAUTH_SERVICE_ID, provider);
         testRunner.enableControllerService(provider);
         testRunner.setProperty(ConsumeAzureEventHub.BLOB_STORAGE_OAUTH2_ACCESS_TOKEN_PROVIDER, BLOB_OAUTH_SERVICE_ID);
+    }
+
+    private void configureBlobIdentityTokenProvider() throws InitializationException {
+        final MockIdentityFederationTokenProvider provider = new MockIdentityFederationTokenProvider();
+        testRunner.addControllerService(BLOB_IDENTITY_SERVICE_ID, provider);
+        testRunner.enableControllerService(provider);
+        testRunner.setProperty(ConsumeAzureEventHub.BLOB_STORAGE_IDENTITY_FEDERATION_TOKEN_PROVIDER, BLOB_IDENTITY_SERVICE_ID);
     }
 
     private class MockConsumeAzureEventHub extends ConsumeAzureEventHub {
@@ -696,4 +741,5 @@ public class TestConsumeAzureEventHub {
             return accessToken;
         }
     }
+
 }

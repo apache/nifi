@@ -28,8 +28,11 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import reactor.core.publisher.Mono;
+
+import java.util.Objects;
 
 public class BlobServiceClientFactory extends AbstractStorageClientFactory<AzureStorageCredentialsDetails_v12, BlobServiceClient> {
 
@@ -73,12 +76,17 @@ public class BlobServiceClientFactory extends AbstractStorageClientFactory<Azure
                         .clientSecret(credentialsDetails.getServicePrincipalClientSecret())
                         .httpClient(new NettyAsyncHttpClientBuilder()
                                 .proxy(credentialsDetails.getProxyOptions())
-                                .build())
+                        .build())
                         .build());
                 break;
             case ACCESS_TOKEN:
-                TokenCredential credential = tokenRequestContext -> Mono.just(credentialsDetails.getAccessToken());
-                clientBuilder.credential(credential);
+                final TokenCredential accessTokenCredential = tokenRequestContext -> Mono.just(credentialsDetails.getAccessToken());
+                clientBuilder.credential(accessTokenCredential);
+                break;
+            case IDENTITY_FEDERATION:
+                final AzureIdentityFederationTokenProvider identityTokenProvider = Objects.requireNonNull(
+                        credentialsDetails.getIdentityTokenProvider(), "Identity Federation Token Provider is required");
+                clientBuilder.credential(identityTokenProvider.getCredentials());
                 break;
         }
     }

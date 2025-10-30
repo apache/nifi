@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.services.azure;
 
+import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.credential.TokenRequestContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -23,17 +26,27 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 public class TestStandardAzureCredentialsControllerService {
     private static final String CREDENTIALS_SERVICE_IDENTIFIER = "credentials-service";
     private static final String SAMPLE_MANAGED_CLIENT_ID = "sample-managed-client-id";
+    private static final String TOKEN_PROVIDER_IDENTIFIER = "identity-provider";
+
     private TestRunner runner;
     private StandardAzureCredentialsControllerService credentialsService;
+    private MockIdentityFederationTokenProvider tokenProvider;
 
     @BeforeEach
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         credentialsService = new StandardAzureCredentialsControllerService();
         runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);
+
+        tokenProvider = new MockIdentityFederationTokenProvider();
+        runner.addControllerService(TOKEN_PROVIDER_IDENTIFIER, tokenProvider);
+        runner.enableControllerService(tokenProvider);
     }
 
     @Test
@@ -43,7 +56,6 @@ public class TestStandardAzureCredentialsControllerService {
                 StandardAzureCredentialsControllerService.DEFAULT_CREDENTIAL);
         runner.assertValid(credentialsService);
 
-        // should still be valid be ignored until CREDENTIAL_CONFIGURATION_STRATEGY is set to MANAGED_IDENTITY
         runner.setProperty(credentialsService,
                 StandardAzureCredentialsControllerService.MANAGED_IDENTITY_CLIENT_ID,
                 SAMPLE_MANAGED_CLIENT_ID);
@@ -76,5 +88,31 @@ public class TestStandardAzureCredentialsControllerService {
         runner.assertValid(credentialsService);
     }
 
+    @Test
+    public void testIdentityFederationStrategyRequiresProvider() {
+        runner.setProperty(credentialsService,
+                StandardAzureCredentialsControllerService.CREDENTIAL_CONFIGURATION_STRATEGY,
+                StandardAzureCredentialsControllerService.IDENTITY_FEDERATION);
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testIdentityFederationStrategyProvidesTokenCredential() throws Exception {
+        runner.setProperty(credentialsService,
+                StandardAzureCredentialsControllerService.CREDENTIAL_CONFIGURATION_STRATEGY,
+                StandardAzureCredentialsControllerService.IDENTITY_FEDERATION);
+        runner.setProperty(credentialsService,
+                StandardAzureCredentialsControllerService.IDENTITY_FEDERATION_TOKEN_PROVIDER,
+                TOKEN_PROVIDER_IDENTIFIER);
+
+        runner.assertValid(credentialsService);
+        runner.enableControllerService(credentialsService);
+
+        final TokenCredential tokenCredential = credentialsService.getCredentials();
+        final AccessToken accessToken = tokenCredential.getToken(new TokenRequestContext().addScopes("https://storage.azure.com/.default")).block();
+        assertNotNull(accessToken);
+        assertEquals(MockIdentityFederationTokenProvider.ACCESS_TOKEN_VALUE, accessToken.getToken());
+    }
 
 }
