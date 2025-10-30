@@ -21,6 +21,8 @@ import com.azure.core.http.ProxyOptions;
 
 import java.util.Objects;
 
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
+
 import static org.apache.nifi.services.azure.util.ProxyOptionsUtils.equalsProxyOptions;
 import static org.apache.nifi.services.azure.util.ProxyOptionsUtils.hashCodeProxyOptions;
 
@@ -36,11 +38,13 @@ public class AzureStorageCredentialsDetails_v12 {
     private final String servicePrincipalClientId;
     private final String servicePrincipalClientSecret;
     private final AccessToken accessToken;
+    private final AzureIdentityFederationTokenProvider identityTokenProvider;
     private final ProxyOptions proxyOptions;
 
     private AzureStorageCredentialsDetails_v12(
             String accountName, String endpointSuffix, AzureStorageCredentialsType credentialsType, String accountKey, String sasToken, String managedIdentityClientId,
-            String servicePrincipalTenantId, String servicePrincipalClientId, String servicePrincipalClientSecret, AccessToken accessToken, ProxyOptions proxyOptions) {
+            String servicePrincipalTenantId, String servicePrincipalClientId, String servicePrincipalClientSecret, AccessToken accessToken,
+            AzureIdentityFederationTokenProvider identityTokenProvider, ProxyOptions proxyOptions) {
         this.accountName = accountName;
         this.endpointSuffix = endpointSuffix;
         this.credentialsType = credentialsType;
@@ -51,6 +55,7 @@ public class AzureStorageCredentialsDetails_v12 {
         this.servicePrincipalClientId = servicePrincipalClientId;
         this.servicePrincipalClientSecret = servicePrincipalClientSecret;
         this.accessToken = accessToken;
+        this.identityTokenProvider = identityTokenProvider;
         this.proxyOptions = proxyOptions;
     }
 
@@ -94,6 +99,10 @@ public class AzureStorageCredentialsDetails_v12 {
         return accessToken;
     }
 
+    public AzureIdentityFederationTokenProvider getIdentityTokenProvider() {
+        return identityTokenProvider;
+    }
+
     public ProxyOptions getProxyOptions() {
         return proxyOptions;
     }
@@ -119,6 +128,7 @@ public class AzureStorageCredentialsDetails_v12 {
                 && Objects.equals(servicePrincipalClientId, that.servicePrincipalClientId)
                 && Objects.equals(servicePrincipalClientSecret, that.servicePrincipalClientSecret)
                 && Objects.equals(accessToken, that.accessToken)
+                && Objects.equals(identityTokenProvider, that.identityTokenProvider)
                 && equalsProxyOptions(proxyOptions, that.proxyOptions);
     }
 
@@ -135,6 +145,7 @@ public class AzureStorageCredentialsDetails_v12 {
                 servicePrincipalClientId,
                 servicePrincipalClientSecret,
                 accessToken,
+                identityTokenProvider,
                 hashCodeProxyOptions(proxyOptions)
         );
     }
@@ -143,14 +154,16 @@ public class AzureStorageCredentialsDetails_v12 {
             String accountName,
             String endpointSuffix,
             String accountKey) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCOUNT_KEY, accountKey, null, null, null, null, null, null, null);
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCOUNT_KEY,
+                accountKey, null, null, null, null, null, null, null, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithSasToken(
             String accountName,
             String endpointSuffix,
             String sasToken) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SAS_TOKEN, null, sasToken, null, null, null, null, null, null);
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SAS_TOKEN,
+                null, sasToken, null, null, null, null, null, null, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithManagedIdentity(
@@ -158,8 +171,8 @@ public class AzureStorageCredentialsDetails_v12 {
             String endpointSuffix,
             String managedIdentityClientId,
             ProxyOptions proxyOptions) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.MANAGED_IDENTITY, null, null, managedIdentityClientId,
-                null, null, null, null, proxyOptions);
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.MANAGED_IDENTITY,
+                null, null, managedIdentityClientId, null, null, null, null, null, proxyOptions);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithServicePrincipal(
@@ -169,14 +182,24 @@ public class AzureStorageCredentialsDetails_v12 {
             String servicePrincipalClientId,
             String servicePrincipalClientSecret,
             ProxyOptions proxyOptions) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SERVICE_PRINCIPAL, null, null, null,
-                servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, null, proxyOptions);
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.SERVICE_PRINCIPAL,
+                null, null, null, servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, null, null, proxyOptions);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithAccessToken(
             String accountName,
             String endpointSuffix,
             AccessToken accessToken) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN, null, null, null, null, null, null, accessToken, null);
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN,
+                null, null, null, null, null, null, accessToken, null, null);
+    }
+
+    public static AzureStorageCredentialsDetails_v12 createWithAccessToken(
+            String accountName,
+            String endpointSuffix,
+            AccessToken accessToken,
+            AzureIdentityFederationTokenProvider identityTokenProvider) {
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN, null, null, null,
+                null, null, null, accessToken, identityTokenProvider, null);
     }
 }
