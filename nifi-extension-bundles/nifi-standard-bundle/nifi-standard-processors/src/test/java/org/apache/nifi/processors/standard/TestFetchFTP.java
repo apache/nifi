@@ -217,6 +217,20 @@ public class TestFetchFTP {
     }
 
     @Test
+    public void testDeleteCommsFailure() {
+        runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_DELETE.getValue());
+        proc.isDeleteCommFailure = true;
+
+        addFileAndEnqueue("hello.txt");
+
+        runner.run(1, false, false);
+        // Delete now occurs post-commit; even on comms failure, the fetch is successful and routing stays success.
+        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
+        // On delete comms failure, remote file should still exist
+        assertTrue(proc.fileContents.containsKey("hello.txt"));
+    }
+
+    @Test
     public void testDeleteFails() {
         runner.setProperty(FetchFileTransfer.COMPLETION_STRATEGY, FetchFileTransfer.COMPLETION_DELETE.getValue());
         proc.allowDelete = false;
@@ -224,8 +238,10 @@ public class TestFetchFTP {
         addFileAndEnqueue("hello.txt");
 
         runner.run(1, false, false);
+        // Delete now occurs post-commit; permission denied should not change routing of the fetch itself
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
-        assertFalse(proc.fileContents.isEmpty());
+        // Original remote file should remain since delete was rejected
+        assertTrue(proc.fileContents.containsKey("hello.txt"));
     }
 
     @Test
@@ -238,7 +254,7 @@ public class TestFetchFTP {
         addFileAndEnqueue("hello.txt");
 
         runner.run(1, false, false);
-        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_PERMISSION_DENIED, 1);
         assertEquals(1, proc.fileContents.size());
 
         assertTrue(proc.fileContents.containsKey("hello.txt"));
@@ -273,7 +289,7 @@ public class TestFetchFTP {
         proc.allowCreateDir = false;
 
         runner.run(1, false, false);
-        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_PERMISSION_DENIED, 1);
         assertEquals(1, proc.fileContents.size());
 
         assertTrue(proc.fileContents.containsKey("hello.txt"));
@@ -299,6 +315,7 @@ public class TestFetchFTP {
         private boolean isClosed = false;
         private boolean isFileNotFound = false;
         private boolean isCommFailure = false;
+        private boolean isDeleteCommFailure = false;
         private int numberOfFileTransfers = 0;
         private final Map<String, byte[]> fileContents = new HashMap<>();
         private final FTPClient mockFtpClient = Mockito.mock(FTPClient.class);
@@ -349,6 +366,9 @@ public class TestFetchFTP {
                 public void deleteFile(FlowFile flowFile, String path, String remoteFileName) throws IOException {
                     if (!allowDelete) {
                         throw new PermissionDeniedException("test permission denied");
+                    }
+                    if (isDeleteCommFailure) {
+                        throw new IOException("test delete communication failure");
                     }
 
                     String key;
