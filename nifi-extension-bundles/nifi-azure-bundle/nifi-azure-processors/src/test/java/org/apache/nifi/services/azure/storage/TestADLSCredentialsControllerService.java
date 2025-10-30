@@ -16,8 +16,11 @@
  */
 package org.apache.nifi.services.azure.storage;
 
+import com.azure.core.credential.AccessToken;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -36,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestADLSCredentialsControllerService {
 
     public static final String CREDENTIALS_SERVICE_IDENTIFIER = "credentials-service";
+    private static final String TOKEN_PROVIDER_IDENTIFIER = "oauth2-provider";
 
     private static final String ACCOUNT_NAME_VALUE = "AccountName";
     private static final String ACCOUNT_KEY_VALUE = "AccountKey";
@@ -48,12 +52,16 @@ public class TestADLSCredentialsControllerService {
 
     private TestRunner runner;
     private ADLSCredentialsControllerService credentialsService;
+    private MockOAuth2AccessTokenProvider tokenProvider;
 
     @BeforeEach
     public void setUp() throws InitializationException {
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         credentialsService = new ADLSCredentialsControllerService();
         runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);
+        tokenProvider = new MockOAuth2AccessTokenProvider();
+        runner.addControllerService(TOKEN_PROVIDER_IDENTIFIER, tokenProvider);
+        runner.enableControllerService(tokenProvider);
     }
 
     @Test
@@ -154,6 +162,23 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
+    public void testValidWithAccountNameAndAccessToken() {
+        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
+        configureAccountName();
+        configureOAuth2Provider();
+
+        runner.assertValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidWithAccessTokenMissingProvider() {
+        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
+        configureAccountName();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
     public void testGetCredentialsDetailsWithAccountKey() throws Exception {
         // GIVEN
         configureCredentialsType(AzureStorageCredentialsType.ACCOUNT_KEY);
@@ -243,6 +268,22 @@ public class TestADLSCredentialsControllerService {
         assertNull(actual.getServicePrincipalTenantId());
         assertNull(actual.getServicePrincipalClientId());
         assertNull(actual.getServicePrincipalClientSecret());
+    }
+
+    @Test
+    public void testGetCredentialsDetailsWithAccessToken() throws Exception {
+        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
+        configureAccountName();
+        configureOAuth2Provider();
+
+        runner.enableControllerService(credentialsService);
+
+        final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+
+        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        final AccessToken accessToken = actual.getAccessToken();
+        assertNotNull(accessToken);
+        assertEquals(MockOAuth2AccessTokenProvider.ACCESS_TOKEN_VALUE, accessToken.getToken());
     }
 
     @Test
@@ -405,8 +446,24 @@ public class TestADLSCredentialsControllerService {
         runner.setProperty(credentialsService, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET, SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE);
     }
 
+    private void configureOAuth2Provider() {
+        runner.setProperty(credentialsService, AzureStorageUtils.OAUTH2_ACCESS_TOKEN_PROVIDER, TOKEN_PROVIDER_IDENTIFIER);
+    }
+
     private void configurePropertyUsingEL(PropertyDescriptor propertyDescriptor, String variableName, String variableValue) {
         runner.setProperty(credentialsService, propertyDescriptor, String.format("${%s}", variableName));
         runner.setEnvironmentVariableValue(variableName, variableValue);
+    }
+
+    private static final class MockOAuth2AccessTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
+        private static final String ACCESS_TOKEN_VALUE = "access-token";
+
+        @Override
+        public org.apache.nifi.oauth2.AccessToken getAccessDetails() {
+            final org.apache.nifi.oauth2.AccessToken token = new org.apache.nifi.oauth2.AccessToken();
+            token.setAccessToken(ACCESS_TOKEN_VALUE);
+            token.setExpiresIn(3600);
+            return token;
+        }
     }
 }

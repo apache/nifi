@@ -61,6 +61,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.util.StopWatch;
 
 import java.time.Duration;
@@ -117,6 +118,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
     static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
     static final PropertyDescriptor AUTHENTICATION_STRATEGY = AzureEventHubComponent.AUTHENTICATION_STRATEGY;
     static final PropertyDescriptor EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER = AzureEventHubComponent.OAUTH2_ACCESS_TOKEN_PROVIDER;
+    static final PropertyDescriptor EVENT_HUB_IDENTITY_FEDERATION_TOKEN_PROVIDER = AzureEventHubComponent.IDENTITY_FEDERATION_TOKEN_PROVIDER;
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Name")
             .description("The name of the shared access policy. This policy must have Listen claims.")
@@ -173,6 +175,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             POLICY_PRIMARY_KEY,
             AUTHENTICATION_STRATEGY,
             EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER,
+            EVENT_HUB_IDENTITY_FEDERATION_TOKEN_PROVIDER,
             CONSUMER_GROUP,
             ENQUEUE_TIME,
             RECEIVER_FETCH_SIZE,
@@ -210,7 +213,8 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, context);
+        return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY,
+                EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, EVENT_HUB_IDENTITY_FEDERATION_TOKEN_PROVIDER, context);
     }
 
     @OnPrimaryNodeStateChange
@@ -434,6 +438,13 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             case OAUTH2 -> {
                 final OAuth2AccessTokenProvider tokenProvider =
                         context.getProperty(EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+                final TokenCredential tokenCredential = AzureEventHubUtils.createTokenCredential(tokenProvider);
+                eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, tokenCredential);
+            }
+            case IDENTITY_FEDERATION -> {
+                final AzureIdentityFederationTokenProvider tokenProvider =
+                        context.getProperty(EVENT_HUB_IDENTITY_FEDERATION_TOKEN_PROVIDER)
+                                .asControllerService(AzureIdentityFederationTokenProvider.class);
                 final TokenCredential tokenCredential = AzureEventHubUtils.createTokenCredential(tokenProvider);
                 eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, tokenCredential);
             }

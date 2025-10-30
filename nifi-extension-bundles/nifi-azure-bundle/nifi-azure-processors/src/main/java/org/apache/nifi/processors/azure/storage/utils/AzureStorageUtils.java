@@ -25,6 +25,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -85,7 +86,8 @@ public final class AzureStorageUtils {
                     AzureStorageCredentialsType.ACCOUNT_KEY,
                     AzureStorageCredentialsType.SAS_TOKEN,
                     AzureStorageCredentialsType.MANAGED_IDENTITY,
-                    AzureStorageCredentialsType.SERVICE_PRINCIPAL))
+                    AzureStorageCredentialsType.SERVICE_PRINCIPAL,
+                    AzureStorageCredentialsType.ACCESS_TOKEN))
             .defaultValue(AzureStorageCredentialsType.SAS_TOKEN)
             .build();
 
@@ -250,6 +252,14 @@ public final class AzureStorageUtils {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
+            .build();
+
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Azure Identity Federation Token Provider")
+            .description("Controller Service that exchanges workload identity tokens for Azure AD access tokens.")
+            .identifiesControllerService(AzureIdentityFederationTokenProvider.class)
+            .required(true)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCESS_TOKEN)
             .build();
 
     private AzureStorageUtils() {

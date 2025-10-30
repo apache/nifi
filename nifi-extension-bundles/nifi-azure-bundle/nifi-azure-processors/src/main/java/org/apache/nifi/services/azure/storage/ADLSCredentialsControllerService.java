@@ -28,6 +28,8 @@ import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
+import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
 
 import java.util.List;
 import java.util.Map;
@@ -88,6 +90,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
             SERVICE_PRINCIPAL_CLIENT_SECRET,
+            AzureStorageUtils.OAUTH2_ACCESS_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE
     );
 
@@ -151,6 +154,13 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_SECRET, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientSecret, attributes);
+
+        if (context.getProperty(CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.ACCESS_TOKEN) {
+            final AzureIdentityFederationTokenProvider oauth2AccessTokenProvider = context.getProperty(AzureStorageUtils.OAUTH2_ACCESS_TOKEN_PROVIDER)
+                    .asControllerService(AzureIdentityFederationTokenProvider.class);
+            credentialsBuilder.setIdentityTokenProvider(oauth2AccessTokenProvider);
+            credentialsBuilder.setAccessToken(OAuth2AccessTokenAdapter.toAzureAccessToken(oauth2AccessTokenProvider.getAccessDetails()));
+        }
 
         credentialsBuilder.setProxyOptions(AzureStorageUtils.getProxyOptions(context));
 
