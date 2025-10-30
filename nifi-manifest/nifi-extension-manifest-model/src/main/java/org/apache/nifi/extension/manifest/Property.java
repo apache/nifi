@@ -52,6 +52,8 @@ public class Property {
 
     private ResourceDefinition resourceDefinition;
 
+    private ListenPortDefinition listenPortDefinition;
+
     @Schema(description = "The name of the property")
     public String getName() {
         return name;
@@ -176,5 +178,14 @@ public class Property {
 
     public void setResourceDefinition(ResourceDefinition resourceDefinition) {
         this.resourceDefinition = resourceDefinition;
+    }
+
+    @Schema(description = "The optional listen port definition")
+    public ListenPortDefinition getListenPortDefinition() {
+        return listenPortDefinition;
+    }
+
+    public void setListenPortDefinition(final ListenPortDefinition listenPortDefinition) {
+        this.listenPortDefinition = listenPortDefinition;
     }
 }
