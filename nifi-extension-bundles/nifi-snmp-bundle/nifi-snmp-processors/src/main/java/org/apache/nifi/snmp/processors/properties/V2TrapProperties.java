@@ -30,9 +30,10 @@ public class V2TrapProperties {
         // Utility class, not needed to instantiate.
     }
 
+    public static final String OLD_TRAP_OID_VALUE_PROPERTY_NAME = "snmp-trap-oid-value";
+
     public static final PropertyDescriptor TRAP_OID_VALUE = new PropertyDescriptor.Builder()
-            .name("snmp-trap-oid-value")
-            .displayName("Trap OID Value")
+            .name("Trap OID Value")
             .description("The value of the trap OID.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)

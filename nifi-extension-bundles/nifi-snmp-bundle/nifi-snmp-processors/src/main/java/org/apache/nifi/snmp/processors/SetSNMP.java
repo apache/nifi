@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -135,6 +136,21 @@ public class SetSNMP extends AbstractSNMPProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty(BasicProperties.OLD_SNMP_VERSION_PROPERTY_NAME, BasicProperties.SNMP_VERSION.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_COMMUNITY_PROPERTY_NAME, BasicProperties.SNMP_COMMUNITY.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_RETRIES_PROPERTY_NAME,  BasicProperties.SNMP_RETRIES.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_TIMEOUT_PROPERTY_NAME, BasicProperties.SNMP_TIMEOUT.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_SECURITY_LEVEL_PROPERTY_NAME, V3SecurityProperties.SNMP_SECURITY_LEVEL.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_SECURITY_NAME_PROPERTY_NAME, V3SecurityProperties.SNMP_SECURITY_NAME.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_AUTH_PROTOCOL_PROPERTY_NAME, V3SecurityProperties.SNMP_AUTH_PROTOCOL.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_AUTH_PASSWORD_PROPERTY_NAME, V3SecurityProperties.SNMP_AUTH_PASSWORD.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_PRIVACY_PROTOCOL_PROPERTY_NAME, V3SecurityProperties.SNMP_PRIVACY_PROTOCOL.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_PRIVACY_PASSWORD_PROPERTY_NAME, V3SecurityProperties.SNMP_PRIVACY_PASSWORD.getName());
     }
 
     @Override

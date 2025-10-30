@@ -65,9 +65,14 @@ public class V1TrapProperties {
     public static final AllowableValue WITH_FLOW_FILE_ATTRIBUTE = new AllowableValue(GENERIC_TRAP_TYPE_FF_ATTRIBUTE, "With \"generic-trap-type\" FlowFile Attribute",
             "Provide the Generic Trap Type with the \"generic-trap-type\" flowfile attribute.");
 
+    public static final String OLD_ENTERPRISE_OID_PROPERTY_NAME = "snmp-trap-enterprise-oid";
+    public static final String OLD_AGENT_ADDRESS_PROPERTY_NAME = "snmp-trap-agent-address";
+    public static final String OLD_GENERIC_TRAP_TYPE_PROPERTY_NAME = "snmp-trap-generic-type";
+    public static final String OLD_SPECIFIC_TRAP_TYPE_PROPERTY_NAME = "snmp-trap-specific-type";
+
+
     public static final PropertyDescriptor ENTERPRISE_OID = new PropertyDescriptor.Builder()
-            .name("snmp-trap-enterprise-oid")
-            .displayName("Enterprise OID")
+            .name("Enterprise OID")
             .description("Enterprise is the vendor identification (OID) for the network management sub-system that generated the trap.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -76,8 +81,7 @@ public class V1TrapProperties {
             .build();
 
     public static final PropertyDescriptor AGENT_ADDRESS = new PropertyDescriptor.Builder()
-            .name("snmp-trap-agent-address")
-            .displayName("SNMP Trap Agent Address")
+            .name("SNMP Trap Agent Address")
             .description("The address where the SNMP Manager sends the trap.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -86,8 +90,7 @@ public class V1TrapProperties {
             .build();
 
     public static final PropertyDescriptor GENERIC_TRAP_TYPE = new PropertyDescriptor.Builder()
-            .name("snmp-trap-generic-type")
-            .displayName("Generic Trap Type")
+            .name("Generic Trap Type")
             .description("Generic trap type is an integer in the range of 0 to 6. See processor usage for details.")
             .required(true)
             .dependsOn(SNMP_VERSION, SNMP_V1)
@@ -96,8 +99,7 @@ public class V1TrapProperties {
             .build();
 
     public static final PropertyDescriptor SPECIFIC_TRAP_TYPE = new PropertyDescriptor.Builder()
-            .name("snmp-trap-specific-type")
-            .displayName("Specific Trap Type")
+            .name("Specific Trap Type")
             .description("Specific trap type is a number that further specifies the nature of the event that generated " +
                     "the trap in the case of traps of generic type 6 (enterpriseSpecific). The interpretation of this " +
                     "code is vendor-specific.")

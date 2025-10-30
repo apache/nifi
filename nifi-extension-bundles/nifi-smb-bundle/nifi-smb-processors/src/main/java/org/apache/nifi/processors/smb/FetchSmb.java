@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -57,8 +58,7 @@ public class FetchSmb extends AbstractProcessor {
     public static final String ERROR_MESSAGE_ATTRIBUTE = "error.message";
 
     public static final PropertyDescriptor REMOTE_FILE = new PropertyDescriptor.Builder()
-            .name("remote-file")
-            .displayName("Remote File")
+            .name("Remote File")
             .description("The full path of the file to be retrieved from the remote server. Expression language is supported.")
             .required(true)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -94,8 +94,7 @@ public class FetchSmb extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SMB_CLIENT_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("smb-client-provider-service")
-            .displayName("SMB Client Provider Service")
+            .name("SMB Client Provider Service")
             .description("Specifies the SMB client provider to use for creating SMB connections.")
             .required(true)
             .identifiesControllerService(SmbClientProviderService.class)
@@ -163,6 +162,12 @@ public class FetchSmb extends AbstractProcessor {
         }
 
         session.commitAsync(() -> performCompletionStrategy(context, attributes));
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("remote-file", REMOTE_FILE.getName());
+        config.renameProperty("smb-client-provider-service", SMB_CLIENT_PROVIDER_SERVICE.getName());
     }
 
     private String getErrorCode(final Exception exception) {

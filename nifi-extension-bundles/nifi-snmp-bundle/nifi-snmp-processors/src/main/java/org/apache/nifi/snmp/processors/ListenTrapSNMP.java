@@ -29,6 +29,7 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -72,16 +73,14 @@ import static org.apache.nifi.snmp.processors.properties.BasicProperties.SNMP_V3
 public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements VerifiableProcessor {
 
     public static final PropertyDescriptor SNMP_MANAGER_PORT = new PropertyDescriptor.Builder()
-            .name("snmp-manager-port")
-            .displayName("SNMP Manager Port")
+            .name("SNMP Manager Port")
             .description("The port where the SNMP Manager listens to the incoming traps.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor SNMP_USM_USER_INPUT_METHOD = new PropertyDescriptor.Builder()
-            .name("snmp-usm-users-source")
-            .displayName("USM Users Input Method")
+            .name("USM Users Input Method")
             .description("Specifies how USM user data is provided.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -90,8 +89,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .build();
 
     public static final PropertyDescriptor SNMP_USM_USERS_JSON_FILE_PATH = new PropertyDescriptor.Builder()
-            .name("snmp-usm-users-file-path")
-            .displayName("USM Users JSON File Path")
+            .name("USM Users JSON File Path")
             .description("The path of the json file containing the user credentials for SNMPv3. Check Usage for more details.")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
@@ -100,8 +98,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .build();
 
     public static final PropertyDescriptor SNMP_USM_USERS_JSON = new PropertyDescriptor.Builder()
-            .name("snmp-usm-users-json-content")
-            .displayName("USM Users JSON content")
+            .name("USM Users JSON content")
             .description("The JSON containing the user credentials for SNMPv3. Check Usage for more details.")
             .required(false)
             .sensitive(true)
@@ -111,8 +108,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .build();
 
     public static final PropertyDescriptor SNMP_USM_SECURITY_NAMES = new PropertyDescriptor.Builder()
-            .name("snmp-usm-security-names")
-            .displayName("SNMP Users Security Names")
+            .name("SNMP Users Security Names")
             .description("Security names listed separated by commas in SNMPv3. Check Usage for more details.")
             .required(false)
             .dependsOn(BasicProperties.SNMP_VERSION, SNMP_V3)
@@ -221,6 +217,19 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("snmp-manager-port", SNMP_MANAGER_PORT.getName());
+        config.renameProperty("snmp-usm-users-source", SNMP_USM_USER_INPUT_METHOD.getName());
+        config.renameProperty("snmp-usm-users-file-path", SNMP_USM_USERS_JSON_FILE_PATH.getName());
+        config.renameProperty("snmp-usm-users-json-content", SNMP_USM_USERS_JSON.getName());
+        config.renameProperty("snmp-usm-security-names", SNMP_USM_SECURITY_NAMES.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_VERSION_PROPERTY_NAME, BasicProperties.SNMP_VERSION.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_COMMUNITY_PROPERTY_NAME, BasicProperties.SNMP_COMMUNITY.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_SECURITY_LEVEL_PROPERTY_NAME, V3SecurityProperties.SNMP_SECURITY_LEVEL.getName());
+
     }
 
     @Override
