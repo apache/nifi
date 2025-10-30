@@ -94,8 +94,7 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.extractMillisWithInfinit
 public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool implements SnowflakeConnectionProviderService {
 
     public static final PropertyDescriptor CONNECTION_URL_FORMAT = new PropertyDescriptor.Builder()
-            .name("connection-url-format")
-            .displayName("Connection URL Format")
+            .name("Connection URL Format")
             .description("The format of the connection URL.")
             .allowableValues(ConnectionUrlFormat.class)
             .required(true)
@@ -161,8 +160,7 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
             .build();
 
     public static final PropertyDescriptor SNOWFLAKE_WAREHOUSE = new PropertyDescriptor.Builder()
-            .name("warehouse")
-            .displayName("Warehouse")
+            .name("Warehouse")
             .description("The warehouse to use by default. The same as passing 'warehouse=WAREHOUSE' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -203,6 +201,15 @@ public class SnowflakeComputingConnectionPool extends AbstractDBCPConnectionPool
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("connection-url-format", CONNECTION_URL_FORMAT.getName());
+        config.renameProperty("warehouse", SNOWFLAKE_WAREHOUSE.getName());
+        config.renameProperty(SnowflakeProperties.OLD_ACCOUNT_LOCATOR_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_LOCATOR.getName());
+        config.renameProperty(SnowflakeProperties.OLD_CLOUD_REGION_PROPERTY_NAME, SnowflakeProperties.CLOUD_REGION.getName());
+        config.renameProperty(SnowflakeProperties.OLD_CLOUD_TYPE_PROPERTY_NAME, SnowflakeProperties.CLOUD_TYPE.getName());
+        config.renameProperty(SnowflakeProperties.OLD_ORGANIZATION_NAME_PROPERTY_NAME, SnowflakeProperties.ORGANIZATION_NAME.getName());
+        config.renameProperty(SnowflakeProperties.OLD_ACCOUNT_NAME_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_NAME.getName());
+        config.renameProperty(SnowflakeProperties.OLD_DATABASE_PROPERTY_NAME, SnowflakeProperties.DATABASE.getName());
+        config.renameProperty(SnowflakeProperties.OLD_SCHEMA_PROPERTY_NAME, SnowflakeProperties.SCHEMA.getName());
         config.renameProperty(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName());
         config.renameProperty(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName());
         config.renameProperty(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName());

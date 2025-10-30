@@ -132,6 +132,9 @@ public class QueryNiFiReportingTask extends AbstractReportingTask implements Que
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(QueryMetricsUtil.OLD_QUERY_PROPERTY_NAME, QueryMetricsUtil.QUERY.getName());
+        config.renameProperty(QueryMetricsUtil.OLD_RECORD_SINK_PROPERTY_NAME, QueryMetricsUtil.RECORD_SINK.getName());
+        config.renameProperty(QueryMetricsUtil.OLD_INCLUDE_ZERO_RECORD_RESULTS_PROPERTY_NAME, QueryMetricsUtil.INCLUDE_ZERO_RECORD_RESULTS.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION.getName());
     }

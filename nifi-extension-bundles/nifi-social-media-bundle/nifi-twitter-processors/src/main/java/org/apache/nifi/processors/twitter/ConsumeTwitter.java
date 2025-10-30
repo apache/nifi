@@ -32,6 +32,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -76,16 +77,14 @@ public class ConsumeTwitter extends AbstractProcessor {
                     "https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/get-tweets-search-stream");
 
     public static final PropertyDescriptor ENDPOINT = new PropertyDescriptor.Builder()
-            .name("stream-endpoint")
-            .displayName("Stream Endpoint")
+            .name("Stream Endpoint")
             .description("The source from which the processor will consume Tweets.")
             .required(true)
             .allowableValues(ENDPOINT_SAMPLE, ENDPOINT_SEARCH)
             .defaultValue(ENDPOINT_SAMPLE.getValue())
             .build();
     public static final PropertyDescriptor BASE_PATH = new PropertyDescriptor.Builder()
-            .name("base-path")
-            .displayName("Base Path")
+            .name("Base Path")
             .description("The base path that the processor will use for making HTTP requests. " +
                     "The default value should be sufficient for most use cases.")
             .required(true)
@@ -93,24 +92,21 @@ public class ConsumeTwitter extends AbstractProcessor {
             .defaultValue("https://api.twitter.com")
             .build();
     public static final PropertyDescriptor BEARER_TOKEN = new PropertyDescriptor.Builder()
-            .name("bearer-token")
-            .displayName("Bearer Token")
+            .name("Bearer Token")
             .description("The Bearer Token provided by Twitter.")
             .required(true)
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor QUEUE_SIZE = new PropertyDescriptor.Builder()
-            .name("queue-size")
-            .displayName("Queue Size")
+            .name("Queue Size")
             .description("Maximum size of internal queue for streamed messages")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .defaultValue("10000")
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("batch-size")
-            .displayName("Batch Size")
+            .name("Batch Size")
             .description("The maximum size of the number of Tweets to be written to a single FlowFile. " +
                     "Will write fewer Tweets based on the number available in the queue at the time of processor invocation.")
             .required(true)
@@ -118,8 +114,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .defaultValue("1000")
             .build();
     public static final PropertyDescriptor BACKOFF_ATTEMPTS = new PropertyDescriptor.Builder()
-            .name("backoff-attempts")
-            .displayName("Backoff Attempts")
+            .name("Backoff Attempts")
             .description("The number of reconnection tries the processor will attempt in the event of " +
                     "a disconnection of the stream for any reason, before throwing an exception. To start a stream after " +
                     "this exception occur and the connection is fixed, please stop and restart the processor. If the value" +
@@ -130,8 +125,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .defaultValue("5")
             .build();
     public static final PropertyDescriptor BACKOFF_TIME = new PropertyDescriptor.Builder()
-            .name("backoff-time")
-            .displayName("Backoff Time")
+            .name("Backoff Time")
             .description("The duration to backoff before requesting a new stream if" +
                     "the current one fails for any reason. Will increase by factor of 2 every time a restart fails")
             .required(true)
@@ -139,8 +133,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .defaultValue("1 mins")
             .build();
     public static final PropertyDescriptor MAXIMUM_BACKOFF_TIME = new PropertyDescriptor.Builder()
-            .name("maximum-backoff-time")
-            .displayName("Maximum Backoff Time")
+            .name("Maximum Backoff Time")
             .description("The maximum duration to backoff to start attempting a new stream." +
                     "It is recommended that this number be much higher than the 'Backoff Time' property")
             .required(true)
@@ -148,8 +141,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .defaultValue("5 mins")
             .build();
     public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("connect-timeout")
-            .displayName("Connect Timeout")
+            .name("Connect Timeout")
             .description("The maximum time in which client should establish a connection with the " +
                     "Twitter API before a time out. Setting the value to 0 disables connection timeouts.")
             .required(true)
@@ -157,8 +149,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .defaultValue("10 secs")
             .build();
     public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("read-timeout")
-            .displayName("Read Timeout")
+            .name("Read Timeout")
             .description("The maximum time of inactivity between receiving tweets from Twitter through " +
                     "the API before a timeout. Setting the value to 0 disables read timeouts.")
             .required(true)
@@ -166,8 +157,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .defaultValue("10 secs")
             .build();
     public static final PropertyDescriptor BACKFILL_MINUTES = new PropertyDescriptor.Builder()
-            .name("backfill-minutes")
-            .displayName("Backfill Minutes")
+            .name("Backfill Minutes")
             .description("The number of minutes (up to 5 minutes) of streaming data to be requested after a " +
                     "disconnect. Only available for project with academic research access. See " +
                     "https://developer.twitter.com/en/docs/twitter-api/tweets/filtered-stream/integrate/" +
@@ -177,8 +167,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
     public static final PropertyDescriptor TWEET_FIELDS = new PropertyDescriptor.Builder()
-            .name("tweet-fields")
-            .displayName("Tweet Fields")
+            .name("Tweet Fields")
             .description("A comma-separated list of tweet fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/tweet " +
                     "for proper usage. Possible field values include: " +
@@ -189,8 +178,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor USER_FIELDS = new PropertyDescriptor.Builder()
-            .name("user-fields")
-            .displayName("User Fields")
+            .name("User Fields")
             .description("A comma-separated list of user fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/user " +
                     "for proper usage. Possible field values include: " +
@@ -200,8 +188,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor MEDIA_FIELDS = new PropertyDescriptor.Builder()
-            .name("media-fields")
-            .displayName("Media Fields")
+            .name("Media Fields")
             .description("A comma-separated list of media fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/media " +
                     "for proper usage. Possible field values include: " +
@@ -211,8 +198,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor POLL_FIELDS = new PropertyDescriptor.Builder()
-            .name("poll-fields")
-            .displayName("Poll Fields")
+            .name("Poll Fields")
             .description("A comma-separated list of poll fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/poll " +
                     "for proper usage. Possible field values include: " +
@@ -221,8 +207,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor PLACE_FIELDS = new PropertyDescriptor.Builder()
-            .name("place-fields")
-            .displayName("Place Fields")
+            .name("Place Fields")
             .description("A comma-separated list of place fields to be returned as part of the tweet. Refer to " +
                     "https://developer.twitter.com/en/docs/twitter-api/data-dictionary/object-model/place " +
                     "for proper usage. Possible field values include: " +
@@ -231,8 +216,7 @@ public class ConsumeTwitter extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor EXPANSIONS = new PropertyDescriptor.Builder()
-            .name("expansions")
-            .displayName("Expansions")
+            .name("Expansions")
             .description("A comma-separated list of expansions for objects in the returned tweet. See " +
                     "https://developer.twitter.com/en/docs/twitter-api/expansions " +
                     "for proper usage. Possible field values include: " +
@@ -341,6 +325,27 @@ public class ConsumeTwitter extends AbstractProcessor {
     public void onStopped() {
         stopTweetStreamService();
         emptyQueue();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("stream-endpoint", ENDPOINT.getName());
+        config.renameProperty("base-path", BASE_PATH.getName());
+        config.renameProperty("bearer-token", BEARER_TOKEN.getName());
+        config.renameProperty("queue-size", QUEUE_SIZE.getName());
+        config.renameProperty("batch-size", BATCH_SIZE.getName());
+        config.renameProperty("backoff-attempts", BACKOFF_ATTEMPTS.getName());
+        config.renameProperty("backoff-time", BACKOFF_TIME.getName());
+        config.renameProperty("maximum-backoff-time", MAXIMUM_BACKOFF_TIME.getName());
+        config.renameProperty("connect-timeout", CONNECT_TIMEOUT.getName());
+        config.renameProperty("read-timeout", READ_TIMEOUT.getName());
+        config.renameProperty("backfill-minutes", BACKFILL_MINUTES.getName());
+        config.renameProperty("tweet-fields", TWEET_FIELDS.getName());
+        config.renameProperty("user-fields", USER_FIELDS.getName());
+        config.renameProperty("media-fields", MEDIA_FIELDS.getName());
+        config.renameProperty("poll-fields", POLL_FIELDS.getName());
+        config.renameProperty("place-fields", PLACE_FIELDS.getName());
+        config.renameProperty("expansions", EXPANSIONS.getName());
     }
 
     private void startTweetStreamService(final ProcessContext context) {

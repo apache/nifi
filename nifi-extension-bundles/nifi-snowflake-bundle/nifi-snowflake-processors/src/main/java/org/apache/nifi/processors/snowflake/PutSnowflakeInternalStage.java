@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -58,16 +59,14 @@ import static org.apache.nifi.processors.snowflake.util.SnowflakeAttributes.ATTR
 public class PutSnowflakeInternalStage extends AbstractProcessor {
 
     public static final PropertyDescriptor SNOWFLAKE_CONNECTION_PROVIDER = new PropertyDescriptor.Builder()
-            .name("snowflake-connection-provider")
-            .displayName("Snowflake Connection Provider")
+            .name("Snowflake Connection Provider")
             .description("Specifies the Controller Service to use for creating SQL connections to Snowflake.")
             .identifiesControllerService(SnowflakeConnectionProviderService.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor INTERNAL_STAGE_TYPE = new PropertyDescriptor.Builder()
-            .name("internal-stage-type")
-            .displayName("Internal Stage Type")
+            .name("Internal Stage Type")
             .description("The type of internal stage to use")
             .allowableValues(SnowflakeInternalStageType.class)
             .required(true)
@@ -86,8 +85,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
-            .name("table")
-            .displayName("Table")
+            .name("Table")
             .description("The name of the table in the Snowflake account.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -96,8 +94,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor INTERNAL_STAGE = new PropertyDescriptor.Builder()
-            .name("internal-stage")
-            .displayName("Stage")
+            .name("Stage")
             .description("The name of the internal stage in the Snowflake account to put files into.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -170,8 +167,18 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("snowflake-connection-provider", SNOWFLAKE_CONNECTION_PROVIDER.getName());
+        config.renameProperty("internal-stage-type", INTERNAL_STAGE_TYPE.getName());
+        config.renameProperty("table", TABLE.getName());
+        config.renameProperty("internal-stage", INTERNAL_STAGE.getName());
+        config.renameProperty(SnowflakeProperties.OLD_DATABASE_PROPERTY_NAME, SnowflakeProperties.DATABASE.getName());
+        config.renameProperty(SnowflakeProperties.OLD_SCHEMA_PROPERTY_NAME, SnowflakeProperties.SCHEMA.getName());
+    }
+
     private SnowflakeInternalStageTypeParameters getSnowflakeInternalStageTypeParameters(final SnowflakeInternalStageType stageType,
-            final ProcessContext context, final FlowFile flowFile) {
+                                                                                         final ProcessContext context, final FlowFile flowFile) {
         final String database = context.getProperty(DATABASE).evaluateAttributeExpressions(flowFile).getValue();
         final String schema = context.getProperty(SCHEMA).evaluateAttributeExpressions(flowFile).getValue();
         final String table = stageType == SnowflakeInternalStageType.TABLE

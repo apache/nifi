@@ -26,18 +26,19 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.record.sink.RecordSinkService;
 
 public class QueryMetricsUtil {
+    public static final String OLD_RECORD_SINK_PROPERTY_NAME = "sql-reporting-record-sink";
+    public static final String OLD_QUERY_PROPERTY_NAME = "sql-reporting-query";
+    public static final String OLD_INCLUDE_ZERO_RECORD_RESULTS_PROPERTY_NAME = "sql-reporting-include-zero-record-results";
 
     public static final PropertyDescriptor RECORD_SINK = new PropertyDescriptor.Builder()
-            .name("sql-reporting-record-sink")
-            .displayName("Record Destination Service")
+            .name("Record Destination Service")
             .description("Specifies the Controller Service to use for writing out the query result records to some destination.")
             .identifiesControllerService(RecordSinkService.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-            .name("sql-reporting-query")
-            .displayName("SQL Query")
+            .name("SQL Query")
             .description("SQL SELECT statement specifies which tables to query and how data should be filtered/transformed. "
                     + "SQL SELECT can select from the CONNECTION_STATUS, PROCESSOR_STATUS, BULLETINS, PROCESS_GROUP_STATUS, JVM_METRICS, CONNECTION_STATUS_PREDICTIONS, or PROVENANCE tables. "
                     + "Note that the CONNECTION_STATUS_PREDICTIONS table is not available for querying if analytics are not enabled).")
@@ -47,8 +48,7 @@ public class QueryMetricsUtil {
             .build();
 
     public static final PropertyDescriptor INCLUDE_ZERO_RECORD_RESULTS = new PropertyDescriptor.Builder()
-            .name("sql-reporting-include-zero-record-results")
-            .displayName("Include Zero Record Results")
+            .name("Include Zero Record Results")
             .description("When running the SQL statement, if the result has no data, this property specifies whether or not the empty result set will be transmitted.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")

@@ -27,6 +27,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.key.service.api.PrivateKeyService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.snowflake.SnowflakeIngestManagerProviderService;
 import org.apache.nifi.processors.snowflake.util.SnowflakeProperties;
@@ -46,8 +47,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
         implements SnowflakeIngestManagerProviderService {
 
     public static final PropertyDescriptor ACCOUNT_IDENTIFIER_FORMAT = new PropertyDescriptor.Builder()
-            .name("account-identifier-format")
-            .displayName("Account Identifier Format")
+            .name("Account Identifier Format")
             .description("The format of the account identifier.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
@@ -56,8 +56,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .build();
 
     public static final PropertyDescriptor HOST_URL = new PropertyDescriptor.Builder()
-            .name("host-url")
-            .displayName("Snowflake URL")
+            .name("Snowflake URL")
             .description("Example host url: [account-locator].[cloud-region].[cloud]" + ConnectionUrlFormat.SNOWFLAKE_HOST_SUFFIX)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -91,8 +90,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .build();
 
     public static final PropertyDescriptor USER_NAME = new PropertyDescriptor.Builder()
-            .name("user-name")
-            .displayName("User Name")
+            .name("User Name")
             .description("The Snowflake user name.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -100,8 +98,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .build();
 
     public static final PropertyDescriptor PRIVATE_KEY_SERVICE = new PropertyDescriptor.Builder()
-            .name("private-key-service")
-            .displayName("Private Key Service")
+            .name("Private Key Service")
             .description("Specifies the Controller Service that will provide the private key. The public key needs to be added to the user account in the Snowflake account beforehand.")
             .identifiesControllerService(PrivateKeyService.class)
             .required(true)
@@ -118,8 +115,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
             .build();
 
     public static final PropertyDescriptor PIPE = new PropertyDescriptor.Builder()
-            .name("pipe")
-            .displayName("Pipe")
+            .name("Pipe")
             .description("The Snowflake pipe to ingest from.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -188,6 +184,22 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
     @Override
     public SimpleIngestManager getIngestManager() {
         return ingestManager;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("account-identifier-format", ACCOUNT_IDENTIFIER_FORMAT.getName());
+        config.renameProperty("host-url", HOST_URL.getName());
+        config.renameProperty("user-name", USER_NAME.getName());
+        config.renameProperty("private-key-service", PRIVATE_KEY_SERVICE.getName());
+        config.renameProperty("pipe", PIPE.getName());
+        config.renameProperty(SnowflakeProperties.OLD_ACCOUNT_LOCATOR_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_LOCATOR.getName());
+        config.renameProperty(SnowflakeProperties.OLD_CLOUD_REGION_PROPERTY_NAME, SnowflakeProperties.CLOUD_REGION.getName());
+        config.renameProperty(SnowflakeProperties.OLD_CLOUD_TYPE_PROPERTY_NAME, SnowflakeProperties.CLOUD_TYPE.getName());
+        config.renameProperty(SnowflakeProperties.OLD_ORGANIZATION_NAME_PROPERTY_NAME, SnowflakeProperties.ORGANIZATION_NAME.getName());
+        config.renameProperty(SnowflakeProperties.OLD_ACCOUNT_NAME_PROPERTY_NAME, SnowflakeProperties.ACCOUNT_NAME.getName());
+        config.renameProperty(SnowflakeProperties.OLD_DATABASE_PROPERTY_NAME, SnowflakeProperties.DATABASE.getName());
+        config.renameProperty(SnowflakeProperties.OLD_SCHEMA_PROPERTY_NAME, SnowflakeProperties.SCHEMA.getName());
     }
 
     private AccountIdentifierFormatParameters getAccountIdentifierFormatParameters(ConfigurationContext context) {
