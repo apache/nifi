@@ -64,7 +64,8 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
         final List<InputStream> streams = new ArrayList<>();
         for (int index = 0; index < parts.size(); index++) {
             final Part part = parts.get(index);
-            streams.add(new ByteArrayInputStream(getBoundaryPrefix(index).getBytes(HEADERS_CHARACTER_SET)));
+            final String boundaryPrefix = getBoundaryPrefix(index);
+            streams.add(new ByteArrayInputStream(boundaryPrefix.getBytes(HEADERS_CHARACTER_SET)));
             final String partHeaders = getPartHeaders(part);
             streams.add(new ByteArrayInputStream(partHeaders.getBytes(HEADERS_CHARACTER_SET)));
             streams.add(part.inputStream);
@@ -147,9 +148,7 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
     private String getPartHeaders(final Part part) {
         final StringBuilder headersBuilder = new StringBuilder();
 
-        final String contentDispositionHeader = part.fileName == null
-                ? CONTENT_DISPOSITION_HEADER.formatted(part.name)
-                : CONTENT_DISPOSITION_FILE_HEADER.formatted(part.name, part.fileName);
+        final String contentDispositionHeader = getContentDispositionHeader(part);
         headersBuilder.append(contentDispositionHeader);
         headersBuilder.append(CARRIAGE_RETURN_LINE_FEED);
 
@@ -163,12 +162,25 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
     }
 
     private String getBoundaryPrefix(final int index) {
-        final String prefix = index == 0 ? "" : CARRIAGE_RETURN_LINE_FEED;
-        return prefix + BOUNDARY_SEPARATOR + boundary + CARRIAGE_RETURN_LINE_FEED;
+        final StringBuilder prefixBuilder = new StringBuilder();
+        if (index > 0) {
+            prefixBuilder.append(CARRIAGE_RETURN_LINE_FEED);
+        }
+        prefixBuilder.append(BOUNDARY_SEPARATOR);
+        prefixBuilder.append(boundary);
+        prefixBuilder.append(CARRIAGE_RETURN_LINE_FEED);
+        return prefixBuilder.toString();
     }
 
     private String getFooter() {
         return CARRIAGE_RETURN_LINE_FEED + BOUNDARY_SEPARATOR + boundary + BOUNDARY_SEPARATOR;
+    }
+
+    private String getContentDispositionHeader(final Part part) {
+        if (part.fileName == null) {
+            return CONTENT_DISPOSITION_HEADER.formatted(part.name);
+        }
+        return CONTENT_DISPOSITION_FILE_HEADER.formatted(part.name, part.fileName);
     }
 
     private record MultipartHttpContentType(String contentType) implements HttpContentType {

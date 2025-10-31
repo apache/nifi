@@ -230,7 +230,7 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             final String apiHost = bitbucketRepositoryClient.getApiHost();
             final String projectKey = bitbucketRepositoryClient.getProjectKey();
             if (apiHost != null && projectKey != null) {
-                return "git@" + apiHost + ":" + projectKey + "/" + bitbucketRepositoryClient.getRepoName() + ".git";
+                return "git@%s:%s/%s.git".formatted(apiHost, projectKey, bitbucketRepositoryClient.getRepoName());
             }
             return bitbucketRepositoryClient.getRepoName();
         }
