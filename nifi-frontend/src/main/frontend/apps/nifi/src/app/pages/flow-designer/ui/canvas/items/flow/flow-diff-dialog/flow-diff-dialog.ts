@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { AfterViewInit, Component, DestroyRef, ViewChild, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
@@ -44,6 +44,7 @@ export interface FlowDiffDialogData {
     errorContext: ErrorContextKey;
     clearBannerErrors?: () => void;
     addBannerError?: (errors: string[]) => void;
+    formatTimestamp?: (flowVersion: VersionedFlowSnapshotMetadata) => string | undefined;
 }
 
 interface FlowDiffRow {
@@ -72,7 +73,7 @@ interface FlowDiffRow {
     templateUrl: './flow-diff-dialog.html',
     styleUrl: './flow-diff-dialog.scss'
 })
-export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit {
+export class FlowDiffDialog extends CloseOnEscapeDialog {
     private data = inject<FlowDiffDialogData>(MAT_DIALOG_DATA);
     private registryService = inject(RegistryService);
     private destroyRef = inject(DestroyRef);
@@ -87,12 +88,12 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
     selectedVersionControl: FormControl<string>;
     sort: Sort = {
         active: 'componentName',
-        direction: 'asc'
+        direction: 'desc'
     };
 
     versionOptions: string[];
     flowName: string;
-    comparisonSummary: { label: string; version: string; created?: number }[] = [];
+    comparisonSummary: { label: string; version: string; created?: string }[] = [];
     isLoading = false;
     hasError = false;
     noDifferences = false;
@@ -101,6 +102,7 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
     readonly errorContext: ErrorContextKey;
     private clearBannerErrors: () => void;
     private addBannerError: (errors: string[]) => void;
+    private formatTimestampFn?: (flowVersion: VersionedFlowSnapshotMetadata) => string | undefined;
 
     constructor() {
         super();
@@ -112,6 +114,7 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
         this.errorContext = this.data.errorContext;
         this.clearBannerErrors = this.data.clearBannerErrors ?? (() => {});
         this.addBannerError = this.data.addBannerError ?? (() => {});
+        this.formatTimestampFn = this.data.formatTimestamp;
 
         this.currentVersionControl = new FormControl<string>(this.data.currentVersion, { nonNullable: true });
         this.selectedVersionControl = new FormControl<string>(this.data.selectedVersion, { nonNullable: true });
@@ -154,14 +157,10 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
     formatVersionOption(version: string): string {
         const metadata = this.versionMetadataByVersion.get(version);
         const formattedVersion = version.length > 5 ? `${version.substring(0, 5)}...` : version;
-        const created = metadata?.timestamp;
+        const created = this.formatTimestampForMetadata(metadata);
         return this.nifiCommon.isDefinedAndNotNull(created)
             ? `${formattedVersion} (${created})`
             : formattedVersion;
-    }
-
-    ngAfterViewInit(): void {
-        // Sorting handled automatically when MatSort is available via the ViewChild setter
     }
 
     private configureFiltering(): void {
@@ -315,12 +314,26 @@ export class FlowDiffDialog extends CloseOnEscapeDialog implements AfterViewInit
         ];
     }
 
-    private toSummary(label: string, version: string): { label: string; version: string; created?: number } {
+    private toSummary(label: string, version: string): { label: string; version: string; created?: string } {
         const metadata = this.versionMetadataByVersion.get(version);
         return {
             label,
             version,
-            created: metadata?.timestamp
+            created: this.formatTimestampForMetadata(metadata)
         };
+    }
+
+    private formatTimestampForMetadata(
+        metadata: VersionedFlowSnapshotMetadata | undefined
+    ): string | undefined {
+        if (!metadata) {
+            return undefined;
+        }
+
+        if (this.formatTimestampFn) {
+            return this.formatTimestampFn(metadata);
+        }
+
+        return metadata.timestamp ? metadata.timestamp.toString() : undefined;
     }
 }

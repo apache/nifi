@@ -66,7 +66,9 @@ describe('FlowDiffDialog', () => {
         selectedVersion: '1',
         errorContext: ErrorContextKey.FLOW_VERSION,
         clearBannerErrors: () => {},
-        addBannerError: () => {}
+        addBannerError: () => {},
+        formatTimestamp: (metadata: VersionedFlowSnapshotMetadata) =>
+            `Formatted ${metadata.version}`
     };
 
     const comparison: FlowComparisonEntity = {
@@ -144,8 +146,10 @@ describe('FlowDiffDialog', () => {
         expect(summaryItems.length).toBe(2);
         expect(summaryItems[0].nativeElement.textContent).toContain('Current Version');
         expect(summaryItems[0].nativeElement.textContent).toContain('2');
+        expect(summaryItems[0].nativeElement.textContent).toContain('Formatted 2');
         expect(summaryItems[1].nativeElement.textContent).toContain('Selected Version');
         expect(summaryItems[1].nativeElement.textContent).toContain('1');
+        expect(summaryItems[1].nativeElement.textContent).toContain('Formatted 1');
     }));
 
     it('should show empty state when there are no differences', fakeAsync(() => {

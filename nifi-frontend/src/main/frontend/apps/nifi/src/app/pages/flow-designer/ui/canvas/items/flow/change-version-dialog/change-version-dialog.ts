@@ -183,7 +183,8 @@ export class ChangeVersionDialog extends CloseOnEscapeDialog {
                             errors
                         }
                     })
-                )
+                ),
+            formatTimestamp: (metadata) => this.formatTimestamp(metadata)
         };
 
         this.dialog.open(FlowDiffDialog, {
