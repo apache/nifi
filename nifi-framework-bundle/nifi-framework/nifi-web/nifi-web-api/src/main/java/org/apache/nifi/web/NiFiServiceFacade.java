@@ -70,6 +70,7 @@ import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
+import org.apache.nifi.web.api.dto.ListenPortDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
@@ -3089,5 +3090,18 @@ public interface NiFiServiceFacade {
      * @param assetId the asset id
      */
     AssetEntity deleteAsset(String parameterContextId, String assetId);
+
+    // ----------------------------------------
+    // Listen Port methods
+    // ----------------------------------------
+
+    /**
+     * Get all dynamically defined data ingress ports provided by Listen Components (e.g., Processors and Controller Services)
+     *
+     * @param user the user performing the lookup
+     * @return the list of listen Ports accessible to the current user
+     */
+    Set<ListenPortDTO> getListenPorts(NiFiUser user);
+
 
 }

@@ -263,6 +263,7 @@ import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
+import org.apache.nifi.web.api.dto.ListenPortDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.NarCoordinateDTO;
 import org.apache.nifi.web.api.dto.NarSummaryDTO;
@@ -7246,6 +7247,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
      */
     protected NiFiRegistryFlowMapper makeNiFiRegistryFlowMapper(final ExtensionManager extensionManager, final FlowMappingOptions options) {
         return new NiFiRegistryFlowMapper(extensionManager, options);
+    }
+
+    @Override
+    public Set<ListenPortDTO> getListenPorts(final NiFiUser user) {
+        return controllerFacade.getListenPorts(user);
     }
 
     @Autowired
