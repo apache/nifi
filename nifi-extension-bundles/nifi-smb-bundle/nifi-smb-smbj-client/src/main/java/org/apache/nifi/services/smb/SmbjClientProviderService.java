@@ -30,6 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 
 import java.io.IOException;
 import java.net.URI;
@@ -39,6 +40,10 @@ import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDA
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 import static org.apache.nifi.processor.util.StandardValidators.PORT_VALIDATOR;
 import static org.apache.nifi.smb.common.SmbProperties.ENABLE_DFS;
+import static org.apache.nifi.smb.common.SmbProperties.OLD_ENABLE_DFS_PROPERTY_NAME;
+import static org.apache.nifi.smb.common.SmbProperties.OLD_SMB_DIALECT_PROPERTY_NAME;
+import static org.apache.nifi.smb.common.SmbProperties.OLD_TIMEOUT_PROPERTY_NAME;
+import static org.apache.nifi.smb.common.SmbProperties.OLD_USE_ENCRYPTION_PROPERTY_NAME;
 import static org.apache.nifi.smb.common.SmbProperties.SMB_DIALECT;
 import static org.apache.nifi.smb.common.SmbProperties.TIMEOUT;
 import static org.apache.nifi.smb.common.SmbProperties.USE_ENCRYPTION;
@@ -49,16 +54,14 @@ import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 public class SmbjClientProviderService extends AbstractControllerService implements SmbClientProviderService {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-            .displayName("Hostname")
-            .name("hostname")
+            .name("Hostname")
             .description("The network host of the SMB file server.")
             .required(true)
             .addValidator(NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor DOMAIN = new PropertyDescriptor.Builder()
-            .displayName("Domain")
-            .name("domain")
+            .name("Domain")
             .description(
                     "The domain used for authentication. Optional, in most cases username and password is sufficient.")
             .required(false)
@@ -66,8 +69,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
-            .displayName("Username")
-            .name("username")
+            .name("Username")
             .description(
                     "The username used for authentication.")
             .required(false)
@@ -76,8 +78,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .build();
 
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
-            .displayName("Password")
-            .name("password")
+            .name("Password")
             .description("The password used for authentication.")
             .required(false)
             .addValidator(NON_EMPTY_VALIDATOR)
@@ -85,8 +86,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .build();
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .displayName("Port")
-            .name("port")
+            .name("Port")
             .description("Port to use for connection.")
             .required(true)
             .addValidator(PORT_VALIDATOR)
@@ -94,8 +94,7 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
             .build();
 
     public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
-            .displayName("Share")
-            .name("share")
+            .name("Share")
             .description("The network share to which files should be listed from. This is the \"first folder\"" +
                     "after the hostname: smb://hostname:port/[share]/dir1/dir2")
             .required(true)
@@ -175,6 +174,20 @@ public class SmbjClientProviderService extends AbstractControllerService impleme
         }
 
         return new SmbjClientService(session, (DiskShare) share, getServiceLocation(), logger);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("hostname", HOSTNAME.getName());
+        config.renameProperty("domain", DOMAIN.getName());
+        config.renameProperty("username", USERNAME.getName());
+        config.renameProperty("password", PASSWORD.getName());
+        config.renameProperty("port", PORT.getName());
+        config.renameProperty("share", SHARE.getName());
+        config.renameProperty(OLD_ENABLE_DFS_PROPERTY_NAME, ENABLE_DFS.getName());
+        config.renameProperty(OLD_SMB_DIALECT_PROPERTY_NAME, SMB_DIALECT.getName());
+        config.renameProperty(OLD_TIMEOUT_PROPERTY_NAME, TIMEOUT.getName());
+        config.renameProperty(OLD_USE_ENCRYPTION_PROPERTY_NAME, USE_ENCRYPTION.getName());
     }
 
     private void closeSession(final Session session) {

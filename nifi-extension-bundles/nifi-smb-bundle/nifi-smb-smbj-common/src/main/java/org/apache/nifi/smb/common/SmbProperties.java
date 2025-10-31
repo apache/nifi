@@ -21,10 +21,13 @@ import org.apache.nifi.components.PropertyDescriptor;
 import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
 
 public class SmbProperties {
+    public static final String OLD_SMB_DIALECT_PROPERTY_NAME = "smb-dialect";
+    public static final String OLD_USE_ENCRYPTION_PROPERTY_NAME = "use-encryption";
+    public static final String OLD_ENABLE_DFS_PROPERTY_NAME = "enable-dfs";
+    public static final String OLD_TIMEOUT_PROPERTY_NAME = "timeout";
 
     public static final PropertyDescriptor SMB_DIALECT = new PropertyDescriptor.Builder()
-            .name("smb-dialect")
-            .displayName("SMB Dialect")
+            .name("SMB Dialect")
             .description("The SMB dialect is negotiated between the client and the server by default to the highest common version supported by both end. " +
                     "In some rare cases, the client-server communication may fail with the automatically negotiated dialect. This property can be used to set the dialect explicitly " +
                     "(e.g. to downgrade to a lower version), when those situations would occur.")
@@ -34,8 +37,7 @@ public class SmbProperties {
             .build();
 
     public static final PropertyDescriptor USE_ENCRYPTION = new PropertyDescriptor.Builder()
-            .name("use-encryption")
-            .displayName("Use Encryption")
+            .name("Use Encryption")
             .description("Turns on/off encrypted communication between the client and the server. The property's behavior is SMB dialect dependent: " +
                     "SMB 2.x does not support encryption and the property has no effect. " +
                     "In case of SMB 3.x, it is a hint/request to the server to turn encryption on if the server also supports it.")
@@ -45,8 +47,7 @@ public class SmbProperties {
             .build();
 
     public static final PropertyDescriptor ENABLE_DFS = new PropertyDescriptor.Builder()
-            .name("enable-dfs")
-            .displayName("Enable DFS")
+            .name("Enable DFS")
             .description("Enables accessing Distributed File System (DFS) and following DFS links during SMB operations.")
             .required(true)
             .allowableValues("true", "false")
@@ -54,8 +55,7 @@ public class SmbProperties {
             .build();
 
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
-            .displayName("Timeout")
-            .name("timeout")
+            .name("Timeout")
             .description("Timeout for read and write operations.")
             .required(true)
             .defaultValue("5 sec")

@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -79,8 +80,7 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
     private static final String NO_SUCH_OBJECT = "noSuchObject";
 
     public static final PropertyDescriptor AGENT_HOST = new PropertyDescriptor.Builder()
-            .name("snmp-hostname")
-            .displayName("SNMP Agent Hostname")
+            .name("SNMP Agent Hostname")
             .description("Hostname or network address of the SNMP Agent.")
             .required(true)
             .defaultValue("localhost")
@@ -89,8 +89,7 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor AGENT_PORT = new PropertyDescriptor.Builder()
-            .name("snmp-port")
-            .displayName("SNMP Agent Port")
+            .name("SNMP Agent Port")
             .description("Port of the SNMP Agent.")
             .required(true)
             .defaultValue("161")
@@ -239,5 +238,11 @@ public abstract class AbstractSNMPProcessor extends AbstractProcessor {
     public static String getSecurityLevel(final ProcessContext context, final String snmpVersion) {
         return snmpVersion.equals(SNMP_V3.getValue())
                 ? context.getProperty(V3SecurityProperties.SNMP_SECURITY_LEVEL).getValue() : null;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("snmp-hostname", AGENT_HOST.getName());
+        config.renameProperty("snmp-port", AGENT_PORT.getName());
     }
 }

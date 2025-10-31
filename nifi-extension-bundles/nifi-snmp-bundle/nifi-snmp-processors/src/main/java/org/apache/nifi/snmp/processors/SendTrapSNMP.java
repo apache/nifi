@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -59,8 +60,7 @@ import java.util.Set;
 public class SendTrapSNMP extends AbstractSNMPProcessor {
 
     public static final PropertyDescriptor SNMP_MANAGER_HOST = new PropertyDescriptor.Builder()
-            .name("snmp-trap-manager-host")
-            .displayName("SNMP Manager Host")
+            .name("SNMP Manager Host")
             .description("The host of the SNMP Manager where the trap is sent.")
             .required(true)
             .defaultValue("localhost")
@@ -69,8 +69,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
             .build();
 
     public static final PropertyDescriptor SNMP_MANAGER_PORT = new PropertyDescriptor.Builder()
-            .name("snmp-trap-manager-port")
-            .displayName("SNMP Manager Port")
+            .name("SNMP Manager Port")
             .description("The port of the SNMP Manager where the trap is sent.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -172,6 +171,28 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("snmp-trap-manager-host", SNMP_MANAGER_HOST.getName());
+        config.renameProperty("snmp-trap-manager-port", SNMP_MANAGER_PORT.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_VERSION_PROPERTY_NAME, BasicProperties.SNMP_VERSION.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_COMMUNITY_PROPERTY_NAME, BasicProperties.SNMP_COMMUNITY.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_RETRIES_PROPERTY_NAME,  BasicProperties.SNMP_RETRIES.getName());
+        config.renameProperty(BasicProperties.OLD_SNMP_TIMEOUT_PROPERTY_NAME, BasicProperties.SNMP_TIMEOUT.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_SECURITY_LEVEL_PROPERTY_NAME, V3SecurityProperties.SNMP_SECURITY_LEVEL.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_SECURITY_NAME_PROPERTY_NAME, V3SecurityProperties.SNMP_SECURITY_NAME.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_AUTH_PROTOCOL_PROPERTY_NAME, V3SecurityProperties.SNMP_AUTH_PROTOCOL.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_AUTH_PASSWORD_PROPERTY_NAME, V3SecurityProperties.SNMP_AUTH_PASSWORD.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_PRIVACY_PROTOCOL_PROPERTY_NAME, V3SecurityProperties.SNMP_PRIVACY_PROTOCOL.getName());
+        config.renameProperty(V3SecurityProperties.OLD_SNMP_PRIVACY_PASSWORD_PROPERTY_NAME, V3SecurityProperties.SNMP_PRIVACY_PASSWORD.getName());
+        config.renameProperty(V2TrapProperties.OLD_TRAP_OID_VALUE_PROPERTY_NAME, V2TrapProperties.TRAP_OID_VALUE.getName());
+        config.renameProperty(V1TrapProperties.OLD_ENTERPRISE_OID_PROPERTY_NAME, V1TrapProperties.ENTERPRISE_OID.getName());
+        config.renameProperty(V1TrapProperties.OLD_AGENT_ADDRESS_PROPERTY_NAME, V1TrapProperties.AGENT_ADDRESS.getName());
+        config.renameProperty(V1TrapProperties.OLD_GENERIC_TRAP_TYPE_PROPERTY_NAME, V1TrapProperties.GENERIC_TRAP_TYPE.getName());
+        config.renameProperty(V1TrapProperties.OLD_SPECIFIC_TRAP_TYPE_PROPERTY_NAME, V1TrapProperties.SPECIFIC_TRAP_TYPE.getName());
     }
 
     @Override
