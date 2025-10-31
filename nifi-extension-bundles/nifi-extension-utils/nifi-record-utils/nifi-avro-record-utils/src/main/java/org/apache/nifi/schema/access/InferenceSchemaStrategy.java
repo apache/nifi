@@ -19,6 +19,7 @@ package org.apache.nifi.schema.access;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -35,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.serialization.record.util.DataTypeUtils.mergeDataTypes;
+
 public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
     private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
@@ -49,34 +52,46 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
     protected RecordSchema convertSchema(Map<String, Object> result) {
         List<RecordField> fields = new ArrayList<>();
         for (Map.Entry<String, Object> entry : result.entrySet()) {
-
-            RecordField field;
-            if (entry.getValue() instanceof Integer) {
-                field = new RecordField(entry.getKey(), RecordFieldType.INT.getDataType());
-            } else if (entry.getValue() instanceof Long) {
-                field = new RecordField(entry.getKey(), RecordFieldType.LONG.getDataType());
-            } else if (entry.getValue() instanceof Boolean) {
-                field = new RecordField(entry.getKey(), RecordFieldType.BOOLEAN.getDataType());
-            } else if (entry.getValue() instanceof Double) {
-                field = new RecordField(entry.getKey(), RecordFieldType.DOUBLE.getDataType());
-            } else if (entry.getValue() instanceof Date) {
-                field = new RecordField(entry.getKey(), RecordFieldType.DATE.getDataType());
-            } else if (entry.getValue() instanceof BigDecimal) {
-                final BigDecimal bigDecimal = (BigDecimal) entry.getValue();
-                field = new RecordField(entry.getKey(), RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale()));
-            } else if (entry.getValue() instanceof List) {
-                field = new RecordField(entry.getKey(), RecordFieldType.ARRAY.getDataType());
-            } else if (entry.getValue() instanceof Map) {
-                RecordSchema nestedSchema = convertSchema((Map) entry.getValue());
-                RecordDataType rdt = new RecordDataType(nestedSchema);
-                field = new RecordField(entry.getKey(), rdt);
-            } else {
-                field = new RecordField(entry.getKey(), RecordFieldType.STRING.getDataType());
-            }
+            final RecordField field = new RecordField(entry.getKey(), getDataType(entry.getValue()));
             fields.add(field);
         }
 
         return new SimpleRecordSchema(fields);
+    }
+
+    private DataType getDataType(Object value) {
+        return switch (value) {
+            case Integer ignored -> RecordFieldType.INT.getDataType();
+            case Long ignored -> RecordFieldType.LONG.getDataType();
+            case Boolean ignored -> RecordFieldType.BOOLEAN.getDataType();
+            case Double ignored -> RecordFieldType.DOUBLE.getDataType();
+            case Date ignored -> RecordFieldType.DATE.getDataType();
+
+            case BigDecimal bigDecimal ->
+                    RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
+
+            case List listField -> {
+                DataType mergedDataType = null;
+
+                for (Object listElement : listField) {
+                    final DataType inferredDataType = getDataType(listElement);
+                    mergedDataType = mergeDataTypes(mergedDataType, inferredDataType);
+                }
+
+                if (mergedDataType == null) {
+                    mergedDataType = RecordFieldType.STRING.getDataType();
+                }
+
+                yield RecordFieldType.ARRAY.getArrayDataType(mergedDataType);
+            }
+
+            case Map map -> {
+                final RecordSchema nestedSchema = convertSchema(map);
+                yield new RecordDataType(nestedSchema);
+            }
+
+            case null, default -> RecordFieldType.STRING.getDataType();
+        };
     }
 
     @Override
