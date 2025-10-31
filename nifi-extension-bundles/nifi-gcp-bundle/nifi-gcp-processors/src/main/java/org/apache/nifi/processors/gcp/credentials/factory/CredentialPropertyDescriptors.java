@@ -21,6 +21,7 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.JsonValidator;
+import org.apache.nifi.services.gcp.GCPIdentityFederationTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
@@ -85,6 +86,13 @@ public final class CredentialPropertyDescriptors {
             .addValidator(JsonValidator.INSTANCE)
             .description("The raw JSON containing a Service Account keyfile.")
             .sensitive(true)
+            .build();
+
+    public static final PropertyDescriptor IDENTITY_FEDERATION_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("GCP Identity Federation Token Provider")
+            .description("Controller Service that exchanges workload identity tokens for Google Cloud access tokens.")
+            .identifiesControllerService(GCPIdentityFederationTokenProvider.class)
+            .required(false)
             .build();
 
     public static final PropertyDescriptor DELEGATION_STRATEGY = new PropertyDescriptor.Builder()
