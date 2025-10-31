@@ -28,6 +28,7 @@ public enum AuthenticationStrategy implements DescribedValue {
     APPLICATION_DEFAULT("Application Default Credentials", "Use Google Application Default Credentials such as the GOOGLE_APPLICATION_CREDENTIALS environment variable or gcloud configuration."),
     SERVICE_ACCOUNT_JSON_FILE("Service Account Credentials (Json File)", "Use a Service Account key stored in a JSON file."),
     SERVICE_ACCOUNT_JSON("Service Account Credentials (Json Value)", "Use a Service Account key provided directly as JSON."),
+    WORKLOAD_IDENTITY_FEDERATION("Workload Identity Federation", "Exchange workload identity tokens using Google Identity Pool credentials."),
     COMPUTE_ENGINE("Compute Engine Credentials", "Use the Compute Engine service account available to the NiFi instance.");
 
     private final String displayName;
