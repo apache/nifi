@@ -25,9 +25,16 @@ public final class SnowflakeProperties {
     private SnowflakeProperties() {
     }
 
+    public static final String OLD_ACCOUNT_LOCATOR_PROPERTY_NAME = "account-locator";
+    public static final String OLD_CLOUD_REGION_PROPERTY_NAME = "cloud-region";
+    public static final String OLD_CLOUD_TYPE_PROPERTY_NAME = "cloud-type";
+    public static final String OLD_ORGANIZATION_NAME_PROPERTY_NAME = "organization-name";
+    public static final String OLD_ACCOUNT_NAME_PROPERTY_NAME = "account-name";
+    public static final String OLD_DATABASE_PROPERTY_NAME = "database";
+    public static final String OLD_SCHEMA_PROPERTY_NAME = "schema";
+
     public static final PropertyDescriptor ACCOUNT_LOCATOR = new PropertyDescriptor.Builder()
-            .name("account-locator")
-            .displayName("Account Locator")
+            .name("Account Locator")
             .description("Snowflake account locator to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -35,8 +42,7 @@ public final class SnowflakeProperties {
             .build();
 
     public static final PropertyDescriptor CLOUD_REGION = new PropertyDescriptor.Builder()
-            .name("cloud-region")
-            .displayName("Cloud Region")
+            .name("Cloud Region")
             .description("Snowflake cloud region to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -44,16 +50,14 @@ public final class SnowflakeProperties {
             .build();
 
     public static final PropertyDescriptor CLOUD_TYPE = new PropertyDescriptor.Builder()
-            .name("cloud-type")
-            .displayName("Cloud Type")
+            .name("Cloud Type")
             .description("Snowflake cloud type to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor ORGANIZATION_NAME = new PropertyDescriptor.Builder()
-            .name("organization-name")
-            .displayName("Organization Name")
+            .name("Organization Name")
             .description("Snowflake organization name to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -61,8 +65,7 @@ public final class SnowflakeProperties {
             .build();
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
-            .name("account-name")
-            .displayName("Account Name")
+            .name("Account Name")
             .description("Snowflake account name to use for connection.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -70,16 +73,14 @@ public final class SnowflakeProperties {
             .build();
 
     public static final PropertyDescriptor DATABASE = new PropertyDescriptor.Builder()
-            .name("database")
-            .displayName("Database")
+            .name("Database")
             .description("The database to use by default. The same as passing 'db=DATABASE_NAME' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor SCHEMA = new PropertyDescriptor.Builder()
-            .name("schema")
-            .displayName("Schema")
+            .name("Schema")
             .description("The schema to use by default. The same as passing 'schema=SCHEMA' to the connection string.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)

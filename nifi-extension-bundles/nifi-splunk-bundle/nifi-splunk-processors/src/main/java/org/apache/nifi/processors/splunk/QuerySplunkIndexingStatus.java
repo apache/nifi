@@ -31,6 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dto.splunk.EventIndexStatusRequest;
 import org.apache.nifi.dto.splunk.EventIndexStatusResponse;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -96,8 +97,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
     );
 
     static final PropertyDescriptor TTL = new PropertyDescriptor.Builder()
-            .name("ttl")
-            .displayName("Maximum Waiting Time")
+            .name("Maximum Waiting Time")
             .description(
                     "The maximum time the processor tries to acquire acknowledgement confirmation for an index, from the point of registration. " +
                     "After the given amount of time, the processor considers the index as not acknowledged and transfers the FlowFile to the \"unacknowledged\" relationship.")
@@ -107,8 +107,7 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             .build();
 
     static final PropertyDescriptor MAX_QUERY_SIZE = new PropertyDescriptor.Builder()
-            .name("max-query-size")
-            .displayName("Maximum Query Size")
+            .name("Maximum Query Size")
             .description(
                     "The maximum number of acknowledgement identifiers the outgoing query contains in one batch. " +
                     "It is recommended not to set it too low in order to reduce network communication.")
@@ -221,6 +220,13 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             getLogger().error("Error during communication with Splunk server", e);
             session.transfer(undetermined.values(), RELATIONSHIP_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("ttl", TTL.getName());
+        config.renameProperty("max-query-size", MAX_QUERY_SIZE.getName());
     }
 
     private RequestMessage createRequestMessage(Map<Long, FlowFile> undetermined) throws IOException {

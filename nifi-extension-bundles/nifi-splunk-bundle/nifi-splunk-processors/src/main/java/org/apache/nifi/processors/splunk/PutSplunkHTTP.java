@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.dto.splunk.SendRawDataResponse;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -63,8 +64,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
     private static final String ENDPOINT = "/services/collector/raw";
 
     static final PropertyDescriptor SOURCE = new PropertyDescriptor.Builder()
-            .name("source")
-            .displayName("Source")
+            .name("Source")
             .description("User-defined event source. Sets a default for all events when unspecified.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -72,8 +72,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .build();
 
     static final PropertyDescriptor SOURCE_TYPE = new PropertyDescriptor.Builder()
-            .name("source-type")
-            .displayName("Source Type")
+            .name("Source Type")
             .description("User-defined event sourcetype. Sets a default for all events when unspecified.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -81,8 +80,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .build();
 
     static final PropertyDescriptor HOST = new PropertyDescriptor.Builder()
-            .name("host")
-            .displayName("Host")
+            .name("Host")
             .description("Specify with the host query string parameter. Sets a default for all events when unspecified.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -90,8 +88,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .build();
 
     static final PropertyDescriptor INDEX = new PropertyDescriptor.Builder()
-            .name("index")
-            .displayName("Index")
+            .name("Index")
             .description("Index name. Specify with the index query string parameter. Sets a default for all events when unspecified.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -99,8 +96,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .build();
 
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("character-set")
-            .displayName("Character Set")
+            .name("Character Set")
             .description("The name of the character set.")
             .required(true)
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
@@ -109,8 +105,7 @@ public class PutSplunkHTTP extends SplunkAPICall {
             .build();
 
     static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
-            .name("content-type")
-            .displayName("Content Type")
+            .name("Content Type")
             .description(
                     "The media type of the event sent to Splunk. " +
                     "If not set, \"mime.type\" flow file attribute will be used. " +
@@ -206,6 +201,17 @@ public class PutSplunkHTTP extends SplunkAPICall {
         } finally {
             session.transfer(flowFile, success ? RELATIONSHIP_SUCCESS : RELATIONSHIP_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("source", SOURCE.getName());
+        config.renameProperty("source-type", SOURCE_TYPE.getName());
+        config.renameProperty("host", HOST.getName());
+        config.renameProperty("index", INDEX.getName());
+        config.renameProperty("character-set", CHARSET.getName());
+        config.renameProperty("content-type", CONTENT_TYPE.getName());
     }
 
     protected RequestMessage createRequestMessage(final ProcessSession session, final FlowFile flowFile, final ProcessContext context) {
