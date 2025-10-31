@@ -1,0 +1,33 @@
+nifi-iceberg-azure-nar
+Copyright 2014-2025 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+===========================================
+Apache Software License v2
+===========================================
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Non Blocking Reactive Foundation For The JVM (io.projectreactor:reactor-core:jar - https://github.com/reactor/reactor-core)
+      The following NOTICE information applies:
+        Non Blocking Reactive Foundation For The JVM
+        Copyright 2020, Project Reactor
+
+  (ASLv2) Jackson JSON processor
+    The following NOTICE information applies:
+      Jackson JSON processor
+      Jackson is a high-performance, Free/Open Source JSON processing library.
+      It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+      been in development since 2007.
+      It is currently developed by a community of developers, as well as supported
+      commercially by FasterXML.com.
+
+===========================================
+Creative Commons Zero license version 1.0
+===========================================
+
+The following binary components are provided under the Creative Commons Zero license version 1.0.  See project link for details.
+
+    (CC0v1.0) Reactive Streams (org.reactivestreams:reactive-streams:jar - http://www.reactive-streams.org/)
