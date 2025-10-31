@@ -20,6 +20,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.junit.jupiter.api.Test;
 
@@ -29,11 +30,13 @@ import java.math.BigInteger;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -42,33 +45,38 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 public class InferenceSchemaStrategyTest {
 
-    private static final Object[][] CONTENT_FIELDS = new Object[][] {
-            {"integer", 1, RecordFieldType.INT.getDataType()},
-            {"long", 1L, RecordFieldType.LONG.getDataType()},
-            {"boolean", true, RecordFieldType.BOOLEAN.getDataType()},
-            {"double", 1D, RecordFieldType.DOUBLE.getDataType()},
-            {"date", new Date(), RecordFieldType.DATE.getDataType()},
-            {"decimal", BigDecimal.valueOf(123.456D), RecordFieldType.DECIMAL.getDecimalDataType(6, 3)},
-            {"array", new ArrayList<>(), RecordFieldType.ARRAY.getDataType()},
+    private static final List<TestFieldEntry> CONTENT_FIELDS = Arrays.asList(
+            new TestFieldEntry("integer", 1, RecordFieldType.INT.getDataType()),
+            new TestFieldEntry("long", 1L, RecordFieldType.LONG.getDataType()),
+            new TestFieldEntry("boolean", true, RecordFieldType.BOOLEAN.getDataType()),
+            new TestFieldEntry("double", 1D, RecordFieldType.DOUBLE.getDataType()),
+            new TestFieldEntry("date", new Date(), RecordFieldType.DATE.getDataType()),
+            new TestFieldEntry("decimal", BigDecimal.valueOf(123.456D), RecordFieldType.DECIMAL.getDecimalDataType(6, 3)),
+            new TestFieldEntry("array", new ArrayList<>(), RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())),
 
             // date subclasses
-            {"time", new Time(System.currentTimeMillis()), RecordFieldType.DATE.getDataType()},
-            {"timestamp", new Timestamp(System.currentTimeMillis()), RecordFieldType.DATE.getDataType()},
+            new TestFieldEntry("time", new Time(System.currentTimeMillis()), RecordFieldType.DATE.getDataType()),
+            new TestFieldEntry("timestamp", new Timestamp(System.currentTimeMillis()), RecordFieldType.DATE.getDataType()),
 
             // others are considered as string
-            {"byte", (byte) 1, RecordFieldType.STRING.getDataType()},
-            {"short", (short) 1, RecordFieldType.STRING.getDataType()},
-            {"bigint", BigInteger.ONE, RecordFieldType.STRING.getDataType()},
-            {"float", (float) 1, RecordFieldType.STRING.getDataType()},
-            {"char", (char) 1, RecordFieldType.STRING.getDataType()},
-    };
+            new TestFieldEntry("byte", (byte) 1, RecordFieldType.STRING.getDataType()),
+            new TestFieldEntry("short", (short) 1, RecordFieldType.STRING.getDataType()),
+            new TestFieldEntry("bigint", BigInteger.ONE, RecordFieldType.STRING.getDataType()),
+            new TestFieldEntry("float", (float) 1, RecordFieldType.STRING.getDataType()),
+            new TestFieldEntry("char", (char) 1, RecordFieldType.STRING.getDataType())
+    );
 
     private final InferenceSchemaStrategy testSubject = new InferenceSchemaStrategy();
 
     @Test
     public void testSchemaConversion() throws Exception {
         // when
-        final RecordSchema result = testSubject.getSchema(null, givenContent(), null);
+        final Map<String, Object> inputMap = CONTENT_FIELDS.stream().collect(Collectors.toMap(
+                TestFieldEntry::name,
+                TestFieldEntry::value
+        ));
+
+        final RecordSchema result = testSubject.getSchema(null, inputMap, null);
 
         // then
         assertNotNull(result);
@@ -111,38 +119,43 @@ public class InferenceSchemaStrategyTest {
         thenFieldsAreConvertedProperly(result, false);
     }
 
-    private Map<String, Object> givenContent() {
-        final Map<String, Object> result = new HashMap<>();
+    @Test
+    public void testSchemaConversionFromJsonStringWithNestedRecordArray() throws Exception {
+        // given
+        final String json = "{\"test-array\":[{\"string\":\"string-value\",\"int\":1}]}";
 
-        for (final Object[] contentField : CONTENT_FIELDS) {
-            result.put((String) contentField[0], contentField[1]);
-        }
+        // when
+        final RecordSchema result = testSubject.getSchema(null, new ByteArrayInputStream(json.getBytes()), null);
 
-        return result;
-    }
+        // then
+        assertNotNull(result);
+        assertInstanceOf(ArrayDataType.class, result.getField("test-array").get().getDataType());
+        final ArrayDataType arrayDataType = (ArrayDataType) result.getField("test-array").get().getDataType();
 
-    private Map<String, DataType> givenExpected() {
-        final Map<String, DataType> result = new HashMap<>();
+        final DataType elementDataType = arrayDataType.getElementType();
+        assertInstanceOf(RecordDataType.class, elementDataType);
 
-        for (final Object[] contentField : CONTENT_FIELDS) {
-            result.put((String) contentField[0], (DataType) contentField[2]);
-        }
-
-        return result;
+        final RecordSchema childSchema = ((RecordDataType) elementDataType).getChildSchema();
+        assertNotNull(childSchema);
+        assertEquals(RecordFieldType.STRING.getDataType(), childSchema.getField("string").get().getDataType());
+        assertEquals(RecordFieldType.INT.getDataType(), childSchema.getField("int").get().getDataType());
     }
 
     private void thenFieldsAreConvertedProperly(final RecordSchema result, final boolean mustPresent) {
         final List<RecordField> fields = result.getFields();
 
-        for (final Map.Entry<String, DataType> expected : givenExpected().entrySet()) {
-            final Optional<RecordField> field = fields.stream().filter(f -> f.getFieldName().equals(expected.getKey())).findFirst();
+        for (final TestFieldEntry expected : CONTENT_FIELDS) {
+            final Optional<RecordField> field = fields.stream().filter(f -> f.getFieldName().equals(expected.name())).findFirst();
 
             if (field.isPresent()) {
-                assertEquals(expected.getValue(), field.get().getDataType(),
-                        "\"" + expected.getKey() + "\" is expected to be converted " + expected.getValue().toString());
+                assertEquals(expected.dataType(), field.get().getDataType(),
+                        "\"" + expected.name() + "\" is expected to be converted " + expected.dataType().toString());
             } else if (mustPresent) {
                 fail();
             }
         }
+    }
+
+    public record TestFieldEntry(String name, Object value, DataType dataType) {
     }
 }
