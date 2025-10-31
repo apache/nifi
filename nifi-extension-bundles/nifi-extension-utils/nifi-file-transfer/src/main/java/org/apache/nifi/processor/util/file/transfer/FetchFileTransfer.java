@@ -128,9 +128,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         .dependsOn(COMPLETION_STRATEGY, COMPLETION_MOVE.getValue())
         .allowableValues(FileTransfer.CONFLICT_RESOLUTION_REPLACE_ALLOWABLE,
                 FileTransfer.CONFLICT_RESOLUTION_IGNORE_ALLOWABLE,
-                FileTransfer.CONFLICT_RESOLUTION_RENAME_ALLOWABLE,
-                FileTransfer.CONFLICT_RESOLUTION_REJECT_ALLOWABLE,
-                FileTransfer.CONFLICT_RESOLUTION_FAIL_ALLOWABLE)
+                FileTransfer.CONFLICT_RESOLUTION_RENAME_ALLOWABLE
+        )
         .defaultValue(FileTransfer.CONFLICT_RESOLUTION_IGNORE_ALLOWABLE)
         .build();
 
@@ -149,14 +148,6 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     public static final Relationship REL_COMMS_FAILURE = new Relationship.Builder()
         .name("comms.failure")
         .description("Any FlowFile that could not be fetched from the remote server due to a communications failure will be transferred to this Relationship.")
-        .build();
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-        .name("failure")
-        .description("Any FlowFile that could not be completed due to a configured failure condition will be transferred to this Relationship.")
-        .build();
-    public static final Relationship REL_REJECT = new Relationship.Builder()
-        .name("reject")
-        .description("Any FlowFile for which a server-side completion action (move/delete/rename) is rejected by the remote system will be transferred to this Relationship.")
         .build();
     public static final Relationship REL_NOT_FOUND = new Relationship.Builder()
         .name("not.found")
@@ -181,9 +172,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         REL_SUCCESS,
         REL_NOT_FOUND,
         REL_PERMISSION_DENIED,
-        REL_COMMS_FAILURE,
-        REL_FAILURE,
-        REL_REJECT
+        REL_COMMS_FAILURE
     );
 
     private final Map<Tuple<String, Integer>, BlockingQueue<FileTransferIdleWrapper>> fileTransferMap = new HashMap<>();
@@ -374,26 +363,10 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
 
         try {
             if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
-                // Pre-check for FAIL policy to pre-route when destination exists
-                final String conflictPolicy = context.getProperty(MOVE_CONFLICT_RESOLUTION).getValue();
-                if (FileTransfer.CONFLICT_RESOLUTION_FAIL.equalsIgnoreCase(conflictPolicy)) {
-                    try {
-                        final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
-                        final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
-                        final String simpleFilename = filename.contains("/") ? StringUtils.substringAfterLast(filename, "/") : filename;
-                        final FileInfo remoteFileInfo = transfer.getRemoteFileInfo(flowFile, absoluteTargetDirPath, simpleFilename);
-                        if (remoteFileInfo != null) {
-                            return routeWithCleanup(session, flowFile, baseAttributes, REL_FAILURE, true, transfer, false, transferQueue, host, port);
-                        }
-                    } catch (final IOException ioe) {
-                        getLogger().error("Failed to check remote destination for move conflict after fetching {} from {}:{} due to {}", flowFile, host, port, ioe.toString(), ioe);
-                        return routeWithCleanup(session, flowFile, baseAttributes, REL_COMMS_FAILURE, true, transfer, true, transferQueue, host, port);
-                    }
-                }
 
                 // Attempt remote MOVE
                 final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
-                final String simpleFilename = filename.contains("/") ? StringUtils.substringAfterLast(filename, "/") : filename;
+                final String simpleFilename = getSimpleFilename(filename);
 
                 try {
                     final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
@@ -411,10 +384,14 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                                 try {
                                     transfer.deleteFile(flowFile, absoluteTargetDirPath, destinationFileName);
                                 } catch (final PermissionDeniedException pde) {
-                                    return routeWithCleanupReason(session, flowFile, baseAttributes, REL_PERMISSION_DENIED, false, transfer,
-                                            false, transferQueue, host, port, "permission.denied.delete-dest");
+                                    // Per design: Completion Strategy failures should not prevent success. Log and skip move.
+                                    getLogger().warn("Permission denied deleting existing destination [{}] in [{}] for {}; skipping move but proceeding with success.",
+                                            destinationFileName, absoluteTargetDirPath, flowFile);
+                                    destinationFileName = null; // skip move on failure
                                 } catch (final IOException ioe) {
-                                    return routeWithCleanup(session, flowFile, baseAttributes, REL_COMMS_FAILURE, true, transfer, true, transferQueue, host, port);
+                                    getLogger().warn("I/O error deleting existing destination [{}] in [{}] for {}: {}. Skipping move but proceeding with success.",
+                                            destinationFileName, absoluteTargetDirPath, flowFile, ioe.toString(), ioe);
+                                    destinationFileName = null; // skip move on failure
                                 }
                                 break;
                             case FileTransfer.CONFLICT_RESOLUTION_RENAME:
@@ -422,20 +399,14 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                                 destinationFileName = uuid + "." + destinationFileName;
                                 getLogger().info("Generated filename [{}] to resolve conflict with initial filename [{}] for {}", destinationFileName, simpleFilename, flowFile);
                                 break;
-                            case FileTransfer.CONFLICT_RESOLUTION_REJECT:
-                                getLogger().warn("Destination conflict detected and policy=REJECT for {}. Skipping remote move; remote source file remains unchanged.", flowFile);
-                                destinationFileName = null; // skip move
-                                break;
                             case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
                             case FileTransfer.CONFLICT_RESOLUTION_NONE:
                                 getLogger().info("Configured to {} on move conflict for {}. Original remote file will be left in place.", strategy, flowFile);
                                 destinationFileName = null; // skip move
                                 break;
-                            case FileTransfer.CONFLICT_RESOLUTION_FAIL:
-                                getLogger().warn("Policy FAIL encountered post pre-check for {}. Skipping remote move.", flowFile);
-                                destinationFileName = null;
-                                break;
                             default:
+                                // Default branch handles unexpected/unknown conflict strategies. For safety, behave like IGNORE/NONE and skip the move.
+                                getLogger().warn("Unrecognized Move Conflict Resolution strategy [{}]; behaving like IGNORE/NONE and leaving original remote file in place for {}", strategy, flowFile);
                                 destinationFileName = null;
                                 break;
                         }
@@ -446,11 +417,14 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                         try {
                             transfer.rename(flowFile, filename, destinationPath);
                         } catch (final PermissionDeniedException pde) {
+                            // Permission denied on rename should route to permission.denied to maintain legacy behavior and transparency
                             return routeWithCleanupReason(session, flowFile, baseAttributes, REL_PERMISSION_DENIED, false, transfer, false, transferQueue, host, port, "permission.denied.rename");
                         } catch (final FileNotFoundException fnfe) {
                             getLogger().info("Source file not found during remote move for {}. Proceeding with success since content has been fetched.", flowFile);
                         } catch (final IOException ioe) {
-                            return routeWithCleanup(session, flowFile, baseAttributes, REL_COMMS_FAILURE, true, transfer, true, transferQueue, host, port);
+                            // Do not fail the FlowFile on completion action issues; log and proceed without moving
+                            getLogger().warn("I/O error renaming remote file from [{}] to [{}] for {}: {}. Skipping move but proceeding with success.",
+                                    filename, destinationPath, flowFile, ioe.toString(), ioe);
                         }
                     }
                 } catch (final PermissionDeniedException pde) {
@@ -505,6 +479,16 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             // No remote-side move/delete is attempted here to avoid double-actions post-commit.
             getLogger().debug("Completion Strategy MOVE already handled pre-commit for {}. No action taken in performCompletionStrategy.", flowFile);
         }
+    }
+
+    private static String getSimpleFilename(final String path) {
+        if (path == null) {
+            return null;
+        }
+        final int slash = path.lastIndexOf('/');
+        final int backslash = path.lastIndexOf('\\');
+        final int idx = Math.max(slash, backslash);
+        return idx >= 0 ? path.substring(idx + 1) : path;
     }
 
 
