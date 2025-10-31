@@ -31,6 +31,8 @@
     <modules>
         <module>nifi-iceberg-aws</module>
         <module>nifi-iceberg-aws-nar</module>
+        <module>nifi-iceberg-azure</module>
+        <module>nifi-iceberg-azure-nar</module>
         <module>nifi-iceberg-parquet-writer</module>
         <module>nifi-iceberg-parquet-writer-nar</module>
         <module>nifi-iceberg-processors</module>
