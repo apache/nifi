@@ -57,6 +57,11 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_AUDIENCE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SCOPE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_TOKEN_ENDPOINT;
 
 /**
  * Implementation of GCPCredentialsService interface
@@ -83,6 +88,11 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
             AUTHENTICATION_STRATEGY,
             SERVICE_ACCOUNT_JSON_FILE,
             SERVICE_ACCOUNT_JSON,
+            WORKLOAD_IDENTITY_AUDIENCE,
+            WORKLOAD_IDENTITY_SCOPE,
+            WORKLOAD_IDENTITY_TOKEN_ENDPOINT,
+            WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER,
+            WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
             DELEGATION_STRATEGY,
             DELEGATION_USER
@@ -103,7 +113,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final Collection<ValidationResult> results = new ArrayList<>();
+        final List<ValidationResult> results = new ArrayList<>();
         ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
         return results;
     }
@@ -167,6 +177,8 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
             return AuthenticationStrategy.APPLICATION_DEFAULT;
         } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON_FILE)) {
             return AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE;
+        } else if (config.isPropertySet(WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER)) {
+            return AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION;
         } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON)) {
             return AuthenticationStrategy.SERVICE_ACCOUNT_JSON;
         } else if (isTrue(config, LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS)) {
@@ -184,7 +196,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
     private GoogleCredentials getGoogleCredentials(final ConfigurationContext context) throws IOException {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
         final HttpTransportFactory transportFactory = new ProxyAwareTransportFactory(proxyConfiguration);
-        return credentialsProviderFactory.getGoogleCredentials(context.getProperties(), transportFactory);
+        return credentialsProviderFactory.getGoogleCredentials(context, transportFactory);
     }
 
     @Override

@@ -20,6 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -79,12 +80,68 @@ public final class CredentialPropertyDescriptors {
             .sensitive(true)
             .build();
 
+    private static final String DEFAULT_WORKLOAD_IDENTITY_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
+    private static final String DEFAULT_WORKLOAD_IDENTITY_TOKEN_ENDPOINT = "https://sts.googleapis.com/v1/token";
+    private static final String DEFAULT_WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt";
+    private static final String SUBJECT_TOKEN_TYPE_ID_TOKEN = "urn:ietf:params:oauth:token-type:id_token";
+    private static final String SUBJECT_TOKEN_TYPE_ACCESS_TOKEN = "urn:ietf:params:oauth:token-type:access_token";
+
+    public static final PropertyDescriptor WORKLOAD_IDENTITY_AUDIENCE = new PropertyDescriptor.Builder()
+            .name("Audience")
+            .description("The audience corresponding to the target Workload Identity Provider, typically the full resource name.")
+            .required(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
+            .build();
+
+    public static final PropertyDescriptor WORKLOAD_IDENTITY_SCOPE = new PropertyDescriptor.Builder()
+            .name("Scope")
+            .description("OAuth2 scopes requested for the exchanged access token. Multiple scopes can be separated by space or comma.")
+            .required(true)
+            .defaultValue(DEFAULT_WORKLOAD_IDENTITY_SCOPE)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
+            .build();
+
+    public static final PropertyDescriptor WORKLOAD_IDENTITY_TOKEN_ENDPOINT = new PropertyDescriptor.Builder()
+            .name("STS Token Endpoint")
+            .description("Google Security Token Service endpoint used for token exchange.")
+            .required(true)
+            .defaultValue(DEFAULT_WORKLOAD_IDENTITY_TOKEN_ENDPOINT)
+            .addValidator(StandardValidators.URL_VALIDATOR)
+            .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
+            .build();
+
+    public static final PropertyDescriptor WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Subject Token Provider")
+            .description("Controller Service that retrieves the external workload identity token to exchange.")
+            .identifiesControllerService(OAuth2AccessTokenProvider.class)
+            .required(true)
+            .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
+            .build();
+
+    public static final PropertyDescriptor WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE = new PropertyDescriptor.Builder()
+            .name("Subject Token Type")
+            .description("The type of token returned by the Subject Token Provider.")
+            .required(true)
+            .defaultValue(DEFAULT_WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE)
+            .allowableValues(
+                    DEFAULT_WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE,
+                    SUBJECT_TOKEN_TYPE_ID_TOKEN,
+                    SUBJECT_TOKEN_TYPE_ACCESS_TOKEN
+            )
+            .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
+            .build();
+
     public static final PropertyDescriptor DELEGATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Delegation Strategy")
             .required(true)
             .defaultValue(DelegationStrategy.SERVICE_ACCOUNT)
             .allowableValues(DelegationStrategy.class)
             .description("The Delegation Strategy determines which account is used when calls are made with the GCP Credential.")
+            .dependsOn(AUTHENTICATION_STRATEGY,
+                    AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue(),
+                    AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue())
             .build();
 
     public static final PropertyDescriptor DELEGATION_USER = new PropertyDescriptor.Builder()
@@ -93,6 +150,9 @@ public final class CredentialPropertyDescriptors {
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(DELEGATION_STRATEGY, DelegationStrategy.DELEGATED_ACCOUNT)
+            .dependsOn(AUTHENTICATION_STRATEGY,
+                    AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue(),
+                    AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue())
             .description("This user will be impersonated by the service account for api calls. " +
                     "API calls made using this credential will appear as if they are coming from delegate user with the delegate user's access. " +
                     "Any scopes supplied from processors to this credential must have domain-wide delegation setup with the service account.")
