@@ -26,6 +26,8 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
+import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +40,7 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.S
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.OAUTH2_ACCESS_TOKEN_PROVIDER;
 
 /**
  * Provides credentials details for Azure Storage processors
@@ -68,6 +71,7 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
             SERVICE_PRINCIPAL_CLIENT_SECRET,
+            OAUTH2_ACCESS_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE
     );
 
@@ -106,9 +110,16 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
                 String servicePrincipalClientSecret = context.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue();
                 return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix,
                         servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, proxyOptions);
-            default:
-                throw new IllegalArgumentException("Unhandled credentials type: " + credentialsType);
+            case ACCESS_TOKEN:
+                final AzureIdentityFederationTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER)
+                        .asControllerService(AzureIdentityFederationTokenProvider.class);
+                return AzureStorageCredentialsDetails_v12.createWithAccessToken(
+                        accountName,
+                        endpointSuffix,
+                        OAuth2AccessTokenAdapter.toAzureAccessToken(oauth2AccessTokenProvider.getAccessDetails()));
         }
+
+        throw new IllegalArgumentException("Unhandled credentials type: " + credentialsType);
     }
 
     @Override
