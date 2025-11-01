@@ -61,5 +61,15 @@
             <artifactId>aws-msk-iam-auth</artifactId>
             <version>2.3.5</version>
         </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>sts</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache-client</artifactId>
+            <version>${software.amazon.awssdk.version}</version>
+        </dependency>
     </dependencies>
 </project>
