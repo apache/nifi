@@ -506,6 +506,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         this.statusHistoryRepository = statusHistoryRepository;
         this.stateManagerProvider = stateManagerProvider;
 
+        if (configuredForClustering) {
+            stateManagerProvider.enableClusterProvider();
+        }
+
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
 
         final FlowFileRepository flowFileRepo = createFlowFileRepository(nifiProperties, extensionManager, resourceClaimManager);
@@ -2750,13 +2754,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 if (clustered) {
                     onClusterConnect();
                     leaderElectionManager.start();
-                    stateManagerProvider.enableClusterProvider();
-
                     loadBalanceClientRegistry.start();
 
                     heartbeat();
                 } else {
-                    stateManagerProvider.disableClusterProvider();
                     setPrimary(false);
                 }
 
