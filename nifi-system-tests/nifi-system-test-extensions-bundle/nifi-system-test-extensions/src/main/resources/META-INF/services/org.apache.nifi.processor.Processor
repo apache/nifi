@@ -45,6 +45,7 @@ org.apache.nifi.processors.tests.system.ReverseContents
 org.apache.nifi.processors.tests.system.RoundRobinFlowFiles
 org.apache.nifi.processors.tests.system.SensitiveDynamicPropertiesProcessor
 org.apache.nifi.processors.tests.system.SetAttribute
+org.apache.nifi.processors.tests.system.SetState
 org.apache.nifi.processors.tests.system.Sleep
 org.apache.nifi.processors.tests.system.SplitByLine
 org.apache.nifi.processors.tests.system.SplitTextByLine
