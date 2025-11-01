@@ -19,15 +19,23 @@ package org.apache.nifi.kafka.service.aws;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.kafka.service.Kafka3ConnectionService;
+import org.apache.nifi.kafka.shared.aws.AwsMskKafkaProperties;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Properties;
 
 @Tags({"AWS", "MSK", "streaming", "kafka"})
 @CapabilityDescription("Provides and manages connections to AWS MSK Kafka Brokers for producer or consumer operations.")
@@ -58,6 +66,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
                 descriptors.add(KafkaClientComponent.AWS_PROFILE_NAME);
                 descriptors.add(KafkaClientComponent.AWS_ASSUME_ROLE_ARN);
                 descriptors.add(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME);
+                descriptors.add(KafkaClientComponent.AWS_CREDENTIALS_PROVIDER_SERVICE);
             }
         }
 
@@ -67,6 +76,35 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return supportedPropertyDescriptors;
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Collection<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+
+        final AwsRoleSource roleSource = validationContext.getProperty(KafkaClientComponent.AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
+        if (roleSource == AwsRoleSource.WEB_IDENTITY_TOKEN && !validationContext.getProperty(KafkaClientComponent.AWS_CREDENTIALS_PROVIDER_SERVICE).isSet()) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KafkaClientComponent.AWS_CREDENTIALS_PROVIDER_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("AWS Credentials Provider Service must be configured when AWS Role Source is set to Web Identity Provider")
+                    .build());
+        }
+
+        return results;
+    }
+
+    @Override
+    protected void customizeKafkaProperties(final Properties properties, final PropertyContext propertyContext) {
+        final AwsRoleSource roleSource = propertyContext.getProperty(KafkaClientComponent.AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
+        if (roleSource == AwsRoleSource.WEB_IDENTITY_TOKEN) {
+            final PropertyValue credentialsProviderProperty = propertyContext.getProperty(KafkaClientComponent.AWS_CREDENTIALS_PROVIDER_SERVICE);
+            if (credentialsProviderProperty != null && credentialsProviderProperty.isSet()) {
+                final AwsCredentialsProviderService credentialsProviderService = credentialsProviderProperty.asControllerService(AwsCredentialsProviderService.class);
+                properties.put(AwsMskKafkaProperties.NIFI_AWS_CREDENTIALS_PROVIDER_SERVICE, credentialsProviderService);
+                properties.put(AwsMskKafkaProperties.NIFI_AWS_CREDENTIALS_PROVIDER_SERVICE_ID, credentialsProviderService.getIdentifier());
+            }
+        }
     }
 
     @Override

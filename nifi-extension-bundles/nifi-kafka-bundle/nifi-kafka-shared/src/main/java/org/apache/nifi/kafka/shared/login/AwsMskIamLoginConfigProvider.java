@@ -17,6 +17,7 @@
 package org.apache.nifi.kafka.shared.login;
 
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.kafka.shared.aws.AwsMskKafkaProperties;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.util.StringUtils;
@@ -52,6 +53,13 @@ public class AwsMskIamLoginConfigProvider implements LoginConfigProvider {
 
             builder.append(ROLE_ARN_KEY, assumeRoleArn);
             builder.append(ROLE_SESSION_NAME_KEY, assumeRoleSessionName);
+        }
+
+        if (roleSource == AwsRoleSource.WEB_IDENTITY_TOKEN) {
+            final String credentialsServiceId = context.getProperty(KafkaClientComponent.AWS_CREDENTIALS_PROVIDER_SERVICE).getValue();
+            if (!StringUtils.isBlank(credentialsServiceId)) {
+                builder.append(AwsMskKafkaProperties.NIFI_AWS_CREDENTIALS_PROVIDER_SERVICE_ID, credentialsServiceId);
+            }
         }
 
         return builder.build();

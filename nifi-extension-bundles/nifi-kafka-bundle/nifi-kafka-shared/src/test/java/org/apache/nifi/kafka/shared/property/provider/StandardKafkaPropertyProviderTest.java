@@ -17,15 +17,23 @@
 package org.apache.nifi.kafka.shared.property.provider;
 
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
+import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
+import org.apache.nifi.kafka.shared.aws.AwsMskKafkaProperties;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
 import java.util.Map;
 
@@ -76,5 +84,33 @@ class StandardKafkaPropertyProviderTest {
         final Object saslConfigProperty = properties.get(KafkaClientProperty.SASL_JAAS_CONFIG.getProperty());
         assertNotNull(saslConfigProperty, "SASL configuration not found");
         assertTrue(saslConfigProperty.toString().contains(SCRAM_LOGIN_MODULE), "SCRAM configuration not found");
+    }
+
+    @Test
+    void testGetPropertiesAwsMskIamWithCredentialsService() throws InitializationException {
+        runner.setProperty(KafkaClientComponent.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.AWS_MSK_IAM);
+        runner.setProperty(KafkaClientComponent.AWS_ROLE_SOURCE, AwsRoleSource.WEB_IDENTITY_TOKEN.name());
+        runner.setProperty(KafkaClientComponent.BOOTSTRAP_SERVERS, "localhost:9092");
+
+        final MockAwsCredentialsProviderService credentialsService = new MockAwsCredentialsProviderService();
+        runner.addControllerService("awsCredentials", credentialsService);
+        runner.enableControllerService(credentialsService);
+        runner.setProperty(KafkaClientComponent.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentials");
+
+        final PropertyContext propertyContext = runner.getProcessContext();
+        final Map<String, Object> properties = provider.getProperties(propertyContext);
+
+        final Object callbackHandler = properties.get(KafkaClientProperty.SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty());
+        assertEquals(AwsMskKafkaProperties.NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS, callbackHandler);
+    }
+
+    private static class MockAwsCredentialsProviderService extends AbstractControllerService implements AwsCredentialsProviderService {
+        private final AwsCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(AwsBasicCredentials.create("accessKey", "secretKey"));
+
+        @Override
+        public AwsCredentialsProvider getAwsCredentialsProvider() {
+            return credentialsProvider;
+        }
     }
 }
