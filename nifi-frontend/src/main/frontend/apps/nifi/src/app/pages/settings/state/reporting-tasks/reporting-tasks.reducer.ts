@@ -18,6 +18,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { ReportingTasksState } from './index';
 import {
+    clearReportingTaskBulletinsSuccess,
     configureReportingTask,
     configureReportingTaskSuccess,
     createReportingTask,
@@ -113,6 +114,18 @@ export const reportingTasksReducer = createReducer(
                 draftState.reportingTasks.splice(componentIndex, 1);
             }
             draftState.saving = false;
+        });
+    }),
+    on(clearReportingTaskBulletinsSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.reportingTasks.findIndex(
+                (task: any) => task.id === response.componentId
+            );
+            if (componentIndex > -1) {
+                const task = draftState.reportingTasks[componentIndex];
+                // Replace bulletins with the current bulletins from the server
+                task.bulletins = response.bulletins || [];
+            }
         });
     })
 );

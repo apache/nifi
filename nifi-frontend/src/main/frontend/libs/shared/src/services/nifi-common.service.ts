@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { SelectOption, BulletinEntity } from '../types';
+import { BulletinEntity, SelectOption } from '../types';
 
 @Injectable({
     providedIn: 'root'
@@ -243,6 +243,36 @@ export class NiFiCommon {
      */
     public isEmpty(arr: any) {
         return Array.isArray(arr) ? arr.length === 0 : true;
+    }
+
+    /**
+     * Gets the most recent bulletin timestamp from an array of bulletin entities.
+     *
+     * @param bulletins array of bulletin entities
+     * @returns ISO timestamp string of the most recent bulletin, or null if no bulletins
+     */
+    public getMostRecentBulletinTimestamp(bulletins: BulletinEntity[]): string | null {
+        if (this.isEmpty(bulletins)) {
+            return null;
+        }
+
+        let mostRecentTimestampIso: string | null = null;
+        let mostRecentTime: number | null = null;
+
+        for (const bulletinEntity of bulletins) {
+            if (bulletinEntity?.timestampIso) {
+                // Use the new timestampIso field which contains the complete ISO timestamp
+                const timestamp = new Date(bulletinEntity.timestampIso).getTime();
+                if (!isNaN(timestamp)) {
+                    if (mostRecentTime === null || timestamp > mostRecentTime) {
+                        mostRecentTime = timestamp;
+                        mostRecentTimestampIso = bulletinEntity.timestampIso;
+                    }
+                }
+            }
+        }
+
+        return mostRecentTimestampIso;
     }
 
     public isNumber(obj: any) {

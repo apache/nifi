@@ -18,6 +18,7 @@
 import { createReducer, on } from '@ngrx/store';
 import { FlowAnalysisRulesState } from './index';
 import {
+    clearFlowAnalysisRuleBulletinsSuccess,
     configureFlowAnalysisRule,
     configureFlowAnalysisRuleSuccess,
     createFlowAnalysisRule,
@@ -120,6 +121,18 @@ export const flowAnalysisRulesReducer = createReducer(
                 draftState.flowAnalysisRules.splice(componentIndex, 1);
             }
             draftState.saving = false;
+        });
+    }),
+    on(clearFlowAnalysisRuleBulletinsSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.flowAnalysisRules.findIndex(
+                (rule: any) => rule.id === response.componentId
+            );
+            if (componentIndex > -1) {
+                const rule = draftState.flowAnalysisRules[componentIndex];
+                // Replace bulletins with the current bulletins from the server
+                rule.bulletins = response.bulletins || [];
+            }
         });
     })
 );

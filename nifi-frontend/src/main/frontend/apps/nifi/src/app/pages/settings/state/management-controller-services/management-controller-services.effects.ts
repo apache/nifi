@@ -700,6 +700,39 @@ export class ManagementControllerServicesEffects {
         { dispatch: false }
     );
 
+    clearControllerServiceBulletins$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ManagementControllerServicesActions.clearControllerServiceBulletins),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.managementControllerServiceService.clearBulletins({
+                        uri: request.uri,
+                        fromTimestamp: request.fromTimestamp
+                    })
+                ).pipe(
+                    map((response) =>
+                        ManagementControllerServicesActions.clearControllerServiceBulletinsSuccess({
+                            response: {
+                                componentId: request.componentId,
+                                bulletinsCleared: response.bulletinsCleared || 0,
+                                bulletins: response.bulletins || [],
+                                componentType: request.componentType
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            ManagementControllerServicesActions.managementControllerServicesSnackbarApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
+
     private getRouteForReference(reference: ControllerServiceReferencingComponent): string[] {
         if (reference.referenceType == 'ControllerService') {
             if (reference.groupId == null) {

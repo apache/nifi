@@ -32,7 +32,7 @@ import * as ParameterProviderActions from '../../state/parameter-providers/param
 import { initialParameterProvidersState } from '../../state/parameter-providers/parameter-providers.reducer';
 import { switchMap, take } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ComponentType, isDefinedAndNotNull } from '@nifi/shared';
+import { ComponentType, isDefinedAndNotNull, NiFiCommon } from '@nifi/shared';
 import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 import { AsyncPipe } from '@angular/common';
 import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
@@ -47,6 +47,7 @@ import { ParameterProvidersTable } from './parameter-providers-table/parameter-p
 })
 export class ParameterProviders implements OnInit, OnDestroy {
     private store = inject<Store<NiFiState>>(Store);
+    private nifiCommon = inject(NiFiCommon);
 
     currentUser$ = this.store.select(selectCurrentUser);
     parameterProvidersState$ = this.store.select(selectParameterProvidersState);
@@ -187,6 +188,26 @@ export class ParameterProviders implements OnInit, OnDestroy {
         this.store.dispatch(
             ParameterProviderActions.navigateToFetchParameterProvider({
                 id: parameterProvider.component.id
+            })
+        );
+    }
+
+    clearBulletinsParameterProvider(parameterProvider: ParameterProviderEntity) {
+        // Get the most recent bulletin timestamp from the entity's bulletins
+        // This will be reconstructed from the time-only string to a full timestamp
+        const fromTimestamp = this.nifiCommon.getMostRecentBulletinTimestamp(parameterProvider.bulletins || []);
+        if (fromTimestamp === null) {
+            return; // no bulletins to clear
+        }
+
+        this.store.dispatch(
+            ParameterProviderActions.clearParameterProviderBulletins({
+                request: {
+                    uri: parameterProvider.uri,
+                    fromTimestamp,
+                    componentId: parameterProvider.id,
+                    componentType: ComponentType.ParameterProvider
+                }
             })
         );
     }

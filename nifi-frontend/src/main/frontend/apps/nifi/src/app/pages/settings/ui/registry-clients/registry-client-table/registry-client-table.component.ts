@@ -56,6 +56,8 @@ export class RegistryClientTable {
     @Output() selectRegistryClient: EventEmitter<RegistryClientEntity> = new EventEmitter<RegistryClientEntity>();
     @Output() configureRegistryClient: EventEmitter<RegistryClientEntity> = new EventEmitter<RegistryClientEntity>();
     @Output() deleteRegistryClient: EventEmitter<RegistryClientEntity> = new EventEmitter<RegistryClientEntity>();
+    @Output() clearBulletinsRegistryClient: EventEmitter<RegistryClientEntity> =
+        new EventEmitter<RegistryClientEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -155,6 +157,14 @@ export class RegistryClientTable {
 
     deleteClicked(entity: RegistryClientEntity): void {
         this.deleteRegistryClient.next(entity);
+    }
+
+    canClearBulletins(entity: RegistryClientEntity): boolean {
+        return this.canWrite(entity) && !this.nifiCommon.isEmpty(entity.bulletins);
+    }
+
+    clearBulletinsClicked(entity: RegistryClientEntity): void {
+        this.clearBulletinsRegistryClient.next(entity);
     }
 
     select(entity: ReportingTaskEntity): void {

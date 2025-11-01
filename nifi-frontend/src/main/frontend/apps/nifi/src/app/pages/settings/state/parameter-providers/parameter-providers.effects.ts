@@ -796,4 +796,37 @@ export class ParameterProvidersEffects {
             ),
         { dispatch: false }
     );
+
+    clearParameterProviderBulletins$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ParameterProviderActions.clearParameterProviderBulletins),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.parameterProviderService.clearBulletins({
+                        uri: request.uri,
+                        fromTimestamp: request.fromTimestamp
+                    })
+                ).pipe(
+                    map((response) =>
+                        ParameterProviderActions.clearParameterProviderBulletinsSuccess({
+                            response: {
+                                componentId: request.componentId,
+                                bulletinsCleared: response.bulletinsCleared || 0,
+                                bulletins: response.bulletins || [],
+                                componentType: request.componentType
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            ErrorActions.snackBarError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
 }

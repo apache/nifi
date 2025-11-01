@@ -1209,6 +1209,12 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                 action: this.canvasActionsService.getActionFunction('changeColor')
             },
             {
+                condition: this.canvasActionsService.getConditionFunction('clearBulletins'),
+                clazz: 'fa fa-eraser',
+                text: 'Clear Bulletins',
+                action: this.canvasActionsService.getActionFunction('clearBulletins')
+            },
+            {
                 condition: (selection: d3.Selection<any, any, any, any>) => {
                     return this.canvasUtils.canRead(selection) && this.canvasUtils.isRemoteProcessGroup(selection);
                 },
