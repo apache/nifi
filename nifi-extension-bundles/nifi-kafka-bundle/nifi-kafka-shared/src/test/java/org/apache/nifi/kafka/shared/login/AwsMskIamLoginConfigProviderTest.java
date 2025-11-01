@@ -17,13 +17,21 @@
 package org.apache.nifi.kafka.shared.login;
 
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
+import org.apache.nifi.kafka.shared.aws.AwsMskKafkaProperties;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
+import org.apache.nifi.kafka.shared.property.AwsRoleSource;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -69,5 +77,32 @@ class AwsMskIamLoginConfigProviderTest {
         assertTrue(configuration.contains(IAM_LOGIN_MODULE), "IAM Login Module not present");
         assertTrue(configuration.contains("awsRoleArn=\"arn:aws:iam::123456789012:role/MyRole\""), "awsRoleArn JAAS option not present");
         assertTrue(configuration.contains("awsRoleSessionName=\"MySession\""), "awsRoleSessionName JAAS option not present");
+    }
+
+    @Test
+    void testConfigurationWithWebIdentityProvider() throws InitializationException {
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.AWS_MSK_IAM);
+        runner.setProperty(KafkaClientComponent.AWS_ROLE_SOURCE, AwsRoleSource.WEB_IDENTITY_TOKEN.name());
+
+        final MockAwsCredentialsProviderService credentialsService = new MockAwsCredentialsProviderService();
+        runner.addControllerService("awsCredentials", credentialsService);
+        runner.enableControllerService(credentialsService);
+        runner.setProperty(KafkaClientComponent.AWS_CREDENTIALS_PROVIDER_SERVICE, "awsCredentials");
+
+        final PropertyContext context = runner.getProcessContext();
+        final String configuration = provider.getConfiguration(context);
+
+        assertNotNull(configuration);
+        assertTrue(configuration.contains(AwsMskKafkaProperties.NIFI_AWS_CREDENTIALS_PROVIDER_SERVICE_ID + "=\"awsCredentials\""),
+                "Credentials Provider JAAS option not present");
+    }
+
+    private static class MockAwsCredentialsProviderService extends AbstractControllerService implements AwsCredentialsProviderService {
+        private final AwsCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(AwsBasicCredentials.create("accessKey", "secretKey"));
+
+        @Override
+        public AwsCredentialsProvider getAwsCredentialsProvider() {
+            return credentialsProvider;
+        }
     }
 }

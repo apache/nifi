@@ -24,6 +24,7 @@ import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.ssl.SSLContextService;
 
 /**
@@ -156,6 +157,18 @@ public interface KafkaClientComponent {
             )
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+    PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
+            .name("aws-credentials-provider-service")
+            .displayName("AWS Credentials Provider Service")
+            .description("Controller Service providing AWS MSK IAM credentials using AssumeRoleWithWebIdentity.")
+            .identifiesControllerService(AwsCredentialsProviderService.class)
+            .required(true)
+            .dependsOn(
+                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AwsRoleSource.WEB_IDENTITY_TOKEN
+            )
             .build();
 
     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
