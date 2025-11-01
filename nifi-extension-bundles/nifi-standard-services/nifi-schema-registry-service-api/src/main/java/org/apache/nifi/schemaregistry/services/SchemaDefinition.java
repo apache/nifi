@@ -26,7 +26,9 @@ import java.util.Map;
 public interface SchemaDefinition {
 
     enum SchemaType {
-        PROTOBUF, AVRO
+        PROTOBUF,
+        AVRO,
+        JSON
     }
 
     /**
