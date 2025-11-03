@@ -23,9 +23,7 @@ import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.SessionCatalog;
 import org.apache.iceberg.metrics.LoggingMetricsReporter;
-import org.apache.iceberg.rest.HTTPClient;
 import org.apache.iceberg.rest.RESTClient;
-import org.apache.iceberg.rest.auth.AuthSession;
 import org.apache.iceberg.rest.auth.OAuth2Properties;
 import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -69,6 +67,14 @@ public class RESTIcebergCatalog extends AbstractControllerService implements Ice
             .description("Provider for Iceberg File Input and Output operations")
             .required(true)
             .identifiesControllerService(IcebergFileIOProvider.class)
+            .build();
+
+    static final PropertyDescriptor ACCESS_DELEGATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Access Delegation Strategy")
+            .description("Strategy for requesting Access Delegation credentials from the Apache Iceberg REST Catalog")
+            .required(true)
+            .defaultValue(AccessDelegationStrategy.VENDED_CREDENTIALS)
+            .allowableValues(AccessDelegationStrategy.class)
             .build();
 
     static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
@@ -142,6 +148,7 @@ public class RESTIcebergCatalog extends AbstractControllerService implements Ice
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CATALOG_URI,
             FILE_IO_PROVIDER,
+            ACCESS_DELEGATION_STRATEGY,
             AUTHENTICATION_STRATEGY,
             BEARER_TOKEN,
             AUTHORIZATION_SERVER_URI,
@@ -239,6 +246,12 @@ public class RESTIcebergCatalog extends AbstractControllerService implements Ice
         final String catalogUri = context.getProperty(CATALOG_URI).getValue();
         properties.put(CatalogProperties.URI, catalogUri);
 
+        // Set Access Delegation Header for REST Client building
+        final AccessDelegationStrategy accessDelegationStrategy = context.getProperty(ACCESS_DELEGATION_STRATEGY).asAllowableValue(AccessDelegationStrategy.class);
+        if (AccessDelegationStrategy.VENDED_CREDENTIALS == accessDelegationStrategy) {
+            properties.put(StandardRESTClientProvider.ICEBERG_ACCESS_DELEGATION_HEADER, accessDelegationStrategy.getValue());
+        }
+
         final PropertyValue warehouseLocationProperty = context.getProperty(WAREHOUSE_LOCATION);
         if (warehouseLocationProperty.isSet()) {
             final String warehouseLocation = warehouseLocationProperty.getValue();
@@ -246,13 +259,10 @@ public class RESTIcebergCatalog extends AbstractControllerService implements Ice
         }
 
         final AuthenticationStrategy authenticationStrategy = context.getProperty(AUTHENTICATION_STRATEGY).asAllowableValue(AuthenticationStrategy.class);
-        final Function<Map<String, String>, RESTClient> restClientBuilder;
-
         if (AuthenticationStrategy.BEARER == authenticationStrategy) {
             final String bearerToken = context.getProperty(BEARER_TOKEN).getValue();
             properties.put(OAuth2Properties.TOKEN, bearerToken);
             properties.put(AuthProperties.AUTH_TYPE, AuthProperties.AUTH_TYPE_OAUTH2);
-            restClientBuilder = this::buildStandardRestClient;
         } else {
             final String authorizationServerUri = context.getProperty(AUTHORIZATION_SERVER_URI).getValue();
             properties.put(OAuth2Properties.OAUTH2_SERVER_URI, authorizationServerUri);
@@ -267,15 +277,12 @@ public class RESTIcebergCatalog extends AbstractControllerService implements Ice
                 final String clientSecret = context.getProperty(CLIENT_SECRET).getValue();
                 final String clientCredentials = CLIENT_CREDENTIALS_FORMAT.formatted(clientId, clientSecret);
                 properties.put(OAuth2Properties.CREDENTIAL, clientCredentials);
-
-                restClientBuilder = configuration -> new CredentialsRefreshRESTClient(getLogger(), buildStandardRestClient(configuration), clientId, clientSecret);
-            } else {
-                restClientBuilder = this::buildStandardRestClient;
             }
         }
 
+        final RESTClientProvider restClientProvider = new StandardRESTClientProvider(getLogger());
         final IcebergFileIOProvider icebergFileIoProvider = context.getProperty(FILE_IO_PROVIDER).asControllerService(IcebergFileIOProvider.class);
-        return getSessionCatalog(restClientBuilder, icebergFileIoProvider, properties);
+        return getSessionCatalog(restClientProvider::build, icebergFileIoProvider, properties);
     }
 
     private RESTSessionCatalog getSessionCatalog(
@@ -294,12 +301,6 @@ public class RESTIcebergCatalog extends AbstractControllerService implements Ice
         final String identifier = getIdentifier();
         restSessionCatalog.initialize(identifier, properties);
         return restSessionCatalog;
-    }
-
-    private RESTClient buildStandardRestClient(final Map<String, String> configuration) {
-        final String uri = configuration.get(CatalogProperties.URI);
-        // Set empty Authentication Session to avoid runtime exceptions in BaseHTTPClient class
-        return HTTPClient.builder(configuration).uri(uri).withAuthSession(AuthSession.EMPTY).build();
     }
 
     private Map<String, String> getDynamicProperties(final ConfigurationContext context) {
