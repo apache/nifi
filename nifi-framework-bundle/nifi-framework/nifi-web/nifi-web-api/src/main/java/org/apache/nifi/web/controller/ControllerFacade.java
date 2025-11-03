@@ -1890,11 +1890,13 @@ public class ControllerFacade implements Authorizable {
                     listenPortDTO.setPortNumber(listenPort.getPortNumber());
                     listenPortDTO.setTransportProtocol(listenPort.getTransportProtocol().name());
                     listenPortDTO.setApplicationProtocols(listenPort.getApplicationProtocols());
-                    listenPortDTO.setParentGroupId(componentNode.getParentProcessGroup().map(ProcessGroup::getIdentifier).orElse(null));
-                    listenPortDTO.setParentGroupName(componentNode.getParentProcessGroup().map(ProcessGroup::getName).orElse(null));
+                    listenPortDTO.setComponentPropertyName(listenPort.getPortPropertyName());
+                    listenPortDTO.setComponentClass(componentNode.getCanonicalClassName());
                     listenPortDTO.setComponentId(componentNode.getIdentifier());
                     listenPortDTO.setComponentName(componentNode.getName());
-                    listenPortDTO.setComponentClass(componentNode.getCanonicalClassName());
+                    listenPortDTO.setParentGroupId(componentNode.getParentProcessGroup().map(ProcessGroup::getIdentifier).orElse(null));
+                    listenPortDTO.setParentGroupName(componentNode.getParentProcessGroup().map(ProcessGroup::getName).orElse(null));
+
                     // TODO this next bit could be refined
                     if (componentNode instanceof ProcessorNode) {
                         listenPortDTO.setComponentType("Processor");

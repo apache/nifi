@@ -437,7 +437,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         final Integer primaryPortNumber = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final Integer healthCheckPortNumber = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
         final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
-        final HttpProtocolStrategy httpProtocolStrategy = getHttpProtocolStrategy(context, sslContextProvider);
+        final HttpProtocolStrategy httpProtocolStrategy = sslContextProvider == null
+            ? HttpProtocolStrategy.valueOf(HTTP_PROTOCOL_STRATEGY.getDefaultValue())
+            : context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         final List<String> applicationProtocols = switch (httpProtocolStrategy) {
             case H2 -> List.of("h2");
             case HTTP_1_1 -> List.of("http/1.1");
@@ -448,6 +450,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         if (primaryPortNumber != null) {
             final ListenPort primaryPort = StandardListenPort.builder()
                 .portNumber(primaryPortNumber)
+                .portPropertyName(PORT.getDisplayName())
                 .transportProtocol(TransportProtocol.TCP)
                 .applicationProtocols(applicationProtocols)
                 .build();
@@ -457,6 +460,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         if (healthCheckPortNumber != null) {
             final ListenPort healthCheckPort = StandardListenPort.builder()
                 .portNumber(healthCheckPortNumber)
+                .portPropertyName(HEALTH_CHECK_PORT.getDisplayName())
                 .transportProtocol(TransportProtocol.TCP)
                 .applicationProtocols(applicationProtocols)
                 .build();
@@ -505,7 +509,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
 
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final HttpProtocolStrategy httpProtocolStrategy = getHttpProtocolStrategy(context, sslContextProvider);
+        final HttpProtocolStrategy httpProtocolStrategy = sslContextProvider == null
+            ? HttpProtocolStrategy.valueOf(HTTP_PROTOCOL_STRATEGY.getDefaultValue())
+            : context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         final ServerConnector connector = createServerConnector(server,
                 port,
                 requestHeaderSize,
@@ -581,21 +587,6 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
 
         this.server = server;
         initialized.set(true);
-    }
-
-    private static HttpProtocolStrategy getHttpProtocolStrategy(final ConfigurationContext context, final SSLContextProvider sslContextProvider) {
-        return getHttpProtocolStrategy(context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class), sslContextProvider);
-    }
-
-    private static HttpProtocolStrategy getHttpProtocolStrategy(final ProcessContext context, final SSLContextProvider sslContextProvider) {
-        return getHttpProtocolStrategy(context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class), sslContextProvider);
-    }
-
-    private static HttpProtocolStrategy getHttpProtocolStrategy(final HttpProtocolStrategy configuredProtocolStrategy, final SSLContextProvider sslContextProvider) {
-        final HttpProtocolStrategy httpProtocolStrategy = sslContextProvider == null
-            ? HttpProtocolStrategy.valueOf(HTTP_PROTOCOL_STRATEGY.getDefaultValue())
-            : configuredProtocolStrategy;
-        return httpProtocolStrategy;
     }
 
     private ClientAuthentication getClientAuthentication(final SSLContextProvider sslContextProvider,

@@ -102,7 +102,7 @@ public class JacksonFlowSnapshotSerializerTest {
         assertEquals("[ \"failure\", \"success\" ]", processors.get(0).get("autoTerminatedRelationships").toPrettyString());
         assertEquals("[ \"FILE\", \"TEXT\", \"URL\" ]", processors.get(0).get("propertyDescriptors").get("prop1").get("resourceDefinition").get("resourceTypes").toPrettyString());
         assertEquals("TCP", processors.get(0).get("propertyDescriptors").get("prop1").get("listenPortDefinition").get("transportProtocol").asText());
-        assertEquals("[ \"http/1.1\", \"h2\" ]", processors.get(0).get("propertyDescriptors").get("prop1").get("listenPortDefinition").get("applicationProtocols").toPrettyString());
+        assertEquals("[ \"h2\", \"http/1.1\" ]", processors.get(0).get("propertyDescriptors").get("prop1").get("listenPortDefinition").get("applicationProtocols").toPrettyString());
 
         assertEquals("proc2", processors.get(1).get("identifier").asText());
         assertEquals("proc3", processors.get(2).get("identifier").asText());

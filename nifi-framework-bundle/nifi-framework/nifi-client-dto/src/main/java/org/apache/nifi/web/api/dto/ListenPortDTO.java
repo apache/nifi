@@ -33,14 +33,9 @@ public class ListenPortDTO {
     private String componentId;
     private String componentName;
     private String componentClass;
-
+    private String componentPropertyName;
     private String parentGroupId;
     private String parentGroupName;
-
-    // TODO not sure this is needed
-    // The idea is that if the ListenComponent belongs to a nested PG, the "ancestor" group would identify the highest level PG that is not the root group
-    private String ancestorGroupId;
-    private String ancestorGroupName;
 
     @Schema(description = "The ingress port number")
     public int getPortNumber() {
@@ -105,6 +100,15 @@ public class ListenPortDTO {
         this.componentClass = componentClass;
     }
 
+    public String getComponentPropertyName() {
+        return componentPropertyName;
+    }
+
+    @Schema(description = "The name of the component property that defines the listen port.")
+    public void setComponentPropertyName(final String componentPropertyName) {
+        this.componentPropertyName = componentPropertyName;
+    }
+
     @Schema(description = "The id of the process group containing the component providing the listen port, if applicable")
     public String getParentGroupId() {
         return parentGroupId;
@@ -123,34 +127,11 @@ public class ListenPortDTO {
         this.parentGroupName = parentGroupName;
     }
 
-    @Schema(description = "The id of the highest level process group containing the component providing the listen port that is not the root group, if applicable")
-    public String getAncestorGroupId() {
-        return ancestorGroupId;
-    }
-
-    public void setAncestorGroupId(final String ancestorGroupId) {
-        this.ancestorGroupId = ancestorGroupId;
-    }
-
-    @Schema(description = "The name of the highest level process group containing the component providing the listen port that is not the root group, if applicable")
-    public String getAncestorGroupName() {
-        return ancestorGroupName;
-    }
-
-    public void setAncestorGroupName(final String ancestorGroupName) {
-        this.ancestorGroupName = ancestorGroupName;
-    }
-
     @Override
     public String toString() {
-        return "ListenPortDTO{" +
-            "portNumber=" + portNumber +
-            ", transportProtocol='" + transportProtocol + '\'' +
-            ", applicationProtocols=" + applicationProtocols +
-            ", componentType='" + componentType + '\'' +
-            ", componentId='" + componentId + '\'' +
-            ", componentName='" + componentName + '\'' +
-            ", componentClass='" + componentClass + '\'' +
-            '}';
+        return ("ListenPortDTO[portNumber=%s, transportProtocol=%s, applicationProtocols=%s, parentGroupId=%s, parentGroupName=%s," +
+            "componentType=%s, componentId=%s, componentName=%s, componentClass=%s, componentPropertyName=%s]").formatted(
+                portNumber, transportProtocol, applicationProtocols, parentGroupId, parentGroupName,
+                componentType, componentPropertyName, componentId, componentName, componentClass);
     }
 }
