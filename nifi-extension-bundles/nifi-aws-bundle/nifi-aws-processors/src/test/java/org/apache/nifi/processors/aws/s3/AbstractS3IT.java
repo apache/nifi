@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.s3;
 
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.LocalStackContainers;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -29,7 +30,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.localstack.LocalStackContainer;
-import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -86,9 +86,7 @@ public abstract class AbstractS3IT {
     private static KmsClient kmsClient;
     private final List<String> addedKeys = new ArrayList<>();
 
-    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:latest");
-
-    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage).withServices("s3", "kms");
+    private static final LocalStackContainer localstack = LocalStackContainers.newContainer().withServices("s3", "kms");
 
     @BeforeAll
     public static void oneTimeSetup() {
