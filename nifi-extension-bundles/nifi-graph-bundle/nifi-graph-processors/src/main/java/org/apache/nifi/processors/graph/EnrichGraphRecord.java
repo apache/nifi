@@ -204,22 +204,7 @@ public class EnrichGraphRecord extends  AbstractGraphExecutor {
     private List<FieldValue> getRecordValue(Record record, RecordPath recordPath) {
         final RecordPathResult result = recordPath.evaluate(record);
         final List<FieldValue> values = result.getSelectedFields().toList();
-        if (!values.isEmpty()) {
-            if (values.size() == 1) {
-                FieldValue fieldValue = values.get(0);
-                Object raw = fieldValue.getValue();
-
-                if (raw != null && raw.getClass().isArray()) {
-                    return Collections.emptyList();
-                }
-
-                return List.of(fieldValue);
-            } else {
-                return values;
-            }
-        } else {
-            return null;
-        }
+        return values.isEmpty() ? null : values;
     }
 
     @Override
