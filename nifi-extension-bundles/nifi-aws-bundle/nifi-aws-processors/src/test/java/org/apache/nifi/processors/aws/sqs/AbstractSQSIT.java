@@ -21,12 +21,12 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.processors.aws.util.LocalStackContainers;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.localstack.LocalStackContainer;
-import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -37,9 +37,7 @@ import software.amazon.awssdk.services.sqs.model.CreateQueueResponse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class AbstractSQSIT {
-    private static final DockerImageName localstackImage = DockerImageName.parse("localstack/localstack:latest");
-
-    private static final LocalStackContainer localstack = new LocalStackContainer(localstackImage).withServices("sqs");
+    private static final LocalStackContainer localstack = LocalStackContainers.newContainer().withServices("sqs");
 
     private static String queueUrl;
     private static SqsClient client;

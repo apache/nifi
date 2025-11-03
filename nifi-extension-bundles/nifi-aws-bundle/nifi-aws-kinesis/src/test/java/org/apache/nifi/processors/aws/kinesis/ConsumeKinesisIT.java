@@ -89,7 +89,7 @@ import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 class ConsumeKinesisIT {
 
     private static final Logger logger = LoggerFactory.getLogger(ConsumeKinesisIT.class);
-    private static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:latest");
+    private static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:4.10.0");
 
     private static final LocalStackContainer localstack = new LocalStackContainer(LOCALSTACK_IMAGE).withServices("kinesis", "dynamodb", "cloudwatch");
 

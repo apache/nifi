@@ -73,7 +73,7 @@ public class PutDatabaseRecordIT {
 
     @BeforeAll
     public static void startPostgres() {
-        postgres = new PostgreSQLContainer("postgres:latest").withInitScript("PutDatabaseRecordIT/create-person-table.sql");
+        postgres = new PostgreSQLContainer("postgres:18.0").withInitScript("PutDatabaseRecordIT/create-person-table.sql");
         postgres.start();
     }
 
