@@ -450,7 +450,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         if (primaryPortNumber != null) {
             final ListenPort primaryPort = StandardListenPort.builder()
                 .portNumber(primaryPortNumber)
-                .portPropertyName(PORT.getDisplayName())
+                .portName(PORT.getDisplayName())
                 .transportProtocol(TransportProtocol.TCP)
                 .applicationProtocols(applicationProtocols)
                 .build();
@@ -460,7 +460,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         if (healthCheckPortNumber != null) {
             final ListenPort healthCheckPort = StandardListenPort.builder()
                 .portNumber(healthCheckPortNumber)
-                .portPropertyName(HEALTH_CHECK_PORT.getDisplayName())
+                .portName(HEALTH_CHECK_PORT.getDisplayName())
                 .transportProtocol(TransportProtocol.TCP)
                 .applicationProtocols(applicationProtocols)
                 .build();

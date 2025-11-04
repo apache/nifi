@@ -1887,10 +1887,10 @@ public class ControllerFacade implements Authorizable {
             if (component instanceof ListenComponent listenComponent /* should always be true */) {
                 listenComponent.getListenPorts(configurationContext).forEach(listenPort -> {
                     final ListenPortDTO listenPortDTO = new ListenPortDTO();
+                    listenPortDTO.setPortName(listenPort.getPortName());
                     listenPortDTO.setPortNumber(listenPort.getPortNumber());
                     listenPortDTO.setTransportProtocol(listenPort.getTransportProtocol().name());
                     listenPortDTO.setApplicationProtocols(listenPort.getApplicationProtocols());
-                    listenPortDTO.setComponentPropertyName(listenPort.getPortPropertyName());
                     listenPortDTO.setComponentClass(componentNode.getCanonicalClassName());
                     listenPortDTO.setComponentId(componentNode.getIdentifier());
                     listenPortDTO.setComponentName(componentNode.getName());

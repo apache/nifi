@@ -24,6 +24,7 @@ import java.util.List;
 public class ListenPortDTO {
 
     // Port definition
+    private String portName;
     private int portNumber;
     private String transportProtocol;
     private List<String> applicationProtocols;
@@ -33,9 +34,17 @@ public class ListenPortDTO {
     private String componentId;
     private String componentName;
     private String componentClass;
-    private String componentPropertyName;
     private String parentGroupId;
     private String parentGroupName;
+
+    public String getPortName() {
+        return portName;
+    }
+
+    @Schema(description = "The name of the the listen port. Useful context for components that provide multiple ports.")
+    public void setPortName(final String portName) {
+        this.portName = portName;
+    }
 
     @Schema(description = "The ingress port number")
     public int getPortNumber() {
@@ -100,15 +109,6 @@ public class ListenPortDTO {
         this.componentClass = componentClass;
     }
 
-    public String getComponentPropertyName() {
-        return componentPropertyName;
-    }
-
-    @Schema(description = "The name of the component property that defines the listen port.")
-    public void setComponentPropertyName(final String componentPropertyName) {
-        this.componentPropertyName = componentPropertyName;
-    }
-
     @Schema(description = "The id of the process group containing the component providing the listen port, if applicable")
     public String getParentGroupId() {
         return parentGroupId;
@@ -129,9 +129,8 @@ public class ListenPortDTO {
 
     @Override
     public String toString() {
-        return ("ListenPortDTO[portNumber=%s, transportProtocol=%s, applicationProtocols=%s, parentGroupId=%s, parentGroupName=%s," +
-            "componentType=%s, componentId=%s, componentName=%s, componentClass=%s, componentPropertyName=%s]").formatted(
-                portNumber, transportProtocol, applicationProtocols, parentGroupId, parentGroupName,
-                componentType, componentPropertyName, componentId, componentName, componentClass);
+        return ("ListenPortDTO[portName= %s, portNumber=%s, transportProtocol=%s, applicationProtocols=%s, " +
+            "componentType=%s, componentId=%s, componentName=%s, componentClass=%s, parentGroupId=%s, parentGroupName=%s]").formatted(
+                portName, portNumber, transportProtocol, applicationProtocols, componentType, componentId, componentName, componentClass, parentGroupId, parentGroupName);
     }
 }
