@@ -836,6 +836,20 @@ export interface LoadChildProcessGroupRequest {
     id: string;
 }
 
+/*
+  Clear Bulletins
+*/
+
+export interface ClearBulletinsForGroupRequest {
+    processGroupId: string;
+    fromTimestamp: string;
+}
+
+export interface ClearBulletinsForGroupResponse {
+    processGroupId: string;
+    bulletinsCleared: number;
+}
+
 export interface FlowUpdateRequest {
     requestId: string;
     processGroupId: string;

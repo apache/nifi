@@ -19,6 +19,7 @@ import { createReducer, on } from '@ngrx/store';
 import { produce } from 'immer';
 import { RegistryClientsState } from './index';
 import {
+    clearRegistryClientBulletinsSuccess,
     configureRegistryClient,
     configureRegistryClientSuccess,
     createRegistryClient,
@@ -91,6 +92,18 @@ export const registryClientsReducer = createReducer(
                 draftState.registryClients.splice(componentIndex, 1);
             }
             draftState.saving = false;
+        });
+    }),
+    on(clearRegistryClientBulletinsSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.registryClients.findIndex(
+                (client: any) => client.id === response.componentId
+            );
+            if (componentIndex > -1) {
+                const client = draftState.registryClients[componentIndex];
+                // Replace bulletins with the current bulletins from the server
+                client.bulletins = response.bulletins || [];
+            }
         });
     })
 );

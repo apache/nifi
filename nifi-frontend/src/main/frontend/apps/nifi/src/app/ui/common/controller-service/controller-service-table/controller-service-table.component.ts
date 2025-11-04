@@ -86,6 +86,8 @@ export class ControllerServiceTable {
         new EventEmitter<ControllerServiceEntity>();
     @Output() goToControllerService: EventEmitter<ControllerServiceEntity> =
         new EventEmitter<ControllerServiceEntity>();
+    @Output() clearBulletinsControllerService: EventEmitter<ControllerServiceEntity> =
+        new EventEmitter<ControllerServiceEntity>();
 
     protected readonly TextTip = TextTip;
     protected readonly BulletinsTip = BulletinsTip;
@@ -267,8 +269,16 @@ export class ControllerServiceTable {
         return this.canRead(entity) && this.canWrite(entity) && entity.component.persistsState === true;
     }
 
+    canClearBulletins(entity: ControllerServiceEntity): boolean {
+        return this.canWrite(entity) && !this.nifiCommon.isEmpty(entity.bulletins);
+    }
+
     viewStateClicked(entity: ControllerServiceEntity): void {
         this.viewStateControllerService.next(entity);
+    }
+
+    clearBulletinsClicked(entity: ControllerServiceEntity): void {
+        this.clearBulletinsControllerService.next(entity);
     }
 
     canManageAccessPolicies(): boolean {

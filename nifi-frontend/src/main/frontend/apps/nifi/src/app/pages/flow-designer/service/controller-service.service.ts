@@ -94,6 +94,13 @@ export class ControllerServiceService implements ControllerServiceCreator, Prope
         );
     }
 
+    clearBulletins(request: { uri: string; fromTimestamp: string }): Observable<any> {
+        const payload = {
+            fromTimestamp: request.fromTimestamp
+        };
+        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.uri)}/bulletins/clear-requests`, payload);
+    }
+
     deleteControllerService(deleteControllerService: DeleteControllerServiceRequest): Observable<any> {
         const entity: ControllerServiceEntity = deleteControllerService.controllerService;
         const params = new HttpParams({

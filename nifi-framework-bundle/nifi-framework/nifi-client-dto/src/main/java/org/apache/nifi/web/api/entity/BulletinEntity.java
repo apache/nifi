@@ -19,10 +19,12 @@ package org.apache.nifi.web.api.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ReadablePermission;
+import org.apache.nifi.web.api.dto.util.InstantAdapter;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.time.Instant;
 import java.util.Date;
 
 /**
@@ -35,6 +37,7 @@ public class BulletinEntity extends Entity implements ReadablePermission {
     private String groupId;
     private String sourceId;
     private Date timestamp;
+    private Instant timestampIso;
     private String nodeAddress;
     private Boolean canRead;
 
@@ -99,6 +102,21 @@ public class BulletinEntity extends Entity implements ReadablePermission {
 
     public void setTimestamp(Date timestamp) {
         this.timestamp = timestamp;
+    }
+
+    /**
+     * @return When this bulletin was generated in ISO format with full date and milliseconds.
+     */
+    @Schema(description = "When this bulletin was generated in ISO format with full date and milliseconds.",
+            type = "string"
+    )
+    @XmlJavaTypeAdapter(InstantAdapter.class)
+    public Instant getTimestampIso() {
+        return timestampIso;
+    }
+
+    public void setTimestampIso(Instant timestampIso) {
+        this.timestampIso = timestampIso;
     }
 
     /**
