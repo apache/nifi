@@ -27,7 +27,7 @@ import { AsyncPipe } from '@angular/common';
 import { Observable } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { take } from 'rxjs/operators';
-import { NiFiCommon, SMALL_DIALOG, YesNoDialog, MEDIUM_DIALOG } from '@nifi/shared';
+import { NiFiCommon, SMALL_DIALOG, YesNoDialog, MEDIUM_DIALOG, LARGE_DIALOG } from '@nifi/shared';
 import {
     AddPolicyToBucketDialogComponent,
     AddPolicyResult
@@ -220,7 +220,7 @@ export class ManageBucketPoliciesDialogComponent implements OnInit {
         });
 
         const dialogRef = this.dialog.open(AddPolicyToBucketDialogComponent, {
-            ...MEDIUM_DIALOG,
+            ...LARGE_DIALOG,
             autoFocus: false,
             data: {
                 bucket: this.data.bucket,

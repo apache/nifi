@@ -29,6 +29,13 @@
                         (matSortChange)="sortData($event)"
                         [matSortActive]="sort.active"
                         [matSortDirection]="sort.direction">
+                        <!-- Type Column -->
+                        <ng-container matColumnDef="type">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                            <td mat-cell *matCellDef="let row">
+                                {{ row.type }}
+                            </td>
+                        </ng-container>
                         <!-- Identity Column -->
                         <ng-container matColumnDef="identity">
                             <th mat-header-cell *matHeaderCellDef mat-sort-header>Identity</th>

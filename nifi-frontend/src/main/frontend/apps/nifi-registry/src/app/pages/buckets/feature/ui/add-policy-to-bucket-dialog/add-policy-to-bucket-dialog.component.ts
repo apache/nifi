@@ -60,7 +60,7 @@ export class AddPolicyToBucketDialogComponent implements OnInit {
     private nifiCommon = inject(NiFiCommon);
 
     dataSource: MatTableDataSource<UserOrGroupRow> = new MatTableDataSource<UserOrGroupRow>();
-    displayedColumns: string[] = ['identity'];
+    displayedColumns: string[] = ['type', 'identity'];
     sort: Sort = {
         active: 'identity',
         direction: 'asc'
