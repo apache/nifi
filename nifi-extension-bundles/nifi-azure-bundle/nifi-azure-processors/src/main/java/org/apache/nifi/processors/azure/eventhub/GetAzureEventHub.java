@@ -55,6 +55,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.StopWatch;
@@ -111,15 +112,16 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             .required(true)
             .build();
     static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
+    static final PropertyDescriptor AUTHENTICATION_STRATEGY = AzureEventHubComponent.AUTHENTICATION_STRATEGY;
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Name")
             .description("The name of the shared access policy. This policy must have Listen claims.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
+            .dependsOn(AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = AzureEventHubUtils.POLICY_PRIMARY_KEY;
-    static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
 
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
             .name("Consumer Group")
@@ -165,7 +167,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             TRANSPORT_TYPE,
             ACCESS_POLICY,
             POLICY_PRIMARY_KEY,
-            USE_MANAGED_IDENTITY,
+            AUTHENTICATION_STRATEGY,
             CONSUMER_GROUP,
             ENQUEUE_TIME,
             RECEIVER_FETCH_SIZE,
@@ -315,7 +317,17 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         config.renameProperty("Partition Recivier Fetch Size", RECEIVER_FETCH_SIZE.getName());
         config.renameProperty("Partition Receiver Timeout (millseconds)", RECEIVER_FETCH_TIMEOUT.getName());
         config.renameProperty(AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, POLICY_PRIMARY_KEY.getName());
-        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, USE_MANAGED_IDENTITY.getName());
+        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME);
+        if (!config.hasProperty(AUTHENTICATION_STRATEGY.getName())) {
+            final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME)
+                    .map(Boolean::parseBoolean)
+                    .orElse(false);
+            final String authenticationStrategyValue = useManagedIdentity
+                    ? AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue()
+                    : AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue();
+            config.setProperty(AUTHENTICATION_STRATEGY.getName(), authenticationStrategyValue);
+        }
+        config.removeProperty(AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME);
     }
 
     /**
@@ -370,7 +382,8 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final String namespace = context.getProperty(NAMESPACE).getValue();
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).getValue();
         final String serviceBusEndpoint = context.getProperty(SERVICE_BUS_ENDPOINT).getValue();
-        final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
+        final AzureEventHubAuthenticationStrategy authenticationStrategy =
+                context.getProperty(AUTHENTICATION_STRATEGY).asAllowableValue(AzureEventHubAuthenticationStrategy.class);
         final String fullyQualifiedNamespace = String.format("%s%s", namespace, serviceBusEndpoint);
         final AmqpTransportType transportType = context.getProperty(TRANSPORT_TYPE).asAllowableValue(AzureEventHubTransportType.class).asAmqpTransportType();
 
@@ -380,7 +393,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final String consumerGroup = context.getProperty(CONSUMER_GROUP).getValue();
         eventHubClientBuilder.consumerGroup(consumerGroup);
 
-        if (useManagedIdentity) {
+        if (authenticationStrategy == null || authenticationStrategy == AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY) {
             final ManagedIdentityCredentialBuilder managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
             final ManagedIdentityCredential managedIdentityCredential = managedIdentityCredentialBuilder.build();
             eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, managedIdentityCredential);
