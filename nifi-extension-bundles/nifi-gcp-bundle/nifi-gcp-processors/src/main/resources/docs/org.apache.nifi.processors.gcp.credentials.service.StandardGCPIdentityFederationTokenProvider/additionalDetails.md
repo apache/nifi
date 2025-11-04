@@ -17,6 +17,7 @@
 
 The **StandardGCPIdentityFederationTokenProvider** exchanges a workload identity token issued by an
 external identity provider for a short-lived Google Cloud access token using the Google Security Token Service (STS).
+It configures Google’s `IdentityPoolCredentials`, allowing the Google client libraries to refresh access tokens automatically.
 The returned token is returned to the `GCPCredentialsControllerService` when the `GCP Identity Federation Token Provider`
 property is configured. Identity federation is treated as a mutually exclusive primary strategy; keep the other
 credential strategies (Application Default, Compute Engine, Service Account JSON) unset.
@@ -91,8 +92,7 @@ If that command lists the objects, the federation pipeline is functioning.
 | **STS Token Endpoint** | Optional override. Leave empty to use the default `https://sts.googleapis.com/v1/token`. |
 | **Subject Token Provider** | Controller service that retrieves the external JWT/access token. The token should expose the claims referenced in the provider’s attribute mapping. |
 | **Subject Token Type** | Defaults to `urn:ietf:params:oauth:token-type:jwt`. Change only if the upstream provider returns a different token type supported by STS. |
-| **Requested Token Type** | Defaults to requesting an access token. Modify only if you need a refresh token. |
-| **Web Client Service** | HTTP client used for the STS request. Configure proxy or TLS options here if NiFi requires them to reach Google APIs. |
+| **Proxy Configuration Service** | Optional. Configure when NiFi must reach Google STS through an HTTP or SOCKS proxy during verification or when other components reuse this controller service directly. |
 
 Once the controller service is enabled, configure the `GCPCredentialsControllerService` to reference it in
 `GCP Identity Federation Token Provider`. Keep the other credential strategies unconfigured.
@@ -102,10 +102,7 @@ Once the controller service is enabled, configure the `GCPCredentialsControllerS
 ## Verification workflow
 
 1. Enable or refresh the subject-token provider controller service.
-2. Verify the **StandardGCPIdentityFederationTokenProvider**. Successful verification confirms:
-   - the subject token can be obtained,
-   - Google STS accepted the audience and scope,
-   - an access token was returned.
+2. Verify the **StandardGCPIdentityFederationTokenProvider**. Successful verification confirms that the subject token is usable and that Google STS returned an access token using the configured transport (including any proxy settings).
 3. Verify the `GCPCredentialsControllerService` or enable dependent processors.
 
 ---
@@ -140,7 +137,7 @@ Once the controller service is enabled, configure the `GCPCredentialsControllerS
 ### Need to rotate upstream subject tokens frequently
 
 - Configure the upstream Subject Token Provider with its own refresh/rotation policy.
-- The StandardGCPIdentityFederationTokenProvider caches tokens until they are near expiration; use the controller service’s **Refresh** action to force renewal if needed.
+- The controller service requests a fresh subject token whenever the previous token is within 60 seconds of expiry; use the **Refresh** action if you need to invalidate the cached subject token immediately.
 
 ---
 

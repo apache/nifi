@@ -16,38 +16,31 @@
  */
 package org.apache.nifi.processors.gcp.credentials.service;
 
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.LowLevelHttpRequest;
+import com.google.api.client.http.LowLevelHttpResponse;
+import com.google.api.client.util.StreamingContent;
+import com.google.auth.http.HttpTransportFactory;
+import com.google.auth.oauth2.IdentityPoolCredentials;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.web.client.api.HttpEntityHeaders;
-import org.apache.nifi.web.client.api.HttpRequestBodySpec;
-import org.apache.nifi.web.client.api.HttpRequestHeadersSpec;
-import org.apache.nifi.web.client.api.HttpRequestMethod;
-import org.apache.nifi.web.client.api.HttpRequestUriSpec;
-import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.api.WebClientService;
-import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
 
 import static org.apache.nifi.processors.gcp.credentials.service.StandardGCPIdentityFederationTokenProvider.AUDIENCE;
 import static org.apache.nifi.processors.gcp.credentials.service.StandardGCPIdentityFederationTokenProvider.SUBJECT_TOKEN_PROVIDER;
-import static org.apache.nifi.processors.gcp.credentials.service.StandardGCPIdentityFederationTokenProvider.WEB_CLIENT_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -55,14 +48,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class StandardGCPIdentityFederationTokenProviderTest {
     private static final String SERVICE_ID = "federation-provider";
     private static final String SUBJECT_PROVIDER_ID = "subject-token-provider";
-    private static final String WEB_CLIENT_SERVICE_ID = "web-client";
     private static final String SAMPLE_AUDIENCE = "//iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/sample/providers/provider-id";
     private static final String SAMPLE_ACCESS_TOKEN = "ya29.sample-access-token";
     private static final String SUBJECT_TOKEN = "subject-token";
 
     private TestRunner runner;
     private StandardGCPIdentityFederationTokenProvider tokenProvider;
-    private CapturingWebClientServiceProvider webClientServiceProvider;
     private MockSubjectTokenProvider subjectTokenProvider;
 
     @BeforeEach
@@ -71,10 +62,6 @@ public class StandardGCPIdentityFederationTokenProviderTest {
         tokenProvider = new StandardGCPIdentityFederationTokenProvider();
         runner.addControllerService(SERVICE_ID, tokenProvider);
 
-        webClientServiceProvider = new CapturingWebClientServiceProvider();
-        runner.addControllerService(WEB_CLIENT_SERVICE_ID, webClientServiceProvider);
-        runner.enableControllerService(webClientServiceProvider);
-
         subjectTokenProvider = new MockSubjectTokenProvider();
         runner.addControllerService(SUBJECT_PROVIDER_ID, subjectTokenProvider);
         runner.enableControllerService(subjectTokenProvider);
@@ -82,29 +69,28 @@ public class StandardGCPIdentityFederationTokenProviderTest {
 
     @Test
     public void testTokenExchange() throws Exception {
-        runner.setProperty(tokenProvider, WEB_CLIENT_SERVICE, WEB_CLIENT_SERVICE_ID);
         runner.setProperty(tokenProvider, SUBJECT_TOKEN_PROVIDER, SUBJECT_PROVIDER_ID);
         runner.setProperty(tokenProvider, AUDIENCE, SAMPLE_AUDIENCE);
 
         runner.enableControllerService(tokenProvider);
         runner.assertValid(tokenProvider);
 
-        final AccessToken accessToken = tokenProvider.getAccessDetails();
+        final CapturingHttpTransportFactory transportFactory = new CapturingHttpTransportFactory();
+        final IdentityPoolCredentials credentials = (IdentityPoolCredentials) tokenProvider.getGoogleCredentials(transportFactory);
+
+        final com.google.auth.oauth2.AccessToken accessToken = credentials.refreshAccessToken();
         assertNotNull(accessToken);
-        assertEquals(SAMPLE_ACCESS_TOKEN, accessToken.getAccessToken());
+        assertEquals(SAMPLE_ACCESS_TOKEN, accessToken.getTokenValue());
+        assertEquals(1, subjectTokenProvider.getAccessCount());
 
-        final String requestBody = webClientServiceProvider.getCapturedRequestBody();
+        final String requestBody = transportFactory.getRequestBody();
         assertNotNull(requestBody);
-        assertEquals(StandardGCPIdentityFederationTokenProviderTest.SUBJECT_TOKEN, subjectTokenProvider.getProvidedToken());
-        assertEquals(URI.create("https://sts.googleapis.com/v1/token"), webClientServiceProvider.getCapturedRequestUri());
-        // Validate core parameters are present
-        final String expectedAudienceParam = "audience=" + encode(SAMPLE_AUDIENCE);
-        final String expectedSubjectParam = "subject_token=" + encode(SUBJECT_TOKEN);
-        final String expectedGrantType = "grant_type=" + encode("urn:ietf:params:oauth:grant-type:token-exchange");
+        assertTrue(requestBody.contains("grant_type=" + encode("urn:ietf:params:oauth:grant-type:token-exchange")));
+        assertTrue(requestBody.contains("audience=" + encode(SAMPLE_AUDIENCE)));
+        assertTrue(requestBody.contains("subject_token=" + encode(SUBJECT_TOKEN)));
 
-        assertTrue(requestBody.contains(expectedAudienceParam));
-        assertTrue(requestBody.contains(expectedSubjectParam));
-        assertTrue(requestBody.contains(expectedGrantType));
+        final URI requestUri = transportFactory.getRequestUri();
+        assertEquals(URI.create("https://sts.googleapis.com/v1/token"), requestUri);
     }
 
     private static String encode(final String value) {
@@ -112,218 +98,132 @@ public class StandardGCPIdentityFederationTokenProviderTest {
     }
 
     private static final class MockSubjectTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
-        private String providedToken;
+        private int accessCount;
 
         @Override
         public AccessToken getAccessDetails() {
+            accessCount++;
             final AccessToken accessToken = new AccessToken();
-            accessToken.setAdditionalParameter("id_token", StandardGCPIdentityFederationTokenProviderTest.SUBJECT_TOKEN);
-            providedToken = StandardGCPIdentityFederationTokenProviderTest.SUBJECT_TOKEN;
+            accessToken.setAdditionalParameter("id_token", SUBJECT_TOKEN);
+            accessToken.setExpiresIn(300);
             return accessToken;
-        }
-
-        public String getProvidedToken() {
-            return providedToken;
         }
 
         @Override
         public void refreshAccessDetails() {
-            // no-op
+            // no-op for test
+        }
+
+        int getAccessCount() {
+            return accessCount;
         }
     }
 
-    private static final class CapturingWebClientServiceProvider extends AbstractControllerService implements WebClientServiceProvider {
-        private final CapturingWebClientService webClientService = new CapturingWebClientService();
+    private static final class CapturingHttpTransportFactory implements HttpTransportFactory {
+        private static final String RESPONSE_JSON = ("""
+                {
+                  "access_token": "%s",
+                  "expires_in": 3600,
+                  "token_type": "Bearer",
+                  "issued_token_type": "urn:ietf:params:oauth:token-type:access_token"
+                }
+                """).formatted(SAMPLE_ACCESS_TOKEN);
+
+        private volatile String requestBody;
+        private volatile URI requestUri;
 
         @Override
-        public WebClientService getWebClientService() {
-            return webClientService;
+        public HttpTransport create() {
+            return new CapturingHttpTransport();
         }
 
-        String getCapturedRequestBody() {
-            return webClientService.getCapturedRequestBody();
+        String getRequestBody() {
+            return requestBody;
         }
 
-        URI getCapturedRequestUri() {
-            return webClientService.getCapturedRequestUri();
+        URI getRequestUri() {
+            return requestUri;
         }
 
-        @Override
-        public HttpUriBuilder getHttpUriBuilder() {
-            return new NoOpHttpUriBuilder();
-        }
-    }
-
-    private static final class CapturingWebClientService implements WebClientService {
-        private static final int STATUS_SUCCESS = 200;
-        private static final String RESPONSE_BODY = "{\"access_token\":\"" + StandardGCPIdentityFederationTokenProviderTest.SAMPLE_ACCESS_TOKEN + "\",\"expires_in\":3600,\"token_type\":\"Bearer\"}";
-
-        private String capturedRequestBody;
-        private URI capturedUri;
-
-        @Override
-        public HttpRequestUriSpec post() {
-            return new CapturingRequestSpec();
-        }
-
-        @Override
-        public HttpRequestUriSpec method(final HttpRequestMethod requestMethod) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public HttpRequestUriSpec delete() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public HttpRequestUriSpec get() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public HttpRequestUriSpec head() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public HttpRequestUriSpec patch() {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public HttpRequestUriSpec put() {
-            throw new UnsupportedOperationException();
-        }
-
-        String getCapturedRequestBody() {
-            return capturedRequestBody;
-        }
-
-        URI getCapturedRequestUri() {
-            return capturedUri;
-        }
-
-        private final class CapturingRequestSpec implements HttpRequestUriSpec, HttpRequestBodySpec {
+        private final class CapturingHttpTransport extends HttpTransport {
 
             @Override
-            public HttpRequestBodySpec uri(final URI uri) {
-                capturedUri = uri;
-                return this;
+            protected LowLevelHttpRequest buildRequest(final String method, final String url) {
+                requestUri = URI.create(url);
+                return new CapturingLowLevelHttpRequest();
+            }
+        }
+
+        private final class CapturingLowLevelHttpRequest extends LowLevelHttpRequest {
+            @Override
+            public void addHeader(final String name, final String value) {
+                // headers not required for verification
             }
 
             @Override
-            public HttpRequestBodySpec header(final String headerName, final String headerValue) {
-                return this;
+            public LowLevelHttpResponse execute() throws IOException {
+                final StreamingContent streamingContent = getStreamingContent();
+                if (streamingContent != null) {
+                    final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    streamingContent.writeTo(outputStream);
+                    requestBody = outputStream.toString(StandardCharsets.UTF_8);
+                }
+                return new CapturingLowLevelHttpResponse();
+            }
+        }
+
+        private static final class CapturingLowLevelHttpResponse extends LowLevelHttpResponse {
+            private static final byte[] RESPONSE_BYTES = RESPONSE_JSON.getBytes(StandardCharsets.UTF_8);
+
+            @Override
+            public InputStream getContent() {
+                return new ByteArrayInputStream(RESPONSE_BYTES);
             }
 
             @Override
-            public HttpRequestHeadersSpec body(final InputStream inputStream, final OptionalLong contentLength) {
-                throw new UnsupportedOperationException();
+            public String getContentEncoding() {
+                return null;
             }
 
             @Override
-            public HttpRequestHeadersSpec body(final String body) {
-                capturedRequestBody = body;
-                return this;
+            public long getContentLength() {
+                return RESPONSE_BYTES.length;
             }
 
             @Override
-            public HttpResponseEntity retrieve() {
-                return new StaticHttpResponseEntity(STATUS_SUCCESS, capturedUri, RESPONSE_BODY);
+            public String getContentType() {
+                return "application/json";
             }
-        }
-    }
 
-    private static final class StaticHttpResponseEntity implements HttpResponseEntity {
-        private final int statusCode;
-        private final URI uri;
-        private final byte[] responseBody;
+            @Override
+            public String getStatusLine() {
+                return "HTTP/1.1 200 OK";
+            }
 
-        private StaticHttpResponseEntity(final int statusCode, final URI uri, final String responseBody) {
-            this.statusCode = statusCode;
-            this.uri = uri;
-            this.responseBody = responseBody.getBytes(StandardCharsets.UTF_8);
-        }
+            @Override
+            public int getStatusCode() {
+                return 200;
+            }
 
-        @Override
-        public int statusCode() {
-            return statusCode;
-        }
+            @Override
+            public String getReasonPhrase() {
+                return "OK";
+            }
 
-        @Override
-        public HttpEntityHeaders headers() {
-            return new EmptyHttpEntityHeaders();
-        }
+            @Override
+            public int getHeaderCount() {
+                return 0;
+            }
 
-        @Override
-        public InputStream body() {
-            return new ByteArrayInputStream(responseBody);
-        }
+            @Override
+            public String getHeaderName(final int index) {
+                return null;
+            }
 
-        @Override
-        public URI uri() {
-            return uri;
-        }
-
-        @Override
-        public void close() throws IOException {
-            // no-op
-        }
-    }
-
-    private static final class EmptyHttpEntityHeaders implements HttpEntityHeaders {
-
-        @Override
-        public Optional<String> getFirstHeader(final String headerName) {
-            return Optional.empty();
-        }
-
-        @Override
-        public List<String> getHeader(final String headerName) {
-            return List.of();
-        }
-
-        @Override
-        public Collection<String> getHeaderNames() {
-            return List.of();
-        }
-    }
-
-    private static final class NoOpHttpUriBuilder implements HttpUriBuilder {
-        @Override
-        public URI build() {
-            return null;
-        }
-
-        @Override
-        public HttpUriBuilder scheme(final String scheme) {
-            return this;
-        }
-
-        @Override
-        public HttpUriBuilder host(final String host) {
-            return this;
-        }
-
-        @Override
-        public HttpUriBuilder port(final int port) {
-            return this;
-        }
-
-        @Override
-        public HttpUriBuilder encodedPath(final String encodedPath) {
-            return this;
-        }
-
-        @Override
-        public HttpUriBuilder addPathSegment(final String pathSegment) {
-            return this;
-        }
-
-        @Override
-        public HttpUriBuilder addQueryParameter(final String name, final String value) {
-            return this;
+            @Override
+            public String getHeaderValue(final int index) {
+                return null;
+            }
         }
     }
 }

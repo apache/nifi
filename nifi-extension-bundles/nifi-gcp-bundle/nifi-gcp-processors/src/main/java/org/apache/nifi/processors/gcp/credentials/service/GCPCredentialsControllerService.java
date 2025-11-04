@@ -18,7 +18,6 @@ package org.apache.nifi.processors.gcp.credentials.service;
 
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -36,7 +35,6 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
-import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
@@ -46,14 +44,11 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.gcp.GCPIdentityFederationTokenProvider;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY;
@@ -199,35 +194,23 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
     }
 
     private GoogleCredentials getGoogleCredentials(final ConfigurationContext context) throws IOException {
-        if (context.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER).isSet()) {
-            return getFederatedGoogleCredentials(context);
-        }
-
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
         final HttpTransportFactory transportFactory = new ProxyAwareTransportFactory(proxyConfiguration);
+        if (context.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER).isSet()) {
+            return getFederatedGoogleCredentials(context, transportFactory);
+        }
+
         return credentialsProviderFactory.getGoogleCredentials(context.getProperties(), transportFactory);
     }
 
-    private GoogleCredentials getFederatedGoogleCredentials(final ConfigurationContext context) {
+    private GoogleCredentials getFederatedGoogleCredentials(final ConfigurationContext context, final HttpTransportFactory transportFactory) {
         final GCPIdentityFederationTokenProvider tokenProvider = context.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER)
                 .asControllerService(GCPIdentityFederationTokenProvider.class);
-        final AccessToken accessToken = tokenProvider.getAccessDetails();
-
-        if (accessToken == null || StringUtils.isBlank(accessToken.getAccessToken())) {
-            throw new ProcessException("Identity Federation Token Provider returned no access token");
+        final GoogleCredentials googleCredentials = tokenProvider.getGoogleCredentials(transportFactory);
+        if (googleCredentials == null) {
+            throw new ProcessException("Identity Federation Token Provider returned no Google credentials");
         }
-
-        final Instant fetchTime = Objects.requireNonNull(accessToken.getFetchTime(), "Access token fetch time required");
-        long expiresIn = accessToken.getExpiresIn();
-        if (expiresIn <= 0) {
-            expiresIn = 300;
-        }
-
-        final Instant expirationInstant = fetchTime.plusSeconds(expiresIn);
-        final Date expiration = Date.from(expirationInstant);
-
-        final com.google.auth.oauth2.AccessToken googleAccessToken = new com.google.auth.oauth2.AccessToken(accessToken.getAccessToken(), expiration);
-        return GoogleCredentials.create(googleAccessToken);
+        return googleCredentials;
     }
 
     private void validateIdentityFederationExclusivity(final ValidationContext validationContext, final List<ValidationResult> results) {

@@ -16,11 +16,22 @@
  */
 package org.apache.nifi.services.gcp;
 
-import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
+import com.google.auth.http.HttpTransportFactory;
+import com.google.auth.oauth2.GoogleCredentials;
+import org.apache.nifi.controller.ControllerService;
 
 /**
- * GCP-specific extension of {@link OAuth2AccessTokenProvider} used for workload identity federation.
- * Implementations exchange an external identity token for a Google Cloud access token.
+ * Provides Google Cloud credentials obtained through Workload Identity Federation.
+ * Implementations are expected to return credentials capable of refreshing themselves
+ * using the configured token exchange mechanism.
  */
-public interface GCPIdentityFederationTokenProvider extends OAuth2AccessTokenProvider {
+public interface GCPIdentityFederationTokenProvider extends ControllerService {
+
+    /**
+     * Create Google Cloud credentials backed by workload identity federation.
+     *
+     * @param transportFactory Transport factory to use when contacting Google Security Token Service
+     * @return Google credentials that can obtain and refresh Google Cloud access tokens
+     */
+    GoogleCredentials getGoogleCredentials(HttpTransportFactory transportFactory);
 }

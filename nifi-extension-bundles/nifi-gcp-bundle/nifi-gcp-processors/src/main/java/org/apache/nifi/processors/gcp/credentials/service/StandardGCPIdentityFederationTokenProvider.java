@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.processors.gcp.credentials.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.IOUtils;
+import com.google.auth.http.HttpTransportFactory;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.IdentityPoolCredentials;
+import com.google.auth.oauth2.IdentityPoolSubjectTokenSupplier;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -26,63 +27,47 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.services.gcp.GCPIdentityFederationTokenProvider;
-import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.apache.nifi.web.client.api.WebClientService;
-import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 /**
- * Controller Service that exchanges an external identity token for a Google Cloud access token
- * using the Workload Identity Federation token exchange endpoint.
+ * Controller Service that configures Workload Identity Federation using Google IdentityPoolCredentials.
+ * The service obtains subject tokens from an upstream OAuth2AccessTokenProvider and allows the Google
+ * client library to exchange and refresh Google Cloud access tokens as needed.
  */
 @Tags({ "gcp", "oauth2", "identity", "federation", "credentials" })
-@CapabilityDescription("Exchanges workload identity tokens for Google Cloud access tokens using the STS token exchange API.")
+@CapabilityDescription("Provides Google Cloud credentials using Workload Identity Federation. "
+        + "Tokens are exchanged through Google Identity Pool credentials and refreshed automatically.")
 public class StandardGCPIdentityFederationTokenProvider extends AbstractControllerService implements GCPIdentityFederationTokenProvider,
         VerifiableControllerService {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
     private static final String DEFAULT_TOKEN_ENDPOINT = "https://sts.googleapis.com/v1/token";
     private static final String DEFAULT_SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt";
-    private static final String DEFAULT_REQUESTED_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:access_token";
     private static final String DEFAULT_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
-    private static final String FORM_CONTENT_TYPE = "application/x-www-form-urlencoded";
-    private static final String ACCEPT_HEADER = "application/json";
-    private static final String GRANT_TYPE_TOKEN_EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange";
-    private static final String PARAM_GRANT_TYPE = "grant_type";
-    private static final String PARAM_SUBJECT_TOKEN_TYPE = "subject_token_type";
-    private static final String PARAM_SUBJECT_TOKEN = "subject_token";
-    private static final String PARAM_REQUESTED_TOKEN_TYPE = "requested_token_type";
-    private static final String PARAM_SCOPE = "scope";
-    private static final String PARAM_AUDIENCE = "audience";
-
-    private static final String FIELD_ACCESS_TOKEN = "access_token";
-    private static final String FIELD_TOKEN_TYPE = "token_type";
-    private static final String FIELD_EXPIRES_IN = "expires_in";
-    private static final String FIELD_ISSUED_TOKEN_TYPE = "issued_token_type";
-    private static final String FIELD_SCOPE = "scope";
+    private static final long SUBJECT_TOKEN_REFRESH_SKEW_SECONDS = 60;
 
     private static final String ERROR_EXCHANGE_FAILED = "Failed to exchange workload identity token: %s";
     private static final String ERROR_NO_SUBJECT_TOKEN = "Subject token provider returned no usable token";
-    private static final String ERROR_READ_RESPONSE = "Failed reading response from Google STS endpoint";
-    private static final String ERROR_NO_ACCESS_TOKEN = "Google STS response did not contain an access_token";
     private static final String STEP_EXCHANGE_TOKEN = "Exchange workload identity token";
 
     public static final PropertyDescriptor AUDIENCE = new PropertyDescriptor.Builder()
@@ -94,7 +79,7 @@ public class StandardGCPIdentityFederationTokenProvider extends AbstractControll
 
     public static final PropertyDescriptor SCOPE = new PropertyDescriptor.Builder()
             .name("Scope")
-            .description("OAuth2 scope requested for the exchanged access token.")
+            .description("OAuth2 scopes requested for the exchanged access token. Multiple scopes can be separated by space or comma.")
             .required(true)
             .defaultValue(DEFAULT_SCOPE)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -126,23 +111,7 @@ public class StandardGCPIdentityFederationTokenProvider extends AbstractControll
             )
             .build();
 
-    public static final PropertyDescriptor REQUESTED_TOKEN_TYPE = new PropertyDescriptor.Builder()
-            .name("Requested Token Type")
-            .description("The type of token requested from Google STS.")
-            .required(true)
-            .defaultValue(DEFAULT_REQUESTED_TOKEN_TYPE)
-            .allowableValues(
-                    DEFAULT_REQUESTED_TOKEN_TYPE,
-                    "urn:ietf:params:oauth:token-type:refresh_token"
-            )
-            .build();
-
-    public static final PropertyDescriptor WEB_CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("Web Client Service")
-            .description("Controller Service providing the HTTP client used to communicate with Google STS.")
-            .identifiesControllerService(WebClientServiceProvider.class)
-            .required(true)
-            .build();
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS);
 
     private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             AUDIENCE,
@@ -150,42 +119,45 @@ public class StandardGCPIdentityFederationTokenProvider extends AbstractControll
             TOKEN_ENDPOINT,
             SUBJECT_TOKEN_PROVIDER,
             SUBJECT_TOKEN_TYPE,
-            REQUESTED_TOKEN_TYPE,
-            WEB_CLIENT_SERVICE
+            PROXY_CONFIGURATION_SERVICE
     );
 
-    private volatile WebClientServiceProvider webClientServiceProvider;
     private volatile OAuth2AccessTokenProvider subjectTokenProvider;
     private volatile String audience;
-    private volatile String scope;
+    private volatile List<String> scopes;
     private volatile String tokenEndpoint;
     private volatile String subjectTokenType;
-    private volatile String requestedTokenType;
+    private volatile ProxyConfiguration proxyConfiguration;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return DESCRIPTORS;
     }
 
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+        ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
+        return results;
+    }
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.webClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE).asControllerService(WebClientServiceProvider.class);
         this.subjectTokenProvider = context.getProperty(SUBJECT_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
         this.audience = context.getProperty(AUDIENCE).getValue();
-        this.scope = context.getProperty(SCOPE).getValue();
+        this.scopes = parseScopes(context.getProperty(SCOPE).getValue());
         this.tokenEndpoint = context.getProperty(TOKEN_ENDPOINT).getValue();
         this.subjectTokenType = context.getProperty(SUBJECT_TOKEN_TYPE).getValue();
-        this.requestedTokenType = context.getProperty(REQUESTED_TOKEN_TYPE).getValue();
+        this.proxyConfiguration = ProxyConfiguration.getConfiguration(context);
     }
 
     @Override
-    public AccessToken getAccessDetails() {
-        return exchangeAccessToken(webClientServiceProvider, subjectTokenProvider, audience, scope, tokenEndpoint, subjectTokenType, requestedTokenType);
-    }
+    public GoogleCredentials getGoogleCredentials(final HttpTransportFactory transportFactory) {
+        final HttpTransportFactory effectiveFactory = transportFactory != null
+                ? transportFactory
+                : new ProxyAwareTransportFactory(proxyConfiguration);
 
-    @Override
-    public void refreshAccessDetails() {
-        subjectTokenProvider.refreshAccessDetails();
+        return buildIdentityPoolCredentials(subjectTokenProvider, audience, scopes, tokenEndpoint, subjectTokenType, effectiveFactory);
     }
 
     @Override
@@ -194,18 +166,23 @@ public class StandardGCPIdentityFederationTokenProvider extends AbstractControll
                 .verificationStepName(STEP_EXCHANGE_TOKEN);
 
         try {
-            final WebClientServiceProvider verificationClientServiceProvider = context.getProperty(WEB_CLIENT_SERVICE)
-                    .asControllerService(WebClientServiceProvider.class);
             final OAuth2AccessTokenProvider verificationSubjectTokenProvider = context.getProperty(SUBJECT_TOKEN_PROVIDER)
                     .asControllerService(OAuth2AccessTokenProvider.class);
             final String verificationAudience = context.getProperty(AUDIENCE).getValue();
-            final String verificationScope = context.getProperty(SCOPE).getValue();
-            final String verificationEndpoint = context.getProperty(TOKEN_ENDPOINT).getValue();
-            final String verificationSubjectType = context.getProperty(SUBJECT_TOKEN_TYPE).getValue();
-            final String verificationRequestedType = context.getProperty(REQUESTED_TOKEN_TYPE).getValue();
+            final List<String> verificationScopes = parseScopes(context.getProperty(SCOPE).getValue());
+            final String verificationTokenEndpoint = context.getProperty(TOKEN_ENDPOINT).getValue();
+            final String verificationSubjectTokenType = context.getProperty(SUBJECT_TOKEN_TYPE).getValue();
+            final ProxyConfiguration verificationProxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
-            exchangeAccessToken(verificationClientServiceProvider, verificationSubjectTokenProvider,
-                    verificationAudience, verificationScope, verificationEndpoint, verificationSubjectType, verificationRequestedType);
+            final IdentityPoolCredentials credentials = buildIdentityPoolCredentials(
+                    verificationSubjectTokenProvider,
+                    verificationAudience,
+                    verificationScopes,
+                    verificationTokenEndpoint,
+                    verificationSubjectTokenType,
+                    new ProxyAwareTransportFactory(verificationProxyConfiguration));
+
+            credentials.refreshAccessToken();
 
             return Collections.singletonList(resultBuilder
                     .outcome(Outcome.SUCCESSFUL)
@@ -221,47 +198,66 @@ public class StandardGCPIdentityFederationTokenProvider extends AbstractControll
         }
     }
 
-    private AccessToken exchangeAccessToken(final WebClientServiceProvider clientServiceProvider,
-                                            final OAuth2AccessTokenProvider subjectTokenProvider,
-                                            final String audience,
-                                            final String scope,
-                                            final String tokenEndpoint,
-                                            final String subjectTokenType,
-                                            final String requestedTokenType) {
+    private IdentityPoolCredentials buildIdentityPoolCredentials(final OAuth2AccessTokenProvider tokenProvider,
+                                                                 final String audience,
+                                                                 final List<String> scopes,
+                                                                 final String tokenEndpoint,
+                                                                 final String subjectTokenType,
+                                                                 final HttpTransportFactory transportFactory) {
+        final IdentityPoolSubjectTokenSupplier tokenSupplier = createSubjectTokenSupplier(tokenProvider);
+        final IdentityPoolCredentials.Builder builder = IdentityPoolCredentials.newBuilder()
+                .setAudience(audience)
+                .setTokenUrl(tokenEndpoint)
+                .setSubjectTokenType(subjectTokenType)
+                .setSubjectTokenSupplier(tokenSupplier);
 
-        final String subjectToken = getSubjectToken(subjectTokenProvider);
-        if (StringUtils.isBlank(subjectToken)) {
-            throw new ProcessException(ERROR_NO_SUBJECT_TOKEN);
+        if (!scopes.isEmpty()) {
+            builder.setScopes(scopes);
         }
 
-        final WebClientService webClientService = clientServiceProvider.getWebClientService();
-        final URI tokenUri = URI.create(tokenEndpoint);
-        final String requestBody = buildRequestBody(subjectToken, audience, scope, subjectTokenType, requestedTokenType);
-
-        final HttpResponseEntity responseEntity = webClientService.post()
-                .uri(tokenUri)
-                .header("Content-Type", FORM_CONTENT_TYPE)
-                .header("Accept", ACCEPT_HEADER)
-                .body(requestBody)
-                .retrieve();
-
-        try (responseEntity) {
-            final int statusCode = responseEntity.statusCode();
-            final String responseBody = IOUtils.toString(responseEntity.body(), StandardCharsets.UTF_8);
-            if (statusCode < 200 || statusCode >= 300) {
-                throw new ProcessException(String.format(
-                        "Google STS endpoint %s returned status %d: %s",
-                        tokenUri, statusCode, responseBody));
-            }
-
-            return parseAccessToken(responseBody);
-        } catch (final IOException e) {
-            throw new ProcessException(ERROR_READ_RESPONSE, e);
+        if (transportFactory != null) {
+            builder.setHttpTransportFactory(transportFactory);
         }
+
+        return builder.build();
     }
 
-    private String getSubjectToken(final OAuth2AccessTokenProvider subjectTokenProvider) {
-        final AccessToken subjectToken = subjectTokenProvider.getAccessDetails();
+    private IdentityPoolSubjectTokenSupplier createSubjectTokenSupplier(final OAuth2AccessTokenProvider tokenProvider) {
+        return context -> getSubjectToken(tokenProvider);
+    }
+
+    private String getSubjectToken(final OAuth2AccessTokenProvider tokenProvider) throws IOException {
+        AccessToken subjectToken = tokenProvider.getAccessDetails();
+
+        if (requiresRefresh(subjectToken)) {
+            tokenProvider.refreshAccessDetails();
+            subjectToken = tokenProvider.getAccessDetails();
+        }
+
+        final String subjectTokenValue = extractTokenValue(subjectToken);
+        if (StringUtils.isBlank(subjectTokenValue)) {
+            throw new IOException(ERROR_NO_SUBJECT_TOKEN);
+        }
+
+        return subjectTokenValue;
+    }
+
+    private boolean requiresRefresh(final AccessToken subjectToken) {
+        if (subjectToken == null) {
+            return true;
+        }
+
+        final long expiresIn = subjectToken.getExpiresIn();
+        if (expiresIn <= 0) {
+            return false;
+        }
+
+        final Instant fetchTime = subjectToken.getFetchTime();
+        final Instant refreshTime = fetchTime.plusSeconds(expiresIn).minusSeconds(SUBJECT_TOKEN_REFRESH_SKEW_SECONDS);
+        return Instant.now().isAfter(refreshTime);
+    }
+
+    private String extractTokenValue(final AccessToken subjectToken) {
         if (subjectToken == null) {
             return null;
         }
@@ -282,65 +278,13 @@ public class StandardGCPIdentityFederationTokenProvider extends AbstractControll
         return null;
     }
 
-    private static String buildRequestBody(final String subjectToken,
-                                           final String audience,
-                                           final String scope,
-                                           final String subjectTokenType,
-                                           final String requestedTokenType) {
-        final StringBuilder builder = new StringBuilder();
-        appendFormParameter(builder, PARAM_GRANT_TYPE, GRANT_TYPE_TOKEN_EXCHANGE);
-        appendFormParameter(builder, PARAM_SUBJECT_TOKEN_TYPE, subjectTokenType);
-        appendFormParameter(builder, PARAM_SUBJECT_TOKEN, subjectToken);
-        appendFormParameter(builder, PARAM_AUDIENCE, audience);
-        appendFormParameter(builder, PARAM_REQUESTED_TOKEN_TYPE, requestedTokenType);
-        if (StringUtils.isNotBlank(scope)) {
-            appendFormParameter(builder, PARAM_SCOPE, scope);
-        }
-        return builder.toString();
-    }
-
-    private static void appendFormParameter(final StringBuilder builder, final String name, final String value) {
-        Objects.requireNonNull(name, "Form parameter name required");
-        if (builder.length() > 0) {
-            builder.append('&');
-        }
-        builder.append(encode(name)).append('=').append(encode(value));
-    }
-
-    private static String encode(final String value) {
-        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
-    }
-
-    private AccessToken parseAccessToken(final String responseBody) throws IOException {
-        final JsonNode responseNode = OBJECT_MAPPER.readTree(responseBody);
-        final String accessTokenValue = responseNode.path(FIELD_ACCESS_TOKEN).asText(null);
-        if (StringUtils.isBlank(accessTokenValue)) {
-            throw new ProcessException(ERROR_NO_ACCESS_TOKEN);
+    private static List<String> parseScopes(final String scopeValue) {
+        if (StringUtils.isBlank(scopeValue)) {
+            return Collections.emptyList();
         }
 
-        final AccessToken accessToken = new AccessToken();
-        accessToken.setAccessToken(accessTokenValue);
-
-        final JsonNode expiresInNode = responseNode.path(FIELD_EXPIRES_IN);
-        if (expiresInNode.isNumber()) {
-            accessToken.setExpiresIn(expiresInNode.asLong());
-        }
-
-        final String tokenType = responseNode.path(FIELD_TOKEN_TYPE).asText(null);
-        if (StringUtils.isNotBlank(tokenType)) {
-            accessToken.setTokenType(tokenType);
-        }
-
-        final String issuedTokenType = responseNode.path(FIELD_ISSUED_TOKEN_TYPE).asText(null);
-        if (StringUtils.isNotBlank(issuedTokenType)) {
-            accessToken.setAdditionalParameter(FIELD_ISSUED_TOKEN_TYPE, issuedTokenType);
-        }
-
-        final String scopeValue = responseNode.path(FIELD_SCOPE).asText(null);
-        if (StringUtils.isNotBlank(scopeValue)) {
-            accessToken.setScope(scopeValue);
-        }
-
-        return accessToken;
+        return Arrays.stream(scopeValue.split("[\\s,]+"))
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toList());
     }
 }
