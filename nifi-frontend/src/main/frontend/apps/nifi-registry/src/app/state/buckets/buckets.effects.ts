@@ -19,7 +19,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { from, of, take, takeUntil } from 'rxjs';
+import { from, of, take, takeUntil, forkJoin, race } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import * as BucketsActions from './buckets.actions';
 import { deleteBucket } from './buckets.actions';
@@ -210,71 +210,97 @@ export class BucketsEffects {
         () =>
             this.actions$.pipe(
                 ofType(BucketsActions.openManageBucketPoliciesDialog),
-                tap(({ request }) => {
+                switchMap(({ request }) => {
+                    // Dispatch both load actions
                     this.store.dispatch(
-                        PoliciesActions.loadPolicyTenants({ request: { context: ErrorContextKey.MANAGE_ACCESS } })
+                        PoliciesActions.loadPolicyTenants({ request: { context: ErrorContextKey.GLOBAL } })
                     );
                     this.store.dispatch(
                         PoliciesActions.loadPolicies({
-                            request: { bucketId: request.bucket.identifier, context: ErrorContextKey.MANAGE_ACCESS }
+                            request: { bucketId: request.bucket.identifier, context: ErrorContextKey.GLOBAL }
                         })
                     );
 
-                    const dialogRef = this.dialog.open(ManageBucketPoliciesDialogComponent, {
-                        ...XL_DIALOG,
-                        autoFocus: false,
-                        data: {
-                            bucket: request.bucket,
-                            options$: this.store.select(selectPolicyOptions),
-                            selection$: this.store.select(selectPolicySelection),
-                            loading$: this.store.select(selectPoliciesLoading),
-                            saving$: this.store.select(selectPoliciesSaving),
-                            isPolicyError$: this.store.select(selectBannerErrors(ErrorContextKey.MANAGE_ACCESS)).pipe(
-                                map((bannerErrors) => {
-                                    if (bannerErrors.length > 0) {
-                                        return true;
-                                    }
-                                    return false;
-                                })
-                            ),
-                            isAddPolicyDisabled$: this.store.select(selectCurrentUser).pipe(
-                                map((currentUser) => {
-                                    // Disable if anonymous
-                                    if (currentUser.anonymous) {
-                                        return true;
-                                    }
-                                    // Disable if user can't write policies
-                                    if (!currentUser.resourcePermissions.policies.canWrite) {
-                                        return true;
-                                    }
-                                    // Disable if user can't read tenants
-                                    if (!currentUser.resourcePermissions.tenants.canRead) {
-                                        return true;
-                                    }
-                                    return false;
-                                })
-                            )
-                        }
-                    });
+                    // Wait for both success actions or either failure action
+                    const tenantsSuccess$ = this.actions$.pipe(
+                        ofType(PoliciesActions.loadPolicyTenantsSuccess),
+                        take(1)
+                    );
 
-                    // Subscribe to output and handle multiple emissions until dialog closes
-                    dialogRef.componentInstance.savePolicies
-                        .pipe(takeUntil(dialogRef.afterClosed()))
-                        .subscribe((saveRequest) => {
-                            this.store.dispatch(
-                                PoliciesActions.saveBucketPolicy({
-                                    request: {
-                                        bucketId: saveRequest.bucketId,
-                                        action: saveRequest.action,
-                                        policyId: saveRequest.policyId,
-                                        revision: saveRequest.revision,
-                                        users: saveRequest.users,
-                                        userGroups: saveRequest.userGroups,
-                                        isLastInBatch: saveRequest.isLastInBatch
+                    const policiesSuccess$ = this.actions$.pipe(ofType(PoliciesActions.loadPoliciesSuccess), take(1));
+
+                    const anyFailure$ = this.actions$.pipe(
+                        ofType(PoliciesActions.loadPolicyTenantsFailure, PoliciesActions.loadPoliciesFailure),
+                        take(1),
+                        map(() => null) // Return null to indicate failure
+                    );
+
+                    // Race between both succeeding or any failing
+                    return race(forkJoin([tenantsSuccess$, policiesSuccess$]), anyFailure$).pipe(
+                        tap((result) => {
+                            // Only open dialog if both succeeded (result is not null)
+                            if (result) {
+                                const dialogRef = this.dialog.open(ManageBucketPoliciesDialogComponent, {
+                                    ...XL_DIALOG,
+                                    autoFocus: false,
+                                    data: {
+                                        bucket: request.bucket,
+                                        options$: this.store.select(selectPolicyOptions),
+                                        selection$: this.store.select(selectPolicySelection),
+                                        loading$: this.store.select(selectPoliciesLoading),
+                                        saving$: this.store.select(selectPoliciesSaving),
+                                        isPolicyError$: this.store
+                                            .select(selectBannerErrors(ErrorContextKey.MANAGE_ACCESS))
+                                            .pipe(
+                                                map((bannerErrors) => {
+                                                    if (bannerErrors.length > 0) {
+                                                        return true;
+                                                    }
+                                                    return false;
+                                                })
+                                            ),
+                                        isAddPolicyDisabled$: this.store.select(selectCurrentUser).pipe(
+                                            map((currentUser) => {
+                                                // Disable if anonymous
+                                                if (currentUser.anonymous) {
+                                                    return true;
+                                                }
+                                                // Disable if user can't write policies
+                                                if (!currentUser.resourcePermissions.policies.canWrite) {
+                                                    return true;
+                                                }
+                                                // Disable if user can't read tenants
+                                                if (!currentUser.resourcePermissions.tenants.canRead) {
+                                                    return true;
+                                                }
+                                                return false;
+                                            })
+                                        )
                                     }
-                                })
-                            );
-                        });
+                                });
+
+                                // Subscribe to output and handle multiple emissions until dialog closes
+                                dialogRef.componentInstance.savePolicies
+                                    .pipe(takeUntil(dialogRef.afterClosed()))
+                                    .subscribe((saveRequest) => {
+                                        this.store.dispatch(
+                                            PoliciesActions.saveBucketPolicy({
+                                                request: {
+                                                    bucketId: saveRequest.bucketId,
+                                                    action: saveRequest.action,
+                                                    policyId: saveRequest.policyId,
+                                                    revision: saveRequest.revision,
+                                                    users: saveRequest.users,
+                                                    userGroups: saveRequest.userGroups,
+                                                    isLastInBatch: saveRequest.isLastInBatch
+                                                }
+                                            })
+                                        );
+                                    });
+                            }
+                            // If result is null, errors are already handled by the individual effects
+                        })
+                    );
                 })
             ),
         { dispatch: false }

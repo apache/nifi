@@ -331,7 +331,7 @@ describe('BucketsEffects', () => {
     });
 
     describe('openManageBucketPoliciesDialog$', () => {
-        it('should open manage bucket policies dialog and dispatch policy actions', (done) => {
+        it('should open manage bucket policies dialog when both load actions succeed', (done) => {
             const bucket = createBucket();
             const mockDialogRef = {
                 componentInstance: {
@@ -344,9 +344,15 @@ describe('BucketsEffects', () => {
 
             dialog.open.mockReturnValue(mockDialogRef as any);
 
-            actions$ = of(BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }));
+            // Create a sequence of actions: open dialog, then both success actions
+            actions$ = of(
+                BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }),
+                { type: '[Policies] Load Policy Tenants Success', response: { users: [], userGroups: [] } },
+                { type: '[Policies] Load Policies Success', response: { bucketId: bucket.identifier, policies: [] } }
+            );
 
             effects.openManageBucketPoliciesDialog$.subscribe(() => {
+                // The effect should complete after opening the dialog
                 expect(dialog.open).toHaveBeenCalledWith(
                     ManageBucketPoliciesDialogComponent,
                     expect.objectContaining({
@@ -356,6 +362,42 @@ describe('BucketsEffects', () => {
                         })
                     })
                 );
+                expect(store.dispatch).toHaveBeenCalledTimes(2); // loadPolicyTenants + loadPolicies
+                done();
+            });
+        });
+
+        it('should not open dialog if loadPolicyTenants fails', (done) => {
+            const bucket = createBucket();
+
+            // Create a sequence of actions: open dialog, then one success and one failure
+            actions$ = of(
+                BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }),
+                { type: '[Policies] Load Policy Tenants Failure' },
+                { type: '[Policies] Load Policies Success', response: { bucketId: bucket.identifier, policies: [] } }
+            );
+
+            effects.openManageBucketPoliciesDialog$.subscribe(() => {
+                // Dialog should not be opened
+                expect(dialog.open).not.toHaveBeenCalled();
+                expect(store.dispatch).toHaveBeenCalledTimes(2); // loadPolicyTenants + loadPolicies
+                done();
+            });
+        });
+
+        it('should not open dialog if loadPolicies fails', (done) => {
+            const bucket = createBucket();
+
+            // Create a sequence of actions: open dialog, then one success and one failure
+            actions$ = of(
+                BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }),
+                { type: '[Policies] Load Policy Tenants Success', response: { users: [], userGroups: [] } },
+                { type: '[Policies] Load Policies Failure' }
+            );
+
+            effects.openManageBucketPoliciesDialog$.subscribe(() => {
+                // Dialog should not be opened
+                expect(dialog.open).not.toHaveBeenCalled();
                 expect(store.dispatch).toHaveBeenCalledTimes(2); // loadPolicyTenants + loadPolicies
                 done();
             });
