@@ -53,7 +53,9 @@ class ADLSIcebergFileIOProviderTest {
 
     @AfterEach
     void disableProvider() {
-        runner.disableControllerService(provider);
+        if (runner.isControllerServiceEnabled(provider)) {
+            runner.disableControllerService(provider);
+        }
     }
 
     @Test
@@ -84,6 +86,13 @@ class ADLSIcebergFileIOProviderTest {
             final Map<String, String> configuredProperties = fileIO.properties();
             assertFalse(configuredProperties.isEmpty());
             assertTrue(configuredProperties.containsValue(SHARED_ACCESS_SIGNATURE_TOKEN));
+        }
+
+        runner.disableControllerService(provider);
+
+        try (FileIO fileIO = provider.getFileIO(providerContext)) {
+            final Map<String, String> configuredProperties = fileIO.properties();
+            assertTrue(configuredProperties.isEmpty());
         }
     }
 }

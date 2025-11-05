@@ -21,6 +21,7 @@ import org.apache.iceberg.azure.adlsv2.ADLSFileIO;
 import org.apache.iceberg.io.FileIO;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -90,6 +91,11 @@ public class ADLSIcebergFileIOProvider extends AbstractControllerService impleme
     public void onEnabled(final ConfigurationContext context) {
         final Map<String, String> configuredProperties = getConfiguredProperties(context);
         standardProperties.putAll(configuredProperties);
+    }
+
+    @OnDisabled
+    public void onDisabled() {
+        standardProperties.clear();
     }
 
     @Override
