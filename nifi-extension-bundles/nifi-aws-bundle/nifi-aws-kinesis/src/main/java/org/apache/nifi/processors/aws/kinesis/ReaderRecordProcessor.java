@@ -136,7 +136,10 @@ final class ReaderRecordProcessor {
         final Throwable cause = e.getCause() != null ? e.getCause() : e;
         attributes.put(RECORD_ERROR_MESSAGE, cause.toString());
 
-        return session.putAllAttributes(flowFile, attributes);
+        flowFile = session.putAllAttributes(flowFile, attributes);
+        session.getProvenanceReporter().receive(flowFile, ProvenanceTransitUriFormat.toTransitUri(streamName, shardId));
+
+        return flowFile;
     }
 
     record ProcessingResult(List<FlowFile> successFlowFiles, List<FlowFile> parseFailureFlowFiles) {
@@ -251,7 +254,10 @@ final class ReaderRecordProcessor {
                 attributes.put(RECORD_COUNT, String.valueOf(finalResult.getRecordCount()));
                 attributes.put(MIME_TYPE, writer.getMimeType());
 
-                return session.putAllAttributes(flowFile, attributes);
+                final FlowFile completedFlowFile = session.putAllAttributes(flowFile, attributes);
+                session.getProvenanceReporter().receive(completedFlowFile, ProvenanceTransitUriFormat.toTransitUri(streamName, shardId));
+
+                return completedFlowFile;
 
             } catch (final IOException e) {
                 final ProcessException processException = new ProcessException("Failed to complete a FlowFile", e);
