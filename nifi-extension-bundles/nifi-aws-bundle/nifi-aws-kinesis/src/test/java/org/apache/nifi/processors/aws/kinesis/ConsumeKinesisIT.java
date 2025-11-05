@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.aws.kinesis;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Processor;
@@ -23,6 +25,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.region.RegionUtil;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
@@ -71,6 +75,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_PARSE_FAILURE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_SUCCESS;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RECORD_COUNT;
@@ -79,6 +84,7 @@ import static org.apache.nifi.processors.aws.kinesis.JsonRecordAssert.assertFlow
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 
 /**
@@ -187,6 +193,8 @@ class ConsumeKinesisIT {
         assertNotNull(flowFile.getAttribute("aws.kinesis.first.sequence.number"));
         assertNotNull(flowFile.getAttribute("aws.kinesis.last.sequence.number"));
         assertNotNull(flowFile.getAttribute("aws.kinesis.shard.id"));
+
+        assertReceiveProvenanceEvents(runner.getProvenanceEvents(), flowFile);
     }
 
     @Test
@@ -205,6 +213,8 @@ class ConsumeKinesisIT {
         final List<String> flowFilesContent = flowFiles.stream().map(MockFlowFile::getContent).toList();
 
         assertEquals(messages, flowFilesContent);
+
+        assertReceiveProvenanceEvents(runner.getProvenanceEvents(), flowFiles);
     }
 
     @Test
@@ -239,6 +249,8 @@ class ConsumeKinesisIT {
                 partitionKey2Messages.values().stream()
                         .map(actual -> () -> assertEquals(shardMessages, actual))
         );
+
+        assertReceiveProvenanceEvents(runner.getProvenanceEvents(), flowFiles);
     }
 
     @Test
@@ -347,6 +359,8 @@ class ConsumeKinesisIT {
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_SUCCESS);
         flowFiles.getFirst().assertContentEquals(firstMessage);
         flowFiles.getLast().assertContentEquals(secondMessage);
+
+        assertReceiveProvenanceEvents(runner.getProvenanceEvents(), flowFiles.getFirst(), flowFiles.getLast());
     }
 
     @Test
@@ -366,6 +380,7 @@ class ConsumeKinesisIT {
 
         runProcessorWithInitAndWaitForFiles(recordRunner, 3);
 
+        // Verify successful records.
         recordRunner.assertTransferCount(REL_SUCCESS, 2);
         final List<MockFlowFile> successFlowFiles = recordRunner.getFlowFilesForRelationship(REL_SUCCESS);
 
@@ -377,13 +392,40 @@ class ConsumeKinesisIT {
         assertEquals("1", secondFlowFile.getAttribute(RECORD_COUNT));
         assertFlowFileRecordPayloads(secondFlowFile, testRecords.getLast());
 
-        // Verify failure record
+        // Verify failure record.
         recordRunner.assertTransferCount(REL_PARSE_FAILURE, 1);
         final List<MockFlowFile> parseFailureFlowFiles = recordRunner.getFlowFilesForRelationship(REL_PARSE_FAILURE);
         final MockFlowFile parseFailureFlowFile = parseFailureFlowFiles.getFirst();
 
         parseFailureFlowFile.assertContentEquals(testRecords.get(2));
         assertNotNull(parseFailureFlowFile.getAttribute(RECORD_ERROR_MESSAGE));
+
+        // Verify provenance events.
+        assertReceiveProvenanceEvents(recordRunner.getProvenanceEvents(), firstFlowFile, secondFlowFile, parseFailureFlowFile);
+    }
+
+    private static void assertReceiveProvenanceEvents(final List<ProvenanceEventRecord> actualEvents, final FlowFile... expectedFlowFiles) {
+        assertReceiveProvenanceEvents(actualEvents, List.of(expectedFlowFiles));
+    }
+
+    private static void assertReceiveProvenanceEvents(final List<ProvenanceEventRecord> actualEvents, final Collection<? extends FlowFile> expectedFlowFiles) {
+        assertEquals(expectedFlowFiles.size(), actualEvents.size(), "Each produced FlowFile must have a provenance event");
+
+        assertAll(
+                actualEvents.stream().map(event -> () ->
+                        assertEquals(ProvenanceEventType.RECEIVE, event.getEventType(), "Unexpected Provenance Event Type"))
+        );
+
+        final Set<String> eventFlowFileUuids = actualEvents.stream()
+                .map(ProvenanceEventRecord::getFlowFileUuid)
+                .collect(toSet());
+
+        assertAll(
+                expectedFlowFiles.stream()
+                        .map(flowFile -> flowFile.getAttribute(CoreAttributes.UUID.key()))
+                        .map(uuid -> () ->
+                            assertTrue(eventFlowFileUuids.contains(uuid), "Expected Provenance Event for FlowFile UUID: %s was not present".formatted(uuid)))
+        );
     }
 
     private TestRunner createTestRunner(final String streamName, final String applicationName) throws InitializationException {

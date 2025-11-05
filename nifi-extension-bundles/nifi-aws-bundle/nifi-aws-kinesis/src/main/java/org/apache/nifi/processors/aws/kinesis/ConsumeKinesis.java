@@ -624,6 +624,8 @@ public class ConsumeKinesis extends AbstractProcessor {
                 }
             });
 
+            session.getProvenanceReporter().receive(flowFile, ProvenanceTransitUriFormat.toTransitUri(streamName, shardId));
+
             session.transfer(flowFile, REL_SUCCESS);
         }
     }
