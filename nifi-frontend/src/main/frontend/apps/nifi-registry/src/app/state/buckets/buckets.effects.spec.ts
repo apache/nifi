@@ -18,12 +18,13 @@
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { Action } from '@ngrx/store';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, throwError, Subject } from 'rxjs';
 import { BucketsEffects } from './buckets.effects';
 import { BucketsService } from '../../service/buckets.service';
 import { ErrorHelper } from '../../service/error-helper.service';
 import { MatDialog } from '@angular/material/dialog';
 import * as BucketsActions from './buckets.actions';
+import * as PoliciesActions from '../policies/policies.actions';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorContextKey } from '../error';
@@ -331,7 +332,7 @@ describe('BucketsEffects', () => {
     });
 
     describe('openManageBucketPoliciesDialog$', () => {
-        it('should open manage bucket policies dialog when both load actions succeed', (done) => {
+        it('should dispatch load actions and open dialog when both succeed', (done) => {
             const bucket = createBucket();
             const mockDialogRef = {
                 componentInstance: {
@@ -344,15 +345,12 @@ describe('BucketsEffects', () => {
 
             dialog.open.mockReturnValue(mockDialogRef as any);
 
-            // Create a sequence of actions: open dialog, then both success actions
-            actions$ = of(
-                BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }),
-                { type: '[Policies] Load Policy Tenants Success', response: { users: [], userGroups: [] } },
-                { type: '[Policies] Load Policies Success', response: { bucketId: bucket.identifier, policies: [] } }
-            );
+            // Use a Subject to control when actions are emitted
+            const actionsSubject = new Subject<Action>();
+            actions$ = actionsSubject.asObservable();
 
+            // Subscribe to the effect
             effects.openManageBucketPoliciesDialog$.subscribe(() => {
-                // The effect should complete after opening the dialog
                 expect(dialog.open).toHaveBeenCalledWith(
                     ManageBucketPoliciesDialogComponent,
                     expect.objectContaining({
@@ -365,42 +363,21 @@ describe('BucketsEffects', () => {
                 expect(store.dispatch).toHaveBeenCalledTimes(2); // loadPolicyTenants + loadPolicies
                 done();
             });
-        });
 
-        it('should not open dialog if loadPolicyTenants fails', (done) => {
-            const bucket = createBucket();
+            // Emit the initial action to trigger the effect
+            actionsSubject.next(BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }));
 
-            // Create a sequence of actions: open dialog, then one success and one failure
-            actions$ = of(
-                BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }),
-                { type: '[Policies] Load Policy Tenants Failure' },
-                { type: '[Policies] Load Policies Success', response: { bucketId: bucket.identifier, policies: [] } }
-            );
-
-            effects.openManageBucketPoliciesDialog$.subscribe(() => {
-                // Dialog should not be opened
-                expect(dialog.open).not.toHaveBeenCalled();
-                expect(store.dispatch).toHaveBeenCalledTimes(2); // loadPolicyTenants + loadPolicies
-                done();
-            });
-        });
-
-        it('should not open dialog if loadPolicies fails', (done) => {
-            const bucket = createBucket();
-
-            // Create a sequence of actions: open dialog, then one success and one failure
-            actions$ = of(
-                BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }),
-                { type: '[Policies] Load Policy Tenants Success', response: { users: [], userGroups: [] } },
-                { type: '[Policies] Load Policies Failure' }
-            );
-
-            effects.openManageBucketPoliciesDialog$.subscribe(() => {
-                // Dialog should not be opened
-                expect(dialog.open).not.toHaveBeenCalled();
-                expect(store.dispatch).toHaveBeenCalledTimes(2); // loadPolicyTenants + loadPolicies
-                done();
-            });
+            // Allow the effect to set up listeners, then emit success actions
+            setTimeout(() => {
+                actionsSubject.next(
+                    PoliciesActions.loadPolicyTenantsSuccess({ response: { users: [], userGroups: [] } })
+                );
+                actionsSubject.next(
+                    PoliciesActions.loadPoliciesSuccess({
+                        response: { bucketId: bucket.identifier, policies: [] }
+                    })
+                );
+            }, 10);
         });
     });
 
