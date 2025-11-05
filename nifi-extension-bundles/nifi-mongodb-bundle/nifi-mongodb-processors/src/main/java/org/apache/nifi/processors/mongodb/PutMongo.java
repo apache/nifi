@@ -299,12 +299,13 @@ public class PutMongo extends AbstractMongoProcessor {
     private Document parseUpdateKey(String updateKey, Map doc) {
         Document retVal;
         if (updateKey.equals("_id")) {
-            if (doc.get("_id") instanceof ObjectId) {
-                retVal = new Document("_id", doc.get("_id"));
-            } else if (ObjectId.isValid((String) doc.get("_id"))) {
-                retVal = new Document("_id", new ObjectId((String) doc.get("_id")));
+            Object idValue = doc.get("_id");
+            if (idValue instanceof ObjectId) {
+                retVal = new Document("_id", idValue);
+            } else if (idValue instanceof String && ObjectId.isValid((String) idValue)) {
+                retVal = new Document("_id", new ObjectId((String) idValue));
             } else {
-                retVal = new Document("_id", doc.get("_id"));
+                retVal = new Document("_id", idValue);
             }
         } else if (updateKey.contains(",")) {
             String[] parts = updateKey.split(",[\\s]*");
