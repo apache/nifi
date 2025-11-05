@@ -21,19 +21,13 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.bson.Document;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PutMongoTest {
@@ -79,35 +73,4 @@ public class PutMongoTest {
         assertTrue(it.next().toString().endsWith("Either the update query key or the update query field must be set."));
     }
 
-    @Test
-    public void testParseUpdateKey_IdVariousTypes() throws Exception {
-        PutMongo processor = new PutMongo();
-
-        Method parseUpdateKey = PutMongo.class.getDeclaredMethod("parseUpdateKey", String.class, java.util.Map.class);
-        parseUpdateKey.setAccessible(true);
-
-
-        //  _id as Document should be preserved as Document
-        Document embeddedId = new Document("a", 1);
-        Document docWithDocId = new Document("_id", embeddedId);
-        Document result3 = (Document) parseUpdateKey.invoke(processor, "_id", docWithDocId);
-        assertInstanceOf(Document.class, result3.get("_id"));
-        assertSame(embeddedId, result3.get("_id"));
-
-        //  _id as List should be preserved as List
-        List<Integer> listId = new ArrayList<>();
-        listId.add(1);
-        listId.add(2);
-        Document docWithListId = new Document("_id", listId);
-        Document result4 = (Document) parseUpdateKey.invoke(processor, "_id", docWithListId);
-        assertInstanceOf(List.class, result4.get("_id"));
-        assertSame(listId, result4.get("_id"));
-
-        //  _id as Number should be preserved as Number
-        Integer numericId = 42;
-        Document docWithNumericId = new Document("_id", numericId);
-        Document result5 = (Document) parseUpdateKey.invoke(processor, "_id", docWithNumericId);
-        assertInstanceOf(Integer.class, result5.get("_id"));
-        assertEquals(numericId, result5.get("_id"));
-    }
 }

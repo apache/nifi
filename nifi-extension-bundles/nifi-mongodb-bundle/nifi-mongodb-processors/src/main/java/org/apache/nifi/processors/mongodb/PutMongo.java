@@ -265,7 +265,15 @@ public class PutMongo extends AbstractMongoProcessor {
                 flowFile = session.putAttribute(flowFile, ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(updateResult.getModifiedCount()));
                 BsonValue upsertedId = updateResult.getUpsertedId();
                 if (upsertedId != null) {
-                    String id = upsertedId.isString() ? upsertedId.asString().getValue() : upsertedId.asObjectId().getValue().toString();
+                    final String id;
+                    if (upsertedId.isString()) {
+                        id = upsertedId.asString().getValue();
+                    } else if (upsertedId.isObjectId()) {
+                        id = upsertedId.asObjectId().getValue().toString();
+                    } else {
+                        // Fallback for non-String/ObjectId identifiers (e.g., Document, Int32)
+                        id = upsertedId.toString();
+                    }
                     flowFile = session.putAttribute(flowFile, ATTRIBUTE_UPSERT_ID, id);
                 }
                 logger.info("updated {} into MongoDB", flowFile);

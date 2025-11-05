@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -684,5 +685,42 @@ public class PutMongoIT extends MongoWriteTestBase {
             assertEquals(1, collection.countDocuments(query), "Count was wrong");
             runner.clearTransferState();
         }
+    }
+    @Test
+    public void testUpdateKey_IdVariousTypes() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+
+        runner.setProperty(PutMongo.UPDATE_OPERATION_MODE, PutMongo.UPDATE_WITH_OPERATORS);
+        runner.setProperty(PutMongo.MODE, PutMongo.MODE_UPDATE);
+        runner.setProperty(PutMongo.UPSERT, "true");
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
+
+        Document docId = new Document("a", 1);
+        Integer numericId = 42;
+
+        List<Document> updates = List.of(
+                new Document(Map.of("_id", docId, "$set", Map.of("v", 1))),
+                new Document(Map.of("_id", numericId, "$set", Map.of("v", 3)))
+        );
+
+        for (Document update : updates) {
+            runner.enqueue(update.toJson());
+        }
+        runner.run(updates.size(), true, true);
+
+        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(PutMongo.REL_SUCCESS, updates.size());
+
+        // Verify _id Document preserved
+        Document r1 = collection.find(new Document("_id", docId)).first();
+        assertNotNull(r1);
+        assertInstanceOf(Document.class, r1.get("_id"));
+        assertEquals(docId, r1.get("_id"));
+
+        // Verify _id Number preserved
+        Document r3 = collection.find(new Document("_id", numericId)).first();
+        assertNotNull(r3);
+        assertInstanceOf(Integer.class, r3.get("_id"));
+        assertEquals(numericId, r3.get("_id"));
     }
 }
