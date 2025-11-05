@@ -491,13 +491,17 @@ public class ConsumeKinesis extends AbstractProcessor {
         final String processorId = getIdentifier();
         final NodeTypeProvider nodeTypeProvider = getNodeTypeProvider();
 
-        if (!nodeTypeProvider.isClustered()) {
-            return processorId;
+        final String workerId;
+
+        if (nodeTypeProvider.isClustered()) {
+            // If a node id is not available for some reason, generating a random UUID helps to avoid collisions.
+            final String nodeId = nodeTypeProvider.getCurrentNode().orElse(UUID.randomUUID().toString());
+            workerId = "%s@%s".formatted(processorId, nodeId);
+        } else {
+            workerId = processorId;
         }
 
-        // If a node id is not available for some reason, generating a random UUID helps to avoid collisions.
-        final String nodeId = nodeTypeProvider.getCurrentNode().orElse(UUID.randomUUID().toString());
-        return "%s@%s".formatted(processorId, nodeId);
+        return workerId;
     }
 
     private static @Nullable MetricsFactory configureMetricsFactory(final ProcessContext context) {
