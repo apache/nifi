@@ -16,3 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+.add-policy-to-bucket-dialog {
+    .listing-table {
+        table {
+            .mat-column-identity {
+                width: 20%;
+            }
+        }
+    }
+}
