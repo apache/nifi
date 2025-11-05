@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.processors.azure.eventhub.utils;
 
-import com.azure.core.amqp.ProxyAuthenticationType;
 import com.azure.core.amqp.ProxyOptions;
+import com.azure.core.amqp.ProxyAuthenticationType;
+import com.azure.core.credential.TokenCredential;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
@@ -37,6 +39,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.concurrent.TimeUnit;
+
+import reactor.core.publisher.Mono;
 
 public final class AzureEventHubUtils {
 
@@ -68,8 +77,11 @@ public final class AzureEventHubUtils {
             .required(true)
             .build();
 
+    private static final long DEFAULT_TOKEN_LIFETIME_SECONDS = TimeUnit.MINUTES.toSeconds(5);
+
     public static List<ValidationResult> customValidate(PropertyDescriptor accessPolicyDescriptor,
                                                         PropertyDescriptor policyKeyDescriptor,
+                                                        PropertyDescriptor tokenProviderDescriptor,
                                                         ValidationContext context) {
         List<ValidationResult> validationResults = new ArrayList<>();
 
@@ -79,25 +91,75 @@ public final class AzureEventHubUtils {
                 context.getProperty(AzureEventHubComponent.AUTHENTICATION_STRATEGY)
                         .asAllowableValue(AzureEventHubAuthenticationStrategy.class))
                 .orElse(AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY);
+        final boolean tokenProviderIsSet = tokenProviderDescriptor != null && context.getProperty(tokenProviderDescriptor).isSet();
 
-        if (authenticationStrategy == AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY && (accessPolicyIsSet || policyKeyIsSet)) {
-            final String msg = String.format(
-                    "When '%s' is set to '%s', '%s' and '%s' must not be set.",
-                    AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
-                    AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getDisplayName(),
-                    accessPolicyDescriptor.getDisplayName(),
-                    POLICY_PRIMARY_KEY.getDisplayName()
-            );
-            validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
-        } else if (authenticationStrategy == AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE && (!accessPolicyIsSet || !policyKeyIsSet)) {
-            final String msg = String.format(
-                    "When '%s' is set to '%s', both '%s' and '%s' must be set",
-                    AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
-                    AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getDisplayName(),
-                    accessPolicyDescriptor.getDisplayName(),
-                    POLICY_PRIMARY_KEY.getDisplayName()
-            );
-            validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
+        switch (authenticationStrategy) {
+            case MANAGED_IDENTITY -> {
+                if (accessPolicyIsSet || policyKeyIsSet) {
+                    final String msg = String.format(
+                            "When '%s' is set to '%s', '%s' and '%s' must not be set.",
+                            AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
+                            AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getDisplayName(),
+                            accessPolicyDescriptor.getDisplayName(),
+                            policyKeyDescriptor.getDisplayName()
+                    );
+                    validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
+                }
+                if (tokenProviderIsSet) {
+                    validationResults.add(new ValidationResult.Builder()
+                            .subject(Objects.requireNonNull(tokenProviderDescriptor).getDisplayName())
+                            .valid(false)
+                            .explanation(String.format("'%s' must not be set when '%s' is '%s'.",
+                                    tokenProviderDescriptor.getDisplayName(),
+                                    AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
+                                    AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getDisplayName()))
+                            .build());
+                }
+            }
+            case SHARED_ACCESS_SIGNATURE -> {
+                if (!accessPolicyIsSet || !policyKeyIsSet) {
+                    final String msg = String.format(
+                            "When '%s' is set to '%s', both '%s' and '%s' must be set",
+                            AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
+                            AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getDisplayName(),
+                            accessPolicyDescriptor.getDisplayName(),
+                            policyKeyDescriptor.getDisplayName()
+                    );
+                    validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
+                }
+                if (tokenProviderIsSet) {
+                    validationResults.add(new ValidationResult.Builder()
+                            .subject(Objects.requireNonNull(tokenProviderDescriptor).getDisplayName())
+                            .valid(false)
+                            .explanation(String.format("'%s' must not be set when '%s' is '%s'.",
+                                    tokenProviderDescriptor.getDisplayName(),
+                                    AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
+                                    AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getDisplayName()))
+                            .build());
+                }
+            }
+            case OAUTH2_CLIENT_CREDENTIALS -> {
+                if (accessPolicyIsSet || policyKeyIsSet) {
+                    final String msg = String.format(
+                            "When '%s' is set to '%s', '%s' and '%s' must not be set.",
+                            AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
+                            AzureEventHubAuthenticationStrategy.OAUTH2_CLIENT_CREDENTIALS.getDisplayName(),
+                            accessPolicyDescriptor.getDisplayName(),
+                            policyKeyDescriptor.getDisplayName()
+                    );
+                    validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
+                }
+                if (!tokenProviderIsSet) {
+                    validationResults.add(new ValidationResult.Builder()
+                            .subject(Objects.requireNonNull(tokenProviderDescriptor).getDisplayName())
+                            .valid(false)
+                            .explanation(String.format("'%s' must be set when '%s' is '%s'.",
+                                    tokenProviderDescriptor.getDisplayName(),
+                                    AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
+                                    AzureEventHubAuthenticationStrategy.OAUTH2_CLIENT_CREDENTIALS.getDisplayName()))
+                            .build());
+                }
+            }
         }
         ProxyConfiguration.validateProxySpec(context, validationResults, AzureEventHubComponent.PROXY_SPECS);
         return validationResults;
@@ -148,6 +210,28 @@ public final class AzureEventHubUtils {
         }
 
         return Optional.ofNullable(proxyOptions);
+    }
+
+    public static TokenCredential createTokenCredential(final OAuth2AccessTokenProvider tokenProvider) {
+        Objects.requireNonNull(tokenProvider, "OAuth2 Access Token Provider is required");
+
+        return tokenRequestContext -> Mono.fromSupplier(() -> {
+            final org.apache.nifi.oauth2.AccessToken accessDetails = tokenProvider.getAccessDetails();
+            final String accessToken = accessDetails.getAccessToken();
+
+            if (accessToken == null || accessToken.isBlank()) {
+                throw new IllegalStateException("OAuth2 Access Token Provider returned an empty access token");
+            }
+
+            final Instant fetchTime = accessDetails.getFetchTime();
+            final long expiresInSeconds = accessDetails.getExpiresIn();
+            final Instant expirationInstant = expiresInSeconds > 0
+                    ? fetchTime.plusSeconds(expiresInSeconds)
+                    : fetchTime.plusSeconds(DEFAULT_TOKEN_LIFETIME_SECONDS);
+            final OffsetDateTime expiresAt = OffsetDateTime.ofInstant(expirationInstant, ZoneOffset.UTC);
+
+            return new com.azure.core.credential.AccessToken(accessToken, expiresAt);
+        });
     }
 
     private static Proxy getProxy(ProxyConfiguration proxyConfiguration) {

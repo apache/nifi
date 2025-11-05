@@ -18,6 +18,9 @@ package org.apache.nifi.processors.azure.eventhub;
 
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.azure.messaging.eventhubs.models.SendOptions;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.oauth2.AccessToken;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -39,6 +42,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.net.Proxy;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,6 +62,7 @@ public class PutAzureEventHubTest {
     private static final String PARTITION_KEY_ATTRIBUTE_NAME = "eventPartitionKey";
     private static final String PARTITION_KEY = "partition";
     private static final String CONTENT = String.class.getSimpleName();
+    private static final String EVENT_HUB_OAUTH_SERVICE_ID = "put-event-hub-oauth";
 
     @Mock
     EventHubProducerClient eventHubProducerClient;
@@ -116,6 +121,13 @@ public class PutAzureEventHubTest {
         testRunner.setProperty(PROXY_CONFIGURATION_SERVICE, serviceId);
     }
 
+    private void configureEventHubOAuthTokenProvider() throws InitializationException {
+        final MockOAuth2AccessTokenProvider provider = new MockOAuth2AccessTokenProvider();
+        testRunner.addControllerService(EVENT_HUB_OAUTH_SERVICE_ID, provider);
+        testRunner.enableControllerService(provider);
+        testRunner.setProperty(PutAzureEventHub.EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, EVENT_HUB_OAUTH_SERVICE_ID);
+    }
+
     @Test
     public void testPropertiesManagedIdentityEnabled() {
         testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
@@ -123,6 +135,19 @@ public class PutAzureEventHubTest {
         testRunner.setProperty(PutAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
         testRunner.assertValid();
         testRunner.setProperty(PutAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue());
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testEventHubOAuthRequiresTokenProvider() throws InitializationException {
+        testRunner.setProperty(PutAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
+        testRunner.setProperty(PutAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.setProperty(PutAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.OAUTH2_CLIENT_CREDENTIALS.getValue());
+
+        testRunner.assertNotValid();
+
+        configureEventHubOAuthTokenProvider();
+
         testRunner.assertValid();
     }
 
@@ -197,7 +222,6 @@ public class PutAzureEventHubTest {
     }
 
     private class MockPutAzureEventHub extends PutAzureEventHub {
-
         @Override
         protected EventHubProducerClient createEventHubProducerClient(final ProcessContext context) {
             return eventHubProducerClient;
@@ -211,5 +235,15 @@ public class PutAzureEventHubTest {
         testRunner.setProperty(PutAzureEventHub.ACCESS_POLICY, POLICY_NAME);
         testRunner.setProperty(PutAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
         testRunner.assertValid();
+    }
+
+    private static class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
+        @Override
+        public AccessToken getAccessDetails() {
+            final AccessToken accessToken = new AccessToken();
+            accessToken.setAccessToken("access-token");
+            accessToken.setExpiresIn(TimeUnit.MINUTES.toSeconds(5));
+            return accessToken;
+        }
     }
 }
