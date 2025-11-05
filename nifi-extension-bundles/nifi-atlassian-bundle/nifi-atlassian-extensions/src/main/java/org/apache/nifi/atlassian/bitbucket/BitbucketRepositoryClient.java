@@ -35,6 +35,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -246,42 +247,56 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
     private Set<String> getBranchesCloud() throws FlowRegistryException {
         final URI uri = getRepositoryUriBuilder().addPathSegment("refs").addPathSegment("branches").build();
-        final HttpResponseEntity response = this.webClient.getWebClientService().get().uri(uri).header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue()).retrieve();
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
+                .get()
+                .uri(uri)
+                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                .retrieve()) {
 
-        verifyStatusCode(response, "Error while listing branches for repository [%s]".formatted(repoName), HttpURLConnection.HTTP_OK);
+            verifyStatusCode(response, "Error while listing branches for repository [%s]".formatted(repoName), HttpURLConnection.HTTP_OK);
 
-        final JsonNode jsonResponse = parseResponseBody(response, uri);
-        final JsonNode values = jsonResponse.get(FIELD_VALUES);
-        final Set<String> result = new HashSet<>();
-        if (values != null && values.isArray()) {
-            for (JsonNode branch : values) {
-                final String branchName = branch.path(FIELD_NAME).asText(EMPTY_STRING);
-                if (!branchName.isEmpty()) {
-                    result.add(branchName);
+            final JsonNode jsonResponse = parseResponseBody(response, uri);
+            final JsonNode values = jsonResponse.get(FIELD_VALUES);
+            final Set<String> result = new HashSet<>();
+            if (values != null && values.isArray()) {
+                for (JsonNode branch : values) {
+                    final String branchName = branch.path(FIELD_NAME).asText(EMPTY_STRING);
+                    if (!branchName.isEmpty()) {
+                        result.add(branchName);
+                    }
                 }
             }
+            return result;
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket branch listing response", e);
         }
-        return result;
     }
 
     private Set<String> getBranchesDataCenter() throws FlowRegistryException {
         final URI uri = getRepositoryUriBuilder().addPathSegment("branches").build();
-        final HttpResponseEntity response = this.webClient.getWebClientService().get().uri(uri).header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue()).retrieve();
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
+                .get()
+                .uri(uri)
+                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                .retrieve()) {
 
-        verifyStatusCode(response, "Error while listing branches for repository [%s]".formatted(repoName), HttpURLConnection.HTTP_OK);
+            verifyStatusCode(response, "Error while listing branches for repository [%s]".formatted(repoName), HttpURLConnection.HTTP_OK);
 
-        final JsonNode jsonResponse = parseResponseBody(response, uri);
-        final JsonNode values = jsonResponse.get(FIELD_VALUES);
-        final Set<String> result = new HashSet<>();
-        if (values != null && values.isArray()) {
-            for (JsonNode branch : values) {
-                final String displayId = branch.path(FIELD_DISPLAY_ID).asText(EMPTY_STRING);
-                if (!displayId.isEmpty()) {
-                    result.add(displayId);
+            final JsonNode jsonResponse = parseResponseBody(response, uri);
+            final JsonNode values = jsonResponse.get(FIELD_VALUES);
+            final Set<String> result = new HashSet<>();
+            if (values != null && values.isArray()) {
+                for (JsonNode branch : values) {
+                    final String displayId = branch.path(FIELD_DISPLAY_ID).asText(EMPTY_STRING);
+                    if (!displayId.isEmpty()) {
+                        result.add(displayId);
+                    }
                 }
             }
+            return result;
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket branch listing response", e);
         }
-        return result;
     }
 
     @Override
@@ -371,26 +386,26 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
                 .addPathSegment(commitSha);
         addPathSegments(builder, resolvedPath);
         final URI uri = builder.build();
-        final HttpResponseEntity response = this.webClient.getWebClientService().get().uri(uri).header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue()).retrieve();
-
         final String errorMessage = "Error while retrieving content for repository [%s] at path %s".formatted(repoName, resolvedPath);
-        verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
-
-        return response.body();
-    }
-
-    private InputStream getContentFromCommitDataCenter(final String resolvedPath, final String commitSha) throws FlowRegistryException {
-        final URI uri = buildRawUri(resolvedPath, commitSha);
         final HttpResponseEntity response = this.webClient.getWebClientService()
                 .get()
                 .uri(uri)
                 .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
                 .retrieve();
 
-        final String errorMessage = "Error while retrieving content for repository [%s] at path %s".formatted(repoName, resolvedPath);
-        verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
+        return getResponseBody(response, errorMessage, HttpURLConnection.HTTP_OK);
+    }
 
-        return response.body();
+    private InputStream getContentFromCommitDataCenter(final String resolvedPath, final String commitSha) throws FlowRegistryException {
+        final URI uri = buildRawUri(resolvedPath, commitSha);
+        final String errorMessage = "Error while retrieving content for repository [%s] at path %s".formatted(repoName, resolvedPath);
+        final HttpResponseEntity response = this.webClient.getWebClientService()
+                .get()
+                .uri(uri)
+                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                .retrieve();
+
+        return getResponseBody(response, errorMessage, HttpURLConnection.HTTP_OK);
     }
 
     @Override
@@ -417,17 +432,19 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
 
         final URI uri = getRepositoryUriBuilder().addPathSegment("src").build();
-        final HttpResponseEntity response = this.webClient.getWebClientService()
+        final String errorMessage = "Error while committing content for repository [%s] on branch %s at path %s"
+                .formatted(repoName, branch, resolvedPath);
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
                 .post()
                 .uri(uri)
                 .body(multipartBuilder.build(), OptionalLong.empty())
                 .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
                 .header(CONTENT_TYPE_HEADER, multipartBuilder.getHttpContentType().getContentType())
-                .retrieve();
-
-        final String errorMessage = "Error while committing content for repository [%s] on branch %s at path %s"
-                .formatted(repoName, branch, resolvedPath);
-        verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_CREATED);
+                .retrieve()) {
+            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_CREATED);
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket create content response", e);
+        }
 
         return getRequiredLatestCommit(branch, resolvedPath);
     }
@@ -453,17 +470,19 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         addPathSegments(uriBuilder, resolvedPath);
         final URI uri = uriBuilder.build();
         final byte[] requestBody = toByteArray(multipartBuilder.build());
-        final HttpResponseEntity response = this.webClient.getWebClientService()
+        final String errorMessage = "Error while committing content for repository [%s] on branch %s at path %s"
+                .formatted(repoName, branch, resolvedPath);
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
                 .put()
                 .uri(uri)
                 .body(new ByteArrayInputStream(requestBody), OptionalLong.of(requestBody.length))
                 .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
                 .header(CONTENT_TYPE_HEADER, multipartBuilder.getHttpContentType().getContentType())
-                .retrieve();
-
-        final String errorMessage = "Error while committing content for repository [%s] on branch %s at path %s"
-                .formatted(repoName, branch, resolvedPath);
-        verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_CREATED, HttpURLConnection.HTTP_OK);
+                .retrieve()) {
+            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_CREATED, HttpURLConnection.HTTP_OK);
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket create content response", e);
+        }
 
         return getRequiredLatestCommit(branch, resolvedPath);
     }
@@ -491,17 +510,19 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
 
         final URI uri = getRepositoryUriBuilder().addPathSegment("src").build();
-        final HttpResponseEntity response = this.webClient.getWebClientService()
+        final String errorMessage = "Error while deleting content for repository [%s] on branch %s at path %s"
+                .formatted(repoName, branch, resolvedPath);
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
                 .post()
                 .uri(uri)
                 .body(multipartBuilder.build(), OptionalLong.empty())
                 .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
                 .header(CONTENT_TYPE_HEADER, multipartBuilder.getHttpContentType().getContentType())
-                .retrieve();
-
-        final String errorMessage = "Error while deleting content for repository [%s] on branch %s at path %s"
-                .formatted(repoName, branch, resolvedPath);
-        verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_CREATED);
+                .retrieve()) {
+            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_CREATED);
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket delete content response", e);
+        }
     }
 
     private void deleteContentDataCenter(final String resolvedPath, final String commitMessage, final String branch) throws FlowRegistryException {
@@ -515,19 +536,21 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         latestCommit.ifPresent(commit -> uriBuilder.addQueryParameter(FIELD_SOURCE_COMMIT_ID, commit));
 
         final URI uri = uriBuilder.build();
-        final HttpResponseEntity response = this.webClient.getWebClientService()
+        final String errorMessage = "Error while deleting content for repository [%s] on branch %s at path %s"
+                .formatted(repoName, branch, resolvedPath);
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
                 .delete()
                 .uri(uri)
                 .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
-                .retrieve();
-
-        final String errorMessage = "Error while deleting content for repository [%s] on branch %s at path %s"
-                .formatted(repoName, branch, resolvedPath);
-        verifyStatusCode(response, errorMessage,
-                HttpURLConnection.HTTP_OK,
-                HttpURLConnection.HTTP_ACCEPTED,
-                HttpURLConnection.HTTP_NO_CONTENT,
-                HttpURLConnection.HTTP_CREATED);
+                .retrieve()) {
+            verifyStatusCode(response, errorMessage,
+                    HttpURLConnection.HTTP_OK,
+                    HttpURLConnection.HTTP_ACCEPTED,
+                    HttpURLConnection.HTTP_NO_CONTENT,
+                    HttpURLConnection.HTTP_CREATED);
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket delete content response", e);
+        }
     }
 
     private Iterator<JsonNode> getFiles(final String branch, final String resolvedPath) throws FlowRegistryException {
@@ -559,29 +582,31 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
 
         do {
             final URI uri = buildBrowseUri(resolvedPath, commit, nextPageStart, false);
-            final HttpResponseEntity response = this.webClient.getWebClientService()
+            final String errorMessage = "Error while listing content for repository [%s] on branch %s at path %s"
+                    .formatted(repoName, branch, resolvedPath);
+            try (final HttpResponseEntity response = this.webClient.getWebClientService()
                     .get()
                     .uri(uri)
                     .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
-                    .retrieve();
+                    .retrieve()) {
+                verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
 
-            final String errorMessage = "Error while listing content for repository [%s] on branch %s at path %s"
-                    .formatted(repoName, branch, resolvedPath);
-            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
+                final JsonNode root = parseResponseBody(response, uri);
 
-            final JsonNode root = parseResponseBody(response, uri);
+                final JsonNode children = root.path(FIELD_CHILDREN);
+                final JsonNode values = children.path(FIELD_VALUES);
+                if (values.isArray()) {
+                    values.forEach(allValues::add);
+                }
 
-            final JsonNode children = root.path(FIELD_CHILDREN);
-            final JsonNode values = children.path(FIELD_VALUES);
-            if (values.isArray()) {
-                values.forEach(allValues::add);
-            }
-
-            if (children.path(FIELD_IS_LAST_PAGE).asBoolean(true)) {
-                nextPageStart = null;
-            } else {
-                final JsonNode nextPageStartNode = children.get(FIELD_NEXT_PAGE_START);
-                nextPageStart = nextPageStartNode != null && nextPageStartNode.isInt() ? nextPageStartNode.intValue() : null;
+                if (children.path(FIELD_IS_LAST_PAGE).asBoolean(true)) {
+                    nextPageStart = null;
+                } else {
+                    final JsonNode nextPageStartNode = children.get(FIELD_NEXT_PAGE_START);
+                    nextPageStart = nextPageStartNode != null && nextPageStartNode.isInt() ? nextPageStartNode.intValue() : null;
+                }
+            } catch (final IOException e) {
+                throw new FlowRegistryException("Failed closing Bitbucket browse response", e);
             }
         } while (nextPageStart != null);
 
@@ -619,25 +644,26 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             final URI uri = getRepositoryUriBuilder()
                     .addPathSegment("commits")
                     .build();
-
-            final HttpResponseEntity response = webClient.getWebClientService()
+            final String errorMessage = "Error while listing commits for repository [%s] on branch %s".formatted(repoName, branch);
+            try (final HttpResponseEntity response = webClient.getWebClientService()
                     .get()
                     .uri(uri)
                     .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
-                    .retrieve();
+                    .retrieve()) {
+                verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
 
-            final String errorMessage = "Error while listing commits for repository [%s] on branch %s".formatted(repoName, branch);
-            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
+                final JsonNode root = parseResponseBody(response, uri);
 
-            final JsonNode root = parseResponseBody(response, uri);
-
-            final JsonNode values = root.path(FIELD_VALUES);
-            if (values.isArray() && values.isEmpty()) {
-                return Collections.emptyIterator();
-            } else {
-                // There is at least one commit, proceed as usual
-                // and never check again
-                hasCommits = true;
+                final JsonNode values = root.path(FIELD_VALUES);
+                if (values.isArray() && values.isEmpty()) {
+                    return Collections.emptyIterator();
+                } else {
+                    // There is at least one commit, proceed as usual
+                    // and never check again
+                    hasCommits = true;
+                }
+            } catch (final IOException e) {
+                throw new FlowRegistryException("Failed closing Bitbucket commits response", e);
             }
         }
 
@@ -657,43 +683,49 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         do {
             if (!hasCommits) {
                 final URI uri = buildCommitsUri(null, null, null);
-                final HttpResponseEntity response = this.webClient.getWebClientService()
+                final String errorMessage = "Error while listing commits for repository [%s] on branch %s".formatted(repoName, branch);
+                try (final HttpResponseEntity response = this.webClient.getWebClientService()
                         .get()
                         .uri(uri)
                         .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
-                        .retrieve();
-                final String errorMessage = "Error while listing commits for repository [%s] on branch %s".formatted(repoName, branch);
+                        .retrieve()) {
+                    verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
+
+                    final JsonNode root = parseResponseBody(response, uri);
+                    final JsonNode values = root.path(FIELD_VALUES);
+                    if (values.isArray() && values.isEmpty()) {
+                        return Collections.emptyIterator();
+                    }
+                    hasCommits = true;
+                } catch (final IOException e) {
+                    throw new FlowRegistryException("Failed closing Bitbucket commits response", e);
+                }
+            }
+
+            final URI uri = buildCommitsUri(branch, path, nextPageStart);
+            final String errorMessage = "Error while listing commits for repository [%s] on branch %s".formatted(repoName, branch);
+            try (final HttpResponseEntity response = this.webClient.getWebClientService()
+                    .get()
+                    .uri(uri)
+                    .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                    .retrieve()) {
+
                 verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
 
                 final JsonNode root = parseResponseBody(response, uri);
                 final JsonNode values = root.path(FIELD_VALUES);
-                if (values.isArray() && values.isEmpty()) {
-                    return Collections.emptyIterator();
+                if (values.isArray()) {
+                    values.forEach(allValues::add);
                 }
-                hasCommits = true;
-            }
 
-            final URI uri = buildCommitsUri(branch, path, nextPageStart);
-            final HttpResponseEntity response = this.webClient.getWebClientService()
-                    .get()
-                    .uri(uri)
-                    .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
-                    .retrieve();
-
-            final String errorMessage = "Error while listing commits for repository [%s] on branch %s".formatted(repoName, branch);
-            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
-
-            final JsonNode root = parseResponseBody(response, uri);
-            final JsonNode values = root.path(FIELD_VALUES);
-            if (values.isArray()) {
-                values.forEach(allValues::add);
-            }
-
-            if (root.path(FIELD_IS_LAST_PAGE).asBoolean(true)) {
-                nextPageStart = null;
-            } else {
-                final JsonNode nextPageStartNode = root.get(FIELD_NEXT_PAGE_START);
-                nextPageStart = nextPageStartNode != null && nextPageStartNode.isInt() ? nextPageStartNode.intValue() : null;
+                if (root.path(FIELD_IS_LAST_PAGE).asBoolean(true)) {
+                    nextPageStart = null;
+                } else {
+                    final JsonNode nextPageStartNode = root.get(FIELD_NEXT_PAGE_START);
+                    nextPageStart = nextPageStartNode != null && nextPageStartNode.isInt() ? nextPageStartNode.intValue() : null;
+                }
+            } catch (final IOException e) {
+                throw new FlowRegistryException("Failed closing Bitbucket commits response", e);
             }
         } while (nextPageStart != null);
 
@@ -718,25 +750,28 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final List<JsonNode> allValues = new ArrayList<>();
         URI nextUri = uri;
         while (nextUri != null) {
-            final HttpResponseEntity response = webClient.getWebClientService()
+            try (final HttpResponseEntity response = webClient.getWebClientService()
                     .get()
                     .uri(nextUri)
                     .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
-                    .retrieve();
+                    .retrieve()) {
 
-            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
+                verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
 
-            final JsonNode root = parseResponseBody(response, nextUri);
+                final JsonNode root = parseResponseBody(response, nextUri);
 
-            // collect this page’s values
-            JsonNode values = root.get(FIELD_VALUES);
-            if (values != null && values.isArray()) {
-                values.forEach(allValues::add);
+                // collect this page’s values
+                final JsonNode values = root.get(FIELD_VALUES);
+                if (values != null && values.isArray()) {
+                    values.forEach(allValues::add);
+                }
+
+                // prepare next iteration
+                final JsonNode next = root.get(FIELD_NEXT);
+                nextUri = (next != null && next.isTextual()) ? URI.create(next.asText()) : null;
+            } catch (final IOException e) {
+                throw new FlowRegistryException("Failed closing Bitbucket paged response", e);
             }
-
-            // prepare next iteration
-            JsonNode next = root.get(FIELD_NEXT);
-            nextUri = (next != null && next.isTextual()) ? URI.create(next.asText()) : null;
         }
 
         return allValues.iterator();
@@ -799,18 +834,24 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
                 .addPathSegment("repositories")
                 .addQueryParameter("q", "repository.name=\"" + repoName + "\"")
                 .build();
-
-        final HttpResponseEntity response = this.webClient.getWebClientService().get().uri(uri).header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue()).retrieve();
-
         final String errorMessage = "Error while retrieving permission metadata for specified repo";
-        verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
+        try (final HttpResponseEntity response = this.webClient.getWebClientService()
+                .get()
+                .uri(uri)
+                .header(AUTHORIZATION_HEADER, authToken.getAuthzHeaderValue())
+                .retrieve()) {
 
-        final JsonNode jsonResponse = parseResponseBody(response, uri);
+            verifyStatusCode(response, errorMessage, HttpURLConnection.HTTP_OK);
 
-        final JsonNode values = jsonResponse.get(FIELD_VALUES);
-        if (values != null && values.isArray() && values.elements().hasNext()) {
-            final JsonNode permissionNode = values.elements().next().get(FIELD_PERMISSION);
-            return permissionNode == null ? "none" : permissionNode.asText();
+            final JsonNode jsonResponse = parseResponseBody(response, uri);
+
+            final JsonNode values = jsonResponse.get(FIELD_VALUES);
+            if (values != null && values.isArray() && values.elements().hasNext()) {
+                final JsonNode permissionNode = values.elements().next().get(FIELD_PERMISSION);
+                return permissionNode == null ? "none" : permissionNode.asText();
+            }
+        } catch (final IOException e) {
+            throw new FlowRegistryException("Failed closing Bitbucket permission response", e);
         }
 
         return "none";
@@ -844,6 +885,58 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         final String dateText = commit.path("date").asText();
         final Instant date = (dateText == null || dateText.isEmpty()) ? Instant.now() : Instant.parse(dateText);
         return new GitCommit(commit.path(FIELD_HASH).asText(), author, message, date);
+    }
+
+    private InputStream getResponseBody(final HttpResponseEntity response, final String errorMessage, final int... expectedStatusCodes) throws FlowRegistryException {
+        try {
+            verifyStatusCode(response, errorMessage, expectedStatusCodes);
+            return new HttpResponseBodyInputStream(response);
+        } catch (final FlowRegistryException e) {
+            closeQuietly(response);
+            throw e;
+        }
+    }
+
+    private void closeQuietly(final HttpResponseEntity response) {
+        try {
+            response.close();
+        } catch (final IOException ioe) {
+            logger.warn("Failed closing Bitbucket HTTP response", ioe);
+        }
+    }
+
+    private static class HttpResponseBodyInputStream extends FilterInputStream {
+        private final HttpResponseEntity response;
+        private boolean closed;
+
+        protected HttpResponseBodyInputStream(final HttpResponseEntity response) {
+            super(response.body());
+            this.response = response;
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (!closed) {
+                closed = true;
+                IOException suppressed = null;
+                try {
+                    super.close();
+                } catch (final IOException closeException) {
+                    suppressed = closeException;
+                }
+                try {
+                    response.close();
+                } catch (final IOException responseCloseException) {
+                    if (suppressed != null) {
+                        responseCloseException.addSuppressed(suppressed);
+                    }
+                    throw responseCloseException;
+                }
+                if (suppressed != null) {
+                    throw suppressed;
+                }
+            }
+        }
     }
 
     private String getErrorMessage(HttpResponseEntity response) throws FlowRegistryException {
