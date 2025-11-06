@@ -56,6 +56,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -233,8 +234,7 @@ public class MergeContent extends BinFiles {
 
     public static final PropertyDescriptor METADATA_STRATEGY = new PropertyDescriptor.Builder()
             .required(true)
-            .name("mergecontent-metadata-strategy")
-            .displayName("Metadata Strategy")
+            .name("Metadata Strategy")
             .description("For FlowFiles whose input format supports metadata (Avro, e.g.), this property determines which metadata should be added to the bundle. "
                     + "If 'Use First Metadata' is selected, the metadata keys/values from the first FlowFile to be bundled will be used. If 'Keep Only Common Metadata' is selected, "
                     + "only the metadata that exists on all FlowFiles in the bundle, with the same value, will be preserved. If 'Ignore Metadata' is selected, no metadata is transferred to "
@@ -265,8 +265,7 @@ public class MergeContent extends BinFiles {
             .dependsOn(MERGE_FORMAT, MergeFormat.CONCAT)
             .build();
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
-            .name("Header File")
-            .displayName("Header")
+            .name("Header")
             .description("Filename or text specifying the header to use. If not specified, no header is supplied.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -276,8 +275,7 @@ public class MergeContent extends BinFiles {
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
             .build();
     public static final PropertyDescriptor FOOTER = new PropertyDescriptor.Builder()
-            .name("Footer File")
-            .displayName("Footer")
+            .name("Footer")
             .description("Filename or text specifying the footer to use. If not specified, no footer is supplied.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -287,8 +285,7 @@ public class MergeContent extends BinFiles {
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
             .build();
     public static final PropertyDescriptor DEMARCATOR = new PropertyDescriptor.Builder()
-            .name("Demarcator File")
-            .displayName("Demarcator")
+            .name("Demarcator")
             .description("Filename or text specifying the demarcator to use. If not specified, no demarcator is supplied.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -390,6 +387,14 @@ public class MergeContent extends BinFiles {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("mergecontent-metadata-strategy", METADATA_STRATEGY.getName());
+        config.renameProperty("Header File", HEADER.getName());
+        config.renameProperty("Footer File", FOOTER.getName());
+        config.renameProperty("Demarcator File", DEMARCATOR.getName());
     }
 
     @Override

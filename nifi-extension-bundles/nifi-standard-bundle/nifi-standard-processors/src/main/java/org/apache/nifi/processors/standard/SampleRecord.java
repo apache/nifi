@@ -32,6 +32,7 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -96,22 +97,19 @@ public class SampleRecord extends AbstractProcessor {
     private static final Pattern INTERVAL_PATTERN = Pattern.compile("([0-9]+)?(-)?([0-9]+)?(?:,|$)");
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
     static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Controller Service to use for writing results to a FlowFile")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
             .build();
     static final PropertyDescriptor SAMPLING_STRATEGY = new PropertyDescriptor.Builder()
-            .name("sample-record-sampling-strategy")
-            .displayName("Sampling Strategy")
+            .name("Sampling Strategy")
             .description("Specifies which method to use for sampling records from the incoming FlowFile")
             .allowableValues(INTERVAL_SAMPLING, RANGE_SAMPLING, PROBABILISTIC_SAMPLING, RESERVOIR_SAMPLING)
             .required(true)
@@ -119,8 +117,7 @@ public class SampleRecord extends AbstractProcessor {
             .addValidator(Validator.VALID)
             .build();
     static final PropertyDescriptor SAMPLING_INTERVAL = new PropertyDescriptor.Builder()
-            .name("sample-record-interval")
-            .displayName("Sampling Interval")
+            .name("Sampling Interval")
             .description("Specifies the number of records to skip before writing a record to the outgoing FlowFile. This property is only "
                     + "used if Sampling Strategy is set to Interval Sampling. A value of zero (0) will cause no records to be included in the"
                     + "outgoing FlowFile, a value of one (1) will cause all records to be included, and a value of two (2) will cause half the "
@@ -131,8 +128,7 @@ public class SampleRecord extends AbstractProcessor {
             .dependsOn(SAMPLING_STRATEGY, INTERVAL_SAMPLING)
             .build();
     static final PropertyDescriptor SAMPLING_RANGE = new PropertyDescriptor.Builder()
-            .name("sample-record-range")
-            .displayName("Sampling Range")
+            .name("Sampling Range")
             .description("Specifies the range of records to include in the sample, from 1 to the total number of records. An example is '3,6-8,20-' which includes the third record, the sixth, "
                     + "seventh and eighth records, and all records from the twentieth record on. Commas separate intervals that don't overlap, and an interval can be between two numbers "
                     + "(i.e. 6-8) or up to a given number (i.e. -5), or from a number to the number of the last record (i.e. 20-). If this property is unset, all records will be included.")
@@ -142,8 +138,7 @@ public class SampleRecord extends AbstractProcessor {
             .dependsOn(SAMPLING_STRATEGY, RANGE_SAMPLING)
             .build();
     static final PropertyDescriptor SAMPLING_PROBABILITY = new PropertyDescriptor.Builder()
-            .name("sample-record-probability")
-            .displayName("Sampling Probability")
+            .name("Sampling Probability")
             .description("Specifies the probability (as a percent from 0-100) of a record being included in the outgoing FlowFile. This property is only "
                     + "used if Sampling Strategy is set to Probabilistic Sampling. A value of zero (0) will cause no records to be included in the"
                     + "outgoing FlowFile, and a value of 100 will cause all records to be included in the outgoing FlowFile..")
@@ -153,8 +148,7 @@ public class SampleRecord extends AbstractProcessor {
             .dependsOn(SAMPLING_STRATEGY, PROBABILISTIC_SAMPLING)
             .build();
     static final PropertyDescriptor RESERVOIR_SIZE = new PropertyDescriptor.Builder()
-            .name("sample-record-reservoir")
-            .displayName("Reservoir Size")
+            .name("Reservoir Size")
             .description("Specifies the number of records to write to the outgoing FlowFile. This property is only used if Sampling Strategy is set to "
                     + "reservoir-based strategies such as Reservoir Sampling.")
             .required(true)
@@ -164,8 +158,7 @@ public class SampleRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor RANDOM_SEED = new PropertyDescriptor.Builder()
-            .name("sample-record-random-seed")
-            .displayName("Random Seed")
+            .name("Random Seed")
             .description("Specifies a particular number to use as the seed for the random number generator (used by probabilistic strategies). "
                     + "Setting this property will ensure the same records are selected even when using probabilistic strategies.")
             .required(false)
@@ -286,6 +279,18 @@ public class SampleRecord extends AbstractProcessor {
         session.transfer(flowFile, REL_ORIGINAL);
         sampledFlowFile = session.putAllAttributes(sampledFlowFile, attributes);
         session.transfer(sampledFlowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
+        config.renameProperty("record-writer", RECORD_WRITER_FACTORY.getName());
+        config.renameProperty("sample-record-sampling-strategy", SAMPLING_STRATEGY.getName());
+        config.renameProperty("sample-record-interval", SAMPLING_INTERVAL.getName());
+        config.renameProperty("sample-record-range", SAMPLING_RANGE.getName());
+        config.renameProperty("sample-record-probability", SAMPLING_PROBABILITY.getName());
+        config.renameProperty("sample-record-reservoir", RESERVOIR_SIZE.getName());
+        config.renameProperty("sample-record-random-seed", RANDOM_SEED.getName());
     }
 
     interface SamplingStrategy {

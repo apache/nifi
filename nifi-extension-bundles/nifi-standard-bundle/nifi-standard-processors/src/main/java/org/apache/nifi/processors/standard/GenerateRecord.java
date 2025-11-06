@@ -34,6 +34,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -104,16 +105,14 @@ public class GenerateRecord extends AbstractProcessor {
     private static final String KEY4 = "key4";
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Controller Service to use for writing out the records")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor NUM_RECORDS = new PropertyDescriptor.Builder()
-            .name("number-of-records")
-            .displayName("Number of Records")
+            .name("Number of Records")
             .description("Specifies how many records will be generated for each outgoing FlowFile.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -122,8 +121,7 @@ public class GenerateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor NULLABLE_FIELDS = new PropertyDescriptor.Builder()
-            .name("nullable-fields")
-            .displayName("Nullable Fields")
+            .name("Nullable Fields")
             .description("Whether the generated fields will be nullable. Note that this property is ignored if Schema Text is set. Also it only affects the schema of the generated data, " +
                     "not whether any values will be null. If this property is true, see 'Null Value Percentage' to set the probability that any generated field will be null.")
             .allowableValues("true", "false")
@@ -131,8 +129,7 @@ public class GenerateRecord extends AbstractProcessor {
             .required(true)
             .build();
     static final PropertyDescriptor NULL_PERCENTAGE = new PropertyDescriptor.Builder()
-            .name("null-percentage")
-            .displayName("Null Value Percentage")
+            .name("Null Value Percentage")
             .description("The percent probability (0-100%) that a generated value for any nullable field will be null. Set this property to zero to have no null values, or 100 to have all " +
                     "null values.")
             .addValidator(StandardValidators.createLongValidator(0L, 100L, true))
@@ -143,8 +140,7 @@ public class GenerateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor.Builder()
-            .name("schema-text")
-            .displayName("Schema Text")
+            .name("Schema Text")
             .description("The text of an Avro-formatted Schema used to generate record data. If this property is set, any user-defined properties are ignored.")
             .addValidator(new AvroSchemaValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -282,6 +278,15 @@ public class GenerateRecord extends AbstractProcessor {
         session.adjustCounter("Records Processed", count, false);
 
         getLogger().info("Generated records [{}] for {}", count, flowFile);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("number-of-records", NUM_RECORDS.getName());
+        config.renameProperty("nullable-fields", NULLABLE_FIELDS.getName());
+        config.renameProperty("null-percentage", NULL_PERCENTAGE.getName());
+        config.renameProperty("schema-text", SCHEMA_TEXT.getName());
     }
 
     protected Map<String, String> getFields(ProcessContext context) {

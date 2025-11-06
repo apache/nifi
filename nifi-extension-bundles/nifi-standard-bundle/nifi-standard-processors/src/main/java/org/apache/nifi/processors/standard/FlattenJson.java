@@ -36,6 +36,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -78,8 +79,7 @@ public class FlattenJson extends AbstractProcessor {
             "Flattens every objects except arrays which contain only primitive types (strings, numbers, booleans and null)");
 
     public static final PropertyDescriptor SEPARATOR = new PropertyDescriptor.Builder()
-            .name("flatten-json-separator")
-            .displayName("Separator")
+            .name("Separator")
             .defaultValue(".")
             .description("The separator character used for joining keys. Must be a JSON-legal character.")
             .addValidator((subject, input, context) -> {
@@ -108,8 +108,7 @@ public class FlattenJson extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor FLATTEN_MODE = new PropertyDescriptor.Builder()
-            .name("flatten-mode")
-            .displayName("Flatten Mode")
+            .name("Flatten Mode")
             .description("Specifies how json should be flattened/unflattened")
             .defaultValue(FLATTEN_MODE_KEEP_ARRAYS.getValue())
             .required(true)
@@ -118,8 +117,7 @@ public class FlattenJson extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor IGNORE_RESERVED_CHARACTERS = new PropertyDescriptor.Builder()
-            .name("ignore-reserved-characters")
-            .displayName("Ignore Reserved Characters")
+            .name("Ignore Reserved Characters")
             .description("If true, reserved characters in keys will be ignored")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
@@ -129,8 +127,7 @@ public class FlattenJson extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RETURN_TYPE = new PropertyDescriptor.Builder()
-            .name("flatten-json-return-type")
-            .displayName("Return Type")
+            .name("Return Type")
             .description("Specifies the desired return type of json such as flatten/unflatten")
             .defaultValue(RETURN_TYPE_FLATTEN)
             .required(true)
@@ -139,8 +136,7 @@ public class FlattenJson extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
-            .name("flatten-json-character-set")
-            .displayName("Character Set")
+            .name("Character Set")
             .description("The Character Set in which file is encoded")
             .defaultValue("UTF-8")
             .required(true)
@@ -149,8 +145,7 @@ public class FlattenJson extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT = new PropertyDescriptor.Builder()
-            .name("flatten-json-pretty-print-json")
-            .displayName("Pretty Print JSON")
+            .name("Pretty Print JSON")
             .description("Specifies whether or not resulted json should be pretty printed")
             .defaultValue("false")
             .required(true)
@@ -236,6 +231,16 @@ public class FlattenJson extends AbstractProcessor {
             getLogger().error("Failed to {} JSON", returnType, e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("flatten-json-separator", SEPARATOR.getName());
+        config.renameProperty("flatten-mode", FLATTEN_MODE.getName());
+        config.renameProperty("ignore-reserved-characters", IGNORE_RESERVED_CHARACTERS.getName());
+        config.renameProperty("flatten-json-return-type", RETURN_TYPE.getName());
+        config.renameProperty("flatten-json-character-set", CHARACTER_SET.getName());
+        config.renameProperty("flatten-json-pretty-print-json", PRETTY_PRINT.getName());
     }
 
     private FlattenMode getFlattenMode(String mode) {

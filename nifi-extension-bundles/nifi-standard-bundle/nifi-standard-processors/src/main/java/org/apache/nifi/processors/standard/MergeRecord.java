@@ -40,6 +40,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -190,23 +191,20 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
             + "the Records that are output is not guaranteed.");
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-        .name("record-reader")
-        .displayName("Record Reader")
+        .name("Record Reader")
         .description("Specifies the Controller Service to use for reading incoming data")
         .identifiesControllerService(RecordReaderFactory.class)
         .required(true)
         .build();
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
+        .name("Record Writer")
         .description("Specifies the Controller Service to use for writing out the records")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
 
     public static final PropertyDescriptor MERGE_STRATEGY = new PropertyDescriptor.Builder()
-        .name("merge-strategy")
-        .displayName("Merge Strategy")
+        .name("Merge Strategy")
         .description("Specifies the algorithm used to merge records. The 'Defragment' algorithm combines fragments that are associated by "
             + "attributes back into a single cohesive FlowFile. The 'Bin-Packing Algorithm' generates a FlowFile populated by arbitrarily "
             + "chosen FlowFiles")
@@ -215,8 +213,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .defaultValue(MERGE_STRATEGY_BIN_PACK.getValue())
         .build();
     public static final PropertyDescriptor CORRELATION_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
-        .name("correlation-attribute-name")
-        .displayName("Correlation Attribute Name")
+        .name("Correlation Attribute Name")
         .description("If specified, two FlowFiles will be binned together only if they have the same value for "
             + "this Attribute. If not specified, FlowFiles are bundled by the order in which they are pulled from the queue.")
         .required(false)
@@ -224,16 +221,14 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
         .build();
     public static final PropertyDescriptor MIN_SIZE = new PropertyDescriptor.Builder()
-        .name("min-bin-size")
-        .displayName("Minimum Bin Size")
+        .name("Minimum Bin Size")
         .description("The minimum size of for the bin")
         .required(true)
         .defaultValue("0 B")
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .build();
     public static final PropertyDescriptor MAX_SIZE = new PropertyDescriptor.Builder()
-        .name("max-bin-size")
-        .displayName("Maximum Bin Size")
+        .name("Maximum Bin Size")
         .description("The maximum size for the bundle. If not specified, there is no maximum. This is a 'soft limit' in that if a FlowFile is added to a bin, "
             + "all records in that FlowFile will be added, so this limit may be exceeded by up to the number of bytes in last input FlowFile.")
         .required(false)
@@ -241,8 +236,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .build();
 
     public static final PropertyDescriptor MIN_RECORDS = new PropertyDescriptor.Builder()
-        .name("min-records")
-        .displayName("Minimum Number of Records")
+        .name("Minimum Number of Records")
         .description("The minimum number of records to include in a bin")
         .required(true)
         .defaultValue("1")
@@ -250,8 +244,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     public static final PropertyDescriptor MAX_RECORDS = new PropertyDescriptor.Builder()
-        .name("max-records")
-        .displayName("Maximum Number of Records")
+        .name("Maximum Number of Records")
         .description("The maximum number of Records to include in a bin. This is a 'soft limit' in that if a FlowFIle is added to a bin, all records in that FlowFile will be added, "
             + "so this limit may be exceeded by up to the number of records in the last input FlowFile.")
         .required(false)
@@ -260,8 +253,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     public static final PropertyDescriptor MAX_BIN_COUNT = new PropertyDescriptor.Builder()
-        .name("max.bin.count")
-        .displayName("Maximum Number of Bins")
+        .name("Maximum Number of Bins")
         .description("Specifies the maximum number of bins that can be held in memory at any one time. "
             + "This number should not be smaller than the maximum number of concurrent threads for this Processor, "
             + "or the bins that are created will often consist only of a single incoming FlowFile.")
@@ -271,8 +263,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         .build();
 
     public static final PropertyDescriptor MAX_BIN_AGE = new PropertyDescriptor.Builder()
-        .name("max-bin-age")
-        .displayName("Max Bin Age")
+        .name("Max Bin Age")
         .description("The maximum age of a Bin that will trigger a Bin to be complete. Expected format is <duration> <time unit> "
             + "where <duration> is a positive integer and time unit is one of seconds, minutes, hours")
         .required(false)
@@ -460,6 +451,19 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("merge-strategy", MERGE_STRATEGY.getName());
+        config.renameProperty("correlation-attribute-name", CORRELATION_ATTRIBUTE_NAME.getName());
+        config.renameProperty("min-bin-size", MIN_SIZE.getName());
+        config.renameProperty("max-bin-size", MAX_SIZE.getName());
+        config.renameProperty("min-records", MIN_RECORDS.getName());
+        config.renameProperty("max-records", MAX_RECORDS.getName());
+        config.renameProperty("max.bin.count", MAX_BIN_COUNT.getName());
+        config.renameProperty("max-bin-age", MAX_BIN_AGE.getName());
+    }
 
     private void binFlowFile(final ProcessContext context, final FlowFile flowFile, final ProcessSession session, final RecordBinManager binManager, final boolean block) {
         final RecordReaderFactory readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);

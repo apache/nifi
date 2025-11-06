@@ -127,8 +127,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .build();
 
     static final PropertyDescriptor SQL_STATEMENT = new PropertyDescriptor.Builder()
-            .name("putsql-sql-statement")
-            .displayName("SQL Statement")
+            .name("SQL Statement")
             .description("The SQL statement to execute. The statement can be empty, a constant value, or built from attributes "
                     + "using Expression Language. If this property is specified, it will be used regardless of the content of "
                     + "incoming FlowFiles. If this property is empty, the content of the incoming FlowFile is expected "
@@ -139,8 +138,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .build();
 
     static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
-            .name("database-session-autocommit")
-            .displayName("Database Session AutoCommit")
+            .name("Database Session AutoCommit")
             .description("The autocommit mode to set on the database connection being used. If set to false, the operation(s) will be explicitly committed or rolled back "
                     + "(based on success or failure respectively), if set to true the driver/database handles the commit/rollback.")
             .allowableValues("true", "false")
@@ -222,6 +220,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("putsql-sql-statement", SQL_STATEMENT.getName());
+        config.renameProperty("database-session-autocommit", AUTO_COMMIT.getName());
         config.renameProperty(RollbackOnFailure.OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME, RollbackOnFailure.ROLLBACK_ON_FAILURE.getName());
     }
 

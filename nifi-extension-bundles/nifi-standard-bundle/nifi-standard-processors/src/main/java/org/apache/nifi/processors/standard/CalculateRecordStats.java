@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -82,15 +83,14 @@ public class CalculateRecordStats extends AbstractProcessor {
     static final String RECORD_COUNT_ATTR = "record.count";
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-        .name("record-stats-reader")
-        .displayName("Record Reader")
+        .name("Record Reader")
         .description("A record reader to use for reading the records.")
         .identifiesControllerService(RecordReaderFactory.class)
         .required(true)
         .build();
 
     static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
-        .name("record-stats-limit")
+        .name("Record Stats Limit")
         .description("Limit the number of individual stats that are returned for each record path to the top N results.")
         .required(true)
         .defaultValue("10")
@@ -162,6 +162,12 @@ public class CalculateRecordStats extends AbstractProcessor {
             getLogger().error("Failed to process stats for {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-stats-reader", RECORD_READER.getName());
+        config.renameProperty("record-stats-limit", LIMIT.getName());
     }
 
     protected Map<String, RecordPath> getRecordPaths(final ProcessContext context, final FlowFile flowFile) {

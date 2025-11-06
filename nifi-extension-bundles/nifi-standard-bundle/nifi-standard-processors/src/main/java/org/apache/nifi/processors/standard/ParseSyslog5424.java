@@ -31,6 +31,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -90,8 +91,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor NIL_POLICY = new PropertyDescriptor.Builder()
-        .name("nil_policy")
-        .displayName("NIL Policy")
+        .name("NIL Policy")
         .description("Defines how NIL values are handled for header fields.")
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .allowableValues(OMIT, NULL, DASH)
@@ -101,8 +101,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor INCLUDE_BODY_IN_ATTRIBUTES = new PropertyDescriptor.Builder()
-        .name("include_policy")
-        .displayName("Include Message Body in Attributes")
+        .name("Include Message Body in Attributes")
         .description("If true, then the Syslog Message body will be included in the attributes.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .allowableValues("true", "false")
@@ -188,6 +187,12 @@ public class ParseSyslog5424 extends AbstractProcessor {
         }
         flowFile = session.putAllAttributes(flowFile, attributeMap);
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("nil_policy", NIL_POLICY.getName());
+        config.renameProperty("include_policy", INCLUDE_BODY_IN_ATTRIBUTES.getName());
     }
 
     private static Map<String, String> convertMap(Map<String, Object> map) {

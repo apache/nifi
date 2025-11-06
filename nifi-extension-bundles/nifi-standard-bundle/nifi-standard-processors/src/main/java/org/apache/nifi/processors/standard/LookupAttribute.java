@@ -36,6 +36,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.lookup.StringLookupService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -67,8 +68,7 @@ public class LookupAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor LOOKUP_SERVICE =
         new PropertyDescriptor.Builder()
-            .name("lookup-service")
-            .displayName("Lookup Service")
+            .name("Lookup Service")
             .description("The lookup service to use for attribute lookups")
             .identifiesControllerService(StringLookupService.class)
             .required(true)
@@ -76,8 +76,7 @@ public class LookupAttribute extends AbstractProcessor {
 
     public static final PropertyDescriptor INCLUDE_EMPTY_VALUES =
         new PropertyDescriptor.Builder()
-            .name("include-empty-values")
-            .displayName("Include Empty Values")
+            .name("Include Empty Values")
             .description("Include null or blank values for keys that are null or blank")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues("true", "false")
@@ -191,8 +190,14 @@ public class LookupAttribute extends AbstractProcessor {
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("lookup-service", LOOKUP_SERVICE.getName());
+        config.renameProperty("include-empty-values", INCLUDE_EMPTY_VALUES.getName());
+    }
+
     private void onTrigger(ComponentLog logger, LookupService lookupService,
-        boolean includeEmptyValues, FlowFile flowFile, ProcessSession session)
+                           boolean includeEmptyValues, FlowFile flowFile, ProcessSession session)
         throws ProcessException, IOException {
 
         final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
