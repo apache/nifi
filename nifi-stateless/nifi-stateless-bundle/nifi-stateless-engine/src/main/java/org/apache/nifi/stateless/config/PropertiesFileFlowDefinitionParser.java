@@ -22,10 +22,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.registry.VersionedFlowConverter;
-import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.stateless.core.RegistryUtil;
+import org.apache.nifi.stateless.core.FlowSnapshotProvider;
+import org.apache.nifi.stateless.core.RegistryFlowSnapshotProvider;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinitionParser;
@@ -540,7 +540,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         try {
             final SSLContext sslContext = SslConfigurationUtil.createSslContext(sslContextDefinition);
             return fetchFlowFromRegistry(registryUrl, bucketId, flowId, flowVersion, sslContext);
-        } catch (final NiFiRegistryException e) {
+        } catch (final IOException e) {
             throw new StatelessConfigurationException("Could not fetch flow from Registry", e);
         }
     }
@@ -597,13 +597,13 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     }
 
     private VersionedFlowSnapshot fetchFlowFromRegistry(final String registryUrl, final String bucketId, final String flowId, final Integer flowVersion,
-                                                        final SSLContext sslContext) throws IOException, NiFiRegistryException {
+                                                        final SSLContext sslContext) throws IOException {
 
         logger.info("Fetching flow from NiFi Registry at {}", registryUrl);
         final long start = System.currentTimeMillis();
 
-        final RegistryUtil registryUtil = new RegistryUtil(registryUrl, sslContext);
-        final VersionedFlowSnapshot snapshot = registryUtil.getFlowByID(bucketId, flowId, flowVersion == null ? -1 : flowVersion);
+        final FlowSnapshotProvider flowSnapshotProvider = new RegistryFlowSnapshotProvider(registryUrl, sslContext);
+        final VersionedFlowSnapshot snapshot = flowSnapshotProvider.getFlowSnapshot(bucketId, flowId, flowVersion == null ? -1 : flowVersion);
 
         final long millis = System.currentTimeMillis() - start;
         logger.info("Successfully fetched flow from NiFi Registry in {} millis", millis);
