@@ -265,7 +265,15 @@ public class PutMongo extends AbstractMongoProcessor {
                 flowFile = session.putAttribute(flowFile, ATTRIBUTE_UPDATE_MODIFY_COUNT, String.valueOf(updateResult.getModifiedCount()));
                 BsonValue upsertedId = updateResult.getUpsertedId();
                 if (upsertedId != null) {
-                    String id = upsertedId.isString() ? upsertedId.asString().getValue() : upsertedId.asObjectId().getValue().toString();
+                    final String id;
+                    if (upsertedId.isString()) {
+                        id = upsertedId.asString().getValue();
+                    } else if (upsertedId.isObjectId()) {
+                        id = upsertedId.asObjectId().getValue().toString();
+                    } else {
+                        // Fallback for non-String/ObjectId identifiers (e.g., Document, Int32)
+                        id = upsertedId.toString();
+                    }
                     flowFile = session.putAttribute(flowFile, ATTRIBUTE_UPSERT_ID, id);
                 }
                 logger.info("updated {} into MongoDB", flowFile);
@@ -299,12 +307,13 @@ public class PutMongo extends AbstractMongoProcessor {
     private Document parseUpdateKey(String updateKey, Map doc) {
         Document retVal;
         if (updateKey.equals("_id")) {
-            if (doc.get("_id") instanceof ObjectId) {
-                retVal = new Document("_id", doc.get("_id"));
-            } else if (ObjectId.isValid((String) doc.get("_id"))) {
-                retVal = new Document("_id", new ObjectId((String) doc.get("_id")));
+            Object idValue = doc.get("_id");
+            if (idValue instanceof ObjectId) {
+                retVal = new Document("_id", idValue);
+            } else if (idValue instanceof String && ObjectId.isValid((String) idValue)) {
+                retVal = new Document("_id", new ObjectId((String) idValue));
             } else {
-                retVal = new Document("_id", doc.get("_id"));
+                retVal = new Document("_id", idValue);
             }
         } else if (updateKey.contains(",")) {
             String[] parts = updateKey.split(",[\\s]*");

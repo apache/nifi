@@ -72,4 +72,5 @@ public class PutMongoTest {
         it = results.iterator();
         assertTrue(it.next().toString().endsWith("Either the update query key or the update query field must be set."));
     }
+
 }
