@@ -27,8 +27,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { RouterTestingModule } from '@angular/router/testing';
-import { selectLoginFailure, selectLoginPending } from '../../state/access/access.selectors';
-import { selectLogoutSupported } from '../../../../state/current-user/current-user.selectors';
+import { selectLoginFailure } from '../../state/access/access.selectors';
+import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
+import { currentUserFeatureKey } from '../../../../state/current-user';
 
 describe('LoginFormComponent', () => {
     let component: LoginFormComponent;
@@ -36,8 +37,6 @@ describe('LoginFormComponent', () => {
     let store: MockStore<NiFiRegistryState>;
     let dispatchSpy: jest.SpyInstance;
     let loginFailureSelector: any;
-    let loginPendingSelector: any;
-    let logoutSupportedSelector: any;
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
@@ -49,15 +48,20 @@ describe('LoginFormComponent', () => {
                 MatButtonModule,
                 RouterTestingModule
             ],
-            providers: [provideMockStore(), provideHttpClientTesting()]
+            providers: [
+                provideMockStore({
+                    initialState: {
+                        [currentUserFeatureKey]: initialCurrentUserState
+                    }
+                }),
+                provideHttpClientTesting()
+            ]
         }).compileComponents();
 
         fixture = TestBed.createComponent(LoginFormComponent);
         component = fixture.componentInstance;
         store = TestBed.inject(MockStore);
         loginFailureSelector = store.overrideSelector(selectLoginFailure, null);
-        loginPendingSelector = store.overrideSelector(selectLoginPending, false);
-        logoutSupportedSelector = store.overrideSelector(selectLogoutSupported, false);
         dispatchSpy = jest.spyOn(store, 'dispatch');
         fixture.detectChanges();
     });

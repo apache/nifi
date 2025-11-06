@@ -22,7 +22,9 @@
         @if (flowRegistryClientDefinitionState.flowRegistryClientDefinition; as flowRegistryClientDefinition) {
             <div class="flex flex-col gap-y-4 p-4">
                 <configurable-extension-definition
-                    [configurableExtensionDefinition]="flowRegistryClientDefinition"></configurable-extension-definition>
+                    [configurableExtensionDefinition]="
+                        flowRegistryClientDefinition
+                    "></configurable-extension-definition>
             </div>
         } @else if (flowRegistryClientDefinitionState.error) {
             <div class="p-4">
