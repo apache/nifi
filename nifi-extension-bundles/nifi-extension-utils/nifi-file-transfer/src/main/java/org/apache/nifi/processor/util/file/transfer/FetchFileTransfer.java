@@ -60,6 +60,14 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     public static final AllowableValue COMPLETION_MOVE = new AllowableValue("Move File", "Move File", "Move the file to the directory specified by the <Move Destination Directory> property");
     public static final AllowableValue COMPLETION_DELETE = new AllowableValue("Delete File", "Delete File", "Deletes the original file from the remote system");
     public static final String FAILURE_REASON_ATTRIBUTE = "fetch.failure.reason";
+
+    // Failure reason constants
+    public static final String FAILURE_REASON_PERMISSION_DENIED_READ = "permission.denied.read";
+    public static final String FAILURE_REASON_COMPLETION_DELETE_PERMISSION_DENIED = "completion.delete.permission.denied";
+    public static final String FAILURE_REASON_COMPLETION_DELETE_IO_ERROR = "completion.delete.io.error";
+    public static final String FAILURE_REASON_COMPLETION_MOVE_PERMISSION_DENIED = "completion.move.permission.denied";
+    public static final String FAILURE_REASON_COMPLETION_MOVE_IO_ERROR = "completion.move.io.error";
+
     public static final String OLD_FILE_NOT_FOUND_LOG_LEVEL_PROPERTY_NAME = "fetchfiletransfer-notfound-loglevel";
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
@@ -287,7 +295,7 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
                         flowFile, filename, host, failureRelationship.getName());
             } catch (final PermissionDeniedException e) {
                 failureRelationship = REL_PERMISSION_DENIED;
-                failureReason = "permission.denied.read";
+                failureReason = FAILURE_REASON_PERMISSION_DENIED_READ;
                 getLogger().error("Failed to fetch content for {} from filename {} on remote host {} due to insufficient permissions; routing to {}",
                         flowFile, filename, host, failureRelationship.getName());
             } catch (final ProcessException | IOException e) {
@@ -326,167 +334,37 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
 
             flowFile = session.putAllAttributes(flowFile, attributes);
 
-            // Centralized pre-commit completion handling for MOVE/DELETE. This method may route and cleanup.
-            if (handleCompletionPreCommit(transfer, context, session, flowFile, attributes, filename, host, port, transferQueue)) {
+            // Perform completion strategy before commit
+            final String completionFailureReason = performCompletionStrategy(transfer, context, flowFile, filename, host, port);
+
+            if (completionFailureReason != null) {
+                // Completion strategy failed - determine the appropriate failure relationship
+                final Relationship completionFailureRelationship;
+                if (completionFailureReason.contains("permission")) {
+                    completionFailureRelationship = REL_PERMISSION_DENIED;
+                } else {
+                    completionFailureRelationship = REL_COMMS_FAILURE;
+                    closeConnOnFailure = true;
+                }
+
+                attributes.put(FAILURE_REASON_ATTRIBUTE, completionFailureReason);
+                flowFile = session.putAllAttributes(flowFile, attributes);
+                session.transfer(session.penalize(flowFile), completionFailureRelationship);
+                session.getProvenanceReporter().route(flowFile, completionFailureRelationship);
+                cleanupTransfer(transfer, closeConnOnFailure, transferQueue, host, port);
                 return;
             }
 
-            // emit provenance event and transfer FlowFile
+            // Both fetch and completion succeeded - emit provenance event and transfer to success
             session.getProvenanceReporter().fetch(flowFile, protocolName + "://" + host + ":" + port + "/" + filename, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
 
-            // Commit and perform any post-commit completion actions (DELETE only). Move is already handled pre-commit above.
-            final BlockingQueue<FileTransferIdleWrapper> queue = transferQueue;
-            final Runnable cleanupTask = () -> cleanupTransfer(transfer, false, queue, host, port);
-
-            final FlowFile flowFileReceived = flowFile;
-            session.commitAsync(() -> {
-                performCompletionStrategy(transfer, context, flowFileReceived, filename, host, port);
-                cleanupTask.run();
-            }, t -> cleanupTask.run());
+            // Cleanup connection
+            cleanupTransfer(transfer, false, transferQueue, host, port);
         } catch (final Throwable t) {
             getLogger().error("Failed to fetch file", t);
             cleanupTransfer(transfer, true, transferQueue, host, port);
         }
-    }
-
-    private boolean handleCompletionPreCommit(final FileTransfer transfer,
-                                              final ProcessContext context,
-                                              final ProcessSession session,
-                                              final FlowFile flowFile,
-                                              final Map<String, String> baseAttributes,
-                                              final String filename,
-                                              final String host,
-                                              final int port,
-                                              final BlockingQueue<FileTransferIdleWrapper> transferQueue) {
-        boolean routed = false;
-
-        if (isMoveStrategy(context)) {
-            routed = handleMovePreCommit(transfer, context, session, flowFile, baseAttributes, filename, host, port, transferQueue);
-        } else if (isDeleteStrategy(context)) {
-            // DELETE will be performed post-commit in performCompletionStrategy to avoid data loss if session commit fails.
-            getLogger().debug("Completion Strategy DELETE will be executed post-commit for {}", flowFile);
-        }
-
-        return routed;
-    }
-
-    private boolean isMoveStrategy(final ProcessContext context) {
-        final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
-        return COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy);
-    }
-
-    private boolean isDeleteStrategy(final ProcessContext context) {
-        final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
-        return COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy);
-    }
-
-    private boolean handleMovePreCommit(final FileTransfer transfer,
-                                        final ProcessContext context,
-                                        final ProcessSession session,
-                                        final FlowFile flowFile,
-                                        final Map<String, String> baseAttributes,
-                                        final String filename,
-                                        final String host,
-                                        final int port,
-                                        final BlockingQueue<FileTransferIdleWrapper> transferQueue) {
-        boolean routed = false;
-
-        final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
-        final String simpleFilename = getSimpleFilename(filename);
-
-        try {
-            final String absoluteTargetDirPath = prepareTargetDirectory(transfer, context, flowFile, targetDir);
-            String destinationFileName = resolveMoveConflict(transfer, context, flowFile, absoluteTargetDirPath, simpleFilename);
-
-            if (destinationFileName != null) {
-                final String destinationPath = String.format("%s/%s", absoluteTargetDirPath, destinationFileName);
-                routed = attemptRemoteRename(transfer, session, flowFile, baseAttributes, filename, destinationPath, host, port, transferQueue);
-            }
-        } catch (final PermissionDeniedException pde) {
-            routed = routeWithCleanupReason(session, flowFile, baseAttributes, REL_PERMISSION_DENIED, false, transfer, false, transferQueue, host, port, "permission.denied.ensure-dir");
-        } catch (final IOException ioe) {
-            routed = routeWithCleanupReason(session, flowFile, baseAttributes, REL_COMMS_FAILURE, true, transfer, true, transferQueue, host, port, ioe.toString());
-        }
-
-        return routed;
-    }
-
-    private String prepareTargetDirectory(final FileTransfer transfer,
-                                          final ProcessContext context,
-                                          final FlowFile flowFile,
-                                          final String targetDir) throws IOException, PermissionDeniedException {
-        final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
-        if (context.getProperty(MOVE_CREATE_DIRECTORY).asBoolean()) {
-            transfer.ensureDirectoryExists(flowFile, new File(absoluteTargetDirPath));
-        }
-        return absoluteTargetDirPath;
-    }
-
-    private String resolveMoveConflict(final FileTransfer transfer,
-                                       final ProcessContext context,
-                                       final FlowFile flowFile,
-                                       final String absoluteTargetDirPath,
-                                       final String simpleFilename) throws IOException {
-        String destinationFileName = simpleFilename;
-        final FileInfo remoteFileInfo = transfer.getRemoteFileInfo(flowFile, absoluteTargetDirPath, destinationFileName);
-        final String strategy = context.getProperty(MOVE_CONFLICT_RESOLUTION).getValue();
-
-        if (remoteFileInfo != null) {
-            switch (strategy.toUpperCase()) {
-                case FileTransfer.CONFLICT_RESOLUTION_REPLACE:
-                    try {
-                        transfer.deleteFile(flowFile, absoluteTargetDirPath, destinationFileName);
-                    } catch (final PermissionDeniedException pde) {
-                        getLogger().warn("Permission denied deleting existing destination [{}] in [{}] for {}; skipping move but proceeding with success.",
-                                destinationFileName, absoluteTargetDirPath, flowFile);
-                        destinationFileName = null;
-                    } catch (final IOException ioe) {
-                        getLogger().warn("I/O error deleting existing destination [{}] in [{}] for {}: {}. Skipping move but proceeding with success.",
-                                destinationFileName, absoluteTargetDirPath, flowFile, ioe.toString(), ioe);
-                        destinationFileName = null;
-                    }
-                    break;
-                case FileTransfer.CONFLICT_RESOLUTION_RENAME:
-                    final String uuid = UUID.randomUUID().toString();
-                    destinationFileName = uuid + "." + destinationFileName;
-                    getLogger().info("Generated filename [{}] to resolve conflict with initial filename [{}] for {}", destinationFileName, simpleFilename, flowFile);
-                    break;
-                case FileTransfer.CONFLICT_RESOLUTION_IGNORE:
-                case FileTransfer.CONFLICT_RESOLUTION_NONE:
-                    getLogger().info("Configured to {} on move conflict for {}. Original remote file will be left in place.", strategy, flowFile);
-                    destinationFileName = null;
-                    break;
-                default:
-                    getLogger().warn("Unrecognized Move Conflict Resolution strategy [{}]; behaving like IGNORE/NONE and leaving original remote file in place for {}", strategy, flowFile);
-                    destinationFileName = null;
-                    break;
-            }
-        }
-
-        return destinationFileName;
-    }
-
-    private boolean attemptRemoteRename(final FileTransfer transfer,
-                                        final ProcessSession session,
-                                        final FlowFile flowFile,
-                                        final Map<String, String> baseAttributes,
-                                        final String sourcePath,
-                                        final String destinationPath,
-                                        final String host,
-                                        final int port,
-                                        final BlockingQueue<FileTransferIdleWrapper> transferQueue) {
-        try {
-            transfer.rename(flowFile, sourcePath, destinationPath);
-        } catch (final PermissionDeniedException pde) {
-            return routeWithCleanupReason(session, flowFile, baseAttributes, REL_PERMISSION_DENIED, false, transfer, false, transferQueue, host, port, "permission.denied.rename");
-        } catch (final FileNotFoundException fnfe) {
-            getLogger().info("Source file not found during remote move for {}. Proceeding with success since content has been fetched.", flowFile);
-        } catch (final IOException ioe) {
-            getLogger().warn("I/O error renaming remote file from [{}] to [{}] for {}: {}. Skipping move but proceeding with success.",
-                    sourcePath, destinationPath, flowFile, ioe.toString(), ioe);
-        }
-        return false;
     }
 
     private void cleanupTransfer(final FileTransfer transfer, final boolean closeConnection, final BlockingQueue<FileTransferIdleWrapper> transferQueue, final String host, final int port) {
@@ -503,26 +381,77 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         }
     }
 
-    private void performCompletionStrategy(final FileTransfer transfer, final ProcessContext context, final FlowFile flowFile, final String filename, final String host, final int port) {
+    /**
+     * Performs the configured completion strategy (MOVE or DELETE).
+     *
+     * @return null if successful or NONE strategy, or a failure reason string if the completion strategy failed
+     */
+    private String performCompletionStrategy(final FileTransfer transfer, final ProcessContext context, final FlowFile flowFile, final String filename, final String host, final int port) {
         final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
+
         if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
-            // Perform DELETE post-commit to avoid data loss if the session commit fails. No routing is performed here.
             try {
                 transfer.deleteFile(flowFile, null, filename);
-            } catch (final FileNotFoundException ignored) {
-                // Already fetched content; treat as success
-                getLogger().debug("Source file not found during post-commit delete for {}. Nothing to delete.", flowFile);
-            } catch (final PermissionDeniedException pde) {
-                getLogger().warn("Post-commit delete failed due to insufficient permissions for {} on {}:{}; remote source remains. Error: {}", flowFile, host, port, pde.toString());
-            } catch (final IOException ioe) {
-                getLogger().error("Post-commit delete failed for {} on {}:{} due to {}; remote source remains.", flowFile, host, port, ioe.toString(), ioe);
+                getLogger().debug("Successfully deleted source file {} for {}", filename, flowFile);
+            } catch (final FileNotFoundException e) {
+                getLogger().debug("Source file not found during delete for {}. Nothing to delete.", flowFile);
+                // Not a failure - file is already gone
+            } catch (final PermissionDeniedException e) {
+                getLogger().error("Failed to delete {} on {}:{} due to insufficient permissions", flowFile, host, port);
+                return FAILURE_REASON_COMPLETION_DELETE_PERMISSION_DENIED;
+            } catch (final IOException e) {
+                getLogger().error("Failed to delete {} on {}:{} due to {}", flowFile, host, port, e.toString(), e);
+                return FAILURE_REASON_COMPLETION_DELETE_IO_ERROR;
             }
-
         } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
-            // MOVE completion is handled pre-commit in onTrigger to allow routing on server-side rejection or communication failures.
-            // No remote-side move/delete is attempted here to avoid double-actions post-commit.
-            getLogger().debug("Completion Strategy MOVE already handled pre-commit for {}. No action taken in performCompletionStrategy.", flowFile);
+            final String moveDestination = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
+            final String simpleFilename = getSimpleFilename(filename);
+
+            try {
+                final String absoluteTargetDir = transfer.getAbsolutePath(flowFile, moveDestination);
+
+                // Create directory if configured
+                if (context.getProperty(MOVE_CREATE_DIRECTORY).asBoolean()) {
+                    transfer.ensureDirectoryExists(flowFile, new File(absoluteTargetDir));
+                }
+
+                // Handle conflict resolution
+                String destinationFilename = simpleFilename;
+                final FileInfo existingFile = transfer.getRemoteFileInfo(flowFile, absoluteTargetDir, simpleFilename);
+                final String conflictStrategy = context.getProperty(MOVE_CONFLICT_RESOLUTION).getValue();
+
+                if (existingFile != null) {
+                    if (FileTransfer.CONFLICT_RESOLUTION_REPLACE.equalsIgnoreCase(conflictStrategy)) {
+                        transfer.deleteFile(flowFile, absoluteTargetDir, simpleFilename);
+                        getLogger().debug("Deleted existing file {} to replace for {}", simpleFilename, flowFile);
+                    } else if (FileTransfer.CONFLICT_RESOLUTION_RENAME.equalsIgnoreCase(conflictStrategy)) {
+                        destinationFilename = UUID.randomUUID() + "." + simpleFilename;
+                        getLogger().info("Renaming to {} to avoid conflict for {}", destinationFilename, flowFile);
+                    } else {
+                        getLogger().debug("File already exists at destination; skipping move per {} strategy for {}", conflictStrategy, flowFile);
+                        // IGNORE strategy - not a failure, just skip the move
+                        return null;
+                    }
+                }
+
+                // Perform the move
+                final String destinationPath = absoluteTargetDir + "/" + destinationFilename;
+                transfer.rename(flowFile, filename, destinationPath);
+                getLogger().debug("Successfully moved source file from {} to {} for {}", filename, destinationPath, flowFile);
+
+            } catch (final FileNotFoundException e) {
+                getLogger().debug("Source file not found during move for {}. Nothing to move.", flowFile);
+                // Not a failure - file is already gone
+            } catch (final PermissionDeniedException e) {
+                getLogger().error("Failed to move {} on {}:{} due to insufficient permissions", flowFile, host, port);
+                return FAILURE_REASON_COMPLETION_MOVE_PERMISSION_DENIED;
+            } catch (final IOException e) {
+                getLogger().error("Failed to move {} on {}:{} due to {}", flowFile, host, port, e.toString(), e);
+                return FAILURE_REASON_COMPLETION_MOVE_IO_ERROR;
+            }
         }
+
+        return null; // Success or NONE strategy
     }
 
     private static String getSimpleFilename(final String path) {
@@ -564,32 +493,5 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         public long getLastUsed() {
             return this.lastUsed;
         }
-    }
-
-
-
-    private boolean routeWithCleanupReason(final ProcessSession session,
-                                           final FlowFile flowFile,
-                                           final Map<String, String> baseAttributes,
-                                           final Relationship relationship,
-                                           final boolean penalize,
-                                           final FileTransfer transfer,
-                                           final boolean closeConnection,
-                                           final BlockingQueue<FileTransferIdleWrapper> transferQueue,
-                                           final String host,
-                                           final int port,
-                                           final String failureReason) {
-        final Map<String, String> attrs = new HashMap<>(baseAttributes);
-        attrs.put(FAILURE_REASON_ATTRIBUTE, failureReason);
-
-        FlowFile toTransfer = session.putAllAttributes(flowFile, attrs);
-        if (penalize) {
-            toTransfer = session.penalize(toTransfer);
-        }
-        session.transfer(toTransfer, relationship);
-        session.getProvenanceReporter().route(toTransfer, relationship);
-
-        cleanupTransfer(transfer, closeConnection, transferQueue, host, port);
-        return true;
     }
 }
