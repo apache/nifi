@@ -18,6 +18,7 @@
 import { ParameterProvidersState } from './index';
 import { createReducer, on } from '@ngrx/store';
 import {
+    clearParameterProviderBulletinsSuccess,
     configureParameterProvider,
     configureParameterProviderSuccess,
     createParameterProvider,
@@ -146,5 +147,17 @@ export const parameterProvidersReducer = createReducer(
     on(deleteParameterProviderParametersUpdateRequest, (state) => ({
         ...state,
         saving: false
-    }))
+    })),
+    on(clearParameterProviderBulletinsSuccess, (state, { response }) => {
+        return produce(state, (draftState) => {
+            const componentIndex: number = draftState.parameterProviders.findIndex(
+                (provider: any) => provider.id === response.componentId
+            );
+            if (componentIndex > -1) {
+                const provider = draftState.parameterProviders[componentIndex];
+                // Replace bulletins with the current bulletins from the server
+                provider.bulletins = response.bulletins || [];
+            }
+        });
+    })
 );

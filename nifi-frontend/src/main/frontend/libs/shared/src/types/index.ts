@@ -173,6 +173,7 @@ export interface BulletinEntity {
     sourceId: string;
     groupId: string;
     timestamp: string;
+    timestampIso: string;
     nodeAddress?: string;
     bulletin: {
         id: number;
@@ -184,6 +185,7 @@ export interface BulletinEntity {
         stackTrace?: string;
         sourceName: string;
         timestamp: string;
+        timestampIso: string;
         nodeAddress?: string;
         sourceType: string;
     };

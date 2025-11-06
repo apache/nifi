@@ -26,6 +26,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 
@@ -45,6 +46,7 @@ public final class AzureEventHubUtils {
     public static final AllowableValue AZURE_US_GOV_ENDPOINT = new AllowableValue(".servicebus.usgovcloudapi.net", "Azure US Government", "Servicebus endpoint for US Government");
     public static final String OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME = "Shared Access Policy Primary Key";
     public static final String OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME = "use-managed-identity";
+    public static final String USE_MANAGED_IDENTITY_PROPERTY_NAME = "Use Azure Managed Identity";
 
     public static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Key")
@@ -53,13 +55,8 @@ public final class AzureEventHubUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .sensitive(true)
             .required(false)
+            .dependsOn(AzureEventHubComponent.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE)
             .build();
-
-    public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
-            .name("Use Azure Managed Identity")
-            .description("Choose whether or not to use the managed identity of Azure VM/VMSS")
-            .required(true).defaultValue("false").allowableValues("true", "false")
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR).build();
 
     public static final PropertyDescriptor SERVICE_BUS_ENDPOINT = new PropertyDescriptor.Builder()
             .name("Service Bus Endpoint")
@@ -78,20 +75,25 @@ public final class AzureEventHubUtils {
 
         boolean accessPolicyIsSet = context.getProperty(accessPolicyDescriptor).isSet();
         boolean policyKeyIsSet = context.getProperty(policyKeyDescriptor).isSet();
-        boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
+        final AzureEventHubAuthenticationStrategy authenticationStrategy = Optional.ofNullable(
+                context.getProperty(AzureEventHubComponent.AUTHENTICATION_STRATEGY)
+                        .asAllowableValue(AzureEventHubAuthenticationStrategy.class))
+                .orElse(AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY);
 
-        if (useManagedIdentity && (accessPolicyIsSet || policyKeyIsSet)) {
+        if (authenticationStrategy == AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY && (accessPolicyIsSet || policyKeyIsSet)) {
             final String msg = String.format(
-                    "('%s') and ('%s' with '%s') fields cannot be set at the same time.",
-                    USE_MANAGED_IDENTITY.getDisplayName(),
+                    "When '%s' is set to '%s', '%s' and '%s' must not be set.",
+                    AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
+                    AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getDisplayName(),
                     accessPolicyDescriptor.getDisplayName(),
                     POLICY_PRIMARY_KEY.getDisplayName()
             );
             validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
-        } else if (!useManagedIdentity && (!accessPolicyIsSet || !policyKeyIsSet)) {
+        } else if (authenticationStrategy == AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE && (!accessPolicyIsSet || !policyKeyIsSet)) {
             final String msg = String.format(
-                    "either('%s') or (%s with '%s') must be set",
-                    USE_MANAGED_IDENTITY.getDisplayName(),
+                    "When '%s' is set to '%s', both '%s' and '%s' must be set",
+                    AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
+                    AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getDisplayName(),
                     accessPolicyDescriptor.getDisplayName(),
                     POLICY_PRIMARY_KEY.getDisplayName()
             );

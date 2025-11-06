@@ -27,6 +27,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
@@ -78,6 +79,8 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(GetAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue());
         testRunner.assertNotValid();
         testRunner.setProperty(GetAzureEventHub.ACCESS_POLICY, POLICY_NAME);
         testRunner.assertNotValid();
@@ -105,7 +108,7 @@ public class GetAzureEventHubTest {
                 "Partition Recivier Fetch Size", GetAzureEventHub.RECEIVER_FETCH_SIZE.getName(),
                 "Partition Receiver Timeout (millseconds)", GetAzureEventHub.RECEIVER_FETCH_TIMEOUT.getName(),
                 AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, GetAzureEventHub.POLICY_PRIMARY_KEY.getName(),
-                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, GetAzureEventHub.USE_MANAGED_IDENTITY.getName()
+                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME
         );
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
@@ -127,8 +130,8 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.assertNotValid();
         testRunner.setProperty(GetAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
-        testRunner.assertNotValid();
-        testRunner.setProperty(PutAzureEventHub.USE_MANAGED_IDENTITY, Boolean.TRUE.toString());
+        testRunner.assertValid();
+        testRunner.setProperty(GetAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue());
         testRunner.assertValid();
     }
 
@@ -224,6 +227,7 @@ public class GetAzureEventHubTest {
     private void setProperties() {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.setProperty(GetAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.setProperty(GetAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue());
         testRunner.setProperty(GetAzureEventHub.ACCESS_POLICY, POLICY_NAME);
         testRunner.setProperty(GetAzureEventHub.POLICY_PRIMARY_KEY, POLICY_KEY);
         testRunner.assertValid();

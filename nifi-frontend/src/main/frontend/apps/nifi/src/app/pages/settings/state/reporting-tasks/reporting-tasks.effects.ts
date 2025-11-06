@@ -607,4 +607,37 @@ export class ReportingTasksEffects {
             ),
         { dispatch: false }
     );
+
+    clearReportingTaskBulletins$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ReportingTaskActions.clearReportingTaskBulletins),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.reportingTaskService.clearBulletins({
+                        uri: request.uri,
+                        fromTimestamp: request.fromTimestamp
+                    })
+                ).pipe(
+                    map((response) =>
+                        ReportingTaskActions.clearReportingTaskBulletinsSuccess({
+                            response: {
+                                componentId: request.componentId,
+                                bulletinsCleared: response.bulletinsCleared || 0,
+                                bulletins: response.bulletins || [],
+                                componentType: request.componentType
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            ReportingTaskActions.reportingTasksSnackbarApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
 }

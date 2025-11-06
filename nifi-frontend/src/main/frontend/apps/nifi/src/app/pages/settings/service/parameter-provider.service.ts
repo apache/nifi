@@ -71,6 +71,13 @@ export class ParameterProviderService implements PropertyDescriptorRetriever {
         return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params });
     }
 
+    clearBulletins(request: { uri: string; fromTimestamp: string }): Observable<any> {
+        const payload = {
+            fromTimestamp: request.fromTimestamp
+        };
+        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.uri)}/bulletins/clear-requests`, payload);
+    }
+
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
         const params: any = {
             propertyName,

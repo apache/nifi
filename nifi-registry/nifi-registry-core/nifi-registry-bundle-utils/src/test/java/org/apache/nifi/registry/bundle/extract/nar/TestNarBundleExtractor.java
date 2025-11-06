@@ -23,10 +23,16 @@ import org.apache.nifi.registry.bundle.model.BundleDetails;
 import org.apache.nifi.registry.extension.bundle.BuildInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -148,6 +154,49 @@ public class TestNarBundleExtractor {
 
             final String listHdfsKey = "org.apache.nifi.processors.hadoop.ListHDFS";
             assertTrue(additionalDetails.containsKey(listHdfsKey));
+        }
+    }
+
+    @Test
+    public void testExtractFromNarWithMetaInfDirectoryBeforeManifest(@TempDir final Path tempDir) throws IOException {
+        final Path narPath = tempDir.resolve("manifest-after-dir.nar");
+
+        try (final JarOutputStream jarOutputStream = new JarOutputStream(Files.newOutputStream(narPath))) {
+            // META-INF directory entry before the manifest file
+            final JarEntry metaInfDir = new JarEntry("META-INF/");
+            jarOutputStream.putNextEntry(metaInfDir);
+            jarOutputStream.closeEntry();
+
+            final JarEntry manifestEntry = new JarEntry("META-INF/MANIFEST.MF");
+            jarOutputStream.putNextEntry(manifestEntry);
+            jarOutputStream.write((
+                    "Manifest-Version: 1.0\n" +
+                    "Nar-Group: org.example\n" +
+                    "Nar-Id: example-nar\n" +
+                    "Nar-Version: 1.0.0\n" +
+                    "Build-Timestamp: 2024-01-01T00:00:00Z\n\n"
+            ).getBytes(StandardCharsets.UTF_8));
+            jarOutputStream.closeEntry();
+
+            final JarEntry docsDir = new JarEntry("META-INF/docs/");
+            jarOutputStream.putNextEntry(docsDir);
+            jarOutputStream.closeEntry();
+
+            final JarEntry descriptorEntry = new JarEntry("META-INF/docs/extension-manifest.xml");
+            jarOutputStream.putNextEntry(descriptorEntry);
+            jarOutputStream.write("<extensionManifest><systemApiVersion>1.0.0</systemApiVersion></extensionManifest>".getBytes(StandardCharsets.UTF_8));
+            jarOutputStream.closeEntry();
+        }
+
+        try (final InputStream in = Files.newInputStream(narPath)) {
+            final BundleDetails bundleDetails = extractor.extract(in);
+            assertNotNull(bundleDetails);
+
+            final BundleIdentifier bundleIdentifier = bundleDetails.getBundleIdentifier();
+            assertEquals("org.example", bundleIdentifier.getGroupId());
+            assertEquals("example-nar", bundleIdentifier.getArtifactId());
+            assertEquals("1.0.0", bundleIdentifier.getVersion());
+            assertEquals("1.0.0", bundleDetails.getSystemApiVersion());
         }
     }
 

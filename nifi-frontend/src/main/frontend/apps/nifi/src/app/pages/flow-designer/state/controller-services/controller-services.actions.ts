@@ -27,6 +27,8 @@ import {
     SelectControllerServiceRequest
 } from './index';
 import {
+    ClearBulletinsRequest,
+    ClearBulletinsResponse,
     CreateControllerServiceRequest,
     DisableControllerServiceDialogRequest,
     EditControllerServiceDialogRequest,
@@ -141,4 +143,14 @@ export const selectControllerService = createAction(
 export const openChangeControllerServiceVersionDialog = createAction(
     `[Controller Services] Open Change Controller Service Version Dialog`,
     props<{ request: FetchComponentVersionsRequest }>()
+);
+
+export const clearControllerServiceBulletins = createAction(
+    '[Flow Designer Controller Services] Clear Controller Service Bulletins',
+    props<{ request: ClearBulletinsRequest }>()
+);
+
+export const clearControllerServiceBulletinsSuccess = createAction(
+    '[Flow Designer Controller Services] Clear Controller Service Bulletins Success',
+    props<{ response: ClearBulletinsResponse }>()
 );

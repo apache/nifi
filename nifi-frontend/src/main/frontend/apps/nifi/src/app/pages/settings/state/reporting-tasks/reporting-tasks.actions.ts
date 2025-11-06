@@ -31,7 +31,7 @@ import {
     StopReportingTaskRequest,
     StopReportingTaskSuccess
 } from './index';
-import { FetchComponentVersionsRequest } from '../../../../state/shared';
+import { ClearBulletinsRequest, ClearBulletinsResponse, FetchComponentVersionsRequest } from '../../../../state/shared';
 
 export const resetReportingTasksState = createAction('[Reporting Tasks] Reset Reporting Tasks State');
 
@@ -142,4 +142,14 @@ export const selectReportingTask = createAction(
 export const openChangeReportingTaskVersionDialog = createAction(
     `[Reporting Tasks] Open Change Reporting Task Version Dialog`,
     props<{ request: FetchComponentVersionsRequest }>()
+);
+
+export const clearReportingTaskBulletins = createAction(
+    '[Reporting Tasks] Clear Reporting Task Bulletins',
+    props<{ request: ClearBulletinsRequest }>()
+);
+
+export const clearReportingTaskBulletinsSuccess = createAction(
+    '[Reporting Tasks] Clear Reporting Task Bulletins Success',
+    props<{ response: ClearBulletinsResponse }>()
 );

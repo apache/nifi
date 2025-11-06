@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -87,6 +88,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -386,7 +388,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         final ShardRecordProcessorFactory recordProcessorFactory = () -> new ConsumeKinesisRecordProcessor(memoryBoundRecordBuffer);
 
         final String applicationName = context.getProperty(APPLICATION_NAME).getValue();
-        final String workerId = getIdentifier();
+        final String workerId = generateWorkerId();
         final ConfigsBuilder configsBuilder = new ConfigsBuilder(streamTracker, applicationName, kinesisClient, dynamoDbClient, cloudWatchClient, workerId, recordProcessorFactory);
 
         final MetricsFactory metricsFactory = configureMetricsFactory(context);
@@ -406,6 +408,9 @@ public class ConsumeKinesis extends AbstractProcessor {
         schedulerThread.setDaemon(true);
         schedulerThread.start();
         // The thread is stopped when kinesisScheduler is shutdown in the onStopped method.
+
+        getLogger().info("Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
+                streamName, applicationName, workerId);
     }
 
     /**
@@ -475,6 +480,23 @@ public class ConsumeKinesis extends AbstractProcessor {
                 yield InitialPositionInStreamExtended.newInitialPositionAtTimestamp(Date.from(timestamp));
             }
         };
+    }
+
+    private String generateWorkerId() {
+        final String processorId = getIdentifier();
+        final NodeTypeProvider nodeTypeProvider = getNodeTypeProvider();
+
+        final String workerId;
+
+        if (nodeTypeProvider.isClustered()) {
+            // If a node id is not available for some reason, generating a random UUID helps to avoid collisions.
+            final String nodeId = nodeTypeProvider.getCurrentNode().orElse(UUID.randomUUID().toString());
+            workerId = "%s@%s".formatted(processorId, nodeId);
+        } else {
+            workerId = processorId;
+        }
+
+        return workerId;
     }
 
     private static @Nullable MetricsFactory configureMetricsFactory(final ProcessContext context) {
@@ -601,6 +623,8 @@ public class ConsumeKinesis extends AbstractProcessor {
                     channel.write(record.data());
                 }
             });
+
+            session.getProvenanceReporter().receive(flowFile, ProvenanceTransitUriFormat.toTransitUri(streamName, shardId));
 
             session.transfer(flowFile, REL_SUCCESS);
         }

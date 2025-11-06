@@ -27,7 +27,6 @@ import org.apache.nifi.registry.extension.bundle.BuildInfo;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -36,9 +35,12 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarInputStream;
+import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,7 +75,31 @@ public class NarBundleExtractor implements BundleExtractor {
     @Override
     public BundleDetails extract(final InputStream inputStream) throws IOException {
         try (final JarInputStream jarInputStream = new JarInputStream(inputStream)) {
-            final Manifest manifest = jarInputStream.getManifest();
+            Manifest manifest = jarInputStream.getManifest();
+            byte[] extensionManifestBytes = null;
+            final Map<String, String> additionalDetails = new HashMap<>();
+
+            JarEntry jarEntry;
+            while ((jarEntry = jarInputStream.getNextJarEntry()) != null) {
+                final String jarEntryName = jarEntry.getName();
+                try {
+                    if (JarFile.MANIFEST_NAME.equals(jarEntryName) && manifest == null) {
+                        manifest = new Manifest(jarInputStream);
+                    } else if (EXTENSION_DESCRIPTOR_ENTRY.equals(jarEntryName)) {
+                        extensionManifestBytes = toByteArray(jarInputStream);
+                    } else {
+                        final Matcher matcher = ADDITIONAL_DETAILS_ENTRY_PATTERN.matcher(jarEntryName);
+                        if (matcher.matches()) {
+                            final String extensionName = matcher.group(1);
+                            final String additionalDetailsContent = new String(toByteArray(jarInputStream), StandardCharsets.UTF_8);
+                            additionalDetails.put(extensionName, additionalDetailsContent);
+                        }
+                    }
+                } finally {
+                    jarInputStream.closeEntry();
+                }
+            }
+
             if (manifest == null) {
                 throw new BundleException("NAR bundles must contain a valid MANIFEST");
             }
@@ -88,7 +114,20 @@ public class NarBundleExtractor implements BundleExtractor {
                     .addDependencyCoordinate(dependencyCoordinate)
                     .buildInfo(buildInfo);
 
-            parseExtensionDocs(jarInputStream, builder);
+            if (extensionManifestBytes != null) {
+                try (final ByteArrayInputStream docsInputStream = new ByteArrayInputStream(extensionManifestBytes)) {
+                    final ExtensionManifestParser docsParser = new JAXBExtensionManifestParser();
+                    final ExtensionManifest extensionManifest = docsParser.parse(docsInputStream);
+                    builder.addExtensions(extensionManifest.getExtensions());
+                    builder.systemApiVersion(extensionManifest.getSystemApiVersion());
+                } catch (Exception e) {
+                    throw new BundleException("Unable to obtain extension info for bundle due to: " + e.getMessage(), e);
+                }
+            } else {
+                builder.systemApiVersion(NA);
+            }
+
+            additionalDetails.forEach(builder::addAdditionalDetails);
 
             return builder.build();
         }
@@ -156,40 +195,6 @@ public class NarBundleExtractor implements BundleExtractor {
         return (value == null || value.isBlank());
     }
 
-    private void parseExtensionDocs(final JarInputStream jarInputStream, final BundleDetails.Builder builder) throws IOException {
-        JarEntry jarEntry;
-        boolean foundExtensionDocs = false;
-        while ((jarEntry = jarInputStream.getNextJarEntry()) != null) {
-            final String jarEntryName = jarEntry.getName();
-            if (EXTENSION_DESCRIPTOR_ENTRY.equals(jarEntryName)) {
-                try {
-                    final byte[] rawDocsContent = toByteArray(jarInputStream);
-                    final ExtensionManifestParser docsParser = new JAXBExtensionManifestParser();
-                    final InputStream inputStream = new NonCloseableInputStream(new ByteArrayInputStream(rawDocsContent));
-
-                    final ExtensionManifest extensionManifest = docsParser.parse(inputStream);
-                    builder.addExtensions(extensionManifest.getExtensions());
-                    builder.systemApiVersion(extensionManifest.getSystemApiVersion());
-
-                    foundExtensionDocs = true;
-                } catch (Exception e) {
-                    throw new BundleException("Unable to obtain extension info for bundle due to: " + e.getMessage(), e);
-                }
-            } else {
-                final Matcher matcher = ADDITIONAL_DETAILS_ENTRY_PATTERN.matcher(jarEntryName);
-                if (matcher.matches()) {
-                    final String extensionName = matcher.group(1);
-                    final String additionalDetailsContent = new String(toByteArray(jarInputStream), StandardCharsets.UTF_8);
-                    builder.addAdditionalDetails(extensionName, additionalDetailsContent);
-                }
-            }
-        }
-
-        if (!foundExtensionDocs) {
-            builder.systemApiVersion(NA);
-        }
-    }
-
     private byte[] toByteArray(final InputStream input) throws IOException {
         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
 
@@ -202,33 +207,4 @@ public class NarBundleExtractor implements BundleExtractor {
         return buffer.toByteArray();
     }
 
-    private static class NonCloseableInputStream extends FilterInputStream {
-
-        private final InputStream toWrap;
-
-        public NonCloseableInputStream(final InputStream toWrap) {
-            super(toWrap);
-            this.toWrap = toWrap;
-        }
-
-        @Override
-        public int read() throws IOException {
-            return toWrap.read();
-        }
-
-        @Override
-        public int read(byte[] b) throws IOException {
-            return toWrap.read(b);
-        }
-
-        @Override
-        public int read(byte[] b, int off, int len) throws IOException {
-            return toWrap.read(b, off, len);
-        }
-
-        @Override
-        public void close() {
-            // do nothing
-        }
-    }
 }

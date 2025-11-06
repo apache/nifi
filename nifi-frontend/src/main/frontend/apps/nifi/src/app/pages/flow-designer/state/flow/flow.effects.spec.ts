@@ -14,11 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 import { FlowService } from '../../service/flow.service';
 import * as FlowActions from './flow.actions';
 import { of, ReplaySubject, take, throwError } from 'rxjs';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { ComponentHistoryEntity } from '../../../../state/shared';
+import { ClearBulletinsResponse, ComponentHistoryEntity } from '../../../../state/shared';
 import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { FlowEffects } from './flow.effects';
@@ -801,7 +802,8 @@ describe('FlowEffects', () => {
                         getProcessor: jest.fn(),
                         updateComponent: jest.fn(),
                         createConnection: jest.fn(),
-                        createLabel: jest.fn()
+                        createLabel: jest.fn(),
+                        clearBulletinsForProcessGroup: jest.fn()
                     }
                 },
                 {
@@ -1090,6 +1092,94 @@ describe('FlowEffects', () => {
                 ...REQUEST,
                 zIndex: MAX_Z_INDEX + 1
             });
+        });
+    });
+
+    describe('clearBulletinsForProcessGroup$', () => {
+        beforeEach(() => {
+            effects = TestBed.inject(FlowEffects);
+        });
+
+        it('should call flowService.clearBulletinsForProcessGroup and dispatch success action', async () => {
+            const request = {
+                processGroupId: 'test-group-id',
+                fromTimestamp: '2023-01-01T12:00:00.000Z',
+                components: ['component-1', 'component-2']
+            };
+
+            const mockResponse = {
+                bulletinsCleared: 10
+            };
+
+            jest.spyOn(flowService, 'clearBulletinsForProcessGroup').mockReturnValue(of(mockResponse));
+
+            const action = FlowActions.clearBulletinsForProcessGroup({ request });
+            action$.next(action);
+
+            const result = await new Promise((resolve) =>
+                effects.clearBulletinsForProcessGroup$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(
+                FlowActions.clearBulletinsForProcessGroupSuccess({
+                    response: {
+                        processGroupId: 'test-group-id',
+                        bulletinsCleared: 10
+                    }
+                })
+            );
+            expect(flowService.clearBulletinsForProcessGroup).toHaveBeenCalledWith(request);
+        });
+    });
+
+    describe('clearBulletinsForProcessGroupSuccess$', () => {
+        beforeEach(() => {
+            effects = TestBed.inject(FlowEffects);
+        });
+
+        it('should dispatch reloadFlow when clearing bulletins for the currently viewed process group', async () => {
+            const currentGroupId = 'current-group-id';
+            store.overrideSelector(selectCurrentProcessGroupId, currentGroupId);
+            store.refreshState();
+
+            const response = {
+                processGroupId: currentGroupId,
+                bulletinsCleared: 5
+            };
+
+            const action = FlowActions.clearBulletinsForProcessGroupSuccess({ response });
+            action$.next(action);
+
+            const result = await new Promise((resolve) =>
+                effects.clearBulletinsForProcessGroupSuccess$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(FlowActions.reloadFlow());
+        });
+
+        it('should dispatch loadChildProcessGroup when clearing bulletins for a child process group', async () => {
+            const currentGroupId = 'current-group-id';
+            const childGroupId = 'child-group-id';
+            store.overrideSelector(selectCurrentProcessGroupId, currentGroupId);
+            store.refreshState();
+
+            const response = {
+                processGroupId: childGroupId,
+                bulletinsCleared: 3
+            };
+
+            const action = FlowActions.clearBulletinsForProcessGroupSuccess({ response });
+            action$.next(action);
+
+            const result = await new Promise((resolve) =>
+                effects.clearBulletinsForProcessGroupSuccess$.pipe(take(1)).subscribe(resolve)
+            );
+
+            expect(result).toEqual(
+                FlowActions.loadChildProcessGroup({
+                    request: { id: childGroupId }
+                })
+            );
         });
     });
 });

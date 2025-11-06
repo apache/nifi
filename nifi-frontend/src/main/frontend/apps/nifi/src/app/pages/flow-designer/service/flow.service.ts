@@ -19,6 +19,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import {
+    ClearBulletinsForGroupRequest,
     ComponentRunStatusRequest,
     ControllerServiceStateRequest,
     CreateComponentRequest,
@@ -55,7 +56,7 @@ import {
 import { Client } from '../../../service/client.service';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
-import { PropertyDescriptorRetriever } from '../../../state/shared';
+import { ClearBulletinsRequest, PropertyDescriptorRetriever } from '../../../state/shared';
 
 @Injectable({ providedIn: 'root' })
 export class FlowService implements PropertyDescriptorRetriever {
@@ -473,6 +474,30 @@ export class FlowService implements PropertyDescriptorRetriever {
             `${FlowService.API}/process-groups/${downloadFlowRequest.processGroupId}/download?includeReferencedServices=${downloadFlowRequest.includeReferencedServices}`,
             '_blank',
             'noreferrer'
+        );
+    }
+
+    /*
+        Clear Bulletins
+    */
+
+    clearBulletinForComponent(request: ClearBulletinsRequest): Observable<any> {
+        const payload = {
+            fromTimestamp: request.fromTimestamp
+        };
+
+        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.uri)}/bulletins/clear-requests`, payload);
+    }
+
+    clearBulletinsForProcessGroup(request: ClearBulletinsForGroupRequest): Observable<any> {
+        const payload: any = {
+            id: request.processGroupId,
+            fromTimestamp: request.fromTimestamp
+        };
+
+        return this.httpClient.post(
+            `${FlowService.API}/flow/process-groups/${request.processGroupId}/bulletins/clear-requests`,
+            payload
         );
     }
 }

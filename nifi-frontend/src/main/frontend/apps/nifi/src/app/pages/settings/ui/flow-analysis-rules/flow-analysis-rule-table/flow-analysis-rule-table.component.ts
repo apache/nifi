@@ -69,6 +69,8 @@ export class FlowAnalysisRuleTable {
         new EventEmitter<FlowAnalysisRuleEntity>();
     @Output() changeFlowAnalysisRuleVersion: EventEmitter<FlowAnalysisRuleEntity> =
         new EventEmitter<FlowAnalysisRuleEntity>();
+    @Output() clearBulletinsFlowAnalysisRule: EventEmitter<FlowAnalysisRuleEntity> =
+        new EventEmitter<FlowAnalysisRuleEntity>();
 
     sort: Sort = {
         active: 'name',
@@ -267,6 +269,14 @@ export class FlowAnalysisRuleTable {
 
     viewStateClicked(entity: FlowAnalysisRuleEntity): void {
         this.viewStateFlowAnalysisRule.next(entity);
+    }
+
+    canClearBulletins(entity: FlowAnalysisRuleEntity): boolean {
+        return this.canWrite(entity) && !this.nifiCommon.isEmpty(entity.bulletins);
+    }
+
+    clearBulletinsClicked(entity: FlowAnalysisRuleEntity): void {
+        this.clearBulletinsFlowAnalysisRule.next(entity);
     }
 
     select(entity: FlowAnalysisRuleEntity): void {

@@ -19,8 +19,11 @@ package org.apache.nifi.registry.jetty;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.jetty.configuration.connector.ServerConnectorFactory;
 import org.apache.nifi.registry.jetty.connector.ApplicationServerConnectorFactory;
+import org.apache.nifi.registry.jetty.handler.ContextPathRedirectPatternRule;
 import org.apache.nifi.registry.jetty.handler.HandlerProvider;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
+import org.eclipse.jetty.rewrite.handler.RedirectPatternRule;
+import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -51,6 +54,10 @@ public class JettyServer {
 
     private static final String APPLICATION_PATH = "/nifi-registry";
 
+    private static final String APPLICATION_PATH_DIRECTORY = "/nifi-registry/";
+
+    private static final String ALL_PATHS_PATTERN = "/*";
+
     private static final String HTTPS_SCHEME = "https";
 
     private static final String HTTP_SCHEME = "http";
@@ -75,9 +82,22 @@ public class JettyServer {
             configureConnectors();
             final Handler handler = handlerProvider.getHandler(properties);
             server.setHandler(handler);
+
+            final RewriteHandler defaultRewriteHandler = getDefaultRewriteHandler(properties);
+            server.setDefaultHandler(defaultRewriteHandler);
         } catch (final Throwable t) {
             shutdown(t);
         }
+    }
+
+    private RewriteHandler getDefaultRewriteHandler(final NiFiRegistryProperties properties) {
+        final RewriteHandler defaultRewriteHandler = new RewriteHandler();
+        final List<String> allowedContextPaths = Collections.emptyList(); // Can be extended with property support
+        final RedirectPatternRule redirectRegistry = new ContextPathRedirectPatternRule(APPLICATION_PATH, APPLICATION_PATH_DIRECTORY, allowedContextPaths);
+        defaultRewriteHandler.addRule(redirectRegistry);
+        final RedirectPatternRule redirectDefault = new ContextPathRedirectPatternRule(ALL_PATHS_PATTERN, APPLICATION_PATH_DIRECTORY, allowedContextPaths);
+        defaultRewriteHandler.addRule(redirectDefault);
+        return defaultRewriteHandler;
     }
 
     private void configureConnectors() {

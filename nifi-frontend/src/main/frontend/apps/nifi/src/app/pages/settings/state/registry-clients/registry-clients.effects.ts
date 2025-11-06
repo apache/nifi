@@ -439,4 +439,37 @@ export class RegistryClientsEffects {
             ),
         { dispatch: false }
     );
+
+    clearRegistryClientBulletins$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(RegistryClientsActions.clearRegistryClientBulletins),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(
+                    this.registryClientService.clearBulletins({
+                        uri: request.uri,
+                        fromTimestamp: request.fromTimestamp
+                    })
+                ).pipe(
+                    map((response) =>
+                        RegistryClientsActions.clearRegistryClientBulletinsSuccess({
+                            response: {
+                                componentId: request.componentId,
+                                bulletinsCleared: response.bulletinsCleared || 0,
+                                bulletins: response.bulletins || [],
+                                componentType: request.componentType
+                            }
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            RegistryClientsActions.registryClientsSnackbarApiError({
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
 }
