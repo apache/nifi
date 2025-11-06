@@ -68,7 +68,6 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.VersionedComponentAdditions;
 import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.FlowRegistryBucket;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
@@ -435,7 +434,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     )
     public Response getLocalModifications(
             @Parameter(description = "The process group id.")
-            @PathParam("id") final String groupId) throws IOException, NiFiRegistryException {
+            @PathParam("id") final String groupId) throws IOException {
 
         // authorize access
         serviceFacade.authorizeAccess(lookup -> {
