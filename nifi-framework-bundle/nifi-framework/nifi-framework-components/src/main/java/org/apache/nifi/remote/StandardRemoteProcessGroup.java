@@ -50,8 +50,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
-import jakarta.ws.rs.core.Response;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.charset.StandardCharsets;
@@ -92,8 +92,8 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     private static final Logger logger = LoggerFactory.getLogger(StandardRemoteProcessGroup.class);
 
     // status codes
-    private static final int UNAUTHORIZED_STATUS_CODE = Response.Status.UNAUTHORIZED.getStatusCode();
-    private static final int FORBIDDEN_STATUS_CODE = Response.Status.FORBIDDEN.getStatusCode();
+    private static final int UNAUTHORIZED_STATUS_CODE = HttpURLConnection.HTTP_UNAUTHORIZED;
+    private static final int FORBIDDEN_STATUS_CODE = HttpURLConnection.HTTP_FORBIDDEN;
 
     private final String id;
 

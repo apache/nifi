@@ -16,21 +16,22 @@
  */
 package org.apache.nifi.registry.extension;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.registry.client.BundleVersionClient;
-import org.apache.nifi.registry.client.NiFiRegistryClient;
-import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
-import org.apache.nifi.registry.client.NiFiRegistryException;
-import org.apache.nifi.registry.client.RequestConfig;
-import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
-import org.apache.nifi.registry.client.impl.request.ProxiedEntityRequestConfig;
-import org.apache.nifi.registry.extension.bundle.BundleVersionFilterParams;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
+import org.apache.nifi.security.proxied.entity.StandardProxiedEntityEncoder;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -39,33 +40,39 @@ import java.util.stream.Collectors;
  */
 public class NiFiRegistryExtensionRegistry extends AbstractExtensionRegistry<NiFiRegistryExtensionBundleMetadata> {
 
-    private NiFiRegistryClient registryClient;
+    private static final Duration TIMEOUT = Duration.ofSeconds(30);
+
+    private static final String FORWARD_SLASH = "/";
+
+    private static final String PROXIED_ENTITIES_CHAIN_HEADER = "X-ProxiedEntitiesChain";
+
+    private static final ObjectMapper objectMapper = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+    private HttpClient httpClient;
 
     public NiFiRegistryExtensionRegistry(final String identifier, final String url, final String name, final SSLContext sslContext) {
         super(identifier, url, name, sslContext);
     }
 
-    private synchronized NiFiRegistryClient getRegistryClient() {
-        if (registryClient != null) {
-            return registryClient;
+    private synchronized HttpClient getConfiguredHttpClient() {
+        if (httpClient != null) {
+            return httpClient;
         }
 
-        final NiFiRegistryClientConfig config = new NiFiRegistryClientConfig.Builder()
-                .connectTimeout(30000)
-                .readTimeout(30000)
-                .sslContext(getSSLContext())
-                .baseUrl(getURL())
-                .build();
+        final HttpClient.Builder builder = HttpClient.newBuilder();
+        builder.connectTimeout(TIMEOUT);
 
-        registryClient = new JerseyNiFiRegistryClient.Builder()
-                .config(config)
-                .build();
+        final SSLContext sslContext = getSSLContext();
+        if (sslContext != null) {
+            builder.sslContext(sslContext);
+        }
+        httpClient = builder.build();
 
-        return registryClient;
+        return httpClient;
     }
 
     private synchronized void invalidateClient() {
-        this.registryClient = null;
+        this.httpClient = null;
     }
 
     @Override
@@ -75,41 +82,63 @@ public class NiFiRegistryExtensionRegistry extends AbstractExtensionRegistry<NiF
     }
 
     @Override
-    public Set<NiFiRegistryExtensionBundleMetadata> getExtensionBundleMetadata(final NiFiUser user)
-            throws IOException, ExtensionRegistryException {
-        final RequestConfig requestConfig = getRequestConfig(user);
-        final NiFiRegistryClient registryClient = getRegistryClient();
-        final BundleVersionClient bundleVersionClient = registryClient.getBundleVersionClient(requestConfig);
+    public Set<NiFiRegistryExtensionBundleMetadata> getExtensionBundleMetadata(final NiFiUser user) throws IOException, ExtensionRegistryException {
+        final URI versionsUri = getUri("bundles/versions");
+        final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(versionsUri);
 
-        try {
-            final List<BundleVersionMetadata> bundleVersions = bundleVersionClient.getBundleVersions(BundleVersionFilterParams.empty());
-            return bundleVersions.stream().map(bv -> map(bv)).collect(Collectors.toSet());
-        } catch (final NiFiRegistryException nre) {
-            throw new ExtensionRegistryException(nre.getMessage(), nre);
+        try (InputStream inputStream = sendRequest(requestBuilder, user)) {
+            final BundleVersionMetadata[] bundleVersions = objectMapper.readValue(inputStream, BundleVersionMetadata[].class);
+            return Arrays.stream(bundleVersions).map(this::map).collect(Collectors.toSet());
         }
     }
 
     @Override
-    public InputStream getExtensionBundleContent(final NiFiUser user, final NiFiRegistryExtensionBundleMetadata bundleMetadata)
-            throws IOException, ExtensionRegistryException {
-        final RequestConfig requestConfig = getRequestConfig(user);
-        final NiFiRegistryClient registryClient = getRegistryClient();
-        final BundleVersionClient bundleVersionClient = registryClient.getBundleVersionClient(requestConfig);
+    public InputStream getExtensionBundleContent(final NiFiUser user, final NiFiRegistryExtensionBundleMetadata bundleMetadata) throws ExtensionRegistryException {
+        final String bundleId = bundleMetadata.getBundleIdentifier();
+        final String version = bundleMetadata.getVersion();
+        final URI versionsUri = getUri("bundles/%s/versions/%s/content".formatted(bundleId, version));
+        final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(versionsUri);
 
+        return sendRequest(requestBuilder, user);
+    }
+
+    private InputStream sendRequest(final HttpRequest.Builder requestBuilder, final NiFiUser user) throws ExtensionRegistryException {
+        final HttpClient configuredHttpClient = getConfiguredHttpClient();
+
+        if (user != null && !user.isAnonymous()) {
+            final String identity = user.getIdentity();
+            final String proxiedEntities = StandardProxiedEntityEncoder.getInstance().getEncodedEntity(identity);
+            requestBuilder.setHeader(PROXIED_ENTITIES_CHAIN_HEADER, proxiedEntities);
+        }
+
+        requestBuilder.timeout(TIMEOUT);
+        final HttpRequest request = requestBuilder.build();
+
+        final URI uri = request.uri();
         try {
-            return bundleVersionClient.getBundleVersionContent(bundleMetadata.getBundleIdentifier(), bundleMetadata.getVersion());
-        } catch (NiFiRegistryException nre) {
-            throw new ExtensionRegistryException(nre.getMessage(), nre);
+            final HttpResponse<InputStream> response = configuredHttpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+            final int statusCode = response.statusCode();
+            if (HttpURLConnection.HTTP_OK == statusCode) {
+                return response.body();
+            } else {
+                throw new ExtensionRegistryException("Registry request failed with HTTP %d [%s]".formatted(statusCode, uri));
+            }
+        } catch (final IOException e) {
+            throw new ExtensionRegistryException("Registry request failed [%s]".formatted(uri), e);
+        } catch (final InterruptedException e) {
+            throw new ExtensionRegistryException("Registry requested interrupted [%s]".formatted(uri), e);
         }
     }
 
-    private RequestConfig getRequestConfig(final NiFiUser user) {
-        final String identity = getIdentity(user);
-        return identity == null ? null : new ProxiedEntityRequestConfig(identity);
-    }
-
-    private String getIdentity(final NiFiUser user) {
-        return (user == null || user.isAnonymous()) ? null : user.getIdentity();
+    private URI getUri(final String path) {
+        final StringBuilder builder = new StringBuilder();
+        final String baseUrl = getURL();
+        builder.append(baseUrl);
+        if (!baseUrl.endsWith(FORWARD_SLASH)) {
+            builder.append(FORWARD_SLASH);
+        }
+        builder.append(path);
+        return URI.create(builder.toString());
     }
 
     private NiFiRegistryExtensionBundleMetadata map(final BundleVersionMetadata bundleVersionMetadata) {
