@@ -1,0 +1,84 @@
+<!--
+~  Licensed to the Apache Software Foundation (ASF) under one or more
+~  contributor license agreements.  See the NOTICE file distributed with
+~  this work for additional information regarding copyright ownership.
+~  The ASF licenses this file to You under the Apache License, Version 2.0
+~  (the "License"); you may not use this file except in compliance with
+~  the License.  You may obtain a copy of the License at
+~
+~     http://www.apache.org/licenses/LICENSE-2.0
+~
+~  Unless required by applicable law or agreed to in writing, software
+~  distributed under the License is distributed on an "AS IS" BASIS,
+~  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+~  See the License for the specific language governing permissions and
+~  limitations under the License.
+-->
+
+<h2 mat-dialog-title>New Policy</h2>
+<mat-dialog-content class="dialog-content">
+    <div class="add-policy-to-bucket-dialog flex flex-col h-full gap-y-4">
+        <div class="listing-table select-none flex flex-1">
+            <div class="flex-1 relative">
+                <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
+                    <table
+                        mat-table
+                        [dataSource]="dataSource"
+                        matSort
+                        matSortDisableClear
+                        (matSortChange)="sortData($event)"
+                        [matSortActive]="sort.active"
+                        [matSortDirection]="sort.direction">
+                        <!-- Type Column -->
+                        <ng-container matColumnDef="type">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Type</th>
+                            <td mat-cell *matCellDef="let row">
+                                {{ row.type }}
+                            </td>
+                        </ng-container>
+                        <!-- Identity Column -->
+                        <ng-container matColumnDef="identity">
+                            <th mat-header-cell *matHeaderCellDef mat-sort-header>Identity</th>
+                            <td mat-cell *matCellDef="let row">
+                                <div class="flex items-center gap-x-2">
+                                    <div
+                                        class="overflow-ellipsis overflow-hidden whitespace-nowrap"
+                                        [title]="row.identity">
+                                        {{ row.identity }}
+                                    </div>
+                                </div>
+                            </td>
+                        </ng-container>
+                        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+                        <tr
+                            mat-row
+                            *matRowDef="let row; let even = even; columns: displayedColumns"
+                            [class.even]="even"
+                            [class.selected]="isSelected(row)"
+                            (click)="selectRow(row)"></tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <mat-checkbox [checked]="allChecked" (change)="toggleAll($event.checked)">
+                <span class="mat-body-1">All</span>
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="readChecked">
+                <span class="mat-body-1">Read</span>
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="writeChecked">
+                <span class="mat-body-1">Write</span>
+            </mat-checkbox>
+            <mat-checkbox [(ngModel)]="deleteChecked">
+                <span class="mat-body-1">Delete</span>
+            </mat-checkbox>
+        </div>
+    </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" (click)="apply()" [disabled]="!canApply">Apply</button>
+</mat-dialog-actions>

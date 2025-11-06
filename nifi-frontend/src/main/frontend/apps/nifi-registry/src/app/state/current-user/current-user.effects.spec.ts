@@ -26,7 +26,6 @@ import { RegistryAuthService } from '../../service/registry-auth.service';
 import * as CurrentUserActions from './current-user.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Store } from '@ngrx/store';
-import { selectLoginFailure } from '../../pages/login/state/access/access.selectors';
 import { resetLoginFailure } from '../../pages/login/state/access/access.actions';
 import * as ErrorActions from '../error/error.actions';
 
@@ -36,7 +35,6 @@ describe('CurrentUserEffects', () => {
     let authService: jest.Mocked<RegistryAuthService>;
     let errorHelper: jest.Mocked<ErrorHelper>;
     let store: Store<any>;
-    let dispatchSpy: jest.SpyInstance;
 
     beforeEach(() => {
         const registryApiServiceMock = {
@@ -58,7 +56,6 @@ describe('CurrentUserEffects', () => {
             dispatch: jest.fn(),
             select: jest.fn().mockReturnValue(of(null))
         } as unknown as Store<any>;
-        dispatchSpy = jest.spyOn(store as any, 'dispatch');
 
         TestBed.configureTestingModule({
             providers: [

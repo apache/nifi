@@ -18,12 +18,13 @@
 import { TestBed } from '@angular/core/testing';
 import { provideMockActions } from '@ngrx/effects/testing';
 import { Action } from '@ngrx/store';
-import { Observable, of, throwError } from 'rxjs';
+import { Observable, of, throwError, Subject } from 'rxjs';
 import { BucketsEffects } from './buckets.effects';
 import { BucketsService } from '../../service/buckets.service';
 import { ErrorHelper } from '../../service/error-helper.service';
 import { MatDialog } from '@angular/material/dialog';
 import * as BucketsActions from './buckets.actions';
+import * as PoliciesActions from '../policies/policies.actions';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorContextKey } from '../error';
@@ -331,21 +332,52 @@ describe('BucketsEffects', () => {
     });
 
     describe('openManageBucketPoliciesDialog$', () => {
-        it('should open manage bucket policies dialog', (done) => {
+        it('should dispatch load actions and open dialog when both succeed', (done) => {
             const bucket = createBucket();
+            const mockDialogRef = {
+                componentInstance: {
+                    savePolicies: {
+                        pipe: jest.fn().mockReturnValue({ subscribe: jest.fn() })
+                    }
+                },
+                afterClosed: jest.fn().mockReturnValue(of(undefined))
+            };
 
-            actions$ = of(BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }));
+            dialog.open.mockReturnValue(mockDialogRef as any);
 
+            // Use a Subject to control when actions are emitted
+            const actionsSubject = new Subject<Action>();
+            actions$ = actionsSubject.asObservable();
+
+            // Subscribe to the effect
             effects.openManageBucketPoliciesDialog$.subscribe(() => {
                 expect(dialog.open).toHaveBeenCalledWith(
                     ManageBucketPoliciesDialogComponent,
                     expect.objectContaining({
                         autoFocus: false,
-                        data: { bucket }
+                        data: expect.objectContaining({
+                            bucket
+                        })
                     })
                 );
+                expect(store.dispatch).toHaveBeenCalledTimes(2); // loadPolicyTenants + loadPolicies
                 done();
             });
+
+            // Emit the initial action to trigger the effect
+            actionsSubject.next(BucketsActions.openManageBucketPoliciesDialog({ request: { bucket } }));
+
+            // Allow the effect to set up listeners, then emit success actions
+            setTimeout(() => {
+                actionsSubject.next(
+                    PoliciesActions.loadPolicyTenantsSuccess({ response: { users: [], userGroups: [] } })
+                );
+                actionsSubject.next(
+                    PoliciesActions.loadPoliciesSuccess({
+                        response: { bucketId: bucket.identifier, policies: [] }
+                    })
+                );
+            }, 10);
         });
     });
 

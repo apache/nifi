@@ -17,7 +17,6 @@
 
 import { createFeatureSelector, createSelector } from '@ngrx/store';
 import { bucketsFeatureKey, BucketsState } from './index';
-
 import { resourcesFeatureKey, ResourcesState } from '..';
 import { selectCurrentRoute } from '@nifi/shared';
 

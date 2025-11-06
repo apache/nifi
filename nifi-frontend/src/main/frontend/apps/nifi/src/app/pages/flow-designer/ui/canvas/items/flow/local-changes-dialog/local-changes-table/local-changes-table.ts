@@ -125,7 +125,7 @@ export class LocalChangesTable implements AfterViewInit {
     }
 
     canGoTo(item: LocalChange): boolean {
-        return (item.differenceType !== 'Component Removed') && (item.differenceType !== 'Component Bundle Changed');
+        return item.differenceType !== 'Component Removed' && item.differenceType !== 'Component Bundle Changed';
     }
 
     formatDifference(item: LocalChange): string {

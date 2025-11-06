@@ -19,9 +19,10 @@ import { inject, Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatDialog } from '@angular/material/dialog';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
-import { from, of, take } from 'rxjs';
+import { from, of, take, takeUntil, forkJoin, race } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import * as BucketsActions from './buckets.actions';
+import { deleteBucket } from './buckets.actions';
 import { BucketsService } from '../../service/buckets.service';
 import { ErrorHelper } from '../../service/error-helper.service';
 import { ErrorContextKey } from '../error';
@@ -29,10 +30,17 @@ import * as ErrorActions from '../error/error.actions';
 import { CreateBucketDialogComponent } from '../../pages/buckets/feature/ui/create-bucket-dialog/create-bucket-dialog.component';
 import { EditBucketDialogComponent } from '../../pages/buckets/feature/ui/edit-bucket-dialog/edit-bucket-dialog.component';
 import { ManageBucketPoliciesDialogComponent } from '../../pages/buckets/feature/ui/manage-bucket-policies-dialog/manage-bucket-policies-dialog.component';
-import { LARGE_DIALOG, MEDIUM_DIALOG, SMALL_DIALOG, YesNoDialog } from '@nifi/shared';
-import { deleteBucket } from './buckets.actions';
+import { MEDIUM_DIALOG, XL_DIALOG, YesNoDialog } from '@nifi/shared';
 import { Store } from '@ngrx/store';
-import { NiFiState } from '../../../../../nifi/src/app/state';
+import {
+    selectPoliciesLoading,
+    selectPoliciesSaving,
+    selectPolicyOptions,
+    selectPolicySelection
+} from '../policies/policies.selectors';
+import { selectCurrentUser } from '../current-user/current-user.selectors';
+import * as PoliciesActions from '../policies/policies.actions';
+import { selectBannerErrors } from '../error/error.selectors';
 
 @Injectable()
 export class BucketsEffects {
@@ -40,7 +48,7 @@ export class BucketsEffects {
     private errorHelper = inject(ErrorHelper);
     private dialog = inject(MatDialog);
     private actions$ = inject(Actions);
-    private store = inject<Store<NiFiState>>(Store);
+    private store = inject(Store);
 
     loadBuckets$ = createEffect(() =>
         this.actions$.pipe(
@@ -151,7 +159,7 @@ export class BucketsEffects {
                 ofType(BucketsActions.openDeleteBucketDialog),
                 tap(({ request }) => {
                     const dialogRef = this.dialog.open(YesNoDialog, {
-                        ...SMALL_DIALOG,
+                        ...MEDIUM_DIALOG,
                         data: {
                             title: 'Delete Bucket',
                             message: `All items stored in this bucket will be deleted as well.`
@@ -202,12 +210,97 @@ export class BucketsEffects {
         () =>
             this.actions$.pipe(
                 ofType(BucketsActions.openManageBucketPoliciesDialog),
-                tap(({ request }) => {
-                    this.dialog.open(ManageBucketPoliciesDialogComponent, {
-                        ...LARGE_DIALOG,
-                        autoFocus: false,
-                        data: { bucket: request.bucket }
-                    });
+                switchMap(({ request }) => {
+                    // Dispatch both load actions
+                    this.store.dispatch(
+                        PoliciesActions.loadPolicyTenants({ request: { context: ErrorContextKey.GLOBAL } })
+                    );
+                    this.store.dispatch(
+                        PoliciesActions.loadPolicies({
+                            request: { bucketId: request.bucket.identifier, context: ErrorContextKey.GLOBAL }
+                        })
+                    );
+
+                    // Wait for both success actions or either failure action
+                    const tenantsSuccess$ = this.actions$.pipe(
+                        ofType(PoliciesActions.loadPolicyTenantsSuccess),
+                        take(1)
+                    );
+
+                    const policiesSuccess$ = this.actions$.pipe(ofType(PoliciesActions.loadPoliciesSuccess), take(1));
+
+                    const anyFailure$ = this.actions$.pipe(
+                        ofType(PoliciesActions.loadPolicyTenantsFailure, PoliciesActions.loadPoliciesFailure),
+                        take(1),
+                        map(() => null) // Return null to indicate failure
+                    );
+
+                    // Race between both succeeding or any failing
+                    return race(forkJoin([tenantsSuccess$, policiesSuccess$]), anyFailure$).pipe(
+                        tap((result) => {
+                            // Only open dialog if both succeeded (result is not null)
+                            if (result) {
+                                const dialogRef = this.dialog.open(ManageBucketPoliciesDialogComponent, {
+                                    ...XL_DIALOG,
+                                    autoFocus: false,
+                                    data: {
+                                        bucket: request.bucket,
+                                        options$: this.store.select(selectPolicyOptions),
+                                        selection$: this.store.select(selectPolicySelection),
+                                        loading$: this.store.select(selectPoliciesLoading),
+                                        saving$: this.store.select(selectPoliciesSaving),
+                                        isPolicyError$: this.store
+                                            .select(selectBannerErrors(ErrorContextKey.MANAGE_ACCESS))
+                                            .pipe(
+                                                map((bannerErrors) => {
+                                                    if (bannerErrors.length > 0) {
+                                                        return true;
+                                                    }
+                                                    return false;
+                                                })
+                                            ),
+                                        isAddPolicyDisabled$: this.store.select(selectCurrentUser).pipe(
+                                            map((currentUser) => {
+                                                // Disable if anonymous
+                                                if (currentUser.anonymous) {
+                                                    return true;
+                                                }
+                                                // Disable if user can't write policies
+                                                if (!currentUser.resourcePermissions.policies.canWrite) {
+                                                    return true;
+                                                }
+                                                // Disable if user can't read tenants
+                                                if (!currentUser.resourcePermissions.tenants.canRead) {
+                                                    return true;
+                                                }
+                                                return false;
+                                            })
+                                        )
+                                    }
+                                });
+
+                                // Subscribe to output and handle multiple emissions until dialog closes
+                                dialogRef.componentInstance.savePolicies
+                                    .pipe(takeUntil(dialogRef.afterClosed()))
+                                    .subscribe((saveRequest) => {
+                                        this.store.dispatch(
+                                            PoliciesActions.saveBucketPolicy({
+                                                request: {
+                                                    bucketId: saveRequest.bucketId,
+                                                    action: saveRequest.action,
+                                                    policyId: saveRequest.policyId,
+                                                    revision: saveRequest.revision,
+                                                    users: saveRequest.users,
+                                                    userGroups: saveRequest.userGroups,
+                                                    isLastInBatch: saveRequest.isLastInBatch
+                                                }
+                                            })
+                                        );
+                                    });
+                            }
+                            // If result is null, errors are already handled by the individual effects
+                        })
+                    );
                 })
             ),
         { dispatch: false }

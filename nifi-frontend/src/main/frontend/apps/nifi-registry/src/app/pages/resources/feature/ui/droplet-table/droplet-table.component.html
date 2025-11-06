@@ -102,15 +102,24 @@
                                         <i class="fa fa-list primary-color mr-2"></i>
                                         See Versions
                                     </button>
-                                    <button mat-menu-item (click)="openImportNewDropletVersionDialog(item)">
+                                    <button
+                                        mat-menu-item
+                                        [disabled]="!canImportNewVersion(item)"
+                                        (click)="openImportNewDropletVersionDialog(item)">
                                         <i class="fa fa-upload primary-color mr-2"></i>
                                         Import new version
                                     </button>
-                                    <button mat-menu-item (click)="openExportDropletVersionDialog(item)">
+                                    <button
+                                        mat-menu-item
+                                        [disabled]="!canExportVersion(item)"
+                                        (click)="openExportDropletVersionDialog(item)">
                                         <i class="fa fa-download primary-color mr-2"></i>
                                         Export version
                                     </button>
-                                    <button mat-menu-item (click)="openDeleteDialog(item)">
+                                    <button
+                                        mat-menu-item
+                                        [disabled]="!canDeleteResource(item)"
+                                        (click)="openDeleteDialog(item)">
                                         <i class="fa fa-trash primary-color mr-2"></i>
                                         Delete resource
                                     </button>
