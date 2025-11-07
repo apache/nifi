@@ -24,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -36,6 +35,7 @@ import java.util.regex.Pattern;
  */
 public class StandardMultipartFormDataStreamBuilder implements MultipartFormDataStreamBuilder {
     private static final String CONTENT_DISPOSITION_HEADER = "Content-Disposition: form-data; name=\"%s\"";
+    private static final String CONTENT_DISPOSITION_FILE_HEADER = "Content-Disposition: form-data; name=\"%s\"; filename=\"%s\"";
 
     private static final String CONTENT_TYPE_HEADER = "Content-Type: %s";
 
@@ -55,30 +55,26 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
 
     private final List<Part> parts = new ArrayList<>();
 
-    /**
-     * Build Sequence Input Stream from collection of Form Data Parts formatted with boundaries
-     *
-     * @return Input Stream
-     */
     @Override
     public InputStream build() {
         if (parts.isEmpty()) {
             throw new IllegalStateException("Parts required");
         }
 
-        final List<InputStream> partInputStreams = new ArrayList<>();
-
-        final Iterator<Part> selectedParts = parts.iterator();
-        while (selectedParts.hasNext()) {
-            final Part part = selectedParts.next();
-            final String footer = getFooter(selectedParts);
-
-            final InputStream partInputStream = getPartInputStream(part, footer);
-            partInputStreams.add(partInputStream);
+        final List<InputStream> streams = new ArrayList<>();
+        for (int index = 0; index < parts.size(); index++) {
+            final Part part = parts.get(index);
+            final String boundaryPrefix = getBoundaryPrefix(index);
+            streams.add(new ByteArrayInputStream(boundaryPrefix.getBytes(HEADERS_CHARACTER_SET)));
+            final String partHeaders = getPartHeaders(part);
+            streams.add(new ByteArrayInputStream(partHeaders.getBytes(HEADERS_CHARACTER_SET)));
+            streams.add(part.inputStream);
         }
 
-        final Enumeration<InputStream> enumeratedPartInputStreams = Collections.enumeration(partInputStreams);
-        return new SequenceInputStream(enumeratedPartInputStreams);
+        streams.add(new ByteArrayInputStream(getFooter().getBytes(HEADERS_CHARACTER_SET)));
+
+        final Enumeration<InputStream> enumeratedStreams = Collections.enumeration(streams);
+        return new SequenceInputStream(enumeratedStreams);
     }
 
     /**
@@ -102,13 +98,23 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
      */
     @Override
     public MultipartFormDataStreamBuilder addPart(final String name, final HttpContentType httpContentType, final InputStream inputStream) {
+        return addPartInternal(name, null, httpContentType, inputStream);
+    }
+
+    @Override
+    public MultipartFormDataStreamBuilder addPart(final String name, final String fileName, final HttpContentType httpContentType, final InputStream inputStream) {
+        final String sanitizedFileName = sanitizeFileName(fileName);
+        return addPartInternal(name, sanitizedFileName, httpContentType, inputStream);
+    }
+
+    private MultipartFormDataStreamBuilder addPartInternal(final String name, final String fileName, final HttpContentType httpContentType, final InputStream inputStream) {
         Objects.requireNonNull(name, "Name required");
         Objects.requireNonNull(httpContentType, "Content Type required");
         Objects.requireNonNull(inputStream, "Input Stream required");
 
         final Matcher nameMatcher = ALLOWED_NAME_PATTERN.matcher(name);
         if (nameMatcher.matches()) {
-            final Part part = new Part(name, httpContentType, inputStream);
+            final Part part = new Part(name, fileName, httpContentType, inputStream);
             parts.add(part);
         } else {
             throw new IllegalArgumentException("Name contains characters outside of ASCII character set");
@@ -132,18 +138,17 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
         return addPart(name, httpContentType, inputStream);
     }
 
-    private InputStream getPartInputStream(final Part part, final String footer) {
-        final String partHeaders = getPartHeaders(part);
-        final InputStream headersInputStream = new ByteArrayInputStream(partHeaders.getBytes(HEADERS_CHARACTER_SET));
-        final InputStream footerInputStream = new ByteArrayInputStream(footer.getBytes(HEADERS_CHARACTER_SET));
-        final Enumeration<InputStream> inputStreams = Collections.enumeration(List.of(headersInputStream, part.inputStream, footerInputStream));
-        return new SequenceInputStream(inputStreams);
+    @Override
+    public MultipartFormDataStreamBuilder addPart(final String name, final String fileName, final HttpContentType httpContentType, final byte[] bytes) {
+        Objects.requireNonNull(bytes, "Byte Array required");
+        final InputStream inputStream = new ByteArrayInputStream(bytes);
+        return addPart(name, fileName, httpContentType, inputStream);
     }
 
     private String getPartHeaders(final Part part) {
         final StringBuilder headersBuilder = new StringBuilder();
 
-        final String contentDispositionHeader = CONTENT_DISPOSITION_HEADER.formatted(part.name);
+        final String contentDispositionHeader = getContentDispositionHeader(part);
         headersBuilder.append(contentDispositionHeader);
         headersBuilder.append(CARRIAGE_RETURN_LINE_FEED);
 
@@ -156,19 +161,26 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
         return headersBuilder.toString();
     }
 
-    private String getFooter(final Iterator<Part> selectedParts) {
-        final StringBuilder footerBuilder = new StringBuilder();
-        footerBuilder.append(CARRIAGE_RETURN_LINE_FEED);
-        footerBuilder.append(BOUNDARY_SEPARATOR);
-        footerBuilder.append(boundary);
-        if (selectedParts.hasNext()) {
-            footerBuilder.append(CARRIAGE_RETURN_LINE_FEED);
-        } else {
-            // Add boundary separator after last part indicating end
-            footerBuilder.append(BOUNDARY_SEPARATOR);
+    private String getBoundaryPrefix(final int index) {
+        final StringBuilder prefixBuilder = new StringBuilder();
+        if (index > 0) {
+            prefixBuilder.append(CARRIAGE_RETURN_LINE_FEED);
         }
+        prefixBuilder.append(BOUNDARY_SEPARATOR);
+        prefixBuilder.append(boundary);
+        prefixBuilder.append(CARRIAGE_RETURN_LINE_FEED);
+        return prefixBuilder.toString();
+    }
 
-        return footerBuilder.toString();
+    private String getFooter() {
+        return CARRIAGE_RETURN_LINE_FEED + BOUNDARY_SEPARATOR + boundary + BOUNDARY_SEPARATOR;
+    }
+
+    private String getContentDispositionHeader(final Part part) {
+        if (part.fileName == null) {
+            return CONTENT_DISPOSITION_HEADER.formatted(part.name);
+        }
+        return CONTENT_DISPOSITION_FILE_HEADER.formatted(part.name, part.fileName);
     }
 
     private record MultipartHttpContentType(String contentType) implements HttpContentType {
@@ -180,8 +192,23 @@ public class StandardMultipartFormDataStreamBuilder implements MultipartFormData
 
     private record Part(
             String name,
+            String fileName,
             HttpContentType httpContentType,
             InputStream inputStream
     ) {
+    }
+
+    private String sanitizeFileName(final String fileName) {
+        if (fileName == null || fileName.isBlank()) {
+            throw new IllegalArgumentException("File Name required");
+        }
+
+        final String sanitized = fileName;
+        final Matcher fileNameMatcher = ALLOWED_NAME_PATTERN.matcher(sanitized);
+        if (!fileNameMatcher.matches()) {
+            throw new IllegalArgumentException("File Name contains characters outside of ASCII character set");
+        }
+
+        return sanitized;
     }
 }

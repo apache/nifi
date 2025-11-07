@@ -20,6 +20,8 @@ package org.apache.nifi.atlassian.bitbucket;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
@@ -28,25 +30,27 @@ import org.apache.nifi.registry.flow.git.AbstractGitFlowRegistryClient;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 @Tags({ "atlassian", "bitbucket", "registry", "flow" })
 @CapabilityDescription("Flow Registry Client that uses the Bitbucket REST API to version control flows in a Bitbucket Repository.")
 public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
-    static final PropertyDescriptor BITBUCKET_API_URL = new PropertyDescriptor.Builder()
-            .name("Bitbucket API Instance")
-            .description("The instance of the Bitbucket API")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .defaultValue("api.bitbucket.org")
+    static final PropertyDescriptor FORM_FACTOR = new PropertyDescriptor.Builder()
+            .name("Form Factor")
+            .description("The Bitbucket deployment form factor")
+            .allowableValues(BitbucketFormFactor.class)
+            .defaultValue(BitbucketFormFactor.CLOUD.getValue())
             .required(true)
             .build();
 
-    static final PropertyDescriptor BITBUCKET_API_VERSION = new PropertyDescriptor.Builder()
-            .name("Bitbucket API Version")
-            .description("The version of the Bitbucket API")
-            .defaultValue("2.0")
+    static final PropertyDescriptor BITBUCKET_API_URL = new PropertyDescriptor.Builder()
+            .name("Bitbucket API Instance")
+            .description("The Bitbucket API host or base URL (for example, api.bitbucket.org for Cloud or https://bitbucket.example.com for Data Center)")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .defaultValue("api.bitbucket.org")
             .required(true)
             .build();
 
@@ -55,6 +59,7 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .description("The name of the workspace that contains the repository to connect to")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .required(true)
+            .dependsOn(FORM_FACTOR, BitbucketFormFactor.CLOUD)
             .build();
 
     static final PropertyDescriptor REPOSITORY_NAME = new PropertyDescriptor.Builder()
@@ -64,9 +69,17 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .required(true)
             .build();
 
+    static final PropertyDescriptor PROJECT_KEY = new PropertyDescriptor.Builder()
+            .name("Project Key")
+            .description("The key of the Bitbucket project that contains the repository (required for Data Center)")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(true)
+            .dependsOn(FORM_FACTOR, BitbucketFormFactor.DATA_CENTER)
+            .build();
+
     static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
             .name("Authentication Type")
-            .description("The type of authentication to use for accessing Bitbucket")
+            .description("The type of authentication to use for accessing Bitbucket (Data Center supports only Access Token authentication)")
             .allowableValues(BitbucketAuthenticationType.class)
             .defaultValue(BitbucketAuthenticationType.ACCESS_TOKEN)
             .required(true)
@@ -92,9 +105,18 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final PropertyDescriptor APP_PASSWORD = new PropertyDescriptor.Builder()
             .name("App Password")
-            .description("The App Password to use for authentication")
+            .description("The App Password to use for authentication when providing a Bitbucket username")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .required(true)
+            .required(false)
+            .sensitive(true)
+            .dependsOn(AUTHENTICATION_TYPE, BitbucketAuthenticationType.BASIC_AUTH)
+            .build();
+
+    static final PropertyDescriptor API_TOKEN = new PropertyDescriptor.Builder()
+            .name("API Token")
+            .description("The API Token to use for authentication when providing a Bitbucket email address")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(false)
             .sensitive(true)
             .dependsOn(AUTHENTICATION_TYPE, BitbucketAuthenticationType.BASIC_AUTH)
             .build();
@@ -116,14 +138,16 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             WEBCLIENT_SERVICE,
+            FORM_FACTOR,
             BITBUCKET_API_URL,
-            BITBUCKET_API_VERSION,
             WORKSPACE_NAME,
+            PROJECT_KEY,
             REPOSITORY_NAME,
             AUTHENTICATION_TYPE,
             ACCESS_TOKEN,
             USERNAME,
             APP_PASSWORD,
+            API_TOKEN,
             OAUTH_TOKEN_PROVIDER);
 
     static final String STORAGE_LOCATION_PREFIX = "git@bitbucket.org:";
@@ -136,21 +160,61 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     @Override
     protected GitRepositoryClient createRepositoryClient(final FlowRegistryClientConfigurationContext context) throws FlowRegistryException {
+        final BitbucketFormFactor formFactor = context.getProperty(FORM_FACTOR).asAllowableValue(BitbucketFormFactor.class);
+
+        final String appPassword = context.getProperty(APP_PASSWORD).isSet()
+                ? context.getProperty(APP_PASSWORD).evaluateAttributeExpressions().getValue()
+                : null;
+        final String apiToken = context.getProperty(API_TOKEN).isSet()
+                ? context.getProperty(API_TOKEN).evaluateAttributeExpressions().getValue()
+                : null;
+        final String basicAuthSecret = apiToken != null && !apiToken.isBlank() ? apiToken : appPassword;
+
         return BitbucketRepositoryClient.builder()
                 .clientId(getIdentifier())
                 .logger(getLogger())
+                .formFactor(formFactor)
                 .apiUrl(context.getProperty(BITBUCKET_API_URL).getValue())
-                .apiVersion(context.getProperty(BITBUCKET_API_VERSION).getValue())
                 .workspace(context.getProperty(WORKSPACE_NAME).getValue())
                 .repoName(context.getProperty(REPOSITORY_NAME).getValue())
                 .repoPath(context.getProperty(REPOSITORY_PATH).getValue())
+                .projectKey(context.getProperty(PROJECT_KEY).getValue())
                 .authenticationType(context.getProperty(AUTHENTICATION_TYPE).asAllowableValue(BitbucketAuthenticationType.class))
                 .accessToken(context.getProperty(ACCESS_TOKEN).evaluateAttributeExpressions().getValue())
                 .username(context.getProperty(USERNAME).evaluateAttributeExpressions().getValue())
-                .appPassword(context.getProperty(APP_PASSWORD).evaluateAttributeExpressions().getValue())
+                .appPassword(basicAuthSecret)
                 .oauthService(context.getProperty(OAUTH_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class))
                 .webClient(context.getProperty(WEBCLIENT_SERVICE).asControllerService(WebClientServiceProvider.class))
                 .build();
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+
+        final BitbucketAuthenticationType authenticationType = validationContext.getProperty(AUTHENTICATION_TYPE)
+                .asAllowableValue(BitbucketAuthenticationType.class);
+
+        if (BitbucketAuthenticationType.BASIC_AUTH.equals(authenticationType)) {
+            final boolean appPasswordSet = validationContext.getProperty(APP_PASSWORD).isSet();
+            final boolean apiTokenSet = validationContext.getProperty(API_TOKEN).isSet();
+
+            if (!appPasswordSet && !apiTokenSet) {
+                validationResults.add(new ValidationResult.Builder()
+                        .subject("App Password or API Token")
+                        .valid(false)
+                        .explanation("Configure either an App Password or an API Token when using Basic Auth authentication")
+                        .build());
+            } else if (appPasswordSet && apiTokenSet) {
+                validationResults.add(new ValidationResult.Builder()
+                        .subject("App Password or API Token")
+                        .valid(false)
+                        .explanation("Only one of App Password or API Token can be configured when using Basic Auth authentication")
+                        .build());
+            }
+        }
+
+        return validationResults;
     }
 
     @Override
@@ -160,7 +224,17 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     @Override
     protected String getStorageLocation(GitRepositoryClient repositoryClient) {
-        final BitbucketRepositoryClient gitLabRepositoryClient = (BitbucketRepositoryClient) repositoryClient;
-        return STORAGE_LOCATION_FORMAT.formatted(gitLabRepositoryClient.getWorkspace(), gitLabRepositoryClient.getRepoName());
+        final BitbucketRepositoryClient bitbucketRepositoryClient = (BitbucketRepositoryClient) repositoryClient;
+
+        if (bitbucketRepositoryClient.getFormFactor() == BitbucketFormFactor.DATA_CENTER) {
+            final String apiHost = bitbucketRepositoryClient.getApiHost();
+            final String projectKey = bitbucketRepositoryClient.getProjectKey();
+            if (apiHost != null && projectKey != null) {
+                return "git@%s:%s/%s.git".formatted(apiHost, projectKey, bitbucketRepositoryClient.getRepoName());
+            }
+            return bitbucketRepositoryClient.getRepoName();
+        }
+
+        return STORAGE_LOCATION_FORMAT.formatted(bitbucketRepositoryClient.getWorkspace(), bitbucketRepositoryClient.getRepoName());
     }
 }
