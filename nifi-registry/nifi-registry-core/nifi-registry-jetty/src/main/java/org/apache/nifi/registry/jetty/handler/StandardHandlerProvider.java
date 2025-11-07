@@ -24,7 +24,7 @@ import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.ee10.servlet.DefaultServlet;
 import org.eclipse.jetty.ee10.servlet.ErrorPageErrorHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
-import org.eclipse.jetty.ee10.webapp.WebAppClassLoader;
+import org.eclipse.jetty.ee.webapp.WebAppClassLoader;
 import org.eclipse.jetty.ee10.webapp.WebAppContext;
 
 import java.io.File;
