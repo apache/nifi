@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base32InputStream;
 import org.apache.commons.codec.binary.Base32OutputStream;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Base64InputStream;
 import org.apache.commons.codec.binary.Base64OutputStream;
 import org.apache.commons.codec.binary.Hex;
@@ -190,10 +192,15 @@ public class EncodeContent extends AbstractProcessor {
 
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
-            try (Base64OutputStream bos = new Base64OutputStream(out,
-                true,
-                this.lineLength,
-                this.lineSeparator.getBytes())) {
+            try (Base64OutputStream bos = new Base64OutputStream.Builder()
+                    .setOutputStream(out)
+                    .setEncode(true)
+                    .setBaseNCodec(
+                            Base64.builder()
+                                    .setLineLength(this.lineLength)
+                                    .setLineSeparator(this.lineSeparator.getBytes())
+                                    .get())
+                    .get()) {
                 StreamUtils.copy(in, bos);
             }
         }
@@ -223,7 +230,15 @@ public class EncodeContent extends AbstractProcessor {
 
         @Override
         public void process(final InputStream in, final OutputStream out) throws IOException {
-            try (Base32OutputStream bos = new Base32OutputStream(out, true, this.lineLength, this.lineSeparator.getBytes())) {
+            try (Base32OutputStream bos = new Base32OutputStream.Builder()
+                    .setOutputStream(out)
+                    .setEncode(true)
+                    .setBaseNCodec(
+                            Base32.builder()
+                                    .setLineLength(this.lineLength)
+                                    .setLineSeparator(this.lineSeparator.getBytes())
+                                    .get())
+                    .get()) {
                 StreamUtils.copy(in, bos);
             }
         }
