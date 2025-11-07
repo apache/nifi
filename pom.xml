@@ -119,13 +119,14 @@
         <nifi-api.version>2.4.0</nifi-api.version>
         <nifi.nar.maven.plugin.version>2.2.0</nifi.nar.maven.plugin.version>
 
-        <!-- AWS SDK -->
-        <software.amazon.awssdk.version>2.37.4</software.amazon.awssdk.version>
+        <!-- CSPs SDK -->
+        <software.amazon.awssdk.version>2.38.1</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>3.5.0</software.amazon.encryption.s3.version>
+        <azure.sdk.bom.version>1.3.2</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.10.0</org.apache.commons.cli.version>
-        <org.apache.commons.codec.version>1.19.0</org.apache.commons.codec.version>
+        <org.apache.commons.codec.version>1.20.0</org.apache.commons.codec.version>
         <org.apache.commons.collections4.version>4.5.0</org.apache.commons.collections4.version>
         <org.apache.commons.compress.version>1.28.0</org.apache.commons.compress.version>
         <org.apache.commons.configuration.version>2.12.0</org.apache.commons.configuration.version>
@@ -177,8 +178,8 @@
         <org.apache.sshd.version>2.16.0</org.apache.sshd.version>
 
         <!-- Security -->
-        <nimbus-jose-jwt.version>10.5</nimbus-jose-jwt.version>
-        <nimbus-oauth2-oidc.version>11.30</nimbus-oauth2-oidc.version>
+        <nimbus-jose-jwt.version>10.6</nimbus-jose-jwt.version>
+        <nimbus-oauth2-oidc.version>11.30.1</nimbus-oauth2-oidc.version>
         <org.bouncycastle.version>1.82</org.bouncycastle.version>
 
         <!-- Utilities -->

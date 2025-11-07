@@ -38,7 +38,7 @@
         <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
         <jersey.bom.version>3.1.11</jersey.bom.version>
         <spring.boot.version>3.5.7</spring.boot.version>
-        <flyway.version>11.15.0</flyway.version>
+        <flyway.version>11.16.0</flyway.version>
         <flyway.tests.version>10.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jgit.version>7.4.0.202509020913-r</jgit.version>
