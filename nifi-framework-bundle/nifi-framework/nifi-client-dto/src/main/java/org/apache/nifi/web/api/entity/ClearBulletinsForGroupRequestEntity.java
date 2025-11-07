@@ -53,7 +53,7 @@ public class ClearBulletinsForGroupRequestEntity extends Entity {
     @XmlJavaTypeAdapter(InstantAdapter.class)
     @Schema(description = "The timestamp from which to clear bulletins (inclusive). This field is required.",
             type = "string",
-            required = true
+            requiredMode = Schema.RequiredMode.REQUIRED
     )
     public Instant getFromTimestamp() {
         return fromTimestamp;
