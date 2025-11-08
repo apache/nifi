@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.azure.eventhub.utils;
 
-import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.amqp.ProxyAuthenticationType;
+import com.azure.core.amqp.ProxyOptions;
 import com.azure.core.credential.TokenCredential;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -31,21 +31,20 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
+import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Objects;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import reactor.core.publisher.Mono;
 
 public final class AzureEventHubUtils {
 
@@ -138,12 +137,12 @@ public final class AzureEventHubUtils {
                             .build());
                 }
             }
-            case OAUTH2_CLIENT_CREDENTIALS -> {
+            case OAUTH2 -> {
                 if (accessPolicyIsSet || policyKeyIsSet) {
                     final String msg = String.format(
                             "When '%s' is set to '%s', '%s' and '%s' must not be set.",
                             AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
-                            AzureEventHubAuthenticationStrategy.OAUTH2_CLIENT_CREDENTIALS.getDisplayName(),
+                            AzureEventHubAuthenticationStrategy.OAUTH2.getDisplayName(),
                             accessPolicyDescriptor.getDisplayName(),
                             policyKeyDescriptor.getDisplayName()
                     );
@@ -156,7 +155,7 @@ public final class AzureEventHubUtils {
                             .explanation(String.format("'%s' must be set when '%s' is '%s'.",
                                     tokenProviderDescriptor.getDisplayName(),
                                     AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
-                                    AzureEventHubAuthenticationStrategy.OAUTH2_CLIENT_CREDENTIALS.getDisplayName()))
+                                    AzureEventHubAuthenticationStrategy.OAUTH2.getDisplayName()))
                             .build());
                 }
             }

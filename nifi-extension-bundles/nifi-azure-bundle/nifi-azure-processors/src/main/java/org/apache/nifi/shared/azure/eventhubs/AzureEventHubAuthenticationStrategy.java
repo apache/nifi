@@ -24,7 +24,7 @@ import org.apache.nifi.components.DescribedValue;
 public enum AzureEventHubAuthenticationStrategy implements DescribedValue {
     MANAGED_IDENTITY("Managed Identity", "Authenticate using the Managed Identity of the hosting Azure resource."),
     SHARED_ACCESS_SIGNATURE("Shared Access Signature", "Authenticate using the Shared Access Policy name and key."),
-    OAUTH2_CLIENT_CREDENTIALS("OAuth2", "Authenticate using an OAuth2 Access Token Provider backed by an Entra registered application.");
+    OAUTH2("OAuth2", "Authenticate using an OAuth2 Access Token Provider backed by an Entra registered application.");
 
     private final String displayName;
     private final String description;

@@ -400,27 +400,25 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final AzureEventHubAuthenticationStrategy resolvedAuthenticationStrategy =
                 authenticationStrategy == null ? AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY : authenticationStrategy;
 
-        final Runnable eventHubCredentialConfigurator = switch (resolvedAuthenticationStrategy) {
-            case MANAGED_IDENTITY -> () -> {
+        switch (resolvedAuthenticationStrategy) {
+            case MANAGED_IDENTITY -> {
                 final ManagedIdentityCredentialBuilder managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
                 final ManagedIdentityCredential managedIdentityCredential = managedIdentityCredentialBuilder.build();
                 eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, managedIdentityCredential);
-            };
-            case SHARED_ACCESS_SIGNATURE -> () -> {
+            }
+            case SHARED_ACCESS_SIGNATURE -> {
                 final String policyName = context.getProperty(ACCESS_POLICY).getValue();
                 final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
                 final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
                 eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
-            };
-            case OAUTH2_CLIENT_CREDENTIALS -> () -> {
+            }
+            case OAUTH2 -> {
                 final OAuth2AccessTokenProvider tokenProvider =
                         context.getProperty(EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
                 final TokenCredential tokenCredential = AzureEventHubUtils.createTokenCredential(tokenProvider);
                 eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, tokenCredential);
-            };
-        };
-
-        eventHubCredentialConfigurator.run();
+            }
+        }
 
         // Set Azure Event Hub Client Identifier using Processor Identifier instead of default random UUID
         final AmqpClientOptions clientOptions = new AmqpClientOptions();

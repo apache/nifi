@@ -45,12 +45,12 @@ public interface AzureEventHubComponent {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-            .name("Event Hubs OAuth2 Access Token Provider")
+            .name("Event Hubs Access Token Provider")
             .description("Controller Service providing OAuth2 Access Tokens for authenticating to Azure Event Hubs")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .dependsOn(AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.OAUTH2_CLIENT_CREDENTIALS)
+            .dependsOn(AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.OAUTH2)
             .build();
     ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()

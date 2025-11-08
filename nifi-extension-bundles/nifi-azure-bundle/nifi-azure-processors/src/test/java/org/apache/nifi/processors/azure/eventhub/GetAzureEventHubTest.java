@@ -151,7 +151,7 @@ public class GetAzureEventHubTest {
     public void testEventHubOAuthRequiresTokenProvider() throws InitializationException {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
         testRunner.setProperty(GetAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
-        testRunner.setProperty(GetAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.OAUTH2_CLIENT_CREDENTIALS.getValue());
+        testRunner.setProperty(GetAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.OAUTH2.getValue());
 
         testRunner.assertNotValid();
 
