@@ -17,7 +17,7 @@
 package org.apache.nifi.kafka.service.aws;
 
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
-import org.apache.nifi.kafka.shared.aws.AmazonMSKKafkaProperties;
+import org.apache.nifi.kafka.shared.aws.AmazonMSKProperty;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.msk.auth.iam.IAMLoginModule;
@@ -43,7 +43,7 @@ public class AmazonMSKCredentialsCallbackHandler implements AuthenticateCallback
             throw new IllegalArgumentException("Unexpected SASL mechanism: " + saslMechanism);
         }
 
-        final Object provider = configs.get(AmazonMSKKafkaProperties.NIFI_AWS_MSK_CREDENTIALS_PROVIDER);
+        final Object provider = configs.get(AmazonMSKProperty.NIFI_AWS_MSK_CREDENTIALS_PROVIDER.getProperty());
         if (!(provider instanceof AwsCredentialsProvider)) {
             throw new IllegalArgumentException("Kafka configuration missing AWS Web Identity credentials provider");
         }
@@ -69,7 +69,8 @@ public class AmazonMSKCredentialsCallbackHandler implements AuthenticateCallback
             if (callback instanceof AWSCredentialsCallback awsCredentialsCallback) {
                 handleCredentialsCallback(awsCredentialsCallback);
             } else {
-                throw new UnsupportedCallbackException(callback, String.format("Unsupported callback type [%s]", callback.getClass().getName()));
+                throw new UnsupportedCallbackException(callback,
+                        "Unsupported callback type [%s]".formatted(callback.getClass().getName()));
             }
         }
     }
@@ -83,8 +84,10 @@ public class AmazonMSKCredentialsCallbackHandler implements AuthenticateCallback
         }
     }
 
+    /**
+     * No resources to close because the credentials provider lifecycle is managed by the NiFi service.
+     */
     @Override
     public void close() {
-        // No resources to close; credentials provider lifecycle managed by NiFi service
     }
 }

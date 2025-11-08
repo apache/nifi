@@ -18,7 +18,7 @@ package org.apache.nifi.kafka.shared.property.provider;
 
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.kafka.shared.aws.AmazonMSKKafkaProperties;
+import org.apache.nifi.kafka.shared.aws.AmazonMSKProperty;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
@@ -103,7 +103,7 @@ class StandardKafkaPropertyProviderTest {
         final Map<String, Object> properties = provider.getProperties(propertyContext);
 
         final Object callbackHandler = properties.get(KafkaClientProperty.SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty());
-        assertEquals(AmazonMSKKafkaProperties.NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS, callbackHandler);
+        assertEquals(AmazonMSKProperty.NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS.getProperty(), callbackHandler);
     }
 
     private static class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {

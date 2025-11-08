@@ -20,7 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.kafka.shared.aws.AmazonMSKKafkaProperties;
+import org.apache.nifi.kafka.shared.aws.AmazonMSKProperty;
 import org.apache.nifi.kafka.shared.login.DelegatingLoginConfigProvider;
 import org.apache.nifi.kafka.shared.login.LoginConfigProvider;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
@@ -94,7 +94,7 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
             } else if (saslMechanism == SaslMechanism.AWS_MSK_IAM) {
                 final PropertyValue tokenProviderProperty = context.getProperty(AWS_WEB_IDENTITY_TOKEN_PROVIDER);
                 if (tokenProviderProperty != null && tokenProviderProperty.isSet()) {
-                    properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), AmazonMSKKafkaProperties.NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS);
+                    properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), AmazonMSKProperty.NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS.getProperty());
                 } else if (isAwsMskIamCallbackHandlerFound()) {
                     properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
                 }

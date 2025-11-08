@@ -20,12 +20,11 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.kafka.service.Kafka3ConnectionService;
-import org.apache.nifi.kafka.shared.aws.AmazonMSKKafkaProperties;
+import org.apache.nifi.kafka.shared.aws.AmazonMSKProperty;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
@@ -34,7 +33,6 @@ import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextProvider;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -59,6 +57,7 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 @Tags({"AWS", "MSK", "streaming", "kafka"})
 @CapabilityDescription("Provides and manages connections to AWS MSK Kafka Brokers for producer or consumer operations.")
@@ -80,14 +79,15 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
 
     public static final PropertyDescriptor AWS_WEB_IDENTITY_SESSION_TIME = new PropertyDescriptor.Builder()
             .name("AWS Web Identity Session Time")
-            .description("Session time in seconds for AWS STS AssumeRoleWithWebIdentity (between 900 and 3600 seconds).")
+            .description("Session time for AWS STS AssumeRoleWithWebIdentity (between 900 seconds and 3600 seconds).")
             .dependsOn(
                     KafkaClientComponent.AWS_ROLE_SOURCE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
             .required(false)
-            .defaultValue(String.valueOf(MAX_SESSION_DURATION_SECONDS))
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .defaultValue(String.format("%d sec", MAX_SESSION_DURATION_SECONDS))
+            .addValidator(StandardValidators.createTimePeriodValidator(
+                    MIN_SESSION_DURATION_SECONDS, TimeUnit.SECONDS, MAX_SESSION_DURATION_SECONDS, TimeUnit.SECONDS))
             .build();
 
     public static final PropertyDescriptor AWS_WEB_IDENTITY_STS_REGION = new PropertyDescriptor.Builder()
@@ -102,7 +102,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             .build();
 
     public static final PropertyDescriptor AWS_WEB_IDENTITY_STS_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("AWS Web Identity STS Endpoint Override")
+            .name("AWS Web Identity STS Endpoint")
             .description("Optional endpoint override for the AWS Security Token Service.")
             .dependsOn(
                     KafkaClientComponent.AWS_ROLE_SOURCE,
@@ -112,10 +112,10 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor AWS_WEB_IDENTITY_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-            .name("AWS Web Identity SSL Context Service")
+    public static final PropertyDescriptor AWS_WEB_IDENTITY_SSL_CONTEXT_PROVIDER = new PropertyDescriptor.Builder()
+            .name("AWS Web Identity SSL Context Provider")
             .description("SSL Context Service used when communicating with AWS STS for Web Identity federation.")
-            .identifiesControllerService(SSLContextService.class)
+            .identifiesControllerService(SSLContextProvider.class)
             .dependsOn(
                     KafkaClientComponent.AWS_ROLE_SOURCE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
@@ -143,7 +143,7 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
                 descriptors.add(AWS_WEB_IDENTITY_SESSION_TIME);
                 descriptors.add(AWS_WEB_IDENTITY_STS_REGION);
                 descriptors.add(AWS_WEB_IDENTITY_STS_ENDPOINT);
-                descriptors.add(AWS_WEB_IDENTITY_SSL_CONTEXT_SERVICE);
+                descriptors.add(AWS_WEB_IDENTITY_SSL_CONTEXT_PROVIDER);
             }
         }
 
@@ -168,29 +168,37 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
                         .explanation("AWS Web Identity Token Provider must be configured when AWS Role Source is set to Web Identity Provider")
                         .build());
             }
-
-            final PropertyValue sessionTimeProperty = validationContext.getProperty(AWS_WEB_IDENTITY_SESSION_TIME);
-            if (sessionTimeProperty != null && sessionTimeProperty.isSet()) {
-                final Integer sessionSeconds = sessionTimeProperty.asInteger();
-                if (sessionSeconds == null || sessionSeconds < MIN_SESSION_DURATION_SECONDS || sessionSeconds > MAX_SESSION_DURATION_SECONDS) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(AWS_WEB_IDENTITY_SESSION_TIME.getDisplayName())
-                            .valid(false)
-                            .explanation(String.format("Session time must be between %d and %d seconds", MIN_SESSION_DURATION_SECONDS, MAX_SESSION_DURATION_SECONDS))
-                            .build());
-                }
-            }
         }
 
         return results;
     }
 
     @Override
-    protected void customizeKafkaProperties(final Properties properties, final PropertyContext propertyContext) {
+    protected Properties getProducerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
+        final Properties properties = super.getProducerProperties(propertyContext, defaultProperties);
+        setAuthenticationProperties(properties, propertyContext);
+        return properties;
+    }
+
+    @Override
+    protected Properties getConsumerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
+        final Properties properties = super.getConsumerProperties(propertyContext, defaultProperties);
+        setAuthenticationProperties(properties, propertyContext);
+        return properties;
+    }
+
+    @Override
+    protected Properties getClientProperties(final PropertyContext propertyContext) {
+        final Properties properties = super.getClientProperties(propertyContext);
+        setAuthenticationProperties(properties, propertyContext);
+        return properties;
+    }
+
+    private void setAuthenticationProperties(final Properties properties, final PropertyContext propertyContext) {
         final AwsRoleSource roleSource = propertyContext.getProperty(KafkaClientComponent.AWS_ROLE_SOURCE).asAllowableValue(AwsRoleSource.class);
         if (roleSource == AwsRoleSource.WEB_IDENTITY_TOKEN) {
             final AwsCredentialsProvider credentialsProvider = createWebIdentityCredentialsProvider(propertyContext);
-            properties.put(AmazonMSKKafkaProperties.NIFI_AWS_MSK_CREDENTIALS_PROVIDER, credentialsProvider);
+            properties.put(AmazonMSKProperty.NIFI_AWS_MSK_CREDENTIALS_PROVIDER.getProperty(), credentialsProvider);
         }
     }
 
@@ -202,10 +210,11 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
 
         final String roleArn = propertyContext.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN).getValue();
         final String roleSessionName = propertyContext.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME).getValue();
-        final Integer sessionSeconds = propertyContext.getProperty(AWS_WEB_IDENTITY_SESSION_TIME).asInteger();
+        final Long sessionTimeSeconds = propertyContext.getProperty(AWS_WEB_IDENTITY_SESSION_TIME).asTimePeriod(TimeUnit.SECONDS);
+        final Integer sessionSeconds = sessionTimeSeconds == null ? null : sessionTimeSeconds.intValue();
         final String stsRegionId = propertyContext.getProperty(AWS_WEB_IDENTITY_STS_REGION).getValue();
         final String stsEndpoint = propertyContext.getProperty(AWS_WEB_IDENTITY_STS_ENDPOINT).getValue();
-        final SSLContextProvider sslContextProvider = propertyContext.getProperty(AWS_WEB_IDENTITY_SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        final SSLContextProvider sslContextProvider = propertyContext.getProperty(AWS_WEB_IDENTITY_SSL_CONTEXT_PROVIDER).asControllerService(SSLContextProvider.class);
 
         final ApacheHttpClient.Builder httpClientBuilder = ApacheHttpClient.builder();
 
@@ -259,35 +268,21 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             final AwsSessionCredentials currentCredentials = cachedCredentials;
             final Instant currentExpiration = expiration;
 
-            if (currentCredentials != null && currentExpiration != null && now.isBefore(currentExpiration.minus(SKEW))) {
-                return currentCredentials;
+            AwsSessionCredentials resolvedCredentials;
+            if (isCacheValid(now, currentCredentials, currentExpiration)) {
+                resolvedCredentials = currentCredentials;
+            } else {
+                synchronized (this) {
+                    final Instant refreshedNow = Instant.now();
+                    if (isCacheValid(refreshedNow, cachedCredentials, expiration)) {
+                        resolvedCredentials = cachedCredentials;
+                    } else {
+                        resolvedCredentials = refreshCredentials();
+                    }
+                }
             }
 
-            synchronized (this) {
-                if (cachedCredentials != null && expiration != null && Instant.now().isBefore(expiration.minus(SKEW))) {
-                    return cachedCredentials;
-                }
-
-                final String webIdentityToken = getWebIdentityToken();
-
-                final AssumeRoleWithWebIdentityRequest.Builder requestBuilder = AssumeRoleWithWebIdentityRequest.builder()
-                        .roleArn(roleArn)
-                        .roleSessionName(roleSessionName)
-                        .webIdentityToken(webIdentityToken);
-
-                if (sessionSeconds != null) {
-                    requestBuilder.durationSeconds(sessionSeconds);
-                }
-
-                final AssumeRoleWithWebIdentityResponse response = stsClient.assumeRoleWithWebIdentity(requestBuilder.build());
-                final Credentials temporaryCredentials = response.credentials();
-                final AwsSessionCredentials sessionCredentials = AwsSessionCredentials.create(
-                        temporaryCredentials.accessKeyId(), temporaryCredentials.secretAccessKey(), temporaryCredentials.sessionToken());
-
-                cachedCredentials = sessionCredentials;
-                expiration = temporaryCredentials.expiration();
-                return sessionCredentials;
-            }
+            return resolvedCredentials;
         }
 
         private String getWebIdentityToken() {
@@ -297,22 +292,54 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
             }
 
             final Map<String, Object> additionalParameters = accessToken.getAdditionalParameters();
+            String tokenValue = null;
             if (additionalParameters != null) {
                 final Object idTokenValue = additionalParameters.get("id_token");
-                if (idTokenValue instanceof String idToken && !StringUtils.isBlank(idToken)) {
-                    return idToken;
-                }
-                if (idTokenValue instanceof String idTokenBlank && StringUtils.isBlank(idTokenBlank)) {
-                    throw new IllegalStateException("OAuth2AccessTokenProvider returned an empty id_token");
+                if (idTokenValue instanceof String idToken) {
+                    if (StringUtils.isBlank(idToken)) {
+                        throw new IllegalStateException("OAuth2AccessTokenProvider returned an empty id_token");
+                    }
+                    tokenValue = idToken;
                 }
             }
 
-            final String accessTokenValue = accessToken.getAccessToken();
-            if (StringUtils.isBlank(accessTokenValue)) {
-                throw new IllegalStateException("No usable token found in AccessToken (id_token or access_token)");
+            if (tokenValue == null) {
+                final String accessTokenValue = accessToken.getAccessToken();
+                if (StringUtils.isBlank(accessTokenValue)) {
+                    throw new IllegalStateException("No usable token found in AccessToken (id_token or access_token)");
+                }
+                tokenValue = accessTokenValue;
             }
 
-            return accessTokenValue;
+            return tokenValue;
+        }
+
+        private boolean isCacheValid(final Instant referenceTime, final AwsSessionCredentials credentials, final Instant credentialsExpiration) {
+            return credentials != null
+                    && credentialsExpiration != null
+                    && referenceTime.isBefore(credentialsExpiration.minus(SKEW));
+        }
+
+        private AwsSessionCredentials refreshCredentials() {
+            final String webIdentityToken = getWebIdentityToken();
+
+            final AssumeRoleWithWebIdentityRequest.Builder requestBuilder = AssumeRoleWithWebIdentityRequest.builder()
+                    .roleArn(roleArn)
+                    .roleSessionName(roleSessionName)
+                    .webIdentityToken(webIdentityToken);
+
+            if (sessionSeconds != null) {
+                requestBuilder.durationSeconds(sessionSeconds);
+            }
+
+            final AssumeRoleWithWebIdentityResponse response = stsClient.assumeRoleWithWebIdentity(requestBuilder.build());
+            final Credentials temporaryCredentials = response.credentials();
+            final AwsSessionCredentials sessionCredentials = AwsSessionCredentials.create(
+                    temporaryCredentials.accessKeyId(), temporaryCredentials.secretAccessKey(), temporaryCredentials.sessionToken());
+
+            cachedCredentials = sessionCredentials;
+            expiration = temporaryCredentials.expiration();
+            return sessionCredentials;
         }
 
         @Override

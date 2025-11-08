@@ -17,9 +17,8 @@
 package org.apache.nifi.kafka.service.aws;
 
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.kafka.shared.aws.AmazonMSKKafkaProperties;
+import org.apache.nifi.kafka.shared.aws.AmazonMSKProperty;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.oauth2.AccessToken;
@@ -99,7 +98,6 @@ class AmazonMSKConnectionServiceTest {
 
         runner.enableControllerService(service);
 
-        final Properties properties = new Properties();
         final Map<PropertyDescriptor, String> configuredProperties = new HashMap<>();
         configuredProperties.put(AmazonMSKConnectionService.BOOTSTRAP_SERVERS, BOOTSTRAP_SERVERS);
         configuredProperties.put(KafkaClientComponent.AWS_ROLE_SOURCE, AwsRoleSource.WEB_IDENTITY_TOKEN.name());
@@ -111,9 +109,9 @@ class AmazonMSKConnectionServiceTest {
         final MockConfigurationContext configurationContext = new MockConfigurationContext(service, configuredProperties,
                 runner.getProcessContext().getControllerServiceLookup(), Collections.emptyMap());
         configurationContext.setValidateExpressions(false);
-        service.customize(properties, configurationContext);
+        final Properties properties = service.buildConsumerProperties(configurationContext);
 
-        final Object provider = properties.get(AmazonMSKKafkaProperties.NIFI_AWS_MSK_CREDENTIALS_PROVIDER);
+        final Object provider = properties.get(AmazonMSKProperty.NIFI_AWS_MSK_CREDENTIALS_PROVIDER.getProperty());
 
         assertNotNull(provider);
         assertTrue(provider instanceof AwsCredentialsProvider);
@@ -130,8 +128,9 @@ class AmazonMSKConnectionServiceTest {
     }
 
     private static class TestAmazonMSKConnectionService extends AmazonMSKConnectionService {
-        void customize(final Properties properties, final PropertyContext context) {
-            super.customizeKafkaProperties(properties, context);
+        Properties buildConsumerProperties(final MockConfigurationContext context) {
+            final Properties clientProperties = super.getClientProperties(context);
+            return super.getConsumerProperties(context, clientProperties);
         }
     }
 }

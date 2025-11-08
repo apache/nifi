@@ -19,11 +19,17 @@ package org.apache.nifi.kafka.shared.aws;
 /**
  * AWS MSK-specific Kafka property keys shared between components.
  */
-public final class AmazonMSKKafkaProperties {
+public enum AmazonMSKProperty {
+    NIFI_AWS_MSK_CREDENTIALS_PROVIDER("nifi.aws.msk.credentials.provider"),
+    NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS("org.apache.nifi.kafka.service.aws.AmazonMSKCredentialsCallbackHandler");
 
-    public static final String NIFI_AWS_MSK_CREDENTIALS_PROVIDER = "nifi.aws.msk.credentials.provider";
-    public static final String NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS = "org.apache.nifi.kafka.service.aws.AmazonMSKCredentialsCallbackHandler";
+    private final String property;
 
-    private AmazonMSKKafkaProperties() {
+    AmazonMSKProperty(final String property) {
+        this.property = property;
+    }
+
+    public String getProperty() {
+        return property;
     }
 }

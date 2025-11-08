@@ -318,7 +318,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         return results;
     }
 
-    private Properties getProducerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
+    protected Properties getProducerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
         final Properties properties = new Properties();
         properties.putAll(defaultProperties);
 
@@ -329,12 +329,10 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         final long timePeriod = propertyContext.getProperty(METADATA_WAIT_TIME).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         properties.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, timePeriod);
 
-        customizeKafkaProperties(properties, propertyContext);
-
         return properties;
     }
 
-    private Properties getConsumerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
+    protected Properties getConsumerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
         final Properties properties = new Properties();
         properties.putAll(defaultProperties);
 
@@ -345,12 +343,10 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         final IsolationLevel isolationLevel = propertyContext.getProperty(TRANSACTION_ISOLATION_LEVEL).asAllowableValue(IsolationLevel.class);
         properties.put(TRANSACTION_ISOLATION_LEVEL.getName(), isolationLevel.getValue());
 
-        customizeKafkaProperties(properties, propertyContext);
-
         return properties;
     }
 
-    private Properties getClientProperties(final PropertyContext propertyContext) {
+    protected Properties getClientProperties(final PropertyContext propertyContext) {
         final Properties properties = new Properties();
 
         final String configuredBootstrapServers = propertyContext.getProperty(BOOTSTRAP_SERVERS).getValue();
@@ -365,8 +361,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
         final int requestTimeoutMs = getRequestTimeoutMs(propertyContext);
         properties.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeoutMs);
-
-        customizeKafkaProperties(properties, propertyContext);
 
         return properties;
     }
@@ -404,17 +398,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
                 properties.put(SSL_TRUSTSTORE_PASSWORD.getProperty(), sslContextService.getTrustStorePassword());
             }
         }
-    }
-
-    /**
-     * Hook for subclasses to customize Kafka client, producer, or consumer properties after the standard
-     * configuration has been applied.
-     *
-     * @param properties Kafka client properties to update
-     * @param propertyContext NiFi property context with component configuration
-     */
-    protected void customizeKafkaProperties(final Properties properties, final PropertyContext propertyContext) {
-        // No-op by default
     }
 
     private ServiceConfiguration getServiceConfiguration(final PropertyContext propertyContext) {

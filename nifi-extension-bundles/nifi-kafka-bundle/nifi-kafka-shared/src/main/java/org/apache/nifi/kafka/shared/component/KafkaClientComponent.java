@@ -162,7 +162,7 @@ public interface KafkaClientComponent {
 
     PropertyDescriptor AWS_WEB_IDENTITY_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
             .name("AWS Web Identity Token Provider")
-            .description("Controller Service providing OAuth2/OIDC tokens for AWS Web Identity federation.")
+            .description("Controller Service providing tokens with OAuth2 OpenID Connect for AWS Web Identity federation.")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .required(true)
             .dependsOn(

@@ -17,7 +17,7 @@
 package org.apache.nifi.kafka.service.aws;
 
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
-import org.apache.nifi.kafka.shared.aws.AmazonMSKKafkaProperties;
+import org.apache.nifi.kafka.shared.aws.AmazonMSKProperty;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -45,7 +45,7 @@ class AmazonMSKCredentialsCallbackHandlerTest {
 
         final AuthenticateCallbackHandler handler = new AmazonMSKCredentialsCallbackHandler();
         final Map<String, Object> configs = Map.of(
-                AmazonMSKKafkaProperties.NIFI_AWS_MSK_CREDENTIALS_PROVIDER, credentialsProvider
+                AmazonMSKProperty.NIFI_AWS_MSK_CREDENTIALS_PROVIDER.getProperty(), credentialsProvider
         );
 
         final Map<String, ?> options = Map.of(
@@ -77,7 +77,7 @@ class AmazonMSKCredentialsCallbackHandlerTest {
         final AwsCredentialsProvider credentialsProvider = StaticCredentialsProvider.create(AwsBasicCredentials.create("accessKey", "secretKey"));
         final AuthenticateCallbackHandler handler = new AmazonMSKCredentialsCallbackHandler();
         final Map<String, Object> configs = Map.of(
-                AmazonMSKKafkaProperties.NIFI_AWS_MSK_CREDENTIALS_PROVIDER, credentialsProvider
+                AmazonMSKProperty.NIFI_AWS_MSK_CREDENTIALS_PROVIDER.getProperty(), credentialsProvider
         );
 
         final Map<String, ?> options = Map.of();
