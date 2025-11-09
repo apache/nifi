@@ -425,6 +425,22 @@ public class TestConvertRecord {
             JsonTreeReader jsonTreeReader = new JsonTreeReader();
             runner.addControllerService("json-reader", jsonTreeReader);
             runner.setProperty(jsonTreeReader, DateTimeUtils.DATE_FORMAT, "yyyy-MM-dd");
+            runner.setProperty(jsonTreeReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
+            runner.setProperty(jsonTreeReader, SchemaAccessUtils.SCHEMA_TEXT, """
+                    {
+                      "type": "record",
+                      "name": "DateRecord",
+                      "fields": [
+                        {
+                          "name": "date",
+                          "type": {
+                            "type": "int",
+                            "logicalType": "date"
+                          }
+                        }
+                      ]
+                    }
+                    """);
             runner.enableControllerService(jsonTreeReader);
 
             AvroRecordSetWriter avroWriter = new AvroRecordSetWriter();
