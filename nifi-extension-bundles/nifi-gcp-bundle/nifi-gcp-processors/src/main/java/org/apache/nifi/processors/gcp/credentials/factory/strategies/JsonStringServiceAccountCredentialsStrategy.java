@@ -33,9 +33,7 @@ import java.util.Map;
 public class JsonStringServiceAccountCredentialsStrategy extends AbstractServiceAccountCredentialsStrategy {
 
     public JsonStringServiceAccountCredentialsStrategy() {
-        super("Service Account Credentials (Json String)", new PropertyDescriptor[] {
-                CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON
-        });
+        super("Service Account Credentials (Json String)");
     }
 
     @Override

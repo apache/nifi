@@ -16,65 +16,16 @@
  */
 package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialsStrategy;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
 
 /**
  * Partial implementation of CredentialsStrategy to support most simple property-based strategies.
  */
 public abstract class AbstractCredentialsStrategy implements CredentialsStrategy {
     private final String name;
-    private final PropertyDescriptor[] requiredProperties;
 
-    public AbstractCredentialsStrategy(String name, PropertyDescriptor[] requiredProperties) {
+    public AbstractCredentialsStrategy(String name) {
         this.name = name;
-        this.requiredProperties = requiredProperties;
-    }
-
-    @Override
-    public boolean canCreatePrimaryCredential(Map<PropertyDescriptor, String> properties) {
-        for (PropertyDescriptor requiredProperty : requiredProperties) {
-            boolean containsRequiredProperty = properties.containsKey(requiredProperty);
-            String propertyValue = properties.get(requiredProperty);
-            boolean containsValue = propertyValue != null;
-            if (!containsRequiredProperty || !containsValue) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public Collection<ValidationResult> validate(final ValidationContext validationContext,
-                                                 final CredentialsStrategy primaryStrategy) {
-        boolean thisIsSelectedStrategy = this == primaryStrategy;
-        String requiredMessageFormat = "property %1$s must be set with %2$s";
-        String excludedMessageFormat = "property %1$s cannot be used with %2$s";
-        String failureFormat = thisIsSelectedStrategy ? requiredMessageFormat : excludedMessageFormat;
-        Collection<ValidationResult> validationFailureResults = null;
-
-        for (PropertyDescriptor requiredProperty : requiredProperties) {
-            boolean requiredPropertyIsSet = validationContext.getProperty(requiredProperty).isSet();
-            if (requiredPropertyIsSet != thisIsSelectedStrategy) {
-                String message = String.format(failureFormat, requiredProperty.getDisplayName(),
-                        primaryStrategy.getName());
-                if (validationFailureResults == null) {
-                    validationFailureResults = new ArrayList<>();
-                }
-                validationFailureResults.add(new ValidationResult.Builder()
-                        .subject(requiredProperty.getDisplayName())
-                        .valid(false)
-                        .explanation(message).build());
-            }
-        }
-
-        return validationFailureResults;
     }
 
     @Override

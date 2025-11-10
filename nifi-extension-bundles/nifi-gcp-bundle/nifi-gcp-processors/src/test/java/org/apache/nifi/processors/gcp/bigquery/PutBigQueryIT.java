@@ -67,6 +67,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
+
 import static org.apache.nifi.processors.gcp.bigquery.AbstractBigQueryProcessor.DATASET;
 import static org.apache.nifi.processors.gcp.bigquery.AbstractBigQueryProcessor.TABLE_NAME;
 import static org.apache.nifi.processors.gcp.bigquery.PutBigQuery.RECORD_READER;
@@ -96,6 +98,7 @@ public class PutBigQueryIT {
     @BeforeAll
     public static void beforeClass() throws IOException {
         final Map<PropertyDescriptor, String> propertiesMap = new HashMap<>();
+        propertiesMap.put(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
         propertiesMap.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE, SERVICE_ACCOUNT_JSON);
         Credentials credentials = credentialsProviderFactory.getGoogleCredentials(propertiesMap, new ProxyAwareTransportFactory(null));
 
@@ -120,6 +123,7 @@ public class PutBigQueryIT {
         final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();
 
         final Map<String, String> propertiesMap = new HashMap<>();
+        propertiesMap.put(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName(), AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
         propertiesMap.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), SERVICE_ACCOUNT_JSON);
 
         runner.addControllerService(CONTROLLER_SERVICE, credentialsControllerService, propertiesMap);

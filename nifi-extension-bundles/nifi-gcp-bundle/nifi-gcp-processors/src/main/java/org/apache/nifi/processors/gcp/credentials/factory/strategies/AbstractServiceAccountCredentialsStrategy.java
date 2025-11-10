@@ -31,8 +31,8 @@ import java.util.Map;
  * or through a flat JSON file.
  */
 public abstract class AbstractServiceAccountCredentialsStrategy extends AbstractCredentialsStrategy {
-    public AbstractServiceAccountCredentialsStrategy(String name, PropertyDescriptor[] requiredProperties) {
-        super(name, requiredProperties);
+    public AbstractServiceAccountCredentialsStrategy(String name) {
+        super(name);
     }
 
     protected abstract InputStream getServiceAccountJson(Map<PropertyDescriptor, String> properties) throws IOException;
