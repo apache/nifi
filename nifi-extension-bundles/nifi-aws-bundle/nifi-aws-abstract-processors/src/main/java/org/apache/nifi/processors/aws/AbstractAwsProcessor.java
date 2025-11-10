@@ -38,6 +38,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextProvider;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
@@ -188,6 +189,7 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
         config.renameProperty("aws-region", REGION.getName());
         migrateAuthenticationProperties(config);
         ProxyServiceMigration.migrateProxyProperties(config, PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, OBSOLETE_PROXY_USERNAME, OBSOLETE_PROXY_PASSWORD);
+        config.renameProperty(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, PROXY_CONFIGURATION_SERVICE.getName());
     }
 
     private void migrateAuthenticationProperties(final PropertyConfiguration config) {

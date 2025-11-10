@@ -17,12 +17,12 @@
 package org.apache.nifi.ssl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.TlsPlatform;
 
@@ -40,8 +40,7 @@ import org.apache.nifi.security.util.TlsPlatform;
 public class StandardRestrictedSSLContextService extends StandardSSLContextService implements RestrictedSSLContextService {
 
     public static final PropertyDescriptor RESTRICTED_SSL_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("SSL Protocol")
-            .displayName("TLS Protocol")
+            .name("TLS Protocol")
             .defaultValue(TLS_PROTOCOL)
             .required(false)
             .allowableValues(getRestrictedProtocolAllowableValues())
@@ -50,29 +49,30 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
             .sensitive(false)
             .build();
 
-    private static final List<PropertyDescriptor> properties;
-
-    static {
-        List<PropertyDescriptor> props = new ArrayList<>();
-        props.add(KEYSTORE);
-        props.add(KEYSTORE_PASSWORD);
-        props.add(KEY_PASSWORD);
-        props.add(KEYSTORE_TYPE);
-        props.add(TRUSTSTORE);
-        props.add(TRUSTSTORE_PASSWORD);
-        props.add(TRUSTSTORE_TYPE);
-        props.add(RESTRICTED_SSL_ALGORITHM);
-        properties = Collections.unmodifiableList(props);
-    }
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+        KEYSTORE,
+        KEYSTORE_PASSWORD,
+        KEY_PASSWORD,
+        KEYSTORE_TYPE,
+        TRUSTSTORE,
+        TRUSTSTORE_PASSWORD,
+        TRUSTSTORE_TYPE,
+        RESTRICTED_SSL_ALGORITHM);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
     public String getSslAlgorithm() {
         return configContext.getProperty(RESTRICTED_SSL_ALGORITHM).getValue();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("SSL Protocol", RESTRICTED_SSL_ALGORITHM.getName());
     }
 
     private static AllowableValue[] getRestrictedProtocolAllowableValues() {

@@ -49,6 +49,7 @@ import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextProvider;
 
@@ -271,6 +272,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         propertyConfiguration.renameProperty("audience", AUDIENCE.getName());
         propertyConfiguration.renameProperty("refresh-window", REFRESH_WINDOW.getName());
         propertyConfiguration.renameProperty("ssl-context-service", SSL_CONTEXT_SERVICE.getName());
+        propertyConfiguration.renameProperty(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE.getName());
     }
 
     @Override

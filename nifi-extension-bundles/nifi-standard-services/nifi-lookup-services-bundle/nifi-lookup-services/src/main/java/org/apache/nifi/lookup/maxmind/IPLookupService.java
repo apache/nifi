@@ -41,6 +41,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.RecordLookupService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.StopWatch;
@@ -83,16 +84,14 @@ public class IPLookupService extends AbstractControllerService implements Record
     static final long REFRESH_THRESHOLD_MS = 5 * 60 * 1000;
 
     static final PropertyDescriptor GEO_DATABASE_FILE = new PropertyDescriptor.Builder()
-        .name("database-file")
-        .displayName("MaxMind Database File")
+        .name("MaxMind Database File")
         .description("Path to Maxmind IP Enrichment Database File")
         .required(true)
         .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     static final PropertyDescriptor LOOKUP_CITY = new PropertyDescriptor.Builder()
-        .name("lookup-city")
-        .displayName("Lookup Geo Enrichment")
+        .name("Lookup Geo Enrichment")
         .description("Specifies whether or not information about the geographic information, such as cities, corresponding to the IP address should be returned")
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -100,8 +99,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .required(true)
         .build();
     static final PropertyDescriptor LOOKUP_ISP = new PropertyDescriptor.Builder()
-        .name("lookup-isp")
-        .displayName("Lookup ISP")
+        .name("Lookup ISP")
         .description("Specifies whether or not information about the Information Service Provider corresponding to the IP address should be returned")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
@@ -109,8 +107,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .required(true)
         .build();
     static final PropertyDescriptor LOOKUP_DOMAIN = new PropertyDescriptor.Builder()
-        .name("lookup-domain")
-        .displayName("Lookup Domain Name")
+        .name("Lookup Domain Name")
         .description("Specifies whether or not information about the Domain Name corresponding to the IP address should be returned. "
             + "If true, the lookup will contain second-level domain information, such as foo.com but will not contain bar.foo.com")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -119,8 +116,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .required(true)
         .build();
     static final PropertyDescriptor LOOKUP_CONNECTION_TYPE = new PropertyDescriptor.Builder()
-        .name("lookup-connection-type")
-        .displayName("Lookup Connection Type")
+        .name("Lookup Connection Type")
         .description("Specifies whether or not information about the Connection Type corresponding to the IP address should be returned. "
             + "If true, the lookup will contain a 'connectionType' field that (if populated) will contain a value of 'Dialup', 'Cable/DSL', 'Corporate', or 'Cellular'")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -129,8 +125,7 @@ public class IPLookupService extends AbstractControllerService implements Record
         .required(true)
         .build();
     static final PropertyDescriptor LOOKUP_ANONYMOUS_IP_INFO = new PropertyDescriptor.Builder()
-        .name("lookup-anonymous-ip")
-        .displayName("Lookup Anonymous IP Information")
+        .name("Lookup Anonymous IP Information")
         .description("Specifies whether or not information about whether or not the IP address belongs to an anonymous network should be returned.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
@@ -238,6 +233,16 @@ public class IPLookupService extends AbstractControllerService implements Record
                 throw new LookupFailureException("Failed to lookup a value for " + coordinates + " due to " + idbe.getMessage(), idbe);
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("database-file", GEO_DATABASE_FILE.getName());
+        config.renameProperty("lookup-city", LOOKUP_CITY.getName());
+        config.renameProperty("lookup-isp", LOOKUP_ISP.getName());
+        config.renameProperty("lookup-domain", LOOKUP_DOMAIN.getName());
+        config.renameProperty("lookup-connection-type", LOOKUP_CONNECTION_TYPE.getName());
+        config.renameProperty("lookup-anonymous-ip", LOOKUP_ANONYMOUS_IP_INFO.getName());
     }
 
     private Optional<Record> doLookup(final DatabaseReader databaseReader, final Map<String, Object> coordinates) throws LookupFailureException, InvalidDatabaseException {

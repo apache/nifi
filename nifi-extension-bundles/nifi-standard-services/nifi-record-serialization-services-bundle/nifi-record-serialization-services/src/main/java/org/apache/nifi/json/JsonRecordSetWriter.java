@@ -76,8 +76,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
     public static final String COMPRESSION_FORMAT_ZSTD = "zstd";
 
     public static final PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
-            .name("suppress-nulls")
-            .displayName("Suppress Null Values")
+            .name("Suppress Null Values")
             .description("Specifies how the writer should handle a null field")
             .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS, SUPPRESS_MISSING)
             .defaultValue(NEVER_SUPPRESS.getValue())
@@ -100,8 +99,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .required(true)
             .build();
     public static final PropertyDescriptor OUTPUT_GROUPING = new PropertyDescriptor.Builder()
-            .name("output-grouping")
-            .displayName("Output Grouping")
+            .name("Output Grouping")
             .description("Specifies how the writer should output the JSON records (as an array or one object per line, e.g.) Note that if 'One Line Per Object' is "
                     + "selected, then Pretty Print JSON must be false.")
             .allowableValues(OUTPUT_ARRAY, OUTPUT_ONELINE)
@@ -109,8 +107,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .required(true)
             .build();
     public static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
-            .name("compression-format")
-            .displayName("Compression Format")
+            .name("Compression Format")
             .description("The compression format to use. Valid values are: GZIP, BZIP2, ZSTD, XZ-LZMA2, LZMA, Snappy, and Snappy Framed")
             .allowableValues(COMPRESSION_FORMAT_NONE, COMPRESSION_FORMAT_GZIP, COMPRESSION_FORMAT_BZIP2, COMPRESSION_FORMAT_XZ_LZMA2,
                     COMPRESSION_FORMAT_SNAPPY, COMPRESSION_FORMAT_SNAPPY_FRAMED, COMPRESSION_FORMAT_ZSTD)
@@ -118,8 +115,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .required(true)
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
-            .name("compression-level")
-            .displayName("Compression Level")
+            .name("Compression Level")
             .description("The compression level to use; this is valid only when using GZIP compression. A lower value results in faster processing "
                     + "but less compression; a value of 0 indicates no compression but simply archiving")
             .defaultValue("1")
@@ -156,6 +152,11 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
         if (!propertyConfiguration.hasProperty(ALLOW_SCIENTIFIC_NOTATION.getName())) {
             propertyConfiguration.setProperty(ALLOW_SCIENTIFIC_NOTATION, "true");
         }
+
+        propertyConfiguration.renameProperty("suppress-nulls", SUPPRESS_NULLS.getName());
+        propertyConfiguration.renameProperty("output-grouping", OUTPUT_GROUPING.getName());
+        propertyConfiguration.renameProperty("compression-format", COMPRESSION_FORMAT.getName());
+        propertyConfiguration.renameProperty("compression-level", COMPRESSION_LEVEL.getName());
     }
 
     @Override

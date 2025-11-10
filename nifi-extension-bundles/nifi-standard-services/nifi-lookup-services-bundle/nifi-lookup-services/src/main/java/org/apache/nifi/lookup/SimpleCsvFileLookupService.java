@@ -41,6 +41,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -60,8 +61,7 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
 
     public static final PropertyDescriptor LOOKUP_VALUE_COLUMN =
         new PropertyDescriptor.Builder()
-            .name("lookup-value-column")
-            .displayName("Lookup Value Column")
+            .name("Lookup Value Column")
             .description("Lookup value column.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -159,6 +159,12 @@ public class SimpleCsvFileLookupService extends AbstractCSVLookupService impleme
     @OnDisabled
     public void onDisabled() {
         cache = null;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("lookup-value-column", LOOKUP_VALUE_COLUMN.getName());
     }
 
     // VisibleForTesting

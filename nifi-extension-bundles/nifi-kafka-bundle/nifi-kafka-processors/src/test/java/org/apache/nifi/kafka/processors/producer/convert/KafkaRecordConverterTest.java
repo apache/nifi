@@ -67,7 +67,7 @@ class KafkaRecordConverterTest {
 
         runner.addControllerService("jsonRecordSetWriter", jsonRecordSetWriter);
         runner.setProperty(jsonRecordSetWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
-        runner.setProperty(jsonRecordSetWriter, "output-grouping", "output-oneline");
+        runner.setProperty(jsonRecordSetWriter, JsonRecordSetWriter.OUTPUT_GROUPING, "output-oneline");
         runner.enableControllerService(jsonRecordSetWriter);
 
         ComponentLog mockLog = mock(ComponentLog.class);
