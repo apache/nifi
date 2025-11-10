@@ -140,7 +140,8 @@ public interface KafkaClientComponent {
             .required(true)
             .dependsOn(
                     KafkaClientComponent.AWS_ROLE_SOURCE,
-                    AwsRoleSource.SPECIFIED_ROLE
+                    AwsRoleSource.SPECIFIED_ROLE,
+                    AwsRoleSource.WEB_IDENTITY_TOKEN
             )
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -152,10 +153,22 @@ public interface KafkaClientComponent {
             .required(true)
             .dependsOn(
                     KafkaClientComponent.AWS_ROLE_SOURCE,
-                    AwsRoleSource.SPECIFIED_ROLE
+                    AwsRoleSource.SPECIFIED_ROLE,
+                    AwsRoleSource.WEB_IDENTITY_TOKEN
             )
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+    PropertyDescriptor AWS_WEB_IDENTITY_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("AWS Web Identity Token Provider")
+            .description("Controller Service providing tokens with OAuth2 OpenID Connect for AWS Web Identity federation.")
+            .identifiesControllerService(OAuth2AccessTokenProvider.class)
+            .required(true)
+            .dependsOn(
+                    KafkaClientComponent.AWS_ROLE_SOURCE,
+                    AwsRoleSource.WEB_IDENTITY_TOKEN
+            )
             .build();
 
     PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()

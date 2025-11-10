@@ -17,10 +17,16 @@
 package org.apache.nifi.kafka.shared.property.provider;
 
 import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.kafka.shared.aws.AmazonMSKProperty;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
+import org.apache.nifi.kafka.shared.property.AwsRoleSource;
 import org.apache.nifi.kafka.shared.property.KafkaClientProperty;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
 import org.apache.nifi.kafka.shared.property.SecurityProtocol;
+import org.apache.nifi.oauth2.AccessToken;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -76,5 +82,37 @@ class StandardKafkaPropertyProviderTest {
         final Object saslConfigProperty = properties.get(KafkaClientProperty.SASL_JAAS_CONFIG.getProperty());
         assertNotNull(saslConfigProperty, "SASL configuration not found");
         assertTrue(saslConfigProperty.toString().contains(SCRAM_LOGIN_MODULE), "SCRAM configuration not found");
+    }
+
+    @Test
+    void testGetPropertiesAwsMskIamWithCredentialsService() throws InitializationException {
+        runner.setProperty(KafkaClientComponent.SECURITY_PROTOCOL, SecurityProtocol.SASL_PLAINTEXT.name());
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.AWS_MSK_IAM);
+        runner.setProperty(KafkaClientComponent.AWS_ROLE_SOURCE, AwsRoleSource.WEB_IDENTITY_TOKEN.name());
+        runner.setProperty(KafkaClientComponent.BOOTSTRAP_SERVERS, "localhost:9092");
+
+        runner.setProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN, "arn:aws:iam::123456789012:role/TestRole");
+        runner.setProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME, "TestSession");
+
+        final MockOAuth2AccessTokenProvider tokenProvider = new MockOAuth2AccessTokenProvider();
+        runner.addControllerService("webIdentityToken", tokenProvider);
+        runner.enableControllerService(tokenProvider);
+        runner.setProperty(KafkaClientComponent.AWS_WEB_IDENTITY_TOKEN_PROVIDER, "webIdentityToken");
+
+        final PropertyContext propertyContext = runner.getProcessContext();
+        final Map<String, Object> properties = provider.getProperties(propertyContext);
+
+        final Object callbackHandler = properties.get(KafkaClientProperty.SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty());
+        assertEquals(AmazonMSKProperty.NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS.getProperty(), callbackHandler);
+    }
+
+    private static class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
+        @Override
+        public AccessToken getAccessDetails() {
+            final AccessToken accessToken = new AccessToken();
+            accessToken.setAccessToken("mock-access-token");
+            accessToken.setAdditionalParameter("id_token", "mock-id-token");
+            return accessToken;
+        }
     }
 }

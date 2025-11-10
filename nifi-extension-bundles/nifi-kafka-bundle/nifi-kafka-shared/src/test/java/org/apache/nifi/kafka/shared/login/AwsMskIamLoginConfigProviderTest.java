@@ -19,9 +19,13 @@ package org.apache.nifi.kafka.shared.login;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
+import org.apache.nifi.kafka.shared.property.AwsRoleSource;
+import org.apache.nifi.oauth2.AccessToken;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -69,5 +73,38 @@ class AwsMskIamLoginConfigProviderTest {
         assertTrue(configuration.contains(IAM_LOGIN_MODULE), "IAM Login Module not present");
         assertTrue(configuration.contains("awsRoleArn=\"arn:aws:iam::123456789012:role/MyRole\""), "awsRoleArn JAAS option not present");
         assertTrue(configuration.contains("awsRoleSessionName=\"MySession\""), "awsRoleSessionName JAAS option not present");
+    }
+
+    @Test
+    void testConfigurationWithWebIdentityProvider() throws InitializationException {
+        runner.setProperty(KafkaClientComponent.SASL_MECHANISM, SaslMechanism.AWS_MSK_IAM);
+        runner.setProperty(KafkaClientComponent.AWS_ROLE_SOURCE, AwsRoleSource.WEB_IDENTITY_TOKEN.name());
+
+        runner.setProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN, "arn:aws:iam::123456789012:role/WebIdentityRole");
+        runner.setProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME, "WebIdentitySession");
+
+        final MockOAuth2AccessTokenProvider tokenProvider = new MockOAuth2AccessTokenProvider();
+        runner.addControllerService("webIdentityToken", tokenProvider);
+        runner.enableControllerService(tokenProvider);
+        runner.setProperty(KafkaClientComponent.AWS_WEB_IDENTITY_TOKEN_PROVIDER, "webIdentityToken");
+
+        final PropertyContext context = runner.getProcessContext();
+        final String configuration = provider.getConfiguration(context);
+
+        assertNotNull(configuration);
+        assertTrue(configuration.contains("awsRoleArn=\"arn:aws:iam::123456789012:role/WebIdentityRole\""),
+                "awsRoleArn JAAS option not present");
+        assertTrue(configuration.contains("awsRoleSessionName=\"WebIdentitySession\""),
+                "awsRoleSessionName JAAS option not present");
+    }
+
+    private static class MockOAuth2AccessTokenProvider extends org.apache.nifi.controller.AbstractControllerService implements OAuth2AccessTokenProvider {
+        @Override
+        public AccessToken getAccessDetails() {
+            final AccessToken accessToken = new AccessToken();
+            accessToken.setAccessToken("mock-access-token");
+            accessToken.setAdditionalParameter("id_token", "mock-id-token");
+            return accessToken;
+        }
     }
 }

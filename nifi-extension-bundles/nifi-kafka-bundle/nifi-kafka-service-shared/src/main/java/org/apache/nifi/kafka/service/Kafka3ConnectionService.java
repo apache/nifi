@@ -318,7 +318,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         return results;
     }
 
-    private Properties getProducerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
+    protected Properties getProducerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
         final Properties properties = new Properties();
         properties.putAll(defaultProperties);
 
@@ -332,7 +332,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         return properties;
     }
 
-    private Properties getConsumerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
+    protected Properties getConsumerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {
         final Properties properties = new Properties();
         properties.putAll(defaultProperties);
 
@@ -346,7 +346,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         return properties;
     }
 
-    private Properties getClientProperties(final PropertyContext propertyContext) {
+    protected Properties getClientProperties(final PropertyContext propertyContext) {
         final Properties properties = new Properties();
 
         final String configuredBootstrapServers = propertyContext.getProperty(BOOTSTRAP_SERVERS).getValue();
