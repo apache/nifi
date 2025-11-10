@@ -110,6 +110,7 @@ public class ListFTP extends ListFileTransfer {
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
+        config.renameProperty(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName());
         config.renameProperty(FTPTransfer.OLD_FOLLOW_SYMLINK_PROPERTY_NAME, FTPTransfer.FOLLOW_SYMLINK.getName());
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListedEntityTracker.TRACKING_STATE_CACHE.getName());
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListedEntityTracker.TRACKING_TIME_WINDOW.getName());

@@ -28,6 +28,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -87,8 +88,7 @@ public class CountText extends AbstractProcessor {
 
 
     public static final PropertyDescriptor TEXT_LINE_COUNT_PD = new PropertyDescriptor.Builder()
-            .name("text-line-count")
-            .displayName("Count Lines")
+            .name("Count Lines")
             .description("If enabled, will count the number of lines present in the incoming text.")
             .required(true)
             .allowableValues("true", "false")
@@ -96,8 +96,7 @@ public class CountText extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
     public static final PropertyDescriptor TEXT_LINE_NONEMPTY_COUNT_PD = new PropertyDescriptor.Builder()
-            .name("text-line-nonempty-count")
-            .displayName("Count Non-Empty Lines")
+            .name("Count Non-Empty Lines")
             .description("If enabled, will count the number of lines that contain a non-whitespace character present in the incoming text.")
             .required(true)
             .allowableValues("true", "false")
@@ -105,8 +104,7 @@ public class CountText extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
     public static final PropertyDescriptor TEXT_WORD_COUNT_PD = new PropertyDescriptor.Builder()
-            .name("text-word-count")
-            .displayName("Count Words")
+            .name("Count Words")
             .description("If enabled, will count the number of words (alphanumeric character groups bounded by whitespace)" +
                     " present in the incoming text. Common logical delimiters [_-.] do not bound a word unless 'Split Words on Symbols' is true.")
             .required(true)
@@ -115,8 +113,7 @@ public class CountText extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
     public static final PropertyDescriptor TEXT_CHARACTER_COUNT_PD = new PropertyDescriptor.Builder()
-            .name("text-character-count")
-            .displayName("Count Characters")
+            .name("Count Characters")
             .description("If enabled, will count the number of characters (including whitespace and symbols, but not including newlines and carriage returns) present in the incoming text.")
             .required(true)
             .allowableValues("true", "false")
@@ -124,8 +121,7 @@ public class CountText extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
     public static final PropertyDescriptor SPLIT_WORDS_ON_SYMBOLS_PD = new PropertyDescriptor.Builder()
-            .name("split-words-on-symbols")
-            .displayName("Split Words on Symbols")
+            .name("Split Words on Symbols")
             .description("If enabled, the word count will identify strings separated by common logical delimiters [ _ - . ] as independent words (ex. split-words-on-symbols = 4 words).")
             .required(true)
             .allowableValues("true", "false")
@@ -133,16 +129,14 @@ public class CountText extends AbstractProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
     public static final PropertyDescriptor CHARACTER_ENCODING_PD = new PropertyDescriptor.Builder()
-            .name("character-encoding")
-            .displayName("Character Encoding")
+            .name("Character Encoding")
             .description("Specifies a character encoding to use.")
             .required(true)
             .allowableValues(getStandardCharsetNames())
             .defaultValue(StandardCharsets.UTF_8.displayName())
             .build();
     public static final PropertyDescriptor ADJUST_IMMEDIATELY = new PropertyDescriptor.Builder()
-            .name("ajust-immediately")
-            .displayName("Call Immediate Adjustment")
+            .name("Call Immediate Adjustment")
             .description("If true, the counter will be updated immediately, without regard to whether the ProcessSession is commit or rolled back;" +
                     "otherwise, the counter will be incremented only if and when the ProcessSession is committed.")
             .required(true)
@@ -292,6 +286,17 @@ public class CountText extends AbstractProcessor {
             FlowFile updatedFlowFile = processSession.putAllAttributes(sourceFlowFile, metricAttributes);
             processSession.transfer(updatedFlowFile, REL_SUCCESS);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("text-line-count", TEXT_LINE_COUNT_PD.getName());
+        config.renameProperty("text-line-nonempty-count", TEXT_LINE_NONEMPTY_COUNT_PD.getName());
+        config.renameProperty("text-word-count", TEXT_WORD_COUNT_PD.getName());
+        config.renameProperty("text-character-count", TEXT_CHARACTER_COUNT_PD.getName());
+        config.renameProperty("split-words-on-symbols", SPLIT_WORDS_ON_SYMBOLS_PD.getName());
+        config.renameProperty("character-encoding", CHARACTER_ENCODING_PD.getName());
+        config.renameProperty("ajust-immediately", ADJUST_IMMEDIATELY.getName());
     }
 
     private String generateMetricsMessage(int lineCount, int lineNonEmptyCount, int wordCount, int characterCount) {

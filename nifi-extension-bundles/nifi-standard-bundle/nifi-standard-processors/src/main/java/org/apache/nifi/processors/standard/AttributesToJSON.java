@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -108,8 +109,7 @@ public class AttributesToJSON extends AbstractProcessor {
 
 
     public static final PropertyDescriptor ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
-            .name("attributes-to-json-regex")
-            .displayName("Attributes Regular Expression")
+            .name("Attributes Regular Expression")
             .description("Regular expression that will be evaluated against the flow file attributes to select "
                     + "the matching attributes. This property can be used in combination with the attributes "
                     + "list property.")
@@ -304,6 +304,11 @@ public class AttributesToJSON extends AbstractProcessor {
             getLogger().error(e.getMessage());
             session.transfer(original, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("attributes-to-json-regex", ATTRIBUTES_REGEX.getName());
     }
 
     private Map<String, Object> getFormattedAttributes(Map<String, Object> flowFileAttributes) throws JsonProcessingException {

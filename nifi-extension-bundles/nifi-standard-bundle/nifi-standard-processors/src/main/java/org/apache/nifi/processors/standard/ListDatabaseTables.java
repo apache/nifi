@@ -34,6 +34,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -146,18 +147,15 @@ public class ListDatabaseTables extends AbstractProcessor {
     public static final String DB_TABLE_REMARKS = "db.table.remarks";
     public static final String DB_TABLE_COUNT = "db.table.count";
 
-    // Property descriptors
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
-            .name("list-db-tables-db-connection")
-            .displayName("Database Connection Pooling Service")
+            .name("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain connection to database")
             .required(true)
             .identifiesControllerService(DBCPService.class)
             .build();
 
     public static final PropertyDescriptor CATALOG = new PropertyDescriptor.Builder()
-            .name("list-db-tables-catalog")
-            .displayName("Catalog")
+            .name("Catalog")
             .description("The name of a catalog from which to list database tables. The name must match the catalog name as it is stored in the database. "
                     + "If the property is not set, the catalog name will not be used to narrow the search for tables. If the property is set to an empty string, "
                     + "tables without a catalog will be listed.")
@@ -166,8 +164,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SCHEMA_PATTERN = new PropertyDescriptor.Builder()
-            .name("list-db-tables-schema-pattern")
-            .displayName("Schema Pattern")
+            .name("Schema Pattern")
             .description("A pattern for matching schemas in the database. Within a pattern, \"%\" means match any substring of 0 or more characters, "
                     + "and \"_\" means match any one character. The pattern must match the schema name as it is stored in the database. "
                     + "If the property is not set, the schema name will not be used to narrow the search for tables. If the property is set to an empty string, "
@@ -177,8 +174,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor TABLE_NAME_PATTERN = new PropertyDescriptor.Builder()
-            .name("list-db-tables-name-pattern")
-            .displayName("Table Name Pattern")
+            .name("Table Name Pattern")
             .description("A pattern for matching tables in the database. Within a pattern, \"%\" means match any substring of 0 or more characters, "
                     + "and \"_\" means match any one character. The pattern must match the table name as it is stored in the database. "
                     + "If the property is not set, all tables will be retrieved.")
@@ -187,8 +183,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor TABLE_TYPES = new PropertyDescriptor.Builder()
-            .name("list-db-tables-types")
-            .displayName("Table Types")
+            .name("Table Types")
             .description("A comma-separated list of table types to include. For example, some databases support TABLE and VIEW types. If the property is not set, "
                     + "tables of all types will be returned.")
             .required(false)
@@ -197,8 +192,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor INCLUDE_COUNT = new PropertyDescriptor.Builder()
-            .name("list-db-include-count")
-            .displayName("Include Count")
+            .name("Include Count")
             .description("Whether to include the table's row count as a flow file attribute. This affects performance as a database query will be generated "
                     + "for each table in the retrieved list.")
             .required(true)
@@ -207,8 +201,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor REFRESH_INTERVAL = new PropertyDescriptor.Builder()
-            .name("list-db-refresh-interval")
-            .displayName("Refresh Interval")
+            .name("Refresh Interval")
             .description("The amount of time to elapse before resetting the processor state, thereby causing all current tables to be listed. "
                     + "During this interval, the processor may continue to run, but tables that have already been listed will not be re-listed. However new/added "
                     + "tables will be listed as the processor runs. A value of zero means the state will never be automatically reset, the user must "
@@ -219,8 +212,7 @@ public class ListDatabaseTables extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
+        .name("Record Writer")
         .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
             "all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
         .required(false)
@@ -381,6 +373,18 @@ public class ListDatabaseTables extends AbstractProcessor {
             session.rollback();
             throw new ProcessException(e);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("list-db-tables-db-connection", DBCP_SERVICE.getName());
+        config.renameProperty("list-db-tables-catalog", CATALOG.getName());
+        config.renameProperty("list-db-tables-schema-pattern", SCHEMA_PATTERN.getName());
+        config.renameProperty("list-db-tables-name-pattern", TABLE_NAME_PATTERN.getName());
+        config.renameProperty("list-db-tables-types", TABLE_TYPES.getName());
+        config.renameProperty("list-db-include-count", INCLUDE_COUNT.getName());
+        config.renameProperty("list-db-refresh-interval", REFRESH_INTERVAL.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
     }
 
     interface TableListingWriter {

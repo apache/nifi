@@ -27,6 +27,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -47,8 +48,7 @@ import java.util.Set;
 public class LogMessage extends AbstractProcessor {
 
     public static final PropertyDescriptor LOG_LEVEL = new PropertyDescriptor.Builder()
-            .name("log-level")
-            .displayName("Log Level")
+            .name("Log Level")
             .required(true)
             .description("The Log Level to use when logging the message: " + Arrays.toString(MessageLogLevel.values()))
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -57,8 +57,7 @@ public class LogMessage extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor LOG_PREFIX = new PropertyDescriptor.Builder()
-            .name("log-prefix")
-            .displayName("Log prefix")
+            .name("Log Prefix")
             .required(false)
             .description("Log prefix appended to the log lines. " +
                     "It helps to distinguish the output of multiple LogMessage processors.")
@@ -67,8 +66,7 @@ public class LogMessage extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor LOG_MESSAGE = new PropertyDescriptor.Builder()
-            .name("log-message")
-            .displayName("Log message")
+            .name("Log Message")
             .required(false)
             .description("The log message to emit")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -134,6 +132,13 @@ public class LogMessage extends AbstractProcessor {
             processFlowFile(logger, logLevel, flowFile, context);
         }
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("log-level", LOG_LEVEL.getName());
+        config.renameProperty("log-prefix", LOG_PREFIX.getName());
+        config.renameProperty("log-message", LOG_MESSAGE.getName());
     }
 
     private void processFlowFile(

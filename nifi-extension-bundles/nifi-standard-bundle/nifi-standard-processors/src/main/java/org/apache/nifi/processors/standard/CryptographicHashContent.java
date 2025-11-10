@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -49,8 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class CryptographicHashContent extends AbstractProcessor {
 
     static final PropertyDescriptor FAIL_WHEN_EMPTY = new PropertyDescriptor.Builder()
-            .name("fail_when_empty")
-            .displayName("Fail if the content is empty")
+            .name("Fail When Content Empty")
             .description("Route to failure if the content is empty. " +
                     "While hashing an empty value is valid, some flows may want to detect empty input.")
             .allowableValues("true", "false")
@@ -60,8 +60,7 @@ public class CryptographicHashContent extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor HASH_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("hash_algorithm")
-            .displayName("Hash Algorithm")
+            .name("Hash Algorithm")
             .description("The hash algorithm to use. Note that not all of the algorithms available are recommended for use (some are provided for legacy compatibility). " +
                     "There are many things to consider when picking an algorithm; it is recommended to use the most secure algorithm possible.")
             .required(true)
@@ -147,5 +146,11 @@ public class CryptographicHashContent extends AbstractProcessor {
             logger.error("Routing to failure since failed to process {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("fail_when_empty", FAIL_WHEN_EMPTY.getName());
+        config.renameProperty("hash_algorithm", HASH_ALGORITHM.getName());
     }
 }

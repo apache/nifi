@@ -39,6 +39,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -110,24 +111,21 @@ public class UpdateDatabaseTable extends AbstractProcessor {
 
     // Properties
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("The service for reading incoming flow files. The reader is only used to determine the schema of the records, the actual records will not be processed.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-dbcp-service")
-            .displayName("Database Connection Pooling Service")
+            .name("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain connection(s) to the database")
             .required(true)
             .identifiesControllerService(DBCPService.class)
             .build();
 
     static final PropertyDescriptor CATALOG_NAME = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-catalog-name")
-            .displayName("Catalog Name")
+            .name("Catalog Name")
             .description("The name of the catalog that the statement should update. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the catalog name must match the database's catalog name exactly.")
             .required(false)
@@ -136,8 +134,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor SCHEMA_NAME = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-schema-name")
-            .displayName("Schema Name")
+            .name("Schema Name")
             .description("The name of the database schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly.")
             .required(false)
@@ -146,8 +143,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor TABLE_NAME = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-table-name")
-            .displayName("Table Name")
+            .name("Table Name")
             .description("The name of the database table to update. If the table does not exist, then it will either be created or an error thrown, depending "
                     + "on the value of the Create Table property.")
             .required(true)
@@ -156,8 +152,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor CREATE_TABLE = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-create-table")
-            .displayName("Create Table Strategy")
+            .name("Create Table Strategy")
             .description("Specifies how to process the target table when it does not exist (create it, fail, e.g.).")
             .required(true)
             .addValidator(Validator.VALID)
@@ -166,8 +161,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor PRIMARY_KEY_FIELDS = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-primary-keys")
-            .displayName("Primary Key Fields")
+            .name("Primary Key Fields")
             .description("A comma-separated list of record field names that uniquely identifies a row in the database. This property is only used if the specified table needs to be created, "
                     + "in which case the Primary Key Fields will be used to specify the primary keys of the newly-created table. IMPORTANT: Primary Key Fields must match the record field "
                     + "names exactly unless 'Quote Column Identifiers' is false and the database allows for case-insensitive column names. In practice it is best to specify Primary Key Fields "
@@ -179,8 +173,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor TRANSLATE_FIELD_NAMES = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-translate-field-names")
-            .displayName("Translate Field Names")
+            .name("Translate Field Names")
             .description("If true, the Processor will attempt to translate field names into the corresponding column names for the table specified, for the purposes of determining whether "
                     + "the field name exists as a column in the target table. NOTE: If the target table does not exist and is to be created, this property is ignored and the field names will be "
                     + "used as-is. If false, the field names must match the column names exactly, or the column may not be found and instead an error my be reported that the column already exists.")
@@ -209,8 +202,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor UPDATE_FIELD_NAMES = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-update-field-names")
-            .displayName("Update Field Names")
+            .name("Update Field Names")
             .description("This property indicates whether to update the output schema such that the field names are set to the exact column names from the specified "
                     + "table. This should be used if the incoming record field names may not match the table's column names in terms of upper- and lower-case. For example, this property should be "
                     + "set to true if the output FlowFile is destined for Oracle e.g., which expects the field names to match the column names exactly. NOTE: The value of the "
@@ -221,8 +213,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Controller Service to use for writing results to a FlowFile. The Record Writer should use Inherit Schema to emulate the inferred schema behavior, i.e. "
                     + "an explicit schema need not be defined in the writer, and will be supplied by the same logic used to infer the schema from the column types. If Create Table Strategy is set "
                     + "'Create If Not Exists', the Record Writer's output format must match the Record Reader's format in order for the data to be placed in the created table location. Note that "
@@ -235,8 +226,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor QUOTE_COLUMN_IDENTIFIERS = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-quoted-column-identifiers")
-            .displayName("Quote Column Identifiers")
+            .name("Quote Column Identifiers")
             .description("Enabling this option will cause all column names to be quoted, allowing you to use reserved words as column names in your tables and/or forcing the "
                     + "record field names to match the column names exactly.")
             .allowableValues("true", "false")
@@ -244,8 +234,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor QUOTE_TABLE_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-quoted-table-identifiers")
-            .displayName("Quote Table Identifiers")
+            .name("Quote Table Identifiers")
             .description("Enabling this option will cause the table name to be quoted to support the use of special characters in the table name and/or forcing the "
                     + "value of the Table Name property to match the target table name exactly.")
             .allowableValues("true", "false")
@@ -253,8 +242,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor QUERY_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("updatedatabasetable-query-timeout")
-            .displayName("Query Timeout")
+            .name("Query Timeout")
             .description("Sets the number of seconds the driver will wait for a query to execute. "
                     + "A value of 0 means no timeout. NOTE: Non-zero values may not be supported by the driver.")
             .defaultValue("0")
@@ -263,7 +251,7 @@ public class UpdateDatabaseTable extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    static final PropertyDescriptor DB_TYPE = DatabaseAdapterDescriptor.getDatabaseTypeDescriptor("db-type");
+    static final PropertyDescriptor DB_TYPE = DatabaseAdapterDescriptor.getDatabaseTypeDescriptor();
     static final PropertyDescriptor DATABASE_DIALECT_SERVICE = DatabaseAdapterDescriptor.getDatabaseDialectServiceDescriptor(DB_TYPE);
     private static final List<PropertyDescriptor> properties;
 
@@ -481,6 +469,24 @@ public class UpdateDatabaseTable extends AbstractProcessor {
         } catch (Throwable t) {
             throw (t instanceof ProcessException) ? (ProcessException) t : new ProcessException(t);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER.getName());
+        config.renameProperty("db-type", DB_TYPE.getName());
+        config.renameProperty("updatedatabasetable-dbcp-service", DBCP_SERVICE.getName());
+        config.renameProperty("updatedatabasetable-catalog-name", CATALOG_NAME.getName());
+        config.renameProperty("updatedatabasetable-schema-name", SCHEMA_NAME.getName());
+        config.renameProperty("updatedatabasetable-table-name", TABLE_NAME.getName());
+        config.renameProperty("updatedatabasetable-create-table", CREATE_TABLE.getName());
+        config.renameProperty("updatedatabasetable-primary-keys", PRIMARY_KEY_FIELDS.getName());
+        config.renameProperty("updatedatabasetable-translate-field-names", TRANSLATE_FIELD_NAMES.getName());
+        config.renameProperty("updatedatabasetable-update-field-names", UPDATE_FIELD_NAMES.getName());
+        config.renameProperty("updatedatabasetable-record-writer", RECORD_WRITER_FACTORY.getName());
+        config.renameProperty("updatedatabasetable-quoted-column-identifiers", QUOTE_COLUMN_IDENTIFIERS.getName());
+        config.renameProperty("updatedatabasetable-quoted-table-identifiers", QUOTE_TABLE_IDENTIFIER.getName());
+        config.renameProperty("updatedatabasetable-query-timeout", QUERY_TIMEOUT.getName());
     }
 
     private synchronized OutputMetadataHolder checkAndUpdateTableSchema(

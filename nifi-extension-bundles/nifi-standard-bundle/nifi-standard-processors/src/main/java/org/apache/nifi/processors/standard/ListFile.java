@@ -223,8 +223,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
             .build();
 
     public static final PropertyDescriptor TRACK_PERFORMANCE = new Builder()
-        .name("track-performance")
-        .displayName("Track Performance")
+        .name("Track Performance")
         .description("Whether or not the Processor should track the performance of disk access operations. If true, all accesses to disk will be recorded, including the file being accessed, the " +
             "information being obtained, and how long it takes. This is then logged periodically at a DEBUG level. While the amount of data will be capped, " +
             "this option may still consume a significant amount of heap (controlled by the 'Maximum Number of Files to Track' property), " +
@@ -235,8 +234,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         .build();
 
     public static final PropertyDescriptor MAX_TRACKED_FILES = new Builder()
-        .name("max-performance-metrics")
-        .displayName("Maximum Number of Files to Track")
+        .name("Maximum Number of Files to Track")
         .description("If the 'Track Performance' property is set to 'true', this property indicates the maximum number of files whose performance metrics should be held onto. A smaller value for " +
             "this property will result in less heap utilization, while a larger value may provide more accurate insights into how the disk access operations are performing")
         .required(true)
@@ -246,8 +244,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         .build();
 
     public static final PropertyDescriptor MAX_DISK_OPERATION_TIME = new Builder()
-        .name("max-operation-time")
-        .displayName("Max Disk Operation Time")
+        .name("Max Disk Operation Time")
         .description("The maximum amount of time that any single disk operation is expected to take. If any disk operation takes longer than this amount of time, a warning bulletin will be " +
             "generated for each operation that exceeds this amount of time.")
         .required(false)
@@ -257,8 +254,7 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
         .build();
 
     public static final PropertyDescriptor MAX_LISTING_TIME = new Builder()
-        .name("max-listing-time")
-        .displayName("Max Directory Listing Time")
+        .name("Max Directory Listing Time")
         .description("The maximum amount of time that listing any single directory is expected to take. If the listing for the directory specified by the 'Input Directory' property, " +
             "or the listing of any subdirectory (if 'Recurse' is set to true) takes longer than this amount of time, a warning bulletin will be generated for each directory listing " +
             "that exceeds this amount of time.")
@@ -370,6 +366,10 @@ public class ListFile extends AbstractListProcessor<FileInfo> {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
+        config.renameProperty("track-performance", TRACK_PERFORMANCE.getName());
+        config.renameProperty("max-performance-metrics", MAX_TRACKED_FILES.getName());
+        config.renameProperty("max-operation-time", MAX_DISK_OPERATION_TIME.getName());
+        config.renameProperty("max-listing-time", MAX_LISTING_TIME.getName());
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListedEntityTracker.TRACKING_STATE_CACHE.getName());
         config.renameProperty(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListedEntityTracker.TRACKING_TIME_WINDOW.getName());
         config.renameProperty(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListedEntityTracker.INITIAL_LISTING_TARGET.getName());

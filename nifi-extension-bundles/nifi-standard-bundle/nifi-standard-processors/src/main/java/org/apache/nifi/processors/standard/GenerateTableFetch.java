@@ -50,6 +50,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -125,8 +126,7 @@ import java.util.stream.IntStream;
 public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     public static final PropertyDescriptor PARTITION_SIZE = new PropertyDescriptor.Builder()
-            .name("gen-table-fetch-partition-size")
-            .displayName("Partition Size")
+            .name("Partition Size")
             .description("The number of result rows to be fetched by each generated SQL statement. The total number of rows in "
                     + "the table divided by the partition size gives the number of SQL statements (i.e. FlowFiles) generated. A "
                     + "value of zero indicates that a single FlowFile is to be generated whose SQL statement will fetch all rows "
@@ -138,8 +138,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .build();
 
     static final PropertyDescriptor COLUMN_FOR_VALUE_PARTITIONING = new PropertyDescriptor.Builder()
-            .name("gen-table-column-for-val-partitioning")
-            .displayName("Column for Value Partitioning")
+            .name("Column for Value Partitioning")
             .description("The name of a column whose values will be used for partitioning. The default behavior is to use row numbers on the result set for partitioning into "
                     + "'pages' to be fetched from the database, using an offset/limit strategy. However for certain databases, it can be more efficient under the right circumstances to use "
                     + "the column values themselves to define the 'pages'. This property should only be used when the default queries are not performing well, when there is no maximum-value "
@@ -151,8 +150,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .build();
 
     static final PropertyDescriptor OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS = new PropertyDescriptor.Builder()
-            .name("gen-table-output-flowfile-on-zero-results")
-            .displayName("Output Empty FlowFile on Zero Results")
+            .name("Output Empty FlowFile on Zero Results")
             .description("Depending on the specified properties, an execution of this processor may not result in any SQL statements generated. When this property "
                     + "is true, an empty FlowFile will be generated (having the parent of the incoming FlowFile if present) and transferred to the 'success' relationship. "
                     + "When this property is false, no output FlowFiles will be generated.")
@@ -163,8 +161,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             .build();
 
     static final PropertyDescriptor CUSTOM_ORDERBY_COLUMN = new PropertyDescriptor.Builder()
-            .name("gen-table-custom-orderby-column")
-            .displayName("Custom ORDER BY Column")
+            .name("Custom ORDER BY Column")
             .description("The name of a column to be used for ordering the results if Max-Value Columns are not provided and partitioning is enabled. This property is ignored if either "
                     + "Max-Value Columns is set or Partition Size = 0. NOTE: If neither Max-Value Columns nor Custom ORDER BY Column is set, then depending on the "
                     + "the database/driver, the processor may report an error and/or the generated SQL may result in missing and/or duplicate rows. This is because without an explicit "
@@ -587,6 +584,15 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
             session.rollback();
             context.yield();
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("gen-table-fetch-partition-size", PARTITION_SIZE.getName());
+        config.renameProperty("gen-table-column-for-val-partitioning", COLUMN_FOR_VALUE_PARTITIONING.getName());
+        config.renameProperty("gen-table-output-flowfile-on-zero-results", OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS.getName());
+        config.renameProperty("gen-table-custom-orderby-column", CUSTOM_ORDERBY_COLUMN.getName());
     }
 
     private QueryStatementRequest getMaxColumnStatementRequest(final String tableName, final List<String> maxValueSelectColumns, final String whereClause) {

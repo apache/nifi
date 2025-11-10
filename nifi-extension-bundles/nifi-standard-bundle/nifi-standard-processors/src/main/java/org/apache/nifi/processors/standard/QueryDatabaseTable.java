@@ -126,6 +126,7 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty(JdbcProperties.OLD_NORMALIZE_NAMES_FOR_AVRO_PROPERTY_NAME, NORMALIZE_NAMES_FOR_AVRO.getName());
         config.renameProperty(JdbcProperties.OLD_USE_AVRO_LOGICAL_TYPES_PROPERTY_NAME, USE_AVRO_LOGICAL_TYPES.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE.getName());

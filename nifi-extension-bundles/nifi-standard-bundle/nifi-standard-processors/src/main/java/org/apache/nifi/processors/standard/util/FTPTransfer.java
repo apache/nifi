@@ -67,6 +67,7 @@ public class FTPTransfer implements FileTransfer {
     public static final String FTP_TIMEVAL_FORMAT = "yyyyMMddHHmmss";
 
     // Obsolete property names
+    public static final String OBSOLETE_UTF8_ENCODING = "ftp-use-utf8";
     private static final String OBSOLETE_PROXY_TYPE = "Proxy Type";
     private static final String OBSOLETE_PROXY_HOST = "Proxy Host";
     private static final String OBSOLETE_PROXY_PORT = "Proxy Port";
@@ -100,8 +101,7 @@ public class FTPTransfer implements FileTransfer {
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .build();
     public static final PropertyDescriptor UTF8_ENCODING = new PropertyDescriptor.Builder()
-            .name("ftp-use-utf8")
-            .displayName("Use UTF-8 Encoding")
+            .name("Use UTF-8 Encoding")
             .description("Tells the client to use UTF-8 encoding when processing files and filenames. If set to true, the server must also support UTF-8 encoding.")
             .required(true)
             .allowableValues("true", "false")
