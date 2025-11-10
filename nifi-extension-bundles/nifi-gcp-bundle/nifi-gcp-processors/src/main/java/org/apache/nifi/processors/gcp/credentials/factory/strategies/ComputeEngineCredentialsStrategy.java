@@ -20,7 +20,6 @@ import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.ComputeEngineCredentials;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 
 import java.io.IOException;
 import java.util.Map;
@@ -31,9 +30,9 @@ import java.util.Map;
  * @see <a href="https://cloud.google.com/compute/docs/access/create-enable-service-accounts-for-instances">
  *     Service Accounts for Instances</a>
  */
-public class ComputeEngineCredentialsStrategy extends AbstractBooleanCredentialsStrategy {
+public class ComputeEngineCredentialsStrategy extends AbstractCredentialsStrategy {
     public ComputeEngineCredentialsStrategy() {
-        super("Compute Engine Credentials", CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS);
+        super("Compute Engine Credentials");
     }
 
     @Override

@@ -19,23 +19,21 @@ package org.apache.nifi.processors.gcp.credentials.factory.strategies;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 
 import java.io.IOException;
 import java.util.Map;
 
 
 /**
- * Supports GCP Application Default Credentials.  Compared to ImplicitApplicationDefaultCredentialsStrategy, this
- * strategy is designed to be visible to the user, and depends on an affirmative selection from the user.
+ * Supports GCP Application Default Credentials.
  *
  * @see <a href="https://developers.google.com/identity/protocols/application-default-credentials">
  *     Application Default Credentials</a>
  */
-public class ExplicitApplicationDefaultCredentialsStrategy extends AbstractBooleanCredentialsStrategy {
+public class ApplicationDefaultCredentialsStrategy extends AbstractCredentialsStrategy {
 
-    public ExplicitApplicationDefaultCredentialsStrategy() {
-        super("Application Default Credentials", CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS);
+    public ApplicationDefaultCredentialsStrategy() {
+        super("Application Default Credentials");
     }
 
     @Override
