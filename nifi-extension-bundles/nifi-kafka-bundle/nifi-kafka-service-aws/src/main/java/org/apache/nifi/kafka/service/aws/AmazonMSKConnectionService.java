@@ -84,8 +84,8 @@ public class AmazonMSKConnectionService extends Kafka3ConnectionService {
                     KafkaClientComponent.AWS_ROLE_SOURCE,
                     AwsRoleSource.WEB_IDENTITY_TOKEN
             )
-            .required(false)
-            .defaultValue(String.format("%d sec", MAX_SESSION_DURATION_SECONDS))
+            .required(true)
+            .defaultValue("%d sec".formatted(MAX_SESSION_DURATION_SECONDS))
             .addValidator(StandardValidators.createTimePeriodValidator(
                     MIN_SESSION_DURATION_SECONDS, TimeUnit.SECONDS, MAX_SESSION_DURATION_SECONDS, TimeUnit.SECONDS))
             .build();
