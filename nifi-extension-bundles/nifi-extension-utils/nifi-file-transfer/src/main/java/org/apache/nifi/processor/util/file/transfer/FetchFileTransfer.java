@@ -455,13 +455,18 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
     }
 
     private static String getSimpleFilename(final String path) {
-        if (path == null) {
+        if (path == null || path.isEmpty()) {
             return null;
         }
-        final int slash = path.lastIndexOf('/');
-        final int backslash = path.lastIndexOf('\\');
-        final int idx = Math.max(slash, backslash);
-        return idx >= 0 ? path.substring(idx + 1) : path;
+
+        // 1. Normalize Windows backslashes to forward slashes
+        String normalized = path.replace("\\", "/");
+
+        // 2. Remove trailing slashes
+        normalized = normalized.replaceAll("/+$", "");
+
+        // 3. Use Paths.get to extract the last element
+        return java.nio.file.Paths.get(normalized).getFileName().toString();
     }
 
 
