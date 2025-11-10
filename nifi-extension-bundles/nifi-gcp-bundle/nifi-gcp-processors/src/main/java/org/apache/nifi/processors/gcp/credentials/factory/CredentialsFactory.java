@@ -19,19 +19,13 @@ package org.apache.nifi.processors.gcp.credentials.factory;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.processors.gcp.credentials.factory.strategies.ApplicationDefaultCredentialsStrategy;
 import org.apache.nifi.processors.gcp.credentials.factory.strategies.ComputeEngineCredentialsStrategy;
-import org.apache.nifi.processors.gcp.credentials.factory.strategies.ExplicitApplicationDefaultCredentialsStrategy;
-import org.apache.nifi.processors.gcp.credentials.factory.strategies.ImplicitApplicationDefaultCredentialsStrategy;
 import org.apache.nifi.processors.gcp.credentials.factory.strategies.JsonFileServiceAccountCredentialsStrategy;
 import org.apache.nifi.processors.gcp.credentials.factory.strategies.JsonStringServiceAccountCredentialsStrategy;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -47,72 +41,20 @@ import java.util.Optional;
  */
 public class CredentialsFactory {
 
-    private final List<CredentialsStrategy> strategies = new ArrayList<>();
     private final Map<AuthenticationStrategy, CredentialsStrategy> strategiesByAuthentication = new EnumMap<>(AuthenticationStrategy.class);
 
     public CredentialsFactory() {
-        // Primary Credential Strategies
-        final CredentialsStrategy explicitApplicationDefaultCredentialsStrategy = new ExplicitApplicationDefaultCredentialsStrategy();
-        final CredentialsStrategy jsonFileServiceAccountCredentialsStrategy = new JsonFileServiceAccountCredentialsStrategy();
-        final CredentialsStrategy jsonStringServiceAccountCredentialsStrategy = new JsonStringServiceAccountCredentialsStrategy();
-        final CredentialsStrategy computeEngineCredentialsStrategy = new ComputeEngineCredentialsStrategy();
-
-        strategies.add(explicitApplicationDefaultCredentialsStrategy);
-        strategies.add(jsonFileServiceAccountCredentialsStrategy);
-        strategies.add(jsonStringServiceAccountCredentialsStrategy);
-        strategies.add(computeEngineCredentialsStrategy);
-
-        // Implicit Default is the catch-all primary strategy
-        strategies.add(new ImplicitApplicationDefaultCredentialsStrategy());
-
-        strategiesByAuthentication.put(AuthenticationStrategy.APPLICATION_DEFAULT, explicitApplicationDefaultCredentialsStrategy);
-        strategiesByAuthentication.put(AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE, jsonFileServiceAccountCredentialsStrategy);
-        strategiesByAuthentication.put(AuthenticationStrategy.SERVICE_ACCOUNT_JSON, jsonStringServiceAccountCredentialsStrategy);
-        strategiesByAuthentication.put(AuthenticationStrategy.COMPUTE_ENGINE, computeEngineCredentialsStrategy);
+        strategiesByAuthentication.put(AuthenticationStrategy.APPLICATION_DEFAULT, new ApplicationDefaultCredentialsStrategy());
+        strategiesByAuthentication.put(AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE, new JsonFileServiceAccountCredentialsStrategy());
+        strategiesByAuthentication.put(AuthenticationStrategy.SERVICE_ACCOUNT_JSON, new JsonStringServiceAccountCredentialsStrategy());
+        strategiesByAuthentication.put(AuthenticationStrategy.COMPUTE_ENGINE, new ComputeEngineCredentialsStrategy());
     }
 
     public CredentialsStrategy selectPrimaryStrategy(final Map<PropertyDescriptor, String> properties) {
-        final CredentialsStrategy selectedStrategy = selectStrategyFromAuthenticationProperty(properties);
-        if (selectedStrategy != null) {
-            return selectedStrategy;
-        }
-
-        for (CredentialsStrategy strategy : strategies) {
-            if (strategy.canCreatePrimaryCredential(properties)) {
-                return strategy;
-            }
-        }
-        return null;
-    }
-
-    private CredentialsStrategy selectStrategyFromAuthenticationProperty(final Map<PropertyDescriptor, String> properties) {
         final String authenticationStrategyValue = properties.get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY);
         final Optional<AuthenticationStrategy> authenticationStrategy = AuthenticationStrategy.fromValue(authenticationStrategyValue);
-        return authenticationStrategy.map(strategiesByAuthentication::get).orElse(null);
-    }
-
-    public CredentialsStrategy selectPrimaryStrategy(final ValidationContext validationContext) {
-        final Map<PropertyDescriptor, String> properties = validationContext.getProperties();
-        return selectPrimaryStrategy(properties);
-    }
-
-    /**
-     * Validates GCP credential properties against the configured strategies to report any validation errors.
-     * @return Validation errors
-     */
-    public Collection<ValidationResult> validate(final ValidationContext validationContext) {
-        final CredentialsStrategy selectedStrategy = selectPrimaryStrategy(validationContext);
-        final List<ValidationResult> validationFailureResults = new ArrayList<>();
-
-        for (CredentialsStrategy strategy : strategies) {
-            final Collection<ValidationResult> strategyValidationFailures = strategy.validate(validationContext,
-                    selectedStrategy);
-            if (strategyValidationFailures != null) {
-                validationFailureResults.addAll(strategyValidationFailures);
-            }
-        }
-
-        return validationFailureResults;
+        return authenticationStrategy.map(strategiesByAuthentication::get)
+                .orElse(strategiesByAuthentication.get(AuthenticationStrategy.APPLICATION_DEFAULT));
     }
 
     /**
@@ -124,6 +66,9 @@ public class CredentialsFactory {
      */
     public GoogleCredentials getGoogleCredentials(final Map<PropertyDescriptor, String> properties, final HttpTransportFactory transportFactory) throws IOException {
         final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(properties);
+        if (primaryStrategy == null) {
+            throw new IllegalStateException("No matching authentication strategy is configured");
+        }
         return primaryStrategy.getGoogleCredentials(properties, transportFactory);
     }
 }

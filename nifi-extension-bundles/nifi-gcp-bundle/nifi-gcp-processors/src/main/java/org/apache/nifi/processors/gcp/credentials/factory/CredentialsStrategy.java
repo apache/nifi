@@ -19,11 +19,8 @@ package org.apache.nifi.processors.gcp.credentials.factory;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -38,22 +35,6 @@ public interface CredentialsStrategy {
      * @return strategy name
      */
     String getName();
-
-    /**
-     * Determines if this strategy can create primary credentials using the given properties.
-     * @return true if primary credentials can be created
-     */
-    boolean canCreatePrimaryCredential(Map<PropertyDescriptor, String> properties);
-
-
-    /**
-     * Validates the properties belonging to this strategy, given the selected primary strategy.  Errors may result
-     * from individually malformed properties, invalid combinations of properties, or inappropriate use of properties
-     * not consistent with the primary strategy.
-     * @param primaryStrategy the prevailing primary strategy
-     * @return validation errors
-     */
-    Collection<ValidationResult> validate(ValidationContext validationContext, CredentialsStrategy primaryStrategy);
 
     /**
      * Creates an AuthCredentials instance for this strategy, given the properties defined by the user.

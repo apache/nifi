@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests of the validation and credentials provider capabilities of CredentialsFactory.
+ * Tests of the credentials provider capabilities of CredentialsFactory.
  */
 public class CredentialsFactoryTest {
 
@@ -79,12 +79,18 @@ public class CredentialsFactoryTest {
     }
 
     @Test
-    public void testExplicitApplicationDefaultCredentialsExclusive() throws Exception {
+    public void testExplicitApplicationDefaultCredentialsIgnoresServiceAccountFile() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsFactoryProcessor.class);
         runner.setProperty(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY, AuthenticationStrategy.APPLICATION_DEFAULT.getValue());
         runner.setProperty(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE,
                 "src/test/resources/mock-gcp-service-account.json");
-        runner.assertNotValid();
+        runner.assertValid();
+
+        final Map<PropertyDescriptor, String> properties = runner.getProcessContext().getProperties();
+        final CredentialsFactory factory = new CredentialsFactory();
+        final GoogleCredentials credentials = factory.getGoogleCredentials(properties, TRANSPORT_FACTORY);
+
+        assertNotNull(credentials);
     }
 
     @Test

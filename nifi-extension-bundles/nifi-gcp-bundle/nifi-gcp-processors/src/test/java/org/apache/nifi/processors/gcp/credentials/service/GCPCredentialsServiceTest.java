@@ -115,7 +115,7 @@ public class GCPCredentialsServiceTest {
     }
 
     @Test
-    public void testMultipleCredentialSources() throws Exception {
+    public void testMultipleCredentialSourcesRemainValid() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsServiceProcessor.class);
         final GCPCredentialsControllerService serviceImpl = new GCPCredentialsControllerService();
 
@@ -126,7 +126,7 @@ public class GCPCredentialsServiceTest {
         runner.setProperty(serviceImpl, SERVICE_ACCOUNT_JSON,
                 "{\"mock\":\"json\"}");
 
-        runner.assertNotValid(serviceImpl);
+        runner.assertValid(serviceImpl);
     }
 
     @Test

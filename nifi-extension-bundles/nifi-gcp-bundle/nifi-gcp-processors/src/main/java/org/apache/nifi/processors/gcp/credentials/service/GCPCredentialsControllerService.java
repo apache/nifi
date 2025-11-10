@@ -43,6 +43,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -101,7 +102,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final Collection<ValidationResult> results = credentialsProviderFactory.validate(validationContext);
+        final Collection<ValidationResult> results = new ArrayList<>();
         ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
         return results;
     }
@@ -142,10 +143,10 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         config.renameProperty("service-account-json-file", SERVICE_ACCOUNT_JSON_FILE.getName());
         config.renameProperty("service-account-json", SERVICE_ACCOUNT_JSON.getName());
 
-        if (!config.hasProperty(AUTHENTICATION_STRATEGY.getName())) {
+        if (config.getRawPropertyValue(AUTHENTICATION_STRATEGY).isEmpty()) {
             final AuthenticationStrategy authenticationStrategy = determineAuthenticationStrategy(config);
             if (authenticationStrategy != null) {
-                config.setProperty(AUTHENTICATION_STRATEGY.getName(), authenticationStrategy.getValue());
+                config.setProperty(AUTHENTICATION_STRATEGY, authenticationStrategy.getValue());
             }
         }
 
@@ -154,20 +155,20 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
     }
 
     private AuthenticationStrategy determineAuthenticationStrategy(final PropertyConfiguration config) {
-        if (isTrue(config, USE_APPLICATION_DEFAULT_CREDENTIALS.getName())) {
+        if (isTrue(config, USE_APPLICATION_DEFAULT_CREDENTIALS)) {
             return AuthenticationStrategy.APPLICATION_DEFAULT;
-        } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON_FILE.getName())) {
+        } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON_FILE)) {
             return AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE;
-        } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON.getName())) {
+        } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON)) {
             return AuthenticationStrategy.SERVICE_ACCOUNT_JSON;
-        } else if (isTrue(config, USE_COMPUTE_ENGINE_CREDENTIALS.getName())) {
+        } else if (isTrue(config, USE_COMPUTE_ENGINE_CREDENTIALS)) {
             return AuthenticationStrategy.COMPUTE_ENGINE;
         }
         return null;
     }
 
-    private boolean isTrue(final PropertyConfiguration config, final String propertyName) {
-        return config.getRawPropertyValue(propertyName)
+    private boolean isTrue(final PropertyConfiguration config, final PropertyDescriptor property) {
+        return config.getRawPropertyValue(property)
                 .map(value -> "true".equalsIgnoreCase(value.trim()))
                 .orElse(false);
     }
