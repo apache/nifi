@@ -31,20 +31,18 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
-import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS;
-import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
 public class MockCredentialsFactoryProcessor extends AbstractGCPProcessor {
     public final List<PropertyDescriptor> properties = Arrays.asList(
-            USE_APPLICATION_DEFAULT_CREDENTIALS,
+            AUTHENTICATION_STRATEGY,
             SERVICE_ACCOUNT_JSON,
-            SERVICE_ACCOUNT_JSON_FILE,
-            USE_COMPUTE_ENGINE_CREDENTIALS
+            SERVICE_ACCOUNT_JSON_FILE
     );
 
     @Override

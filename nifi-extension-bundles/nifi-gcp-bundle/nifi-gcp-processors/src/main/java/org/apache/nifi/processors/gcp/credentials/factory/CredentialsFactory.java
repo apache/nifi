@@ -30,8 +30,10 @@ import org.apache.nifi.processors.gcp.credentials.factory.strategies.JsonStringS
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Generates GCP credentials in the form of GoogleCredential implementations for processors
@@ -46,25 +48,47 @@ import java.util.Map;
 public class CredentialsFactory {
 
     private final List<CredentialsStrategy> strategies = new ArrayList<>();
+    private final Map<AuthenticationStrategy, CredentialsStrategy> strategiesByAuthentication = new EnumMap<>(AuthenticationStrategy.class);
 
     public CredentialsFactory() {
         // Primary Credential Strategies
-        strategies.add(new ExplicitApplicationDefaultCredentialsStrategy());
-        strategies.add(new JsonFileServiceAccountCredentialsStrategy());
-        strategies.add(new JsonStringServiceAccountCredentialsStrategy());
-        strategies.add(new ComputeEngineCredentialsStrategy());
+        final CredentialsStrategy explicitApplicationDefaultCredentialsStrategy = new ExplicitApplicationDefaultCredentialsStrategy();
+        final CredentialsStrategy jsonFileServiceAccountCredentialsStrategy = new JsonFileServiceAccountCredentialsStrategy();
+        final CredentialsStrategy jsonStringServiceAccountCredentialsStrategy = new JsonStringServiceAccountCredentialsStrategy();
+        final CredentialsStrategy computeEngineCredentialsStrategy = new ComputeEngineCredentialsStrategy();
+
+        strategies.add(explicitApplicationDefaultCredentialsStrategy);
+        strategies.add(jsonFileServiceAccountCredentialsStrategy);
+        strategies.add(jsonStringServiceAccountCredentialsStrategy);
+        strategies.add(computeEngineCredentialsStrategy);
 
         // Implicit Default is the catch-all primary strategy
         strategies.add(new ImplicitApplicationDefaultCredentialsStrategy());
+
+        strategiesByAuthentication.put(AuthenticationStrategy.APPLICATION_DEFAULT, explicitApplicationDefaultCredentialsStrategy);
+        strategiesByAuthentication.put(AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE, jsonFileServiceAccountCredentialsStrategy);
+        strategiesByAuthentication.put(AuthenticationStrategy.SERVICE_ACCOUNT_JSON, jsonStringServiceAccountCredentialsStrategy);
+        strategiesByAuthentication.put(AuthenticationStrategy.COMPUTE_ENGINE, computeEngineCredentialsStrategy);
     }
 
     public CredentialsStrategy selectPrimaryStrategy(final Map<PropertyDescriptor, String> properties) {
+        final CredentialsStrategy selectedStrategy = selectStrategyFromAuthenticationProperty(properties);
+        if (selectedStrategy != null) {
+            return selectedStrategy;
+        }
+
         for (CredentialsStrategy strategy : strategies) {
             if (strategy.canCreatePrimaryCredential(properties)) {
                 return strategy;
             }
         }
         return null;
+    }
+
+    private CredentialsStrategy selectStrategyFromAuthenticationProperty(final Map<PropertyDescriptor, String> properties) {
+        final String authenticationStrategyValue = properties.get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY);
+        final Optional<AuthenticationStrategy> authenticationStrategy = AuthenticationStrategy.fromValue(authenticationStrategyValue);
+        return authenticationStrategy.map(strategiesByAuthentication::get).orElse(null);
     }
 
     public CredentialsStrategy selectPrimaryStrategy(final ValidationContext validationContext) {

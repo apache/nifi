@@ -19,6 +19,7 @@ package org.apache.nifi.processors.gcp.credentials.service;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -26,10 +27,9 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
-import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS;
-import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -66,7 +66,7 @@ public class GCPCredentialsServiceTest {
         final GCPCredentialsControllerService serviceImpl = new GCPCredentialsControllerService();
         runner.addControllerService("gcpCredentialsProvider", serviceImpl);
 
-        runner.setProperty(serviceImpl, USE_APPLICATION_DEFAULT_CREDENTIALS, "true");
+        runner.setProperty(serviceImpl, AUTHENTICATION_STRATEGY, AuthenticationStrategy.APPLICATION_DEFAULT.getValue());
         runner.enableControllerService(serviceImpl);
 
         runner.assertValid(serviceImpl);
@@ -85,6 +85,7 @@ public class GCPCredentialsServiceTest {
         final GCPCredentialsControllerService serviceImpl = new GCPCredentialsControllerService();
         runner.addControllerService("gcpCredentialsProvider", serviceImpl);
 
+        runner.setProperty(serviceImpl, AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
         runner.setProperty(serviceImpl, SERVICE_ACCOUNT_JSON_FILE,
                 "src/test/resources/mock-gcp-service-account.json");
         runner.enableControllerService(serviceImpl);
@@ -107,6 +108,7 @@ public class GCPCredentialsServiceTest {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsServiceProcessor.class);
         final GCPCredentialsControllerService serviceImpl = new GCPCredentialsControllerService();
         runner.addControllerService("gcpCredentialsProvider", serviceImpl);
+        runner.setProperty(serviceImpl, AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
         runner.setProperty(serviceImpl, SERVICE_ACCOUNT_JSON_FILE,
                 "src/test/resources/bad-mock-gcp-service-account.json");
         runner.assertNotValid(serviceImpl);
@@ -118,10 +120,11 @@ public class GCPCredentialsServiceTest {
         final GCPCredentialsControllerService serviceImpl = new GCPCredentialsControllerService();
 
         runner.addControllerService("gcpCredentialsProvider", serviceImpl);
+        runner.setProperty(serviceImpl, AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
         runner.setProperty(serviceImpl, SERVICE_ACCOUNT_JSON_FILE,
                 "src/test/resources/mock-gcp-service-account.json");
-        runner.setProperty(serviceImpl, USE_APPLICATION_DEFAULT_CREDENTIALS, "true");
-        runner.setProperty(serviceImpl, USE_COMPUTE_ENGINE_CREDENTIALS, "true");
+        runner.setProperty(serviceImpl, SERVICE_ACCOUNT_JSON,
+                "{\"mock\":\"json\"}");
 
         runner.assertNotValid(serviceImpl);
     }
@@ -136,6 +139,7 @@ public class GCPCredentialsServiceTest {
         final GCPCredentialsControllerService serviceImpl = new GCPCredentialsControllerService();
         runner.addControllerService("gcpCredentialsProvider", serviceImpl);
 
+        runner.setProperty(serviceImpl, AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue());
         runner.setProperty(serviceImpl, SERVICE_ACCOUNT_JSON,
                 jsonRead);
         runner.enableControllerService(serviceImpl);

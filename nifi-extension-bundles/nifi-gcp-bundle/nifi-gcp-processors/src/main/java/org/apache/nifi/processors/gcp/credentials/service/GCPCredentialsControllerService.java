@@ -37,6 +37,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
+import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
@@ -47,6 +48,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.DELEGATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.DELEGATION_USER;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
@@ -76,8 +78,7 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 public class GCPCredentialsControllerService extends AbstractControllerService implements GCPCredentialsService, VerifiableControllerService {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            USE_APPLICATION_DEFAULT_CREDENTIALS,
-            USE_COMPUTE_ENGINE_CREDENTIALS,
+            AUTHENTICATION_STRATEGY,
             SERVICE_ACCOUNT_JSON_FILE,
             SERVICE_ACCOUNT_JSON,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
@@ -140,6 +141,35 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         config.renameProperty("compute-engine-credentials", USE_COMPUTE_ENGINE_CREDENTIALS.getName());
         config.renameProperty("service-account-json-file", SERVICE_ACCOUNT_JSON_FILE.getName());
         config.renameProperty("service-account-json", SERVICE_ACCOUNT_JSON.getName());
+
+        if (!config.hasProperty(AUTHENTICATION_STRATEGY.getName())) {
+            final AuthenticationStrategy authenticationStrategy = determineAuthenticationStrategy(config);
+            if (authenticationStrategy != null) {
+                config.setProperty(AUTHENTICATION_STRATEGY.getName(), authenticationStrategy.getValue());
+            }
+        }
+
+        config.removeProperty(USE_APPLICATION_DEFAULT_CREDENTIALS.getName());
+        config.removeProperty(USE_COMPUTE_ENGINE_CREDENTIALS.getName());
+    }
+
+    private AuthenticationStrategy determineAuthenticationStrategy(final PropertyConfiguration config) {
+        if (isTrue(config, USE_APPLICATION_DEFAULT_CREDENTIALS.getName())) {
+            return AuthenticationStrategy.APPLICATION_DEFAULT;
+        } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON_FILE.getName())) {
+            return AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE;
+        } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON.getName())) {
+            return AuthenticationStrategy.SERVICE_ACCOUNT_JSON;
+        } else if (isTrue(config, USE_COMPUTE_ENGINE_CREDENTIALS.getName())) {
+            return AuthenticationStrategy.COMPUTE_ENGINE;
+        }
+        return null;
+    }
+
+    private boolean isTrue(final PropertyConfiguration config, final String propertyName) {
+        return config.getRawPropertyValue(propertyName)
+                .map(value -> "true".equalsIgnoreCase(value.trim()))
+                .orElse(false);
     }
 
     private GoogleCredentials getGoogleCredentials(final ConfigurationContext context) throws IOException {

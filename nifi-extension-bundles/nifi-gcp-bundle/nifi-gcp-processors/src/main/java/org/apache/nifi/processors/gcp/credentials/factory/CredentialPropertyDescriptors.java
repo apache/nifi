@@ -30,6 +30,14 @@ public final class CredentialPropertyDescriptors {
 
     private CredentialPropertyDescriptors() { }
 
+    public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Authentication Strategy")
+            .required(true)
+            .allowableValues(AuthenticationStrategy.class)
+            .defaultValue(AuthenticationStrategy.APPLICATION_DEFAULT.getValue())
+            .description("Specifies how NiFi authenticates to Google Cloud. Depending on the strategy, additional properties might be required.")
+            .build();
+
     /**
      * Specifies use of Application Default Credentials
      *
@@ -75,6 +83,7 @@ public final class CredentialPropertyDescriptors {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
+            .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue())
             .description("Path to a file containing a Service Account key file in JSON format.")
             .build();
 
@@ -83,6 +92,7 @@ public final class CredentialPropertyDescriptors {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(false)
             .addValidator(JsonValidator.INSTANCE)
+            .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.SERVICE_ACCOUNT_JSON.getValue())
             .description("The raw JSON containing a Service Account keyfile.")
             .sensitive(true)
             .build();
