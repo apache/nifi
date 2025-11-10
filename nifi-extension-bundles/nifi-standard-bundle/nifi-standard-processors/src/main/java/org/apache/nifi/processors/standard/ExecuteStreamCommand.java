@@ -42,6 +42,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -218,8 +219,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor ARGUMENTS_STRATEGY = new PropertyDescriptor.Builder()
-            .name("argumentsStrategy")
-            .displayName("Command Arguments Strategy")
+            .name("Command Arguments Strategy")
             .description("Strategy for configuring arguments to be supplied to the command.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
@@ -537,6 +537,11 @@ public class ExecuteStreamCommand extends AbstractProcessor {
             FileUtils.deleteQuietly(errorOut);
             process.destroy(); // last ditch effort to clean up that process.
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("argumentsStrategy", ARGUMENTS_STRATEGY.getName());
     }
 
     static class ProcessStreamWriterCallback implements InputStreamCallback {

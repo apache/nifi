@@ -44,6 +44,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -112,8 +113,6 @@ public class DeduplicateRecord extends AbstractProcessor {
     private volatile RecordPathCache recordPathCache;
     private volatile List<PropertyDescriptor> dynamicProperties;
 
-    // VALUES
-
     static final AllowableValue NONE_ALGORITHM_VALUE = new AllowableValue("none", "None",
             "Do not use a hashing algorithm. The value of resolved RecordPaths will be combined with a delimiter " +
                     "(" + DeduplicateRecord.JOIN_CHAR + ") to form the unique cache key. " +
@@ -132,19 +131,15 @@ public class DeduplicateRecord extends AbstractProcessor {
                     "False positive matches are possible, but false negatives are not – in other words, a query returns either \"possibly in the set\" or \"definitely not in the set\". " +
                     "You should use this option if the FlowFile content is large and you can tolerate some duplication in the data. Uses constant storage space regardless of the record set size.");
 
-    // PROPERTIES
-
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for reading incoming data")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Controller Service to use for writing out the records")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
@@ -154,8 +149,7 @@ public class DeduplicateRecord extends AbstractProcessor {
     static final AllowableValue OPTION_MULTIPLE_FILES = new AllowableValue("multiple", "Multiple Files");
 
     static final PropertyDescriptor DEDUPLICATION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("deduplication-strategy")
-            .displayName("Deduplication Strategy")
+            .name("Deduplication Strategy")
             .description("The strategy to use for detecting and routing duplicate records. The option for detecting " +
                     "duplicates across a single FlowFile operates in-memory, whereas detection spanning multiple FlowFiles " +
                     "utilises a distributed map cache.")
@@ -165,8 +159,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor DISTRIBUTED_MAP_CACHE = new PropertyDescriptor.Builder()
-            .name("distributed-map-cache")
-            .displayName("Distributed Map Cache client")
+            .name("Distributed Map Cache Client")
             .description("This property is required when the deduplication strategy is set to 'multiple files.' The map " +
                     "cache will for each record, atomically check whether the cache key exists and if not, set it.")
             .identifiesControllerService(DistributedMapCacheClient.class)
@@ -176,8 +169,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor CACHE_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("cache-identifier")
-            .displayName("Cache Identifier")
+            .name("Cache Identifier")
             .description("An optional expression language field that overrides the record's computed cache key. " +
                     "This field has an additional attribute available: ${" + RECORD_HASH_VALUE_ATTRIBUTE + "}, " +
                     "which contains the cache key derived from dynamic properties (if set) or record fields.")
@@ -188,8 +180,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor PUT_CACHE_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("put-cache-identifier")
-            .displayName("Cache the Entry Identifier")
+            .name("Cache Entry Identifier")
             .description("For each record, check whether the cache identifier exists in the distributed map cache. " +
                     "If it doesn't exist and this property is true, put the identifier to the cache.")
             .required(true)
@@ -199,8 +190,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor INCLUDE_ZERO_RECORD_FLOWFILES = new PropertyDescriptor.Builder()
-            .name("include-zero-record-flowfiles")
-            .displayName("Include Zero Record FlowFiles")
+            .name("Include Zero Record FlowFiles")
             .description("If a FlowFile sent to either the duplicate or non-duplicate relationships contains no records, " +
                     "a value of `false` in this property causes the FlowFile to be dropped. Otherwise, the empty FlowFile " +
                     "is emitted.")
@@ -211,8 +201,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor RECORD_HASHING_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("record-hashing-algorithm")
-            .displayName("Record Hashing Algorithm")
+            .name("Record Hashing Algorithm")
             .description("The algorithm used to hash the cache key.")
             .allowableValues(
                     NONE_ALGORITHM_VALUE,
@@ -225,8 +214,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor FILTER_TYPE = new PropertyDescriptor.Builder()
-            .name("filter-type")
-            .displayName("Filter Type")
+            .name("Filter Type")
             .description("The filter used to determine whether a record has been seen before based on the matching RecordPath " +
                     "criteria. If hash set is selected, a Java HashSet object will be used to deduplicate all encountered " +
                     "records. If the bloom filter option is selected, a bloom filter will be used. The bloom filter option is " +
@@ -241,8 +229,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor FILTER_CAPACITY_HINT = new PropertyDescriptor.Builder()
-            .name("filter-capacity-hint")
-            .displayName("Filter Capacity Hint")
+            .name("Filter Capacity Hint")
             .description("An estimation of the total number of unique records to be processed. " +
                     "The more accurate this number is will lead to fewer false negatives on a BloomFilter.")
             .defaultValue("25000")
@@ -253,8 +240,7 @@ public class DeduplicateRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor BLOOM_FILTER_FPP = new PropertyDescriptor.Builder()
-            .name("bloom-filter-certainty")
-            .displayName("Bloom Filter Certainty")
+            .name("Bloom Filter Certainty")
             .description("The desired false positive probability when using the BloomFilter type. " +
                     "Using a value of .05 for example, guarantees a five-percent probability that the result is a false positive. " +
                     "The closer to 1 this value is set, the more precise the result at the expense of more storage space utilization.")
@@ -511,6 +497,21 @@ public class DeduplicateRecord extends AbstractProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("deduplication-strategy", DEDUPLICATION_STRATEGY.getName());
+        config.renameProperty("distributed-map-cache", DISTRIBUTED_MAP_CACHE.getName());
+        config.renameProperty("cache-identifier", CACHE_IDENTIFIER.getName());
+        config.renameProperty("put-cache-identifier", PUT_CACHE_IDENTIFIER.getName());
+        config.renameProperty("include-zero-record-flowfiles", INCLUDE_ZERO_RECORD_FLOWFILES.getName());
+        config.renameProperty("record-hashing-algorithm", RECORD_HASHING_ALGORITHM.getName());
+        config.renameProperty("filter-type", FILTER_TYPE.getName());
+        config.renameProperty("filter-capacity-hint", FILTER_CAPACITY_HINT.getName());
+        config.renameProperty("bloom-filter-certainty", BLOOM_FILTER_FPP.getName());
     }
 
     private void sendOrRemove(ProcessSession session,

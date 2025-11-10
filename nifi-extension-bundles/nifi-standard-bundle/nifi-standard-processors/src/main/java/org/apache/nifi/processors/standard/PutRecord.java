@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -52,24 +53,21 @@ import java.util.concurrent.TimeUnit;
 public class PutRecord extends AbstractProcessor {
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("put-record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for reading incoming data")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor RECORD_SINK = new PropertyDescriptor.Builder()
-            .name("put-record-sink")
-            .displayName("Record Destination Service")
+            .name("Record Destination Service")
             .description("Specifies the Controller Service to use for writing out the query result records to some destination.")
             .identifiesControllerService(RecordSinkService.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor INCLUDE_ZERO_RECORD_RESULTS = new PropertyDescriptor.Builder()
-            .name("put-record-include-zero-record-results")
-            .displayName("Include Zero Record Results")
+            .name("Include Zero Record Results")
             .description("If no records are read from the incoming FlowFile, this property specifies whether or not an empty record set will be transmitted. The original "
                     + "FlowFile will still be routed to success, but if no transmission occurs, no provenance SEND event will be generated.")
             .allowableValues("true", "false")
@@ -178,5 +176,12 @@ public class PutRecord extends AbstractProcessor {
             return;
         }
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("put-record-reader", RECORD_READER.getName());
+        config.renameProperty("put-record-sink", RECORD_SINK.getName());
+        config.renameProperty("put-record-include-zero-record-results", INCLUDE_ZERO_RECORD_RESULTS.getName());
     }
 }

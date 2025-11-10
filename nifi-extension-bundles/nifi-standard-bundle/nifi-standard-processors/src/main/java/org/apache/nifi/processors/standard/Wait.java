@@ -34,6 +34,7 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.ProcessContext;
@@ -102,8 +103,7 @@ public class Wait extends AbstractProcessor {
 
     // Identifies the distributed map cache client
     public static final PropertyDescriptor DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
-            .name("distributed-cache-service")
-            .displayName("Distributed Cache Service")
+            .name("Distributed Cache Service")
             .description("The Controller Service that is used to check for release signals from a corresponding Notify processor")
             .required(true)
             .identifiesControllerService(AtomicDistributedMapCacheClient.class)
@@ -111,8 +111,7 @@ public class Wait extends AbstractProcessor {
 
     // Selects the FlowFile attribute or expression, whose value is used as cache key
     public static final PropertyDescriptor RELEASE_SIGNAL_IDENTIFIER = new PropertyDescriptor.Builder()
-            .name("release-signal-id")
-            .displayName("Release Signal Identifier")
+            .name("Release Signal Identifier")
             .description("A value that specifies the key to a specific release signal cache. "
                 + "To decide whether the FlowFile that is being processed by the Wait processor should be sent to the 'success' "
                 + "or the 'wait' relationship, the processor checks the signals in the cache specified by this key.")
@@ -122,8 +121,7 @@ public class Wait extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor TARGET_SIGNAL_COUNT = new PropertyDescriptor.Builder()
-            .name("target-signal-count")
-            .displayName("Target Signal Count")
+            .name("Target Signal Count")
             .description("The number of signals that need to be in the cache (specified by the Release Signal Identifier) "
                 + "in order for the FlowFile processed by the Wait processor to be sent to the ‘success’ relationship. "
                 + "If the number of signals in the cache has reached this number, the FlowFile is routed to the "
@@ -137,8 +135,7 @@ public class Wait extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SIGNAL_COUNTER_NAME = new PropertyDescriptor.Builder()
-            .name("signal-counter-name")
-            .displayName("Signal Counter Name")
+            .name("Signal Counter Name")
             .description("Within the cache (specified by the Release Signal Identifier) the signals may belong to different counters. "
                 + "If this property is specified, the processor checks the number of signals in the cache that belong to this particular counter. "
                 + "If not specified, the processor checks the total number of signals in the cache.")
@@ -148,8 +145,7 @@ public class Wait extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor WAIT_BUFFER_COUNT = new PropertyDescriptor.Builder()
-            .name("wait-buffer-count")
-            .displayName("Wait Buffer Count")
+            .name("Wait Buffer Count")
             .description("Specify the maximum number of incoming FlowFiles that can be buffered to check whether it can move forward. " +
                     "The more buffer can provide the better performance, as it reduces the number of interactions with cache service " +
                     "by grouping FlowFiles by signal identifier. " +
@@ -160,8 +156,7 @@ public class Wait extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor RELEASABLE_FLOWFILE_COUNT = new PropertyDescriptor.Builder()
-            .name("releasable-flowfile-count")
-            .displayName("Releasable FlowFile Count")
+            .name("Releasable FlowFile Count")
             .description("A value, or the results of an Attribute Expression Language statement, which will " +
                     "be evaluated against a FlowFile in order to determine the releasable FlowFile count. " +
                     "This specifies how many FlowFiles can be released when a target count reaches target signal count. " +
@@ -174,8 +169,7 @@ public class Wait extends AbstractProcessor {
 
     // Selects the FlowFile attribute or expression, whose value is used as cache key
     public static final PropertyDescriptor EXPIRATION_DURATION = new PropertyDescriptor.Builder()
-            .name("expiration-duration")
-            .displayName("Expiration Duration")
+            .name("Expiration Duration")
             .description("Indicates the duration after which waiting FlowFiles will be routed to the 'expired' relationship")
             .required(true)
             .defaultValue("10 min")
@@ -190,8 +184,7 @@ public class Wait extends AbstractProcessor {
             "Attributes on released FlowFiles are not overwritten by copied cached attributes.");
 
     public static final PropertyDescriptor ATTRIBUTE_COPY_MODE = new PropertyDescriptor.Builder()
-            .name("attribute-copy-mode")
-            .displayName("Attribute Copy Mode")
+            .name("Attribute Copy Mode")
             .description("Specifies how to handle attributes copied from FlowFiles entering the Notify processor")
             .defaultValue(ATTRIBUTE_COPY_KEEP_ORIGINAL.getValue())
             .required(true)
@@ -210,8 +203,7 @@ public class Wait extends AbstractProcessor {
                     " will not be scheduled while back-pressure is active and limit incoming FlowFiles. ");
 
     public static final PropertyDescriptor WAIT_MODE = new PropertyDescriptor.Builder()
-            .name("wait-mode")
-            .displayName("Wait Mode")
+            .name("Wait Mode")
             .description("Specifies how to handle a FlowFile waiting for a notify signal")
             .defaultValue(WAIT_MODE_TRANSFER_TO_WAIT.getValue())
             .required(true)
@@ -220,8 +212,7 @@ public class Wait extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor WAIT_PENALTY_DURATION = new PropertyDescriptor.Builder()
-        .name("wait-penalty-duration")
-        .displayName("Wait Penalty Duration")
+        .name("Wait Penalty Duration")
         .description("If configured, after a signal identifier got processed but did not meet the release criteria," +
             " the signal identifier is penalized and FlowFiles having the signal identifier" +
             " will not be processed again for the specified period of time," +
@@ -531,6 +522,20 @@ public class Wait extends AbstractProcessor {
             throw new ProcessException(String.format("Unable to communicate with cache while updating %s due to %s", signalId, e), e);
         }
 
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("distributed-cache-service", DISTRIBUTED_CACHE_SERVICE.getName());
+        config.renameProperty("release-signal-id", RELEASE_SIGNAL_IDENTIFIER.getName());
+        config.renameProperty("target-signal-count", TARGET_SIGNAL_COUNT.getName());
+        config.renameProperty("signal-counter-name", SIGNAL_COUNTER_NAME.getName());
+        config.renameProperty("wait-buffer-count", WAIT_BUFFER_COUNT.getName());
+        config.renameProperty("releasable-flowfile-count", RELEASABLE_FLOWFILE_COUNT.getName());
+        config.renameProperty("expiration-duration", EXPIRATION_DURATION.getName());
+        config.renameProperty("attribute-copy-mode", ATTRIBUTE_COPY_MODE.getName());
+        config.renameProperty("wait-mode", WAIT_MODE.getName());
+        config.renameProperty("wait-penalty-duration", WAIT_PENALTY_DURATION.getName());
     }
 
     private FlowFile clearWaitState(final ProcessSession session, final FlowFile flowFile) {

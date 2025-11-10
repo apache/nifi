@@ -94,8 +94,7 @@ public class IdentifyMimeType extends AbstractProcessor {
     static final AllowableValue MERGE = new AllowableValue("Merge", "Merge", "Use custom MIME types configuration together with default NiFi MIME types.");
 
     public static final PropertyDescriptor USE_FILENAME_IN_DETECTION = new PropertyDescriptor.Builder()
-            .displayName("Use Filename In Detection")
-            .name("use-filename-in-detection")
+            .name("Use Filename In Detection")
             .description("If true will pass the filename to Tika to aid in detection.")
             .required(true)
             .allowableValues("true", "false")
@@ -103,8 +102,7 @@ public class IdentifyMimeType extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor CONFIG_STRATEGY = new PropertyDescriptor.Builder()
-            .displayName("Config Strategy")
-            .name("config-strategy")
+            .name("Config Strategy")
             .description("Select the loading strategy for MIME Type configuration to be used.")
             .required(true)
             .allowableValues(PRESET, REPLACE, MERGE)
@@ -165,6 +163,9 @@ public class IdentifyMimeType extends AbstractProcessor {
 
         config.removeProperty(configFileProperty);
         config.removeProperty(configBodyProperty);
+
+        config.renameProperty("use-filename-in-detection", USE_FILENAME_IN_DETECTION.getName());
+        config.renameProperty("config-strategy", CONFIG_STRATEGY.getName());
     }
 
     @OnScheduled

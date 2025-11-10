@@ -45,6 +45,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -187,8 +188,7 @@ public class UnpackContent extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR = new PropertyDescriptor.Builder()
-            .name("allow-stored-entries-wdd")
-            .displayName("Allow Stored Entries With Data Descriptor")
+            .name("Allow Stored Entries With Data Descriptor")
             .description("Some zip archives contain stored entries with data descriptors which by spec should not " +
                     "happen.  If this property is true they will be read anyway.  If false and such an entry is discovered " +
                     "the zip will fail to process.")
@@ -362,6 +362,11 @@ public class UnpackContent extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             session.remove(unpacked);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("allow-stored-entries-wdd", ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR.getName());
     }
 
     private static abstract class Unpacker {

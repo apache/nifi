@@ -31,6 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -72,8 +73,7 @@ import java.util.Set;
 public class RetryFlowFile extends AbstractProcessor {
 
     public static final PropertyDescriptor RETRY_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("retry-attribute")
-            .displayName("Retry Attribute")
+            .name("Retry Attribute")
             .description("The name of the attribute that contains the current retry count for the FlowFile. " +
                     "WARNING: If the name matches an attribute already on the FlowFile that does not contain a " +
                     "numerical value, the processor will either overwrite that attribute with '1' or fail " +
@@ -84,8 +84,7 @@ public class RetryFlowFile extends AbstractProcessor {
             .defaultValue("flowfile.retries")
             .build();
     public static final PropertyDescriptor MAXIMUM_RETRIES = new PropertyDescriptor.Builder()
-            .name("maximum-retries")
-            .displayName("Maximum Retries")
+            .name("Maximum Retries")
             .description("The maximum number of times a FlowFile can be retried before being " +
                     "passed to the 'retries_exceeded' relationship")
             .required(true)
@@ -94,8 +93,7 @@ public class RetryFlowFile extends AbstractProcessor {
             .defaultValue("3")
             .build();
     public static final PropertyDescriptor PENALIZE_RETRIED = new PropertyDescriptor.Builder()
-            .name("penalize-retries")
-            .displayName("Penalize Retries")
+            .name("Penalize Retries")
             .description("If set to 'true', this Processor will penalize input FlowFiles before passing them " +
                     "to the 'retry' relationship. This does not apply to the 'retries_exceeded' relationship.")
             .required(true)
@@ -130,8 +128,7 @@ public class RetryFlowFile extends AbstractProcessor {
                     "message before resetting the retry attribute and UUID for this instance"
     );
     public static final PropertyDescriptor REUSE_MODE = new PropertyDescriptor.Builder()
-            .name("reuse-mode")
-            .displayName("Reuse Mode")
+            .name("Reuse Mode")
             .description("Defines how the Processor behaves if the retry FlowFile has a different retry UUID than " +
                     "the instance that received the FlowFile. This generally means that the attribute was not reset " +
                     "after being successfully retried by a previous instance of this processor.")
@@ -299,5 +296,13 @@ public class RetryFlowFile extends AbstractProcessor {
             flowfile = session.putAttribute(flowfile, lastRetriedBy, getIdentifier());
             session.transfer(flowfile, RETRY);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("retry-attribute", RETRY_ATTRIBUTE.getName());
+        config.renameProperty("maximum-retries", MAXIMUM_RETRIES.getName());
+        config.renameProperty("penalize-retries", PENALIZE_RETRIED.getName());
+        config.renameProperty("reuse-mode", REUSE_MODE.getName());
     }
 }

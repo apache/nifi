@@ -33,6 +33,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -94,8 +95,7 @@ public class EnforceOrder extends AbstractProcessor {
     private static final Function<String, String> STATE_MAX_ORDER = groupId -> groupId + ".max";
 
     public static final PropertyDescriptor GROUP_IDENTIFIER = new PropertyDescriptor.Builder()
-        .name("group-id")
-        .displayName("Group Identifier")
+        .name("Group Identifier")
         .description("EnforceOrder is capable of multiple ordering groups." +
                 " 'Group Identifier' is used to determine which group a FlowFile belongs to." +
                 " This property will be evaluated with each incoming FlowFile." +
@@ -107,8 +107,7 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor ORDER_ATTRIBUTE = new PropertyDescriptor.Builder()
-        .name("order-attribute")
-        .displayName("Order Attribute")
+        .name("Order Attribute")
         .description("A name of FlowFile attribute whose value will be used to enforce order of FlowFiles within a group." +
                 " If a FlowFile does not have this attribute, or its value is not an integer, the FlowFile will be routed to failure.")
         .required(true)
@@ -117,8 +116,7 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor INITIAL_ORDER = new PropertyDescriptor.Builder()
-        .name("initial-order")
-        .displayName("Initial Order")
+        .name("Initial Order")
         .description("When the first FlowFile of a group arrives, initial target order will be computed and stored in the managed state." +
                 " After that, target order will start being tracked by EnforceOrder and stored in the state management store." +
                 " If Expression Language is used but evaluated result was not an integer, then the FlowFile will be routed to failure," +
@@ -130,8 +128,7 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor MAX_ORDER = new PropertyDescriptor.Builder()
-        .name("maximum-order")
-        .displayName("Maximum Order")
+        .name("Maximum Order")
         .description("If specified, any FlowFiles that have larger order will be routed to failure." +
                 " This property is computed only once for a given group." +
                 " After a maximum order is computed, it will be persisted in the state management store and used for other FlowFiles belonging to the same group." +
@@ -143,8 +140,7 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor WAIT_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("wait-timeout")
-        .displayName("Wait Timeout")
+        .name("Wait Timeout")
         .description("Indicates the duration after which waiting FlowFiles will be routed to the 'overtook' relationship.")
         .required(true)
         .defaultValue("10 min")
@@ -153,8 +149,7 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor INACTIVE_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("inactive-timeout")
-        .displayName("Inactive Timeout")
+        .name("Inactive Timeout")
         .description("Indicates the duration after which state for an inactive group will be cleared from managed state." +
                 " Group is determined as inactive if any new incoming FlowFile has not seen for a group for specified duration." +
                 " Inactive Timeout must be longer than Wait Timeout." +
@@ -169,8 +164,7 @@ public class EnforceOrder extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor BATCH_COUNT = new PropertyDescriptor.Builder()
-        .name("batch-count")
-        .displayName("Batch Count")
+        .name("Batch Count")
         .description("The maximum number of FlowFiles that EnforceOrder can process at an execution.")
         .required(true)
         .defaultValue("1000")
@@ -300,6 +294,17 @@ public class EnforceOrder extends AbstractProcessor {
                     + ". Session will be rollback and processor will be yielded for a while.", e);
         }
 
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("group-id", GROUP_IDENTIFIER.getName());
+        config.renameProperty("order-attribute", ORDER_ATTRIBUTE.getName());
+        config.renameProperty("initial-order", INITIAL_ORDER.getName());
+        config.renameProperty("maximum-order", MAX_ORDER.getName());
+        config.renameProperty("wait-timeout", WAIT_TIMEOUT.getName());
+        config.renameProperty("inactive-timeout", INACTIVE_TIMEOUT.getName());
+        config.renameProperty("batch-count", BATCH_COUNT.getName());
     }
 
     private class OrderingContext {

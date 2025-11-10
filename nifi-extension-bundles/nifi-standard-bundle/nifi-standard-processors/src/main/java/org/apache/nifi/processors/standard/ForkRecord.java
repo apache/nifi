@@ -36,6 +36,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -106,24 +107,21 @@ public class ForkRecord extends AbstractProcessor {
         "Generated records will preserve the input schema and will contain a one-element array");
 
     public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for reading incoming data")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Controller Service to use for writing out the records")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
-            .name("fork-mode")
-            .displayName("Mode")
+            .name("Mode")
             .description("Specifies the forking mode of the processor")
             .allowableValues(MODE_EXTRACT, MODE_SPLIT)
             .defaultValue(MODE_SPLIT.getValue())
@@ -131,8 +129,7 @@ public class ForkRecord extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor INCLUDE_PARENT_FIELDS = new PropertyDescriptor.Builder()
-            .name("include-parent-fields")
-            .displayName("Include Parent Fields")
+            .name("Include Parent Fields")
             .description("This parameter is only valid with the 'extract' mode. If set to true, all the fields "
                     + "from the root level to the given array will be added as fields of each element of the "
                     + "array to fork.")
@@ -385,4 +382,11 @@ public class ForkRecord extends AbstractProcessor {
         session.transfer(original, REL_ORIGINAL);
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER.getName());
+        config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("fork-mode", MODE.getName());
+        config.renameProperty("include-parent-fields", INCLUDE_PARENT_FIELDS.getName());
+    }
 }

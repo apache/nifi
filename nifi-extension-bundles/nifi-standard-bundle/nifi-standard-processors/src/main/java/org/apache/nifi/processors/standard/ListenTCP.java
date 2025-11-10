@@ -109,8 +109,7 @@ public class ListenTCP extends AbstractProcessor {
             .build();
 
     protected static final PropertyDescriptor POOL_RECV_BUFFERS = new PropertyDescriptor.Builder()
-            .name("pool-receive-buffers")
-            .displayName("Pool Receive Buffers")
+            .name("Pool Receive Buffers")
             .description("Enable or disable pooling of buffers that the processor uses for handling bytes received on socket connections. The framework allocates buffers as needed during processing.")
             .required(true)
             .defaultValue("True")
@@ -119,8 +118,7 @@ public class ListenTCP extends AbstractProcessor {
             .build();
 
     protected static final PropertyDescriptor IDLE_CONNECTION_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("idle-timeout")
-            .displayName("Idle Connection Timeout")
+            .name("Idle Connection Timeout")
             .description("The amount of time a client's connection will remain open if no data is received. The default of 0 seconds will leave connections open until they are closed by the client.")
             .required(true)
             .defaultValue("0 seconds")
@@ -166,6 +164,8 @@ public class ListenTCP extends AbstractProcessor {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.removeProperty("max-receiving-threads");
+        config.renameProperty("pool-receive-buffers", POOL_RECV_BUFFERS.getName());
+        config.renameProperty("idle-timeout", IDLE_CONNECTION_TIMEOUT.getName());
         config.renameProperty(ListenerProperties.OLD_WORKER_THREADS_PROPERTY_NAME, ListenerProperties.WORKER_THREADS.getName());
         config.renameProperty(ListenerProperties.OLD_MESSAGE_DELIMITER_PROPERTY_NAME, ListenerProperties.MESSAGE_DELIMITER.getName());
     }

@@ -108,6 +108,7 @@ public class PutFTP extends PutFileTransfer<FTPTransfer> {
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         FTPTransfer.migrateProxyProperties(config);
+        config.renameProperty(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName());
     }
 
     @Override

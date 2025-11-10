@@ -41,6 +41,7 @@ import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -198,8 +199,7 @@ public class ReplaceText extends AbstractProcessor {
         .required(true)
         .build();
     public static final PropertyDescriptor SEARCH_VALUE = new PropertyDescriptor.Builder()
-        .name("Regular Expression")
-        .displayName("Search Value")
+        .name("Search Value")
         .description("The Search Value to search for in the FlowFile content. Only used for 'Literal Replace' and 'Regex Replace' matching strategies")
         .required(true)
         .addValidator(Validator.VALID)
@@ -422,6 +422,11 @@ public class ReplaceText extends AbstractProcessor {
         logger.info("Transferred {} to 'success'", flowFile);
         session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Regular Expression", SEARCH_VALUE.getName());
     }
 
     // If we find a back reference that is not valid, then we will treat it as a literal string. For example, if we have 3 capturing
