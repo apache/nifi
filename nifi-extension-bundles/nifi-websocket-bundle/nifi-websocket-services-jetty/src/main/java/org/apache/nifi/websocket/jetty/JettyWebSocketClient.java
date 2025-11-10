@@ -377,7 +377,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             listener.setSessionId(sessionId);
             listener.setSecure("wss".equalsIgnoreCase(webSocketUri.getScheme()));
 
-            final ClientUpgradeRequest request = new ClientUpgradeRequest();
+            final ClientUpgradeRequest request = new ClientUpgradeRequest(webSocketUri);
 
             if (!flowFileAttributes.isEmpty()) {
                 request.setHeaders(HeaderMapExtractor.getHeaderMap(flowFileAttributes));
@@ -432,7 +432,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     }
 
     Future<Session> createWebsocketSession(RoutingWebSocketListener listener, ClientUpgradeRequest request) throws IOException {
-        return client.connect(listener, webSocketUri, request);
+        return client.connect(listener, request);
     }
 
     void maintainSessions() throws Exception {
