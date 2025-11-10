@@ -20,6 +20,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.kafka.shared.aws.AmazonMSKProperty;
 import org.apache.nifi.kafka.shared.login.DelegatingLoginConfigProvider;
 import org.apache.nifi.kafka.shared.login.LoginConfigProvider;
 import org.apache.nifi.kafka.shared.property.SaslMechanism;
@@ -35,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.AWS_WEB_IDENTITY_TOKEN_PROVIDER;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SASL_MECHANISM;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SECURITY_PROTOCOL;
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SSL_CONTEXT_SERVICE;
@@ -89,8 +91,13 @@ public class StandardKafkaPropertyProvider implements KafkaPropertyProvider {
             final SaslMechanism saslMechanism = context.getProperty(SASL_MECHANISM).asAllowableValue(SaslMechanism.class);
             if (saslMechanism == SaslMechanism.GSSAPI && isCustomKerberosLoginFound()) {
                 properties.put(SASL_LOGIN_CLASS.getProperty(), SASL_GSSAPI_CUSTOM_LOGIN_CLASS);
-            } else if (saslMechanism == SaslMechanism.AWS_MSK_IAM && isAwsMskIamCallbackHandlerFound()) {
-                properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
+            } else if (saslMechanism == SaslMechanism.AWS_MSK_IAM) {
+                final PropertyValue tokenProviderProperty = context.getProperty(AWS_WEB_IDENTITY_TOKEN_PROVIDER);
+                if (tokenProviderProperty != null && tokenProviderProperty.isSet()) {
+                    properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), AmazonMSKProperty.NIFI_AWS_MSK_CALLBACK_HANDLER_CLASS.getProperty());
+                } else if (isAwsMskIamCallbackHandlerFound()) {
+                    properties.put(SASL_CLIENT_CALLBACK_HANDLER_CLASS.getProperty(), SASL_AWS_MSK_IAM_CLIENT_CALLBACK_HANDLER_CLASS);
+                }
             }
         }
     }

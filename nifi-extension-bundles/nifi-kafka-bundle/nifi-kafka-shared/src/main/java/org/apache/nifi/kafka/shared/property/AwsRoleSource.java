@@ -24,7 +24,8 @@ import org.apache.nifi.components.DescribedValue;
 public enum AwsRoleSource implements DescribedValue {
     DEFAULT_PROFILE("Default Profile", "Use the default AWS credentials provider chain to locate credentials."),
     SPECIFIED_PROFILE("Specified Profile", "Use the configured AWS Profile Name from the default credentials file."),
-    SPECIFIED_ROLE("Specified Role", "Assume a specific AWS Role using the configured Role ARN and Session Name.");
+    SPECIFIED_ROLE("Specified Role", "Assume a specific AWS Role using the configured Role ARN and Session Name."),
+    WEB_IDENTITY_TOKEN("Web Identity Provider", "Obtain AWS MSK IAM credentials using STS AssumeRoleWithWebIdentity and a configured OAuth2/OIDC token provider.");
 
     private final String displayName;
     private final String description;

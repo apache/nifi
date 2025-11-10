@@ -46,7 +46,7 @@ public class AwsMskIamLoginConfigProvider implements LoginConfigProvider {
             }
         }
 
-        if (roleSource == AwsRoleSource.SPECIFIED_ROLE) {
+        if (roleSource == AwsRoleSource.SPECIFIED_ROLE || roleSource == AwsRoleSource.WEB_IDENTITY_TOKEN) {
             final String assumeRoleArn = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_ARN).getValue();
             final String assumeRoleSessionName = context.getProperty(KafkaClientComponent.AWS_ASSUME_ROLE_SESSION_NAME).getValue();
 
