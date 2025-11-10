@@ -41,6 +41,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -140,8 +141,7 @@ public class TailFile extends AbstractProcessor {
             + "data in the File to Tail that has already been written.");
 
     static final PropertyDescriptor BASE_DIRECTORY = new Builder()
-            .name("tail-base-directory")
-            .displayName("Base directory")
+            .name("Base Directory")
             .description("Base directory used to look for files to tail. This property is required when using Multifile mode.")
             .expressionLanguageSupported(ENVIRONMENT)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
@@ -149,8 +149,7 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor MODE = new Builder()
-            .name("tail-mode")
-            .displayName("Tailing mode")
+            .name("Tailing Mode")
             .description("Mode to use: single file will tail only one file, multiple file will look for a list of file. In Multiple mode"
                     + " the Base directory is required.")
             .expressionLanguageSupported(NONE)
@@ -160,10 +159,9 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor FILENAME = new Builder()
-            .displayName("File(s) to Tail")
-            .name("File to Tail")
+            .name("Files to Tail")
             .description("Path of the file to tail in case of single file mode. If using multifile mode, regular expression to find files "
-                    + "to tail in the base directory. In case recursivity is set to true, the regular expression will be used to match the "
+                    + "to tail in the base directory. In case recursive is set to true, the regular expression will be used to match the "
                     + "path starting from the base directory (see additional details for examples).")
             .expressionLanguageSupported(ENVIRONMENT)
             .addValidator(StandardValidators.createRegexValidator(0, Integer.MAX_VALUE, true))
@@ -196,8 +194,7 @@ public class TailFile extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor STATE_LOCATION = new Builder()
-            .displayName("State Location")
-            .name("File Location") //retained name of property for backward compatibility of configs
+            .name("State Location")
             .description("Specifies where the state is located either local or cluster so that state can be stored "
                     + "appropriately in order to ensure that all data is consumed without duplicating data upon restart of NiFi")
             .required(true)
@@ -215,8 +212,7 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor RECURSIVE = new Builder()
-            .name("tailfile-recursive-lookup")
-            .displayName("Recursive lookup")
+            .name("Recursive Lookup")
             .description("When using Multiple files mode, this property defines if files must be listed recursively or not"
                     + " in the base directory.")
             .allowableValues("true", "false")
@@ -225,8 +221,7 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor LOOKUP_FREQUENCY = new Builder()
-            .name("tailfile-lookup-frequency")
-            .displayName("Lookup frequency")
+            .name("Lookup Frequency")
             .description("Only used in Multiple files mode. It specifies the minimum "
                     + "duration the processor will wait before listing again the files to tail.")
             .required(false)
@@ -235,8 +230,7 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor MAXIMUM_AGE = new Builder()
-            .name("tailfile-maximum-age")
-            .displayName("Maximum age")
+            .name("Maximum Age")
             .description("Only used in Multiple files mode. It specifies the necessary "
                     + "minimum duration to consider that no new messages will be appended in a file regarding its last "
                     + "modification date. This should not be set too low to avoid duplication of data in case new messages "
@@ -247,8 +241,7 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor REREAD_ON_NUL = new Builder()
-            .name("reread-on-nul")
-            .displayName("Reread when NUL encountered")
+            .name("Reread on NUL Encountered")
             .description("If this option is set to 'true', when a NUL character is read, the processor will yield and try to read the same part again later. "
                 + "(Note: Yielding may delay the processing of other files tailed by this processor, not just the one with the NUL character.) "
                 + "The purpose of this flag is to allow users to handle cases where reading a file may return temporary NUL values. "
@@ -283,9 +276,8 @@ public class TailFile extends AbstractProcessor {
         .build();
 
     static final PropertyDescriptor PRE_ALLOCATED_BUFFER_SIZE = new Builder()
-            .name("pre-allocated-buffer-size")
-            .displayName("Pre-Allocated Buffer Size")
-            .description("Sets the amount of memory that is pre-allocated for each tailed file.")
+            .name("Preallocated Buffer Size")
+            .description("Sets the amount of memory that is preallocated for each tailed file.")
             .required(true)
             .addValidator(DATA_SIZE_VALIDATOR)
             .expressionLanguageSupported(NONE)
@@ -717,6 +709,19 @@ public class TailFile extends AbstractProcessor {
             getLogger().error("Exception raised while attempting to cleanup session's state map", e);
             context.yield();
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("tail-base-directory", BASE_DIRECTORY.getName());
+        config.renameProperty("tail-mode", MODE.getName());
+        config.renameProperty("File to Tail", FILENAME.getName());
+        config.renameProperty("File Location", STATE_LOCATION.getName());
+        config.renameProperty("tailfile-recursive-lookup", RECURSIVE.getName());
+        config.renameProperty("tailfile-lookup-frequency", LOOKUP_FREQUENCY.getName());
+        config.renameProperty("tailfile-maximum-age", MAXIMUM_AGE.getName());
+        config.renameProperty("reread-on-nul", REREAD_ON_NUL.getName());
+        config.renameProperty("pre-allocated-buffer-size", PRE_ALLOCATED_BUFFER_SIZE.getName());
     }
 
     private List<String> collectKeysToBeRemoved(Map<String, String> sessionStates) {

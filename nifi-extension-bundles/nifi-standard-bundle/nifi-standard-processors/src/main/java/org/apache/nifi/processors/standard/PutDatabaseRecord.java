@@ -177,16 +177,14 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     // Properties
     static final PropertyDescriptor RECORD_READER_FACTORY = new Builder()
-            .name("put-db-record-record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
             .identifiesControllerService(RecordReaderFactory.class)
             .required(true)
             .build();
 
     static final PropertyDescriptor STATEMENT_TYPE = new Builder()
-            .name("put-db-record-statement-type")
-            .displayName("Statement Type")
+            .name("Statement Type")
             .description("Specifies the type of SQL Statement to generate. "
                     + "Please refer to the database documentation for a description of the behavior of each operation. "
                     + "Please note that some Database Types may not support certain Statement Types. "
@@ -218,16 +216,14 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor DBCP_SERVICE = new Builder()
-            .name("put-db-record-dcbp-service")
-            .displayName("Database Connection Pooling Service")
+            .name("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain a connection to the database for sending records.")
             .required(true)
             .identifiesControllerService(DBCPService.class)
             .build();
 
     static final PropertyDescriptor CATALOG_NAME = new Builder()
-            .name("put-db-record-catalog-name")
-            .displayName("Database Name")
+            .name("Database Name")
             .description("""
                     The name of the database (or the name of the catalog, depending on the destination system) that the statement should update. This may not apply
                     for the database that you are updating. In this case, leave the field empty. Note that if the  property is set and the database is case-sensitive,
@@ -239,8 +235,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor SCHEMA_NAME = new Builder()
-            .name("put-db-record-schema-name")
-            .displayName("Schema Name")
+            .name("Schema Name")
             .description("The name of the schema that the table belongs to. This may not apply for the database that you are updating. In this case, leave the field empty. Note that if the "
                     + "property is set and the database is case-sensitive, the schema name must match the database's schema name exactly.")
             .required(false)
@@ -249,8 +244,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor TABLE_NAME = new Builder()
-            .name("put-db-record-table-name")
-            .displayName("Table Name")
+            .name("Table Name")
             .description("The name of the table that the statement should affect. Note that if the database is case-sensitive, the table name must match the database's table name exactly.")
             .required(true)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -276,8 +270,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
     );
 
     static final PropertyDescriptor BINARY_STRING_FORMAT = new Builder()
-            .name("put-db-record-binary-format")
-            .displayName("Binary String Format")
+            .name("Binary String Format")
             .description("The format to be applied when decoding string values to binary.")
             .required(true)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -286,8 +279,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor TRANSLATE_FIELD_NAMES = new Builder()
-            .name("put-db-record-translate-field-names")
-            .displayName("Translate Field Names")
+            .name("Translate Field Names")
             .description("If true, the Processor will attempt to translate field names into the appropriate column names for the table specified. "
                     + "If false, the field names must match the column names exactly, or the column will not be updated")
             .allowableValues("true", "false")
@@ -313,24 +305,21 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor UNMATCHED_FIELD_BEHAVIOR = new Builder()
-            .name("put-db-record-unmatched-field-behavior")
-            .displayName("Unmatched Field Behavior")
+            .name("Unmatched Field Behavior")
             .description("If an incoming record has a field that does not map to any of the database table's columns, this property specifies how to handle the situation")
             .allowableValues(IGNORE_UNMATCHED_FIELD, FAIL_UNMATCHED_FIELD)
             .defaultValue(IGNORE_UNMATCHED_FIELD)
             .build();
 
     static final PropertyDescriptor UNMATCHED_COLUMN_BEHAVIOR = new Builder()
-            .name("put-db-record-unmatched-column-behavior")
-            .displayName("Unmatched Column Behavior")
+            .name("Unmatched Column Behavior")
             .description("If an incoming record does not have a field mapping for all of the database table's columns, this property specifies how to handle the situation")
             .allowableValues(IGNORE_UNMATCHED_COLUMN, WARNING_UNMATCHED_COLUMN, FAIL_UNMATCHED_COLUMN)
             .defaultValue(FAIL_UNMATCHED_COLUMN)
             .build();
 
     static final PropertyDescriptor UPDATE_KEYS = new Builder()
-            .name("put-db-record-update-keys")
-            .displayName("Update Keys")
+            .name("Update Keys")
             .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
                     + "If the Statement Type is UPDATE and this property is not set, the table's Primary Keys are used. "
                     + "In this case, if no Primary Key exists, the conversion to SQL will fail if Unmatched Column Behaviour is set to FAIL. "
@@ -353,8 +342,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor FIELD_CONTAINING_SQL = new Builder()
-            .name("put-db-record-field-containing-sql")
-            .displayName("Field Containing SQL")
+            .name("Field Containing SQL")
             .description("If the Statement Type is 'SQL' (as set in the statement.type attribute), this field indicates which field in the record(s) contains the SQL statement to execute. The value "
                     + "of the field must be a single SQL statement. If the Statement Type is not 'SQL', this field is ignored.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -364,8 +352,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor ALLOW_MULTIPLE_STATEMENTS = new Builder()
-            .name("put-db-record-allow-multiple-statements")
-            .displayName("Allow Multiple SQL Statements")
+            .name("Allow Multiple SQL Statements")
             .description("If the Statement Type is 'SQL' (as set in the statement.type attribute), this field indicates whether to split the field value by a semicolon and execute each statement "
                     + "separately. If any statement causes an error, the entire set of statements will be rolled back. If the Statement Type is not 'SQL', this field is ignored.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
@@ -376,24 +363,21 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor QUOTE_IDENTIFIERS = new Builder()
-            .name("put-db-record-quoted-identifiers")
-            .displayName("Quote Column Identifiers")
+            .name("Quote Column Identifiers")
             .description("Enabling this option will cause all column names to be quoted, allowing you to use reserved words as column names in your tables.")
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
 
     static final PropertyDescriptor QUOTE_TABLE_IDENTIFIER = new Builder()
-            .name("put-db-record-quoted-table-identifiers")
-            .displayName("Quote Table Identifiers")
+            .name("Quote Table Identifiers")
             .description("Enabling this option will cause the table name to be quoted to support the use of special characters in the table name.")
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
 
     static final PropertyDescriptor QUERY_TIMEOUT = new Builder()
-            .name("put-db-record-query-timeout")
-            .displayName("Max Wait Time")
+            .name("Max Wait Time")
             .description("The maximum amount of time allowed for a running SQL statement "
                     + ", zero means there is no limit. Max time less than 1 second will be equal to zero.")
             .defaultValue("0 seconds")
@@ -403,8 +387,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor TABLE_SCHEMA_CACHE_SIZE = new Builder()
-            .name("table-schema-cache-size")
-            .displayName("Table Schema Cache Size")
+            .name("Table Schema Cache Size")
             .description("Specifies how many Table Schemas should be cached")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue("100")
@@ -412,8 +395,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor MAX_BATCH_SIZE = new Builder()
-            .name("put-db-record-max-batch-size")
-            .displayName("Maximum Batch Size")
+            .name("Maximum Batch Size")
             .description("Specifies maximum number of sql statements to be included in each batch sent to the database. Zero means the batch size is not limited, "
                     + "and all statements are put into a single batch which can cause high memory usage issues for a very large number of statements.")
             .defaultValue("1000")
@@ -423,8 +405,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
-            .name("database-session-autocommit")
-            .displayName("Database Session AutoCommit")
+            .name("Database Session AutoCommit")
             .description("The autocommit mode to set on the database connection being used. If set to false, the operation(s) will be explicitly committed or rolled back "
                     + "(based on success or failure respectively). If set to true, the driver/database automatically handles the commit/rollback.")
             .allowableValues("true", "false")
@@ -432,7 +413,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .required(false)
             .build();
 
-    static final PropertyDescriptor DB_TYPE = DatabaseAdapterDescriptor.getDatabaseTypeDescriptor("db-type");
+    static final PropertyDescriptor DB_TYPE = DatabaseAdapterDescriptor.getDatabaseTypeDescriptor();
     static final PropertyDescriptor DATABASE_DIALECT_SERVICE = DatabaseAdapterDescriptor.getDatabaseDialectServiceDescriptor(DB_TYPE);
 
     protected static final List<PropertyDescriptor> properties = List.of(
@@ -610,6 +591,26 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("put-db-record-record-reader", RECORD_READER_FACTORY.getName());
+        config.renameProperty("db-type", DB_TYPE.getName());
+        config.renameProperty("put-db-record-statement-type", STATEMENT_TYPE.getName());
+        config.renameProperty("put-db-record-dcbp-service", DBCP_SERVICE.getName());
+        config.renameProperty("put-db-record-catalog-name", CATALOG_NAME.getName());
+        config.renameProperty("put-db-record-schema-name", SCHEMA_NAME.getName());
+        config.renameProperty("put-db-record-table-name", TABLE_NAME.getName());
+        config.renameProperty("put-db-record-binary-format", BINARY_STRING_FORMAT.getName());
+        config.renameProperty("put-db-record-translate-field-names", TRANSLATE_FIELD_NAMES.getName());
+        config.renameProperty("put-db-record-unmatched-field-behavior", UNMATCHED_FIELD_BEHAVIOR.getName());
+        config.renameProperty("put-db-record-unmatched-column-behavior", UNMATCHED_COLUMN_BEHAVIOR.getName());
+        config.renameProperty("put-db-record-update-keys", UPDATE_KEYS.getName());
+        config.renameProperty("put-db-record-field-containing-sql", FIELD_CONTAINING_SQL.getName());
+        config.renameProperty("put-db-record-allow-multiple-statements", ALLOW_MULTIPLE_STATEMENTS.getName());
+        config.renameProperty("put-db-record-quoted-identifiers", QUOTE_IDENTIFIERS.getName());
+        config.renameProperty("put-db-record-quoted-table-identifiers", QUOTE_TABLE_IDENTIFIER.getName());
+        config.renameProperty("put-db-record-query-timeout", QUERY_TIMEOUT.getName());
+        config.renameProperty("table-schema-cache-size", TABLE_SCHEMA_CACHE_SIZE.getName());
+        config.renameProperty("put-db-record-max-batch-size", MAX_BATCH_SIZE.getName());
+        config.renameProperty("database-session-autocommit", AUTO_COMMIT.getName());
         config.renameProperty(RollbackOnFailure.OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME, RollbackOnFailure.ROLLBACK_ON_FAILURE.getName());
     }
 

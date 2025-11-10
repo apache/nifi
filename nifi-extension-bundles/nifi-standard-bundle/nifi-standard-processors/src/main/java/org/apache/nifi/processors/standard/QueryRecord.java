@@ -195,22 +195,19 @@ public class QueryRecord extends AbstractProcessor {
     public static final String ROUTE_ATTRIBUTE_KEY = "QueryRecord.Route";
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-        .name("record-reader")
-        .displayName("Record Reader")
+        .name("Record Reader")
         .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema")
         .identifiesControllerService(RecordReaderFactory.class)
         .required(true)
         .build();
     static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
+        .name("Record Writer")
         .description("Specifies the Controller Service to use for writing results to a FlowFile")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
     static final PropertyDescriptor INCLUDE_ZERO_RECORD_FLOWFILES = new PropertyDescriptor.Builder()
-        .name("include-zero-record-flowfiles")
-        .displayName("Include Zero Record FlowFiles")
+        .name("Include Zero Record FlowFiles")
         .description("When running the SQL statement against an incoming FlowFile, if the result has no data, "
             + "this property specifies whether or not a FlowFile will be sent to the corresponding relationship")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -248,6 +245,9 @@ public class QueryRecord extends AbstractProcessor {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.removeProperty("cache-schema");
+        config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
+        config.renameProperty("record-writer", RECORD_WRITER_FACTORY.getName());
+        config.renameProperty("include-zero-record-flowfiles", INCLUDE_ZERO_RECORD_FLOWFILES.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName());
     }

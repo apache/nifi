@@ -136,8 +136,7 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 public class ExecuteSQL extends AbstractExecuteSQL {
 
     public static final PropertyDescriptor COMPRESSION_FORMAT = new PropertyDescriptor.Builder()
-            .name("compression-format")
-            .displayName("Compression Format")
+            .name("Compression Format")
             .description("Compression type to use when writing Avro files. Default is None.")
             .allowableValues(CodecType.values())
             .defaultValue(CodecType.NONE.toString())
@@ -176,6 +175,7 @@ public class ExecuteSQL extends AbstractExecuteSQL {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
+        config.renameProperty("compression-format", COMPRESSION_FORMAT.getName());
         config.renameProperty(JdbcProperties.OLD_NORMALIZE_NAMES_FOR_AVRO_PROPERTY_NAME, NORMALIZE_NAMES_FOR_AVRO.getName());
         config.renameProperty(JdbcProperties.OLD_USE_AVRO_LOGICAL_TYPES_PROPERTY_NAME, USE_AVRO_LOGICAL_TYPES.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());

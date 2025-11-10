@@ -56,6 +56,10 @@ public class DatabaseAdapterDescriptor {
                 .build();
     }
 
+    public static PropertyDescriptor getDatabaseTypeDescriptor() {
+        return getDatabaseTypeDescriptor("Database Type");
+    }
+
     public static PropertyDescriptor getDatabaseTypeDescriptor(final String propertyName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyName)

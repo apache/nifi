@@ -41,6 +41,7 @@ import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.lookup.StringLookupService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -102,8 +103,7 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor XSLT_CONTROLLER = new PropertyDescriptor.Builder()
-            .name("xslt-controller")
-            .displayName("XSLT Lookup")
+            .name("XSLT Lookup")
             .description("Controller lookup used to store XSLT definitions. One of the 'XSLT file name' and "
                     + "'XSLT Lookup' properties must be defined. WARNING: note that the lookup controller service "
                     + "should not be used to store large XSLT files.")
@@ -112,8 +112,7 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor XSLT_CONTROLLER_KEY = new PropertyDescriptor.Builder()
-            .name("xslt-controller-key")
-            .displayName("XSLT Lookup key")
+            .name("XSLT Lookup key")
             .description("Key used to retrieve the XSLT definition from the XSLT lookup controller. This property must be "
                     + "set when using the XSLT controller property.")
             .required(false)
@@ -122,8 +121,7 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor INDENT_OUTPUT = new PropertyDescriptor.Builder()
-            .name("indent-output")
-            .displayName("Indent")
+            .name("Indent")
             .description("Whether or not to indent the output.")
             .required(true)
             .defaultValue("true")
@@ -132,8 +130,7 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SECURE_PROCESSING = new PropertyDescriptor.Builder()
-            .name("secure-processing")
-            .displayName("Secure processing")
+            .name("Secure Processing")
             .description("Whether or not to mitigate various XML-related attacks like XXE (XML External Entity) attacks.")
             .required(true)
             .defaultValue("true")
@@ -142,8 +139,7 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("cache-size")
-            .displayName("Cache size")
+            .name("Cache Size")
             .description("Maximum number of stylesheets to cache. Zero disables the cache.")
             .required(true)
             .defaultValue("10")
@@ -151,8 +147,7 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor CACHE_TTL_AFTER_LAST_ACCESS = new PropertyDescriptor.Builder()
-            .name("cache-ttl-after-last-access")
-            .displayName("Cache TTL after last access")
+            .name("Cache Duration")
             .description("The cache TTL (time-to-live) or how long to keep stylesheets in the cache after last access.")
             .required(true)
             .defaultValue("60 secs")
@@ -316,6 +311,16 @@ public class TransformXml extends AbstractProcessor {
             getLogger().error("Transformation Failed", original, e);
             session.transfer(original, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("xslt-controller", XSLT_CONTROLLER.getName());
+        config.renameProperty("xslt-controller-key", XSLT_CONTROLLER_KEY.getName());
+        config.renameProperty("indent-output", INDENT_OUTPUT.getName());
+        config.renameProperty("secure-processing", SECURE_PROCESSING.getName());
+        config.renameProperty("cache-size", CACHE_SIZE.getName());
+        config.renameProperty("cache-ttl-after-last-access", CACHE_TTL_AFTER_LAST_ACCESS.getName());
     }
 
     private ErrorListenerLogger getErrorListenerLogger() {

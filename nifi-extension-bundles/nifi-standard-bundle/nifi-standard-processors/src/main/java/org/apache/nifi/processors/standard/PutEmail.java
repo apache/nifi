@@ -52,6 +52,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -121,8 +122,7 @@ public class PutEmail extends AbstractProcessor {
     );
 
     public static final PropertyDescriptor AUTHORIZATION_MODE = new PropertyDescriptor.Builder()
-            .name("authorization-mode")
-            .displayName("Authorization Mode")
+            .name("Authorization Mode")
             .description("How to authorize sending email on the user's behalf.")
             .required(true)
             .allowableValues(PASSWORD_BASED_AUTHORIZATION_MODE, OAUTH_AUTHORIZATION_MODE)
@@ -130,8 +130,7 @@ public class PutEmail extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-            .name("oauth2-access-token-provider")
-            .displayName("OAuth2 Access Token Provider")
+            .name("OAuth2 Access Token Provider")
             .description("OAuth2 service that can provide access tokens.")
             .identifiesControllerService(OAuth2AccessTokenProvider.class)
             .dependsOn(AUTHORIZATION_MODE, OAUTH_AUTHORIZATION_MODE)
@@ -163,8 +162,7 @@ public class PutEmail extends AbstractProcessor {
             .defaultValue("true")
             .build();
     public static final PropertyDescriptor SMTP_TLS = new PropertyDescriptor.Builder()
-            .name("SMTP TLS")
-            .displayName("SMTP STARTTLS")
+            .name("SMTP START TLS")
             .description("Flag indicating whether Opportunistic TLS should be enabled using STARTTLS command")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -188,8 +186,7 @@ public class PutEmail extends AbstractProcessor {
             .defaultValue("NiFi")
             .build();
     public static final PropertyDescriptor ATTRIBUTE_NAME_REGEX = new PropertyDescriptor.Builder()
-            .name("attribute-name-regex")
-            .displayName("Attributes to Send as Headers (Regex)")
+            .name("Attributes to Send as Headers Regular Expression")
             .description("A Regular Expression that is matched against all FlowFile attribute names. "
                     + "Any attribute whose name matches the regex will be added to the Email messages as a Header. "
                     + "If not specified, no FlowFile attributes will be added as headers.")
@@ -268,8 +265,7 @@ public class PutEmail extends AbstractProcessor {
             .defaultValue("false")
             .build();
     public static final PropertyDescriptor CONTENT_AS_MESSAGE = new PropertyDescriptor.Builder()
-            .name("email-ff-content-as-message")
-            .displayName("Flow file content as message")
+            .name("FlowFile Content as Message")
             .description("Specifies whether or not the FlowFile content should be the message of the email. If true, the 'Message' property is ignored.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -284,8 +280,7 @@ public class PutEmail extends AbstractProcessor {
             .defaultValue("false")
             .build();
     public static final PropertyDescriptor INPUT_CHARACTER_SET = new PropertyDescriptor.Builder()
-            .name("input-character-set")
-            .displayName("Input Character Set")
+            .name("Input Character Set")
             .description("Specifies the character set of the FlowFile contents "
                     + "for reading input FlowFile contents to generate the message body "
                     + "or as an attachment to the message. "
@@ -504,6 +499,16 @@ public class PutEmail extends AbstractProcessor {
             getLogger().error("Failed to send email for {}: {}; routing to failure", flowFile, e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("authorization-mode", AUTHORIZATION_MODE.getName());
+        config.renameProperty("oauth2-access-token-provider", OAUTH2_ACCESS_TOKEN_PROVIDER.getName());
+        config.renameProperty("SMTP TLS", SMTP_TLS.getName());
+        config.renameProperty("attribute-name-regex", ATTRIBUTE_NAME_REGEX.getName());
+        config.renameProperty("email-ff-content-as-message", CONTENT_AS_MESSAGE.getName());
+        config.renameProperty("input-character-set", INPUT_CHARACTER_SET.getName());
     }
 
     private String getMessage(final FlowFile flowFile, final ProcessContext context, final ProcessSession session) {

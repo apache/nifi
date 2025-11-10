@@ -33,6 +33,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -102,8 +103,7 @@ public class GenerateFlowFile extends AbstractProcessor {
             .defaultValue("false")
             .build();
     public static final PropertyDescriptor CUSTOM_TEXT = new PropertyDescriptor.Builder()
-            .displayName("Custom Text")
-            .name("generate-ff-custom-text")
+            .name("Custom Text")
             .description("If Data Format is text and if Unique FlowFiles is false, then this custom text will be used as content of the generated "
                     + "FlowFiles and the File Size will be ignored. Finally, if Expression Language is used, evaluation will be performed only once "
                     + "per batch of generated FlowFiles")
@@ -112,16 +112,14 @@ public class GenerateFlowFile extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
-            .name("character-set")
-            .displayName("Character Set")
+            .name("Character Set")
             .description("Specifies the character set to use when writing the bytes of Custom Text to a flow file.")
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
     public static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
-            .name("mime-type")
-            .displayName("Mime Type")
+            .name("Mime Type")
             .description("Specifies the value to set for the \"mime.type\" attribute.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -250,5 +248,12 @@ public class GenerateFlowFile extends AbstractProcessor {
             session.getProvenanceReporter().create(flowFile);
             session.transfer(flowFile, SUCCESS);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("generate-ff-custom-text", CUSTOM_TEXT.getName());
+        config.renameProperty("character-set", CHARSET.getName());
+        config.renameProperty("mime-type", MIME_TYPE.getName());
     }
 }

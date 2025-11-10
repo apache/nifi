@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -45,8 +46,7 @@ import java.util.Set;
 public class UpdateCounter extends AbstractProcessor {
 
     static final PropertyDescriptor COUNTER_NAME = new PropertyDescriptor.Builder()
-            .name("counter-name")
-            .displayName("Counter Name")
+            .name("Counter Name")
             .description("The name of the counter you want to set the value of - supports expression language like ${counterName}")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -55,8 +55,7 @@ public class UpdateCounter extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor DELTA = new PropertyDescriptor.Builder()
-            .name("delta")
-            .displayName("Delta")
+            .name("Delta")
             .description("Adjusts the counter by the specified delta for each flow file received. May be a positive or negative integer.")
             .required(true)
             .defaultValue("1")
@@ -101,5 +100,11 @@ public class UpdateCounter extends AbstractProcessor {
                 false
         );
         session.transfer(flowFile, SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("counter-name", COUNTER_NAME.getName());
+        config.renameProperty("delta", DELTA.getName());
     }
 }
