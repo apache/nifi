@@ -141,7 +141,7 @@ public class TailFile extends AbstractProcessor {
             + "data in the File to Tail that has already been written.");
 
     static final PropertyDescriptor BASE_DIRECTORY = new Builder()
-            .name("Base directory")
+            .name("Base Directory")
             .description("Base directory used to look for files to tail. This property is required when using Multifile mode.")
             .expressionLanguageSupported(ENVIRONMENT)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
@@ -159,7 +159,7 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor FILENAME = new Builder()
-            .name("File(s) to Tail")
+            .name("Files to Tail")
             .description("Path of the file to tail in case of single file mode. If using multifile mode, regular expression to find files "
                     + "to tail in the base directory. In case recursive is set to true, the regular expression will be used to match the "
                     + "path starting from the base directory (see additional details for examples).")
@@ -241,7 +241,7 @@ public class TailFile extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor REREAD_ON_NUL = new Builder()
-            .name("Reread when NUL Encountered")
+            .name("Reread on NUL Encountered")
             .description("If this option is set to 'true', when a NUL character is read, the processor will yield and try to read the same part again later. "
                 + "(Note: Yielding may delay the processing of other files tailed by this processor, not just the one with the NUL character.) "
                 + "The purpose of this flag is to allow users to handle cases where reading a file may return temporary NUL values. "

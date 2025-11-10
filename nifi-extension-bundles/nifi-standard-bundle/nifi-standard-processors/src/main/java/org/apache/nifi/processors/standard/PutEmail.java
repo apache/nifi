@@ -265,7 +265,7 @@ public class PutEmail extends AbstractProcessor {
             .defaultValue("false")
             .build();
     public static final PropertyDescriptor CONTENT_AS_MESSAGE = new PropertyDescriptor.Builder()
-            .name("Flow File Content as Message")
+            .name("FlowFile Content as Message")
             .description("Specifies whether or not the FlowFile content should be the message of the email. If true, the 'Message' property is ignored.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)

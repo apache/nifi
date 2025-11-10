@@ -191,7 +191,7 @@ public class ValidateCsv extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor INCLUDE_ALL_VIOLATIONS = new PropertyDescriptor.Builder()
-            .name("Include all Violations")
+            .name("Include Violations")
             .description("If true, the validation.error.message attribute would include the list of all the violations"
                     + " for the first invalid line. Note that setting this property to true would slightly decrease"
                     + " the performances as all columns would be validated. If false, a line is invalid as soon as a"

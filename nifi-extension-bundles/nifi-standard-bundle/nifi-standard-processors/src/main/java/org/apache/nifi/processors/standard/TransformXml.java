@@ -147,7 +147,7 @@ public class TransformXml extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor CACHE_TTL_AFTER_LAST_ACCESS = new PropertyDescriptor.Builder()
-            .name("Cache TTL After Last Access")
+            .name("Cache Duration")
             .description("The cache TTL (time-to-live) or how long to keep stylesheets in the cache after last access.")
             .required(true)
             .defaultValue("60 secs")

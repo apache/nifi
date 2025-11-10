@@ -281,7 +281,7 @@ public class HandleHttpRequest extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
     public static final PropertyDescriptor PARAMETERS_TO_ATTRIBUTES = new PropertyDescriptor.Builder()
-            .name("Parameters to Attributes List")
+            .name("Parameters to Attributes")
             .description("A comma-separated list of HTTP parameters or form data to output as attributes")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
