@@ -178,7 +178,7 @@ abstract class MessageBodyToBytesConverter {
     }
 
     private static class BytesMessageInputStream extends InputStream {
-        private BytesMessage message;
+        private final BytesMessage message;
 
         public BytesMessageInputStream(BytesMessage message) {
             this.message = message;
@@ -187,7 +187,10 @@ abstract class MessageBodyToBytesConverter {
         @Override
         public int read() throws IOException {
             try {
-                return this.message.readByte();
+                int value = Byte.toUnsignedInt(this.message.readByte());
+                return value;
+            } catch (MessageEOFException eof) {
+                return -1;
             } catch (JMSException e) {
                 throw new IOException(e.toString());
             }
@@ -201,6 +204,8 @@ abstract class MessageBodyToBytesConverter {
                 } else {
                     return super.read(buffer, offset, length);
                 }
+            } catch (MessageEOFException eof) {
+                return -1;
             } catch (JMSException e) {
                 throw new IOException(e.toString());
             }
@@ -210,6 +215,8 @@ abstract class MessageBodyToBytesConverter {
         public int read(byte[] buffer) throws IOException {
             try {
                 return this.message.readBytes(buffer);
+            } catch (MessageEOFException eof) {
+                return -1;
             } catch (JMSException e) {
                 throw new IOException(e.toString());
             }
