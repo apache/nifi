@@ -475,12 +475,25 @@ public class TestConsumeAzureEventHub {
     void testMigrationDerivesBlobAuthenticationStrategyFromSasToken() {
         final Map<String, String> properties = new HashMap<>();
         properties.put(ConsumeAzureEventHub.STORAGE_SAS_TOKEN.getName(), STORAGE_TOKEN);
-        properties.put(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName(), BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY.getValue());
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         new ConsumeAzureEventHub().migrateProperties(configuration);
 
         assertEquals(BlobStorageAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue(),
+                configuration.getRawProperties().get(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName()));
+    }
+
+    @Test
+    void testDoesNotOverrideBlobAuthenticationWhenExplicitlyConfigured() {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName(), BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY.getValue());
+        properties.put(ConsumeAzureEventHub.STORAGE_SAS_TOKEN.getName(), STORAGE_TOKEN);
+        properties.put(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY.getName(), STORAGE_ACCOUNT_KEY);
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
+        new ConsumeAzureEventHub().migrateProperties(configuration);
+
+        assertEquals(BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY.getValue(),
                 configuration.getRawProperties().get(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName()));
     }
 

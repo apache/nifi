@@ -372,19 +372,14 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         config.renameProperty("event-hub-shared-access-policy-primary-key", POLICY_PRIMARY_KEY.getName());
         config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
 
-        final boolean storageAccountKeySet = hasConfiguredValue(config, STORAGE_ACCOUNT_KEY);
-        final boolean storageSasTokenSet = hasConfiguredValue(config, STORAGE_SAS_TOKEN);
-        final boolean legacyBlobPropertiesPresent = storageAccountKeySet || storageSasTokenSet;
-
         final Optional<String> blobAuthenticationStrategyValue = config.getRawPropertyValue(BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName())
                 .map(String::trim)
                 .filter(StringUtils::isNotBlank);
         final boolean blobAuthenticationStrategyMissing = blobAuthenticationStrategyValue.isEmpty();
-        final boolean blobAuthenticationStrategyIsDefault = blobAuthenticationStrategyValue
-                .map(value -> value.equals(BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY.getValue()))
-                .orElse(true);
+        final boolean storageAccountKeySet = hasConfiguredValue(config, STORAGE_ACCOUNT_KEY);
+        final boolean storageSasTokenSet = hasConfiguredValue(config, STORAGE_SAS_TOKEN);
 
-        if (blobAuthenticationStrategyMissing || (legacyBlobPropertiesPresent && blobAuthenticationStrategyIsDefault)) {
+        if (blobAuthenticationStrategyMissing) {
             final String blobStorageAuthenticationStrategyValue = storageSasTokenSet && !storageAccountKeySet
                     ? BlobStorageAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue()
                     : BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY.getValue();
@@ -396,14 +391,11 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                 .map(String::trim)
                 .filter(StringUtils::isNotBlank);
         final boolean authenticationStrategyMissing = authenticationStrategyValue.isEmpty();
-        final boolean authenticationStrategyIsDefault = authenticationStrategyValue
-                .map(value -> value.equals(AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue()))
-                .orElse(true);
         final boolean legacyManagedIdentityPropertyPresent = config.hasProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
         final boolean sharedAccessCredentialsConfigured = hasConfiguredValue(config, ACCESS_POLICY_NAME)
                 || hasConfiguredValue(config, POLICY_PRIMARY_KEY);
 
-        if (authenticationStrategyMissing || ((legacyManagedIdentityPropertyPresent || sharedAccessCredentialsConfigured) && authenticationStrategyIsDefault)) {
+        if (authenticationStrategyMissing || legacyManagedIdentityPropertyPresent) {
             final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME)
                     .map(Boolean::parseBoolean)
                     .orElse(!sharedAccessCredentialsConfigured);

@@ -121,6 +121,20 @@ public class PutAzureEventHubTest {
                 configuration.getRawProperties().get(PutAzureEventHub.AUTHENTICATION_STRATEGY.getName()));
     }
 
+    @Test
+    void testMigrationDoesNotOverrideExplicitAuthenticationStrategy() {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(PutAzureEventHub.AUTHENTICATION_STRATEGY.getName(), AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue());
+        properties.put(PutAzureEventHub.ACCESS_POLICY.getName(), POLICY_NAME);
+        properties.put(PutAzureEventHub.POLICY_PRIMARY_KEY.getName(), POLICY_KEY);
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
+        new PutAzureEventHub().migrateProperties(configuration);
+
+        assertEquals(AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue(),
+                configuration.getRawProperties().get(PutAzureEventHub.AUTHENTICATION_STRATEGY.getName()));
+    }
+
     private void configureProxyControllerService() throws InitializationException {
         final String serviceId = "proxyConfigurationService";
         final ProxyConfiguration proxyConfiguration = mock(ProxyConfiguration.class);

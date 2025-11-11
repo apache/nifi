@@ -199,14 +199,11 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
                 .map(String::trim)
                 .filter(StringUtils::isNotBlank);
         final boolean authenticationStrategyMissing = authenticationStrategyValue.isEmpty();
-        final boolean authenticationStrategyIsDefault = authenticationStrategyValue
-                .map(value -> value.equals(AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue()))
-                .orElse(true);
         final boolean legacyManagedIdentityPropertyPresent = config.hasProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
         final boolean sharedAccessCredentialsConfigured = hasConfiguredValue(config, ACCESS_POLICY)
                 || hasConfiguredValue(config, POLICY_PRIMARY_KEY);
 
-        if (authenticationStrategyMissing || ((legacyManagedIdentityPropertyPresent || sharedAccessCredentialsConfigured) && authenticationStrategyIsDefault)) {
+        if (authenticationStrategyMissing || legacyManagedIdentityPropertyPresent) {
             final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME)
                     .map(Boolean::parseBoolean)
                     .orElse(!sharedAccessCredentialsConfigured);
