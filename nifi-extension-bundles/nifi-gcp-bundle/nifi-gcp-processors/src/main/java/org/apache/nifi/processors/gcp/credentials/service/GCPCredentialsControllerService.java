@@ -48,14 +48,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.DELEGATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.DELEGATION_USER;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
-import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS;
-import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS;
 
 /**
  * Implementation of GCPCredentialsService interface
@@ -138,33 +139,46 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty("application-default-credentials", USE_APPLICATION_DEFAULT_CREDENTIALS.getName());
-        config.renameProperty("compute-engine-credentials", USE_COMPUTE_ENGINE_CREDENTIALS.getName());
+        config.renameProperty("application-default-credentials", LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS.getName());
+        config.renameProperty("compute-engine-credentials", LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName());
         config.renameProperty("service-account-json-file", SERVICE_ACCOUNT_JSON_FILE.getName());
         config.renameProperty("service-account-json", SERVICE_ACCOUNT_JSON.getName());
 
-        if (config.getRawPropertyValue(AUTHENTICATION_STRATEGY).isEmpty()) {
+        final boolean legacyPropertiesPresent = config.hasProperty(LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS)
+                || config.hasProperty(LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS)
+                || config.hasProperty(SERVICE_ACCOUNT_JSON_FILE)
+                || config.hasProperty(SERVICE_ACCOUNT_JSON);
+        final Optional<String> authenticationStrategyValue = config.getRawPropertyValue(AUTHENTICATION_STRATEGY)
+                .map(String::trim)
+                .filter(value -> !value.isEmpty());
+        final boolean authenticationStrategyMissing = authenticationStrategyValue.isEmpty();
+        final boolean authenticationStrategyIsDefault = authenticationStrategyValue
+                .flatMap(AuthenticationStrategy::fromValue)
+                .map(AuthenticationStrategy.APPLICATION_DEFAULT::equals)
+                .orElse(false);
+
+        if (authenticationStrategyMissing || (legacyPropertiesPresent && authenticationStrategyIsDefault)) {
             final AuthenticationStrategy authenticationStrategy = determineAuthenticationStrategy(config);
             if (authenticationStrategy != null) {
                 config.setProperty(AUTHENTICATION_STRATEGY, authenticationStrategy.getValue());
             }
         }
 
-        config.removeProperty(USE_APPLICATION_DEFAULT_CREDENTIALS.getName());
-        config.removeProperty(USE_COMPUTE_ENGINE_CREDENTIALS.getName());
+        config.removeProperty(LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS.getName());
+        config.removeProperty(LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName());
     }
 
     private AuthenticationStrategy determineAuthenticationStrategy(final PropertyConfiguration config) {
-        if (isTrue(config, USE_APPLICATION_DEFAULT_CREDENTIALS)) {
+        if (isTrue(config, LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS)) {
             return AuthenticationStrategy.APPLICATION_DEFAULT;
         } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON_FILE)) {
             return AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE;
         } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON)) {
             return AuthenticationStrategy.SERVICE_ACCOUNT_JSON;
-        } else if (isTrue(config, USE_COMPUTE_ENGINE_CREDENTIALS)) {
+        } else if (isTrue(config, LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS)) {
             return AuthenticationStrategy.COMPUTE_ENGINE;
         }
-        return null;
+        return AuthenticationStrategy.APPLICATION_DEFAULT;
     }
 
     private boolean isTrue(final PropertyConfiguration config, final PropertyDescriptor property) {
