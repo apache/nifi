@@ -30,6 +30,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -41,6 +42,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -108,10 +110,25 @@ public class GetAzureEventHubTest {
                 "Partition Recivier Fetch Size", GetAzureEventHub.RECEIVER_FETCH_SIZE.getName(),
                 "Partition Receiver Timeout (millseconds)", GetAzureEventHub.RECEIVER_FETCH_TIMEOUT.getName(),
                 AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, GetAzureEventHub.POLICY_PRIMARY_KEY.getName(),
-                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME
+                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME
         );
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    @Test
+    void testMigrationPreservesSharedAccessAuthentication() {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME, "false");
+        properties.put(GetAzureEventHub.ACCESS_POLICY.getName(), POLICY_NAME);
+        properties.put(GetAzureEventHub.POLICY_PRIMARY_KEY.getName(), POLICY_KEY);
+        properties.put(GetAzureEventHub.AUTHENTICATION_STRATEGY.getName(), AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue());
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
+        new GetAzureEventHub().migrateProperties(configuration);
+
+        assertEquals(AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue(),
+                configuration.getRawProperties().get(GetAzureEventHub.AUTHENTICATION_STRATEGY.getName()));
     }
     private void configureProxyControllerService() throws InitializationException {
         final String serviceId = "proxyConfigurationService";

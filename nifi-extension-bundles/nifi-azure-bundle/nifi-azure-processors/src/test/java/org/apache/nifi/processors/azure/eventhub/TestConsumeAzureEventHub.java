@@ -48,6 +48,7 @@ import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrateg
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.shared.azure.eventhubs.BlobStorageAuthenticationStrategy;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -446,13 +447,41 @@ public class TestConsumeAzureEventHub {
                 Map.entry("storage-sas-token", ConsumeAzureEventHub.STORAGE_SAS_TOKEN.getName()),
                 Map.entry("storage-container-name", ConsumeAzureEventHub.STORAGE_CONTAINER_NAME.getName()),
                 Map.entry("event-hub-shared-access-policy-primary-key", ConsumeAzureEventHub.POLICY_PRIMARY_KEY.getName()),
-                Map.entry(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME)
+                Map.entry(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME)
         );
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
         assertTrue(propertyMigrationResult.getPropertiesUpdated().contains(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName())
                 || propertyMigrationResult.getPropertiesUpdated().isEmpty(),
                 "Blob Storage Authentication Strategy should be initialized during migration");
+    }
+
+    @Test
+    void testMigrationPreservesSharedAccessAuthentication() {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME, "false");
+        properties.put(ConsumeAzureEventHub.ACCESS_POLICY_NAME.getName(), POLICY_NAME);
+        properties.put(ConsumeAzureEventHub.POLICY_PRIMARY_KEY.getName(), POLICY_KEY);
+        properties.put(ConsumeAzureEventHub.AUTHENTICATION_STRATEGY.getName(), AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue());
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
+        new ConsumeAzureEventHub().migrateProperties(configuration);
+
+        assertEquals(AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue(),
+                configuration.getRawProperties().get(ConsumeAzureEventHub.AUTHENTICATION_STRATEGY.getName()));
+    }
+
+    @Test
+    void testMigrationDerivesBlobAuthenticationStrategyFromSasToken() {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(ConsumeAzureEventHub.STORAGE_SAS_TOKEN.getName(), STORAGE_TOKEN);
+        properties.put(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName(), BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY.getValue());
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
+        new ConsumeAzureEventHub().migrateProperties(configuration);
+
+        assertEquals(BlobStorageAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue(),
+                configuration.getRawProperties().get(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName()));
     }
 
     private void setProperties() {
