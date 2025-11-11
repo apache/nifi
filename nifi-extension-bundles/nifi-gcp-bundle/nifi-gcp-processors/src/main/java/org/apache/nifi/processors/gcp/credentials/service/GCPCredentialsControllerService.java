@@ -144,20 +144,14 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         config.renameProperty("service-account-json-file", SERVICE_ACCOUNT_JSON_FILE.getName());
         config.renameProperty("service-account-json", SERVICE_ACCOUNT_JSON.getName());
 
-        final boolean legacyPropertiesPresent = config.hasProperty(LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS)
-                || config.hasProperty(LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS)
-                || config.hasProperty(SERVICE_ACCOUNT_JSON_FILE)
-                || config.hasProperty(SERVICE_ACCOUNT_JSON);
+        final boolean legacyFlagsPresent = config.hasProperty(LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS)
+                || config.hasProperty(LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS);
         final Optional<String> authenticationStrategyValue = config.getRawPropertyValue(AUTHENTICATION_STRATEGY)
                 .map(String::trim)
                 .filter(value -> !value.isEmpty());
         final boolean authenticationStrategyMissing = authenticationStrategyValue.isEmpty();
-        final boolean authenticationStrategyIsDefault = authenticationStrategyValue
-                .flatMap(AuthenticationStrategy::fromValue)
-                .map(AuthenticationStrategy.APPLICATION_DEFAULT::equals)
-                .orElse(false);
 
-        if (authenticationStrategyMissing || (legacyPropertiesPresent && authenticationStrategyIsDefault)) {
+        if (authenticationStrategyMissing || legacyFlagsPresent) {
             final AuthenticationStrategy authenticationStrategy = determineAuthenticationStrategy(config);
             if (authenticationStrategy != null) {
                 config.setProperty(AUTHENTICATION_STRATEGY, authenticationStrategy.getValue());

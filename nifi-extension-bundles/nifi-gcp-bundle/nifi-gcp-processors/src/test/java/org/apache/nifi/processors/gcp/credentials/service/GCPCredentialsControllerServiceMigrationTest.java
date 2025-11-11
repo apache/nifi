@@ -107,7 +107,19 @@ class GCPCredentialsControllerServiceMigrationTest {
     }
 
     @Test
-    void testLegacyPropertiesOverrideDefaultAuthenticationStrategy() {
+    void testLegacyPropertiesDeriveAuthenticationStrategyWhenMissing() {
+        final Map<String, String> properties = new HashMap<>();
+        properties.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
+        service.migrateProperties(configuration);
+
+        assertEquals(AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue(),
+                configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
+    }
+
+    @Test
+    void testDoesNotOverrideExplicitStrategyWhenServiceAccountPropertiesSet() {
         final Map<String, String> properties = new HashMap<>();
         properties.put(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName(), AuthenticationStrategy.APPLICATION_DEFAULT.getValue());
         properties.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), "/tmp/account.json");
@@ -115,7 +127,7 @@ class GCPCredentialsControllerServiceMigrationTest {
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(properties);
         service.migrateProperties(configuration);
 
-        assertEquals(AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue(),
+        assertEquals(AuthenticationStrategy.APPLICATION_DEFAULT.getValue(),
                 configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
     }
 }
