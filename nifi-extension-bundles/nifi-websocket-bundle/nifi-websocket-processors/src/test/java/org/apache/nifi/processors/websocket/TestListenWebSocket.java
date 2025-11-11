@@ -50,8 +50,8 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_REMOTE_ADDRESS;
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -102,12 +102,9 @@ public class TestListenWebSocket {
         runner.setProperty(ListenWebSocket.PROP_WEBSOCKET_SERVER_SERVICE, serviceId);
         runner.setProperty(ListenWebSocket.PROP_SERVER_URL_PATH, endpointId);
 
-        try {
-            runner.run();
-            fail("Should fail with validation error.");
-        } catch (AssertionError e) {
-            assertTrue(e.toString().contains("'server-url-path' is invalid because Must starts with"));
-        }
+        final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
+        final String expected = "'%s' is invalid because Must starts with".formatted(ListenWebSocket.PROP_SERVER_URL_PATH.getName());
+        assertTrue(assertionError.toString().contains(expected));
     }
 
     @Test
