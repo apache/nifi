@@ -25,6 +25,10 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.SslSessionStatus;
@@ -33,6 +37,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -56,6 +61,7 @@ import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -87,9 +93,18 @@ import java.util.concurrent.atomic.AtomicLong;
         @WritesAttribute(attribute = "client.certificate.subject.dn", description = "For connections using mutual TLS, the Distinguished Name of the " +
                 "client certificate's owner (subject) is attached to the FlowFile.")
 })
-public class ListenTCP extends AbstractProcessor {
+public class ListenTCP extends AbstractProcessor implements ListenComponent {
     private static final String CLIENT_CERTIFICATE_SUBJECT_DN_ATTRIBUTE = "client.certificate.subject.dn";
     private static final String CLIENT_CERTIFICATE_ISSUER_DN_ATTRIBUTE = "client.certificate.issuer.dn";
+
+    public static final PropertyDescriptor PORT = new PropertyDescriptor
+        .Builder().name("Port")
+        .description("The port to listen on for TCP connections.")
+        .required(true)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .identifiesListenPort(org.apache.nifi.components.listen.TransportProtocol.TCP)
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -127,7 +142,6 @@ public class ListenTCP extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             ListenerProperties.NETWORK_INTF_NAME,
-            ListenerProperties.PORT,
             ListenerProperties.RECV_BUFFER_SIZE,
             ListenerProperties.MAX_MESSAGE_QUEUE_SIZE,
             ListenerProperties.MAX_SOCKET_BUFFER_SIZE,
@@ -135,6 +149,7 @@ public class ListenTCP extends AbstractProcessor {
             ListenerProperties.WORKER_THREADS,
             ListenerProperties.MAX_BATCH_SIZE,
             ListenerProperties.MESSAGE_DELIMITER,
+            PORT,
             IDLE_CONNECTION_TIMEOUT,
             POOL_RECV_BUFFERS,
             SSL_CONTEXT_SERVICE,
@@ -179,7 +194,7 @@ public class ListenTCP extends AbstractProcessor {
         final String networkInterface = context.getProperty(ListenerProperties.NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
         final InetAddress address = NetworkUtils.getInterfaceAddress(networkInterface);
         final Charset charset = Charset.forName(context.getProperty(ListenerProperties.CHARSET).getValue());
-        port = context.getProperty(ListenerProperties.PORT).evaluateAttributeExpressions().asInteger();
+        port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         eventsCapacity = context.getProperty(ListenerProperties.MAX_MESSAGE_QUEUE_SIZE).asInteger();
         events = new TrackingLinkedBlockingQueue<>(eventsCapacity);
         errorEvents = new LinkedBlockingQueue<>();
@@ -209,6 +224,20 @@ public class ListenTCP extends AbstractProcessor {
         } catch (EventException e) {
             getLogger().error("Failed to bind to [{}:{}]", address, port, e);
         }
+    }
+
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+        final Integer portNumber = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        if (portNumber != null) {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(portNumber)
+                .portName(PORT.getDisplayName())
+                .transportProtocol(org.apache.nifi.components.listen.TransportProtocol.TCP)
+                .build();
+            return List.of(port);
+        }
+        return Collections.emptyList();
     }
 
     public int getListeningPort() {

@@ -16,30 +16,38 @@
  */
 package org.apache.nifi.distributed.cache.server;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.components.listen.TransportProtocol;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextProvider;
 
-public abstract class AbstractCacheServer extends AbstractControllerService {
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public abstract class AbstractCacheServer extends AbstractControllerService implements ListenComponent {
 
     public static final String EVICTION_STRATEGY_LFU = "Least Frequently Used";
     public static final String EVICTION_STRATEGY_LRU = "Least Recently Used";
     public static final String EVICTION_STRATEGY_FIFO = "First In, First Out";
+
+    public static final String APPLICATION_PROTOCOL_NAME = "nifi.apache.org/cache";
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
         .name("Port")
         .description("The port to listen on for incoming connections")
         .required(true)
         .addValidator(StandardValidators.PORT_VALIDATOR)
+        .identifiesListenPort(TransportProtocol.TCP, APPLICATION_PROTOCOL_NAME)
         .defaultValue("4557")
         .build();
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -98,6 +106,21 @@ public abstract class AbstractCacheServer extends AbstractControllerService {
             cacheServer = createCacheServer(context);
             cacheServer.start();
         }
+    }
+
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+        final Integer portNumber = context.getProperty(PORT).asInteger();
+        if (portNumber != null) {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(portNumber)
+                .portName(PORT.getDisplayName())
+                .transportProtocol(TransportProtocol.TCP)
+                .applicationProtocols(List.of(APPLICATION_PROTOCOL_NAME))
+                .build();
+            return List.of(port);
+        }
+        return Collections.emptyList();
     }
 
     @OnShutdown

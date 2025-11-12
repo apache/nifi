@@ -25,8 +25,13 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.components.listen.TransportProtocol;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
@@ -50,6 +55,7 @@ import org.apache.nifi.snmp.utils.UsmReader;
 import org.snmp4j.security.UsmUser;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,13 +76,14 @@ import static org.apache.nifi.snmp.processors.properties.BasicProperties.SNMP_V3
 @WritesAttribute(attribute = SNMPUtils.SNMP_PROP_PREFIX + "*", description = "Attributes retrieved from the SNMP response. It may include:"
         + " snmp$errorIndex, snmp$errorStatus, snmp$errorStatusText, snmp$nonRepeaters, snmp$requestID, snmp$type, snmp$variableBindings")
 @RequiresInstanceClassLoading
-public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements VerifiableProcessor {
+public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements VerifiableProcessor, ListenComponent {
 
     public static final PropertyDescriptor SNMP_MANAGER_PORT = new PropertyDescriptor.Builder()
             .name("SNMP Manager Port")
             .description("The port where the SNMP Manager listens to the incoming traps.")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
+            .identifiesListenPort(TransportProtocol.UDP, "snmptrap")
             .build();
 
     public static final PropertyDescriptor SNMP_USM_USER_INPUT_METHOD = new PropertyDescriptor.Builder()
@@ -197,6 +204,21 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
         }
 
         return snmpTrapReceiverHandler.getListeningPort();
+    }
+
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+        final Integer portNumber = context.getProperty(SNMP_MANAGER_PORT).asInteger();
+        if (portNumber != null) {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(portNumber)
+                .portName(SNMP_MANAGER_PORT.getDisplayName())
+                .transportProtocol(TransportProtocol.UDP)
+                .applicationProtocols(List.of("snmptrap"))
+                .build();
+            return List.of(port);
+        }
+        return Collections.emptyList();
     }
 
     @Override
