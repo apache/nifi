@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -76,8 +77,7 @@ import org.apache.nifi.websocket.WebSocketService;
 public class PutWebSocket extends AbstractProcessor {
 
     public static final PropertyDescriptor PROP_WS_SESSION_ID = new PropertyDescriptor.Builder()
-            .name("websocket-session-id")
-            .displayName("WebSocket Session Id")
+            .name("WebSocket Session Id")
             .description("A NiFi Expression to retrieve the session id. If not specified, a message will be " +
                     "sent to all connected WebSocket peers for the WebSocket controller service endpoint.")
             .required(true)
@@ -87,9 +87,8 @@ public class PutWebSocket extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_WS_CONTROLLER_SERVICE_ID = new PropertyDescriptor.Builder()
-            .name("websocket-controller-service-id")
-            .displayName("WebSocket ControllerService Id")
-            .description("A NiFi Expression to retrieve the id of a WebSocket ControllerService.")
+            .name("WebSocket Controller Service Id")
+            .description("A NiFi Expression to retrieve the id of a WebSocket Controller Service.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -97,9 +96,8 @@ public class PutWebSocket extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_WS_CONTROLLER_SERVICE_ENDPOINT = new PropertyDescriptor.Builder()
-            .name("websocket-endpoint-id")
-            .displayName("WebSocket Endpoint Id")
-            .description("A NiFi Expression to retrieve the endpoint id of a WebSocket ControllerService.")
+            .name("WebSocket Endpoint Id")
+            .description("A NiFi Expression to retrieve the endpoint id of a WebSocket Controller Service.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -107,8 +105,7 @@ public class PutWebSocket extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_WS_MESSAGE_TYPE = new PropertyDescriptor.Builder()
-            .name("websocket-message-type")
-            .displayName("WebSocket Message Type")
+            .name("WebSocket Message Type")
             .description("The type of message content: TEXT or BINARY")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -232,6 +229,14 @@ public class PutWebSocket extends AbstractProcessor {
             transferToFailure(processSession, flowfile, e.toString());
         }
 
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("websocket-session-id", PROP_WS_SESSION_ID.getName());
+        config.renameProperty("websocket-controller-service-id", PROP_WS_CONTROLLER_SERVICE_ID.getName());
+        config.renameProperty("websocket-endpoint-id", PROP_WS_CONTROLLER_SERVICE_ENDPOINT.getName());
+        config.renameProperty("websocket-message-type", PROP_WS_MESSAGE_TYPE.getName());
     }
 
     private void transferToFailure(final ProcessSession processSession, FlowFile flowfile, final String value) {

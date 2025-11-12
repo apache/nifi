@@ -37,6 +37,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -59,6 +60,11 @@ import static com.fasterxml.jackson.core.JsonToken.FIELD_NAME;
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 import static java.util.Collections.singletonMap;
 import static org.apache.nifi.annotation.behavior.InputRequirement.Requirement.INPUT_FORBIDDEN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_SUBDOMAIN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_USER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
@@ -86,30 +92,25 @@ public class GetZendesk extends AbstractZendesk {
     static final int HTTP_TOO_MANY_REQUESTS = 429;
 
     static final String ZENDESK_EXPORT_METHOD_NAME = "zendesk-export-method";
-    static final String ZENDESK_RESOURCE_NAME = "zendesk-resource";
-    static final String ZENDESK_QUERY_START_TIMESTAMP_NAME = "zendesk-query-start-timestamp";
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     public static final PropertyDescriptor ZENDESK_EXPORT_METHOD = new PropertyDescriptor.Builder()
-        .name(ZENDESK_EXPORT_METHOD_NAME)
-        .displayName("Export Method")
+        .name("Export Method")
         .description("Method for incremental export.")
         .required(true)
         .allowableValues(ZendeskExportMethod.class)
         .build();
 
     public static final PropertyDescriptor ZENDESK_RESOURCE = new PropertyDescriptor.Builder()
-        .name(ZENDESK_RESOURCE_NAME)
-        .displayName("Resource")
+        .name("Resource")
         .description("The particular Zendesk resource which is meant to be exported.")
         .required(true)
         .allowableValues(ZendeskResource.class)
         .build();
 
     public static final PropertyDescriptor ZENDESK_QUERY_START_TIMESTAMP = new PropertyDescriptor.Builder()
-        .name(ZENDESK_QUERY_START_TIMESTAMP_NAME)
-        .displayName("Query Start Timestamp")
+        .name("Query Start Timestamp")
         .description("Initial timestamp to query Zendesk API from in Unix timestamp seconds format.")
         .addValidator(POSITIVE_LONG_VALIDATOR)
         .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -185,6 +186,18 @@ public class GetZendesk extends AbstractZendesk {
             getLogger().error("HTTP {} error for uri={} with response={}, yielding before retrying request.", response.statusCode(), uri, getResponseBody(response));
             context.yield();
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER, WEB_CLIENT_SERVICE_PROVIDER.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_SUBDOMAIN, ZENDESK_SUBDOMAIN.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_USER, ZENDESK_USER.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_AUTHENTICATION_TYPE, ZENDESK_AUTHENTICATION_TYPE.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL, ZENDESK_AUTHENTICATION_CREDENTIAL.getName());
+        config.renameProperty(ZENDESK_EXPORT_METHOD_NAME, ZENDESK_EXPORT_METHOD.getName());
+        config.renameProperty("zendesk-resource", ZENDESK_RESOURCE.getName());
+        config.renameProperty("zendesk-query-start-timestamp", ZENDESK_QUERY_START_TIMESTAMP.getName());
     }
 
     private URI createUri(ProcessContext context, ZendeskResource zendeskResource, ZendeskExportMethod exportMethod) {

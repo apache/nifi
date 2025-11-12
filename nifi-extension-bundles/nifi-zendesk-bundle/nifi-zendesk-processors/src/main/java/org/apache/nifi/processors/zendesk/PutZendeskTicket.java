@@ -27,6 +27,7 @@ import org.apache.nifi.common.zendesk.validation.JsonPointerPropertyNameValidato
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -48,6 +49,15 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.common.zendesk.ZendeskProperties.APPLICATION_JSON;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_SUBDOMAIN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_COMMENT_BODY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_PRIORITY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_SUBJECT;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_USER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
@@ -84,15 +94,13 @@ import static org.apache.nifi.web.client.api.HttpResponseStatus.OK;
         @WritesAttribute(attribute = ERROR_MESSAGE_ATTRIBUTE_NAME, description = "The error message of from the response.")})
 public class PutZendeskTicket extends AbstractZendesk {
 
-    static final String ZENDESK_RECORD_READER_NAME = "zendesk-record-reader";
     static final String ERROR_CODE_ATTRIBUTE_NAME = "error.code";
     static final String ERROR_MESSAGE_ATTRIBUTE_NAME = "error.message";
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name(ZENDESK_RECORD_READER_NAME)
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
             .identifiesControllerService(RecordReaderFactory.class)
             .build();
@@ -240,6 +248,20 @@ public class PutZendeskTicket extends AbstractZendesk {
         }
 
         handleResponse(session, flowFile, response, uri, startNanos);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER, WEB_CLIENT_SERVICE_PROVIDER.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_SUBDOMAIN, ZENDESK_SUBDOMAIN.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_USER, ZENDESK_USER.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_AUTHENTICATION_TYPE, ZENDESK_AUTHENTICATION_TYPE.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL, ZENDESK_AUTHENTICATION_CREDENTIAL.getName());
+        config.renameProperty("zendesk-record-reader", RECORD_READER.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_TICKET_COMMENT_BODY, TICKET_COMMENT_BODY.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_TICKET_SUBJECT, TICKET_SUBJECT.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_TICKET_PRIORITY, TICKET_PRIORITY.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_TICKET_TYPE, TICKET_TYPE.getName());
     }
 
     private void handleResponse(ProcessSession session, FlowFile flowFile, HttpResponseEntity response, URI uri, long startNanos) {
