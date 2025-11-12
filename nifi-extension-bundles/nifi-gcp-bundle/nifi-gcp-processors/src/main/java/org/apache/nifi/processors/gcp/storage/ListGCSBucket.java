@@ -221,14 +221,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
         .required(true)
         .build();
 
-    public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
-            .name("Bucket")
-            .description(BUCKET_DESC)
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
-            .build();
-
     public static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder()
             .name("Prefix")
             .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
@@ -407,11 +399,6 @@ public class ListGCSBucket extends AbstractGCSProcessor {
     @Override
     protected List<String> getRequiredPermissions() {
         return Collections.singletonList("storage.objects.list");
-    }
-
-    @Override
-    protected String getBucketName(final ProcessContext context, final Map<String, String> attributes) {
-        return context.getProperty(BUCKET).evaluateAttributeExpressions().getValue();
     }
 
     @Override
