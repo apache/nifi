@@ -33,6 +33,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.fileresource.service.api.FileResourceService;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -55,8 +56,7 @@ import java.util.Map;
 public class StandardFileResourceService extends AbstractControllerService implements FileResourceService {
 
     public static final PropertyDescriptor FILE_PATH = new PropertyDescriptor.Builder()
-            .name("file-path")
-            .displayName("File Path")
+            .name("File Path")
             .description("Path to a file that can be accessed locally.")
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -108,5 +108,10 @@ public class StandardFileResourceService extends AbstractControllerService imple
         } catch (IOException e) {
             throw new ProcessException("File cannot be read: " + file.getAbsolutePath(), e);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("file-path", FILE_PATH.getName());
     }
 }

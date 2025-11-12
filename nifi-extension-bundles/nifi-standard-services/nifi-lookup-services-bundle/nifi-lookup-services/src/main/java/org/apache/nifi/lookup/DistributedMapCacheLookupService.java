@@ -40,6 +40,7 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
 import org.apache.nifi.distributed.cache.client.exception.SerializationException;
+import org.apache.nifi.migration.PropertyConfiguration;
 
 @Tags({"lookup", "enrich", "key", "value", "map", "cache", "distributed"})
 @CapabilityDescription("Allows to choose a distributed map cache client to retrieve the value associated to a key. "
@@ -63,16 +64,14 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
     private final Deserializer<String> valueDeserializer = new StringDeserializer();
 
     public static final PropertyDescriptor PROP_DISTRIBUTED_CACHE_SERVICE = new PropertyDescriptor.Builder()
-            .name("distributed-map-cache-service")
-            .displayName("Distributed Cache Service")
+            .name("Distributed Cache Service")
             .description("The Controller Service that is used to get the cached values.")
             .required(true)
             .identifiesControllerService(DistributedMapCacheClient.class)
             .build();
 
     public static final PropertyDescriptor CHARACTER_ENCODING = new PropertyDescriptor.Builder()
-            .name("character-encoding")
-            .displayName("Character Encoding")
+            .name("Character Encoding")
             .description("Specifies a character encoding to use.")
             .required(true)
             .allowableValues(getStandardCharsetNames())
@@ -92,6 +91,12 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
     public void onEnabled(final ConfigurationContext context) {
         cache = context.getProperty(PROP_DISTRIBUTED_CACHE_SERVICE).asControllerService(DistributedMapCacheClient.class);
         charset = Charset.forName(context.getProperty(CHARACTER_ENCODING).getValue());
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("distributed-map-cache-service", PROP_DISTRIBUTED_CACHE_SERVICE.getName());
+        config.renameProperty("character-encoding", CHARACTER_ENCODING.getName());
     }
 
     @Override

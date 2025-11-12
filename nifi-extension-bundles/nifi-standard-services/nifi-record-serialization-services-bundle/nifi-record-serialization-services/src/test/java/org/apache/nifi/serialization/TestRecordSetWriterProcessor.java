@@ -35,8 +35,7 @@ public class TestRecordSetWriterProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(new PropertyDescriptor.Builder()
-                .name("record-writer")
-                .displayName("Record Writer")
+                .name("Record Writer")
                 .description("Specifies the Controller Service to use for writing out the records")
                 .identifiesControllerService(RecordSetWriterFactory.class)
                 .required(true)

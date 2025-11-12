@@ -32,6 +32,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.key.service.api.PrivateKeyService;
 import org.apache.nifi.key.service.reader.BouncyCastlePrivateKeyReader;
 import org.apache.nifi.key.service.reader.PrivateKeyReader;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -54,16 +55,14 @@ import java.util.concurrent.atomic.AtomicReference;
 @CapabilityDescription("Private Key Service provides access to a Private Key loaded from configured sources")
 public class StandardPrivateKeyService extends AbstractControllerService implements PrivateKeyService {
     public static final PropertyDescriptor KEY_FILE = new PropertyDescriptor.Builder()
-            .name("key-file")
-            .displayName("Key File")
+            .name("Key File")
             .description("File path to Private Key structured using PKCS8 and encoded as PEM")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .build();
 
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()
-            .name("key")
-            .displayName("Key")
+            .name("Key")
             .description("Private Key structured using PKCS8 and encoded as PEM")
             .required(false)
             .sensitive(true)
@@ -71,8 +70,7 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
             .build();
 
     public static final PropertyDescriptor KEY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("key-password")
-            .displayName("Key Password")
+            .name("Key Password")
             .description("Password used for decrypting Private Keys")
             .required(false)
             .sensitive(true)
@@ -132,6 +130,13 @@ public class StandardPrivateKeyService extends AbstractControllerService impleme
     @OnDisabled
     public void onDisabled() {
         keyReference.set(null);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("key-file", KEY_FILE.getName());
+        config.renameProperty("key", KEY.getName());
+        config.renameProperty("key-password", KEY_PASSWORD.getName());
     }
 
     /**

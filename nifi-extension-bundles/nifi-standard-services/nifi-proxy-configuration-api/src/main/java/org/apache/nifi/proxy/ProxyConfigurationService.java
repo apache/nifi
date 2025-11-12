@@ -18,15 +18,17 @@ package org.apache.nifi.proxy;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.migration.PropertyConfiguration;
 
 /**
  * Provides configurations to access a Proxy server.
  */
 public interface ProxyConfigurationService extends ControllerService {
 
+    String OBSOLETE_PROXY_CONFIGURATION_SERVICE = "proxy-configuration-service";
+
     PropertyDescriptor PROXY_CONFIGURATION_SERVICE = new PropertyDescriptor.Builder()
-            .name("proxy-configuration-service")
-            .displayName("Proxy Configuration Service")
+            .name("Proxy Configuration Service")
             .description("Specifies the Proxy Configuration Controller Service to proxy network requests.")
             .identifiesControllerService(ProxyConfigurationService.class)
             .required(false)
@@ -40,4 +42,8 @@ public interface ProxyConfigurationService extends ControllerService {
      */
     ProxyConfiguration getConfiguration();
 
+    @Override
+    default void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OBSOLETE_PROXY_CONFIGURATION_SERVICE, PROXY_CONFIGURATION_SERVICE.getName());
+    }
 }

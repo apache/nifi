@@ -31,6 +31,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -122,8 +123,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .sensitive(true)
             .build();
     static final PropertyDescriptor KEY_PASSWORD = new PropertyDescriptor.Builder()
-            .name("key-password")
-            .displayName("Key Password")
+            .name("Key Password")
             .description("The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, "
                     + "then the Keystore Password will be assumed to be the same as the Key Password.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -131,8 +131,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .required(false)
             .build();
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
-            .name("SSL Protocol")
-            .displayName("TLS Protocol")
+            .name("TLS Protocol")
             .defaultValue(TLS_PROTOCOL)
             .required(false)
             .allowableValues(getProtocolAllowableValues())
@@ -181,6 +180,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
         super.onPropertyModified(descriptor, oldValue, newValue);
         resetValidationCache();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("key-password", KEY_PASSWORD.getName());
+        config.renameProperty("SSL Protocol", SSL_ALGORITHM.getName());
     }
 
     @Override

@@ -35,8 +35,7 @@ public class TestRecordReaderProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(new PropertyDescriptor.Builder()
-                .name("record-reader")
-                .displayName("Record Reader")
+                .name("Record Reader")
                 .description("Specifies the Controller Service to use for reading incoming data")
                 .identifiesControllerService(RecordReaderFactory.class)
                 .required(true)

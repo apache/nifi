@@ -42,6 +42,7 @@ import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosAction;
@@ -93,8 +94,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
     private static final int DEFAULT_MIN_VALIDATION_TIMEOUT = 250;
 
     public static final PropertyDescriptor DATABASE_URL = new PropertyDescriptor.Builder()
-            .name("hikaricp-connection-url")
-            .displayName("Database Connection URL")
+            .name("Database Connection URL")
             .description("A database connection URL used to connect to a database. May contain database system name, host, port, database name and some parameters."
                     + " The exact syntax of a database connection URL is specified by your DBMS.")
             .addValidator(new ConnectionUrlValidator())
@@ -103,8 +103,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
-            .name("hikaricp-driver-classname")
-            .displayName("Database Driver Class Name")
+            .name("Database Driver Class Name")
             .description("The fully-qualified class name of the JDBC driver. Example: com.mysql.jdbc.Driver")
             .required(true)
             .addValidator(new DriverClassValidator())
@@ -112,8 +111,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
-            .name("hikaricp-driver-locations")
-            .displayName("Database Driver Location(s)")
+            .name("Database Driver Locations")
             .description("Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
@@ -122,16 +120,14 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
-            .name("hikaricp-username")
-            .displayName("Database User")
+            .name("Database User")
             .description("Database user name")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
-            .name("hikaricp-password")
-            .displayName("Password")
+            .name("Password")
             .description("The password for the database user")
             .required(false)
             .sensitive(true)
@@ -140,8 +136,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor MAX_WAIT_TIME = new PropertyDescriptor.Builder()
-            .name("hikaricp-max-wait-time")
-            .displayName("Max Wait Time")
+            .name("Max Wait Time")
             .description("The maximum amount of time that the pool will wait (when there are no available connections) "
                     + " for a connection to be returned before failing, or 0 <time units> to wait indefinitely. ")
             .defaultValue("500 millis")
@@ -152,8 +147,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor MAX_TOTAL_CONNECTIONS = new PropertyDescriptor.Builder()
-            .name("hikaricp-max-total-conns")
-            .displayName("Max Total Connections")
+            .name("Max Total Connections")
             .description("This property controls the maximum size that the pool is allowed to reach, including both idle and in-use connections. Basically this value will determine the "
                     + "maximum number of actual connections to the database backend. A reasonable value for this is best determined by your execution environment. When the pool reaches "
                     + "this size, and no idle connections are available, the service will block for up to connectionTimeout milliseconds before timing out.")
@@ -165,8 +159,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor VALIDATION_QUERY = new PropertyDescriptor.Builder()
-            .name("hikaricp-validation-query")
-            .displayName("Validation Query")
+            .name("Validation Query")
             .description("Validation Query used to validate connections before returning them. "
                     + "When connection is invalid, it gets dropped and new valid connection will be returned. "
                     + "NOTE: Using validation might have some performance penalty.")
@@ -176,8 +169,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
-            .name("hikaricp-min-idle-conns")
-            .displayName("Minimum Idle Connections")
+            .name("Minimum Idle Connections")
             .description("This property controls the minimum number of idle connections that HikariCP tries to maintain in the pool. If the idle connections dip below this value and total "
                     + "connections in the pool are less than 'Max Total Connections', HikariCP will make a best effort to add additional connections quickly and efficiently. It is recommended "
                     + "that this property to be set equal to 'Max Total Connections'.")
@@ -188,8 +180,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor MAX_CONN_LIFETIME = new PropertyDescriptor.Builder()
-            .name("hikaricp-max-conn-lifetime")
-            .displayName("Max Connection Lifetime")
+            .name("Max Connection Lifetime")
             .description("The maximum lifetime of a connection. After this time is exceeded the " +
                     "connection will fail the next activation, passivation or validation test. A value of zero or less " +
                     "means the connection has an infinite lifetime.")
@@ -200,8 +191,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             .build();
 
     public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-            .name("hikaricp-kerberos-user-service")
-            .displayName("Kerberos User Service")
+            .name("Kerberos User Service")
             .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
             .identifiesControllerService(KerberosUserService.class)
             .required(false)
@@ -396,6 +386,21 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             }
         }
         return results;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("hikaricp-connection-url", DATABASE_URL.getName());
+        config.renameProperty("hikaricp-driver-classname", DB_DRIVERNAME.getName());
+        config.renameProperty("hikaricp-driver-locations", DB_DRIVER_LOCATION.getName());
+        config.renameProperty("hikaricp-username", DB_USER.getName());
+        config.renameProperty("hikaricp-password", DB_PASSWORD.getName());
+        config.renameProperty("hikaricp-max-wait-time", MAX_WAIT_TIME.getName());
+        config.renameProperty("hikaricp-max-total-conns", MAX_TOTAL_CONNECTIONS.getName());
+        config.renameProperty("hikaricp-validation-query", VALIDATION_QUERY.getName());
+        config.renameProperty("hikaricp-min-idle-conns", MIN_IDLE.getName());
+        config.renameProperty("hikaricp-max-conn-lifetime", MAX_CONN_LIFETIME.getName());
+        config.renameProperty("hikaricp-kerberos-user-service", KERBEROS_USER_SERVICE.getName());
     }
 
     protected void configureDataSource(final ConfigurationContext context, final HikariDataSource dataSource) {

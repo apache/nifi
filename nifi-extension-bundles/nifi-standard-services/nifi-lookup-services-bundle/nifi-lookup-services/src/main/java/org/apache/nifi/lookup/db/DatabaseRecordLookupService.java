@@ -63,8 +63,7 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
     private volatile Cache<Tuple<String, Object>, Record> cache;
 
     static final PropertyDescriptor LOOKUP_VALUE_COLUMNS = new PropertyDescriptor.Builder()
-            .name("dbrecord-lookup-value-columns")
-            .displayName("Lookup Value Columns")
+            .name("Lookup Value Columns")
             .description("A comma-delimited list of columns in the table that will be returned when the lookup key matches. Note that this may be case-sensitive depending on the database.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -199,6 +198,8 @@ public class DatabaseRecordLookupService extends AbstractDatabaseLookupService i
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("dbrecord-lookup-value-columns", LOOKUP_VALUE_COLUMNS.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName());
     }

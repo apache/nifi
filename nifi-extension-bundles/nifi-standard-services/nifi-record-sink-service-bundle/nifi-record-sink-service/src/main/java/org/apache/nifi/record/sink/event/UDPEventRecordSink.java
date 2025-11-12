@@ -27,6 +27,7 @@ import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -51,8 +52,7 @@ import java.util.Map;
 public class UDPEventRecordSink extends AbstractControllerService implements RecordSinkService {
 
     public static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-            .name("hostname")
-            .displayName("Hostname")
+            .name("Hostname")
             .description("Destination hostname or IP address")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -60,8 +60,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
             .build();
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
-            .name("port")
-            .displayName("Port")
+            .name("Port")
             .description("Destination port number")
             .required(true)
             .addValidator(StandardValidators.PORT_VALIDATOR)
@@ -69,8 +68,7 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
             .build();
 
     public static final PropertyDescriptor SENDER_THREADS = new PropertyDescriptor.Builder()
-            .name("sender-threads")
-            .displayName("Sender Threads")
+            .name("Sender Threads")
             .description("Number of worker threads allocated for handling socket communication")
             .required(true)
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -148,6 +146,14 @@ public class UDPEventRecordSink extends AbstractControllerService implements Rec
         }
 
         return WriteResult.of(recordCount, writeAttributes);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        RecordSinkService.super.migrateProperties(config);
+        config.renameProperty("hostname", HOSTNAME.getName());
+        config.renameProperty("port", PORT.getName());
+        config.renameProperty("sender-threads", SENDER_THREADS.getName());
     }
 
     /**

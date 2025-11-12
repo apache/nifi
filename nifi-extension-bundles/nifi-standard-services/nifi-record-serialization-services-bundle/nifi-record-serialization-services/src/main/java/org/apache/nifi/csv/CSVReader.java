@@ -77,8 +77,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
                     + "if the data is not fully RFC-4180 compliant.");
 
     public static final PropertyDescriptor CSV_PARSER = new PropertyDescriptor.Builder()
-            .name("csv-reader-csv-parser")
-            .displayName("CSV Parser")
+            .name("CSV Parser")
             .description("Specifies which parser to use to read CSV records. NOTE: Different parsers may support different subsets of functionality "
                     + "and may also exhibit different levels of performance.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -192,6 +191,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
+        config.renameProperty("csv-reader-csv-parser", CSV_PARSER.getName());
         config.renameProperty(CSVUtils.OLD_FIRST_LINE_IS_HEADER_PROPERTY_NAME, CSVUtils.FIRST_LINE_IS_HEADER.getName());
         config.renameProperty(CSVUtils.OLD_IGNORE_CSV_HEADER_PROPERTY_NAME, CSVUtils.IGNORE_CSV_HEADER.getName());
         config.renameProperty(CSVUtils.OLD_CHARSET_PROPERTY_NAME, CSVUtils.CHARSET.getName());
