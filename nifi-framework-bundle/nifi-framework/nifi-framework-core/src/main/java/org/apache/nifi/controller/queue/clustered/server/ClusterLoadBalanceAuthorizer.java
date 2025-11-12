@@ -17,7 +17,6 @@
 
 package org.apache.nifi.controller.queue.clustered.server;
 
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.events.EventReporter;
@@ -27,7 +26,6 @@ import org.apache.nifi.security.cert.StandardPeerIdentityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
@@ -38,51 +36,66 @@ import java.util.stream.Collectors;
 public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
     private static final Logger logger = LoggerFactory.getLogger(ClusterLoadBalanceAuthorizer.class);
 
+    private static final char WILDCARD = '*';
+
     private final PeerIdentityProvider peerIdentityProvider = new StandardPeerIdentityProvider();
 
     private final ClusterCoordinator clusterCoordinator;
     private final EventReporter eventReporter;
-    private final HostnameVerifier hostnameVerifier;
 
     public ClusterLoadBalanceAuthorizer(final ClusterCoordinator clusterCoordinator, final EventReporter eventReporter) {
         this.clusterCoordinator = clusterCoordinator;
         this.eventReporter = eventReporter;
-        this.hostnameVerifier = new DefaultHostnameVerifier();
     }
 
     @Override
-    public String authorize(SSLSocket sslSocket) throws IOException {
+    public String authorize(final SSLSocket sslSocket) throws IOException {
         final SSLSession sslSession = sslSocket.getSession();
 
         final Certificate[] peerCertificates = sslSession.getPeerCertificates();
         final Set<String> clientIdentities = peerIdentityProvider.getIdentities(peerCertificates);
 
-        logger.debug("Will perform authorization against Client Identities '{}'", clientIdentities);
-
         final Set<String> nodeIds = clusterCoordinator.getNodeIdentifiers().stream()
                 .map(NodeIdentifier::getApiAddress)
                 .collect(Collectors.toSet());
 
+        logger.debug("Authorizing Peer {} against Cluster Nodes {}", clientIdentities, nodeIds);
+
         for (final String clientId : clientIdentities) {
             if (nodeIds.contains(clientId)) {
-                logger.debug("Client ID '{}' is in the list of Nodes in the Cluster. Authorizing Client to Load Balance data", clientId);
+                logger.debug("Peer Certificate Identity [{}] authorized for Load Balancing from Cluster Node Identifiers", clientId);
                 return clientId;
             }
         }
 
-        // If there are no matches of Client IDs, try to verify it by HostnameVerifier. In this way, we can support wildcard certificates.
         for (final String nodeId : nodeIds) {
-            if (hostnameVerifier.verify(nodeId, sslSession)) {
+            if (isNodeIdMatched(nodeId, clientIdentities)) {
                 final String clientId = sslSocket.getInetAddress().getHostName();
-                logger.debug("The request was verified with node '{}'. The hostname derived from the socket is '{}'. Authorizing Client to Load Balance data", nodeId, clientId);
+                logger.debug("Peer Socket Address [{}] for Node Identifier [{}] authorized for Load Balancing from Certificate Wildcard", clientId, nodeId);
                 return clientId;
             }
         }
 
-        final String message = "Authorization failed for Client ID's to Load Balance data because none of the ID's are known Cluster Node Identifiers";
-
+        final String message = "Peer Certificate Identities %s not authorized for Load Balancing".formatted(clientIdentities);
         logger.warn(message);
         eventReporter.reportEvent(Severity.WARNING, "Load Balanced Connections", message);
-        throw new NotAuthorizedException("Client ID's " + clientIdentities + " are not authorized to Load Balance data");
+        throw new NotAuthorizedException(message);
+    }
+
+    private boolean isNodeIdMatched(final String nodeId, final Set<String> clientIdentities) {
+        boolean matched = false;
+
+        for (final String clientIdentity : clientIdentities) {
+            final int wildcardIndex = clientIdentity.indexOf(WILDCARD);
+            if (wildcardIndex == 0) {
+                final String clientIdentityDomain = clientIdentity.substring(1);
+                if (nodeId.endsWith(clientIdentityDomain)) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+
+        return matched;
     }
 }
