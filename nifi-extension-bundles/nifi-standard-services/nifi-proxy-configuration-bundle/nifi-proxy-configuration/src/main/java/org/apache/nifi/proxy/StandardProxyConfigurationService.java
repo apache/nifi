@@ -25,6 +25,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.net.Proxy;
@@ -38,8 +39,7 @@ import java.util.List;
 public class StandardProxyConfigurationService extends AbstractControllerService implements ProxyConfigurationService {
 
     public static final PropertyDescriptor PROXY_TYPE = new PropertyDescriptor.Builder()
-            .name("proxy-type")
-            .displayName("Proxy Type")
+            .name("Proxy Type")
             .description("Proxy type.")
             .allowableValues(Proxy.Type.values())
             .defaultValue(Proxy.Type.DIRECT.name())
@@ -47,8 +47,7 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .build();
 
     public static final PropertyDescriptor SOCKS_VERSION = new PropertyDescriptor.Builder()
-            .name("socks-version")
-            .displayName("SOCKS Version")
+            .name("SOCKS Version")
             .description("SOCKS Protocol Version")
             .allowableValues(SocksVersion.values())
             .defaultValue(SocksVersion.SOCKS5.name())
@@ -57,32 +56,28 @@ public class StandardProxyConfigurationService extends AbstractControllerService
             .build();
 
     public static final PropertyDescriptor PROXY_SERVER_HOST = new PropertyDescriptor.Builder()
-            .name("proxy-server-host")
-            .displayName("Proxy Server Host")
+            .name("Proxy Server Host")
             .description("Proxy server hostname or ip-address.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PROXY_SERVER_PORT = new PropertyDescriptor.Builder()
-            .name("proxy-server-port")
-            .displayName("Proxy Server Port")
+            .name("Proxy Server Port")
             .description("Proxy server port number.")
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PROXY_USER_NAME = new PropertyDescriptor.Builder()
-            .name("proxy-user-name")
-            .displayName("Proxy User Name")
+            .name("Proxy User Name")
             .description("The name of the proxy client for user authentication.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
     public static final PropertyDescriptor PROXY_USER_PASSWORD = new PropertyDescriptor.Builder()
-            .name("proxy-user-password")
-            .displayName("Proxy User Password")
+            .name("Proxy User Password")
             .description("The password of the proxy client for user authentication.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -140,5 +135,16 @@ public class StandardProxyConfigurationService extends AbstractControllerService
     @Override
     public ProxyConfiguration getConfiguration() {
         return configuration;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        ProxyConfigurationService.super.migrateProperties(config);
+        config.renameProperty("proxy-type", PROXY_TYPE.getName());
+        config.renameProperty("socks-version", SOCKS_VERSION.getName());
+        config.renameProperty("proxy-server-host", PROXY_SERVER_HOST.getName());
+        config.renameProperty("proxy-server-port", PROXY_SERVER_PORT.getName());
+        config.renameProperty("proxy-user-name", PROXY_USER_NAME.getName());
+        config.renameProperty("proxy-user-password", PROXY_USER_PASSWORD.getName());
     }
 }

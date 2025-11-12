@@ -223,8 +223,8 @@ public class TestXMLRecordSetWriter {
         runner.disableControllerService(writer);
         runner.removeProperty(writer, XMLRecordSetWriter.ARRAY_TAG_NAME);
         IllegalStateException e = assertThrows(IllegalStateException.class, () -> runner.enableControllerService(writer));
-        assertTrue(e.getMessage().contains("array_tag_name")
-            && e.getMessage().contains("array_wrapping")
+        assertTrue(e.getMessage().contains(XMLRecordSetWriter.ARRAY_TAG_NAME.getName())
+            && e.getMessage().contains(XMLRecordSetWriter.ARRAY_WRAPPING.getName())
             && e.getMessage().endsWith("has to be set."));
     }
 

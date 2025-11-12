@@ -109,7 +109,7 @@ public class TestKinesisRecordProcessorRecord {
 
         runner.addControllerService("record-writer", writer);
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA.getValue());
-        runner.setProperty(writer, "output-grouping", "output-oneline");
+        runner.setProperty(writer, JsonRecordSetWriter.OUTPUT_GROUPING, "output-oneline");
         runner.enableControllerService(writer);
         runner.setProperty(ConsumeKinesisStream.RECORD_WRITER, "record-writer");
     }

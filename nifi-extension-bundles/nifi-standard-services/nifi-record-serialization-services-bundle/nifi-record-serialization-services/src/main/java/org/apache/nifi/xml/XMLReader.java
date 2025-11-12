@@ -26,6 +26,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
@@ -54,6 +55,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.INFER_SCHEMA;
+import static org.apache.nifi.schema.inference.SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE;
+import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 
 @Tags({"xml", "record", "reader", "parser"})
 @CapabilityDescription("Reads XML content and creates Record objects. Records are expected in the second level of " +
@@ -71,8 +74,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             + "If the attribute is missing or its value is anything other than 'true' or 'false', then an Exception will be thrown and no records will be parsed.");
 
     public static final PropertyDescriptor RECORD_FORMAT = new PropertyDescriptor.Builder()
-            .name("record_format")
-            .displayName("Expect Records as Array")
+            .name("Expect Records as Array")
             .description("This property defines whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\". Because XML does not "
                 + "provide for a way to read a series of XML documents from a stream directly, it is common to combine many XML documents by concatenating them and then wrapping the entire "
                 + "XML blob  with a \"wrapper element\". This property dictates whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\" "
@@ -84,8 +86,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             .build();
 
     public static final PropertyDescriptor ATTRIBUTE_PREFIX = new PropertyDescriptor.Builder()
-            .name("attribute_prefix")
-            .displayName("Attribute Prefix")
+            .name("Attribute Prefix")
             .description("If this property is set, the name of attributes will be prepended with a prefix when they are added to a record.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -93,8 +94,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             .build();
 
     public static final PropertyDescriptor CONTENT_FIELD_NAME = new PropertyDescriptor.Builder()
-            .name("content_field_name")
-            .displayName("Field Name for Content")
+            .name("Field Name for Content")
             .description("If tags with content (e. g. <field>content</field>) are defined as nested records in the schema, " +
                     "the name of the tag will be used as name for the record and the value of this property will be used as name for the field. " +
                     "If tags with content shall be parsed together with attributes (e. g. <field attribute=\"123\">content</field>), " +
@@ -108,8 +108,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
             .build();
 
     public static final PropertyDescriptor PARSE_XML_ATTRIBUTES = new PropertyDescriptor.Builder()
-            .name("parse_xml_attributes")
-            .displayName("Parse XML Attributes")
+            .name("Parse XML Attributes")
             .description("When 'Schema Access Strategy' is 'Infer Schema' and this property is 'true' then XML attributes are parsed and " +
                     "added to the record as new fields. When the schema is inferred but this property is 'false', " +
                     "XML attributes and their values are ignored.")
@@ -131,6 +130,16 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
         this.dateFormat = context.getProperty(DateTimeUtils.DATE_FORMAT).getValue();
         this.timeFormat = context.getProperty(DateTimeUtils.TIME_FORMAT).getValue();
         this.timestampFormat = context.getProperty(DateTimeUtils.TIMESTAMP_FORMAT).getValue();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("record_format", RECORD_FORMAT.getName());
+        config.renameProperty("attribute_prefix", ATTRIBUTE_PREFIX.getName());
+        config.renameProperty("content_field_name", CONTENT_FIELD_NAME.getName());
+        config.renameProperty("parse_xml_attributes", PARSE_XML_ATTRIBUTES.getName());
+        config.renameProperty(OBSOLETE_SCHEMA_CACHE, SCHEMA_CACHE.getName());
     }
 
     @Override

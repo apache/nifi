@@ -57,8 +57,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
                     + "may cause errors if FastCSV doesn't handle the property settings correctly (such as 'Quote Mode'), but otherwise may process the output as expected even "
                     + "if the data is not fully RFC-4180 compliant.");
     public static final PropertyDescriptor CSV_WRITER = new PropertyDescriptor.Builder()
-            .name("csv-writer")
-            .displayName("CSV Writer")
+            .name("CSV Writer")
             .description("Specifies which writer implementation to use to write CSV records. NOTE: Different writers may support different subsets of functionality "
                     + "and may also exhibit different levels of performance.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -134,6 +133,7 @@ public class CSVRecordSetWriter extends DateTimeTextRecordSetWriter implements R
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
+        config.renameProperty("csv-writer", CSV_WRITER.getName());
         config.renameProperty(CSVUtils.OLD_CHARSET_PROPERTY_NAME, CSVUtils.CHARSET.getName());
     }
 }

@@ -26,6 +26,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.DateTimeTextRecordSetWriter;
@@ -62,8 +63,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             "The elements of an array will not be wrapped");
 
     public static final PropertyDescriptor SUPPRESS_NULLS = new PropertyDescriptor.Builder()
-            .name("suppress_nulls")
-            .displayName("Suppress Null Values")
+            .name("Suppress Null Values")
             .description("Specifies how the writer should handle a null field")
             .allowableValues(NEVER_SUPPRESS, ALWAYS_SUPPRESS, SUPPRESS_MISSING)
             .defaultValue(NEVER_SUPPRESS.getValue())
@@ -71,8 +71,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .build();
 
     public static final PropertyDescriptor PRETTY_PRINT_XML = new PropertyDescriptor.Builder()
-            .name("pretty_print_xml")
-            .displayName("Pretty Print XML")
+            .name("Pretty Print XML")
             .description("Specifies whether or not the XML should be pretty printed")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
@@ -81,8 +80,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .build();
 
     public static final PropertyDescriptor OMIT_XML_DECLARATION = new PropertyDescriptor.Builder()
-            .name("omit_xml_declaration")
-            .displayName("Omit XML Declaration")
+            .name("Omit XML Declaration")
             .description("Specifies whether or not to include XML declaration")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
@@ -91,8 +89,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .build();
 
     public static final PropertyDescriptor ROOT_TAG_NAME = new PropertyDescriptor.Builder()
-            .name("root_tag_name")
-            .displayName("Name of Root Tag")
+            .name("Name of Root Tag")
             .description("Specifies the name of the XML root tag wrapping the record set. This property has to be defined if " +
                     "the writer is supposed to write multiple records in a single FlowFile.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -101,8 +98,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .build();
 
     public static final PropertyDescriptor RECORD_TAG_NAME = new PropertyDescriptor.Builder()
-            .name("record_tag_name")
-            .displayName("Name of Record Tag")
+            .name("Name of Record Tag")
             .description("Specifies the name of the XML record tag wrapping the record fields. If this is not set, the writer " +
                     "will use the record name in the schema.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -111,8 +107,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .build();
 
     public static final PropertyDescriptor ARRAY_WRAPPING = new PropertyDescriptor.Builder()
-            .name("array_wrapping")
-            .displayName("Wrap Elements of Arrays")
+            .name("Wrap Elements of Arrays")
             .description("Specifies how the writer wraps elements of fields of type array")
             .allowableValues(USE_PROPERTY_AS_WRAPPER, USE_PROPERTY_FOR_ELEMENTS, NO_WRAPPING)
             .defaultValue(NO_WRAPPING.getValue())
@@ -120,8 +115,7 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
             .build();
 
     public static final PropertyDescriptor ARRAY_TAG_NAME = new PropertyDescriptor.Builder()
-            .name("array_tag_name")
-            .displayName("Array Tag Name")
+            .name("Array Tag Name")
             .description("Name of the tag used by property \"Wrap Elements of Arrays\" to write arrays")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -218,5 +212,17 @@ public class XMLRecordSetWriter extends DateTimeTextRecordSetWriter implements R
         return new WriteXMLResult(schema, getSchemaAccessWriter(schema, variables),
                 out, prettyPrint, omitDeclaration, nullSuppressionEnum, arrayWrappingEnum, arrayTagName, rootTagName, recordTagName, charSet,
                 getDateFormat().orElse(null), getTimeFormat().orElse(null), getTimestampFormat().orElse(null));
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("suppress_nulls", SUPPRESS_NULLS.getName());
+        config.renameProperty("pretty_print_xml", PRETTY_PRINT_XML.getName());
+        config.renameProperty("omit_xml_declaration", OMIT_XML_DECLARATION.getName());
+        config.renameProperty("root_tag_name", ROOT_TAG_NAME.getName());
+        config.renameProperty("record_tag_name", RECORD_TAG_NAME.getName());
+        config.renameProperty("array_wrapping", ARRAY_WRAPPING.getName());
+        config.renameProperty("array_tag_name", ARRAY_TAG_NAME.getName());
     }
 }

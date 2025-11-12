@@ -26,6 +26,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
@@ -49,8 +50,7 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
 
     public static final PropertyDescriptor CSV_FILE =
             new PropertyDescriptor.Builder()
-                    .name("csv-file")
-                    .displayName("CSV File")
+                    .name("CSV File")
                     .description("Path to a CSV File in which the key value pairs can be looked up.")
                     .required(true)
                     .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
@@ -76,8 +76,7 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
 
     public static final PropertyDescriptor LOOKUP_KEY_COLUMN =
             new PropertyDescriptor.Builder()
-                    .name("lookup-key-column")
-                    .displayName("Lookup Key Column")
+                    .name("Lookup Key Column")
                     .description("The field in the CSV file that will serve as the lookup key. " +
                             "This is the field that will be matched against the property specified in the lookup processor.")
                     .required(true)
@@ -87,8 +86,7 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
 
     public static final PropertyDescriptor IGNORE_DUPLICATES =
             new PropertyDescriptor.Builder()
-                    .name("ignore-duplicates")
-                    .displayName("Ignore Duplicates")
+                    .name("Ignore Duplicates")
                     .description("Ignore duplicate keys for records in the CSV file.")
                     .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
                     .allowableValues("true", "false")
@@ -147,6 +145,13 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
         this.lookupKeyColumn = context.getProperty(LOOKUP_KEY_COLUMN).evaluateAttributeExpressions().getValue();
         this.ignoreDuplicates = context.getProperty(IGNORE_DUPLICATES).asBoolean();
         this.watcher = new SynchronousFileWatcher(Paths.get(csvFile), new LastModifiedMonitor(), 30000L);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("csv-file", CSV_FILE.getName());
+        config.renameProperty("lookup-key-column", LOOKUP_KEY_COLUMN.getName());
+        config.renameProperty("ignore-duplicates", IGNORE_DUPLICATES.getName());
     }
 }
 

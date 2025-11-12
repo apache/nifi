@@ -30,14 +30,15 @@ public class SchemaInferenceUtil {
     public static final AllowableValue INFER_SCHEMA = new AllowableValue("infer-schema", "Infer Schema",
         "The Schema of the data will be inferred automatically when the data is read. See component Usage and Additional Details for information about how the schema is inferred.");
 
+    public static final String OBSOLETE_SCHEMA_CACHE = "schema-inference-cache";
+
     public static final PropertyDescriptor SCHEMA_CACHE = new Builder()
-        .name("schema-inference-cache")
-        .displayName("Schema Inference Cache")
-        .description("Specifies a Schema Cache to use when inferring the schema. If not populated, the schema will be inferred each time. " +
-            "However, if a cache is specified, the cache will first be consulted and if the applicable schema can be found, it will be used instead of inferring the schema.")
-        .required(false)
-        .identifiesControllerService(RecordSchemaCacheService.class)
-        .build();
+            .name("Schema Inference Cache")
+            .description("Specifies a Schema Cache to use when inferring the schema. If not populated, the schema will be inferred each time. " +
+                    "However, if a cache is specified, the cache will first be consulted and if the applicable schema can be found, it will be used instead of inferring the schema.")
+            .required(false)
+            .identifiesControllerService(RecordSchemaCacheService.class)
+            .build();
 
 
     public static <T> SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final PropertyContext context,  final ComponentLog logger,
