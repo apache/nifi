@@ -155,8 +155,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
 
 
     public static final PropertyDescriptor USERS_PROPERTIES_FILE = new PropertyDescriptor.Builder()
-            .name("users-properties-file")
-            .displayName("Users Properties File")
+            .name("Users Properties File")
             .description("Specify a property file containing users for Basic Authentication using HashLoginService. "
                     + "See http://www.eclipse.org/jetty/documentation/current/configuring-security.html for detail.")
             .required(false)

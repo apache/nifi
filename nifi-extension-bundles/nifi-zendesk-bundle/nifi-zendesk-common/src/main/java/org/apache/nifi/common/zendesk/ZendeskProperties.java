@@ -35,17 +35,25 @@ public final class ZendeskProperties {
 
     private ZendeskProperties() { }
 
+    public static final String OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER = "web-client-service-provider";
+    public static final String OBSOLETE_ZENDESK_SUBDOMAIN = "zendesk-subdomain";
+    public static final String OBSOLETE_ZENDESK_USER = "zendesk-user";
+    public static final String OBSOLETE_ZENDESK_AUTHENTICATION_TYPE = "zendesk-authentication-type-name";
+    public static final String OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL = "zendesk-authentication-value-name";
+    public static final String OBSOLETE_ZENDESK_TICKET_COMMENT_BODY = "zendesk-comment-body";
+    public static final String OBSOLETE_ZENDESK_TICKET_SUBJECT = "zendesk-subject";
+    public static final String OBSOLETE_ZENDESK_TICKET_PRIORITY = "zendesk-priority";
+    public static final String OBSOLETE_ZENDESK_TICKET_TYPE = "zendesk-type";
+
     public static final PropertyDescriptor WEB_CLIENT_SERVICE_PROVIDER = new PropertyDescriptor.Builder()
-            .name("web-client-service-provider")
-            .displayName("Web Client Service Provider")
+            .name("Web Client Service Provider")
             .description("Controller service for HTTP client operations.")
             .identifiesControllerService(WebClientServiceProvider.class)
             .required(true)
             .build();
 
     public static final PropertyDescriptor ZENDESK_SUBDOMAIN = new PropertyDescriptor.Builder()
-            .name("zendesk-subdomain")
-            .displayName("Subdomain Name")
+            .name("Subdomain Name")
             .description("Name of the Zendesk subdomain.")
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -53,8 +61,7 @@ public final class ZendeskProperties {
             .build();
 
     public static final PropertyDescriptor ZENDESK_USER = new PropertyDescriptor.Builder()
-            .name("zendesk-user")
-            .displayName("User Name")
+            .name("User Name")
             .description("Login user to Zendesk subdomain.")
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .required(true)
@@ -62,16 +69,14 @@ public final class ZendeskProperties {
             .build();
 
     public static final PropertyDescriptor ZENDESK_AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
-            .name("zendesk-authentication-type-name")
-            .displayName("Authentication Type")
+            .name("Authentication Type")
             .description("Type of authentication to Zendesk API.")
             .required(true)
             .allowableValues(ZendeskAuthenticationType.class)
             .build();
 
     public static final PropertyDescriptor ZENDESK_AUTHENTICATION_CREDENTIAL = new PropertyDescriptor.Builder()
-            .name("zendesk-authentication-value-name")
-            .displayName("Authentication Credential")
+            .name("Authentication Credential")
             .description("Password or authentication token for Zendesk login user.")
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .sensitive(true)
@@ -80,8 +85,7 @@ public final class ZendeskProperties {
             .build();
 
     public static final PropertyDescriptor ZENDESK_TICKET_COMMENT_BODY = new PropertyDescriptor.Builder()
-            .name("zendesk-comment-body")
-            .displayName("Comment Body")
+            .name("Comment Body")
             .description("The content or the path to the comment body in the incoming record.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -89,24 +93,21 @@ public final class ZendeskProperties {
             .build();
 
     public static final PropertyDescriptor ZENDESK_TICKET_SUBJECT = new PropertyDescriptor.Builder()
-            .name("zendesk-subject")
-            .displayName("Subject")
+            .name("Subject")
             .description("The content or the path to the subject in the incoming record.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor ZENDESK_TICKET_PRIORITY = new PropertyDescriptor.Builder()
-            .name("zendesk-priority")
-            .displayName("Priority")
+            .name("Priority")
             .description("The content or the path to the priority in the incoming record.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor ZENDESK_TICKET_TYPE = new PropertyDescriptor.Builder()
-            .name("zendesk-type")
-            .displayName("Type")
+            .name("Type")
             .description("The content or the path to the type in the incoming record.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)

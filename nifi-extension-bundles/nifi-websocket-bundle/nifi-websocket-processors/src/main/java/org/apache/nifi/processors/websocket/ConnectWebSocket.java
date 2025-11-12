@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -62,16 +63,14 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 public class ConnectWebSocket extends AbstractWebSocketGatewayProcessor {
 
     public static final PropertyDescriptor PROP_WEBSOCKET_CLIENT_SERVICE = new PropertyDescriptor.Builder()
-            .name("websocket-client-controller-service")
-            .displayName("WebSocket Client ControllerService")
+            .name("WebSocket Client Controller Service")
             .description("A WebSocket CLIENT Controller Service which can connect to a WebSocket server.")
             .required(true)
             .identifiesControllerService(WebSocketClientService.class)
             .build();
 
     public static final PropertyDescriptor PROP_WEBSOCKET_CLIENT_ID = new PropertyDescriptor.Builder()
-            .name("websocket-client-id")
-            .displayName("WebSocket Client Id")
+            .name("WebSocket Client Id")
             .description("The client ID to identify WebSocket session." +
                     " It should be unique within the WebSocket Client Controller Service." +
                     " Otherwise, it throws WebSocketConfigurationException when it gets started.")
@@ -97,6 +96,12 @@ public class ConnectWebSocket extends AbstractWebSocketGatewayProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("websocket-client-controller-service", PROP_WEBSOCKET_CLIENT_SERVICE.getName());
+        config.renameProperty("websocket-client-id", PROP_WEBSOCKET_CLIENT_ID.getName());
     }
 
     @Override

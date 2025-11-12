@@ -32,6 +32,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.serialization.WriteResult;
@@ -52,6 +53,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_SUBDOMAIN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_USER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_COMMENT_BODY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_SUBJECT;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_PRIORITY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_TYPE;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
@@ -85,8 +95,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
     private String type;
 
     static final PropertyDescriptor CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("cache-size")
-            .displayName("Cache Size")
+            .name("Cache Size")
             .description("Specifies how many Zendesk ticket should be cached.")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .defaultValue("1000")
@@ -94,8 +103,7 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
             .build();
 
     static final PropertyDescriptor CACHE_EXPIRATION = new PropertyDescriptor.Builder()
-            .name("cache-expiration")
-            .displayName("Cache Expiration")
+            .name("Cache Expiration")
             .description("Specifies how long a Zendesk ticket that is cached should remain in the cache.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("1 hour")
@@ -201,6 +209,21 @@ public class ZendeskRecordSink extends AbstractControllerService implements Reco
     @OnDisabled
     public void onDisabled() {
         recordCache.invalidateAll();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty(OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER, WEB_CLIENT_SERVICE_PROVIDER.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_SUBDOMAIN, ZENDESK_SUBDOMAIN.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_USER, ZENDESK_USER.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_AUTHENTICATION_TYPE, ZENDESK_AUTHENTICATION_TYPE.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL, ZENDESK_AUTHENTICATION_CREDENTIAL.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_TICKET_COMMENT_BODY, ZENDESK_TICKET_COMMENT_BODY.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_TICKET_SUBJECT, ZENDESK_TICKET_SUBJECT.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_TICKET_PRIORITY, ZENDESK_TICKET_PRIORITY.getName());
+        config.renameProperty(OBSOLETE_ZENDESK_TICKET_TYPE, ZENDESK_TICKET_TYPE.getName());
+        config.renameProperty("cache-size", CACHE_SIZE.getName());
+        config.renameProperty("cache-expiration", CACHE_EXPIRATION.getName());
     }
 
     private URI createUri(int numberOfTickets) {

@@ -30,6 +30,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -161,16 +162,14 @@ public class GetWorkdayReport extends AbstractProcessor {
         .build();
 
     protected static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-        .name("record-reader")
-        .displayName("Record Reader")
+        .name("Record Reader")
         .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
         .identifiesControllerService(RecordReaderFactory.class)
         .required(false)
         .build();
 
     protected static final PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
-        .name("record-writer")
-        .displayName("Record Writer")
+        .name("Record Writer")
         .description("The Record Writer to use for serializing Records to an output FlowFile.")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .dependsOn(RECORD_READER_FACTORY)
@@ -294,6 +293,12 @@ public class GetWorkdayReport extends AbstractProcessor {
                 session.remove(responseFlowFile);
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-reader", RECORD_READER_FACTORY.getName());
+        config.renameProperty("record-writer", RECORD_WRITER_FACTORY.getName());
     }
 
     /*
