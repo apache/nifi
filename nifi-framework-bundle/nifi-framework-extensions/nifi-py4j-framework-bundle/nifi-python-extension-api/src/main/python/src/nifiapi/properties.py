@@ -108,9 +108,6 @@ class ResourceDefinition:
         return ResourceDefinition(allow_multiple, allow_file, allow_url, allow_directory, allow_text)
 
 
-# TODO Add ListenPortDefinition
-
-
 class PropertyDescriptor:
     def __init__(self, name, description, required=False, sensitive=False,
                  display_name=None, default_value=None, allowable_values=None,
@@ -148,7 +145,6 @@ class PropertyDescriptor:
         :param validators: A list of property validators that can be used to ensure that the user-supplied value is valid. The standard validators can be referenced using the
                            members of the `nifiapi.properties.StandardValidators` class.
         :param resource_definition: an instance of `nifiapi.properties.ResourceDefinition`. This may be used to convey that the property references a file, directory, or URL, or a set of them.
-        # TODO add listen_port_definition
         :param controller_service_definition: if this Processor is to make use of a Controller Service, this indicates the type of Controller Service. This will always be a fully-qualified
                                               classname of a Java interface that extends from `ControllerService`.
         """

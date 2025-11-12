@@ -81,16 +81,6 @@ export interface PropertyResourceDefinition {
     resourceTypes: ResourceType[];
 }
 
-export enum ListenPortTransportProtocol {
-    TCP = 'TCP',
-    UDP = 'UDP'
-}
-
-export interface PropertyListenPortDefinition {
-    transportProtocol: ListenPortTransportProtocol;
-    applicationProtocols: string[];
-}
-
 export interface PropertyDescriptor {
     name: string;
     displayName: string;
@@ -108,7 +98,6 @@ export interface PropertyDescriptor {
     validRegex: string;
     validator: string;
     resourceDefinition?: PropertyResourceDefinition;
-    listenPortDefinition?: PropertyListenPortDefinition;  // TODO update docs UI to utilize this info when available
 }
 
 export interface DynamicProperty {
