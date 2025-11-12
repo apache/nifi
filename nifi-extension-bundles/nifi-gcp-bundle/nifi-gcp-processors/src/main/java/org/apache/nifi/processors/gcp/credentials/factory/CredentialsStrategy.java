@@ -19,6 +19,7 @@ package org.apache.nifi.processors.gcp.credentials.factory;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 
 import java.io.IOException;
 import java.util.Map;
@@ -43,4 +44,17 @@ public interface CredentialsStrategy {
      * @throws IOException if the provided credentials cannot be accessed or are invalid
      */
     GoogleCredentials getGoogleCredentials(Map<PropertyDescriptor, String> properties, HttpTransportFactory transportFactory) throws IOException;
+
+    /**
+     * Creates Google Credentials using the supplied ConfigurationContext for controller services that need
+     * access to additional controller service references beyond raw property values.
+     *
+     * @param context Controller Service configuration context
+     * @param transportFactory Transport factory to be used when accessing Google services
+     * @return GoogleCredentials for the configured strategy
+     * @throws IOException on credential creation failures
+     */
+    default GoogleCredentials getGoogleCredentials(ConfigurationContext context, HttpTransportFactory transportFactory) throws IOException {
+        return getGoogleCredentials(context.getProperties(), transportFactory);
+    }
 }

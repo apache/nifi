@@ -16,27 +16,29 @@
  */
 package org.apache.nifi.processors.gcp.credentials.service;
 
-import com.google.auth.http.HttpTransportFactory;
-import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.IdentityPoolCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
+import org.apache.nifi.oauth2.AccessToken;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
-import org.apache.nifi.services.gcp.GCPIdentityFederationTokenProvider;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.Instant;
-import java.util.Date;
 
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY;
-import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.IDENTITY_FEDERATION_TOKEN_PROVIDER;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_AUDIENCE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SCOPE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_TOKEN_ENDPOINT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -111,16 +113,21 @@ public class GCPCredentialsServiceTest {
     }
 
     @Test
-    public void testIdentityFederationCredentials() throws Exception {
+    public void testWorkloadIdentityFederationCredentials() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(MockCredentialsServiceProcessor.class);
         final GCPCredentialsControllerService serviceImpl = new GCPCredentialsControllerService();
         runner.addControllerService("gcpCredentialsProvider", serviceImpl);
 
-        final MockGCPIdentityFederationTokenProvider tokenProvider = new MockGCPIdentityFederationTokenProvider();
-        runner.addControllerService("gcpIdentityFederation", tokenProvider);
-        runner.enableControllerService(tokenProvider);
+        final MockOAuth2AccessTokenProvider subjectTokenProvider = new MockOAuth2AccessTokenProvider();
+        runner.addControllerService("subjectTokenProvider", subjectTokenProvider);
+        runner.enableControllerService(subjectTokenProvider);
 
-        runner.setProperty(serviceImpl, IDENTITY_FEDERATION_TOKEN_PROVIDER, "gcpIdentityFederation");
+        runner.setProperty(serviceImpl, AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue());
+        runner.setProperty(serviceImpl, WORKLOAD_IDENTITY_AUDIENCE, "projects/123456789/locations/global/workloadIdentityPools/pool/providers/provider");
+        runner.setProperty(serviceImpl, WORKLOAD_IDENTITY_SCOPE, "https://www.googleapis.com/auth/cloud-platform");
+        runner.setProperty(serviceImpl, WORKLOAD_IDENTITY_TOKEN_ENDPOINT, "https://sts.googleapis.com/v1/token");
+        runner.setProperty(serviceImpl, WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE, "urn:ietf:params:oauth:token-type:jwt");
+        runner.setProperty(serviceImpl, WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER, "subjectTokenProvider");
 
         runner.enableControllerService(serviceImpl);
         runner.assertValid(serviceImpl);
@@ -131,27 +138,7 @@ public class GCPCredentialsServiceTest {
         assertNotNull(service);
         final GoogleCredentials credentials = service.getGoogleCredentials();
         assertNotNull(credentials);
-
-        final AccessToken accessToken = credentials.getAccessToken();
-        assertNotNull(accessToken);
-        assertEquals(MockGCPIdentityFederationTokenProvider.ACCESS_TOKEN_VALUE, accessToken.getTokenValue());
-    }
-
-    @Test
-    public void testIdentityFederationExclusiveConfiguration() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(MockCredentialsServiceProcessor.class);
-        final GCPCredentialsControllerService serviceImpl = new GCPCredentialsControllerService();
-        runner.addControllerService("gcpCredentialsProvider", serviceImpl);
-
-        final MockGCPIdentityFederationTokenProvider tokenProvider = new MockGCPIdentityFederationTokenProvider();
-        runner.addControllerService("gcpIdentityFederation", tokenProvider);
-        runner.enableControllerService(tokenProvider);
-
-        runner.setProperty(serviceImpl, IDENTITY_FEDERATION_TOKEN_PROVIDER, "gcpIdentityFederation");
-        runner.setProperty(serviceImpl, SERVICE_ACCOUNT_JSON_FILE,
-                "src/test/resources/mock-gcp-service-account.json");
-
-        runner.assertNotValid(serviceImpl);
+        assertEquals(IdentityPoolCredentials.class, credentials.getClass());
     }
 
     @Test
@@ -208,16 +195,21 @@ public class GCPCredentialsServiceTest {
                 "Credentials class should be equal");
     }
 
-    private static final class MockGCPIdentityFederationTokenProvider extends AbstractControllerService implements GCPIdentityFederationTokenProvider {
+    private static final class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
         private static final String ACCESS_TOKEN_VALUE = "federated-access-token";
         private static final long EXPIRES_IN_SECONDS = 3600;
 
         @Override
-        public GoogleCredentials getGoogleCredentials(final HttpTransportFactory transportFactory) {
-            final Instant expirationInstant = Instant.now().plusSeconds(EXPIRES_IN_SECONDS);
-            final Date expiration = Date.from(expirationInstant);
-            final AccessToken accessToken = new AccessToken(ACCESS_TOKEN_VALUE, expiration);
-            return GoogleCredentials.create(accessToken);
+        public AccessToken getAccessDetails() {
+            final AccessToken accessToken = new AccessToken();
+            accessToken.setAccessToken(ACCESS_TOKEN_VALUE);
+            accessToken.setExpiresIn(EXPIRES_IN_SECONDS);
+            return accessToken;
+        }
+
+        @Override
+        public void refreshAccessDetails() {
+            // Intentionally left blank for test implementation
         }
     }
 }

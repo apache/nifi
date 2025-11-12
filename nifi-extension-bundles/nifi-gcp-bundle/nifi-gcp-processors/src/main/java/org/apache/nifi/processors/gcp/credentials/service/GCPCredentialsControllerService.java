@@ -41,7 +41,6 @@ import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialsFactory;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.services.gcp.GCPIdentityFederationTokenProvider;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -54,11 +53,15 @@ import java.util.Optional;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.DELEGATION_STRATEGY;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.DELEGATION_USER;
-import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.IDENTITY_FEDERATION_TOKEN_PROVIDER;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_AUDIENCE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SCOPE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.WORKLOAD_IDENTITY_TOKEN_ENDPOINT;
 
 /**
  * Implementation of GCPCredentialsService interface
@@ -85,7 +88,11 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
             AUTHENTICATION_STRATEGY,
             SERVICE_ACCOUNT_JSON_FILE,
             SERVICE_ACCOUNT_JSON,
-            IDENTITY_FEDERATION_TOKEN_PROVIDER,
+            WORKLOAD_IDENTITY_AUDIENCE,
+            WORKLOAD_IDENTITY_SCOPE,
+            WORKLOAD_IDENTITY_TOKEN_ENDPOINT,
+            WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER,
+            WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE,
             ProxyConfiguration.createProxyConfigPropertyDescriptor(ProxyAwareTransportFactory.PROXY_SPECS),
             DELEGATION_STRATEGY,
             DELEGATION_USER
@@ -107,16 +114,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
-        if (!validationContext.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER).isSet()) {
-            results.addAll(credentialsProviderFactory.validate(validationContext));
-        }
         ProxyConfiguration.validateProxySpec(validationContext, results, ProxyAwareTransportFactory.PROXY_SPECS);
-
-        final boolean identityFederationConfigured = validationContext.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER).isSet();
-        if (identityFederationConfigured) {
-            validateIdentityFederationExclusivity(validationContext, results);
-        }
-
         return results;
     }
 
@@ -179,6 +177,8 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
             return AuthenticationStrategy.APPLICATION_DEFAULT;
         } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON_FILE)) {
             return AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE;
+        } else if (config.isPropertySet(WORKLOAD_IDENTITY_SUBJECT_TOKEN_PROVIDER)) {
+            return AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION;
         } else if (config.isPropertySet(SERVICE_ACCOUNT_JSON)) {
             return AuthenticationStrategy.SERVICE_ACCOUNT_JSON;
         } else if (isTrue(config, LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS)) {
@@ -196,53 +196,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
     private GoogleCredentials getGoogleCredentials(final ConfigurationContext context) throws IOException {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
         final HttpTransportFactory transportFactory = new ProxyAwareTransportFactory(proxyConfiguration);
-        if (context.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER).isSet()) {
-            return getFederatedGoogleCredentials(context, transportFactory);
-        }
-
-        return credentialsProviderFactory.getGoogleCredentials(context.getProperties(), transportFactory);
-    }
-
-    private GoogleCredentials getFederatedGoogleCredentials(final ConfigurationContext context, final HttpTransportFactory transportFactory) {
-        final GCPIdentityFederationTokenProvider tokenProvider = context.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER)
-                .asControllerService(GCPIdentityFederationTokenProvider.class);
-        final GoogleCredentials googleCredentials = tokenProvider.getGoogleCredentials(transportFactory);
-        if (googleCredentials == null) {
-            throw new ProcessException("Identity Federation Token Provider returned no Google credentials");
-        }
-        return googleCredentials;
-    }
-
-    private void validateIdentityFederationExclusivity(final ValidationContext validationContext, final List<ValidationResult> results) {
-        addValidationIfSet(validationContext, results, SERVICE_ACCOUNT_JSON_FILE,
-                "cannot be used with Identity Federation Token Provider");
-        addValidationIfSet(validationContext, results, SERVICE_ACCOUNT_JSON,
-                "cannot be used with Identity Federation Token Provider");
-
-        final Optional<AuthenticationStrategy> authenticationStrategy = AuthenticationStrategy.fromValue(
-                validationContext.getProperty(AUTHENTICATION_STRATEGY).getValue());
-        authenticationStrategy
-                .filter(strategy -> strategy != AuthenticationStrategy.APPLICATION_DEFAULT)
-                .ifPresent(strategy -> results.add(new ValidationResult.Builder()
-                        .subject(AUTHENTICATION_STRATEGY.getDisplayName())
-                        .valid(false)
-                        .explanation("Authentication Strategy cannot be used with Identity Federation Token Provider")
-                        .build()));
-    }
-
-    private void addValidationIfSet(final ValidationContext context,
-                                    final List<ValidationResult> results,
-                                    final PropertyDescriptor descriptor,
-                                    final String explanation) {
-        final boolean conflict = context.getProperty(descriptor).isSet();
-
-        if (conflict) {
-            results.add(new ValidationResult.Builder()
-                    .subject(descriptor.getDisplayName())
-                    .valid(false)
-                    .explanation(descriptor.getDisplayName() + " " + explanation)
-                    .build());
-        }
+        return credentialsProviderFactory.getGoogleCredentials(context, transportFactory);
     }
 
     @Override

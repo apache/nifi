@@ -19,10 +19,12 @@ package org.apache.nifi.processors.gcp.credentials.factory;
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processors.gcp.credentials.factory.strategies.ApplicationDefaultCredentialsStrategy;
 import org.apache.nifi.processors.gcp.credentials.factory.strategies.ComputeEngineCredentialsStrategy;
 import org.apache.nifi.processors.gcp.credentials.factory.strategies.JsonFileServiceAccountCredentialsStrategy;
 import org.apache.nifi.processors.gcp.credentials.factory.strategies.JsonStringServiceAccountCredentialsStrategy;
+import org.apache.nifi.processors.gcp.credentials.factory.strategies.WorkloadIdentityFederationCredentialsStrategy;
 
 import java.io.IOException;
 import java.util.EnumMap;
@@ -47,6 +49,7 @@ public class CredentialsFactory {
         strategiesByAuthentication.put(AuthenticationStrategy.APPLICATION_DEFAULT, new ApplicationDefaultCredentialsStrategy());
         strategiesByAuthentication.put(AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE, new JsonFileServiceAccountCredentialsStrategy());
         strategiesByAuthentication.put(AuthenticationStrategy.SERVICE_ACCOUNT_JSON, new JsonStringServiceAccountCredentialsStrategy());
+        strategiesByAuthentication.put(AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION, new WorkloadIdentityFederationCredentialsStrategy());
         strategiesByAuthentication.put(AuthenticationStrategy.COMPUTE_ENGINE, new ComputeEngineCredentialsStrategy());
     }
 
@@ -70,5 +73,13 @@ public class CredentialsFactory {
             throw new IllegalStateException("No matching authentication strategy is configured");
         }
         return primaryStrategy.getGoogleCredentials(properties, transportFactory);
+    }
+
+    public GoogleCredentials getGoogleCredentials(final ConfigurationContext context, final HttpTransportFactory transportFactory) throws IOException {
+        final CredentialsStrategy primaryStrategy = selectPrimaryStrategy(context.getProperties());
+        if (primaryStrategy == null) {
+            throw new IllegalStateException("No matching authentication strategy is configured");
+        }
+        return primaryStrategy.getGoogleCredentials(context, transportFactory);
     }
 }
