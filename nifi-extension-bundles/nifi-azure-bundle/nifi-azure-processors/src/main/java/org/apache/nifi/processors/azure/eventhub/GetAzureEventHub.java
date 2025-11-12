@@ -317,17 +317,27 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         config.renameProperty("Partition Recivier Fetch Size", RECEIVER_FETCH_SIZE.getName());
         config.renameProperty("Partition Receiver Timeout (millseconds)", RECEIVER_FETCH_TIMEOUT.getName());
         config.renameProperty(AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, POLICY_PRIMARY_KEY.getName());
-        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME);
-        if (!config.hasProperty(AUTHENTICATION_STRATEGY.getName())) {
-            final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME)
+        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
+
+        final Optional<String> authenticationStrategyValue = config.getRawPropertyValue(AUTHENTICATION_STRATEGY.getName())
+                .map(String::trim)
+                .filter(value -> !value.isEmpty());
+        final boolean authenticationStrategyMissing = authenticationStrategyValue.isEmpty();
+        final boolean legacyManagedIdentityPropertyPresent = config.hasProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
+        final boolean sharedAccessCredentialsConfigured = hasConfiguredValue(config, ACCESS_POLICY)
+                || hasConfiguredValue(config, POLICY_PRIMARY_KEY);
+
+        if (authenticationStrategyMissing || legacyManagedIdentityPropertyPresent) {
+            final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME)
                     .map(Boolean::parseBoolean)
-                    .orElse(false);
-            final String authenticationStrategyValue = useManagedIdentity
+                    .orElse(!sharedAccessCredentialsConfigured);
+            final String derivedAuthenticationStrategy = useManagedIdentity
                     ? AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue()
                     : AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue();
-            config.setProperty(AUTHENTICATION_STRATEGY.getName(), authenticationStrategyValue);
+            config.setProperty(AUTHENTICATION_STRATEGY.getName(), derivedAuthenticationStrategy);
         }
-        config.removeProperty(AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME);
+
+        config.removeProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
     }
 
     /**
@@ -353,6 +363,13 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final EventPosition eventPosition = partitionEventPositions.getOrDefault(partitionId, EventPosition.fromEnqueuedTime(Instant.now()));
         getLogger().debug("Receiving Events for Partition [{}] from Position [{}]", partitionId, eventPosition);
         return eventHubConsumerClient.receiveFromPartition(partitionId, receiverFetchSize, eventPosition, receiverFetchTimeout);
+    }
+
+    private boolean hasConfiguredValue(final PropertyConfiguration config, final PropertyDescriptor descriptor) {
+        return config.getPropertyValue(descriptor.getName())
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .isPresent();
     }
 
     private void createClient() {

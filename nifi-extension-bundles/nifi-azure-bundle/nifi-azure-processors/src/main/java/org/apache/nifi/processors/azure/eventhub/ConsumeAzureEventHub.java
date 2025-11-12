@@ -96,6 +96,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -369,31 +370,48 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         config.renameProperty("storage-sas-token", STORAGE_SAS_TOKEN.getName());
         config.renameProperty("storage-container-name", STORAGE_CONTAINER_NAME.getName());
         config.renameProperty("event-hub-shared-access-policy-primary-key", POLICY_PRIMARY_KEY.getName());
-        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME);
-        if (!config.hasProperty(BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName())) {
-            final boolean storageAccountKeySet = config.getPropertyValue(STORAGE_ACCOUNT_KEY.getName())
-                    .filter(StringUtils::isNotBlank)
-                    .isPresent();
-            final boolean storageSasTokenSet = config.getPropertyValue(STORAGE_SAS_TOKEN.getName())
-                    .filter(StringUtils::isNotBlank)
-                    .isPresent();
+        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
 
+        final Optional<String> blobAuthenticationStrategyValue = config.getRawPropertyValue(BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName())
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank);
+        final boolean blobAuthenticationStrategyMissing = blobAuthenticationStrategyValue.isEmpty();
+        final boolean storageAccountKeySet = hasConfiguredValue(config, STORAGE_ACCOUNT_KEY);
+        final boolean storageSasTokenSet = hasConfiguredValue(config, STORAGE_SAS_TOKEN);
+
+        if (blobAuthenticationStrategyMissing) {
             final String blobStorageAuthenticationStrategyValue = storageSasTokenSet && !storageAccountKeySet
                     ? BlobStorageAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue()
                     : BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY.getValue();
 
             config.setProperty(BLOB_STORAGE_AUTHENTICATION_STRATEGY.getName(), blobStorageAuthenticationStrategyValue);
         }
-        if (!config.hasProperty(AUTHENTICATION_STRATEGY.getName())) {
-            final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME)
+
+        final Optional<String> authenticationStrategyValue = config.getRawPropertyValue(AUTHENTICATION_STRATEGY.getName())
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank);
+        final boolean authenticationStrategyMissing = authenticationStrategyValue.isEmpty();
+        final boolean legacyManagedIdentityPropertyPresent = config.hasProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
+        final boolean sharedAccessCredentialsConfigured = hasConfiguredValue(config, ACCESS_POLICY_NAME)
+                || hasConfiguredValue(config, POLICY_PRIMARY_KEY);
+
+        if (authenticationStrategyMissing || legacyManagedIdentityPropertyPresent) {
+            final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME)
                     .map(Boolean::parseBoolean)
-                    .orElse(false);
-            final String authenticationStrategyValue = useManagedIdentity
+                    .orElse(!sharedAccessCredentialsConfigured);
+            final String derivedAuthenticationStrategy = useManagedIdentity
                     ? AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue()
                     : AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue();
-            config.setProperty(AUTHENTICATION_STRATEGY.getName(), authenticationStrategyValue);
+            config.setProperty(AUTHENTICATION_STRATEGY.getName(), derivedAuthenticationStrategy);
         }
-        config.removeProperty(AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME);
+
+        config.removeProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
+    }
+
+    private boolean hasConfiguredValue(final PropertyConfiguration config, final PropertyDescriptor descriptor) {
+        return config.getPropertyValue(descriptor.getName())
+                .filter(StringUtils::isNotBlank)
+                .isPresent();
     }
 
     @Override
