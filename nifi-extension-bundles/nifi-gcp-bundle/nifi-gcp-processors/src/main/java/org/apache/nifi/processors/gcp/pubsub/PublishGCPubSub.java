@@ -480,9 +480,9 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor {
 
     private Publisher.Builder getPublisherBuilder(ProcessContext context) {
         final Long batchSizeThreshold = context.getProperty(BATCH_SIZE_THRESHOLD).asLong();
-        final long batchBytesThreshold = context.getProperty(BATCH_BYTES_THRESHOLD).asDataSize(DataUnit.B).longValue();
+        final long batchBytesThreshold = context.getProperty(BATCH_BYTES_THRESHOLD).evaluateAttributeExpressions().asDataSize(DataUnit.B).longValue();
         final Long batchDelayThreshold = context.getProperty(BATCH_DELAY_THRESHOLD).asTimePeriod(TimeUnit.MILLISECONDS);
-        final String endpoint = context.getProperty(API_ENDPOINT).getValue();
+        final String endpoint = context.getProperty(API_ENDPOINT).evaluateAttributeExpressions().getValue();
 
         final Publisher.Builder publisherBuilder = Publisher.newBuilder(getTopicName(context))
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))

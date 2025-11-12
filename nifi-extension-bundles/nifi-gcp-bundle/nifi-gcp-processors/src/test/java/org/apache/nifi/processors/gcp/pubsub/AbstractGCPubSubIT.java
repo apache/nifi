@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.gcp.pubsub;
 
+import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
+import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
@@ -34,9 +36,8 @@ public class AbstractGCPubSubIT {
         final Map<String, String> propertiesMap = new HashMap<>();
         final GCPCredentialsControllerService credentialsControllerService = new GCPCredentialsControllerService();
 
-        propertiesMap.put("application-default-credentials", "false");
-        propertiesMap.put("compute-engine-credentials", "false");
-        propertiesMap.put("service-account-json-file", serviceAccountJsonFilePath);
+        propertiesMap.put(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName(), AuthenticationStrategy.SERVICE_ACCOUNT_JSON_FILE.getValue());
+        propertiesMap.put(CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE.getName(), serviceAccountJsonFilePath);
 
         runner.addControllerService(CONTROLLER_SERVICE, credentialsControllerService, propertiesMap);
         runner.enableControllerService(credentialsControllerService);
