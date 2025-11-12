@@ -30,12 +30,17 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.FilteringStrategy;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.migration.PropertyConfiguration;
@@ -94,7 +99,29 @@ import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_I
                     @WritesAttribute(attribute = "syslog.port", description = "The port over which the Syslog message was received."),
                     @WritesAttribute(attribute = "mime.type", description = "The mime.type of the FlowFile which will be text/plain for Syslog messages.")})
 @SeeAlso({PutSyslog.class, ParseSyslog.class})
-public class ListenSyslog extends AbstractSyslogProcessor {
+public class ListenSyslog extends AbstractSyslogProcessor implements ListenComponent {
+
+    // See migrateProperties() below for how legacy properties are handled on upgrade
+    private static final String LEGACY_PORT_PROPERTY_NAME = "Port";
+    private static final String LEGACY_PROTOCOL_PROPERTY_NAME = "Protocol";
+
+    public static final PropertyDescriptor TCP_PORT = new PropertyDescriptor
+        .Builder().name("TCP Port")
+        .description("The port to listen on for TCP Syslog communication. Either this or UDP Port must be set, but both cannot be set at the same time.")
+        .required(false)
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .identifiesListenPort(org.apache.nifi.components.listen.TransportProtocol.TCP, "syslog")
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .build();
+
+    public static final PropertyDescriptor UDP_PORT = new PropertyDescriptor
+        .Builder().name("UDP Port")
+        .description("The port to listen on for UDP Syslog communication. Either this or TCP Port must be set, but both cannot be set at the same time.")
+        .required(false)
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .identifiesListenPort(org.apache.nifi.components.listen.TransportProtocol.TCP, "udp")
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .build();
 
     public static final PropertyDescriptor MAX_MESSAGE_QUEUE_SIZE = new PropertyDescriptor.Builder()
         .name("Max Size of Message Queue")
@@ -123,7 +150,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .defaultValue("1 MB")
         .required(true)
-        .dependsOn(PROTOCOL, TCP_VALUE)
+        .dependsOn(TCP_PORT)
         .build();
     public static final PropertyDescriptor WORKER_THREADS = new PropertyDescriptor.Builder()
         .name("Worker Threads")
@@ -131,7 +158,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .addValidator(StandardValidators.createLongValidator(1, 65535, true))
         .defaultValue("2")
         .required(true)
-        .dependsOn(PROTOCOL, TCP_VALUE)
+        .dependsOn(TCP_PORT)
         .build();
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Max Batch Size")
@@ -163,7 +190,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                     "messages will be received over a secure connection.")
         .required(false)
         .identifiesControllerService(SSLContextProvider.class)
-        .dependsOn(PROTOCOL, TCP_VALUE)
+        .dependsOn(TCP_PORT)
         .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
         .name("Client Auth")
@@ -180,12 +207,12 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
             .defaultValue(Boolean.FALSE.toString())
-            .dependsOn(PROTOCOL, TCP_VALUE)
+            .dependsOn(TCP_PORT)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            PROTOCOL,
-            PORT,
+            TCP_PORT,
+            UDP_PORT,
             NETWORK_INTF_NAME,
             SOCKET_KEEP_ALIVE,
             SSL_CONTEXT_SERVICE,
@@ -227,6 +254,33 @@ public class ListenSyslog extends AbstractSyslogProcessor {
     public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
         propertyConfiguration.renameProperty("Max Number of TCP Connections", WORKER_THREADS.getName());
         propertyConfiguration.renameProperty("socket-keep-alive", SOCKET_KEEP_ALIVE.getName());
+
+        // Older version of ListenSyslog had a single "Port" property and a "Protocol" property to specify TCP or UDP.
+        // Starting with 2.7.0, ListenSyslog now uses two mutually exclusive "TCP Port" and "UDP Port" properties in order to support the ListenPortDefinition feature of Property Descriptors.
+        if (propertyConfiguration.isPropertySet(LEGACY_PORT_PROPERTY_NAME)) {
+            final String legacyProtocolRawValue = propertyConfiguration.getPropertyValue(LEGACY_PROTOCOL_PROPERTY_NAME).orElse(null);
+            TransportProtocol legacyProtocol;
+            try {
+                legacyProtocol = legacyProtocolRawValue != null ? TransportProtocol.valueOf(legacyProtocolRawValue) : TransportProtocol.TCP;
+            } catch (final Exception e) {
+                // should never happen, but if we get an unexpected value that cannot be converted to an enum, default to TCP
+                getLogger().warn("Unknown legacy protocol '{}' provided for ListenSyslog. Defaulting to TCP", legacyProtocolRawValue);
+                legacyProtocol = TransportProtocol.TCP;
+            }
+
+            if (legacyProtocol == TransportProtocol.UDP) {
+                getLogger().info("Migrating ListenSyslog 'Port' property to 'UDP Port'");
+                propertyConfiguration.renameProperty(LEGACY_PORT_PROPERTY_NAME, UDP_PORT.getName());
+            } else {
+                getLogger().info("Migrating ListenSyslog 'Port' property to 'TCP Port'");
+                propertyConfiguration.renameProperty(LEGACY_PORT_PROPERTY_NAME, TCP_PORT.getName());
+            }
+        }
+
+        if (propertyConfiguration.hasProperty(LEGACY_PROTOCOL_PROPERTY_NAME)) {
+            getLogger().info("Removing deprecated ListenSyslog 'Protocol' property");
+            propertyConfiguration.removeProperty(LEGACY_PROTOCOL_PROPERTY_NAME);
+        }
     }
 
     @Override
@@ -241,9 +295,9 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        // if we are changing the protocol, the events that we may have queued up are no longer valid, as they
-        // were received using a different protocol and may be from a completely different source
-        if (PROTOCOL.equals(descriptor)) {
+        // if we are changing the port (and possibly protocol), the events that we may have queued up are no longer valid,
+        // as they were received on a different port and may be from a completely different source
+        if (TCP_PORT.equals(descriptor) ||  UDP_PORT.equals(descriptor)) {
             syslogEvents.clear();
         }
     }
@@ -256,14 +310,28 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 .explanation("Cannot set Parse Messages to 'true' if Batch Size is greater than 1").build());
         }
 
+        if (!validationContext.getProperty(TCP_PORT).isSet() && !validationContext.getProperty(UDP_PORT).isSet()) {
+            results.add(new ValidationResult.Builder().subject(UDP_PORT.getName()).valid(false)
+                .explanation("UDP Port must be set unless TCP Port is set").build());
+            results.add(new ValidationResult.Builder().subject(TCP_PORT.getName()).valid(false)
+                .explanation("TCP Port must be set unless UDP Port is set").build());
+        }
+
+        if (validationContext.getProperty(TCP_PORT).isSet() && validationContext.getProperty(UDP_PORT).isSet()) {
+            results.add(new ValidationResult.Builder().subject(UDP_PORT.getName()).input(validationContext.getProperty(UDP_PORT).getValue()).valid(false)
+                .explanation("Cannot set UDP Port when TCP Port is also set").build());
+            results.add(new ValidationResult.Builder().subject(TCP_PORT.getName()).input(validationContext.getProperty(TCP_PORT).getValue()).valid(false)
+                .explanation("Cannot set TCP Port when UDP Port is also set").build());
+        }
+
         return results;
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final TransportProtocol transportProtocol = TransportProtocol.valueOf(context.getProperty(PROTOCOL).getValue());
+        final TransportProtocol transportProtocol = getTransportProtocol(context);
+        final int port = getConfiguredPortNumber(context);
 
-        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final int receiveBufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
         final String networkInterfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
@@ -312,7 +380,57 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         eventServer = factory.getEventServer();
     }
 
-    public int getListeningPort() {
+    private TransportProtocol getTransportProtocol(final ProcessContext context) {
+        if (context.getProperty(TCP_PORT).isSet() && !context.getProperty(UDP_PORT).isSet()) {
+            return TransportProtocol.TCP;
+        } else if (context.getProperty(UDP_PORT).isSet() && !context.getProperty(TCP_PORT).isSet()) {
+            return TransportProtocol.UDP;
+        } else {
+            throw new IllegalStateException("Processor is invalid. Exactly one of TCP Port or UDP Port properties must be set.");
+        }
+    }
+
+    private int getConfiguredPortNumber(final ProcessContext context) {
+        if (context.getProperty(TCP_PORT).isSet() && !context.getProperty(UDP_PORT).isSet()) {
+            return context.getProperty(TCP_PORT).evaluateAttributeExpressions().asInteger();
+        } else if (context.getProperty(UDP_PORT).isSet() && !context.getProperty(TCP_PORT).isSet()) {
+            return context.getProperty(UDP_PORT).evaluateAttributeExpressions().asInteger();
+        } else {
+            throw new IllegalStateException("Processor is invalid. Exactly one of TCP Port or UDP Port properties must be set.");
+        }
+    }
+
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+        final Integer tcpPortNumber = context.getProperty(TCP_PORT).evaluateAttributeExpressions().asInteger();
+        final Integer udpPortNumber = context.getProperty(UDP_PORT).evaluateAttributeExpressions().asInteger();
+
+        final List<ListenPort> ports = new ArrayList<>();
+
+        if (tcpPortNumber != null) {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(tcpPortNumber)
+                .portName(TCP_PORT.getDisplayName())
+                .transportProtocol(org.apache.nifi.components.listen.TransportProtocol.TCP)
+                .applicationProtocols(List.of("syslog"))
+                .build();
+            ports.add(port);
+        }
+
+        if (udpPortNumber != null) {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(udpPortNumber)
+                .portName(UDP_PORT.getDisplayName())
+                .transportProtocol(org.apache.nifi.components.listen.TransportProtocol.UDP)
+                .applicationProtocols(List.of("syslog"))
+                .build();
+            ports.add(port);
+        }
+
+        return ports;
+    }
+
+    int getListeningPort() {
         return eventServer == null ? 0 : eventServer.getListeningPort();
     }
 
@@ -452,7 +570,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
     private Map<String, String> getDefaultAttributes(final ProcessContext context) {
         final String port = String.valueOf(getListeningPort());
-        final String protocol = context.getProperty(PROTOCOL).getValue();
+        final String protocol = getTransportProtocol(context).toString();
 
         final Map<String, String> defaultAttributes = new HashMap<>();
         defaultAttributes.put(SyslogAttributes.SYSLOG_PROTOCOL.key(), protocol);
