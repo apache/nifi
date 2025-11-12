@@ -43,6 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_DESC;
+
 /**
  * Base class for creating processors which connect to Google Cloud Storage.
  *
@@ -67,6 +69,14 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
     }
+
+    public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
+            .name("Bucket")
+            .description(BUCKET_DESC)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .build();
 
     // https://cloud.google.com/storage/docs/request-endpoints#storage-set-client-endpoint-java
     public static final PropertyDescriptor STORAGE_API_URL = new PropertyDescriptor.Builder()
@@ -137,7 +147,7 @@ public abstract class AbstractGCSProcessor extends AbstractGCPProcessor<Storage,
     protected abstract List<String> getRequiredPermissions();
 
     protected String getBucketName(final ProcessContext context, final Map<String, String> attributes) {
-        return context.getProperty("gcs-bucket").evaluateAttributeExpressions(attributes).getValue();
+        return context.getProperty(BUCKET).evaluateAttributeExpressions(attributes).getValue();
     }
 
     @Override
