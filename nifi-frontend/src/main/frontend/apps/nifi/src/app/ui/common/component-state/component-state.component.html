@@ -71,64 +71,72 @@
                     </div>
                 </div>
                 <div class="listing-table flex-1 relative">
-                    <div class="absolute inset-0 overflow-y-auto overflow-x-hidden">
-                        <table
-                            mat-table
-                            [dataSource]="dataSource"
-                            matSort
-                            matSortDisableClear
-                            (matSortChange)="sortData($event)"
-                            [matSortActive]="initialSortColumn"
-                            [matSortDirection]="initialSortDirection">
-                            <!-- Key Column -->
-                            <ng-container matColumnDef="key">
-                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Key</th>
-                                <td mat-cell *matCellDef="let item">
-                                    {{ item.key }}
-                                </td>
-                            </ng-container>
-
-                            <!-- Value Column -->
-                            <ng-container matColumnDef="value">
-                                <th mat-header-cell *matHeaderCellDef mat-sort-header>Value</th>
-                                <td mat-cell *matCellDef="let item" [title]="item.value">
-                                    {{ item.value }}
-                                </td>
-                            </ng-container>
-
-                            <!-- Scope Column -->
-                            @if (displayedColumns.includes('scope')) {
-                                <ng-container matColumnDef="scope">
-                                    <th mat-header-cell *matHeaderCellDef mat-sort-header>Scope</th>
-                                    <td mat-cell *matCellDef="let item" [title]="item.scope">
-                                        {{ item.scope }}
-                                    </td>
-                                </ng-container>
-                            }
-
-                            <!-- Actions Column -->
-                            @if (displayedColumns.includes('actions')) {
-                                <ng-container matColumnDef="actions">
-                                    <th mat-header-cell *matHeaderCellDef></th>
-                                    <td mat-cell *matCellDef="let item">
-                                        <button
-                                            [disabled]="isClearing"
-                                            mat-icon-button
-                                            color="primary"
-                                            (click)="clearComponentStateEntry(item)"
-                                            [title]="'Clear state entry: ' + item.key">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </ng-container>
-                            }
-
-                            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-                            <tr
-                                mat-row
-                                *matRowDef="let row; let even = even; columns: displayedColumns"
-                                [class.even]="even"></tr>
-                        </table>
+                    <div class="absolute inset-0 table-container">
+                        <div class="header-wrapper">
+                            <table class="mat-mdc-table mdc-data-table__table cdk-table-virtual">
+                                <thead>
+                                    <tr
+                                        class="mat-mdc-header-row mdc-data-table__header-row"
+                                        matSort
+                                        matSortDisableClear
+                                        (matSortChange)="sortData($event)"
+                                        [matSortActive]="currentSortColumn"
+                                        [matSortDirection]="currentSortDirection">
+                                        <th
+                                            class="mat-mdc-header-cell mdc-data-table__header-cell"
+                                            mat-sort-header="key">
+                                            Key
+                                        </th>
+                                        <th
+                                            class="mat-mdc-header-cell mdc-data-table__header-cell"
+                                            mat-sort-header="value">
+                                            Value
+                                        </th>
+                                        @if (displayedColumns.includes('scope')) {
+                                            <th
+                                                class="mat-mdc-header-cell mdc-data-table__header-cell"
+                                                mat-sort-header="scope">
+                                                Scope
+                                            </th>
+                                        }
+                                        @if (displayedColumns.includes('actions')) {
+                                            <th class="mat-mdc-header-cell mdc-data-table__header-cell"></th>
+                                        }
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                        <cdk-virtual-scroll-viewport [itemSize]="ROW_HEIGHT" class="table-body-viewport">
+                            <table class="mat-mdc-table mdc-data-table__table cdk-table-virtual">
+                                <tbody>
+                                    <tr
+                                        *cdkVirtualFor="let item of dataSource; trackBy: trackByKey"
+                                        class="mat-mdc-row mdc-data-table__row data-row">
+                                        <td class="mat-mdc-cell mdc-data-table__cell">{{ item.key }}</td>
+                                        <td class="mat-mdc-cell mdc-data-table__cell" [title]="item.value">
+                                            {{ item.value }}
+                                        </td>
+                                        @if (displayedColumns.includes('scope')) {
+                                            <td class="mat-mdc-cell mdc-data-table__cell" [title]="item.scope">
+                                                {{ item.scope }}
+                                            </td>
+                                        }
+                                        @if (displayedColumns.includes('actions')) {
+                                            <td class="mat-mdc-cell mdc-data-table__cell">
+                                                <button
+                                                    [disabled]="clearing()"
+                                                    mat-icon-button
+                                                    color="primary"
+                                                    (click)="clearComponentStateEntry(item)"
+                                                    [title]="'Clear state entry: ' + item.key">
+                                                    <i class="fa fa-trash"></i>
+                                                </button>
+                                            </td>
+                                        }
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </cdk-virtual-scroll-viewport>
                     </div>
                 </div>
             </div>
