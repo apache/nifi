@@ -65,6 +65,7 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
     public static final String ACCESS_KEY_PROP = "Access Key";
     public static final String SECRET_ACCESS_KEY_PROP = "Secret Access Key";
     public static final String ENDPOINT_URL_PROP = "Endpoint URL";
+    public static final String FORCE_PATH_STYLE_PROP = "Force Path Style";
 
     public static final String NAR_EXTENSION = ".nar";
     public static final String CPP_EXTENSION = ".cpp";
@@ -102,8 +103,28 @@ public class S3BundlePersistenceProvider implements BundlePersistenceProvider {
             builder.endpointOverride(s3EndpointOverride);
         }
 
+        final boolean forcePathStyle = getForcePathStyle(configurationContext);
+        if (forcePathStyle) {
+            builder.forcePathStyle(forcePathStyle);
+        }
+
         return builder.build();
 
+    }
+
+    private boolean getForcePathStyle(ProviderConfigurationContext configurationContext) {
+        final String forcePathStyleValue = configurationContext.getProperties().get(FORCE_PATH_STYLE_PROP);
+        if (StringUtils.isBlank(forcePathStyleValue)) {
+            LOGGER.debug("Force Path Style not specified, using default value: false");
+            return false;
+        }
+
+        try {
+            return Boolean.parseBoolean(forcePathStyleValue);
+        } catch (Exception e) {
+            LOGGER.warn("Invalid value for Force Path Style: '{}', using default value: false", forcePathStyleValue);
+            return false;
+        }
     }
 
     private Region getRegion(final ProviderConfigurationContext configurationContext) {
