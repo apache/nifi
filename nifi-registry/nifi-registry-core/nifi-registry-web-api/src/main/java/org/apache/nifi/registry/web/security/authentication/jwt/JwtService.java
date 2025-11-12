@@ -23,7 +23,6 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.MacAlgorithm;
@@ -101,21 +100,18 @@ public class JwtService {
 
     private Jws<Claims> parseTokenFromBase64EncodedString(final String base64EncodedToken) throws JwtException {
         try {
-            return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
-                @Override
-                public byte[] resolveSigningKeyBytes(JwsHeader header, Claims claims) {
-                    final String identity = claims.getSubject();
-
-                    // Get the key based on the key id in the claims
-                    final String keyId = claims.get(KEY_ID_CLAIM, String.class);
+            return Jwts.parser().keyLocator(header -> {
+                if (header instanceof JwsHeader) {
+                    final String keyId = (String) header.get(KEY_ID_CLAIM);
                     final Key key = keyService.getKey(keyId);
 
                     // Ensure we were able to find a key that was previously issued by this key service for this user
                     if (key == null || key.getKey() == null) {
-                        throw new UnsupportedJwtException("Unable to determine signing key for " + identity + " [kid: " + keyId + "]");
+                        throw new UnsupportedJwtException("Unable to determine signing key for kid: " + keyId);
                     }
-
-                    return key.getKey().getBytes(StandardCharsets.UTF_8);
+                    return Keys.hmacShaKeyFor(key.getKey().getBytes(StandardCharsets.UTF_8));
+                } else {
+                    throw new UnsupportedJwtException("JWE is not currently supported");
                 }
             }).build().parseSignedClaims(base64EncodedToken);
         } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException e) {
