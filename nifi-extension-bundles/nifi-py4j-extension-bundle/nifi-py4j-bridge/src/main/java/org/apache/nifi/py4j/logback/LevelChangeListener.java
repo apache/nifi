@@ -36,7 +36,6 @@ import java.util.regex.Pattern;
  */
 public class LevelChangeListener implements LoggerContextListener {
     private static final Map<Level, LogLevel> LEVELS = Map.of(
-            Level.ALL, LogLevel.TRACE,
             Level.TRACE, LogLevel.TRACE,
             Level.DEBUG, LogLevel.DEBUG,
             Level.INFO, LogLevel.INFO,
