@@ -46,7 +46,7 @@ public final class AzureEventHubUtils {
     public static final AllowableValue AZURE_US_GOV_ENDPOINT = new AllowableValue(".servicebus.usgovcloudapi.net", "Azure US Government", "Servicebus endpoint for US Government");
     public static final String OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME = "Shared Access Policy Primary Key";
     public static final String OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME = "use-managed-identity";
-    public static final String USE_MANAGED_IDENTITY_PROPERTY_NAME = "Use Azure Managed Identity";
+    public static final String LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME = "Use Azure Managed Identity";
 
     public static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Key")
