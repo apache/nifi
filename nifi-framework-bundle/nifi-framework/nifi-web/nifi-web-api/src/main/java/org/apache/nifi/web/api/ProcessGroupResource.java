@@ -74,7 +74,7 @@ import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowState;
-import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.remote.util.ClusterUrlParser;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
@@ -2054,7 +2054,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                     // parse the uri to check if the uri is valid
                     final String targetUris = remoteProcessGroupDTO.getTargetUris();
-                    SiteToSiteRestApiClient.parseClusterUrls(targetUris);
+                    ClusterUrlParser.parseClusterUrls(targetUris);
 
                     // since the uri is valid, use it
                     remoteProcessGroupDTO.setTargetUris(targetUris);

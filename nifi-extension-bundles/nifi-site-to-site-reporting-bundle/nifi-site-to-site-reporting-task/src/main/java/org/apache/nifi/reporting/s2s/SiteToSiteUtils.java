@@ -35,7 +35,7 @@ import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
-import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.remote.util.ClusterUrlParser;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.ssl.SSLContextProvider;
 
@@ -155,7 +155,7 @@ public class SiteToSiteUtils {
             stateManager = ((ReportingContext) reportContext).getStateManager();
         }
         return new SiteToSiteClient.Builder()
-                .urls(SiteToSiteRestApiClient.parseClusterUrls(destinationUrl))
+                .urls(ClusterUrlParser.parseClusterUrls(destinationUrl))
                 .portName(reportContext.getProperty(SiteToSiteUtils.PORT_NAME).getValue())
                 .useCompression(reportContext.getProperty(SiteToSiteUtils.COMPRESS).asBoolean())
                 .eventReporter(eventReporter)
@@ -172,7 +172,7 @@ public class SiteToSiteUtils {
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
             final String value = context.newPropertyValue(input).evaluateAttributeExpressions().getValue();
             try {
-                SiteToSiteRestApiClient.parseClusterUrls(value);
+                ClusterUrlParser.parseClusterUrls(value);
                 return new ValidationResult.Builder()
                         .input(input)
                         .subject(subject)
