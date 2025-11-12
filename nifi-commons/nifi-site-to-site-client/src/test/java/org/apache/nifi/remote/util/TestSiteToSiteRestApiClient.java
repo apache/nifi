@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Iterator;
 import java.util.Set;
 
-import static org.apache.nifi.remote.util.SiteToSiteRestApiClient.parseClusterUrls;
+import static org.apache.nifi.remote.util.ClusterUrlParser.parseClusterUrls;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;

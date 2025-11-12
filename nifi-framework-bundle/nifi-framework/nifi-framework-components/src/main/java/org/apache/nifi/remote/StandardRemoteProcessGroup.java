@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.nio.charset.StandardCharsets;
@@ -90,10 +89,6 @@ import static java.util.Objects.requireNonNull;
 public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     private static final Logger logger = LoggerFactory.getLogger(StandardRemoteProcessGroup.class);
-
-    // status codes
-    private static final int UNAUTHORIZED_STATUS_CODE = HttpURLConnection.HTTP_UNAUTHORIZED;
-    private static final int FORBIDDEN_STATUS_CODE = HttpURLConnection.HTTP_FORBIDDEN;
 
     private final String id;
 
@@ -413,7 +408,18 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     @Override
     public String getTargetUri() {
-        return SiteToSiteRestApiClient.getFirstUrl(targetUris);
+        final String targetUri;
+        if (targetUris == null) {
+            targetUri = null;
+        } else {
+            final int commaIndex = targetUris.indexOf(',');
+            if (commaIndex > -1) {
+                targetUri = targetUris.substring(0, commaIndex);
+            } else {
+                targetUri = targetUris;
+            }
+        }
+        return targetUri;
     }
 
     @Override
@@ -1256,36 +1262,24 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
             }
 
             try (final SiteToSiteRestApiClient apiClient = getSiteToSiteRestApiClient()) {
-                try {
-                    final ControllerDTO dto = apiClient.getController(targetUris);
+                final ControllerDTO dto = apiClient.getController(targetUris);
 
-                    if (dto.getRemoteSiteListeningPort() == null && SiteToSiteTransportProtocol.RAW.equals(transportProtocol)) {
-                        authorizationIssue = "Remote instance is not configured to allow RAW Site-to-Site communications at this time.";
-                    } else if (dto.getRemoteSiteHttpListeningPort() == null && SiteToSiteTransportProtocol.HTTP.equals(transportProtocol)) {
-                        authorizationIssue = "Remote instance is not configured to allow HTTP Site-to-Site communications at this time.";
-                    } else {
-                        authorizationIssue = null;
-                    }
-
-                    writeLock.lock();
-                    try {
-                        listeningPort = dto.getRemoteSiteListeningPort();
-                        listeningHttpPort = dto.getRemoteSiteHttpListeningPort();
-                        destinationSecure = dto.isSiteToSiteSecure();
-                    } finally {
-                        writeLock.unlock();
-                    }
-                } catch (SiteToSiteRestApiClient.HttpGetFailedException e) {
-                    final int responseCode = e.getResponseCode();
-                    if (responseCode == UNAUTHORIZED_STATUS_CODE || responseCode == FORBIDDEN_STATUS_CODE) {
-                        authorizationIssue = e.getDescription();
-                    } else {
-                        final String message = e.getDescription();
-                        logger.warn("{} When communicating with remote instance, got unexpected result. {}", this, message);
-                        authorizationIssue = "Unable to determine Site-to-Site availability.";
-                    }
+                if (dto.getRemoteSiteListeningPort() == null && SiteToSiteTransportProtocol.RAW.equals(transportProtocol)) {
+                    authorizationIssue = "Remote instance is not configured to allow RAW Site-to-Site communications at this time.";
+                } else if (dto.getRemoteSiteHttpListeningPort() == null && SiteToSiteTransportProtocol.HTTP.equals(transportProtocol)) {
+                    authorizationIssue = "Remote instance is not configured to allow HTTP Site-to-Site communications at this time.";
+                } else {
+                    authorizationIssue = null;
                 }
 
+                writeLock.lock();
+                try {
+                    listeningPort = dto.getRemoteSiteListeningPort();
+                    listeningHttpPort = dto.getRemoteSiteHttpListeningPort();
+                    destinationSecure = dto.isSiteToSiteSecure();
+                } finally {
+                    writeLock.unlock();
+                }
             } catch (final Exception e) {
                 logger.warn("Unable to connect to {} due to {}",  StandardRemoteProcessGroup.this, e.toString());
                 getEventReporter().reportEvent(Severity.WARNING, "Site to Site", String.format("Unable to connect to %s due to %s",
