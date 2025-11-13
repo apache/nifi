@@ -43,6 +43,7 @@ import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 import { concatLatestFrom } from '@ngrx/operators';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
+import { MatTableModule } from '@angular/material/table';
 
 @Component({
     selector: 'component-state',
@@ -58,7 +59,8 @@ import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
         ContextErrorBanner,
         NifiTooltipDirective,
         NifiSpinnerDirective,
-        ScrollingModule
+        ScrollingModule,
+        MatTableModule
     ],
     templateUrl: './component-state.component.html',
     styleUrls: ['./component-state.component.scss']
@@ -83,8 +85,8 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     readonly ROW_HEIGHT = 36; // Height of each table row in pixels (density -4)
 
     // Sort state
-    currentSortColumn: 'key' | 'value' | 'scope' = 'key';
-    currentSortDirection: 'asc' | 'desc' = 'asc';
+    currentSortColumn: 'key' | 'value' | 'scope' = this.initialSortColumn;
+    currentSortDirection: 'asc' | 'desc' = this.initialSortDirection;
 
     filterForm: FormGroup;
 
@@ -214,12 +216,7 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
             this.filteredEntries = this.allStateItems.length;
         } else {
             // Filter the full dataset
-            const filtered = this.allStateItems.filter(
-                (item) =>
-                    item.key.toLowerCase().includes(term) ||
-                    item.value.toLowerCase().includes(term) ||
-                    (item.scope && item.scope.toLowerCase().includes(term))
-            );
+            const filtered = this.filterStateItems(term);
             this.dataSource = filtered;
             this.filteredEntries = filtered.length;
         }
@@ -234,12 +231,7 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
         let dataToSort = this.allStateItems;
 
         if (filterTerm) {
-            dataToSort = this.allStateItems.filter(
-                (item) =>
-                    item.key.toLowerCase().includes(filterTerm) ||
-                    item.value.toLowerCase().includes(filterTerm) ||
-                    (item.scope && item.scope.toLowerCase().includes(filterTerm))
-            );
+            dataToSort = this.filterStateItems(filterTerm);
         }
 
         const sortedData = this.sortStateItems(dataToSort, sort);
@@ -251,6 +243,15 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
 
         this.dataSource = sortedData;
         this.filteredEntries = sortedData.length;
+    }
+
+    private filterStateItems(filterTerm: string): StateItem[] {
+        return this.allStateItems.filter(
+            (item) =>
+                item.key.toLowerCase().includes(filterTerm) ||
+                item.value.toLowerCase().includes(filterTerm) ||
+                (item.scope && item.scope.toLowerCase().includes(filterTerm))
+        );
     }
 
     private sortStateItems(data: StateItem[], sort: Sort): StateItem[] {

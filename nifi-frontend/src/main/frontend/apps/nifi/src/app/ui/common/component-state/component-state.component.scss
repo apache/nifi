@@ -53,11 +53,13 @@
                     color: var(--mat-sys-on-secondary);
                     border-bottom-width: 0; // Override global listing-table border
 
+                    // Key column fixed width
                     &:first-child {
                         width: 200px;
                     }
 
-                    &:last-child {
+                    // Actions column fixed width
+                    &.action-column {
                         width: 52px;
                     }
                 }
@@ -75,11 +77,13 @@
                 td {
                     height: 36px; // Must match ROW_HEIGHT constant
 
+                    // Key column fixed width
                     &:first-child {
                         width: 200px;
                     }
 
-                    &:last-child {
+                    // Actions column fixed width
+                    &.action-column {
                         width: 52px;
                     }
                 }

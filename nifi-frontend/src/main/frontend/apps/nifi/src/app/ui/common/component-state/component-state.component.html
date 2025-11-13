@@ -69,6 +69,21 @@
                     <div class="my-2 tertiary-color leading-none font-medium">
                         Displaying {{ filteredEntries }} of {{ totalEntries }}
                     </div>
+                    <!--
+                        mat-table does not support virtual scrolling and this component requires
+                        virtual scrolling support. we moved away from mat-table in favor of a native
+                        html table with cdk virtual scrolling. styles are still applied with mat-table
+                        classes. in order for those styles to be added to this component a mat-table
+                        instance is required. this is an empty hidden table on this page to get the
+                        necessary styles on the page for our native virtual scrolling table to inherit
+                        and use the existing global styles.
+                    -->
+                    <table mat-table class="hidden">
+                        <tr mat-header-row *matHeaderRowDef="[]; sticky: true"></tr>
+                        <tr
+                            mat-row
+                            *matRowDef="let row; columns: []"></tr>
+                    </table>
                 </div>
                 <div class="listing-table flex-1 relative">
                     <div class="absolute inset-0 table-container">
@@ -100,7 +115,7 @@
                                             </th>
                                         }
                                         @if (displayedColumns.includes('actions')) {
-                                            <th class="mat-mdc-header-cell mdc-data-table__header-cell"></th>
+                                            <th class="mat-mdc-header-cell mdc-data-table__header-cell action-column"></th>
                                         }
                                     </tr>
                                 </thead>
@@ -110,8 +125,10 @@
                             <table class="mat-mdc-table mdc-data-table__table cdk-table-virtual">
                                 <tbody>
                                     <tr
-                                        *cdkVirtualFor="let item of dataSource; trackBy: trackByKey"
-                                        class="mat-mdc-row mdc-data-table__row data-row">
+                                        *cdkVirtualFor="let item of dataSource; let i = index; trackBy: trackByKey"
+                                        class="mat-mdc-row mdc-data-table__row data-row"
+                                        [class.even]="i % 2 === 0"
+                                        [class.odd]="i % 2 !== 0">
                                         <td class="mat-mdc-cell mdc-data-table__cell">{{ item.key }}</td>
                                         <td class="mat-mdc-cell mdc-data-table__cell" [title]="item.value">
                                             {{ item.value }}
@@ -122,7 +139,7 @@
                                             </td>
                                         }
                                         @if (displayedColumns.includes('actions')) {
-                                            <td class="mat-mdc-cell mdc-data-table__cell">
+                                            <td class="mat-mdc-cell mdc-data-table__cell action-column">
                                                 <button
                                                     [disabled]="clearing()"
                                                     mat-icon-button
