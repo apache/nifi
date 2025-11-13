@@ -27,6 +27,7 @@ on:
       - '**/test/**/IT*.java'
       - 'nifi-mock/**'
       - 'nifi-extension-bundles/nifi-kafka-bundle/**'
+      - 'nifi-registry/nifi-registry-core/nifi-registry-web-api/**'
   pull_request:
     paths:
       - '.github/workflows/integration-tests.yml'
@@ -38,6 +39,7 @@ on:
       - '**/test/**/IT*.java'
       - 'nifi-mock/**'
       - 'nifi-extension-bundles/nifi-kafka-bundle/**'
+      - 'nifi-registry/nifi-registry-core/nifi-registry-web-api/**'
 
 env:
   DEFAULT_MAVEN_OPTS: >-

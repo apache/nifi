@@ -23,7 +23,6 @@ import io.jsonwebtoken.JwsHeader;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.SigningKeyResolverAdapter;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.MacAlgorithm;
@@ -52,7 +51,6 @@ public class JwtService {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(JwtService.class);
 
     private static final MacAlgorithm SIGNATURE_ALGORITHM = Jwts.SIG.HS256;
-    private static final String KEY_ID_CLAIM = "kid";
     private static final String USERNAME_CLAIM = "preferred_username";
     private static final String GROUPS_CLAIM = "groups";
 
@@ -101,27 +99,25 @@ public class JwtService {
 
     private Jws<Claims> parseTokenFromBase64EncodedString(final String base64EncodedToken) throws JwtException {
         try {
-            return Jwts.parser().setSigningKeyResolver(new SigningKeyResolverAdapter() {
-                @Override
-                public byte[] resolveSigningKeyBytes(JwsHeader header, Claims claims) {
-                    final String identity = claims.getSubject();
-
-                    // Get the key based on the key id in the claims
-                    final String keyId = claims.get(KEY_ID_CLAIM, String.class);
-                    final Key key = keyService.getKey(keyId);
-
-                    // Ensure we were able to find a key that was previously issued by this key service for this user
-                    if (key == null || key.getKey() == null) {
-                        throw new UnsupportedJwtException("Unable to determine signing key for " + identity + " [kid: " + keyId + "]");
+            return Jwts.parser().keyLocator(header -> {
+                if (header instanceof JwsHeader jwsHeader) {
+                    final String keyId = jwsHeader.getKeyId();
+                    if (keyId == null) {
+                        throw new UnsupportedJwtException("Key Identifier not found in header");
                     }
 
-                    return key.getKey().getBytes(StandardCharsets.UTF_8);
+                    final Key key = keyService.getKey(keyId);
+                    if (key == null || key.getKey() == null) {
+                        throw new UnsupportedJwtException("Signing Key [%s] not found".formatted(keyId));
+                    }
+                    final byte[] keyBytes = key.getKey().getBytes(StandardCharsets.UTF_8);
+                    return Keys.hmacShaKeyFor(keyBytes);
+                } else {
+                    throw new UnsupportedJwtException("JWE is not currently supported");
                 }
             }).build().parseSignedClaims(base64EncodedToken);
         } catch (final MalformedJwtException | UnsupportedJwtException | SignatureException | ExpiredJwtException | IllegalArgumentException e) {
-            // TODO: Exercise all exceptions to ensure none leak key material to logs
-            final String errorMessage = "Unable to validate the access token.";
-            throw new JwtException(errorMessage, e);
+            throw new JwtException("Access Token validation failed", e);
         }
     }
 
@@ -146,10 +142,6 @@ public class JwtService {
                 null);
     }
 
-    public String generateSignedToken(String identity, String preferredUsername, String issuer, String audience, long expirationMillis) throws JwtException {
-        return this.generateSignedToken(identity, preferredUsername, issuer, audience, expirationMillis, null);
-    }
-
     public String generateSignedToken(String identity, String preferredUsername, String issuer, String audience, long expirationMillis, Collection<String> groups) throws JwtException {
         if (identity == null || StringUtils.isEmpty(identity)) {
             String errorMessage = "Cannot generate a JWT for a token with an empty identity";
@@ -168,14 +160,16 @@ public class JwtService {
             // Get/create the key for this user
             final Key key = keyService.getOrCreateKey(identity);
             final byte[] keyBytes = key.getKey().getBytes(StandardCharsets.UTF_8);
+            final String keyId = key.getId();
 
-            // TODO: Implement "jti" claim with nonce to prevent replay attacks and allow blacklisting of revoked tokens
-            // Build the token
-            return Jwts.builder().subject(identity)
+            return Jwts.builder()
+                    .header()
+                    .keyId(keyId)
+                    .and()
+                    .subject(identity)
                     .issuer(issuer)
                     .audience().add(audience).and()
                     .claim(USERNAME_CLAIM, preferredUsername)
-                    .claim(KEY_ID_CLAIM, key.getId())
                     .claim(GROUPS_CLAIM, groups != null ? groups : Collections.EMPTY_LIST)
                     .issuedAt(now.getTime())
                     .expiration(expiration.getTime())
@@ -215,24 +209,5 @@ public class JwtService {
         }
 
         return proposedTokenExpiration;
-    }
-
-    private static String describe(AuthenticationResponse authenticationResponse) {
-        Calendar expirationTime = Calendar.getInstance();
-        expirationTime.setTimeInMillis(authenticationResponse.getExpiration());
-        long remainingTime = expirationTime.getTimeInMillis() - Calendar.getInstance().getTimeInMillis();
-
-        return new StringBuilder("LoginAuthenticationToken for ")
-                .append(authenticationResponse.getUsername())
-                .append(" issued by ")
-                .append(authenticationResponse.getIssuer())
-                .append(" expiring at ")
-                .append(expirationTime.getTime().toInstant().toString())
-                .append(" [")
-                .append(authenticationResponse.getExpiration())
-                .append(" ms, ")
-                .append(remainingTime)
-                .append(" ms remaining]")
-                .toString();
     }
 }
