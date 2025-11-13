@@ -102,7 +102,7 @@ class RuntimeManifestIT {
         assertEquals(1, propertyDependencies.size());
 
         final PropertyDependency lineStartPatternDependency = propertyDependencies.get(0);
-        assertEquals("tail-mode", lineStartPatternDependency.getPropertyName());
+        assertEquals("Tailing Mode", lineStartPatternDependency.getPropertyName());
         assertNotNull(lineStartPatternDependency.getDependentValues());
         assertEquals(1, lineStartPatternDependency.getDependentValues().size());
         assertEquals("Single file", lineStartPatternDependency.getDependentValues().get(0));
