@@ -23,6 +23,7 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.dbcp.ConnectionUrlValidator;
 import org.apache.nifi.dbcp.DBCPValidator;
 import org.apache.nifi.dbcp.DriverClassValidator;
+import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -73,6 +74,12 @@ public final class DBCPProperties {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    public static final PropertyDescriptor DB_PASSWORD_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Database Password Provider")
+            .description("Controller Service that supplies database passwords on demand. When configured, the Password property is ignored.")
+            .required(false)
+            .identifiesControllerService(DatabasePasswordProvider.class)
+            .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
             .name("Database Driver Class Name")
