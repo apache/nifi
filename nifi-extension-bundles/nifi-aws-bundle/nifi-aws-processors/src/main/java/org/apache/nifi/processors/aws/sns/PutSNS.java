@@ -28,6 +28,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -104,8 +105,8 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
 
 
     public static final PropertyDescriptor ARN = new PropertyDescriptor.Builder()
-            .name("Amazon Resource Name (ARN)")
-            .description("The name of the resource to which notifications should be published")
+            .name("Amazon Resource Name")
+            .description("The name of the resource (ARN) to which notifications should be published")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -237,6 +238,12 @@ public class PutSNS extends AbstractAwsSyncProcessor<SnsClient, SnsClientBuilder
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("Amazon Resource Name (ARN)", ARN.getName());
     }
 
     @Override

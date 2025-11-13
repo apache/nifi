@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -93,7 +94,7 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
             .build();
 
     static final PropertyDescriptor AWS_LAMBDA_FUNCTION_QUALIFIER = new PropertyDescriptor.Builder()
-            .name("Amazon Lambda Qualifier (version)")
+            .name("Amazon Lambda Qualifier")
             .description("The Lambda Function Version")
             .defaultValue("$LATEST")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -191,6 +192,12 @@ public class PutLambda extends AbstractAwsSyncProcessor<LambdaClient, LambdaClie
             session.transfer(flowFile, REL_FAILURE);
             context.yield();
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("Amazon Lambda Qualifier (version)", AWS_LAMBDA_FUNCTION_QUALIFIER.getName());
     }
 
     /**

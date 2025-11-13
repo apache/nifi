@@ -20,6 +20,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.List;
+
 public class BasicProperties {
 
     private BasicProperties() {
@@ -33,7 +35,10 @@ public class BasicProperties {
     public static final String OLD_SNMP_VERSION_PROPERTY_NAME = "snmp-version";
     public static final String OLD_SNMP_COMMUNITY_PROPERTY_NAME = "snmp-community";
     public static final String OLD_SNMP_RETRIES_PROPERTY_NAME = "snmp-retries";
-    public static final String OLD_SNMP_TIMEOUT_PROPERTY_NAME = "snmp-timeout";
+    public static final List<String> OLD_SNMP_TIMEOUT_PROPERTY_NAMES = List.of(
+            "snmp-timeout",
+            "Timeout (ms)"
+    );
 
     public static final PropertyDescriptor SNMP_VERSION = new PropertyDescriptor.Builder()
             .name("SNMP Version")
@@ -68,7 +73,7 @@ public class BasicProperties {
             .build();
 
     public static final PropertyDescriptor SNMP_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Timeout (ms)")
+            .name("Timeout")
             .description("Set the timeout in ms when requesting the SNMP Agent.")
             .required(false)
             .defaultValue("5000")

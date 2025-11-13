@@ -29,6 +29,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -76,7 +77,7 @@ public class HandleHttpResponse extends AbstractProcessor {
             .identifiesControllerService(HttpContextMap.class)
             .build();
     public static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
-            .name("Attributes to add to the HTTP Response (Regex)")
+            .name("Attributes for HTTP Response")
             .description("Specifies the Regular Expression that determines the names of FlowFile attributes that should be added to the HTTP response")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .required(false)
@@ -215,6 +216,11 @@ public class HandleHttpResponse extends AbstractProcessor {
         session.getProvenanceReporter().send(flowFile, HTTPUtils.getURI(flowFile.getAttributes()), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         getLogger().info("Successfully responded to HTTP Request for {} with status code {}", flowFile, statusCode);
         session.transfer(flowFile, REL_SUCCESS);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Attributes to add to the HTTP Response (Regex)", ATTRIBUTES_AS_HEADERS_REGEX.getName());
     }
 
     private static boolean isNumber(final String value) {

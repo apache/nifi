@@ -238,7 +238,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .dependsOn(SSL_CONTEXT_SERVICE)
         .build();
     public static final PropertyDescriptor HEADERS_AS_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
-        .name("HTTP Headers to receive as Attributes (Regex)")
+        .name("HTTP Headers for Attributes")
         .description("Specifies the Regular Expression that determines the names of HTTP Headers that should be passed along as FlowFile attributes")
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .required(false)
@@ -409,6 +409,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         config.renameProperty("max-thread-pool-size", MAX_THREAD_POOL_SIZE.getName());
         config.renameProperty("record-reader", RECORD_READER.getName());
         config.renameProperty("record-writer", RECORD_WRITER.getName());
+        config.renameProperty("HTTP Headers to receive as Attributes (Regex)", HEADERS_AS_ATTRIBUTES_REGEX.getName());
     }
 
     @OnShutdown

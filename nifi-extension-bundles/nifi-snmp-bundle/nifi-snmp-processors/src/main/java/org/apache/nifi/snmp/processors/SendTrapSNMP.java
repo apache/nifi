@@ -181,7 +181,7 @@ public class SendTrapSNMP extends AbstractSNMPProcessor {
         config.renameProperty(BasicProperties.OLD_SNMP_VERSION_PROPERTY_NAME, BasicProperties.SNMP_VERSION.getName());
         config.renameProperty(BasicProperties.OLD_SNMP_COMMUNITY_PROPERTY_NAME, BasicProperties.SNMP_COMMUNITY.getName());
         config.renameProperty(BasicProperties.OLD_SNMP_RETRIES_PROPERTY_NAME,  BasicProperties.SNMP_RETRIES.getName());
-        config.renameProperty(BasicProperties.OLD_SNMP_TIMEOUT_PROPERTY_NAME, BasicProperties.SNMP_TIMEOUT.getName());
+        BasicProperties.OLD_SNMP_TIMEOUT_PROPERTY_NAMES.forEach(oldPropertyName -> config.renameProperty(oldPropertyName, BasicProperties.SNMP_TIMEOUT.getName()));
         config.renameProperty(V3SecurityProperties.OLD_SNMP_SECURITY_LEVEL_PROPERTY_NAME, V3SecurityProperties.SNMP_SECURITY_LEVEL.getName());
         config.renameProperty(V3SecurityProperties.OLD_SNMP_SECURITY_NAME_PROPERTY_NAME, V3SecurityProperties.SNMP_SECURITY_NAME.getName());
         config.renameProperty(V3SecurityProperties.OLD_SNMP_AUTH_PROTOCOL_PROPERTY_NAME, V3SecurityProperties.SNMP_AUTH_PROTOCOL.getName());

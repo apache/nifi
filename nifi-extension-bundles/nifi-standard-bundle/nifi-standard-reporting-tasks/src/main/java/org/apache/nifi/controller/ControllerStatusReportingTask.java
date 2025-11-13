@@ -25,6 +25,7 @@ import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.util.FormatUtils;
@@ -60,8 +61,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
             .defaultValue("true")
             .build();
     static final PropertyDescriptor REPORTING_GRANULARITY = new Builder()
-        .name("reporting-granularity")
-        .displayName("Reporting Granularity")
+        .name("Reporting Granularity")
         .description("When reporting information, specifies the granularity of the metrics to report")
         .allowableValues(FIVE_MINUTE_GRANULARITY, ONE_SECOND_GRANULARITY)
         .defaultValue(FIVE_MINUTE_GRANULARITY.getValue())
@@ -78,6 +78,11 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
     private static final String CONNECTION_LINE_FORMAT_WITH_DELTA = "| %1$-36.36s | %2$-30.30s | %3$-36.36s | %4$-30.30s | %5$43.43s | %6$43.43s | %7$43.43s |\n";
 
     private static final String COUNTER_LINE_FORMAT = "| %1$-36.36s | %2$-36.36s | %3$-36.36s |\n";
+
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            SHOW_DELTAS,
+            REPORTING_GRANULARITY
+    );
 
     private volatile String processorLineFormat;
     private volatile String processorHeader;
@@ -98,10 +103,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(SHOW_DELTAS);
-        descriptors.add(REPORTING_GRANULARITY);
-        return descriptors;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnScheduled
@@ -123,9 +125,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
 
     private String createLine(final String valueToUnderscore) {
         final StringBuilder processorBorderBuilder = new StringBuilder(valueToUnderscore.length());
-        for (int i = 0; i < valueToUnderscore.length(); i++) {
-            processorBorderBuilder.append('-');
-        }
+        processorBorderBuilder.append("-".repeat(valueToUnderscore.length()));
         return processorBorderBuilder.toString();
     }
 
@@ -147,6 +147,11 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         printProcessorStatuses(controllerStatus, showDeltas, divisor);
         printConnectionStatuses(controllerStatus, showDeltas, divisor);
         printCounters(controllerStatus, showDeltas, divisor);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("reporting-granularity", REPORTING_GRANULARITY.getName());
     }
 
     private void printProcessorStatuses(final ProcessGroupStatus controllerStatus, final boolean showDeltas, final long divisor) {
