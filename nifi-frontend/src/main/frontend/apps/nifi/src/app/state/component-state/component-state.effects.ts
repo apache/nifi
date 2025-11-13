@@ -27,7 +27,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { ComponentStateService } from '../../service/component-state.service';
 import { ComponentStateDialog } from '../../ui/common/component-state/component-state.component';
 import { selectComponentUri, selectComponentState } from './component-state.selectors';
-import { isDefinedAndNotNull, LARGE_DIALOG } from '@nifi/shared';
+import { isDefinedAndNotNull, XL_DIALOG } from '@nifi/shared';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ErrorHelper } from '../../service/error-helper.service';
@@ -86,7 +86,7 @@ export class ComponentStateEffects {
                 ofType(ComponentStateActions.openComponentStateDialog),
                 tap(() => {
                     const dialogReference = this.dialog.open(ComponentStateDialog, {
-                        ...LARGE_DIALOG,
+                        ...XL_DIALOG,
                         autoFocus: false
                     });
 

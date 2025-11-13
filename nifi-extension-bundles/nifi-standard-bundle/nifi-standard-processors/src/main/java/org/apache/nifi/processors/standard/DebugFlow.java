@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -25,6 +26,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -37,19 +39,27 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Tags({"test", "debug", "processor", "utility", "flow", "FlowFile"})
+@Tags({"test", "debug", "processor", "utility", "flow", "FlowFile", "state"})
 @CapabilityDescription("The DebugFlow processor aids testing and debugging the FlowFile framework by allowing various "
         + "responses to be explicitly triggered in response to the receipt of a FlowFile or a timer event without a "
         + "FlowFile if using timer or cron based scheduling.  It can force responses needed to exercise or test "
-        + "various failure modes that can occur when a processor runs.")
+        + "various failure modes that can occur when a processor runs. It can also generate large numbers of component "
+        + "state entries for testing state management limits.")
+@Stateful(scopes = {Scope.LOCAL, Scope.CLUSTER}, description = "When 'Generate State Entries' is set to a positive integer, "
+        + "the processor will generate that many state entries with random values. This is useful for testing component state "
+        + "storage and display limits. State entries are stored with keys like 'debug_state_key_00000' with randomly generated values.",
+        dropStateKeySupported = true)
 public class DebugFlow extends AbstractProcessor {
 
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
@@ -224,6 +234,21 @@ public class DebugFlow extends AbstractProcessor {
         .defaultValue("false")
         .required(true)
         .build();
+    static final PropertyDescriptor GENERATE_STATE_ENTRIES = new PropertyDescriptor.Builder()
+        .name("Generate State Entries")
+        .description("If set to a positive integer, the processor will ensure that exactly this many state entries exist on each trigger, "
+            + "updating their values with random data. This is useful for testing component state limits. Set to 0 to disable state generation.")
+        .required(true)
+        .defaultValue("0")
+        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+        .build();
+    static final PropertyDescriptor STATE_SCOPE = new PropertyDescriptor.Builder()
+        .name("State Scope")
+        .description("The scope to use when storing component state entries")
+        .required(true)
+        .allowableValues("LOCAL", "CLUSTER")
+        .defaultValue("LOCAL")
+        .build();
 
     private volatile Integer flowFileMaxSuccess = 0;
     private volatile Integer flowFileMaxFailure = 0;
@@ -289,7 +314,9 @@ public class DebugFlow extends AbstractProcessor {
                         ON_STOPPED_FAIL,
                         ON_TRIGGER_SLEEP_TIME,
                         CUSTOM_VALIDATE_SLEEP_TIME,
-                        IGNORE_INTERRUPTS
+                        IGNORE_INTERRUPTS,
+                        GENERATE_STATE_ENTRIES,
+                        STATE_SCOPE
                 );
 
                 this.properties.compareAndSet(null, properties);
@@ -377,10 +404,39 @@ public class DebugFlow extends AbstractProcessor {
         }
     }
 
+    private void handleStateGeneration(final ProcessContext context, final ComponentLog logger) {
+        final int numStateEntries = context.getProperty(GENERATE_STATE_ENTRIES).asInteger();
+
+        if (numStateEntries > 0) {
+            final String scopeValue = context.getProperty(STATE_SCOPE).getValue();
+            final Scope scope = "CLUSTER".equals(scopeValue) ? Scope.CLUSTER : Scope.LOCAL;
+
+            try {
+                final Map<String, String> stateMap = new HashMap<>();
+
+                // Ensure exactly numStateEntries entries exist, updating their values with random data
+                final Random random = new Random();
+                for (int i = 0; i < numStateEntries; i++) {
+                    final String key = String.format("debug_state_key_%05d", i);
+                    final String value = "value_" + random.nextInt(1000000) + "_" + System.currentTimeMillis();
+                    stateMap.put(key, value);
+                }
+
+                // Save state
+                context.getStateManager().setState(stateMap, scope);
+            } catch (IOException e) {
+                logger.error("Failed to generate state entries", e);
+                throw new ProcessException("Failed to generate state entries", e);
+            }
+        }
+    }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
+
+        // Handle state generation if configured
+        handleStateGeneration(context, logger);
 
         FlowFile ff = session.get();
 
