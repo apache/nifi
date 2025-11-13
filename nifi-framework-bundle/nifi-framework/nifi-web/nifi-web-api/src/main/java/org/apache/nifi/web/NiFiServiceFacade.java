@@ -3138,6 +3138,4 @@ public interface NiFiServiceFacade {
      * @return the list of listen Ports accessible to the current user
      */
     Set<ListenPortDTO> getListenPorts(NiFiUser user);
-
-
 }

@@ -37,11 +37,11 @@ public class ListenPortDTO {
     private String parentGroupId;
     private String parentGroupName;
 
+    @Schema(description = "The name of the the listen port. Useful context for components that provide multiple ports.")
     public String getPortName() {
         return portName;
     }
 
-    @Schema(description = "The name of the the listen port. Useful context for components that provide multiple ports.")
     public void setPortName(final String portName) {
         this.portName = portName;
     }

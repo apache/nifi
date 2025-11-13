@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -738,9 +739,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     @Override
     public Set<ComponentNode> getAllListenComponents() {
 
-        final Set<ComponentNode> allListenComponents = new HashSet<>();
-
-        // TODO improve performance by adding hooks to create/delete methods to keep track of listen components in a new hash map
+        final Set<ComponentNode> allListenComponents = new LinkedHashSet<>();
 
         // Search Processors
         allProcessors.values().stream()

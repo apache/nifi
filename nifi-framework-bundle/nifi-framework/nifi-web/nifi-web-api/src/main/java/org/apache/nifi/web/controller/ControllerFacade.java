@@ -1884,7 +1884,8 @@ public class ControllerFacade implements Authorizable {
         for (final ComponentNode componentNode : listenComponentNodes) {
             final ConfigurationContext configurationContext = new StandardConfigurationContext(componentNode, controllerServiceProvider, null);
             final ConfigurableComponent component = componentNode.getComponent();
-            if (component instanceof ListenComponent listenComponent /* should always be true */) {
+            // All components are expected to be ListenComponents, so this check is just for safe casting
+            if (component instanceof ListenComponent listenComponent) {
                 listenComponent.getListenPorts(configurationContext).forEach(listenPort -> {
                     final ListenPortDTO listenPortDTO = new ListenPortDTO();
                     listenPortDTO.setPortName(listenPort.getPortName());
@@ -1897,13 +1898,11 @@ public class ControllerFacade implements Authorizable {
                     listenPortDTO.setParentGroupId(componentNode.getParentProcessGroup().map(ProcessGroup::getIdentifier).orElse(null));
                     listenPortDTO.setParentGroupName(componentNode.getParentProcessGroup().map(ProcessGroup::getName).orElse(null));
 
-                    // TODO this next bit could be refined
                     if (componentNode instanceof ProcessorNode) {
                         listenPortDTO.setComponentType("Processor");
                     } else if (componentNode instanceof ControllerServiceNode) {
                         listenPortDTO.setComponentType("ControllerService");
                     } else {
-                        // Would we ever have anything other than a Processor or Controller Service providing a Listen Port?
                         logger.warn("Unexpected listen component type {}", componentNode.getClass().getCanonicalName());
                         listenPortDTO.setComponentType(null);
                     }

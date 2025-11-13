@@ -42,7 +42,7 @@ public class ListenPortDefinition {
         this.transportProtocol = transportProtocol;
     }
 
-    @Schema(description = "The application protocol(s) that this listen port could support (if any)")
+    @Schema(description = "The application protocols that this listen port could support (if any)")
     public List<String> getApplicationProtocols() {
         return applicationProtocols;
     }
