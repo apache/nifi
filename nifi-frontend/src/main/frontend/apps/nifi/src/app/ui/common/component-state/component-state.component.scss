@@ -21,10 +21,79 @@
     @include mat.button-density(-1);
 
     .listing-table {
-        table {
-            .mat-column-key {
-                width: 200px;
+        @include mat.table-density(-4);
+
+        .table-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-wrapper {
+            padding-right: 15px; // Account for scrollbar width
+            background-color: var(--mat-sys-secondary);
+            border-bottom-width: 1px;
+            border-bottom-style: solid;
+        }
+
+        .cdk-table-virtual {
+            width: 100%;
+            table-layout: fixed;
+
+            thead {
+                display: table;
+                width: 100%;
+                table-layout: fixed;
+
+                tr {
+                    height: 40px;
+                }
+
+                th {
+                    height: 40px;
+                    color: var(--mat-sys-on-secondary);
+                    border-bottom-width: 0; // Override global listing-table border
+
+                    // Key column fixed width
+                    &:first-child {
+                        width: 200px;
+                    }
+
+                    // Actions column fixed width
+                    &.action-column {
+                        width: 52px;
+                    }
+                }
             }
+
+            tbody {
+                display: table;
+                width: 100%;
+                table-layout: fixed;
+
+                tr {
+                    height: 36px; // Must match ROW_HEIGHT constant
+                }
+
+                td {
+                    height: 36px; // Must match ROW_HEIGHT constant
+
+                    // Key column fixed width
+                    &:first-child {
+                        width: 200px;
+                    }
+
+                    // Actions column fixed width
+                    &.action-column {
+                        width: 52px;
+                    }
+                }
+            }
+        }
+
+        .table-body-viewport {
+            flex: 1;
+            overflow-y: scroll; // Always show scrollbar for consistent width
+            overflow-x: hidden;
         }
     }
 }
