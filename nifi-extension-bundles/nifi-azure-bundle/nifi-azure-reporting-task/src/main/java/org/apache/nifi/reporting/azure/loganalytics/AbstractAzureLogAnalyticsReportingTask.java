@@ -23,6 +23,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 
@@ -63,15 +64,18 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
             .name("Log Analytics Workspace Key").description("Azure Log Analytic Worskspace Key").required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).sensitive(true).build();
-    static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder().name("Application ID")
+    static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
+            .name("Application ID")
             .description("The Application ID to be included in the metrics sent to Azure Log Analytics WS")
             .required(true).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-    static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder().name("Instance ID")
+    static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
+            .name("Instance ID")
             .description("Id of this NiFi instance to be included in the metrics sent to Azure Log Analytics WS")
             .required(true).expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .defaultValue("${hostname(true)}").addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
-    static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder().name("Process group ID(s)")
+    static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder()
+            .name("Process Group IDs")
             .description(
                     "If specified, the reporting task will send metrics the configured ProcessGroup(s) only. Multiple IDs should be separated by a comma. If"
                             + " none of the group-IDs could be found or no IDs are defined, the Root Process Group is used and global metrics are sent.")
@@ -98,6 +102,11 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
             JOB_NAME,
             LOG_ANALYTICS_URL_ENDPOINT_FORMAT
     );
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Process group ID(s)", PROCESS_GROUP_IDS.getName());
+    }
 
     protected String createAuthorization(String workspaceId, String key, int contentLength, String rfc1123Date) {
         try {

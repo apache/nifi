@@ -23,7 +23,6 @@ public interface JsonSchemaRegistryComponent {
     PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor
         .Builder()
         .name("JSON Schema Version")
-        .displayName("JSON Schema Version")
         .description("The JSON schema specification")
         .required(true)
         .allowableValues(SchemaVersion.class)

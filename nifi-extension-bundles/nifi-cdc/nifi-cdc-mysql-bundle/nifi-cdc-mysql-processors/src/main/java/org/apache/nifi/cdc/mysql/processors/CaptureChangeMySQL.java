@@ -249,7 +249,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .build();
 
     public static final PropertyDescriptor DRIVER_LOCATION = new PropertyDescriptor.Builder()
-            .name("MySQL Driver Location(s)")
+            .name("MySQL Driver Locations")
             .description("Comma-separated list of files/folders and/or URLs containing the MySQL driver JAR and its dependencies (if any). "
                     + "For example '/var/tmp/mysql-connector-java-5.1.38-bin.jar'")
             .required(false)
@@ -504,7 +504,8 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         config.renameProperty("capture-change-mysql-max-wait-time", CONNECT_TIMEOUT.getName());
         config.renameProperty("capture-change-mysql-hosts", HOSTS.getName());
         config.renameProperty("capture-change-mysql-driver-class", DRIVER_NAME.getName());
-        config.renameProperty("capture-change-mysql-driver-locations", DRIVER_LOCATION.getName());
+        List.of("capture-change-mysql-driver-locations", "MySQL Driver Location(s)").forEach(
+                oldNameProperty ->  config.renameProperty(oldNameProperty, DRIVER_LOCATION.getName()));
         config.renameProperty("capture-change-mysql-username", USERNAME.getName());
         config.renameProperty("capture-change-mysql-password", PASSWORD.getName());
         config.renameProperty("events-per-flowfile-strategy", EVENTS_PER_FLOWFILE_STRATEGY.getName());
