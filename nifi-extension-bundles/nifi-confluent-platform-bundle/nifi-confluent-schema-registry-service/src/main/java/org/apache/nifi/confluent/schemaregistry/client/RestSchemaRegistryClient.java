@@ -24,10 +24,12 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.json.schema.record.JsonSchemaToRecordSchemaConverter;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.schemaregistry.services.StandardSchemaDefinition;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.ssl.SSLContextProvider;
@@ -90,6 +92,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private static final String APPLICATION_JSON_CONTENT_TYPE = "application/json";
     private static final String BASIC_CREDENTIALS_FORMAT = "%s:%s";
     private static final String BASIC_AUTHORIZATION_FORMAT = "Basic %s";
+    private final JsonSchemaToRecordSchemaConverter jsonSchemaConverter = new JsonSchemaToRecordSchemaConverter();
 
     public RestSchemaRegistryClient(final List<String> baseUrls,
                                     final int timeoutMillis,
@@ -176,6 +179,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         // GET /schemas/ids/{int: id}
         final String schemaPath = getSchemaPath(schemaId);
         final JsonNode schemaJson = fetchJsonResponse(schemaPath, "id " + schemaId);
+        final SchemaType schemaType = extractSchemaType(schemaJson);
 
         // Get subject name by id, works only with v5.3.1+ Confluent Schema Registry
         // GET /schemas/ids/{int: id}/subjects
@@ -222,7 +226,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                     }
 
                     if (subjectName != null) {
-                        return createRecordSchema(subjectName, maxVersion, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText());
+                        return createRecordSchema(subjectName, maxVersion, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText(), schemaType);
                     }
                 }
             } catch (SchemaNotFoundException e) {
@@ -252,7 +256,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         // At this point, we could not get a subject/version associated to the schema and its ID
         // we add the schema and its ID in the cache without a subject/version
         if (completeSchema == null) {
-            return createRecordSchema(null, null, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText());
+            return createRecordSchema(null, null, schemaId, schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText(), schemaType);
         }
 
         return createRecordSchema(completeSchema);
@@ -284,8 +288,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         // Extract schema information
         String schemaText = schemaJson.get(SCHEMA_TEXT_FIELD_NAME).asText();
-        String schemaTypeText = schemaJson.get(SCHEMA_TYPE_FIELD_NAME).asText();
-        SchemaType schemaType = toSchemaType(schemaTypeText);
+        SchemaType schemaType = extractSchemaType(schemaJson);
 
         long schemaId;
         if (schemaJson.has(ID_FIELD_NAME)) {
@@ -331,6 +334,13 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         return new StandardSchemaDefinition(schemaIdentifier, schemaText, schemaType, references);
     }
 
+    private SchemaType extractSchemaType(final JsonNode schemaNode) {
+        if (schemaNode != null && schemaNode.hasNonNull(SCHEMA_TYPE_FIELD_NAME)) {
+            return toSchemaType(schemaNode.get(SCHEMA_TYPE_FIELD_NAME).asText());
+        }
+        return SchemaType.AVRO;
+    }
+
     private SchemaType toSchemaType(final String schemaTypeText) {
         try {
             if (schemaTypeText == null || schemaTypeText.isEmpty()) {
@@ -343,15 +353,12 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         }
     }
 
-    private RecordSchema createRecordSchema(final String name, final Integer version, final int id, final String schema) throws SchemaNotFoundException {
-        try {
-            final Schema avroSchema = new Schema.Parser().parse(schema);
-            final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(name).id((long) id).version(version).build();
-            return AvroTypeUtil.createSchema(avroSchema, schema, schemaId);
-        } catch (final SchemaParseException spe) {
-            throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + name
-                    + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
-        }
+    private RecordSchema createRecordSchema(final String name, final Integer version, final int id, final String schema, final SchemaType schemaType) throws SchemaNotFoundException {
+        return switch (schemaType) {
+            case AVRO -> createAvroRecordSchema(name, version, id, schema);
+            case JSON -> createJsonRecordSchema(name, version, id, schema);
+            case PROTOBUF -> throw new SchemaNotFoundException("Schema type " + schemaType + " is not supported for NiFi RecordSchemas");
+        };
     }
 
     private RecordSchema createRecordSchema(final JsonNode schemaNode) throws SchemaNotFoundException {
@@ -359,15 +366,44 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
         final int version = schemaNode.get(VERSION_FIELD_NAME).asInt();
         final int id = schemaNode.get(ID_FIELD_NAME).asInt();
         final String schemaText = schemaNode.get(SCHEMA_TEXT_FIELD_NAME).asText();
+        final SchemaType schemaType = extractSchemaType(schemaNode);
 
+        return createRecordSchema(subject, version, id, schemaText, schemaType);
+    }
+
+    private RecordSchema createAvroRecordSchema(final String name, final Integer version, final int id, final String schema) throws SchemaNotFoundException {
         try {
-            final Schema avroSchema = new Schema.Parser().parse(schemaText);
-            final SchemaIdentifier schemaId = SchemaIdentifier.builder().name(subject).id((long) id).version(version).build();
-            return AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
+            final Schema avroSchema = new Schema.Parser().parse(schema);
+            final SchemaIdentifier schemaId = buildSchemaIdentifier(name, version, id);
+            return AvroTypeUtil.createSchema(avroSchema, schema, schemaId);
         } catch (final SchemaParseException spe) {
-            throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + subject
-                    + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
+            throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + name
+                    + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema", spe);
         }
+    }
+
+    private RecordSchema createJsonRecordSchema(final String name, final Integer version, final int id, final String schema) throws SchemaNotFoundException {
+        try {
+            final RecordSchema converted = jsonSchemaConverter.convert(schema);
+            final SchemaIdentifier schemaIdentifier = buildSchemaIdentifier(name, version, id);
+            final String schemaFormat = converted.getSchemaFormat().orElse("json-schema");
+            final SimpleRecordSchema schemaWithId = new SimpleRecordSchema(converted.getFields(), schema, schemaFormat, schemaIdentifier);
+            converted.getSchemaName().ifPresent(schemaWithId::setSchemaName);
+            converted.getSchemaNamespace().ifPresent(schemaWithId::setSchemaNamespace);
+            schemaWithId.setRecordValidators(converted.getRecordValidators());
+            return schemaWithId;
+        } catch (final IllegalArgumentException e) {
+            throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + name
+                    + " from Confluent Schema Registry but the Schema Text that was returned is not a valid JSON Schema", e);
+        }
+    }
+
+    private SchemaIdentifier buildSchemaIdentifier(final String name, final Integer version, final int id) {
+        return SchemaIdentifier.builder()
+                .name(name)
+                .id((long) id)
+                .version(version)
+                .build();
     }
 
     private String getSubjectPath(final String schemaName, final Integer schemaVersion) {

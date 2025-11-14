@@ -121,6 +121,18 @@ class RestSchemaRegistryClientTest {
           PENDING = 3;
         }""";
 
+    private static final String JSON_SCHEMA_TEXT = """
+        {
+          "$id": "urn:nifi:test:user",
+          "title": "User",
+          "type": "object",
+          "properties": {
+            "id": { "type": "integer" },
+            "name": { "type": "string" }
+          },
+          "required": ["id"]
+        }""";
+
     private MockWebServer mockWebServer;
     private String baseUrl;
     private RestSchemaRegistryClient client;
@@ -332,6 +344,27 @@ class RestSchemaRegistryClientTest {
     }
 
     @Test
+    void testGetSchemaByIdJsonSchema() throws IOException, SchemaNotFoundException, InterruptedException {
+        enqueueJsonSchemaByIdResponse(JSON_SCHEMA_TEXT);
+        enqueueNotFoundResponse();
+        enqueueNotFoundResponse();
+        enqueueNotFoundResponse();
+
+        final RecordSchema schema = client.getSchema(SCHEMA_ID);
+
+        assertNotNull(schema);
+        assertTrue(schema.getSchemaFormat().isPresent());
+        assertEquals("json-schema", schema.getSchemaFormat().get());
+        assertTrue(schema.getField("id").isPresent());
+        assertTrue(schema.getField("name").isPresent());
+
+        verifyRequest("GET", "/schemas/ids/" + SCHEMA_ID);
+        verifyRequest("GET", "/schemas/ids/" + SCHEMA_ID + "/subjects");
+        verifyRequest("GET", "/schemas/ids/" + SCHEMA_ID + "/versions");
+        verifyRequest("GET", "/subjects");
+    }
+
+    @Test
     void testGetSchemaDefinitionWithProtobufAndReferences() throws IOException, SchemaNotFoundException, InterruptedException {
         /*
          * Client request sequence when fetching schema with references (e.g., Protobuf with imports):
@@ -408,6 +441,13 @@ class RestSchemaRegistryClientTest {
 
     private void enqueueSchemaByIdResponse(String schemaText) throws JsonProcessingException {
         Map<String, String> response = Map.of("schema", schemaText);
+        String jsonResponse = objectMapper.writeValueAsString(response);
+
+        mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
+    }
+
+    private void enqueueJsonSchemaByIdResponse(String schemaText) throws JsonProcessingException {
+        SchemaResponse response = new SchemaResponse(schemaText, "JSON", List.of());
         String jsonResponse = objectMapper.writeValueAsString(response);
 
         mockWebServer.enqueue(new MockResponse.Builder().code(200).addHeader("Content-Type", CONTENT_TYPE).body(jsonResponse).build());
