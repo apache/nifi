@@ -28,11 +28,11 @@ import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.schemaregistry.services.JsonSchemaRegistryService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
+import org.apache.nifi.schemaregistry.services.JsonSchemaRegistryService;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -1029,7 +1029,7 @@ public class TestValidateRecord {
 
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("json-reader", jsonReader);
-        runner.setProperty(jsonReader, "schema-access-strategy", SCHEMA_NAME_PROPERTY.getValue());
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY.getValue());
         runner.setProperty(jsonReader, SCHEMA_REGISTRY, "json-schema-registry");
         runner.setProperty(jsonReader, SCHEMA_NAME, "${schema.name}");
         runner.enableControllerService(jsonReader);
