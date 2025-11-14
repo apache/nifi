@@ -21,6 +21,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -136,12 +137,12 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
             .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Batch items for each request (between 1 and 50)")
+            .name("Batch Items Per Request")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.createLongValidator(1, 50, true))
             .defaultValue("1")
-            .description("The items to be retrieved in one batch")
+            .description("The number of items (between 1 and 50) to be retrieved in one batch")
             .build();
 
     public static final PropertyDescriptor DOCUMENT_CHARSET = new PropertyDescriptor.Builder()
@@ -162,6 +163,12 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
     @Override
     public Set<Relationship> getRelationships() {
         return COMMON_RELATIONSHIPS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("Batch items for each request (between 1 and 50)", BATCH_SIZE.getName());
     }
 
     @Override

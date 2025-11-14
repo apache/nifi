@@ -127,7 +127,9 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         config.removeProperty("kerberos-principal");
         config.removeProperty("kerberos-password");
         config.removeProperty("kerberos-credentials-service");
-        config.renameProperty(DBCPProperties.OLD_DB_DRIVER_LOCATION_PROPERTY_NAME, DB_DRIVER_LOCATION.getName());
+        DBCPProperties.OLD_DB_DRIVER_LOCATION_PROPERTY_NAMES.forEach(oldPropertyName ->
+                config.renameProperty(oldPropertyName, DB_DRIVER_LOCATION.getName())
+                );
         config.renameProperty(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName());
         config.renameProperty(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName());
         config.renameProperty(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName());

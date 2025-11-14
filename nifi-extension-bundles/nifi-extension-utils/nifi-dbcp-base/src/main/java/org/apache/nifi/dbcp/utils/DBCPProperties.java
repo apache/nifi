@@ -27,6 +27,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public final class DBCPProperties {
@@ -34,7 +35,10 @@ public final class DBCPProperties {
     private DBCPProperties() {
     }
 
-    public static final String OLD_DB_DRIVER_LOCATION_PROPERTY_NAME = "database-driver-locations";
+    public static final List<String> OLD_DB_DRIVER_LOCATION_PROPERTY_NAMES = List.of(
+            "database-driver-locations",
+            "Database Driver Location(s)"
+    );
     public static final String OLD_VALIDATION_QUERY_PROPERTY_NAME = "Validation-query";
     public static final String OLD_MIN_IDLE_PROPERTY_NAME = "dbcp-min-idle-conns";
     public static final String OLD_MAX_IDLE_PROPERTY_NAME = "dbcp-max-idle-conns";
@@ -79,7 +83,7 @@ public final class DBCPProperties {
             .build();
 
     public static final PropertyDescriptor DB_DRIVER_LOCATION = new PropertyDescriptor.Builder()
-            .name("Database Driver Location(s)")
+            .name("Database Driver Locations")
             .description("Comma-separated list of files/folders and/or URLs containing the driver JAR and its dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'")
             .required(false)
             .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
