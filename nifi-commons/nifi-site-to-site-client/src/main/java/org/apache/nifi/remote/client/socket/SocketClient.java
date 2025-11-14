@@ -17,7 +17,7 @@
 package org.apache.nifi.remote.client.socket;
 
 import org.apache.nifi.remote.Communicant;
-import org.apache.nifi.remote.RemoteDestination;
+import org.apache.nifi.remote.SiteToSiteDestination;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransactionCompletion;
 import org.apache.nifi.remote.TransferDirection;
@@ -89,8 +89,8 @@ public class SocketClient extends AbstractSiteToSiteClient {
         return portId;
     }
 
-    private RemoteDestination createRemoteDestination(final String portId, final String portName) {
-        return new RemoteDestination() {
+    private SiteToSiteDestination createRemoteDestination(final String portId, final String portName) {
+        return new SiteToSiteDestination() {
             @Override
             public String getIdentifier() {
                 return portId;

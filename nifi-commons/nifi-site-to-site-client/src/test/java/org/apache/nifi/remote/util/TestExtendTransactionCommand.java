@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.remote.util;
 
-import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +45,7 @@ public class TestExtendTransactionCommand {
     private SiteToSiteRestApiClient client;
 
     @Mock
-    private EventReporter eventReporter;
+    private SiteToSiteEventReporter eventReporter;
 
     private ExtendTransactionCommand command;
 

@@ -100,7 +100,7 @@ import org.apache.http.nio.protocol.HttpAsyncRequestProducer;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
-import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.TransportProtocolVersionNegotiator;
@@ -153,7 +153,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     protected final SSLContext sslContext;
     protected final HttpProxy proxy;
     private final AtomicBoolean proxyAuthRequiresResend = new AtomicBoolean(false);
-    private final EventReporter eventReporter;
+    private final SiteToSiteEventReporter eventReporter;
 
     private RequestConfig requestConfig;
     private CredentialsProvider credentialsProvider;
@@ -184,7 +184,7 @@ public class SiteToSiteRestApiClient implements Closeable {
     private static final ConcurrentMap<String, RemoteGroupContents> contentsMap = new ConcurrentHashMap<>();
     private volatile long lastPruneTimestamp = System.currentTimeMillis();
 
-    public SiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy, final EventReporter eventReporter) {
+    public SiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy, final SiteToSiteEventReporter eventReporter) {
         this.sslContext = sslContext;
         this.proxy = proxy;
         this.eventReporter = eventReporter;

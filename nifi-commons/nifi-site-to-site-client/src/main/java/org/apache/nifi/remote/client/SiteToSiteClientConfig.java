@@ -23,7 +23,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
@@ -176,7 +176,7 @@ public interface SiteToSiteClientConfig extends Serializable {
     /**
      * @return the EventReporter that is to be used by clients to report events
      */
-    EventReporter getEventReporter();
+    SiteToSiteEventReporter getEventReporter();
 
     /**
      * Return Proxy for HTTP Transport Protocol.

@@ -159,12 +159,14 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
         final long penalizationMillis = FormatUtils.getTimeDuration(remoteGroup.getYieldDuration(), TimeUnit.MILLISECONDS);
 
+        final SiteToSiteEventReporter eventReporter = (severity, category, message) -> remoteGroup.getEventReporter().reportEvent(severity, category, message);
+
         final SiteToSiteClient.Builder clientBuilder = new SiteToSiteClient.Builder()
                 .urls(SiteToSiteRestApiClient.parseClusterUrls(remoteGroup.getTargetUris()))
                 .portIdentifier(getTargetIdentifier())
                 .sslContext(sslContext)
                 .useCompression(isUseCompression())
-                .eventReporter(remoteGroup.getEventReporter())
+                .eventReporter(eventReporter)
                 .stateManager(remoteGroup.getStateManager())
                 .nodePenalizationPeriod(penalizationMillis, TimeUnit.MILLISECONDS)
                 .timeout(remoteGroup.getCommunicationsTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS)
