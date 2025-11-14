@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow.git.serialize;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import org.apache.nifi.flow.VersionedListenPortDefinition;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -64,6 +65,10 @@ public class JacksonFlowSnapshotSerializerTest {
         final VersionedResourceDefinition resourceDefinition = new VersionedResourceDefinition();
         resourceDefinition.setResourceTypes(Set.of(VersionedResourceType.TEXT, VersionedResourceType.URL, VersionedResourceType.FILE));
         descriptor.setResourceDefinition(resourceDefinition);
+        final VersionedListenPortDefinition listenPortDefinition = new VersionedListenPortDefinition();
+        listenPortDefinition.setTransportProtocol(VersionedListenPortDefinition.TransportProtocol.TCP);
+        listenPortDefinition.setApplicationProtocols(List.of("http/1.1", "h2"));
+        descriptor.setListenPortDefinition(listenPortDefinition);
 
         final VersionedProcessor processor1 = new VersionedProcessor();
         processor1.setIdentifier("proc1");
@@ -96,6 +101,8 @@ public class JacksonFlowSnapshotSerializerTest {
         assertEquals("proc1", processors.get(0).get("identifier").asText());
         assertEquals("[ \"failure\", \"success\" ]", processors.get(0).get("autoTerminatedRelationships").toPrettyString());
         assertEquals("[ \"FILE\", \"TEXT\", \"URL\" ]", processors.get(0).get("propertyDescriptors").get("prop1").get("resourceDefinition").get("resourceTypes").toPrettyString());
+        assertEquals("TCP", processors.get(0).get("propertyDescriptors").get("prop1").get("listenPortDefinition").get("transportProtocol").asText());
+        assertEquals("[ \"h2\", \"http/1.1\" ]", processors.get(0).get("propertyDescriptors").get("prop1").get("listenPortDefinition").get("applicationProtocols").toPrettyString());
 
         assertEquals("proc2", processors.get(1).get("identifier").asText());
         assertEquals("proc3", processors.get(2).get("identifier").asText());

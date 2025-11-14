@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -439,4 +440,11 @@ public interface FlowManager extends ParameterProviderLookup {
     Optional<FlowAnalyzer> getFlowAnalyzer();
 
     Optional<RuleViolationsManager> getRuleViolationsManager();
+
+    /**
+     * Returns all components (processors, controller services, etc.) that are a {@link org.apache.nifi.components.listen.ListenComponent}
+     *
+     * @return A set of listen components.
+     */
+    Set<ComponentNode> getAllListenComponents();
 }

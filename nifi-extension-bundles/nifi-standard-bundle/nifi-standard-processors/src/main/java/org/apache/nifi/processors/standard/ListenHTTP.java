@@ -37,6 +37,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.components.listen.TransportProtocol;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
@@ -140,7 +145,7 @@ import java.util.regex.Pattern;
                     """)
         }
 )
-public class ListenHTTP extends AbstractSessionFactoryProcessor {
+public class ListenHTTP extends AbstractSessionFactoryProcessor implements ListenComponent {
     private static final String MATCH_ALL = ".*";
 
     private final AtomicBoolean initialized = new AtomicBoolean(false);
@@ -183,6 +188,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .name("Listening Port")
         .description("The Port to listen on for incoming connections")
         .required(true)
+        .identifiesListenPort(TransportProtocol.TCP, "http/1.1", "h2")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .addValidator(StandardValidators.PORT_VALIDATOR)
         .build();
@@ -197,6 +203,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
                     "If the processor is set to use one-way SSL, one-way SSL will be used on this port. " +
                     "If the processor is set to use two-way SSL, one-way SSL will be used on this port (client authentication not required).")
             .required(false)
+            .identifiesListenPort(TransportProtocol.TCP, "http/1.1", "h2")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
@@ -422,6 +429,47 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         shutdownHttpServer(toShutdown);
     }
 
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+
+        final List<ListenPort> ports = new ArrayList<>();
+
+        final Integer primaryPortNumber = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        final Integer healthCheckPortNumber = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
+        final SSLContextProvider sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
+        final HttpProtocolStrategy httpProtocolStrategy = sslContextProvider == null
+            ? HttpProtocolStrategy.valueOf(HTTP_PROTOCOL_STRATEGY.getDefaultValue())
+            : context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
+        final List<String> applicationProtocols = switch (httpProtocolStrategy) {
+            case H2 -> List.of("h2");
+            case HTTP_1_1 -> List.of("http/1.1");
+            case H2_HTTP_1_1 -> List.of("h2", "http/1.1");
+            case null -> List.of("h2", "http/1.1");
+        };
+
+        if (primaryPortNumber != null) {
+            final ListenPort primaryPort = StandardListenPort.builder()
+                .portNumber(primaryPortNumber)
+                .portName(PORT.getDisplayName())
+                .transportProtocol(TransportProtocol.TCP)
+                .applicationProtocols(applicationProtocols)
+                .build();
+            ports.add(primaryPort);
+        }
+
+        if (healthCheckPortNumber != null) {
+            final ListenPort healthCheckPort = StandardListenPort.builder()
+                .portNumber(healthCheckPortNumber)
+                .portName(HEALTH_CHECK_PORT.getDisplayName())
+                .transportProtocol(TransportProtocol.TCP)
+                .applicationProtocols(applicationProtocols)
+                .build();
+            ports.add(healthCheckPort);
+        }
+
+        return ports;
+    }
+
     Server getServer() {
         return this.server;
     }
@@ -462,8 +510,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final HttpProtocolStrategy httpProtocolStrategy = sslContextProvider == null
-                ? HttpProtocolStrategy.valueOf(HTTP_PROTOCOL_STRATEGY.getDefaultValue())
-                : context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
+            ? HttpProtocolStrategy.valueOf(HTTP_PROTOCOL_STRATEGY.getDefaultValue())
+            : context.getProperty(HTTP_PROTOCOL_STRATEGY).asAllowableValue(HttpProtocolStrategy.class);
         final ServerConnector connector = createServerConnector(server,
                 port,
                 requestHeaderSize,

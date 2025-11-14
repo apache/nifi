@@ -21,6 +21,7 @@ import org.apache.commons.lang3.ClassUtils;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.listen.ListenPortDefinition;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceDefinition;
 import org.apache.nifi.connectable.Connectable;
@@ -59,6 +60,7 @@ import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedListenPortDefinition;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
@@ -590,6 +592,9 @@ public class NiFiRegistryFlowMapper {
             final VersionedResourceDefinition versionedResourceDefinition = mapResourceDefinition(descriptor.getResourceDefinition());
             versionedDescriptor.setResourceDefinition(versionedResourceDefinition);
 
+            final VersionedListenPortDefinition versionedListenPortDefinition = mapListenPortDefinition(descriptor.getListenPortDefinition());
+            versionedDescriptor.setListenPortDefinition(versionedListenPortDefinition);
+
             final Class<?> referencedServiceType = descriptor.getControllerServiceDefinition();
             versionedDescriptor.setIdentifiesControllerService(referencedServiceType != null);
 
@@ -635,6 +640,19 @@ public class NiFiRegistryFlowMapper {
         versionedResourceDefinition.setCardinality(versionedCardinality);
         versionedResourceDefinition.setResourceTypes(versionedResourceTypes);
         return versionedResourceDefinition;
+    }
+
+    private VersionedListenPortDefinition mapListenPortDefinition(final ListenPortDefinition listenPortDefinition) {
+        if (listenPortDefinition == null) {
+            return null;
+        }
+
+        final VersionedListenPortDefinition.TransportProtocol transportProtocol = VersionedListenPortDefinition.TransportProtocol.valueOf(listenPortDefinition.getTransportProtocol().name());
+
+        final VersionedListenPortDefinition versionedListenPortDefinition = new VersionedListenPortDefinition();
+        versionedListenPortDefinition.setTransportProtocol(transportProtocol);
+        versionedListenPortDefinition.setApplicationProtocols(listenPortDefinition.getApplicationProtocols());
+        return versionedListenPortDefinition;
     }
 
     private Bundle mapBundle(final BundleCoordinate coordinate) {

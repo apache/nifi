@@ -88,6 +88,7 @@ import org.apache.nifi.web.api.dto.ClusterSummaryDTO;
 import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 import org.apache.nifi.web.api.dto.ContentViewerDTO;
 import org.apache.nifi.web.api.dto.DifferenceDTO;
+import org.apache.nifi.web.api.dto.ListenPortDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
@@ -131,6 +132,7 @@ import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
+import org.apache.nifi.web.api.entity.ListenPortsEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
@@ -1392,6 +1394,32 @@ public class FlowResource extends ApplicationResource {
 
         // generate the response
         return noCache(Response.ok(entity)).build();
+    }
+
+    @GET
+    @Path("listen-ports")
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+        summary = "Gets all listen ports configured on this NiFi that the current user has access to",
+        responses = {
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ListenPortsEntity.class))),
+            @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+            @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+            @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+        },
+        security = {
+            @SecurityRequirement(name = "Read - /flow")
+        }
+    )
+    public Response getListenPorts() {
+        authorizeFlow();
+
+        final Set<ListenPortDTO> listenPorts = serviceFacade.getListenPorts(NiFiUserUtils.getNiFiUser());
+        final ListenPortsEntity listenPortsEntity = new ListenPortsEntity(new ArrayList<>(listenPorts));
+
+        return generateOkResponse(listenPortsEntity).build();
     }
 
     /**
