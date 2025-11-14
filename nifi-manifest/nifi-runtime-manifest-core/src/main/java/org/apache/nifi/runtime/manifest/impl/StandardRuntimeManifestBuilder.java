@@ -32,6 +32,7 @@ import org.apache.nifi.c2.protocol.component.api.ProcessorDefinition;
 import org.apache.nifi.c2.protocol.component.api.PropertyAllowableValue;
 import org.apache.nifi.c2.protocol.component.api.PropertyDependency;
 import org.apache.nifi.c2.protocol.component.api.PropertyDescriptor;
+import org.apache.nifi.c2.protocol.component.api.PropertyListenPortDefinition;
 import org.apache.nifi.c2.protocol.component.api.PropertyResourceDefinition;
 import org.apache.nifi.c2.protocol.component.api.Relationship;
 import org.apache.nifi.c2.protocol.component.api.ReportingTaskDefinition;
@@ -55,6 +56,7 @@ import org.apache.nifi.extension.manifest.DynamicRelationship;
 import org.apache.nifi.extension.manifest.Extension;
 import org.apache.nifi.extension.manifest.ExtensionManifest;
 import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.extension.manifest.ListenPortDefinition;
 import org.apache.nifi.extension.manifest.Property;
 import org.apache.nifi.extension.manifest.ProvidedServiceAPI;
 import org.apache.nifi.extension.manifest.ResourceDefinition;
@@ -611,6 +613,7 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         descriptor.setAllowableValues(getPropertyAllowableValues(property.getAllowableValues()));
         descriptor.setTypeProvidedByValue(getControllerServiceDefinedType(property.getControllerServiceDefinition()));
         descriptor.setResourceDefinition(getPropertyResourceDefinition(property.getResourceDefinition()));
+        descriptor.setListenPortDefinition(getPropertyListenPortDefinition(property.getListenPortDefinition()));
         descriptor.setDependencies(getPropertyDependencies(property.getDependencies()));
         return descriptor;
     }
@@ -664,6 +667,19 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
             case TEXT -> ResourceType.TEXT;
             case DIRECTORY -> ResourceType.DIRECTORY;
         };
+    }
+
+    private PropertyListenPortDefinition getPropertyListenPortDefinition(final ListenPortDefinition listenPortDefinition) {
+        if (listenPortDefinition == null || listenPortDefinition.getTransportProtocol() == null) {
+            return null;
+        }
+
+        final PropertyListenPortDefinition propertyListenPortDefinition = new PropertyListenPortDefinition();
+        final PropertyListenPortDefinition.TransportProtocol transportProtocol = PropertyListenPortDefinition.TransportProtocol.valueOf(listenPortDefinition.getTransportProtocol().name());
+        propertyListenPortDefinition.setTransportProtocol(transportProtocol);
+        propertyListenPortDefinition.setApplicationProtocols(listenPortDefinition.getApplicationProtocols());
+
+        return propertyListenPortDefinition;
     }
 
     private ExpressionLanguageScope getELScope(final org.apache.nifi.extension.manifest.ExpressionLanguageScope elScope) {

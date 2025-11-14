@@ -43,9 +43,12 @@ import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.listen.ListenComponent;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ContentAvailability;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
@@ -64,6 +67,7 @@ import org.apache.nifi.controller.serialization.VersionedReportingTaskImporter;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceResolver;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -113,6 +117,7 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
+import org.apache.nifi.web.api.dto.ListenPortDTO;
 import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.provenance.AttributeDTO;
 import org.apache.nifi.web.api.dto.provenance.LatestProvenanceEventsDTO;
@@ -143,6 +148,7 @@ import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -1851,6 +1857,61 @@ public class ControllerFacade implements Authorizable {
         }
 
         return results;
+    }
+
+    /**
+     * Get all user-defined data ingress ports provided by Listen Components (e.g., Processors and Controller Services)
+     *
+     * @param user the user performing the lookup
+     * @return the set of listen Ports accessible to the current user
+     */
+    public Set<ListenPortDTO> getListenPorts(final NiFiUser user) {
+
+        // Get all listen components for which the requesting user is authorized
+        final Set<ComponentNode> listenComponentNodes = flowController.getFlowManager().getAllListenComponents().stream()
+            .filter(componentNode -> componentNode.isAuthorized(authorizer, RequestAction.READ, user))
+            .collect(Collectors.toSet());
+
+        // If the current user doesn't have access to any listen components, return an empty result for ports
+        if (listenComponentNodes.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        // Now find all Listen Ports provided by the Listen Components. A listen component can provide multiple Listen Ports (e.g., ListenHTTP can have a data port and a health check port).
+        // The current Listen Ports for a component depend on configuration (e.g., port property value), so create a configuration context to provide ListenComponent.getListenPorts(context).
+        final Set<ListenPortDTO> listenPorts = new HashSet<>();
+        final ControllerServiceProvider controllerServiceProvider = flowController.getControllerServiceProvider();
+        for (final ComponentNode componentNode : listenComponentNodes) {
+            final ConfigurationContext configurationContext = new StandardConfigurationContext(componentNode, controllerServiceProvider, null);
+            final ConfigurableComponent component = componentNode.getComponent();
+            // All components are expected to be ListenComponents, so this check is just for safe casting
+            if (component instanceof ListenComponent listenComponent) {
+                listenComponent.getListenPorts(configurationContext).forEach(listenPort -> {
+                    final ListenPortDTO listenPortDTO = new ListenPortDTO();
+                    listenPortDTO.setPortName(listenPort.getPortName());
+                    listenPortDTO.setPortNumber(listenPort.getPortNumber());
+                    listenPortDTO.setTransportProtocol(listenPort.getTransportProtocol().name());
+                    listenPortDTO.setApplicationProtocols(listenPort.getApplicationProtocols());
+                    listenPortDTO.setComponentClass(componentNode.getCanonicalClassName());
+                    listenPortDTO.setComponentId(componentNode.getIdentifier());
+                    listenPortDTO.setComponentName(componentNode.getName());
+                    listenPortDTO.setParentGroupId(componentNode.getParentProcessGroup().map(ProcessGroup::getIdentifier).orElse(null));
+                    listenPortDTO.setParentGroupName(componentNode.getParentProcessGroup().map(ProcessGroup::getName).orElse(null));
+
+                    if (componentNode instanceof ProcessorNode) {
+                        listenPortDTO.setComponentType("Processor");
+                    } else if (componentNode instanceof ControllerServiceNode) {
+                        listenPortDTO.setComponentType("ControllerService");
+                    } else {
+                        logger.warn("Unexpected listen component type {}", componentNode.getClass().getCanonicalName());
+                        listenPortDTO.setComponentType(null);
+                    }
+                    listenPorts.add(listenPortDTO);
+                });
+            }
+        }
+
+        return listenPorts;
     }
 
     public void verifyComponentTypes(VersionedProcessGroup versionedFlow) {

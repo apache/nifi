@@ -21,10 +21,12 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.listen.ListenComponent;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -57,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -731,5 +734,23 @@ public abstract class AbstractFlowManager implements FlowManager {
         if (ruleViolationsManager != null) {
             ruleViolationsManager.removeRuleViolationsForSubject(identifier);
         }
+    }
+
+    @Override
+    public Set<ComponentNode> getAllListenComponents() {
+
+        final Set<ComponentNode> allListenComponents = new LinkedHashSet<>();
+
+        // Search Processors
+        allProcessors.values().stream()
+            .filter(processorNode -> processorNode.getComponent() instanceof ListenComponent)
+            .forEach(allListenComponents::add);
+
+        // Search Controller Services
+        getAllControllerServices().stream()
+            .filter(csNode -> csNode.getComponent() instanceof ListenComponent)
+            .forEach(allListenComponents::add);
+
+        return allListenComponents;
     }
 }
