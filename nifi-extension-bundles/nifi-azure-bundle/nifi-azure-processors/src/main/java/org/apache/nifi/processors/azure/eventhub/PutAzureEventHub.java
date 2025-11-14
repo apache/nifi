@@ -59,6 +59,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -192,17 +193,33 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
         config.renameProperty("partitioning-key-attribute-name", PARTITIONING_KEY_ATTRIBUTE_NAME.getName());
         config.renameProperty("max-batch-size", MAX_BATCH_SIZE.getName());
         config.renameProperty(AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, POLICY_PRIMARY_KEY.getName());
-        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME);
-        if (!config.hasProperty(AUTHENTICATION_STRATEGY.getName())) {
-            final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME)
+        config.renameProperty(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
+
+        final Optional<String> authenticationStrategyValue = config.getRawPropertyValue(AUTHENTICATION_STRATEGY.getName())
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank);
+        final boolean authenticationStrategyMissing = authenticationStrategyValue.isEmpty();
+        final boolean legacyManagedIdentityPropertyPresent = config.hasProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
+        final boolean sharedAccessCredentialsConfigured = hasConfiguredValue(config, ACCESS_POLICY)
+                || hasConfiguredValue(config, POLICY_PRIMARY_KEY);
+
+        if (authenticationStrategyMissing || legacyManagedIdentityPropertyPresent) {
+            final boolean useManagedIdentity = config.getPropertyValue(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME)
                     .map(Boolean::parseBoolean)
-                    .orElse(false);
-            final String authenticationStrategyValue = useManagedIdentity
+                    .orElse(!sharedAccessCredentialsConfigured);
+            final String derivedAuthenticationStrategy = useManagedIdentity
                     ? AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getValue()
                     : AzureEventHubAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getValue();
-            config.setProperty(AUTHENTICATION_STRATEGY.getName(), authenticationStrategyValue);
+            config.setProperty(AUTHENTICATION_STRATEGY.getName(), derivedAuthenticationStrategy);
         }
-        config.removeProperty(AzureEventHubUtils.USE_MANAGED_IDENTITY_PROPERTY_NAME);
+
+        config.removeProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
+    }
+
+    private boolean hasConfiguredValue(final PropertyConfiguration config, final PropertyDescriptor descriptor) {
+        return config.getPropertyValue(descriptor.getName())
+                .filter(StringUtils::isNotBlank)
+                .isPresent();
     }
 
     protected EventHubProducerClient createEventHubProducerClient(final ProcessContext context) throws ProcessException {

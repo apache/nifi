@@ -18,9 +18,10 @@
 import { AfterViewInit, Component, DestroyRef, inject, Input, Signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialogModule } from '@angular/material/dialog';
-import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { AsyncPipe } from '@angular/common';
+import { Observable } from 'rxjs';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { isDefinedAndNotNull, CloseOnEscapeDialog, NiFiCommon, NifiTooltipDirective, TextTip } from '@nifi/shared';
 import { ComponentStateState, StateEntry, StateItem, StateMap } from '../../../state/component-state';
 import { Store } from '@ngrx/store';
@@ -32,7 +33,7 @@ import {
     selectComponentState,
     selectDropStateKeySupported
 } from '../../../state/component-state/component-state.selectors';
-import { debounceTime, Observable } from 'rxjs';
+import { debounceTime } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -42,13 +43,14 @@ import { ErrorContextKey } from '../../../state/error';
 import { ContextErrorBanner } from '../context-error-banner/context-error-banner.component';
 import { concatLatestFrom } from '@ngrx/operators';
 import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
+import { MatTableModule } from '@angular/material/table';
 
 @Component({
     selector: 'component-state',
+    standalone: true,
     imports: [
         MatButtonModule,
         MatDialogModule,
-        MatTableModule,
         MatSortModule,
         AsyncPipe,
         ReactiveFormsModule,
@@ -56,7 +58,9 @@ import { NifiSpinnerDirective } from '../spinner/nifi-spinner.directive';
         MatInputModule,
         ContextErrorBanner,
         NifiTooltipDirective,
-        NifiSpinnerDirective
+        NifiSpinnerDirective,
+        ScrollingModule,
+        MatTableModule
     ],
     templateUrl: './component-state.component.html',
     styleUrls: ['./component-state.component.scss']
@@ -74,7 +78,15 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     clearing: Signal<boolean> = this.store.selectSignal(selectClearing);
 
     displayedColumns: string[] = ['key', 'value'];
-    dataSource: MatTableDataSource<StateItem> = new MatTableDataSource<StateItem>();
+    dataSource: StateItem[] = [];
+    allStateItems: StateItem[] = []; // Full dataset for filtering
+
+    // Virtual scroll configuration
+    readonly ROW_HEIGHT = 36; // Height of each table row in pixels (density -4)
+
+    // Sort state
+    currentSortColumn: 'key' | 'value' | 'scope' = this.initialSortColumn;
+    currentSortDirection: 'asc' | 'desc' = this.initialSortDirection;
 
     filterForm: FormGroup;
 
@@ -97,19 +109,26 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
                 this.stateDescription = componentState.stateDescription;
 
                 const stateItems: StateItem[] = [];
+
                 if (componentState.localState) {
                     const localStateItems: StateItem[] = this.processStateMap(componentState.localState, false);
                     stateItems.push(...localStateItems);
                 }
+
                 if (componentState.clusterState) {
                     const clusterStateItems: StateItem[] = this.processStateMap(componentState.clusterState, true);
                     stateItems.push(...clusterStateItems);
                 }
 
-                this.dataSource.data = this.sortStateItems(stateItems, {
+                const sortedItems = this.sortStateItems(stateItems, {
                     active: this.initialSortColumn,
                     direction: this.initialSortDirection
                 });
+
+                // Store full dataset for virtual scrolling
+                this.allStateItems = sortedItems;
+                this.dataSource = sortedItems;
+
                 this.filteredEntries = stateItems.length;
 
                 // apply any filtering to the new data
@@ -189,12 +208,50 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
     }
 
     applyFilter(filterTerm: string) {
-        this.dataSource.filter = filterTerm.trim().toLowerCase();
-        this.filteredEntries = this.dataSource.filteredData.length;
+        const term = filterTerm.trim().toLowerCase();
+
+        if (!term) {
+            // No filter - show all items
+            this.dataSource = this.allStateItems;
+            this.filteredEntries = this.allStateItems.length;
+        } else {
+            // Filter the full dataset
+            const filtered = this.filterStateItems(term);
+            this.dataSource = filtered;
+            this.filteredEntries = filtered.length;
+        }
     }
 
     sortData(sort: Sort) {
-        this.dataSource.data = this.sortStateItems(this.dataSource.data, sort);
+        this.currentSortColumn = sort.active as 'key' | 'value' | 'scope';
+        this.currentSortDirection = sort.direction as 'asc' | 'desc';
+
+        // Determine what data to sort (filtered or all)
+        const filterTerm = this.filterForm.get('filterTerm')?.value?.trim().toLowerCase();
+        let dataToSort = this.allStateItems;
+
+        if (filterTerm) {
+            dataToSort = this.filterStateItems(filterTerm);
+        }
+
+        const sortedData = this.sortStateItems(dataToSort, sort);
+
+        // Update allStateItems with sorted data if not filtering
+        if (!filterTerm) {
+            this.allStateItems = sortedData;
+        }
+
+        this.dataSource = sortedData;
+        this.filteredEntries = sortedData.length;
+    }
+
+    private filterStateItems(filterTerm: string): StateItem[] {
+        return this.allStateItems.filter(
+            (item) =>
+                item.key.toLowerCase().includes(filterTerm) ||
+                item.value.toLowerCase().includes(filterTerm) ||
+                (item.scope && item.scope.toLowerCase().includes(filterTerm))
+        );
     }
 
     private sortStateItems(data: StateItem[], sort: Sort): StateItem[] {
@@ -240,6 +297,10 @@ export class ComponentStateDialog extends CloseOnEscapeDialog implements AfterVi
                 }
             })
         );
+    }
+
+    trackByKey(index: number, item: StateItem): string {
+        return `${item.key}-${item.scope || 'none'}`;
     }
 
     protected readonly ErrorContextKey = ErrorContextKey;

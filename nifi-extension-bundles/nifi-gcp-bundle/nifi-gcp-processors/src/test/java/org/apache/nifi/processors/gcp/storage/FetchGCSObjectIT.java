@@ -87,9 +87,9 @@ public class FetchGCSObjectIT extends AbstractGCSIT {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", KEY);
         final List<ConfigVerificationResult> results = processor.verify(runner.getProcessContext(), runner.getLogger(), attributes);
-        assertEquals(2, results.size());
+        assertEquals(3, results.size());
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(1).getOutcome());
-        assertTrue(results.get(1).getExplanation().matches("Successfully fetched \\[delete-me\\] from Bucket \\[gcloud-test-bucket-temp-.*\\], totaling 3 bytes"));
+        assertTrue(results.get(2).getExplanation().matches("Successfully fetched \\[delete-me\\] from Bucket \\[gcloud-test-bucket-temp-.*\\], totaling 3 bytes"));
 
         runner.assertAllFlowFilesTransferred(FetchGCSObject.REL_SUCCESS, 1);
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(FetchGCSObject.REL_SUCCESS);

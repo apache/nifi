@@ -171,7 +171,7 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         .build();
 
     public static final PropertyDescriptor RETAIN_ID_FIELD = new PropertyDescriptor.Builder()
-        .name("Retain ID (Record Path)")
+        .name("Retain Record Path ID Field")
         .description("Whether to retain the existing field used as the ID Record Path.")
         .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .defaultValue("false")
@@ -347,7 +347,9 @@ public class PutElasticsearchRecord extends AbstractPutElasticsearch {
         config.renameProperty("put-es-record-at-timestamp", AT_TIMESTAMP.getName());
         config.renameProperty("put-es-record-index-op-path", INDEX_OP_RECORD_PATH.getName());
         config.renameProperty("put-es-record-id-path", ID_RECORD_PATH.getName());
-        config.renameProperty("put-es-record-retain-id-field", RETAIN_ID_FIELD.getName());
+        List.of("put-es-record-retain-id-field", "Retain ID (Record Path)").forEach(
+                oldNameProperty -> config.renameProperty(oldNameProperty, RETAIN_ID_FIELD.getName())
+        );
         config.renameProperty("put-es-record-index-record-path", INDEX_RECORD_PATH.getName());
         config.renameProperty("put-es-record-type-record-path", TYPE_RECORD_PATH.getName());
         config.renameProperty("put-es-record-at-timestamp-path", AT_TIMESTAMP_RECORD_PATH.getName());

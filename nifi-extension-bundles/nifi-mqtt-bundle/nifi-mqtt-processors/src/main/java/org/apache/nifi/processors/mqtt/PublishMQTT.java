@@ -31,6 +31,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -81,8 +82,7 @@ public class PublishMQTT extends AbstractMQTTProcessor {
             .build();
 
     public static final PropertyDescriptor PROP_QOS = new PropertyDescriptor.Builder()
-            .name("Quality of Service(QoS)")
-            .displayName("Quality of Service (QoS)")
+            .name("Quality of Service")
             .description("The Quality of Service (QoS) to send the message with. Accepts three values '0', '1' and '2'; '0' for 'at most once', '1' for 'at least once', '2' for 'exactly once'. " +
                     "Expression language is allowed in order to support publishing messages with different QoS but the end value of the property must be either '0', '1' or '2'. ")
             .required(true)
@@ -217,6 +217,12 @@ public class PublishMQTT extends AbstractMQTTProcessor {
         } else {
             processStandardFlowFile(context, session, flowfile, topic);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("Quality of Service(QoS)", PROP_QOS.getName());
     }
 
     private void processMultiMessageFlowFile(ProcessStrategy processStrategy, ProcessContext context, ProcessSession session, final FlowFile flowfile, String topic) {

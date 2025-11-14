@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSet;
@@ -38,8 +39,7 @@ public interface RecordSinkService extends ControllerService {
      * A standard Record Writer property for use in RecordSinkService implementations
      */
     PropertyDescriptor RECORD_WRITER_FACTORY = new PropertyDescriptor.Builder()
-            .name("record-sink-record-writer")
-            .displayName("Record Writer")
+            .name("Record Writer")
             .description("Specifies the Controller Service to use for writing out the records.")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .required(true)
@@ -61,4 +61,9 @@ public interface RecordSinkService extends ControllerService {
      * and any appropriate data related to possibly different RecordSets. The default implementation is a no-op
      */
     default void reset() { }
+
+    @Override
+    default void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("record-sink-record-writer", RECORD_WRITER_FACTORY.getName());
+    }
 }

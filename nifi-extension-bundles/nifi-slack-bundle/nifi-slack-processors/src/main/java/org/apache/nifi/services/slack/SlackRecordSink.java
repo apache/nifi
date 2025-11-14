@@ -118,6 +118,7 @@ public class SlackRecordSink extends AbstractControllerService implements Record
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        RecordSinkService.super.migrateProperties(config);
         config.renameProperty("api-url", API_URL.getName());
         config.renameProperty("access-token", ACCESS_TOKEN.getName());
         config.renameProperty("channel-id", CHANNEL_ID.getName());

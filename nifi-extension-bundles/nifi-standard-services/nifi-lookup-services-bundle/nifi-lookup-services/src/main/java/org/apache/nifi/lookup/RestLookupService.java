@@ -90,8 +90,7 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 })
 public class RestLookupService extends AbstractControllerService implements RecordLookupService {
     static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
-        .name("rest-lookup-url")
-        .displayName("URL")
+        .name("URL")
         .description("The URL for the REST endpoint. Expression language is evaluated against the lookup key/value pairs, " +
                 "not flowfile attributes.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -100,8 +99,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-        .name("rest-lookup-record-reader")
-        .displayName("Record Reader")
+        .name("Record Reader")
         .description("The record reader to use for loading the payload and handling it as a record set.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .identifiesControllerService(RecordReaderFactory.class)
@@ -109,8 +107,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     static final PropertyDescriptor RECORD_PATH = new PropertyDescriptor.Builder()
-        .name("rest-lookup-record-path")
-        .displayName("Record Path")
+        .name("Record Path")
         .description("An optional record path that can be used to define where in a record to get the real data to merge " +
                 "into the record set to be enriched. See documentation for examples of when this might be useful.")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -119,8 +116,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-        .name("rest-lookup-ssl-context-service")
-        .displayName("SSL Context Service")
+        .name("SSL Context Service")
         .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
                 + "connections.")
         .required(false)
@@ -128,8 +124,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     public static final PropertyDescriptor AUTHENTICATION_STRATEGY = new PropertyDescriptor.Builder()
-            .name("rest-lookup-authentication-strategy")
-            .displayName("Authentication Strategy")
+            .name("Authentication Strategy")
             .description("Authentication strategy to use with REST service.")
             .required(true)
             .allowableValues(AuthenticationStrategy.class)
@@ -137,8 +132,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
             .build();
 
     public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-        .name("rest-lookup-oauth2-access-token-provider")
-        .displayName("OAuth2 Access Token Provider")
+        .name("OAuth2 Access Token Provider")
         .description("Enables managed retrieval of OAuth2 Bearer Token applied to HTTP requests using the Authorization Header.")
         .identifiesControllerService(OAuth2AccessTokenProvider.class)
         .required(true)
@@ -146,8 +140,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
-        .name("rest-lookup-basic-auth-username")
-        .displayName("Basic Authentication Username")
+        .name("Basic Authentication Username")
         .description("The username to be used by the client to authenticate against the Remote URL.  Cannot include control characters (0-31), ':', or DEL (127).")
         .required(false)
         .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC)
@@ -156,8 +149,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     public static final PropertyDescriptor PROP_BASIC_AUTH_PASSWORD = new PropertyDescriptor.Builder()
-        .name("rest-lookup-basic-auth-password")
-        .displayName("Basic Authentication Password")
+        .name("Basic Authentication Password")
         .description("The password to be used by the client to authenticate against the Remote URL.")
         .required(false)
         .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC)
@@ -167,8 +159,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
-        .name("rest-lookup-digest-auth")
-        .displayName("Use Digest Authentication")
+        .name("Use Digest Authentication")
         .description("Whether to communicate with the website using Digest Authentication. 'Basic Authentication Username' and 'Basic Authentication Password' are used "
                 + "for authentication.")
         .required(false)
@@ -178,8 +169,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("rest-lookup-connection-timeout")
-        .displayName("Connection Timeout")
+        .name("Connection Timeout")
         .description("Max wait time for connection to remote service.")
         .required(true)
         .defaultValue("5 secs")
@@ -187,8 +177,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
-        .name("rest-lookup-read-timeout")
-        .displayName("Read Timeout")
+        .name("Read Timeout")
         .description("Max wait time for response from remote service.")
         .required(true)
         .defaultValue("15 secs")
@@ -196,8 +185,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .build();
 
     public static final PropertyDescriptor RESPONSE_HANDLING_STRATEGY = new PropertyDescriptor.Builder()
-        .name("rest-lookup-response-handling-strategy")
-        .displayName("Response Handling Strategy")
+        .name("Response Handling Strategy")
         .description("Whether to return all responses or throw errors for unsuccessful HTTP status codes.")
         .required(true)
         .defaultValue(ResponseHandlingStrategy.RETURNED)
@@ -399,6 +387,20 @@ public class RestLookupService extends AbstractControllerService implements Reco
         if (config.isPropertySet(PROP_BASIC_AUTH_USERNAME)) {
             config.setProperty(AUTHENTICATION_STRATEGY, AuthenticationStrategy.BASIC.getValue());
         }
+
+        config.renameProperty("rest-lookup-url", URL.getName());
+        config.renameProperty("rest-lookup-record-reader", RECORD_READER.getName());
+        config.renameProperty("rest-lookup-record-path", RECORD_PATH.getName());
+        config.renameProperty("rest-lookup-ssl-context-service", SSL_CONTEXT_SERVICE.getName());
+        config.renameProperty("rest-lookup-authentication-strategy", AUTHENTICATION_STRATEGY.getName());
+        config.renameProperty("rest-lookup-oauth2-access-token-provider", OAUTH2_ACCESS_TOKEN_PROVIDER.getName());
+        config.renameProperty("rest-lookup-basic-auth-username", PROP_BASIC_AUTH_USERNAME.getName());
+        config.renameProperty("rest-lookup-basic-auth-password", PROP_BASIC_AUTH_PASSWORD.getName());
+        config.renameProperty("rest-lookup-digest-auth", PROP_DIGEST_AUTH.getName());
+        config.renameProperty("rest-lookup-connection-timeout", PROP_CONNECT_TIMEOUT.getName());
+        config.renameProperty("rest-lookup-read-timeout", PROP_READ_TIMEOUT.getName());
+        config.renameProperty("rest-lookup-response-handling-strategy", RESPONSE_HANDLING_STRATEGY.getName());
+        config.renameProperty(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, PROXY_CONFIGURATION_SERVICE.getName());
     }
 
     protected void validateVerb(String method) throws LookupFailureException {

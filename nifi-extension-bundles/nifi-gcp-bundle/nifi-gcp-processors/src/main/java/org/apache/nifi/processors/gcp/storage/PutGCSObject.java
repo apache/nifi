@@ -148,12 +148,9 @@ import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileR
 })
 public class PutGCSObject extends AbstractGCSProcessor {
     public static final PropertyDescriptor BUCKET = new PropertyDescriptor.Builder()
-        .name("Bucket")
-        .description(BUCKET_DESC)
-        .required(true)
+        .fromPropertyDescriptor(AbstractGCSProcessor.BUCKET)
         .defaultValue("${" + BUCKET_ATTR + "}")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
     public static final PropertyDescriptor KEY = new PropertyDescriptor.Builder()

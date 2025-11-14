@@ -33,6 +33,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 
 import java.io.File;
@@ -58,8 +59,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
 
     public static final PropertyDescriptor CONFIGURATION_FILE =
         new PropertyDescriptor.Builder()
-            .name("configuration-file")
-            .displayName("Configuration File")
+            .name("Configuration File")
             .description("A configuration file")
             .required(true)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
@@ -140,4 +140,8 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
         return REQUIRED_KEYS;
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("configuration-file", CONFIGURATION_FILE.getName());
+    }
 }

@@ -65,14 +65,14 @@ public class ResizeImage extends AbstractProcessor {
     static final AllowableValue RESIZE_AREA_AVERAGING = new AllowableValue("Area Averaging", "Area Averaging", "Use the Area Averaging scaling algorithm");
 
     static final PropertyDescriptor IMAGE_WIDTH = new PropertyDescriptor.Builder()
-        .name("Image Width (in pixels)")
+        .name("Image Width")
         .description("The desired number of pixels for the image's width")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
     static final PropertyDescriptor IMAGE_HEIGHT = new PropertyDescriptor.Builder()
-        .name("Image Height (in pixels)")
+        .name("Image Height")
         .description("The desired number of pixels for the image's height")
         .required(true)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -230,6 +230,8 @@ public class ResizeImage extends AbstractProcessor {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("keep-ratio", KEEP_RATIO.getName());
+        config.renameProperty("Image Width (in pixels)", IMAGE_WIDTH.getName());
+        config.renameProperty("Image Height (in pixels)", IMAGE_HEIGHT.getName());
     }
 
     public Dimension getScaledDimension(int originalWidth, int originalHeight, int boundWidth, int boundHeight) {

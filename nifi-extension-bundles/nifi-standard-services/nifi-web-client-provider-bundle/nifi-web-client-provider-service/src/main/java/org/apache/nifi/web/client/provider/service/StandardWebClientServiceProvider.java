@@ -123,6 +123,7 @@ public class StandardWebClientServiceProvider extends AbstractControllerService 
         propertyConfiguration.renameProperty("write-timeout", WRITE_TIMEOUT.getName());
         propertyConfiguration.renameProperty("redirect-handling-strategy", REDIRECT_HANDLING_STRATEGY.getName());
         propertyConfiguration.renameProperty("ssl-context-service", SSL_CONTEXT_SERVICE.getName());
+        propertyConfiguration.renameProperty(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE.getName());
     }
 
     @OnEnabled

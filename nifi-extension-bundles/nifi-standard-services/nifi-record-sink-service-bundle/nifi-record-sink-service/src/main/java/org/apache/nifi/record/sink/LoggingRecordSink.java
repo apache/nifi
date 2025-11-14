@@ -24,6 +24,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -42,8 +43,7 @@ import java.util.Map;
 public class LoggingRecordSink extends AbstractControllerService implements RecordSinkService {
 
     public static final PropertyDescriptor LOG_LEVEL = new PropertyDescriptor.Builder()
-            .name("logsink-log-level")
-            .displayName("Log Level")
+            .name("Log Level")
             .required(true)
             .description("The Log Level at which to log records (INFO, DEBUG, e.g.)")
             .allowableValues(LogLevel.values())
@@ -91,5 +91,11 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
             throw new IOException(e);
         }
         return writeResult;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        RecordSinkService.super.migrateProperties(config);
+        config.renameProperty("logsink-log-level", LOG_LEVEL.getName());
     }
 }

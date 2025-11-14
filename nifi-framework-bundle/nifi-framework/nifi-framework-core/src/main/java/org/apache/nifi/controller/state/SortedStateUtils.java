@@ -28,7 +28,7 @@ public class SortedStateUtils {
     /**
      * The maximum number of state entries to return to a client
      */
-    public static final int MAX_COMPONENT_STATE_ENTRIES = 500;
+    public static final int MAX_COMPONENT_STATE_ENTRIES = 5000;
 
     /**
      * Gets a comparator for comparing state entry keys.

@@ -30,6 +30,7 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.Tuple;
 
@@ -52,8 +53,7 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
 
     static final PropertyDescriptor LOOKUP_VALUE_COLUMN =
             new PropertyDescriptor.Builder()
-                    .name("lookup-value-column")
-                    .displayName("Lookup Value Column")
+                    .name("Lookup Value Column")
                     .description("The column whose value will be returned when the Lookup value is matched")
                     .required(true)
                     .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -170,5 +170,11 @@ public class SimpleDatabaseLookupService extends AbstractDatabaseLookupService i
     @Override
     public Set<String> getRequiredKeys() {
         return REQUIRED_KEYS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("lookup-value-column", LOOKUP_VALUE_COLUMN.getName());
     }
 }

@@ -29,6 +29,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -50,6 +51,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
+import static org.apache.nifi.schema.inference.SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE;
 import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 
 @Tags({"cef", "record", "reader", "parser"})
@@ -68,8 +70,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
             "In these cases it is suggested to use \"" + CUSTOM_EXTENSIONS_AS_STRINGS.getDisplayName() + "\" Inference Strategy or predefined schema.");
 
     static final PropertyDescriptor INFERENCE_STRATEGY = new PropertyDescriptor.Builder()
-            .name("inference-strategy")
-            .displayName("Inference Strategy")
+            .name("Inference Strategy")
             .description("Defines the set of fields should be included in the schema and the way the fields are being interpreted.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
@@ -79,8 +80,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
             .build();
 
     static final PropertyDescriptor RAW_FIELD = new PropertyDescriptor.Builder()
-            .name("raw-message-field")
-            .displayName("Raw Message Field")
+            .name("Raw Message Field")
             .description("If set the raw message will be added to the record using the property value as field name. This is not the same as the \"rawEvent\" extension field!")
             .addValidator(new ValidateRawField())
             .required(false)
@@ -88,8 +88,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
             .build();
 
     static final PropertyDescriptor INVALID_FIELD = new PropertyDescriptor.Builder()
-            .name("invalid-message-field")
-            .displayName("Invalid Field")
+            .name("Invalid Field")
             .description("Used when a line in the FlowFile cannot be parsed by the CEF parser. " +
                     "If set, instead of failing to process the FlowFile, a record is being added with one field. " +
                     "This record contains one field with the name specified by the property and the raw message as value.")
@@ -99,8 +98,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
             .build();
 
     static final PropertyDescriptor DATETIME_REPRESENTATION = new PropertyDescriptor.Builder()
-            .name("datetime-representation")
-            .displayName("DateTime Locale")
+            .name("DateTime Locale")
             .description("The IETF BCP 47 representation of the Locale to be used when parsing date " +
                     "fields with long or short month names (e.g. may <en-US> vs. mai. <fr-FR>. The default" +
                     "value is generally safe. Only change if having issues parsing CEF messages")
@@ -111,8 +109,7 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
             .build();
 
     static final PropertyDescriptor ACCEPT_EMPTY_EXTENSIONS = new PropertyDescriptor.Builder()
-            .name("accept-empty-extensions")
-            .displayName("Accept empty extensions")
+            .name("Accept Empty Extensions")
             .description("If set to true, empty extensions will be accepted and will be associated to a null value.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .required(true)
@@ -213,6 +210,17 @@ public final class CEFReader extends SchemaRegistryService implements RecordRead
     ) throws MalformedRecordException, IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
         return new CEFRecordReader(in, schema, parser, logger, parcefoneLocale, rawMessageField, invalidField, includeCustomExtensions, acceptEmptyExtensions);
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("inference-strategy", INFERENCE_STRATEGY.getName());
+        config.renameProperty("raw-message-field", RAW_FIELD.getName());
+        config.renameProperty("invalid-message-field", INVALID_FIELD.getName());
+        config.renameProperty("datetime-representation", DATETIME_REPRESENTATION.getName());
+        config.renameProperty("accept-empty-extensions", ACCEPT_EMPTY_EXTENSIONS.getName());
+        config.renameProperty(OBSOLETE_SCHEMA_CACHE, SCHEMA_CACHE.getName());
     }
 
     private static class ValidateRawField implements Validator {

@@ -141,6 +141,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -150,7 +151,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'ERROR',
                         message: 'Error message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -166,6 +168,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -175,7 +178,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'INFO',
                         message: 'Info message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 },
                 {
@@ -184,6 +188,7 @@ describe('Common', () => {
                     sourceId: 'source2',
                     groupId: 'group2',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 2,
                         sourceId: 'source2',
@@ -193,7 +198,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'ERROR',
                         message: 'Error message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -209,6 +215,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -218,7 +225,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'INFO',
                         message: 'Info message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 },
                 {
@@ -227,6 +235,7 @@ describe('Common', () => {
                     sourceId: 'source2',
                     groupId: 'group2',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 2,
                         sourceId: 'source2',
@@ -236,7 +245,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'WARNING',
                         message: 'Warning message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -264,6 +274,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -273,7 +284,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'ERROR',
                         message: 'Error message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -289,6 +301,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -298,7 +311,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'WARNING',
                         message: 'Warning message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -314,6 +328,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -323,7 +338,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'warn',
                         message: 'Warning message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -339,6 +355,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -348,7 +365,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'INFO',
                         message: 'Info message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -364,6 +382,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -373,7 +392,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'DEBUG',
                         message: 'Debug message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -389,6 +409,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -398,7 +419,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'TRACE',
                         message: 'Trace message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -414,6 +436,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -423,7 +446,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'UNKNOWN',
                         message: 'Unknown message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -439,6 +463,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -448,7 +473,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'INFO',
                         message: 'Info message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 },
                 {
@@ -457,6 +483,7 @@ describe('Common', () => {
                     sourceId: 'source2',
                     groupId: 'group2',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 2,
                         sourceId: 'source2',
@@ -466,7 +493,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'ERROR',
                         message: 'Error message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];
@@ -482,6 +510,7 @@ describe('Common', () => {
                     sourceId: 'source1',
                     groupId: 'group1',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 1,
                         sourceId: 'source1',
@@ -491,7 +520,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'INFO',
                         message: 'Info message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 },
                 {
@@ -500,6 +530,7 @@ describe('Common', () => {
                     sourceId: 'source2',
                     groupId: 'group2',
                     timestamp: '2023-01-01T00:00:00Z',
+                    timestampIso: '2023-01-01T00:00:00Z',
                     bulletin: {
                         id: 2,
                         sourceId: 'source2',
@@ -509,7 +540,8 @@ describe('Common', () => {
                         sourceType: 'PROCESSOR',
                         level: 'WARNING',
                         message: 'Warning message',
-                        timestamp: '2023-01-01T00:00:00Z'
+                        timestamp: '2023-01-01T00:00:00Z',
+                        timestampIso: '2023-01-01T00:00:00Z'
                     }
                 }
             ];

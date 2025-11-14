@@ -438,7 +438,7 @@ public class ConsumeGCPubSub extends AbstractGCPubSubProcessor {
     }
 
     protected SubscriberStub getSubscriber(final ProcessContext context) throws IOException {
-        final String endpoint = context.getProperty(API_ENDPOINT).getValue();
+        final String endpoint = context.getProperty(API_ENDPOINT).evaluateAttributeExpressions().getValue();
 
         final SubscriberStubSettings.Builder subscriberBuilder = SubscriberStubSettings.newBuilder()
                 .setCredentialsProvider(FixedCredentialsProvider.create(getGoogleCredentials(context)))

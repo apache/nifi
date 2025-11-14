@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -60,16 +61,14 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 public class ListenWebSocket extends AbstractWebSocketGatewayProcessor {
 
     public static final PropertyDescriptor PROP_WEBSOCKET_SERVER_SERVICE = new PropertyDescriptor.Builder()
-            .name("websocket-server-controller-service")
-            .displayName("WebSocket Server ControllerService")
+            .name("WebSocket Server Controller Service")
             .description("A WebSocket SERVER Controller Service which can accept WebSocket requests.")
             .required(true)
             .identifiesControllerService(WebSocketServerService.class)
             .build();
 
     public static final PropertyDescriptor PROP_SERVER_URL_PATH = new PropertyDescriptor.Builder()
-            .name("server-url-path")
-            .displayName("Server URL Path")
+            .name("Server URL Path")
             .description("The WetSocket URL Path on which this processor listens to. Must starts with '/', e.g. '/example'.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -98,6 +97,12 @@ public class ListenWebSocket extends AbstractWebSocketGatewayProcessor {
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("websocket-server-controller-service", PROP_WEBSOCKET_SERVER_SERVICE.getName());
+        config.renameProperty("server-url-path", PROP_SERVER_URL_PATH.getName());
     }
 
     @Override

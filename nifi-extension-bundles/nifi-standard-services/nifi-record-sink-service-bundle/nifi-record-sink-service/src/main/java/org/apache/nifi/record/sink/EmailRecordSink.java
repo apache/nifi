@@ -34,6 +34,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -61,40 +62,35 @@ public class EmailRecordSink extends AbstractControllerService implements Record
     private static final String RFC822 = "Comma separated sequence of addresses following RFC822 syntax.";
 
     public static final PropertyDescriptor FROM = new PropertyDescriptor.Builder()
-            .name("from")
-            .displayName("From")
+            .name("From")
             .description("Specifies the Email address to use as the sender. " + RFC822)
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor TO = new PropertyDescriptor.Builder()
-            .name("to")
-            .displayName("To")
+            .name("To")
             .description("The recipients to include in the To-Line of the email. " + RFC822)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor CC = new PropertyDescriptor.Builder()
-            .name("cc")
-            .displayName("CC")
+            .name("CC")
             .description("The recipients to include in the CC-Line of the email. " + RFC822)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor BCC = new PropertyDescriptor.Builder()
-            .name("bcc")
-            .displayName("BCC")
+            .name("BCC")
             .description("The recipients to include in the BCC-Line of the email. " + RFC822)
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SUBJECT = new PropertyDescriptor.Builder()
-            .name("subject")
-            .displayName("Subject")
+            .name("Subject")
             .description("The email subject")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -102,15 +98,13 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor SMTP_HOSTNAME = new PropertyDescriptor.Builder()
-            .name("smtp-hostname")
-            .displayName("SMTP Hostname")
+            .name("SMTP Hostname")
             .description("The hostname of the SMTP Server that is used to send Email Notifications")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .required(true)
             .build();
     public static final PropertyDescriptor SMTP_PORT = new PropertyDescriptor.Builder()
-            .name("smtp-port")
-            .displayName("SMTP Port")
+            .name("SMTP Port")
             .description("The Port used for SMTP communications")
             .required(true)
             .defaultValue("25")
@@ -118,8 +112,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor SMTP_AUTH = new PropertyDescriptor.Builder()
-            .name("smtp-auth")
-            .displayName("SMTP Auth")
+            .name("SMTP Auth")
             .description("Flag indicating whether authentication should be used")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -127,8 +120,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .defaultValue("true")
             .build();
     public static final PropertyDescriptor SMTP_USERNAME = new PropertyDescriptor.Builder()
-            .name("smtp-username")
-            .displayName("SMTP Username")
+            .name("SMTP Username")
             .description("Username for the SMTP account")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -136,8 +128,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .dependsOn(SMTP_AUTH, "true")
             .build();
     public static final PropertyDescriptor SMTP_PASSWORD = new PropertyDescriptor.Builder()
-            .name("smtp-password")
-            .displayName("SMTP Password")
+            .name("SMTP Password")
             .description("Password for the SMTP account")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -146,8 +137,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .dependsOn(SMTP_AUTH, "true")
             .build();
     public static final PropertyDescriptor SMTP_STARTTLS = new PropertyDescriptor.Builder()
-            .name("smtp-starttls")
-            .displayName("SMTP STARTTLS")
+            .name("SMTP STARTTLS")
             .description("Flag indicating whether STARTTLS should be enabled. "
                     + "If the server does not support STARTTLS, the connection continues without the use of TLS")
             .required(true)
@@ -156,8 +146,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .defaultValue("false")
             .build();
     public static final PropertyDescriptor SMTP_SSL = new PropertyDescriptor.Builder()
-            .name("smtp-ssl")
-            .displayName("SMTP SSL")
+            .name("SMTP SSL")
             .description("Flag indicating whether SSL should be enabled")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -165,8 +154,7 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             .defaultValue("false")
             .build();
     public static final PropertyDescriptor HEADER_XMAILER = new PropertyDescriptor.Builder()
-            .name("smtp-xmailer-header")
-            .displayName("SMTP X-Mailer Header")
+            .name("SMTP X-Mailer Header")
             .description("X-Mailer used in the header of the outgoing email")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
@@ -256,6 +244,24 @@ public class EmailRecordSink extends AbstractControllerService implements Record
             throw new ProcessException(errorMessage, e);
         }
         return writeResult;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        RecordSinkService.super.migrateProperties(config);
+        config.renameProperty("from", FROM.getName());
+        config.renameProperty("to", TO.getName());
+        config.renameProperty("cc", CC.getName());
+        config.renameProperty("bcc", BCC.getName());
+        config.renameProperty("subject", SUBJECT.getName());
+        config.renameProperty("smtp-hostname", SMTP_HOSTNAME.getName());
+        config.renameProperty("smtp-port", SMTP_PORT.getName());
+        config.renameProperty("smtp-auth", SMTP_AUTH.getName());
+        config.renameProperty("smtp-username", SMTP_USERNAME.getName());
+        config.renameProperty("smtp-password", SMTP_PASSWORD.getName());
+        config.renameProperty("smtp-starttls", SMTP_STARTTLS.getName());
+        config.renameProperty("smtp-ssl", SMTP_SSL.getName());
+        config.renameProperty("smtp-xmailer-header", HEADER_XMAILER.getName());
     }
 
     /**

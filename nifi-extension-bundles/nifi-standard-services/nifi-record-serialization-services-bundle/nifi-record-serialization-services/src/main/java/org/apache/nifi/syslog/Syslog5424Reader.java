@@ -25,6 +25,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.SchemaAccessStrategy;
 import org.apache.nifi.schema.access.SchemaField;
@@ -74,8 +75,7 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
     public static final PropertyDescriptor ADD_RAW = new PropertyDescriptor.Builder()
-            .displayName("Raw message")
-            .name("syslog-5424-reader-raw-message")
+            .name("Raw Message")
             .description("If true, the record will have a " + RAW_MESSAGE_NAME + " field containing the raw message")
             .required(true)
             .defaultValue("false")
@@ -102,6 +102,12 @@ public class Syslog5424Reader extends SchemaRegistryService implements RecordRea
         includeRaw = context.getProperty(ADD_RAW).asBoolean();
         parser = new StrictSyslog5424Parser(NilHandlingPolicy.NULL, NifiStructuredDataPolicy.MAP_OF_MAPS, new SimpleKeyProvider());
         recordSchema = createRecordSchema();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("syslog-5424-reader-raw-message", ADD_RAW.getName());
     }
 
     @Override

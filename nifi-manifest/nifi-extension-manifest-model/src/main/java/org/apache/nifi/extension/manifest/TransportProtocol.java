@@ -14,18 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.schema.access;
+package org.apache.nifi.extension.manifest;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.json.schema.SchemaVersion;
-
-public interface JsonSchemaRegistryComponent {
-    PropertyDescriptor SCHEMA_VERSION = new PropertyDescriptor
-        .Builder()
-        .name("JSON Schema Version")
-        .description("The JSON schema specification")
-        .required(true)
-        .allowableValues(SchemaVersion.class)
-        .defaultValue(SchemaVersion.DRAFT_2020_12.getValue())
-        .build();
+public enum TransportProtocol {
+    TCP,
+    UDP
 }

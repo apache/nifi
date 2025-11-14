@@ -102,8 +102,7 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
             .build();
 
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
-            .name("hadoop-config-resources")
-            .displayName("Hadoop Configuration Resources")
+            .name("Hadoop Configuration Resources")
             .description("A file, or comma separated list of files, which contain the Hadoop configuration (core-site.xml, etc.). Without this, Hadoop "
                     + "will search the classpath, or will revert to a default configuration. Note that to enable authentication with Kerberos, "
                     + "the appropriate properties must be set in the configuration files.")
@@ -143,7 +142,10 @@ public class HadoopDBCPConnectionPool extends AbstractDBCPConnectionPool {
         config.removeProperty("Kerberos Password");
         config.removeProperty("Kerberos Keytab");
         config.removeProperty("kerberos-credentials-service");
-        config.renameProperty(DBCPProperties.OLD_DB_DRIVER_LOCATION_PROPERTY_NAME, DB_DRIVER_LOCATION.getName());
+        config.renameProperty("hadoop-config-resources", HADOOP_CONFIGURATION_RESOURCES.getName());
+        DBCPProperties.OLD_DB_DRIVER_LOCATION_PROPERTY_NAMES.forEach(oldPropertyName ->
+                config.renameProperty(oldPropertyName, DB_DRIVER_LOCATION.getName())
+        );
         config.renameProperty(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName());
         config.renameProperty(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName());
         config.renameProperty(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName());

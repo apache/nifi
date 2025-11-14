@@ -22,8 +22,10 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
 import org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStarter;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -324,7 +326,8 @@ public class StartAwsTextractJobStatusTest {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expected = Map.of("aws-region", REGION.getName(),
                 "json-payload", AbstractAwsMachineLearningJobStarter.JSON_PAYLOAD.getName(),
-                "textract-type", StartAwsTextractJob.TEXTRACT_TYPE.getName());
+                "textract-type", StartAwsTextractJob.TEXTRACT_TYPE.getName(),
+                ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, AbstractAwsProcessor.PROXY_CONFIGURATION_SERVICE.getName());
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }

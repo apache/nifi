@@ -26,6 +26,7 @@ import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextProvider;
 
@@ -70,8 +71,7 @@ public abstract class AbstractCacheServer extends AbstractControllerService {
         .addValidator(StandardValidators.createDirectoryExistsValidator(true, true))
         .build();
     public static final PropertyDescriptor MAX_READ_SIZE = new PropertyDescriptor.Builder()
-        .name("maximum-read-size")
-        .displayName("Maximum Read Size")
+        .name("Maximum Read Size")
         .description("The maximum number of network bytes to read for a single cache item")
         .required(false)
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -114,6 +114,11 @@ public abstract class AbstractCacheServer extends AbstractControllerService {
      */
     public int getPort() {
         return cacheServer == null ? -1 : cacheServer.getPort();
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("maximum-read-size", MAX_READ_SIZE.getName());
     }
 
     protected abstract CacheServer createCacheServer(ConfigurationContext context);
