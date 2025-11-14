@@ -109,6 +109,9 @@ public class AttributeRollingWindowIT {
         return System.getProperty("os.name").toLowerCase().startsWith("windows");
     }
 
+    @EnabledIfSystemProperty(named = "nifi.test.unstable",
+            matches = "true",
+            disabledReason = "this test is too unstable in terms of timing on different size/types of testing envs")
     @Test
     public void testBasic() throws InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
