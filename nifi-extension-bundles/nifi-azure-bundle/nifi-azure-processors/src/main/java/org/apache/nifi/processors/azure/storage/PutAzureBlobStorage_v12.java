@@ -26,6 +26,7 @@ import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.BlobType;
 import com.azure.storage.blob.models.BlockBlobItem;
+import com.azure.storage.blob.models.ParallelTransferOptions;
 import com.azure.storage.blob.options.BlobParallelUploadOptions;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -171,12 +172,15 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                 }
 
                 final long transferSize = fileResourceFound.map(FileResource::getSize).orElse(flowFile.getSize());
+                final long blockSize = Math.max(Math.ceilDiv(transferSize, 50000), BlobClient.BLOB_DEFAULT_UPLOAD_BLOCK_SIZE);
                 final FlowFile sourceFlowFile = flowFile;
                 try (InputStream sourceInputStream = fileResourceFound
                         .map(FileResource::getInputStream)
                         .orElseGet(() -> session.read(sourceFlowFile))
                 ) {
                     final BlobParallelUploadOptions blobParallelUploadOptions = new BlobParallelUploadOptions(toFluxByteBuffer(sourceInputStream, BlobClient.BLOB_DEFAULT_UPLOAD_BLOCK_SIZE));
+                    final ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions().setBlockSizeLong(blockSize);
+                    blobParallelUploadOptions.setParallelTransferOptions(parallelTransferOptions);
                     blobParallelUploadOptions.setRequestConditions(blobRequestConditions);
                     Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
                     BlockBlobItem blob = response.getValue();
