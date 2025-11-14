@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.http.HttpClient;
@@ -161,7 +161,7 @@ public interface SiteToSiteClient extends Closeable {
         private String truststoreFilename;
         private String truststorePass;
         private KeystoreType truststoreType;
-        private EventReporter eventReporter = EventReporter.NO_OP;
+        private SiteToSiteEventReporter eventReporter = SiteToSiteEventReporter.DISABLED;
         private File peerPersistenceFile;
         private StateManager stateManager;
         private boolean useCompression;
@@ -474,7 +474,7 @@ public interface SiteToSiteClient extends Closeable {
          * @param eventReporter reporter
          * @return the builder
          */
-        public Builder eventReporter(final EventReporter eventReporter) {
+        public Builder eventReporter(final SiteToSiteEventReporter eventReporter) {
             this.eventReporter = eventReporter;
             return this;
         }
@@ -690,7 +690,7 @@ public interface SiteToSiteClient extends Closeable {
          * @return the EventReporter that is to be used by clients to report
          * events
          */
-        public EventReporter getEventReporter() {
+        public SiteToSiteEventReporter getEventReporter() {
             return eventReporter;
         }
 
@@ -766,7 +766,7 @@ public interface SiteToSiteClient extends Closeable {
         private final String truststoreFilename;
         private final String truststorePass;
         private final KeystoreType truststoreType;
-        private final EventReporter eventReporter;
+        private final SiteToSiteEventReporter eventReporter;
         private final File peerPersistenceFile;
         private final transient StateManager stateManager;
         private final boolean useCompression;
@@ -952,7 +952,7 @@ public interface SiteToSiteClient extends Closeable {
         }
 
         @Override
-        public EventReporter getEventReporter() {
+        public SiteToSiteEventReporter getEventReporter() {
             return eventReporter;
         }
 

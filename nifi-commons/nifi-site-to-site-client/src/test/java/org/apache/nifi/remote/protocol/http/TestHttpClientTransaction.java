@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.remote.protocol.http;
 
-import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
@@ -29,7 +29,6 @@ import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.DataPacket;
 import org.apache.nifi.remote.protocol.ResponseCode;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
-import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -64,8 +63,8 @@ import static org.mockito.Mockito.verify;
 
 public class TestHttpClientTransaction {
 
-    private Logger logger = LoggerFactory.getLogger(TestHttpClientTransaction.class);
-    private FlowFileCodec codec = new StandardFlowFileCodec();
+    private static final Logger logger = LoggerFactory.getLogger(TestHttpClientTransaction.class);
+    private final FlowFileCodec codec = new StandardFlowFileCodec();
 
     private HttpClientTransaction getClientTransaction(InputStream is, OutputStream os, SiteToSiteRestApiClient apiClient, TransferDirection direction, String transactionUrl) throws IOException {
         PeerDescription description = null;
@@ -80,12 +79,7 @@ public class TestHttpClientTransaction {
         String portId = "portId";
         boolean useCompression = false;
         int penaltyMillis = 1000;
-        EventReporter eventReporter = new EventReporter() {
-            @Override
-            public void reportEvent(Severity severity, String category, String message) {
-                logger.info("Reporting event... severity={}, category={}, message={}", severity, category, message);
-            }
-        };
+        SiteToSiteEventReporter eventReporter = (severity, category, message) -> logger.info("Reporting event... severity={}, category={}, message={}", severity, category, message);
         int protocolVersion = 5;
 
         HttpClientTransaction transaction = new HttpClientTransaction(protocolVersion, peer, direction, useCompression, portId, penaltyMillis, eventReporter);

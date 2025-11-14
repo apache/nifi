@@ -25,13 +25,13 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
@@ -122,7 +122,7 @@ public class SiteToSiteUtils {
     public static SiteToSiteClient getClient(PropertyContext reportContext, ComponentLog logger, StateManager stateManager) {
         final SSLContextProvider sslContextProvider = reportContext.getProperty(SiteToSiteUtils.SSL_CONTEXT).asControllerService(SSLContextProvider.class);
         final SSLContext sslContext = sslContextProvider == null ? null : sslContextProvider.createContext();
-        final EventReporter eventReporter = (EventReporter) (severity, category, message) -> {
+        final SiteToSiteEventReporter eventReporter = (severity, category, message) -> {
             switch (severity) {
                 case WARNING:
                     logger.warn(message);

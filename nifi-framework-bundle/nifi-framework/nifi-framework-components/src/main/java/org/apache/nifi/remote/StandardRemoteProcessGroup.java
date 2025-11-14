@@ -1007,7 +1007,9 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     }
 
     private SiteToSiteRestApiClient getSiteToSiteRestApiClient() {
-        SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, new HttpProxy(proxyHost, proxyPort, proxyUser, proxyPassword), getEventReporter());
+        final SiteToSiteEventReporter eventReporter = (severity, category, message) -> getEventReporter().reportEvent(severity, category, message);
+
+        SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, new HttpProxy(proxyHost, proxyPort, proxyUser, proxyPassword), eventReporter);
         apiClient.setConnectTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setReadTimeoutMillis(getCommunicationsTimeout(TimeUnit.MILLISECONDS));
         apiClient.setLocalAddress(getLocalAddress());

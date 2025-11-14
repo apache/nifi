@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.remote.protocol.socket;
 
-import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.AbstractTransaction;
 import org.apache.nifi.remote.Peer;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.ProtocolException;
@@ -37,7 +37,7 @@ public class SocketClientTransaction extends AbstractTransaction {
     private final DataOutputStream dos;
 
     SocketClientTransaction(final int protocolVersion, final String destinationId, final Peer peer, final FlowFileCodec codec,
-            final TransferDirection direction, final boolean useCompression, final int penaltyMillis, final EventReporter eventReporter) throws IOException {
+            final TransferDirection direction, final boolean useCompression, final int penaltyMillis, final SiteToSiteEventReporter eventReporter) throws IOException {
         super(peer, direction, useCompression, codec, eventReporter, protocolVersion, penaltyMillis, destinationId);
         this.dis = new DataInputStream(peer.getCommunicationsSession().getInput().getInputStream());
         this.dos = new DataOutputStream(peer.getCommunicationsSession().getOutput().getOutputStream());

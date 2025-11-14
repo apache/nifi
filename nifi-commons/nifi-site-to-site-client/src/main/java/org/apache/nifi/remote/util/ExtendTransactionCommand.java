@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.remote.util;
 
-import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.slf4j.Logger;
@@ -34,9 +34,9 @@ public class ExtendTransactionCommand implements Runnable {
 
     private final String transactionUrl;
 
-    private final EventReporter eventReporter;
+    private final SiteToSiteEventReporter eventReporter;
 
-    ExtendTransactionCommand(final SiteToSiteRestApiClient client, final String transactionUrl, final EventReporter eventReporter) {
+    ExtendTransactionCommand(final SiteToSiteRestApiClient client, final String transactionUrl, final SiteToSiteEventReporter eventReporter) {
         this.client = client;
         this.transactionUrl = transactionUrl;
         this.eventReporter = eventReporter;
