@@ -429,7 +429,7 @@ public class JWTBearerOAuth2AccessTokenProvider extends AbstractControllerServic
     }
 
     private boolean isRefreshRequired() {
-        if (accessDetails.getExpiresIn() > 0) {
+        if (accessDetails.getExpiresIn() != null) {
             final Instant expirationRefreshTime = accessDetails.getFetchTime()
                     .plusSeconds(accessDetails.getExpiresIn())
                     .minus(refreshWindow);

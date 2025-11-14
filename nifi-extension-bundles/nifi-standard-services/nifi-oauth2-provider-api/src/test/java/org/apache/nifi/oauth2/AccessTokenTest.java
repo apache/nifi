@@ -50,7 +50,14 @@ public class AccessTokenTest {
         assertFalse(accessToken.isExpired());
     }
 
-    private AccessToken getAccessToken(final long expiresInSeconds) {
+    @Test
+    public void testIsExpiredNever() {
+        final AccessToken accessToken = getAccessToken(null);
+
+        assertFalse(accessToken.isExpired());
+    }
+
+    private AccessToken getAccessToken(final Long expiresInSeconds) {
         return new AccessToken(
                 null,
                 null,
