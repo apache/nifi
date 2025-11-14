@@ -28,7 +28,6 @@ import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -40,8 +39,9 @@ import java.util.stream.Collectors;
  */
 public class WorkloadIdentityFederationCredentialsStrategy extends AbstractCredentialsStrategy {
 
-    private static final long SUBJECT_TOKEN_REFRESH_SKEW_SECONDS = 60;
     private static final String ERROR_NO_SUBJECT_TOKEN = "Subject token provider returned no usable token";
+    private static final String SUBJECT_TOKEN_PARAMETER_ID_TOKEN = "id_token";
+    private static final String SUBJECT_TOKEN_PARAMETER_ACCESS_TOKEN = "access_token";
 
     public WorkloadIdentityFederationCredentialsStrategy() {
         super("Workload Identity Federation");
@@ -85,12 +85,7 @@ public class WorkloadIdentityFederationCredentialsStrategy extends AbstractCrede
     }
 
     private String getSubjectToken(final OAuth2AccessTokenProvider tokenProvider) throws IOException {
-        AccessToken subjectToken = tokenProvider.getAccessDetails();
-
-        if (requiresRefresh(subjectToken)) {
-            tokenProvider.refreshAccessDetails();
-            subjectToken = tokenProvider.getAccessDetails();
-        }
+        final AccessToken subjectToken = tokenProvider.getAccessDetails();
 
         final String subjectTokenValue = extractTokenValue(subjectToken);
         if (StringUtils.isBlank(subjectTokenValue)) {
@@ -100,21 +95,6 @@ public class WorkloadIdentityFederationCredentialsStrategy extends AbstractCrede
         return subjectTokenValue;
     }
 
-    private boolean requiresRefresh(final AccessToken subjectToken) {
-        if (subjectToken == null) {
-            return true;
-        }
-
-        final long expiresIn = subjectToken.getExpiresIn();
-        if (expiresIn <= 0) {
-            return false;
-        }
-
-        final Instant fetchTime = subjectToken.getFetchTime();
-        final Instant refreshTime = fetchTime.plusSeconds(expiresIn).minusSeconds(SUBJECT_TOKEN_REFRESH_SKEW_SECONDS);
-        return Instant.now().isAfter(refreshTime);
-    }
-
     private String extractTokenValue(final AccessToken subjectToken) {
         if (subjectToken == null) {
             return null;
@@ -122,9 +102,14 @@ public class WorkloadIdentityFederationCredentialsStrategy extends AbstractCrede
 
         final Map<String, Object> additionalParameters = subjectToken.getAdditionalParameters();
         if (additionalParameters != null) {
-            final Object idToken = additionalParameters.get("id_token");
+            final Object idToken = additionalParameters.get(SUBJECT_TOKEN_PARAMETER_ID_TOKEN);
             if (idToken instanceof String && StringUtils.isNotBlank((String) idToken)) {
                 return (String) idToken;
+            }
+
+            final Object accessToken = additionalParameters.get(SUBJECT_TOKEN_PARAMETER_ACCESS_TOKEN);
+            if (accessToken instanceof String && StringUtils.isNotBlank((String) accessToken)) {
+                return (String) accessToken;
             }
         }
 

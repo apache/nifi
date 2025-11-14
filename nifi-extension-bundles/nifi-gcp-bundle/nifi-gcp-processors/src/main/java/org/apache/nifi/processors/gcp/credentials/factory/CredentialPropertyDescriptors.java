@@ -83,6 +83,8 @@ public final class CredentialPropertyDescriptors {
     private static final String DEFAULT_WORKLOAD_IDENTITY_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
     private static final String DEFAULT_WORKLOAD_IDENTITY_TOKEN_ENDPOINT = "https://sts.googleapis.com/v1/token";
     private static final String DEFAULT_WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt";
+    private static final String SUBJECT_TOKEN_TYPE_ID_TOKEN = "urn:ietf:params:oauth:token-type:id_token";
+    private static final String SUBJECT_TOKEN_TYPE_ACCESS_TOKEN = "urn:ietf:params:oauth:token-type:access_token";
 
     public static final PropertyDescriptor WORKLOAD_IDENTITY_AUDIENCE = new PropertyDescriptor.Builder()
             .name("Audience")
@@ -104,7 +106,7 @@ public final class CredentialPropertyDescriptors {
     public static final PropertyDescriptor WORKLOAD_IDENTITY_TOKEN_ENDPOINT = new PropertyDescriptor.Builder()
             .name("STS Token Endpoint")
             .description("Google Security Token Service endpoint used for token exchange.")
-            .required(false)
+            .required(true)
             .defaultValue(DEFAULT_WORKLOAD_IDENTITY_TOKEN_ENDPOINT)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
@@ -125,7 +127,8 @@ public final class CredentialPropertyDescriptors {
             .defaultValue(DEFAULT_WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE)
             .allowableValues(
                     DEFAULT_WORKLOAD_IDENTITY_SUBJECT_TOKEN_TYPE,
-                    "urn:ietf:params:oauth:token-type:access_token"
+                    SUBJECT_TOKEN_TYPE_ID_TOKEN,
+                    SUBJECT_TOKEN_TYPE_ACCESS_TOKEN
             )
             .dependsOn(AUTHENTICATION_STRATEGY, AuthenticationStrategy.WORKLOAD_IDENTITY_FEDERATION.getValue())
             .build();

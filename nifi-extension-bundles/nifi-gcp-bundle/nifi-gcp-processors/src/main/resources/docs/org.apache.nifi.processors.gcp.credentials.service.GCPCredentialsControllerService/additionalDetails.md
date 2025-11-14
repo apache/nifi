@@ -17,8 +17,7 @@
 
 The **GCPCredentialsControllerService** centralizes all authentication strategies used by NiFi components that
 interact with Google Cloud. Each strategy exposes only the properties it requires, which lets administrators swap
-approaches without touching downstream processors. This guide summarizes every supported strategy and retains the
-full Workload Identity Federation instructions that previously lived in the dedicated controller service.
+approaches without touching downstream processors. This guide summarizes every supported strategy.
 
 ---
 
@@ -79,9 +78,7 @@ no additional properties are required.
 
 Workload Identity Federation (WIF) exchanges an external identity-provider token for a short-lived Google Cloud
 access token via Google’s Security Token Service (STS). The controller service configures Google’s
-`IdentityPoolCredentials`, allowing Google client libraries to refresh Google Cloud tokens automatically. This is
-functionally identical to the retired `StandardGCPIdentityFederationTokenProvider`, but all properties now reside
-on GCPCredentialsControllerService itself.
+`IdentityPoolCredentials`, allowing Google client libraries to refresh Google Cloud tokens automatically.
 
 ### 1. Configure Workload Identity Federation in Google Cloud
 
