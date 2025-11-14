@@ -1056,7 +1056,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (repoRecord.getCurrent() != null && repoRecord.getCurrentClaim() != null) {
             final ContentClaim currentClaim = repoRecord.getCurrentClaim();
             final long currentOffset = repoRecord.getCurrentClaimOffset();
-            final long size = flowFile.getSize();
+            final long size = repoRecord.getCurrent().getSize();
 
             final ResourceClaim resourceClaim = currentClaim.getResourceClaim();
             recordBuilder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(), currentOffset + currentClaim.getOffset(), size);
