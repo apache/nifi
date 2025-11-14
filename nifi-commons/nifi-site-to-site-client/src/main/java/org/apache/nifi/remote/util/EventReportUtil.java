@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.remote.util;
 
-import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.helpers.MessageFormatter;
@@ -25,14 +25,14 @@ public class EventReportUtil {
 
     private static final String CATEGORY = "Site-to-Site";
 
-    public static void warn(final Logger logger, final EventReporter eventReporter, final String msg, final Object... args) {
+    public static void warn(final Logger logger, final SiteToSiteEventReporter eventReporter, final String msg, final Object... args) {
         logger.warn(msg, args);
         if (eventReporter != null) {
             eventReporter.reportEvent(Severity.WARNING, CATEGORY, MessageFormatter.arrayFormat(msg, args).getMessage());
         }
     }
 
-    public static void warn(final Logger logger, final EventReporter eventReporter, final String msg, final Throwable t) {
+    public static void warn(final Logger logger, final SiteToSiteEventReporter eventReporter, final String msg, final Throwable t) {
         logger.warn(msg, t);
 
         if (eventReporter != null) {
@@ -40,7 +40,7 @@ public class EventReportUtil {
         }
     }
 
-    public static void error(final Logger logger, final EventReporter eventReporter, final String msg, final Object... args) {
+    public static void error(final Logger logger, final SiteToSiteEventReporter eventReporter, final String msg, final Object... args) {
         logger.error(msg, args);
         if (eventReporter != null) {
             eventReporter.reportEvent(Severity.ERROR, CATEGORY, MessageFormatter.arrayFormat(msg, args).getMessage());

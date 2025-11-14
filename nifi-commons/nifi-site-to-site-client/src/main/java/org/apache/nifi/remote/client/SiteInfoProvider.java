@@ -30,7 +30,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.net.ssl.SSLContext;
 
-import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
@@ -101,7 +101,7 @@ public class SiteInfoProvider {
     }
 
     protected SiteToSiteRestApiClient createSiteToSiteRestApiClient(final SSLContext sslContext, final HttpProxy proxy) {
-        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, proxy, EventReporter.NO_OP);
+        final SiteToSiteRestApiClient apiClient = new SiteToSiteRestApiClient(sslContext, proxy, SiteToSiteEventReporter.DISABLED);
         apiClient.setConnectTimeoutMillis(connectTimeoutMillis);
         apiClient.setReadTimeoutMillis(readTimeoutMillis);
         apiClient.setLocalAddress(localAddress);

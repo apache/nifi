@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.remote.protocol.socket;
 
-import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.FlowFileCodec;
@@ -73,7 +73,7 @@ public class TestSocketClientTransaction {
         Peer peer = new Peer(description, commsSession, peerUrl, clusterUrl);
         boolean useCompression = false;
         int penaltyMillis = 1000;
-        EventReporter eventReporter = null;
+        SiteToSiteEventReporter eventReporter = null;
         int protocolVersion = 5;
         String destinationId = "destinationId";
         return new SocketClientTransaction(protocolVersion, destinationId, peer, codec, direction, useCompression, penaltyMillis, eventReporter);

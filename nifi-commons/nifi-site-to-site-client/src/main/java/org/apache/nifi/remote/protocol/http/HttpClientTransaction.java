@@ -17,9 +17,9 @@
 package org.apache.nifi.remote.protocol.http;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.AbstractTransaction;
 import org.apache.nifi.remote.Peer;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
 import org.apache.nifi.remote.io.http.HttpCommunicationsSession;
@@ -40,7 +40,7 @@ public class HttpClientTransaction extends AbstractTransaction {
     private String transactionUrl;
 
     public HttpClientTransaction(final int protocolVersion, final Peer peer, TransferDirection direction,
-                                 final boolean useCompression, final String portId, int penaltyMillis, EventReporter eventReporter) throws IOException {
+                                 final boolean useCompression, final String portId, int penaltyMillis, SiteToSiteEventReporter eventReporter) {
         super(peer, direction, useCompression, new StandardFlowFileCodec(), eventReporter, protocolVersion, penaltyMillis, portId);
     }
 

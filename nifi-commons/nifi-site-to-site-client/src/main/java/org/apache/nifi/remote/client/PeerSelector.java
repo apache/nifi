@@ -35,10 +35,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PeerStatus;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.util.PeerStatusCache;
@@ -72,7 +72,7 @@ public class PeerSelector {
     // The most recently fetched peer statuses
     private volatile PeerStatusCache peerStatusCache;
 
-    private EventReporter eventReporter;
+    private SiteToSiteEventReporter eventReporter;
 
     /**
      * Returns a peer selector with the provided collaborators.
@@ -298,7 +298,7 @@ public class PeerSelector {
      *
      * @param eventReporter the event reporter
      */
-    public void setEventReporter(EventReporter eventReporter) {
+    public void setEventReporter(SiteToSiteEventReporter eventReporter) {
         this.eventReporter = eventReporter;
     }
 
