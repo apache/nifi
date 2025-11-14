@@ -225,6 +225,7 @@ public class JoinEnrichment extends BinFiles {
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName());
         config.renameProperty(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName());
     }

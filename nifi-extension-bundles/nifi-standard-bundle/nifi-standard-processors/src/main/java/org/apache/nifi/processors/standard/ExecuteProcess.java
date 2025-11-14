@@ -35,6 +35,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -146,7 +147,7 @@ public class ExecuteProcess extends AbstractProcessor {
       .build();
 
     static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
-            .name("Output MIME type")
+            .name("MIME Type")
             .description("Specifies the value to set for the \"mime.type\" attribute. This property is ignored if 'Batch Duration' is set.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -313,6 +314,11 @@ public class ExecuteProcess extends AbstractProcessor {
             getLogger().info("Created {} and routed to success", flowFile);
             session.transfer(flowFile, REL_SUCCESS);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Output MIME type", MIME_TYPE.getName());
     }
 
     protected List<String> createCommandStrings(final ProcessContext context, final String command, final String arguments) {

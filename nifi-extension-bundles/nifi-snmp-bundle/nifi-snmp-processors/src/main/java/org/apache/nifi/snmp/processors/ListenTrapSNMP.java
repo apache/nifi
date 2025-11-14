@@ -104,7 +104,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             .build();
 
     public static final PropertyDescriptor SNMP_USM_USERS_JSON = new PropertyDescriptor.Builder()
-            .name("USM Users JSON content")
+            .name("USM Users JSON Content")
             .description("The JSON containing the user credentials for SNMPv3. Check Usage for more details.")
             .required(false)
             .sensitive(true)
@@ -142,6 +142,11 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
             SNMP_USM_USERS_JSON_FILE_PATH,
             SNMP_USM_USERS_JSON,
             SNMP_USM_SECURITY_NAMES
+    );
+
+    private static final List<String> OBSOLETE_SNMP_USM_USERS_JSON_PROPERTY_NAMES = List.of(
+            "snmp-usm-users-json-content",
+            "USM Users JSON content"
     );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -248,7 +253,7 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
         config.renameProperty("snmp-manager-port", SNMP_MANAGER_PORT.getName());
         config.renameProperty("snmp-usm-users-source", SNMP_USM_USER_INPUT_METHOD.getName());
         config.renameProperty("snmp-usm-users-file-path", SNMP_USM_USERS_JSON_FILE_PATH.getName());
-        config.renameProperty("snmp-usm-users-json-content", SNMP_USM_USERS_JSON.getName());
+        OBSOLETE_SNMP_USM_USERS_JSON_PROPERTY_NAMES.forEach(obsoletePropertyName -> config.renameProperty(obsoletePropertyName, SNMP_USM_USERS_JSON.getName()));
         config.renameProperty("snmp-usm-security-names", SNMP_USM_SECURITY_NAMES.getName());
         config.renameProperty(BasicProperties.OLD_SNMP_VERSION_PROPERTY_NAME, BasicProperties.SNMP_VERSION.getName());
         config.renameProperty(BasicProperties.OLD_SNMP_COMMUNITY_PROPERTY_NAME, BasicProperties.SNMP_COMMUNITY.getName());

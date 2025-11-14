@@ -209,7 +209,7 @@ public class ExtractText extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor ENABLE_REPEATING_CAPTURE_GROUP = new PropertyDescriptor.Builder()
-        .name("Enable repeating capture group")
+        .name("Enable Repeating Capture Group")
         .description("If set to true, every string matching the capture groups will be extracted. Otherwise, "
             + "if the Regular Expression matches more than once, only the first match will be extracted.")
         .required(true)
@@ -218,7 +218,7 @@ public class ExtractText extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor ENABLE_NAMED_GROUPS = new PropertyDescriptor.Builder()
-        .name("Enable named group support")
+        .name("Enable Named Groups")
         .description("""
             If set to true, when named groups are present in the regular expression, the name of the
             group will be used in the attribute name as opposed to the group index.  All capturing groups
@@ -228,6 +228,16 @@ public class ExtractText extends AbstractProcessor {
         .allowableValues("true", "false")
         .defaultValue("false")
         .build();
+
+    private static final List<String> OBSOLETE_ENABLE_REPEATING_CAPTURE_GROUP_PROPERTY_NAMES = List.of(
+            "extract-text-enable-repeating-capture-group",
+            "Enable repeating capture group"
+    );
+
+    private static final List<String> OBSOLETE_ENABLE_NAMED_GROUPS_PROPERTY_NAMES = List.of(
+            "extract-text-enable-named-groups",
+            "Enable named group support"
+    );
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CHARACTER_SET,
@@ -278,8 +288,8 @@ public class ExtractText extends AbstractProcessor {
 
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
-        config.renameProperty("extract-text-enable-named-groups", "Enable named group support");
-        config.renameProperty("extract-text-enable-repeating-capture-group", "Enable repeating capture group");
+        OBSOLETE_ENABLE_REPEATING_CAPTURE_GROUP_PROPERTY_NAMES.forEach(obsoletePropertyName -> config.renameProperty(obsoletePropertyName, ENABLE_REPEATING_CAPTURE_GROUP.getName()));
+        OBSOLETE_ENABLE_NAMED_GROUPS_PROPERTY_NAMES.forEach(obsoletePropertyName -> config.renameProperty(obsoletePropertyName, ENABLE_NAMED_GROUPS.getName()));
     }
 
     @Override

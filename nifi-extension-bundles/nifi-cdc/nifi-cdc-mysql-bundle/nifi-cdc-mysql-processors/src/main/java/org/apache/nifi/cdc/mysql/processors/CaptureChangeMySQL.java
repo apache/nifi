@@ -75,7 +75,6 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -197,6 +196,10 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             SSLMode.VERIFY_IDENTITY.toString(),
             "Connect with TLS or fail when server support not enabled. Verify server hostname matches presented X.509 certificate names or fail when not matched");
 
+    private static final List<String> OBSOLETE_DIST_CACHE_CLIENT_PROPERTY_NAMES = List.of(
+            "capture-change-mysql-dist-map-cache-client",
+            "Distributed Map Cache Client - unused"
+    );
 
     // Properties
     public static final PropertyDescriptor DATABASE_NAME_PATTERN = new PropertyDescriptor.Builder()
@@ -306,13 +309,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             .required(false)
             .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .build();
-
-    public static final PropertyDescriptor DIST_CACHE_CLIENT = new PropertyDescriptor.Builder()
-            .name("Distributed Map Cache Client - unused")
-            .description("This is a legacy property that is no longer used to store table information, the processor will handle the table information (column names, types, etc.)")
-            .identifiesControllerService(DistributedMapCacheClient.class)
-            .required(false)
             .build();
 
     public static final PropertyDescriptor RETRIEVE_ALL_RECORDS = new PropertyDescriptor.Builder()
@@ -441,7 +437,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             DATABASE_NAME_PATTERN,
             TABLE_NAME_PATTERN,
             CONNECT_TIMEOUT,
-            DIST_CACHE_CLIENT,
             RETRIEVE_ALL_RECORDS,
             INCLUDE_BEGIN_COMMIT,
             INCLUDE_DDL_EVENTS,
@@ -511,7 +506,6 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         config.renameProperty("events-per-flowfile-strategy", EVENTS_PER_FLOWFILE_STRATEGY.getName());
         config.renameProperty("number-of-events-per-flowfile", NUMBER_OF_EVENTS_PER_FLOWFILE.getName());
         config.renameProperty("capture-change-mysql-server-id", SERVER_ID.getName());
-        config.renameProperty("capture-change-mysql-dist-map-cache-client", DIST_CACHE_CLIENT.getName());
         config.renameProperty("capture-change-mysql-retrieve-all-records", RETRIEVE_ALL_RECORDS.getName());
         config.renameProperty("capture-change-mysql-include-begin-commit", INCLUDE_BEGIN_COMMIT.getName());
         config.renameProperty("capture-change-mysql-include-ddl-events", INCLUDE_DDL_EVENTS.getName());
@@ -520,6 +514,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
         config.renameProperty("capture-change-mysql-init-binlog-position", INIT_BINLOG_POSITION.getName());
         config.renameProperty("capture-change-mysql-use-gtid", USE_BINLOG_GTID.getName());
         config.renameProperty("capture-change-mysql-init-gtid", INIT_BINLOG_GTID.getName());
+        OBSOLETE_DIST_CACHE_CLIENT_PROPERTY_NAMES.forEach(config::removeProperty);
     }
 
     @Override
