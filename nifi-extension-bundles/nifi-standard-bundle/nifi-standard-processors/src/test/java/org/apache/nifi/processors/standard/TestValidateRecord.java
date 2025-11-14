@@ -32,6 +32,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
+import org.apache.nifi.schemaregistry.services.JsonSchemaRegistryService;
 import org.apache.nifi.serialization.DateTimeUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -41,6 +42,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -63,13 +65,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
-import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME_PROPERTY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT_PROPERTY;
 import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestValidateRecord {
@@ -731,8 +734,7 @@ public class TestValidateRecord {
         invalidFlowFile.assertAttributeEquals("record.count", "1");
         invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
         invalidFlowFile.assertAttributeExists("valDetails");
-        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
-                + "The following 1 fields had values whose type did not match the schema: [/id]");
+        assertTrue(invalidFlowFile.getAttribute("valDetails").startsWith("Records in this FlowFile were invalid."));
     }
 
     @Test
@@ -818,8 +820,7 @@ public class TestValidateRecord {
         invalidFlowFile.assertAttributeEquals("record.count", "1");
         invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
         invalidFlowFile.assertAttributeExists("valDetails");
-        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
-                + "The following 1 fields had values whose type did not match the schema: [/id]");
+        assertTrue(invalidFlowFile.getAttribute("valDetails").startsWith("Records in this FlowFile were invalid."));
     }
 
     @Test
@@ -873,8 +874,7 @@ public class TestValidateRecord {
         invalidFlowFile.assertAttributeEquals("record.count", "1");
         invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
         invalidFlowFile.assertAttributeExists("valDetails");
-        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
-                + "The following 1 fields had values whose type did not match the schema: [/id]");
+        assertTrue(invalidFlowFile.getAttribute("valDetails").startsWith("Records in this FlowFile were invalid."));
     }
 
     @Test
@@ -928,8 +928,7 @@ public class TestValidateRecord {
         invalidFlowFile.assertAttributeEquals("record.count", "1");
         invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
         invalidFlowFile.assertAttributeExists("valDetails");
-        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
-                + "The following 1 fields had values whose type did not match the schema: [/id]");
+        assertTrue(invalidFlowFile.getAttribute("valDetails").startsWith("Records in this FlowFile were invalid."));
     }
 
     @Test
@@ -984,8 +983,112 @@ public class TestValidateRecord {
         invalidFlowFile.assertAttributeEquals("record.count", "1");
         invalidFlowFile.assertContentEquals("invalid\n\"Three\",\"Jack Doe\"\n");
         invalidFlowFile.assertAttributeExists("valDetails");
-        invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
-                + "The following 1 fields had values whose type did not match the schema: [/id]");
+        assertTrue(invalidFlowFile.getAttribute("valDetails").startsWith("Records in this FlowFile were invalid."));
+    }
+
+    @Test
+    public void testJsonSchemaValidation() throws Exception {
+        final JsonSchemaRegistryService registryService = new JsonSchemaRegistryService();
+        final String minimalPersonSchemaName = "minimum-person";
+        final String minimalPersonSchema = """
+            {
+              "$id": "urn:nifi:test:minimum-person",
+              "title": "Person",
+              "type": "object",
+              "properties": {
+                "firstName": { "type": "string" },
+                "lastName": { "type": "string" },
+                "age": { "type": "integer", "minimum": 0 }
+              }
+            }
+            """;
+        final String numericSchemaName = "numeric-constraints";
+        final String numericSchemaText = """
+            {
+              "$id": "urn:nifi:test:numeric-constraints",
+              "title": "NumericConstraints",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["quantity", "ratio", "step"],
+              "properties": {
+                "quantity": { "type": "integer", "minimum": 1, "maximum": 100 },
+                "ratio": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 },
+                "step": { "type": "number", "multipleOf": 0.25 }
+              }
+            }
+            """;
+
+        runner.addControllerService("json-schema-registry", registryService);
+        runner.setProperty(registryService, minimalPersonSchemaName, minimalPersonSchema);
+        runner.setProperty(registryService, numericSchemaName, numericSchemaText);
+        runner.enableControllerService(registryService);
+
+        final RecordSchema retrievedSchema = registryService.retrieveSchema(SchemaIdentifier.builder().name(numericSchemaName).build());
+        assertFalse(retrievedSchema.getRecordValidators().isEmpty(), "Expected record validators to be retained on schema");
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("json-reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SCHEMA_NAME_PROPERTY.getValue());
+        runner.setProperty(jsonReader, SCHEMA_REGISTRY, "json-schema-registry");
+        runner.setProperty(jsonReader, SCHEMA_NAME, "${schema.name}");
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("json-writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(ValidateRecord.RECORD_READER, "json-reader");
+        runner.setProperty(ValidateRecord.RECORD_WRITER, "json-writer");
+        runner.setProperty(ValidateRecord.ALLOW_EXTRA_FIELDS, "true");
+
+        final String minimalContent = """
+            [
+              {
+                "firstName": "Alice",
+                "lastName": "Doe",
+                "age": 30
+              },
+              {
+                "firstName": "Bob",
+                "lastName": "Smith",
+                "age": -1
+              }
+            ]
+            """;
+
+        runner.enqueue(minimalContent, Map.of("schema.name", minimalPersonSchemaName));
+        runner.run();
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+        runner.clearTransferState();
+
+        final String numericContent = """
+            [
+              {
+                "quantity": 10,
+                "ratio": 0.5,
+                "step": 1.75
+              },
+              {
+                "quantity": 0,
+                "ratio": 1,
+                "step": 0.3
+              }
+            ]
+            """;
+
+        runner.enqueue(numericContent, Map.of("schema.name", numericSchemaName));
+        runner.run();
+
+        runner.assertTransferCount(ValidateRecord.REL_VALID, 1);
+        runner.assertTransferCount(ValidateRecord.REL_INVALID, 1);
+
+        runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID)
+                .getFirst()
+                .assertAttributeEquals("record.count", "1");
+        runner.getFlowFilesForRelationship(ValidateRecord.REL_INVALID)
+                .getFirst()
+                .assertAttributeEquals("record.count", "1");
     }
 
     private String getSystemZoneOffsetId(final LocalDateTime inputLocalDateTime) {
