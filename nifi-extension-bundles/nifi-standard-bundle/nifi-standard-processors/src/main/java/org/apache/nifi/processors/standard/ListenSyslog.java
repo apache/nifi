@@ -119,7 +119,7 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
         .description("The port to listen on for UDP Syslog communication. Either this or TCP Port must be set, but both cannot be set at the same time.")
         .required(false)
         .addValidator(StandardValidators.PORT_VALIDATOR)
-        .identifiesListenPort(org.apache.nifi.components.listen.TransportProtocol.TCP, "udp")
+        .identifiesListenPort(org.apache.nifi.components.listen.TransportProtocol.UDP, "syslog")
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
