@@ -30,20 +30,6 @@ public abstract class AbstractSyslogProcessor extends AbstractProcessor {
     public static final AllowableValue TCP_VALUE = new AllowableValue("TCP", "TCP");
     public static final AllowableValue UDP_VALUE = new AllowableValue("UDP", "UDP");
 
-    public static final PropertyDescriptor PROTOCOL = new PropertyDescriptor
-            .Builder().name("Protocol")
-            .description("The protocol for Syslog communication.")
-            .required(true)
-            .allowableValues(TCP_VALUE, UDP_VALUE)
-            .defaultValue(UDP_VALUE.getValue())
-            .build();
-    public static final PropertyDescriptor PORT = new PropertyDescriptor
-            .Builder().name("Port")
-            .description("The port for Syslog communication. Note that Expression language is not evaluated per FlowFile.")
-            .required(true)
-            .addValidator(StandardValidators.PORT_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
             .description("Specifies the character set of the Syslog messages. Note that Expression language is not evaluated per FlowFile.")
