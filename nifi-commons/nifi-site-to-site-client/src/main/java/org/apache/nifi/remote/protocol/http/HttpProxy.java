@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.remote.protocol.http;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHost;
-
 public class HttpProxy {
     private final String host;
     private final Integer port;
@@ -31,7 +28,6 @@ public class HttpProxy {
         this.username = username;
         this.password = password;
     }
-
 
     public String getHost() {
         return host;
@@ -48,12 +44,4 @@ public class HttpProxy {
     public String getPassword() {
         return password;
     }
-
-    public HttpHost getHttpHost() {
-        if (StringUtils.isEmpty(host)) {
-            return null;
-        }
-        return new HttpHost(host, port == null ? 80 : port);
-    }
-
 }
