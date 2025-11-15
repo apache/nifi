@@ -90,7 +90,7 @@ public class TestListenTCP {
 
     @Test
     public void testCustomValidate() throws Exception {
-        runner.setProperty(ListenerProperties.PORT, "1");
+        runner.setProperty(ListenTCP.PORT, "1");
         runner.assertValid();
 
         enableSslContextService(keyStoreSslContext);
@@ -189,7 +189,7 @@ public class TestListenTCP {
     }
 
     private void run(final List<String> messages, final int flowFiles, final SSLContext sslContext) throws Exception {
-        runner.setProperty(ListenerProperties.PORT, "0");
+        runner.setProperty(ListenTCP.PORT, "0");
         final String message = StringUtils.join(messages, null);
         final byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
         runner.run(1, false, true);
