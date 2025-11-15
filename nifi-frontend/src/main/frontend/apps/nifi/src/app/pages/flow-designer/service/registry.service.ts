@@ -18,7 +18,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { ImportFromRegistryRequest } from '../state/flow';
+import { FlowComparisonEntity, ImportFromRegistryRequest } from '../state/flow';
 
 @Injectable({ providedIn: 'root' })
 export class RegistryService {
@@ -61,6 +61,31 @@ export class RegistryService {
             `${RegistryService.API}/flow/registries/${registryId}/buckets/${bucketId}/flows/${flowId}/versions`,
             { params }
         );
+    }
+
+    getFlowDiff(
+        registryId: string,
+        bucketId: string,
+        flowId: string,
+        versionA: string,
+        versionB: string,
+        branch?: string | null
+    ): Observable<FlowComparisonEntity> {
+        const encodedRegistryId = encodeURIComponent(registryId);
+        const encodedBucketId = encodeURIComponent(bucketId);
+        const encodedFlowId = encodeURIComponent(flowId);
+        const encodedVersionA = encodeURIComponent(versionA);
+        const encodedVersionB = encodeURIComponent(versionB);
+
+        if (branch) {
+            const encodedBranch = encodeURIComponent(branch);
+            const diffEndpoint = `${RegistryService.API}/flow/registries/${encodedRegistryId}/branches/${encodedBranch}/buckets/${encodedBucketId}/flows/${encodedFlowId}/${encodedVersionA}/diff/branches/${encodedBranch}/buckets/${encodedBucketId}/flows/${encodedFlowId}/${encodedVersionB}`;
+            return this.httpClient.get(diffEndpoint) as Observable<FlowComparisonEntity>;
+        }
+
+        let params: HttpParams = new HttpParams();
+        const legacyEndpoint = `${RegistryService.API}/flow/registries/${encodedRegistryId}/buckets/${encodedBucketId}/flows/${encodedFlowId}/diff/${encodedVersionA}/${encodedVersionB}`;
+        return this.httpClient.get(legacyEndpoint, { params }) as Observable<FlowComparisonEntity>;
     }
 
     importFromRegistry(processGroupId: string, request: ImportFromRegistryRequest): Observable<any> {
