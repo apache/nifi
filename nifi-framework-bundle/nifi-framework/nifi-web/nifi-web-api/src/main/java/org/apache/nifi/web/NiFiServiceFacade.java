@@ -409,7 +409,7 @@ public interface NiFiServiceFacade {
      * @param includeRegistries Set of Flow Metrics Registries to be returned
      * @return Collector Registries
      */
-    Collection<CollectorRegistry> generateFlowMetrics(Set<FlowMetricsRegistry> includeRegistries);
+    Collection<CollectorRegistry> generateFlowMetrics(Set<FlowMetricsRegistry> includeRegistries, String flowMetricsStrategy);
 
     /**
      * Updates the configuration for this controller.

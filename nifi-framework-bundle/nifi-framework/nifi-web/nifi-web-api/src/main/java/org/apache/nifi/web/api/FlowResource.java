@@ -163,6 +163,7 @@ import org.apache.nifi.web.api.metrics.TextFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.FlowMetricsProducer;
+import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -579,13 +580,19 @@ public class FlowResource extends ApplicationResource {
             @Parameter(
                     description = "Name of the first field of JSON object. Applicable for JSON producer only."
             )
-            @QueryParam("rootFieldName") final String rootFieldName
-    ) {
+            @QueryParam("rootFieldName") final String rootFieldName,
+            @Parameter(
+                    description = "Flow metrics reporting strategy lets you optionally limit what metrics are collected"
+            )
+            @DefaultValue("ALL_COMPONENTS")
+            @QueryParam("flowMetricsReportingStrategy") final FlowMetricsReportingStrategy flowMetricsReportingStrategy
+            ) {
 
         authorizeFlow();
 
         final Set<FlowMetricsRegistry> selectedRegistries = includedRegistries == null ? Collections.emptySet() : includedRegistries;
-        final Collection<CollectorRegistry> registries = serviceFacade.generateFlowMetrics(selectedRegistries);
+        final FlowMetricsReportingStrategy selectedStrategy = flowMetricsReportingStrategy == null ? FlowMetricsReportingStrategy.ALL_COMPONENTS : flowMetricsReportingStrategy;
+        final Collection<CollectorRegistry> registries = serviceFacade.generateFlowMetrics(selectedRegistries, selectedStrategy.getStrategy().getValue());
 
         if (FlowMetricsProducer.PROMETHEUS.getProducer().equalsIgnoreCase(producer)) {
             final StreamingOutput response = (outputStream -> {

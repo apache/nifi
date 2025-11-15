@@ -6634,7 +6634,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
     }
 
-    protected Collection<AbstractMetricsRegistry> populateFlowMetrics() {
+    protected Collection<AbstractMetricsRegistry> populateFlowMetrics(String flowMetricsStrategy) {
         // Include registries which are fully refreshed upon each invocation
         NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
         BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
@@ -6644,8 +6644,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final String instanceId = node == null ? instId : node.getId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
 
-        PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", ROOT_PROCESS_GROUP,
-                PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
+        PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", ROOT_PROCESS_GROUP, flowMetricsStrategy);
 
         // Add the total byte counts (read/written) to the NiFi metrics registry
         FlowFileEventRepository flowFileEventRepository = controllerFacade.getFlowFileEventRepository();
@@ -6746,19 +6745,19 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public Collection<CollectorRegistry> generateFlowMetrics() {
 
-        return populateFlowMetrics().stream().map(AbstractMetricsRegistry::getRegistry)
+        return populateFlowMetrics(PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue()).stream().map(AbstractMetricsRegistry::getRegistry)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Collection<CollectorRegistry> generateFlowMetrics(final Set<FlowMetricsRegistry> includeRegistries) {
+    public Collection<CollectorRegistry> generateFlowMetrics(final Set<FlowMetricsRegistry> includeRegistries, final String flowMetricsStrategy) {
         final Set<FlowMetricsRegistry> selectedRegistries = includeRegistries.isEmpty() ? new HashSet<>(Arrays.asList(FlowMetricsRegistry.values())) : includeRegistries;
 
         final Set<Class<? extends AbstractMetricsRegistry>> registryClasses = selectedRegistries.stream()
                 .map(FlowMetricsRegistry::getRegistryClass)
                 .collect(Collectors.toSet());
 
-        Collection<AbstractMetricsRegistry> configuredRegistries = populateFlowMetrics();
+        Collection<AbstractMetricsRegistry> configuredRegistries = populateFlowMetrics(flowMetricsStrategy);
 
         return configuredRegistries.stream()
                 .filter(configuredRegistry -> registryClasses.contains(configuredRegistry.getClass()))
