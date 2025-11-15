@@ -76,6 +76,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 })
 public class ListenOTLP extends AbstractProcessor implements ListenComponent {
 
+    static final String[] OTLP_APPLICATION_PROTOCOLS = {"http/1.1", "h2", "grpc", "otlp"};
+
     static final PropertyDescriptor ADDRESS = new PropertyDescriptor.Builder()
             .name("Address")
             .description("Internet Protocol Address on which to listen for OTLP Export Service Requests. The default value enables listening on all addresses.")
@@ -90,7 +92,7 @@ public class ListenOTLP extends AbstractProcessor implements ListenComponent {
             .description("TCP port number on which to listen for OTLP Export Service Requests over HTTP and gRPC")
             .required(true)
             .defaultValue("4317")
-            .identifiesListenPort(TransportProtocol.TCP, "http/1.1", "h2", "grpc", "otlp")
+            .identifiesListenPort(TransportProtocol.TCP, OTLP_APPLICATION_PROTOCOLS)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
@@ -181,16 +183,19 @@ public class ListenOTLP extends AbstractProcessor implements ListenComponent {
     @Override
     public List<ListenPort> getListenPorts(final ConfigurationContext context) {
         final Integer portNumber = context.getProperty(PORT).asInteger();
-        if (portNumber != null) {
+        final List<ListenPort> ports;
+        if (portNumber == null) {
+            ports = List.of();
+        } else {
             final ListenPort port = StandardListenPort.builder()
                 .portNumber(portNumber)
                 .portName(PORT.getDisplayName())
                 .transportProtocol(TransportProtocol.TCP)
-                .applicationProtocols(List.of("http/1.1", "h2", "grpc", "otlp"))
+                .applicationProtocols(List.of(OTLP_APPLICATION_PROTOCOLS))
                 .build();
-            return List.of(port);
+            ports = List.of(port);
         }
-        return Collections.emptyList();
+        return ports;
     }
 
     @OnStopped

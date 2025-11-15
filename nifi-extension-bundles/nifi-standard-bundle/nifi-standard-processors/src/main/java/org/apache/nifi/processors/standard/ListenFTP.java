@@ -48,7 +48,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -197,16 +196,19 @@ public class ListenFTP extends AbstractSessionFactoryProcessor implements Listen
     @Override
     public List<ListenPort> getListenPorts(final ConfigurationContext context) {
         final Integer portNumber = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        if (portNumber != null) {
+        final List<ListenPort> ports;
+        if (portNumber == null) {
+            ports = List.of();
+        } else {
             final ListenPort port = StandardListenPort.builder()
                 .portNumber(portNumber)
                 .portName(PORT.getDisplayName())
                 .transportProtocol(TransportProtocol.TCP)
                 .applicationProtocols(List.of("ftp"))
                 .build();
-            return List.of(port);
+            ports = List.of(port);
         }
-        return Collections.emptyList();
+        return ports;
     }
 
     @OnStopped

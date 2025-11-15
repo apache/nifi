@@ -31,7 +31,6 @@ import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public abstract class AbstractCacheServer extends AbstractControllerService implements ListenComponent {
@@ -111,16 +110,19 @@ public abstract class AbstractCacheServer extends AbstractControllerService impl
     @Override
     public List<ListenPort> getListenPorts(final ConfigurationContext context) {
         final Integer portNumber = context.getProperty(PORT).asInteger();
-        if (portNumber != null) {
+        final List<ListenPort> ports;
+        if (portNumber == null) {
+            ports = List.of();
+        } else {
             final ListenPort port = StandardListenPort.builder()
                 .portNumber(portNumber)
                 .portName(PORT.getDisplayName())
                 .transportProtocol(TransportProtocol.TCP)
                 .applicationProtocols(List.of(APPLICATION_PROTOCOL_NAME))
                 .build();
-            return List.of(port);
+            ports = List.of(port);
         }
-        return Collections.emptyList();
+        return ports;
     }
 
     @OnShutdown

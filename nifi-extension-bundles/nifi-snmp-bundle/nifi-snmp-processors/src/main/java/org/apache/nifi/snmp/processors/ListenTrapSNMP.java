@@ -55,7 +55,6 @@ import org.apache.nifi.snmp.utils.UsmReader;
 import org.snmp4j.security.UsmUser;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -209,16 +208,19 @@ public class ListenTrapSNMP extends AbstractSessionFactoryProcessor implements V
     @Override
     public List<ListenPort> getListenPorts(final ConfigurationContext context) {
         final Integer portNumber = context.getProperty(SNMP_MANAGER_PORT).asInteger();
-        if (portNumber != null) {
+        final List<ListenPort> ports;
+        if (portNumber == null) {
+            ports = List.of();
+        } else {
             final ListenPort port = StandardListenPort.builder()
                 .portNumber(portNumber)
                 .portName(SNMP_MANAGER_PORT.getDisplayName())
                 .transportProtocol(TransportProtocol.UDP)
                 .applicationProtocols(List.of("snmptrap"))
                 .build();
-            return List.of(port);
+            ports = List.of(port);
         }
-        return Collections.emptyList();
+        return ports;
     }
 
     @Override
