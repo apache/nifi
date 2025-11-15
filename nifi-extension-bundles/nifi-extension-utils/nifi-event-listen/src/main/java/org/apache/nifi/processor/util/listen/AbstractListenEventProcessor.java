@@ -210,8 +210,7 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
             final ListenPort port = StandardListenPort.builder()
                 .portNumber(portNumber)
                 .portName(PORT.getDisplayName())
-                .transportProtocol(TransportProtocol.TCP)
-                .applicationProtocols(List.of("ftp"))
+                .transportProtocol(TransportProtocol.UDP)
                 .build();
             ports = List.of(port);
         }
