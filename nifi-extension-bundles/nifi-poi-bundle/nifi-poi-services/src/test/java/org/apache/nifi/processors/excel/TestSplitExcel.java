@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processors.excel;
 
+import org.apache.nifi.excel.InputFileType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.CellType;
@@ -26,12 +28,14 @@ import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFHyperlink;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -198,8 +202,9 @@ public class TestSplitExcel {
         }
     }
 
-    @Test
-    void testCopyDateTime() throws Exception {
+    @ParameterizedTest
+    @EnumSource(InputFileType.class)
+    void testCopyDateTime(InputFileType inputFileType) throws Exception {
         final LocalDateTime localDateTime = LocalDateTime.of(2023, 1, 1, 0, 0, 0);
         final LocalDateTime nonValidExcelDate = LocalDateTime.of(1899, 12, 31, 0, 0, 0);
 
@@ -210,14 +215,15 @@ public class TestSplitExcel {
         };
 
         final ByteArrayOutputStream workbookOutputStream = new ByteArrayOutputStream();
-        try (XSSFWorkbook workbook = new XSSFWorkbook()) {
-            final XSSFSheet sheet = workbook.createSheet("SomeSheetName");
+        try (Workbook workbook = InputFileType.XLSX == inputFileType ? new XSSFWorkbook() : new HSSFWorkbook()) {
+            final Sheet sheet = workbook.createSheet("SomeSheetName");
             populateSheet(sheet, data);
             setCellStyles(sheet, workbook);
             workbook.write(workbookOutputStream);
         }
 
         final ByteArrayInputStream input = new ByteArrayInputStream(workbookOutputStream.toByteArray());
+        runner.setProperty(SplitExcel.INPUT_FILE_TYPE, inputFileType.getValue());
         runner.enqueue(input);
         runner.run();
 
@@ -226,7 +232,7 @@ public class TestSplitExcel {
         runner.assertTransferCount(SplitExcel.REL_FAILURE, 0);
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(SplitExcel.REL_SPLIT).getFirst();
-        try (XSSFWorkbook workbook = new XSSFWorkbook(flowFile.getContentStream())) {
+        try (Workbook workbook = InputFileType.XLSX == inputFileType ? new XSSFWorkbook(flowFile.getContentStream()) : new HSSFWorkbook(flowFile.getContentStream())) {
             final Sheet firstSheet = workbook.sheetIterator().next();
 
             List<List<Cell>> dateCells = Stream.iterate(firstSheet.getFirstRowNum() + 1, rowIndex -> rowIndex + 1)
@@ -273,7 +279,7 @@ public class TestSplitExcel {
         }
     }
 
-    private static void populateSheet(XSSFSheet sheet, Object[][] data) {
+    private static void populateSheet(Sheet sheet, Object[][] data) {
         int rowCount = 0;
         for (Object[] dataRow : data) {
             Row row = sheet.createRow(rowCount++);
@@ -293,7 +299,7 @@ public class TestSplitExcel {
         }
     }
 
-    void setCellStyles(XSSFSheet sheet, XSSFWorkbook workbook) {
+    void setCellStyles(Sheet sheet, Workbook workbook) {
         CreationHelper creationHelper = workbook.getCreationHelper();
         CellStyle dayMonthYearCellStyle = workbook.createCellStyle();
         dayMonthYearCellStyle.setDataFormat(creationHelper.createDataFormat().getFormat("dd/mm/yyyy"));
