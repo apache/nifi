@@ -19,6 +19,11 @@ package org.apache.nifi.processor.util.listen;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.components.listen.TransportProtocol;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -56,13 +61,14 @@ import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_I
  *
  * @param <E> the type of events being produced
  */
-public abstract class AbstractListenEventProcessor<E extends Event> extends AbstractProcessor {
+public abstract class AbstractListenEventProcessor<E extends Event> extends AbstractProcessor implements ListenComponent {
 
     public static final PropertyDescriptor PORT = new PropertyDescriptor
             .Builder().name("Port")
             .description("The port to listen on for communication.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .identifiesListenPort(TransportProtocol.UDP)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -192,6 +198,23 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         readerThread.setName(getClass().getName() + " [" + getIdentifier() + "]");
         readerThread.setDaemon(true);
         readerThread.start();
+    }
+
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+        final Integer portNumber = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        final List<ListenPort> ports;
+        if (portNumber == null) {
+            ports = List.of();
+        } else {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(portNumber)
+                .portName(PORT.getDisplayName())
+                .transportProtocol(TransportProtocol.UDP)
+                .build();
+            ports = List.of(port);
+        }
+        return ports;
     }
 
     public int getListeningPort() {

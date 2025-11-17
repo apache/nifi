@@ -27,6 +27,11 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.components.listen.TransportProtocol;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -58,7 +63,7 @@ import java.util.concurrent.atomic.AtomicReference;
             + "E.g.: file.txt is uploaded to /Folder1/SubFolder, then the value of the path attribute will be \"/Folder1/SubFolder/\" "
             + "(note that it ends with a separator character).")
 })
-public class ListenFTP extends AbstractSessionFactoryProcessor {
+public class ListenFTP extends AbstractSessionFactoryProcessor implements ListenComponent {
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
@@ -90,6 +95,7 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
             .required(true)
             .defaultValue("2221")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .identifiesListenPort(TransportProtocol.TCP, "ftp")
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -185,6 +191,24 @@ public class ListenFTP extends AbstractSessionFactoryProcessor {
         } else {
             getLogger().warn("Ftp server already started.");
         }
+    }
+
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+        final Integer portNumber = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        final List<ListenPort> ports;
+        if (portNumber == null) {
+            ports = List.of();
+        } else {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(portNumber)
+                .portName(PORT.getDisplayName())
+                .transportProtocol(TransportProtocol.TCP)
+                .applicationProtocols(List.of("ftp"))
+                .build();
+            ports = List.of(port);
+        }
+        return ports;
     }
 
     @OnStopped
