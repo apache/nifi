@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto;
 
 import jakarta.ws.rs.WebApplicationException;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.action.Action;
@@ -178,6 +177,7 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.security.MessageDigestUtils;
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsSnapshotDTO.ResourceClaimDetailsDTO;
@@ -260,6 +260,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.text.Collator;
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -270,6 +271,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -4117,7 +4119,7 @@ public final class DtoFactory {
            final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
            usageDto.setName(repoName);
 
-           usageDto.setFileStoreHash(DigestUtils.sha256Hex(flowController.getContentRepoFileStoreName(repoName)));
+           usageDto.setFileStoreHash(getDigest(flowController.getContentRepoFileStoreName(repoName)));
            usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
            usageDto.setFreeSpaceBytes(usage.getFreeSpace());
            usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
@@ -4137,7 +4139,7 @@ public final class DtoFactory {
            final RepositoryUsageDTO usageDto = new RepositoryUsageDTO();
            usageDto.setName(repoName);
 
-           usageDto.setFileStoreHash(DigestUtils.sha256Hex(flowController.getProvenanceRepoFileStoreName(repoName)));
+           usageDto.setFileStoreHash(getDigest(flowController.getProvenanceRepoFileStoreName(repoName)));
            usageDto.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
            usageDto.setFreeSpaceBytes(usage.getFreeSpace());
            usageDto.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
@@ -4156,7 +4158,7 @@ public final class DtoFactory {
 
            flowFileRepoUsage.setName(repoName);
 
-           flowFileRepoUsage.setFileStoreHash(DigestUtils.sha256Hex(flowController.getFlowRepoFileStoreName()));
+           flowFileRepoUsage.setFileStoreHash(getDigest(flowController.getFlowRepoFileStoreName()));
            flowFileRepoUsage.setFreeSpace(FormatUtils.formatDataSize(usage.getFreeSpace()));
            flowFileRepoUsage.setFreeSpaceBytes(usage.getFreeSpace());
            flowFileRepoUsage.setTotalSpace(FormatUtils.formatDataSize(usage.getTotalSpace()));
@@ -5208,5 +5210,11 @@ public final class DtoFactory {
         performanceStatusDTO.setGarbageCollectionDuration(performanceStatus.getGarbageCollectionDuration());
 
         return performanceStatusDTO;
+    }
+
+    private String getDigest(final String name) {
+        final byte[] bytes = name.getBytes(StandardCharsets.UTF_8);
+        final byte[] digest = MessageDigestUtils.getDigest(bytes);
+        return HexFormat.of().formatHex(digest);
     }
 }
