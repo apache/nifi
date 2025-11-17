@@ -26,21 +26,26 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.components.listen.TransportProtocol;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.EventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processors.opentelemetry.protocol.TelemetryAttributeName;
-import org.apache.nifi.processors.opentelemetry.io.RequestCallback;
-import org.apache.nifi.processors.opentelemetry.io.RequestCallbackProvider;
-import org.apache.nifi.processors.opentelemetry.server.HttpServerFactory;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.opentelemetry.io.RequestCallback;
+import org.apache.nifi.processors.opentelemetry.io.RequestCallbackProvider;
+import org.apache.nifi.processors.opentelemetry.protocol.TelemetryAttributeName;
+import org.apache.nifi.processors.opentelemetry.server.HttpServerFactory;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextProvider;
 
@@ -69,7 +74,9 @@ import java.util.concurrent.LinkedBlockingQueue;
         @WritesAttribute(attribute = TelemetryAttributeName.RESOURCE_TYPE, description = "OpenTelemetry Resource Type: LOGS, METRICS, or TRACES"),
         @WritesAttribute(attribute = TelemetryAttributeName.RESOURCE_COUNT, description = "Count of resource elements included in messages"),
 })
-public class ListenOTLP extends AbstractProcessor {
+public class ListenOTLP extends AbstractProcessor implements ListenComponent {
+
+    static final String[] OTLP_APPLICATION_PROTOCOLS = {"http/1.1", "h2", "grpc", "otlp"};
 
     static final PropertyDescriptor ADDRESS = new PropertyDescriptor.Builder()
             .name("Address")
@@ -85,6 +92,7 @@ public class ListenOTLP extends AbstractProcessor {
             .description("TCP port number on which to listen for OTLP Export Service Requests over HTTP and gRPC")
             .required(true)
             .defaultValue("4317")
+            .identifiesListenPort(TransportProtocol.TCP, OTLP_APPLICATION_PROTOCOLS)
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
@@ -170,6 +178,24 @@ public class ListenOTLP extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) throws UnknownHostException {
         final EventServerFactory eventServerFactory = createEventServerFactory(context);
         server = eventServerFactory.getEventServer();
+    }
+
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+        final Integer portNumber = context.getProperty(PORT).asInteger();
+        final List<ListenPort> ports;
+        if (portNumber == null) {
+            ports = List.of();
+        } else {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(portNumber)
+                .portName(PORT.getDisplayName())
+                .transportProtocol(TransportProtocol.TCP)
+                .applicationProtocols(List.of(OTLP_APPLICATION_PROTOCOLS))
+                .build();
+            ports = List.of(port);
+        }
+        return ports;
     }
 
     @OnStopped

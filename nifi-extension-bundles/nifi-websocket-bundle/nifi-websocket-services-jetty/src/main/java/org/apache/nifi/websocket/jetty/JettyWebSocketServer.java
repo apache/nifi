@@ -25,6 +25,10 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.listen.ListenComponent;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.components.listen.StandardListenPort;
+import org.apache.nifi.components.listen.TransportProtocol;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -60,7 +64,6 @@ import org.eclipse.jetty.util.resource.PathResourceFactory;
 import org.eclipse.jetty.util.resource.Resource;
 
 import javax.net.ssl.SSLContext;
-
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.file.Path;
@@ -79,7 +82,7 @@ import java.util.stream.Stream;
 @CapabilityDescription("Implementation of WebSocketServerService." +
         " This service uses Jetty WebSocket server module to provide" +
         " WebSocket session management throughout the application.")
-public class JettyWebSocketServer extends AbstractJettyWebSocketService implements WebSocketServerService {
+public class JettyWebSocketServer extends AbstractJettyWebSocketService implements WebSocketServerService, ListenComponent {
 
     /**
      * A global map to refer a controller service instance by requested port number.
@@ -113,6 +116,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             .description("The port number on which this WebSocketServer listens to.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .identifiesListenPort(TransportProtocol.TCP, "ws")
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
@@ -341,6 +345,24 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         listenPort = serverConnector.getLocalPort();
 
         portToControllerService.put(listenPort, this);
+    }
+
+    @Override
+    public List<ListenPort> getListenPorts(final ConfigurationContext context) {
+        final Integer portNumber = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        final List<ListenPort> ports;
+        if (portNumber == null) {
+            ports = List.of();
+        } else {
+            final ListenPort port = StandardListenPort.builder()
+                .portNumber(portNumber)
+                .portName(PORT.getDisplayName())
+                .transportProtocol(TransportProtocol.TCP)
+                .applicationProtocols(List.of("ws"))
+                .build();
+            ports = List.of(port);
+        }
+        return ports;
     }
 
     public int getListeningPort() {
