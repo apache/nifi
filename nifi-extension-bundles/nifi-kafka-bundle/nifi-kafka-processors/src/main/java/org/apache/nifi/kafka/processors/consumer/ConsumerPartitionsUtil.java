@@ -103,7 +103,7 @@ public class ConsumerPartitionsUtil {
         final String[] splits = propertyValue.split(",");
         final List<Integer> partitionList = new ArrayList<>();
         for (final String split : splits) {
-            if (split.trim().isEmpty()) {
+            if (split.isBlank()) {
                 continue;
             }
 
