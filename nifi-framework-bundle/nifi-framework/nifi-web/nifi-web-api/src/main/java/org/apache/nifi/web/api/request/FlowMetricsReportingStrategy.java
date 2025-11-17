@@ -23,7 +23,7 @@ import static org.apache.nifi.prometheusutil.PrometheusMetricsUtil.METRICS_STRAT
 import static org.apache.nifi.prometheusutil.PrometheusMetricsUtil.METRICS_STRATEGY_PG;
 
 public enum FlowMetricsReportingStrategy {
-    ONLY_PROCESS_GROUPS(METRICS_STRATEGY_PG),
+    ALL_PROCESS_GROUPS(METRICS_STRATEGY_PG),
     ALL_COMPONENTS(METRICS_STRATEGY_COMPONENTS);
 
     private final AllowableValue strategy;

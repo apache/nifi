@@ -582,7 +582,7 @@ public class FlowResource extends ApplicationResource {
             )
             @QueryParam("rootFieldName") final String rootFieldName,
             @Parameter(
-                    description = "Flow metrics reporting strategy lets you optionally limit what metrics are collected"
+                    description = "Flow metrics reporting strategy limits collected metrics"
             )
             @DefaultValue("ALL_COMPONENTS")
             @QueryParam("flowMetricsReportingStrategy") final FlowMetricsReportingStrategy flowMetricsReportingStrategy
