@@ -17,23 +17,24 @@
 
 package org.apache.nifi.cluster.coordination.flow;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.serialization.VersionedFlowSynchronizer;
+import org.apache.nifi.util.security.MessageDigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 /**
  * <p>
@@ -82,16 +83,16 @@ public class PopularVoteFlowElection implements FlowElection {
         final long nanosSinceStart = System.nanoTime() - startNanos;
         if (nanosSinceStart > maxWaitNanos) {
             final FlowCandidate elected = performElection();
-            logger.info("Election is complete because the maximum allowed time has elapsed. "
-                + "The elected dataflow is held by the following nodes: {}", elected.getNodes());
+            final Set<NodeIdentifier> nodes = elected == null ? Set.of() : elected.getNodes();
+            logger.info("Election completed after maximum duration [{} seconds] with Nodes {}", Duration.ofNanos(maxWaitNanos).toSeconds(), nodes);
 
             return true;
         } else if (maxNodes != null) {
             final int numVotes = getVoteCount();
             if (numVotes >= maxNodes) {
                 final FlowCandidate elected = performElection();
-                logger.info("Election is complete because the required number of nodes ({}) have voted. "
-                    + "The elected dataflow is held by the following nodes: {}", maxNodes, elected.getNodes());
+                final Set<NodeIdentifier> nodes = elected == null ? Set.of() : elected.getNodes();
+                logger.info("Election completed after maximum votes [{}] with Nodes {}", maxNodes, nodes);
 
                 return true;
             }
@@ -107,7 +108,7 @@ public class PopularVoteFlowElection implements FlowElection {
     }
 
     private synchronized int getVoteCount() {
-        return candidateByFingerprint.values().stream().mapToInt(candidate -> candidate.getVotes()).sum();
+        return candidateByFingerprint.values().stream().mapToInt(FlowCandidate::getVotes).sum();
     }
 
     @Override
@@ -136,11 +137,11 @@ public class PopularVoteFlowElection implements FlowElection {
     }
 
     private String fingerprint(final DataFlow dataFlow) {
-        final String flowFingerprint = DigestUtils.sha256Hex(dataFlow.getFlow());
+        final byte[] flowDigest = MessageDigestUtils.getDigest(dataFlow.getFlow());
+        final String flowFingerprint = HexFormat.of().formatHex(flowDigest);
         final String authFingerprint = dataFlow.getAuthorizerFingerprint() == null ? "" : new String(dataFlow.getAuthorizerFingerprint(), StandardCharsets.UTF_8);
-        final String candidateFingerprint = flowFingerprint + authFingerprint;
 
-        return candidateFingerprint;
+        return flowFingerprint + authFingerprint;
     }
 
     @Override
@@ -155,7 +156,7 @@ public class PopularVoteFlowElection implements FlowElection {
 
         final List<FlowCandidate> nonEmptyCandidates = candidateByFingerprint.values().stream()
             .filter(candidate -> !candidate.isFlowEmpty())
-            .collect(Collectors.toList());
+            .toList();
 
         if (nonEmptyCandidates.isEmpty()) {
             // All flow candidates are empty flows. Just use one of them.
@@ -167,7 +168,7 @@ public class PopularVoteFlowElection implements FlowElection {
         final FlowCandidate elected;
         if (nonEmptyCandidates.size() == 1) {
             // Only one flow is non-empty. Use that one.
-            elected = nonEmptyCandidates.iterator().next();
+            elected = nonEmptyCandidates.getFirst();
         } else {
             // Choose the non-empty flow that got the most votes.
             elected = nonEmptyCandidates.stream()
@@ -196,7 +197,7 @@ public class PopularVoteFlowElection implements FlowElection {
         }
 
         if (maxNodes != null) {
-            final int votesNeeded = maxNodes.intValue() - getVoteCount();
+            final int votesNeeded = maxNodes - getVoteCount();
             descriptionBuilder.append(" or after ").append(votesNeeded).append(" more vote");
             descriptionBuilder.append(votesNeeded == 1 ? " is " : "s are ");
             descriptionBuilder.append("cast, whichever occurs first.");
