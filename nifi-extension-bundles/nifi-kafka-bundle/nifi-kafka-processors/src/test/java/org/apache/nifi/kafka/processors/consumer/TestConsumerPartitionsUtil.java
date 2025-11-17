@@ -19,7 +19,6 @@ package org.apache.nifi.kafka.processors.consumer;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.mock.MockComponentLogger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,14 +34,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class TestConsumerPartitionsUtil {
-    private final ComponentLog logger = new MockComponentLogger();
+    private final ComponentLog logger = mock();
     private String hostname;
 
     @BeforeEach
     public void setup() throws UnknownHostException {
-        hostname = InetAddress.getLocalHost().getHostName();;
+        hostname = InetAddress.getLocalHost().getHostName();
     }
 
     @Test

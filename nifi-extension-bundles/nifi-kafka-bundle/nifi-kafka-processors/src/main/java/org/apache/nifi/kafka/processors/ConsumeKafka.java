@@ -568,11 +568,11 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     public List<ConfigVerificationResult> verify(final ProcessContext context, final ComponentLog verificationLogger, final Map<String, String> attributes) {
         final List<ConfigVerificationResult> verificationResults = new ArrayList<>();
 
-        final Collection<String> topics = pollingContext.getTopics();
+        final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+        final PollingContext pollingContext = createPollingContext(context);
 
+        final Collection<String> topics = pollingContext.getTopics();
         if (!topics.isEmpty()) {
-            final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-            final PollingContext pollingContext = createPollingContext(context);
             try (final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext)) {
                 final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()
                         .verificationStepName("Verify Topic Partitions");
