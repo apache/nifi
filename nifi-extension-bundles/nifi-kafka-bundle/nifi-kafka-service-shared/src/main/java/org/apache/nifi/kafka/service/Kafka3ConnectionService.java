@@ -25,6 +25,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -72,6 +73,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
@@ -255,6 +257,14 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
         final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
         final Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(properties, deserializer, deserializer);
+
+        Integer partition = pollingContext.getPartition();
+        if (partition != null) {
+            List<TopicPartition> topicPartitions = pollingContext.getTopics().stream()
+                    .map(topic -> new TopicPartition(topic, partition))
+                    .collect(Collectors.toList());
+            consumer.assign(topicPartitions);
+        }
 
         return new Kafka3ConsumerService(getLogger(), consumer, subscription);
     }
