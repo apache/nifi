@@ -18,11 +18,12 @@ package org.apache.nifi.web.api.request;
 
 
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 
 import static org.apache.nifi.prometheusutil.PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS;
 import static org.apache.nifi.prometheusutil.PrometheusMetricsUtil.METRICS_STRATEGY_PG;
 
-public enum FlowMetricsReportingStrategy {
+public enum FlowMetricsReportingStrategy implements DescribedValue {
     ALL_PROCESS_GROUPS(METRICS_STRATEGY_PG),
     ALL_COMPONENTS(METRICS_STRATEGY_COMPONENTS);
 
@@ -32,7 +33,18 @@ public enum FlowMetricsReportingStrategy {
         this.strategy = strategy;
     }
 
-    public AllowableValue getStrategy() {
-        return this.strategy;
+    @Override
+    public String getValue() {
+        return this.strategy.getValue();
+    }
+
+    @Override
+    public String getDisplayName() {
+        return this.strategy.getDisplayName();
+    }
+
+    @Override
+    public String getDescription() {
+        return this.strategy.getDescription();
     }
 }

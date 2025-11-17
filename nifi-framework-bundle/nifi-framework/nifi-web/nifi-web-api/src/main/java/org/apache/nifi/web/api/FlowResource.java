@@ -592,7 +592,7 @@ public class FlowResource extends ApplicationResource {
 
         final Set<FlowMetricsRegistry> selectedRegistries = includedRegistries == null ? Collections.emptySet() : includedRegistries;
         final FlowMetricsReportingStrategy selectedStrategy = flowMetricsReportingStrategy == null ? FlowMetricsReportingStrategy.ALL_COMPONENTS : flowMetricsReportingStrategy;
-        final Collection<CollectorRegistry> registries = serviceFacade.generateFlowMetrics(selectedRegistries, selectedStrategy.getStrategy().getValue());
+        final Collection<CollectorRegistry> registries = serviceFacade.generateFlowMetrics(selectedRegistries, selectedStrategy);
 
         if (FlowMetricsProducer.PROMETHEUS.getProducer().equalsIgnoreCase(producer)) {
             final StreamingOutput response = (outputStream -> {

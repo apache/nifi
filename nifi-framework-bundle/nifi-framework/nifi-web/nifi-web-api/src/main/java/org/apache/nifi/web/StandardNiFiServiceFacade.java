@@ -393,6 +393,7 @@ import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
+import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
@@ -6634,7 +6635,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createProcessorDiagnosticsEntity(dto, revisionDto, permissionsDto, processorStatusDto, bulletins);
     }
 
-    protected Collection<AbstractMetricsRegistry> populateFlowMetrics(String flowMetricsStrategy) {
+    protected Collection<AbstractMetricsRegistry> populateFlowMetrics(FlowMetricsReportingStrategy flowMetricsStrategy) {
         // Include registries which are fully refreshed upon each invocation
         NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
         BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
@@ -6745,12 +6746,12 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public Collection<CollectorRegistry> generateFlowMetrics() {
 
-        return populateFlowMetrics(PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue()).stream().map(AbstractMetricsRegistry::getRegistry)
+        return populateFlowMetrics(FlowMetricsReportingStrategy.ALL_COMPONENTS).stream().map(AbstractMetricsRegistry::getRegistry)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public Collection<CollectorRegistry> generateFlowMetrics(final Set<FlowMetricsRegistry> includeRegistries, final String flowMetricsStrategy) {
+    public Collection<CollectorRegistry> generateFlowMetrics(final Set<FlowMetricsRegistry> includeRegistries, final FlowMetricsReportingStrategy flowMetricsStrategy) {
         final Set<FlowMetricsRegistry> selectedRegistries = includeRegistries.isEmpty() ? new HashSet<>(Arrays.asList(FlowMetricsRegistry.values())) : includeRegistries;
 
         final Set<Class<? extends AbstractMetricsRegistry>> registryClasses = selectedRegistries.stream()

@@ -31,6 +31,7 @@ import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +49,7 @@ public class PrometheusMetricsUtil {
     private static final double NANOS_PER_MILLI = 1000000.0;
 
     public static CollectorRegistry createNifiMetrics(NiFiMetricsRegistry nifiMetricsRegistry, ProcessGroupStatus status,
-                                                      String instId, String parentProcessGroupId, String compType, String metricsStrategy) {
+                                                      String instId, String parentProcessGroupId, String compType, FlowMetricsReportingStrategy metricsStrategy) {
 
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
         final String parentPGId = StringUtils.isEmpty(parentProcessGroupId) ? DEFAULT_LABEL_STRING : parentProcessGroupId;
