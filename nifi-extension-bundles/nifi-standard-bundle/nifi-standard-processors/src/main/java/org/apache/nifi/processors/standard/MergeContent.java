@@ -391,6 +391,7 @@ public class MergeContent extends BinFiles {
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty("mergecontent-metadata-strategy", METADATA_STRATEGY.getName());
         config.renameProperty("Header File", HEADER.getName());
         config.renameProperty("Footer File", FOOTER.getName());

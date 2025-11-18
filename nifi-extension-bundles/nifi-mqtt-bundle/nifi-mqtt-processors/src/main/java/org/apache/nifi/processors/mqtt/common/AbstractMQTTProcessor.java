@@ -187,7 +187,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .build();
 
     public static final PropertyDescriptor PROP_CLEAN_SESSION = new PropertyDescriptor.Builder()
-            .name("Session state")
+            .name("Session State")
             .description("Whether to start a fresh or resume previous flows. See the allowable value descriptions for more details.")
             .required(true)
             .allowableValues(
@@ -359,6 +359,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         config.renameProperty("message-demarcator", BASE_MESSAGE_DEMARCATOR.getName());
         config.renameProperty("Connection Timeout (seconds)", PROP_CONN_TIMEOUT.getName());
         config.renameProperty("Keep Alive Interval (seconds)", PROP_KEEP_ALIVE_INTERVAL.getName());
+        config.renameProperty("Session state", PROP_CLEAN_SESSION.getName());
     }
 
     protected boolean isConnected() {

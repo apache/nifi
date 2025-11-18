@@ -44,6 +44,8 @@ import software.amazon.awssdk.services.translate.model.TextTranslationJobPropert
 import java.time.Instant;
 import java.util.Map;
 
+import static org.apache.nifi.processors.aws.AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE;
+import static org.apache.nifi.processors.aws.AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.AWS_TASK_OUTPUT_LOCATION;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.REL_RUNNING;
@@ -156,6 +158,7 @@ public class GetAwsTranslateJobStatusTest {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expected = Map.of("aws-region", REGION.getName(),
                 "awsTaskId", TASK_ID.getName(),
+                OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AWS_CREDENTIALS_PROVIDER_SERVICE.getName(),
                 ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, AbstractAwsProcessor.PROXY_CONFIGURATION_SERVICE.getName());
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());

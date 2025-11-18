@@ -109,7 +109,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
             .build();
 
     public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
-            .name("Compression codec")
+            .name("Compression Codec")
             .required(true)
             .allowableValues(CompressionType.allowableValues())
             .defaultValue(CompressionType.NONE.toString())
@@ -170,6 +170,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         config.removeProperty("kerberos-credentials-service");
         config.removeProperty("Kerberos Relogin Period");
         config.renameProperty("kerberos-user-service", KERBEROS_USER_SERVICE.getName());
+        config.renameProperty("Compression codec", COMPRESSION_CODEC.getName());
     }
 
     @Override

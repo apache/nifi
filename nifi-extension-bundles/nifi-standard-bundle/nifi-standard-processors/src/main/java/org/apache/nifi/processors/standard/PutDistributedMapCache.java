@@ -35,6 +35,7 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -89,7 +90,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
         "Adds the specified entry to the cache, if the key does not exist.");
 
     public static final PropertyDescriptor CACHE_UPDATE_STRATEGY = new PropertyDescriptor.Builder()
-        .name("Cache update strategy")
+        .name("Cache Update Strategy")
         .description("Determines how the cache is updated if the cache already contains the entry")
         .required(true)
         .allowableValues(CACHE_UPDATE_REPLACE, CACHE_UPDATE_KEEP_ORIGINAL)
@@ -97,7 +98,7 @@ public class PutDistributedMapCache extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor CACHE_ENTRY_MAX_BYTES = new PropertyDescriptor.Builder()
-        .name("Max cache entry size")
+        .name("Max Cache Size")
         .description("The maximum amount of data to put into cache")
         .required(false)
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
@@ -214,6 +215,12 @@ public class PutDistributedMapCache extends AbstractProcessor {
             session.transfer(flowFile, REL_FAILURE);
             logger.error("Unable to communicate with cache when processing {}", flowFile, e);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Cache update strategy", CACHE_UPDATE_STRATEGY.getName());
+        config.renameProperty("Max cache entry size", CACHE_ENTRY_MAX_BYTES.getName());
     }
 
     public static class CacheValueSerializer implements Serializer<byte[]> {
