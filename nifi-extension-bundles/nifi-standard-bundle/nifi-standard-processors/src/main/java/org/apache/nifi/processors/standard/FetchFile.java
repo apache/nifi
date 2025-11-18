@@ -35,6 +35,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -163,14 +164,14 @@ public class FetchFile extends AbstractProcessor {
         .required(true)
         .build();
     static final PropertyDescriptor FILE_NOT_FOUND_LOG_LEVEL = new PropertyDescriptor.Builder()
-        .name("Log level when file not found")
+        .name("File not Found Log Level")
         .description("Log level to use in case the file does not exist when the processor is triggered")
         .allowableValues(LogLevel.values())
         .defaultValue(LogLevel.ERROR.toString())
         .required(true)
         .build();
     static final PropertyDescriptor PERM_DENIED_LOG_LEVEL = new PropertyDescriptor.Builder()
-        .name("Log level when permission denied")
+        .name("Permission Denied Log Level")
         .description("Log level to use if the current application user does not have sufficient permissions to read the file")
         .allowableValues(LogLevel.values())
         .defaultValue(LogLevel.ERROR.toString())
@@ -333,6 +334,12 @@ public class FetchFile extends AbstractProcessor {
         session.commitAsync(() -> {
             performCompletionAction(completionStrategy, file, targetDirectoryName, fetched, context);
         });
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Log level when file not found", FILE_NOT_FOUND_LOG_LEVEL.getName());
+        config.renameProperty("Log level when permission denied", PERM_DENIED_LOG_LEVEL.getName());
     }
 
     private void performCompletionAction(final String completionStrategy, final File file, final String targetDirectoryName, final FlowFile flowFile, final ProcessContext context) {

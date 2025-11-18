@@ -129,7 +129,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
             .build();
 
     public static final PropertyDescriptor JSON_DOCUMENT = new PropertyDescriptor.Builder()
-            .name("Json Document attribute")
+            .name("Json Document")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -146,7 +146,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
             .build();
 
     public static final PropertyDescriptor DOCUMENT_CHARSET = new PropertyDescriptor.Builder()
-            .name("Character set of document")
+            .name("Document Character Set")
             .description("Character set of data in the document")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .required(true)
@@ -169,6 +169,8 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
         config.renameProperty("Batch items for each request (between 1 and 50)", BATCH_SIZE.getName());
+        config.renameProperty("Json Document attribute", JSON_DOCUMENT.getName());
+        config.renameProperty("Character set of document", DOCUMENT_CHARSET.getName());
     }
 
     @Override

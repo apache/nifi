@@ -146,7 +146,7 @@ public class ExtractGrok extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor NAMED_CAPTURES_ONLY = new PropertyDescriptor.Builder()
-        .name("Named captures only")
+        .name("Named Captures Only")
         .description("Only store named captures from grok")
         .required(true)
         .allowableValues("true", "false")
@@ -331,5 +331,6 @@ public class ExtractGrok extends AbstractProcessor {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("Grok Pattern file", GROK_PATTERNS.getName());
+        config.renameProperty("Named captures only", NAMED_CAPTURES_ONLY.getName());
     }
 }

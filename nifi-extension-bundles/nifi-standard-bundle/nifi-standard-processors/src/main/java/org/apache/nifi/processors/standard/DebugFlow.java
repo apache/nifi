@@ -31,6 +31,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -176,7 +177,7 @@ public class DebugFlow extends AbstractProcessor {
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
     static final PropertyDescriptor ON_SCHEDULED_FAIL = new PropertyDescriptor.Builder()
-        .name("Fail When @OnScheduled called")
+        .name("Fail When @OnScheduled Called")
         .description("Specifies whether or not the Processor should throw an Exception when the methods annotated with @OnScheduled are called")
         .required(true)
         .allowableValues("true", "false")
@@ -190,7 +191,7 @@ public class DebugFlow extends AbstractProcessor {
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
     static final PropertyDescriptor ON_UNSCHEDULED_FAIL = new PropertyDescriptor.Builder()
-        .name("Fail When @OnUnscheduled called")
+        .name("Fail When @OnUnscheduled Called")
         .description("Specifies whether or not the Processor should throw an Exception when the methods annotated with @OnUnscheduled are called")
         .required(true)
         .allowableValues("true", "false")
@@ -205,7 +206,7 @@ public class DebugFlow extends AbstractProcessor {
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
     static final PropertyDescriptor ON_STOPPED_FAIL = new PropertyDescriptor.Builder()
-        .name("Fail When @OnStopped called")
+        .name("Fail When @OnStopped Called")
         .description("Specifies whether or not the Processor should throw an Exception when the methods annotated with @OnStopped are called")
         .required(true)
         .allowableValues("true", "false")
@@ -611,6 +612,13 @@ public class DebugFlow extends AbstractProcessor {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Fail When @OnScheduled called", ON_SCHEDULED_FAIL.getName());
+        config.renameProperty("Fail When @OnUnscheduled called", ON_UNSCHEDULED_FAIL.getName());
+        config.renameProperty("Fail When @OnStopped called", ON_STOPPED_FAIL.getName());
     }
 
     private static class RuntimeExceptionValidator implements Validator {

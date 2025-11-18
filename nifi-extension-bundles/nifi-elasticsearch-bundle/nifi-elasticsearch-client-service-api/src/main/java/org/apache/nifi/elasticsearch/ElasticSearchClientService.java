@@ -26,6 +26,7 @@ import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextProvider;
 
@@ -130,7 +131,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
             .build();
 
     PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
-            .name("Connect timeout")
+            .name("Connect Timeout")
             .description("Controls the amount of time, in milliseconds, before a timeout occurs when trying to connect.")
             .required(true)
             .defaultValue("5000")
@@ -281,7 +282,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
         config.renameProperty("el-cs-password", PASSWORD.getName());
         config.renameProperty("api-key-id", API_KEY_ID.getName());
         config.renameProperty("api-key", API_KEY.getName());
-        config.renameProperty("el-cs-connect-timeout", CONNECT_TIMEOUT.getName());
+        List.of("el-cs-connect-timeout", "Connect timeout").forEach(obsoletePropertyName -> config.renameProperty(obsoletePropertyName, CONNECT_TIMEOUT.getName()));
         config.renameProperty("el-cs-socket-timeout", SOCKET_TIMEOUT.getName());
         config.renameProperty("el-cs-charset", CHARSET.getName());
         config.renameProperty("el-cs-suppress-nulls", SUPPRESS_NULLS.getName());
@@ -295,6 +296,7 @@ public interface ElasticSearchClientService extends ControllerService, Verifiabl
         config.renameProperty("el-cs-sniffer-interval", SNIFFER_INTERVAL.getName());
         config.renameProperty("el-cs-sniffer-request-timeout", SNIFFER_REQUEST_TIMEOUT.getName());
         config.renameProperty("el-cs-sniffer-failure-delay", SNIFFER_FAILURE_DELAY.getName());
+        config.renameProperty(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, PROXY_CONFIGURATION_SERVICE.getName());
     }
 
     /**

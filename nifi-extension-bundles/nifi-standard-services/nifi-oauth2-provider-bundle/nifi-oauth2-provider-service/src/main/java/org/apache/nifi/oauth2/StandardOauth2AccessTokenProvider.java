@@ -160,7 +160,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .build();
 
     public static final PropertyDescriptor CLIENT_SECRET = new PropertyDescriptor.Builder()
-        .name("Client secret")
+        .name("Client Secret")
         .dependsOn(CLIENT_ID)
         .required(true)
         .sensitive(true)
@@ -213,6 +213,10 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
+    private static final List<String> OBSOLETE_CLIENT_SECRET_PROPERTY_NAMES = List.of(
+            "client-secret",
+            "Client secret"
+    );
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         AUTHORIZATION_SERVER_URL,
@@ -266,7 +270,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         propertyConfiguration.renameProperty("service-password", PASSWORD.getName());
         propertyConfiguration.renameProperty("refresh-token", REFRESH_TOKEN.getName());
         propertyConfiguration.renameProperty("client-id", CLIENT_ID.getName());
-        propertyConfiguration.renameProperty("client-secret", CLIENT_SECRET.getName());
+        OBSOLETE_CLIENT_SECRET_PROPERTY_NAMES.forEach(obsoletePropertyName -> propertyConfiguration.renameProperty(obsoletePropertyName, CLIENT_SECRET.getName()));
         propertyConfiguration.renameProperty("scope", SCOPE.getName());
         propertyConfiguration.renameProperty("resource", RESOURCE.getName());
         propertyConfiguration.renameProperty("audience", AUDIENCE.getName());

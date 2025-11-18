@@ -101,7 +101,7 @@ public class RetryFlowFile extends AbstractProcessor {
             .defaultValue("true")
             .build();
     public static final PropertyDescriptor FAIL_ON_OVERWRITE = new PropertyDescriptor.Builder()
-            .name("Fail on Non-numerical Overwrite")
+            .name("Fail on Nonnumerical Overwrite")
             .description("If the FlowFile already has the attribute defined in 'Retry Attribute' that is " +
                     "*not* a number, fail the FlowFile instead of resetting that value to '1'")
             .required(true)
@@ -304,5 +304,6 @@ public class RetryFlowFile extends AbstractProcessor {
         config.renameProperty("maximum-retries", MAXIMUM_RETRIES.getName());
         config.renameProperty("penalize-retries", PENALIZE_RETRIED.getName());
         config.renameProperty("reuse-mode", REUSE_MODE.getName());
+        config.renameProperty("Fail on Non-numerical Overwrite", FAIL_ON_OVERWRITE.getName());
     }
 }

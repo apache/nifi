@@ -123,7 +123,7 @@ public class LogAttribute extends AbstractProcessor {
             .defaultValue("true")
             .build();
     public static final PropertyDescriptor LOG_PREFIX = new PropertyDescriptor.Builder()
-            .name("Log prefix")
+            .name("Log Prefix")
             .required(false)
             .description("Log prefix appended to the log lines. It helps to distinguish the output of multiple LogAttribute processors.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -340,6 +340,7 @@ public class LogAttribute extends AbstractProcessor {
         config.renameProperty("attributes-to-log-regex", ATTRIBUTES_TO_LOG_REGEX.getName());
         config.renameProperty("attributes-to-ignore-regex", ATTRIBUTES_TO_IGNORE_REGEX.getName());
         config.renameProperty("character-set", CHARSET.getName());
+        config.renameProperty("Log prefix", LOG_PREFIX.getName());
     }
 
     protected static class FlowFilePayloadCallback implements InputStreamCallback {

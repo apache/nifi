@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -82,7 +83,7 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
             .build();
 
     public static final PropertyDescriptor MAX_MESSAGE_BUFFER_SIZE_MB = new PropertyDescriptor.Builder()
-            .name("Max message buffer size")
+            .name("Max Message Buffer Size")
             .description("Max message buffer")
             .defaultValue("1 MB")
             .required(false)
@@ -193,4 +194,9 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
         }
     }
 
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        config.renameProperty("Max message buffer size", MAX_MESSAGE_BUFFER_SIZE_MB.getName());
+    }
 }
