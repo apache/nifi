@@ -48,11 +48,11 @@ public class TestJoltTransformRecordUniform extends TestBaseJoltTransformRecord 
         runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
         runner.enableControllerService(writer);
 
-        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestBaseJoltTransformRecord/flattenSpec.json"));
+        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/flattenSpec.json"));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CHAINR);
 
-        final String inputJson = Files.readString(Paths.get("src/test/resources/TestBaseJoltTransformRecord/input.json"));
+        final String inputJson = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/input.json"));
         runner.enqueue(inputJson);
 
         runner.run();
@@ -61,6 +61,6 @@ public class TestJoltTransformRecordUniform extends TestBaseJoltTransformRecord 
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
 
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestBaseJoltTransformRecord/flattenedOutput.json")), new String(transformed.toByteArray()));
+        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/flattenedOutput.json")), new String(transformed.toByteArray()));
     }
 }

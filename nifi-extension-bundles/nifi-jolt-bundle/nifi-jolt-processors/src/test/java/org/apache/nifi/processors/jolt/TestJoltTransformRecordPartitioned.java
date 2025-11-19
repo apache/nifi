@@ -49,11 +49,11 @@ public class TestJoltTransformRecordPartitioned extends TestBaseJoltTransformRec
         runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
         runner.enableControllerService(writer);
 
-        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecordPartitioned/multipleSchemasSpec.json"));
+        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasSpec.json"));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CHAINR);
 
-        final String inputJson = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecordPartitioned/multipleSchemasInput.json"));
+        final String inputJson = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasInput.json"));
         runner.enqueue(inputJson);
 
         runner.run();
@@ -61,9 +61,9 @@ public class TestJoltTransformRecordPartitioned extends TestBaseJoltTransformRec
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 2);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
 
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecordPartitioned/multipleSchemasOutput1.json")),
+        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput1.json")),
                 new String(runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0).toByteArray()));
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecordPartitioned/multipleSchemasOutput2.json")),
+        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput2.json")),
                 new String(runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(1).toByteArray()));
     }
 }
