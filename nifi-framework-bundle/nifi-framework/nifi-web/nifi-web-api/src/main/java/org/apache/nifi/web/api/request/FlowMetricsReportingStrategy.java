@@ -20,12 +20,11 @@ package org.apache.nifi.web.api.request;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
 
-import static org.apache.nifi.prometheusutil.PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS;
-import static org.apache.nifi.prometheusutil.PrometheusMetricsUtil.METRICS_STRATEGY_PG;
-
 public enum FlowMetricsReportingStrategy implements DescribedValue {
-    ALL_PROCESS_GROUPS(METRICS_STRATEGY_PG),
-    ALL_COMPONENTS(METRICS_STRATEGY_COMPONENTS);
+    ALL_PROCESS_GROUPS(new AllowableValue("All Process Groups", "All Process Groups",
+            "Send metrics for each process group")),
+    ALL_COMPONENTS(new AllowableValue("All Components", "All Components",
+            "Send metrics for each component in the system, to include processors, connections, controller services, etc."));
 
     private final AllowableValue strategy;
 
