@@ -324,6 +324,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private static final Set<Relationship> SUCCESS_RELATIONSHIP = Set.of(SUCCESS);
     private static final Set<Relationship> SUCCESS_FAILURE_RELATIONSHIPS = Set.of(SUCCESS, PARSE_FAILURE);
 
+    private volatile KafkaConnectionService connectionService;
     private volatile Charset headerEncoding;
     private volatile Pattern headerNamePattern;
     private volatile ProcessingStrategy processingStrategy;
@@ -341,6 +342,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
 
+    private final Queue<PollingContext> availablePartitionedPollingContexts = new LinkedBlockingQueue<>();
     private final Map<KafkaConsumerService, PollingContext> consumerServiceToPartitionedPollingContext = new HashMap<>();
 
     @Override
@@ -407,6 +409,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+
         pollingContext = createPollingContext(context);
         headerEncoding = Charset.forName(context.getProperty(HEADER_ENCODING).getValue());
 
@@ -424,7 +428,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         keyFormat = (outputStrategy == OutputStrategy.USE_WRAPPER || outputStrategy == OutputStrategy.INJECT_METADATA)
                 ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class)
                 : KeyFormat.BYTE_ARRAY;
-        brokerUri = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class).getBrokerUri();
+        brokerUri = connectionService.getBrokerUri();
         maxConsumerCount = context.getMaxConcurrentTasks();
         activeConsumerCount.set(0);
 
@@ -432,6 +436,37 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         maxUncommittedSizeConfigured = maxUncommittedSizeProperty.isSet();
         if (maxUncommittedSizeConfigured) {
             maxUncommittedSize = maxUncommittedSizeProperty.asDataSize(DataUnit.B).longValue();
+        }
+
+        if (ConsumerPartitionsUtil.isPartitionAssignmentExplicit(context.getAllProperties())) {
+            final int numAssignedPartitions = ConsumerPartitionsUtil.getPartitionAssignmentCount(context.getAllProperties());
+            final int partitionCount = getPartitionCount(connectionService);
+
+            if (partitionCount != numAssignedPartitions) {
+                context.yield();
+
+                KafkaConsumerService service;
+                while ((service = consumerServices.poll()) != null) {
+                    close(service, "Not all partitions are assigned");
+                }
+
+                throw new ProcessException("Illegal Partition Assignment: There are "
+                        + numAssignedPartitions + " partitions statically assigned using the " + PARTITIONS_PROPERTY_PREFIX + ".* property names,"
+                        + " but the Kafka topic(s) have " + partitionCount + " partitions");
+            }
+
+            final int[] assignedPartitions;
+            try {
+                assignedPartitions = ConsumerPartitionsUtil.getPartitionsForHost(context.getAllProperties(), getLogger());
+            } catch (final UnknownHostException uhe) {
+                throw new ProcessException("Could not determine localhost's hostname", uhe);
+            }
+
+            for (int partition : assignedPartitions) {
+                PollingContext partitionedPollingContext = createPollingContext(context, partition);
+
+                availablePartitionedPollingContexts.add(partitionedPollingContext);
+            }
         }
     }
 
@@ -443,6 +478,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         while ((service = consumerServices.poll()) != null) {
             close(service, "Processor stopped");
         }
+
+        availablePartitionedPollingContexts.clear();
+        consumerServiceToPartitionedPollingContext.clear();
     }
 
 
@@ -559,6 +597,11 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         try {
             consumerService.close();
             activeConsumerCount.decrementAndGet();
+
+            final PollingContext partitionedPollingContext = consumerServiceToPartitionedPollingContext.remove(consumerService);
+            if (partitionedPollingContext != null) {
+                availablePartitionedPollingContexts.add(partitionedPollingContext);
+            }
         } catch (final IOException ioe) {
             getLogger().warn("Failed to close Kafka Consumer Service", ioe);
         }
@@ -603,56 +646,34 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             return consumerService;
         }
 
-        final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-
-        consumerServiceToPartitionedPollingContext.clear();
-
         final boolean isExplicitPartitionMapping = ConsumerPartitionsUtil.isPartitionAssignmentExplicit(context.getAllProperties());
 
         if (isExplicitPartitionMapping) {
-            final int[] assignedPartitions;
-            try {
-                assignedPartitions = ConsumerPartitionsUtil.getPartitionsForHost(context.getAllProperties(), getLogger());
-            } catch (final UnknownHostException uhe) {
-                throw new ProcessException("Could not determine localhost's hostname", uhe);
+            final PollingContext partitionedPollingContext = availablePartitionedPollingContexts.poll();
+
+            if (partitionedPollingContext == null) {
+                getLogger().trace("No Partitioned Kafka Consumer Service available, all specified partitions are being consumed from.");
+                return null;
             }
 
-            for (int partition : assignedPartitions) {
-                PollingContext partitionedPollingContext = createPollingContext(context, partition);
+            getLogger().info("No Partitioned Kafka Consumer Service available; creating a new one.");
 
-                KafkaConsumerService partitionedConsumerService = connectionService.getConsumerService(partitionedPollingContext);
-                consumerServices.offer(partitionedConsumerService);
-                consumerServiceToPartitionedPollingContext.put(partitionedConsumerService, partitionedPollingContext);
+            final KafkaConsumerService partitionedConsumerService = connectionService.getConsumerService(partitionedPollingContext);
+
+            consumerServiceToPartitionedPollingContext.put(partitionedConsumerService, partitionedPollingContext);
+
+            return partitionedConsumerService;
+        } else {
+            final int activeCount = activeConsumerCount.incrementAndGet();
+            if (activeCount > getMaxConsumerCount()) {
+                getLogger().trace("No Kafka Consumer Service available; have already reached max count of {} so will not create a new one", getMaxConsumerCount());
+                activeConsumerCount.decrementAndGet();
+                return null;
             }
 
-            final int numAssignedPartitions = ConsumerPartitionsUtil.getPartitionAssignmentCount(context.getAllProperties());
-            final int partitionCount = getPartitionCount(connectionService);
-
-            if (partitionCount != numAssignedPartitions) {
-                context.yield();
-
-                KafkaConsumerService service;
-                while ((service = consumerServices.poll()) != null) {
-                    close(service, "Not all partitions are assigned");
-                }
-
-                throw new ProcessException("Illegal Partition Assignment: There are "
-                        + numAssignedPartitions + " partitions statically assigned using the " + PARTITIONS_PROPERTY_PREFIX + ".* property names,"
-                        + " but the Kafka topic(s) have " + partitionCount + " partitions");
-            }
-
-            return consumerServices.poll();
+            getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
+            return connectionService.getConsumerService(pollingContext);
         }
-
-        final int activeCount = activeConsumerCount.incrementAndGet();
-        if (activeCount > getMaxConsumerCount()) {
-            getLogger().trace("No Kafka Consumer Service available; have already reached max count of {} so will not create a new one", getMaxConsumerCount());
-            activeConsumerCount.decrementAndGet();
-            return null;
-        }
-
-        getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
-        return connectionService.getConsumerService(pollingContext);
     }
 
     public int getPartitionCount(final KafkaConnectionService connectionService) {
