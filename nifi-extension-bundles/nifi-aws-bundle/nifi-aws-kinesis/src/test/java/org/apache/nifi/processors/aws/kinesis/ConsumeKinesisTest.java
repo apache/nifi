@@ -43,7 +43,7 @@ class ConsumeKinesisTest {
 
     @BeforeEach
     void setUp() {
-        testRunner = TestRunners.newTestRunner(ConsumeKinesis.class);
+        testRunner = createTestRunner();
     }
 
     @Test
@@ -66,8 +66,7 @@ class ConsumeKinesisTest {
 
     @Test
     void failInitializationWithInvalidValues() {
-        // With dummy values KCL Scheduler initialization will fail.
-        setDummyValues(testRunner);
+        // KCL Scheduler initialization will fail, as the runner is configured with placeholder credentials.
 
         // Using the processor object to avoid error wrapping by testRunner.
         final ConsumeKinesis consumeKinesis = (ConsumeKinesis) testRunner.getProcessor();
@@ -75,11 +74,12 @@ class ConsumeKinesisTest {
                 ProcessException.class,
                 () -> consumeKinesis.setup(testRunner.getProcessContext()));
 
-        assertEquals("Failed to initialize the processor.", ex.getMessage());
-        assertNotNull(ex.getCause());
+        assertNotNull(ex.getCause(), "The initialization exception is expected to have a cause");
     }
 
-    private static void setDummyValues(final TestRunner runner) {
+    private static TestRunner createTestRunner() {
+        final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesis.class);
+
         final AWSCredentialsProviderControllerService credentialsService = new AWSCredentialsProviderControllerService();
         try {
             runner.addControllerService("credentials", credentialsService);
@@ -100,5 +100,7 @@ class ConsumeKinesisTest {
         runner.setProperty(ConsumeKinesis.METRICS_PUBLISHING, ConsumeKinesis.MetricsPublishing.CLOUDWATCH);
 
         runner.setProperty(ConsumeKinesis.MAX_BYTES_TO_BUFFER, "10 MB");
+
+        return runner;
     }
 }

@@ -440,8 +440,12 @@ public class ConsumeKinesis extends AbstractProcessor {
                 cleanUpState();
 
                 final ProcessException ex = failure.error()
-                        .map(err -> new ProcessException("Failed to initialize the processor.", err))
-                        .orElseGet(() -> new ProcessException("Failed to initialize the processor due to an unknown failure. Check application logs for more details."));
+                        .map(err -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName), err))
+                        // This branch is active only when a scheduler was shutdown, but no initialization error was provided.
+                        // This behavior isn't typical and wasn't observed.
+                        .orElseGet(() -> new ProcessException((
+                                "Initialization failed for stream [%s] due to an unknown failure." +
+                                " Check application logs for more details").formatted(streamName)));
 
                 throw ex;
             }
@@ -742,7 +746,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
         @Override
         public void onWorkerStateChange(final WorkerState newState) {
-            logger.info("Processor state changed to: {}", newState);
+            logger.info("Worker state changed to [{}]", newState);
 
             if (newState == WorkerState.STARTED) {
                 resultFuture.complete(new InitializationResult.Success());
