@@ -98,7 +98,7 @@ public class TestGeoEnrichIPRecord {
 
     @ParameterizedTest
     @MethodSource("logLevelArgs")
-    void testInvalidLogLevel(String logLevel, boolean expectValid) {
+    void testSpecifiedLogLevels(String logLevel, boolean expectValid) {
         runner.setProperty(AbstractEnrichIP.LOG_LEVEL, logLevel);
 
         if (expectValid) {
@@ -110,6 +110,7 @@ public class TestGeoEnrichIPRecord {
 
     private static Stream<Arguments> logLevelArgs() {
         return Stream.of(
+                Arguments.argumentSet("Valid Log Level Specified", "WARN", true),
                 Arguments.argumentSet("Invalid Log Level Specified", "GIBBERISH", false),
                 Arguments.argumentSet("Log Level Specified as Expression Language Expression", "${log.level}", true)
         );
