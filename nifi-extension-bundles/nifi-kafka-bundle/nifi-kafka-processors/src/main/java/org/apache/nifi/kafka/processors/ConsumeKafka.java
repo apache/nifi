@@ -676,7 +676,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
     }
 
-    public int getPartitionCount(final KafkaConnectionService connectionService) {
+    private int getPartitionCount(final KafkaConnectionService connectionService) {
         Collection<String> topics = this.pollingContext.getTopics();
 
         if (topics.isEmpty()) {
