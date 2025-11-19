@@ -68,22 +68,21 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     private static final Pattern LOG_LEVEL_PATTERN = Pattern.compile("^(?:INFO|DEBUG|WARN|ERROR)$");
     private static final Validator LOG_LEVEL_VALIDATOR = (subject, input, context) -> {
-        if (!context.isExpressionLanguagePresent(input)) {
-            final boolean matches = LOG_LEVEL_PATTERN.matcher(input).matches();
-            if (!matches) {
-                return (new ValidationResult.Builder())
-                        .subject(subject)
-                        .valid(false)
-                        .explanation(String.format("%s must be either INFO, DEBUG, WARN or ERROR", subject))
-                        .input(input)
-                        .build();
-            }
+        final boolean matches = LOG_LEVEL_PATTERN.matcher(input).matches();
+        if (matches || context.isExpressionLanguagePresent(input)) {
+            return (new ValidationResult.Builder())
+                    .subject(subject)
+                    .input(input)
+                    .valid(true)
+                    .build();
+        } else {
+            return (new ValidationResult.Builder())
+                    .subject(subject)
+                    .valid(false)
+                    .explanation(String.format("%s must be either INFO, DEBUG, WARN or ERROR", subject))
+                    .input(input)
+                    .build();
         }
-        return (new ValidationResult.Builder())
-                .subject(subject)
-                .input(input)
-                .valid(true)
-                .build();
     };
 
     public static final PropertyDescriptor LOG_LEVEL = new PropertyDescriptor.Builder()
