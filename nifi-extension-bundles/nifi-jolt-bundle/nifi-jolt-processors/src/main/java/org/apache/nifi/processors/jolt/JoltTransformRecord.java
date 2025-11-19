@@ -65,37 +65,67 @@ import java.util.stream.Stream;
 @SupportsBatching
 @Tags({"record", "jolt", "transform", "shiftr", "chainr", "defaultr", "removr", "cardinality", "sort"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@WritesAttributes({@WritesAttribute(attribute = "record.count", description = "The number of records in an outgoing FlowFile"),
-        @WritesAttribute(attribute = "mime.type", description = "The MIME " + "Type that the configured Record Writer indicates is appropriate")})
-@CapabilityDescription("Applies a JOLT specification to each record in the FlowFile payload. A new FlowFile is created " + "with transformed content and is routed to the 'success' relationship. If " +
-        "the transform " + "fails, the original FlowFile is routed to the 'failure' relationship.")
+@WritesAttributes({
+        @WritesAttribute(attribute = "record.count", description = "The number of records in an outgoing FlowFile"),
+        @WritesAttribute(attribute = "mime.type", description = "The MIME Type that the configured Record Writer indicates is appropriate"),
+})
+@CapabilityDescription("Applies a JOLT specification to each record in the FlowFile payload. A new FlowFile is created "
+        + "with transformed content and is routed to the 'success' relationship. If the transform "
+        + "fails, the original FlowFile is routed to the 'failure' relationship.")
 @RequiresInstanceClassLoading
 public class JoltTransformRecord extends AbstractJoltTransform {
 
-    static final PropertyDescriptor RECORD_READER =
-            new PropertyDescriptor.Builder().name("Record Reader").description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
-                    .identifiesControllerService(RecordReaderFactory.class).required(true).build();
+    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("Record Reader")
+            .description("Specifies the Controller Service to use for parsing incoming data and determining the data's schema.")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(true)
+            .build();
 
-    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder().name("Record Writer").description("Specifies the Controller Service to use for writing out the records")
-            .identifiesControllerService(RecordSetWriterFactory.class).required(true).build();
+    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("Record Writer")
+            .description("Specifies the Controller Service to use for writing out the records")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .required(true)
+            .build();
 
-    static final PropertyDescriptor SCHEMA_WRITING_STRATEGY =
-            new PropertyDescriptor.Builder().name("Schema Writing Strategy").description("Specifies how the processor should handle records that result in different schemas after transformation.")
-                    .allowableValues(JoltTransformWritingStrategy.class).defaultValue(JoltTransformWritingStrategy.USE_FIRST_SCHEMA).required(true).build();
+    static final PropertyDescriptor SCHEMA_WRITING_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Schema Writing Strategy")
+            .description("Specifies how the processor should handle records that result in different schemas after transformation.")
+            .allowableValues(JoltTransformWritingStrategy.class)
+            .defaultValue(JoltTransformWritingStrategy.USE_FIRST_SCHEMA)
+            .required(true)
+            .build();
 
-    static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").description("The FlowFile with transformed content will be routed to this relationship").build();
+    static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("The FlowFile with transformed content will be routed to this relationship")
+            .build();
 
-    static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
-            .description("If a FlowFile fails processing for any reason (for example, the FlowFile records cannot be " + "parsed), it will be routed to this relationship").build();
+    static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("If a FlowFile fails processing for any reason (for example, the FlowFile records cannot be parsed), it will be routed to this relationship")
+            .build();
 
-    static final Relationship REL_ORIGINAL =
-            new Relationship.Builder().name("original").description("The original FlowFile that was transformed. If the FlowFile fails processing, nothing will be " + "sent to this relationship")
-                    .build();
+    static final Relationship REL_ORIGINAL = new Relationship.Builder()
+            .name("original")
+            .description("The original FlowFile that was transformed. If the FlowFile fails processing, nothing will be sent to this relationship")
+            .build();
 
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS =
-            Stream.concat(getCommonPropertyDescriptors().stream(), Stream.of(SCHEMA_WRITING_STRATEGY, RECORD_READER, RECORD_WRITER)).toList();
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+            getCommonPropertyDescriptors().stream(),
+            Stream.of(
+                    SCHEMA_WRITING_STRATEGY,
+                    RECORD_READER,
+                    RECORD_WRITER
+            )
+    ).toList();
 
-    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_ORIGINAL);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_ORIGINAL
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -334,7 +364,6 @@ public class JoltTransformRecord extends AbstractJoltTransform {
 
     private List<Record> transform(final Record record, final JoltTransform transform) {
         Map<String, Object> recordMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-
         // JOLT expects arrays to be of type List where our Record code uses Object[].
         // Make another pass of the transformed objects to change Object[] to List.
         recordMap = (Map<String, Object>) normalizeJoltObjects(recordMap);
@@ -349,7 +378,8 @@ public class JoltTransformRecord extends AbstractJoltTransform {
             return recordList;
         }
 
-        // If the top-level object is an array, return a list of the records inside. Otherwise return a singleton list with the single transformed record
+        // If the top-level object is an array, return a list of the records inside.
+        // Otherwise return a singleton list with the single transformed record
         if (normalizedRecordValues instanceof Object[]) {
             for (Object o : (Object[]) normalizedRecordValues) {
                 if (o != null) {
@@ -364,11 +394,13 @@ public class JoltTransformRecord extends AbstractJoltTransform {
 
     protected static Object transform(JoltTransform joltTransform, Object input) {
         return joltTransform instanceof ContextualTransform
-                ? ((ContextualTransform) joltTransform).transform(input, Collections.emptyMap()) : ((Transform) joltTransform).transform(input);
+                ?
+                ((ContextualTransform) joltTransform).transform(input, Collections.emptyMap()) : ((Transform) joltTransform).transform(input);
     }
 
     /**
-     * Recursively replace List objects with Object[]. JOLT expects arrays to be of type List where our Record code uses Object[].
+     * Recursively replace List objects with Object[].
+     * JOLT expects arrays to be of type List where our Record code uses Object[].
      *
      * @param o The object to normalize with respect to JOLT
      */
