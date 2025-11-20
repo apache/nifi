@@ -57,6 +57,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -190,14 +191,34 @@ public class InvokeHTTP extends AbstractProcessor {
             CoreAttributes.PATH.key()
     );
 
+    private static final Pattern HTTP_METHOD_PATTERN = Pattern.compile("(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$");
+    private static final Validator HTTP_METHOD_VALIDATOR = (subject, input, context) -> {
+        final boolean matches = HTTP_METHOD_PATTERN.matcher(input).matches();
+        if (matches || context.isExpressionLanguagePresent(input)) {
+            return (new ValidationResult.Builder())
+                    .subject(subject)
+                    .input(input)
+                    .valid(true)
+                    .build();
+        } else {
+            return (new ValidationResult.Builder())
+                    .subject(subject)
+                    .valid(false)
+                    .explanation(String.format("%s must be either GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS", subject))
+                    .input(input)
+                    .build();
+        }
+    };
+
     public static final PropertyDescriptor HTTP_METHOD = new PropertyDescriptor.Builder()
             .name("HTTP Method")
-            .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported. "
+            .description("HTTP request method (GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS). Arbitrary methods are also supported but "
+                    + "must be encased using the Expression Language function literal e.g. ${literal('TRACE')}. "
                     + "Methods other than POST, PUT and PATCH will be sent without a message body.")
             .required(true)
             .defaultValue(HttpMethod.GET.name())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .addValidator(HTTP_METHOD_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor HTTP_URL = new PropertyDescriptor.Builder()

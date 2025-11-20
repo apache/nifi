@@ -293,6 +293,38 @@ public class InvokeHTTPTest {
     }
 
     @Test
+    void testInvalidHttpMethod() {
+        setUrlProperty();
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, "GIBBERISH");
+        runner.assertNotValid();
+    }
+
+    @Test
+    void testExpressionLanguageHttpMethod() {
+        setUrlProperty();
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, "${http.method}");
+        runner.assertValid();
+    }
+
+    @Test
+    public void testRunTraceHttp200Success() {
+        final MockResponse response = new MockResponse.Builder()
+                .code(HTTP_OK)
+                .build();
+        mockWebServer.enqueue(response);
+
+        setUrlProperty();
+        final String method = "TRACE";
+        runner.setProperty(InvokeHTTP.HTTP_METHOD, String.format("${literal('%s')}", method));
+        runner.enqueue(FLOW_FILE_CONTENT);
+        runner.run();
+
+        runner.assertTransferCount(InvokeHTTP.RESPONSE, 1);
+        runner.assertTransferCount(InvokeHTTP.FAILURE, 0);
+        runner.assertTransferCount(InvokeHTTP.ORIGINAL, 1);
+    }
+
+    @Test
     public void testRunGetMethodIllegalArgumentExceptionFailure() {
         setUrlProperty();
         final String methodAttributeKey = "request.method";
