@@ -75,7 +75,7 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORI
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This processor splits a multi sheet Microsoft Excel spreadsheet into multiple Microsoft Excel spreadsheets where each sheet from the original" +
         " file is converted to an individual spreadsheet in its own flow file. This processor is capable of processing both password and non password protected" +
-        " .xlsx (XSSF 2007 OOXML file format) and older .xls (HSSF '97(-2007) file format) Excel documents." +
+        " modern XLSX and older XLS Excel spreadsheets." +
         " Please note all original cell styles are copied and formulas are removed leaving only the calculated values." +
         " Even a single sheet Microsoft Excel spreadsheet is converted to its own flow file with all the original cell styles copied and formulas removed."
 )
@@ -108,9 +108,8 @@ public class SplitExcel extends AbstractProcessor {
             .dependsOn(PROTECTION_TYPE, ProtectionType.PASSWORD)
             .build();
 
-    public static final PropertyDescriptor INPUT_FILE_TYPE = new PropertyDescriptor
-            .Builder().name("Input File Type")
-            .displayName("Input File Type")
+    public static final PropertyDescriptor INPUT_FILE_TYPE = new PropertyDescriptor.Builder()
+            .name("Input File Type")
             .description("Specifies type of Excel input file.")
             .required(true)
             .allowableValues(InputFileType.class)
