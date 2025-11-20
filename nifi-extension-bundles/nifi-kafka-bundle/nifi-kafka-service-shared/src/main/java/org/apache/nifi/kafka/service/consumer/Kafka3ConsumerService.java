@@ -62,7 +62,8 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
         this.consumer = consumer;
         this.subscription = subscription;
 
-        if (consumer.assignment().isEmpty()) {
+        final Integer partition = subscription.getPartition();
+        if (partition == null) {
             final Optional<Pattern> topicPatternFound = subscription.getTopicPattern();
             if (topicPatternFound.isPresent()) {
                 final Pattern topicPattern = topicPatternFound.get();
@@ -71,6 +72,11 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
                 final Collection<String> topics = subscription.getTopics();
                 consumer.subscribe(topics, this);
             }
+        } else {
+            List<TopicPartition> topicPartitions = subscription.getTopics().stream()
+                    .map(topic -> new TopicPartition(topic, partition))
+                    .collect(Collectors.toList());
+            consumer.assign(topicPartitions);
         }
     }
 
