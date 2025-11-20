@@ -89,11 +89,11 @@ public class PrometheusMetricsUtil {
                 instanceId, componentType, componentName, componentId, parentPGId);
 
         // Report metrics for child process groups if specified
-        if (ALL_PROCESS_GROUPS.equals(metricsStrategy) || ALL_COMPONENTS.equals(metricsStrategy)) {
+        if (ALL_PROCESS_GROUPS == metricsStrategy || ALL_COMPONENTS == metricsStrategy) {
             status.getProcessGroupStatus().forEach((childGroupStatus) -> createNifiMetrics(nifiMetricsRegistry, childGroupStatus, instanceId, componentId, "ProcessGroup", metricsStrategy));
         }
 
-        if (ALL_COMPONENTS.equals(metricsStrategy)) {
+        if (ALL_COMPONENTS == metricsStrategy) {
             // Report metrics for all components
             for (ProcessorStatus processorStatus : status.getProcessorStatus()) {
                 Map<String, Long> counters = processorStatus.getCounters();
