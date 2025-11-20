@@ -169,7 +169,7 @@
         <dependency>
             <groupId>org.tukaani</groupId>
             <artifactId>xz</artifactId>
-            <version>1.10</version>
+            <version>1.11</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
