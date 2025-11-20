@@ -258,14 +258,6 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         final ByteArrayDeserializer deserializer = new ByteArrayDeserializer();
         final Consumer<byte[], byte[]> consumer = new KafkaConsumer<>(properties, deserializer, deserializer);
 
-        Integer partition = pollingContext.getPartition();
-        if (partition != null) {
-            List<TopicPartition> topicPartitions = pollingContext.getTopics().stream()
-                    .map(topic -> new TopicPartition(topic, partition))
-                    .collect(Collectors.toList());
-            consumer.assign(topicPartitions);
-        }
-
         return new Kafka3ConsumerService(getLogger(), consumer, subscription);
     }
 
@@ -276,7 +268,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
         return topicPatternFound
             .map(pattern -> new Subscription(groupId, pattern, autoOffsetReset))
-            .orElseGet(() -> new Subscription(groupId, pollingContext.getTopics(), autoOffsetReset));
+            .orElseGet(() -> new Subscription(groupId, pollingContext.getPartition(), pollingContext.getTopics(), autoOffsetReset));
     }
 
     @Override

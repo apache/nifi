@@ -73,13 +73,13 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -343,7 +343,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
 
     private final Queue<PollingContext> availablePartitionedPollingContexts = new LinkedBlockingQueue<>();
-    private final Map<KafkaConsumerService, PollingContext> consumerServiceToPartitionedPollingContext = new HashMap<>();
+    private final Map<KafkaConsumerService, PollingContext> consumerServiceToPartitionedPollingContext = new ConcurrentHashMap<>();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -445,11 +445,6 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             if (partitionCount != numAssignedPartitions) {
                 context.yield();
 
-                KafkaConsumerService service;
-                while ((service = consumerServices.poll()) != null) {
-                    close(service, "Not all partitions are assigned");
-                }
-
                 throw new ProcessException("Illegal Partition Assignment: There are "
                         + numAssignedPartitions + " partitions statically assigned using the " + PARTITIONS_PROPERTY_PREFIX + ".* property names,"
                         + " but the Kafka topic(s) have " + partitionCount + " partitions");
@@ -463,9 +458,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             }
 
             for (int partition : assignedPartitions) {
-                PollingContext partitionedPollingContext = createPollingContext(context, partition);
-
-                availablePartitionedPollingContexts.add(partitionedPollingContext);
+                final PollingContext partitionedPollingContext = createPollingContext(context, partition);
+                final KafkaConsumerService partitionedConsumerService = obtainPartitionedConsumerService(partitionedPollingContext);
+                consumerServices.add(partitionedConsumerService);
             }
         }
     }
@@ -658,9 +653,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
             getLogger().info("No Partitioned Kafka Consumer Service available; creating a new one.");
 
-            final KafkaConsumerService partitionedConsumerService = connectionService.getConsumerService(partitionedPollingContext);
-
-            consumerServiceToPartitionedPollingContext.put(partitionedConsumerService, partitionedPollingContext);
+            final KafkaConsumerService partitionedConsumerService = obtainPartitionedConsumerService(partitionedPollingContext);
 
             return partitionedConsumerService;
         } else {
@@ -699,6 +692,14 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         return partitionsEachTopic;
+    }
+
+    private KafkaConsumerService obtainPartitionedConsumerService(PollingContext partitionedPollingContext) {
+        final KafkaConsumerService partitionedConsumerService = connectionService.getConsumerService(partitionedPollingContext);
+
+        consumerServiceToPartitionedPollingContext.put(partitionedConsumerService, partitionedPollingContext);
+
+        return partitionedConsumerService;
     }
 
     private int getMaxConsumerCount() {
