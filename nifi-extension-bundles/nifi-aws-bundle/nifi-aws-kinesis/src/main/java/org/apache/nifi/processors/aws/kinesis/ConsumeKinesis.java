@@ -428,7 +428,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                 Thread.currentThread().interrupt();
             }
             cleanUpState();
-            throw new ProcessException(e);
+            throw new ProcessException("Initialization failed for stream [%s]".formatted(streamName), e);
         }
 
         switch (result) {
@@ -443,9 +443,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                         .map(err -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName), err))
                         // This branch is active only when a scheduler was shutdown, but no initialization error was provided.
                         // This behavior isn't typical and wasn't observed.
-                        .orElseGet(() -> new ProcessException((
-                                "Initialization failed for stream [%s] due to an unknown failure." +
-                                " Check application logs for more details").formatted(streamName)));
+                        .orElseGet(() -> new ProcessException(( "Initialization failed for stream [%s]").formatted(streamName)));
 
                 throw ex;
             }
