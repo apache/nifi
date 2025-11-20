@@ -18,7 +18,6 @@
 package org.apache.nifi.prometheusutil;
 
 import io.prometheus.client.CollectorRegistry;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -31,16 +30,16 @@ import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.StringUtils;
+import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.nifi.web.api.request.FlowMetricsReportingStrategy.ALL_COMPONENTS;
+import static org.apache.nifi.web.api.request.FlowMetricsReportingStrategy.ALL_PROCESS_GROUPS;
+
 public class PrometheusMetricsUtil {
 
-    public static final AllowableValue METRICS_STRATEGY_PG = new AllowableValue("All Process Groups", "All Process Groups",
-            "Send metrics for each process group");
-    public static final AllowableValue METRICS_STRATEGY_COMPONENTS = new AllowableValue("All Components", "All Components",
-            "Send metrics for each component in the system, to include processors, connections, controller services, etc.");
 
     protected static final String DEFAULT_LABEL_STRING = "";
     private static final double MAXIMUM_BACKPRESSURE = 1.0;
@@ -48,7 +47,7 @@ public class PrometheusMetricsUtil {
     private static final double NANOS_PER_MILLI = 1000000.0;
 
     public static CollectorRegistry createNifiMetrics(NiFiMetricsRegistry nifiMetricsRegistry, ProcessGroupStatus status,
-                                                      String instId, String parentProcessGroupId, String compType, String metricsStrategy) {
+                                                      String instId, String parentProcessGroupId, String compType, FlowMetricsReportingStrategy metricsStrategy) {
 
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
         final String parentPGId = StringUtils.isEmpty(parentProcessGroupId) ? DEFAULT_LABEL_STRING : parentProcessGroupId;
@@ -90,11 +89,11 @@ public class PrometheusMetricsUtil {
                 instanceId, componentType, componentName, componentId, parentPGId);
 
         // Report metrics for child process groups if specified
-        if (METRICS_STRATEGY_PG.getValue().equals(metricsStrategy) || METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
+        if (ALL_PROCESS_GROUPS == metricsStrategy || ALL_COMPONENTS == metricsStrategy) {
             status.getProcessGroupStatus().forEach((childGroupStatus) -> createNifiMetrics(nifiMetricsRegistry, childGroupStatus, instanceId, componentId, "ProcessGroup", metricsStrategy));
         }
 
-        if (METRICS_STRATEGY_COMPONENTS.getValue().equals(metricsStrategy)) {
+        if (ALL_COMPONENTS == metricsStrategy) {
             // Report metrics for all components
             for (ProcessorStatus processorStatus : status.getProcessorStatus()) {
                 Map<String, Long> counters = processorStatus.getCounters();

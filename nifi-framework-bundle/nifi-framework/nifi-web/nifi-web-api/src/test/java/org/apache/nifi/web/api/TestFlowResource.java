@@ -42,6 +42,7 @@ import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 import org.apache.nifi.web.api.dto.DifferenceDTO;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.request.FlowMetricsProducer;
+import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -113,15 +114,15 @@ public class TestFlowResource {
 
     @Test
     public void testGetFlowMetricsProducerInvalid() {
-        assertThrows(ResourceNotFoundException.class, () -> resource.getFlowMetrics(String.class.toString(), Collections.emptySet(), null, null, null));
+        assertThrows(ResourceNotFoundException.class, () -> resource.getFlowMetrics(String.class.toString(), Collections.emptySet(), null, null, null, null));
     }
 
     @Test
     public void testGetFlowMetricsPrometheus() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistries(false);
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), null, null, null);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), null, null, null, null);
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
@@ -136,9 +137,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusWithPerformanceStatus() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistries(true);
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), null, null, null);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), null, null, null, null);
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
@@ -153,9 +154,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusSampleName() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistries(false);
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), THREAD_COUNT_NAME, null, null);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), THREAD_COUNT_NAME, null, null, null);
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
@@ -169,9 +170,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusSampleNameStartsWithPattern() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistries(false);
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), HEAP_STARTS_WITH_PATTERN, null, null);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), HEAP_STARTS_WITH_PATTERN, null, null, null);
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
@@ -186,9 +187,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusSampleLabelValue() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistries(false);
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), null, LABEL_VALUE, null);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), null, LABEL_VALUE, null, null);
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
@@ -202,9 +203,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusSampleNameAndSampleLabelValue() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistries(false);
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), THREAD_COUNT_NAME, LABEL_VALUE, null);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.PROMETHEUS.getProducer(), Collections.emptySet(), THREAD_COUNT_NAME, LABEL_VALUE, null, null);
 
         assertNotNull(response);
         assertEquals(MediaType.valueOf(TextFormat.CONTENT_TYPE_004), response.getMediaType());
@@ -220,9 +221,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusAsJson() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), null, null, ROOT_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), null, null, ROOT_FIELD_NAME, null);
 
         assertNotNull(response);
         assertEquals(MediaType.APPLICATION_JSON_TYPE, response.getMediaType());
@@ -244,9 +245,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusAsJsonSampleName() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), SAMPLE_NAME_JVM, null, ROOT_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), SAMPLE_NAME_JVM, null, ROOT_FIELD_NAME, null);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
@@ -264,9 +265,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusAsJsonSampleNameStartsWithPattern() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), HEAP_STARTS_WITH_PATTERN, null, ROOT_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), HEAP_STARTS_WITH_PATTERN, null, ROOT_FIELD_NAME, null);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
@@ -284,9 +285,9 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusAsJsonSampleLabelValue() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), null, SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP, ROOT_FIELD_NAME);
+        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), null, SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP, ROOT_FIELD_NAME, null);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
@@ -304,9 +305,10 @@ public class TestFlowResource {
     @Test
     public void testGetFlowMetricsPrometheusAsJsonSampleNameAndSampleLabelValue() throws IOException {
         final List<CollectorRegistry> registries = getCollectorRegistriesForJson();
-        when(serviceFacade.generateFlowMetrics(anySet())).thenReturn(registries);
+        when(serviceFacade.generateFlowMetrics(anySet(), any(FlowMetricsReportingStrategy.class))).thenReturn(registries);
 
-        final Response response = resource.getFlowMetrics(FlowMetricsProducer.JSON.getProducer(), Collections.emptySet(), SAMPLE_NAME_JVM, SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP, ROOT_FIELD_NAME);
+        final String producer = FlowMetricsProducer.JSON.getProducer();
+        final Response response = resource.getFlowMetrics(producer, Collections.emptySet(), SAMPLE_NAME_JVM, SAMPLE_LABEL_VALUES_ROOT_PROCESS_GROUP, ROOT_FIELD_NAME, null);
         assertNotNull(response);
         assertEquals(MediaType.valueOf(MediaType.APPLICATION_JSON), response.getMediaType());
 
@@ -414,11 +416,6 @@ public class TestFlowResource {
         assertEquals(createDifference("Position Changed", "Position was changed"), differences.get(0));
     }
 
-    @Test
-    public void testWithProcessorPerformanceStatus() {
-
-    }
-
     private void setUpGetVersionDifference() {
         doReturn(getDifferences()).when(serviceFacade).getVersionDifference(anyString(), any(FlowVersionLocation.class), any(FlowVersionLocation.class));
     }
@@ -483,7 +480,7 @@ public class TestFlowResource {
         } else {
             processGroupStatus = makeTestProcessGroupStatus();
         }
-        final CollectorRegistry nifiCollectionRegistry = PrometheusMetricsUtil.createNifiMetrics(niFiMetricsRegistry, processGroupStatus, "", "", "", "");
+        final CollectorRegistry nifiCollectionRegistry = PrometheusMetricsUtil.createNifiMetrics(niFiMetricsRegistry, processGroupStatus, "", "", "", FlowMetricsReportingStrategy.ALL_COMPONENTS);
         return Arrays.asList(jvmCollectorRegistry, otherJvmCollectorRegistry, nifiCollectionRegistry);
     }
 
