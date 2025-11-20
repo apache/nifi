@@ -520,9 +520,9 @@ public class TinkerpopClientService extends AbstractControllerService implements
         GraphTraversalSource traversal;
         try {
             if (StringUtils.isEmpty(traversalSourceName)) {
-                traversal = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster));
+                traversal = AnonymousTraversalSource.traversal().with(DriverRemoteConnection.using(cluster));
             } else {
-                traversal = AnonymousTraversalSource.traversal().withRemote(DriverRemoteConnection.using(cluster, traversalSourceName));
+                traversal = AnonymousTraversalSource.traversal().with(DriverRemoteConnection.using(cluster, traversalSourceName));
             }
         } catch (Exception e) {
             throw new ProcessException(e);
