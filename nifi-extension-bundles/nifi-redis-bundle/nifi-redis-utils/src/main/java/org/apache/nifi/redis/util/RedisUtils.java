@@ -43,7 +43,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 import redis.clients.jedis.JedisPoolConfig;
 
 import javax.net.ssl.SSLContext;

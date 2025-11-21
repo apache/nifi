@@ -24,7 +24,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.elasticsearch.ElasticsearchRestClientAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.logging.LoggingSystem;
@@ -44,11 +43,7 @@ import java.util.Properties;
  *
  * WebMvcAutoConfiguration is excluded because our web app is using Jersey in place of SpringMVC
  */
-@EnableAutoConfiguration(
-        exclude = {
-                ElasticsearchRestClientAutoConfiguration.class
-        }
-)
+@EnableAutoConfiguration
 @SpringBootApplication
 public class NiFiRegistryApiApplication extends SpringBootServletInitializer {
 

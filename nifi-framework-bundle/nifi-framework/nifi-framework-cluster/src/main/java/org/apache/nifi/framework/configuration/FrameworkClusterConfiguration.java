@@ -69,7 +69,7 @@ public class FrameworkClusterConfiguration {
         this.eventReporter = eventReporter;
     }
 
-    @Autowired
+    @Autowired(required = false)
     public void setClusterCoordinator(final ClusterCoordinator clusterCoordinator) {
         this.clusterCoordinator = clusterCoordinator;
     }

@@ -36,17 +36,11 @@ public class DatabaseProfileValueSource implements ProfileValueSource {
     private String currentDatabase;
 
     DatabaseProfileValueSource() {
-        final String activeProfiles = System.getProperty("spring.profiles.active", H2);
+        currentDatabase = resolveCurrentDatabase();
+    }
 
-        if (activeProfiles.contains(H2)) {
-            currentDatabase = H2;
-        } else if (activeProfiles.contains(MYSQL)) {
-            currentDatabase = MYSQL;
-        } else if (activeProfiles.contains(MARIADB)) {
-            currentDatabase = MARIADB;
-        } else if (activeProfiles.contains(POSTGRES)) {
-            currentDatabase = POSTGRES;
-        }
+    public static boolean isDatabase(final String database) {
+        return resolveCurrentDatabase().equalsIgnoreCase(database);
     }
 
     @Override
@@ -58,5 +52,21 @@ public class DatabaseProfileValueSource implements ProfileValueSource {
             return Boolean.toString(!key.endsWith(currentDatabase)).toLowerCase();
         }
         return Boolean.toString(key.endsWith(currentDatabase)).toLowerCase();
+    }
+
+    private static String resolveCurrentDatabase() {
+        final String activeProfiles = System.getProperty("spring.profiles.active", H2);
+
+        if (activeProfiles.contains(H2)) {
+            return H2;
+        } else if (activeProfiles.contains(MYSQL)) {
+            return MYSQL;
+        } else if (activeProfiles.contains(MARIADB)) {
+            return MARIADB;
+        } else if (activeProfiles.contains(POSTGRES)) {
+            return POSTGRES;
+        }
+
+        return H2;
     }
 }
