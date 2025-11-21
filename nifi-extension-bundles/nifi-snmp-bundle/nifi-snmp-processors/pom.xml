@@ -21,7 +21,7 @@ language governing permissions and limitations under the License. -->
 
     <properties>
         <snmp4j.version>3.9.6</snmp4j.version>
-        <snmp4j-agent.version>3.8.2</snmp4j-agent.version>
+        <snmp4j-agent.version>3.8.3</snmp4j-agent.version>
     </properties>
 
     <dependencies>
