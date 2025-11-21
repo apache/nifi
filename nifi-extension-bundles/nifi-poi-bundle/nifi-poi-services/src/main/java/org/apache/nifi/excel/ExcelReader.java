@@ -58,7 +58,7 @@ import java.util.Map;
         + "This reader allows for inferring a schema from all the required sheets "
         + "or providing an explicit schema for interpreting the values."
         + "See Controller Service's Usage for further documentation. "
-        + "This reader is capable of processing both both password and non password protected" +
+        + "This reader is capable of processing both password and non password protected" +
         " modern XLSX and older XLS Excel spreadsheets.")
 public class ExcelReader extends SchemaRegistryService implements RecordReaderFactory {
 
