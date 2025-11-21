@@ -457,10 +457,11 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 throw new ProcessException("Could not determine localhost's hostname", uhe);
             }
 
+            availablePartitionedPollingContexts.clear();
             for (int partition : assignedPartitions) {
-                final PollingContext partitionedPollingContext = createPollingContext(context, partition);
-                final KafkaConsumerService partitionedConsumerService = obtainPartitionedConsumerService(partitionedPollingContext);
-                consumerServices.add(partitionedConsumerService);
+                PollingContext partitionedPollingContext = createPollingContext(context, partition);
+
+                availablePartitionedPollingContexts.add(partitionedPollingContext);
             }
         }
     }
@@ -636,6 +637,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     }
 
     private KafkaConsumerService getConsumerService(final ProcessContext context) {
+        recreatePartitionedConsumerServices();
+
         final KafkaConsumerService consumerService = consumerServices.poll();
         if (consumerService != null) {
             return consumerService;
@@ -644,18 +647,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final boolean isExplicitPartitionMapping = ConsumerPartitionsUtil.isPartitionAssignmentExplicit(context.getAllProperties());
 
         if (isExplicitPartitionMapping) {
-            final PollingContext partitionedPollingContext = availablePartitionedPollingContexts.poll();
-
-            if (partitionedPollingContext == null) {
-                getLogger().trace("No Partitioned Kafka Consumer Service available, all specified partitions are being consumed from.");
-                return null;
-            }
-
-            getLogger().info("No Partitioned Kafka Consumer Service available; creating a new one.");
-
-            final KafkaConsumerService partitionedConsumerService = obtainPartitionedConsumerService(partitionedPollingContext);
-
-            return partitionedConsumerService;
+            getLogger().trace("No Partitioned Kafka Consumer Service available, all specified partitions are being consumed from.");
+            return null;
         } else {
             final int activeCount = activeConsumerCount.incrementAndGet();
             if (activeCount > getMaxConsumerCount()) {
@@ -694,12 +687,17 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         return partitionsEachTopic;
     }
 
-    private KafkaConsumerService obtainPartitionedConsumerService(PollingContext partitionedPollingContext) {
-        final KafkaConsumerService partitionedConsumerService = connectionService.getConsumerService(partitionedPollingContext);
+    private void recreatePartitionedConsumerServices() {
+        PollingContext partitionedPollingContext;
+        while ((partitionedPollingContext = availablePartitionedPollingContexts.poll()) != null) {
+            getLogger().info("Creating new Partitioned Kafka Consumer Service.");
 
-        consumerServiceToPartitionedPollingContext.put(partitionedConsumerService, partitionedPollingContext);
+            final KafkaConsumerService partitionedConsumerService = connectionService.getConsumerService(partitionedPollingContext);
 
-        return partitionedConsumerService;
+            consumerServiceToPartitionedPollingContext.put(partitionedConsumerService, partitionedPollingContext);
+
+            consumerServices.offer(partitionedConsumerService);
+        }
     }
 
     private int getMaxConsumerCount() {
