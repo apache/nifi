@@ -46,7 +46,6 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
             .build();
 
     PropertyDescriptor VAULT_URI = new PropertyDescriptor.Builder()
-            .name("Vault URI")
             .name("vault.uri")
             .displayName("Vault URI")
             .description("The URI of the HashiCorp Vault server (e.g., http://localhost:8200).  Required if not specified in the " +
@@ -111,7 +110,6 @@ public interface HashiCorpVaultClientService extends ControllerService, Verifiab
     @Override
     default void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("configuration-strategy", CONFIGURATION_STRATEGY.getName());
-        config.renameProperty("vault.uri", VAULT_URI.getName());
         config.renameProperty("vault.authentication", VAULT_AUTHENTICATION.getName());
         config.renameProperty("vault.ssl.context.service", SSL_CONTEXT_SERVICE.getName());
         config.renameProperty("vault.properties.files", VAULT_PROPERTIES_FILES.getName());
