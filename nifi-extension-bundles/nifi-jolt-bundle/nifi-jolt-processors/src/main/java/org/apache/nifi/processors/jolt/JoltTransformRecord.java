@@ -286,7 +286,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
 
             while ((currentRecord = reader.nextRecord()) != null) {
                 List<Record> transformedRecords = transform(currentRecord, transform);
-                if (transformedRecords != null && !transformedRecords.isEmpty() && transformedRecords.getFirst() != null) {
+                if (!transformedRecords.isEmpty() && transformedRecords.getFirst() != null) {
                     firstValidBatch = transformedRecords;
                     firstValidRecord = transformedRecords.getFirst();
                     break;
@@ -321,7 +321,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
                     // Write the rest
                     while ((currentRecord = reader.nextRecord()) != null) {
                         final List<Record> transformedRecords = transform(currentRecord, transform);
-                        if (transformedRecords != null && !transformedRecords.isEmpty()) {
+                        if (!transformedRecords.isEmpty()) {
                             for (Record r : transformedRecords) {
                                 if (r != null) writer.write(r);
                             }

@@ -667,6 +667,25 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertNotValid();
     }
 
+    @Test
+    public void testTransformInputAllFiltered() throws IOException {
+        generateTestData(3, null);
+
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
+        runner.enableControllerService(writer);
+
+        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/filterOutAll.json"));
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
+        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CHAINR);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 0);
+        runner.assertTransferCount(JoltTransformRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+    }
+
 
     private static Stream<Arguments> getChainrArguments() {
         return Stream.of(Arguments.of(Paths.get(CHAINR_SPEC_PATH), "has no single line comments"),

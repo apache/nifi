@@ -61,9 +61,20 @@ public class TestJoltTransformRecordPartitioned extends TestBaseJoltTransformRec
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 2);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
 
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput1.json")),
-                new String(runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(0).toByteArray()));
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput2.json")),
-                new String(runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).get(1).toByteArray()));
+        final String expectedOutput1 = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput1.json"));
+        final String expectedOutput2 = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput2.json"));
+
+        final java.util.List<org.apache.nifi.util.MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS);
+        final String result1 = new String(flowFiles.get(0).toByteArray());
+        final String result2 = new String(flowFiles.get(1).toByteArray());
+
+        // Handles non-deterministic order
+        if (result1.contains("TRASH")) {
+            assertEquals(expectedOutput1, result1);
+            assertEquals(expectedOutput2, result2);
+        } else {
+            assertEquals(expectedOutput2, result1);
+            assertEquals(expectedOutput1, result2);
+        }
     }
 }
