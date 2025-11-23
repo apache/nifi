@@ -672,7 +672,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
         runner.enableControllerService(writer);
 
-        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/filterOutAll.json"));
+        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/filterOutAllSpec.json"));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CHAINR);
 
