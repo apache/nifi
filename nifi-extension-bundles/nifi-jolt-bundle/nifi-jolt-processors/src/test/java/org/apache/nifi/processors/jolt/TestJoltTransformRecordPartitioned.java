@@ -23,6 +23,8 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,6 +32,7 @@ import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@DisabledOnOs(OS.WINDOWS) //The pretty printed json comparisons don't work on windows
 public class TestJoltTransformRecordPartitioned extends TestBaseJoltTransformRecord {
 
     @Override

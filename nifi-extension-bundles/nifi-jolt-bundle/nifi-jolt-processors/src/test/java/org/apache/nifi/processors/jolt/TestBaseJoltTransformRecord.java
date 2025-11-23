@@ -35,8 +35,6 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -59,7 +57,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisabledOnOs(OS.WINDOWS) //The pretty printed json comparisons don't work on windows
 public abstract class TestBaseJoltTransformRecord {
 
     final static String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
