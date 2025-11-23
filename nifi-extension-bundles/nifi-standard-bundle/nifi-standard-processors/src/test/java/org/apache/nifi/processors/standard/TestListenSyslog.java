@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.listen.ListenPort;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.LineEnding;
 import org.apache.nifi.event.transport.configuration.ShutdownQuietPeriod;
@@ -27,6 +28,8 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
+import org.apache.nifi.util.EmptyControllerServiceLookup;
+import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -37,11 +40,12 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestListenSyslog {
@@ -76,53 +80,9 @@ public class TestListenSyslog {
     }
 
     @Test
-    public void testCustomValidate() throws Exception {
-
-        // Neither TCP Port nor UDP Port is set by default, assert invalid by default
-        Collection<ValidationResult> validationResultCollection = runner.validate();
-
-        assertEquals(2, validationResultCollection.size());
-        assertTrue(validationResultCollection.stream().anyMatch(result ->
-            result.getSubject().equals(ListenSyslog.TCP_PORT.getName())
-            && !result.isValid()
-            && result.getExplanation().contains("TCP Port must be set unless UDP Port is set")));
-        assertTrue(validationResultCollection.stream().anyMatch(result ->
-            result.getSubject().equals(ListenSyslog.UDP_PORT.getName())
-                && !result.isValid()
-                && result.getExplanation().contains("UDP Port must be set unless TCP Port is set")));
-
-        // Now set only TCP Port and assert valid
-        runner.setProperty(ListenSyslog.TCP_PORT, "0");
-        validationResultCollection = runner.validate();
-
-        assertEquals(0, validationResultCollection.size());
-
-        // Now set only UDP Port and assert valid
-        runner.clearProperties();
-        runner.setProperty(ListenSyslog.UDP_PORT, "1");
-        validationResultCollection = runner.validate();
-
-        assertEquals(0, validationResultCollection.size());
-
-        // Now set both TCP and UDP Port and assert invalid
-        runner.setProperty(ListenSyslog.TCP_PORT, "0");
-        runner.setProperty(ListenSyslog.UDP_PORT, "1");
-        validationResultCollection = runner.validate();
-
-        assertEquals(2, validationResultCollection.size());
-        assertTrue(validationResultCollection.stream().anyMatch(result ->
-            result.getSubject().equals(ListenSyslog.TCP_PORT.getName())
-                && !result.isValid()
-                && result.getExplanation().contains("annot set TCP Port when UDP Port is also set")));
-        assertTrue(validationResultCollection.stream().anyMatch(result ->
-            result.getSubject().equals(ListenSyslog.UDP_PORT.getName())
-                && !result.isValid()
-                && result.getExplanation().contains("Cannot set UDP Port when TCP Port is also set")));
-    }
-
-    @Test
     public void testRunTcp() throws Exception {
         final TransportProtocol protocol = TransportProtocol.TCP;
+        runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
         runner.setProperty(ListenSyslog.TCP_PORT, "0");
         runner.setProperty(ListenSyslog.SOCKET_KEEP_ALIVE, Boolean.FALSE.toString());
 
@@ -132,6 +92,7 @@ public class TestListenSyslog {
     @Test
     public void testRunTcpBatchParseDisabled() throws Exception {
         final TransportProtocol protocol = TransportProtocol.TCP;
+        runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
         runner.setProperty(ListenSyslog.TCP_PORT, "0");
         runner.setProperty(ListenSyslog.SOCKET_KEEP_ALIVE, Boolean.FALSE.toString());
         runner.setProperty(ListenSyslog.PARSE_MESSAGES, Boolean.FALSE.toString());
@@ -158,6 +119,7 @@ public class TestListenSyslog {
     @Test
     public void testRunUdp() throws Exception {
         final TransportProtocol protocol = TransportProtocol.UDP;
+        runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
         runner.setProperty(ListenSyslog.UDP_PORT, "0");
 
         assertSendSuccess(protocol);
@@ -166,6 +128,7 @@ public class TestListenSyslog {
     @Test
     public void testRunUdpBatch() throws Exception {
         final TransportProtocol protocol = TransportProtocol.UDP;
+        runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
         runner.setProperty(ListenSyslog.UDP_PORT, "0");
 
         final String[] messages = new String[]{VALID_MESSAGE, VALID_MESSAGE};
@@ -191,6 +154,7 @@ public class TestListenSyslog {
     @Test
     public void testRunUdpInvalid() throws Exception {
         final TransportProtocol protocol = TransportProtocol.UDP;
+        runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
         runner.setProperty(ListenSyslog.UDP_PORT, "0");
 
         runner.run(1, STOP_ON_FINISH_DISABLED);
@@ -261,5 +225,43 @@ public class TestListenSyslog {
                 eventSender.sendEvent(message);
             }
         }
+    }
+
+    @Test
+    public void testGetListenPortsTcp() {
+        tesGetListenPorts(TransportProtocol.TCP, 1);
+    }
+
+    @Test
+    public void testGetListenPortsUdp() {
+        tesGetListenPorts(TransportProtocol.UDP, 2);
+    }
+
+    private void tesGetListenPorts(final TransportProtocol protocol, final int portNumber) {
+        runner.setProperty(ListenSyslog.TCP_PORT, "0");
+        runner.setProperty(ListenSyslog.UDP_PORT, "0");
+
+        runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
+        if (protocol == TransportProtocol.TCP) {
+            runner.setProperty(ListenSyslog.TCP_PORT, String.valueOf(portNumber));
+        } else {
+            runner.setProperty(ListenSyslog.UDP_PORT, String.valueOf(portNumber));
+        }
+
+        final ConfigurationContext configurationContext = new MockConfigurationContext(runner.getProcessContext().getProperties(), new EmptyControllerServiceLookup(), Map.of());
+        final List<ListenPort> listenPorts = processor.getListenPorts(configurationContext);
+
+        assertNotNull(listenPorts);
+        assertEquals(1, listenPorts.size());
+        final ListenPort listenPort = listenPorts.get(0);
+        assertEquals(portNumber, listenPort.getPortNumber());
+        assertEquals(convertProtocol(protocol), listenPort.getTransportProtocol());
+        assertEquals(List.of("syslog"), listenPort.getApplicationProtocols());
+    }
+
+    private org.apache.nifi.components.listen.TransportProtocol convertProtocol(final TransportProtocol protocol) {
+        return protocol == TransportProtocol.TCP
+                ? org.apache.nifi.components.listen.TransportProtocol.TCP
+                : org.apache.nifi.components.listen.TransportProtocol.UDP;
     }
 }

@@ -76,22 +76,6 @@ public class PutSyslog extends AbstractSyslogProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final PropertyDescriptor PORT = new PropertyDescriptor
-        .Builder().name("Port")
-        .description("The destination port on the remote Syslog server to use for sending Syslog messages.")
-        .required(true)
-        .addValidator(StandardValidators.PORT_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .build();
-
-    public static final PropertyDescriptor PROTOCOL = new PropertyDescriptor
-        .Builder().name("Protocol")
-        .description("The protocol to use for sending Syslog messages to the Syslog server.")
-        .required(true)
-        .allowableValues(TCP_VALUE, UDP_VALUE)
-        .defaultValue(UDP_VALUE.getValue())
-        .build();
-
     public static final PropertyDescriptor MAX_SOCKET_SEND_BUFFER_SIZE = new PropertyDescriptor.Builder()
             .name("Max Size of Socket Send Buffer")
             .description("The maximum size of the socket send buffer that should be used. This is a suggestion to the Operating System " +
@@ -167,8 +151,8 @@ public class PutSyslog extends AbstractSyslogProcessor {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             HOSTNAME,
-            PORT,
             PROTOCOL,
+            PORT,
             MAX_SOCKET_SEND_BUFFER_SIZE,
             SSL_CONTEXT_SERVICE,
             IDLE_EXPIRATION,
