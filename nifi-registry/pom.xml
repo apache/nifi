@@ -35,10 +35,8 @@
         <module>nifi-registry-docker-maven</module>
     </modules>
     <properties>
-        <jakarta.ws.rs-api.version>3.1.0</jakarta.ws.rs-api.version>
-        <jersey.bom.version>3.1.11</jersey.bom.version>
-        <spring.boot.version>3.5.8</spring.boot.version>
-        <flyway.version>11.17.0</flyway.version>
+        <spring.boot.version>4.0.0</spring.boot.version>
+        <flyway.version>11.17.1</flyway.version>
         <flyway.tests.version>10.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
         <jgit.version>7.4.0.202509020913-r</jgit.version>
@@ -46,27 +44,6 @@
     </properties>
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-bom</artifactId>
-                <version>${jetty.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-bom</artifactId>
-                <version>${jetty.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jersey</groupId>
-                <artifactId>jersey-bom</artifactId>
-                <version>${jersey.bom.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
             <dependency>
                 <groupId>jakarta.servlet</groupId>
                 <artifactId>jakarta.servlet-api</artifactId>
@@ -96,35 +73,35 @@
                 <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-glassfish-jstl</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-glassfish-jstl</artifactId>
                 <version>${jetty.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-annotations</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-annotations</artifactId>
                 <version>${jetty.version}</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-webapp</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-webapp</artifactId>
                 <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-servlet</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-servlet</artifactId>
                 <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-servlets</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-servlets</artifactId>
                 <scope>compile</scope>
             </dependency>
             <dependency>
-                <groupId>org.eclipse.jetty.ee10</groupId>
-                <artifactId>jetty-ee10-apache-jsp</artifactId>
+                <groupId>org.eclipse.jetty.ee11</groupId>
+                <artifactId>jetty-ee11-apache-jsp</artifactId>
                 <exclusions>
                     <exclusion>
                         <groupId>org.mortbay.jasper</groupId>
@@ -141,13 +118,13 @@
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
                 <artifactId>mortbay-apache-jsp</artifactId>
-                <version>10.1.48</version>
+                <version>11.0.10.1</version>
                 <scope>compile</scope>
             </dependency>
             <dependency>
                 <groupId>org.mortbay.jasper</groupId>
                 <artifactId>mortbay-apache-el</artifactId>
-                <version>10.1.48</version>
+                <version>11.0.10.1</version>
                 <scope>compile</scope>
                 <exclusions>
                     <exclusion>

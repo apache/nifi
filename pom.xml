@@ -196,8 +196,8 @@
         <jersey.bom.version>4.0.0</jersey.bom.version>
         <jetty.version>12.1.4</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.security.version>6.5.7</spring.security.version>
-        <spring.version>6.2.14</spring.version>
+        <spring.security.version>7.0.0</spring.security.version>
+        <spring.version>7.0.1</spring.version>
         <swagger.annotations.version>2.2.40</swagger.annotations.version>
 
         <!-- Testing and quality -->
@@ -510,6 +510,17 @@
                 <version>${spring.version}</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-core</artifactId>
+                <version>${spring.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.springframework.security</groupId>

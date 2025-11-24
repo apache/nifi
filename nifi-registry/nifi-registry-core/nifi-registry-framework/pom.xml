@@ -244,7 +244,7 @@
         <dependency>
             <groupId>org.springframework.ldap</groupId>
             <artifactId>spring-ldap-core</artifactId>
-            <version>3.3.4</version>
+            <version>4.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -308,6 +308,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
             <version>${spring.boot.version}</version>
         </dependency>
         <dependency>

@@ -26,7 +26,7 @@ import org.flywaydb.database.mysql.mariadb.MariaDBDatabaseType;
 import org.flywaydb.database.postgresql.PostgreSQLDatabaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.flyway.FlywayConfigurationCustomizer;
+import org.springframework.boot.flyway.autoconfigure.FlywayConfigurationCustomizer;
 import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;

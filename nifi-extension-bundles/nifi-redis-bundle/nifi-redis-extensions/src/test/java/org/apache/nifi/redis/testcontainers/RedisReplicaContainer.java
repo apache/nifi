@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.redis.testcontainers;
 
-import org.springframework.lang.NonNull;
+import org.jspecify.annotations.NonNull;
 import org.testcontainers.utility.DockerImageName;
 
 public class RedisReplicaContainer extends RedisContainer {

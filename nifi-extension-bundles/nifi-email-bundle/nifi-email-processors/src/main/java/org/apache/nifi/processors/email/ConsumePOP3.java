@@ -24,7 +24,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
-import org.springframework.integration.mail.Pop3MailReceiver;
+import org.springframework.integration.mail.inbound.Pop3MailReceiver;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes messages from Email Server using POP3 protocol. "

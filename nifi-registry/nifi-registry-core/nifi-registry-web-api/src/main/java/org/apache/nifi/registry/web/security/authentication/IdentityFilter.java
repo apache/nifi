@@ -20,6 +20,8 @@ import org.apache.nifi.registry.security.authentication.AuthenticationRequest;
 import org.apache.nifi.registry.security.authentication.IdentityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
@@ -42,9 +44,11 @@ public class IdentityFilter extends GenericFilterBean {
     private static final Logger logger = LoggerFactory.getLogger(IdentityFilter.class);
 
     private final IdentityProvider identityProvider;
+    private final AuthenticationManager authenticationManager;
 
-    public IdentityFilter(IdentityProvider identityProvider) {
+    public IdentityFilter(IdentityProvider identityProvider, AuthenticationManager authenticationManager) {
         this.identityProvider = identityProvider;
+        this.authenticationManager = authenticationManager;
     }
 
     @Override
@@ -76,13 +80,24 @@ public class IdentityFilter extends GenericFilterBean {
         try {
             AuthenticationRequest authenticationRequest = identityProvider.extractCredentials((HttpServletRequest) servletRequest);
             if (authenticationRequest != null) {
-                Authentication authentication = new AuthenticationRequestToken(authenticationRequest, identityProvider.getClass(), servletRequest.getRemoteAddr());
+                Authentication authentication = new AuthenticationRequestToken(
+                        authenticationRequest,
+                        identityProvider.getClass(),
+                        servletRequest.getRemoteAddr());
                 logger.debug("Adding credentials claim to SecurityContext to be authenticated. Credentials extracted by {}: {}",
                         identityProvider.getClass().getSimpleName(),
                         authenticationRequest);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                // This filter's job, which is merely to search for and extract an identity claim, is done.
-                // The actual authentication of the identity claim will be handled by a corresponding IdentityAuthenticationProvider
+                if (authenticationManager != null) {
+                    try {
+                        Authentication authenticated = authenticationManager.authenticate(authentication);
+                        SecurityContextHolder.getContext().setAuthentication(authenticated);
+                    } catch (AuthenticationException ex) {
+                        logger.debug("Authentication failed in IdentityFilter for provider {}: {}", identityProvider.getClass().getSimpleName(), ex.getMessage());
+                        throw ex;
+                    }
+                } else {
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
         } catch (Exception e) {
             logger.debug("Exception occurred while extracting credentials:", e);
