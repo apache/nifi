@@ -38,7 +38,6 @@ import software.amazon.awssdk.services.rds.model.GenerateAuthenticationTokenRequ
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -47,32 +46,25 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.apache.nifi.processors.aws.region.RegionUtil.getRegion;
 import static org.apache.nifi.processors.aws.region.RegionUtil.isDynamicRegion;
 
-/**
- * Controller Service that generates short-lived Amazon RDS IAM authentication tokens for JDBC connections.
- */
 @Tags({"aws", "rds", "iam", "jdbc", "password"})
-@CapabilityDescription("Generates Amazon RDS IAM authentication tokens each time a JDBC connection is requested. The generated token replaces the database user password so that " +
-        "NiFi does not need to store long-lived credentials inside DBCP services.")
+@CapabilityDescription("""
+Generates Amazon RDS IAM authentication tokens each time a JDBC connection is requested.
+The generated token replaces the database user password so that NiFi does not need to store long-lived credentials inside DBCP services.
+""")
 public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService implements DatabasePasswordProvider {
 
     static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("AWS Credentials Provider service")
+            .name("AWS Credentials Provider Service")
             .description("Controller Service that provides the AWS credentials used to sign IAM authentication requests.")
             .identifiesControllerService(AwsCredentialsProviderService.class)
             .required(true)
             .build();
 
-    private static final int DEFAULT_POSTGRES_PORT = 5432;
-
-    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS;
-
-    static {
-        final List<PropertyDescriptor> descriptors = new ArrayList<>();
-        descriptors.add(AWS_CREDENTIALS_PROVIDER_SERVICE);
-        descriptors.add(REGION);
-        descriptors.add(CUSTOM_REGION);
-        PROPERTY_DESCRIPTORS = Collections.unmodifiableList(descriptors);
-    }
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            AWS_CREDENTIALS_PROVIDER_SERVICE,
+            REGION,
+            CUSTOM_REGION
+    );
 
     private volatile AwsCredentialsProvider awsCredentialsProvider;
     private volatile RdsUtilities rdsUtilities;
@@ -90,7 +82,7 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
             results.add(new ValidationResult.Builder()
                     .subject(REGION.getDisplayName())
                     .valid(false)
-                    .explanation("FlowFile or attribute-driven regions are not supported by this Controller Service")
+                    .explanation("FlowFile or attribute-driven regions are not supported")
                     .build());
         }
         return results;
@@ -147,14 +139,17 @@ public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService
     private String resolveHostname(final ParsedEndpoint parsedEndpoint, final String jdbcUrl) {
         final String hostname = parsedEndpoint.hostname();
         if (StringUtils.isBlank(hostname)) {
-            throw new ProcessException(String.format("Database Endpoint not configured and JDBC URL [%s] does not contain a hostname", jdbcUrl));
+            throw new ProcessException("Database Endpoint not configured and JDBC URL [%s] does not contain a hostname".formatted(jdbcUrl));
         }
         return hostname;
     }
 
     private int resolvePort(final ParsedEndpoint parsedEndpoint) {
         final Integer parsedPort = parsedEndpoint.port();
-        return parsedPort != null ? parsedPort : DEFAULT_POSTGRES_PORT;
+        if (parsedPort == null) {
+            throw new IllegalStateException("Database Endpoint not configured and JDBC URL does not contain a port number");
+        }
+        return parsedPort;
     }
 
     private String resolveUsername(final String contextUser) {

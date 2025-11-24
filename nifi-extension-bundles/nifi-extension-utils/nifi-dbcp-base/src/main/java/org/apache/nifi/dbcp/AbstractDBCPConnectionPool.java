@@ -53,6 +53,8 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD_PROVIDER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.PASSWORD_SOURCE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.PasswordSource.PASSWORD_PROVIDER;
 
 public abstract class AbstractDBCPConnectionPool extends AbstractControllerService implements DBCPService, VerifiableControllerService {
 
@@ -236,6 +238,14 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
     }
 
     protected DatabasePasswordProvider getDatabasePasswordProvider(final ConfigurationContext context) {
+        final PropertyValue passwordSourceProperty = context.getProperty(PASSWORD_SOURCE);
+        final boolean databasePasswordProviderSelected = passwordSourceProperty != null
+                && PASSWORD_PROVIDER.getValue().equals(passwordSourceProperty.getValue());
+
+        if (!databasePasswordProviderSelected) {
+            return null;
+        }
+
         final PropertyValue passwordProviderProperty = context.getProperty(DB_PASSWORD_PROVIDER);
         return passwordProviderProperty == null ? null : passwordProviderProperty.asControllerService(DatabasePasswordProvider.class);
     }

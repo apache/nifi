@@ -55,7 +55,7 @@ public class ProviderAwareBasicDataSource extends BasicDataSource {
             return new PasswordRefreshingConnectionFactory(driverConnectionFactory, databasePasswordProvider, passwordRequestContext);
         }
 
-        throw new SQLException(String.format("Database Password Provider configured but unsupported ConnectionFactory [%s]",
+        throw new SQLException("Database Password Provider configured but unsupported ConnectionFactory [%s]".formatted(
                 delegate.getClass().getName()));
     }
 
@@ -87,6 +87,7 @@ public class ProviderAwareBasicDataSource extends BasicDataSource {
             final String password = new String(passwordCharacters);
             Arrays.fill(passwordCharacters, '\0');
 
+            // DBCP expects the password value to be in the connection properties when creating a new connection
             getProperties().put(Constants.KEY_PASSWORD, password);
             return super.createConnection();
         }

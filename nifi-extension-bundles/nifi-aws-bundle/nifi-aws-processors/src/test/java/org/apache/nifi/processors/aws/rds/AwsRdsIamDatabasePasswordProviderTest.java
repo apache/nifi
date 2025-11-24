@@ -40,6 +40,13 @@ class AwsRdsIamDatabasePasswordProviderTest {
     private AWSCredentialsProviderControllerService credentialsService;
     private AwsRdsIamDatabasePasswordProvider passwordProvider;
 
+    private static final String POSTGRES_DRIVER_CLASS = "org.postgresql.Driver";
+    private static final String DB_USER = "dbuser";
+    private static final String HOSTNAME = "example.us-west-2.rds.amazonaws.com";
+    private static final String JDBC_PREFIX = "jdbc:postgresql://";
+    private static final String DATABASE = "dev";
+    private static final int PORT = 5432;
+
     @BeforeEach
     void setUp() throws Exception {
         runner = TestRunners.newTestRunner(FetchS3Object.class);
@@ -61,28 +68,28 @@ class AwsRdsIamDatabasePasswordProviderTest {
     void testGeneratesTokenUsingRequestContext() {
         final DatabasePasswordProvider service = getService();
         final DatabasePasswordRequestContext context = DatabasePasswordRequestContext.builder()
-                .jdbcUrl("jdbc:postgresql://example.us-west-2.rds.amazonaws.com:5432/dev")
-                .databaseUser("dbuser")
-                .driverClassName("org.postgresql.Driver")
+                .jdbcUrl("%s%s:%d/%s".formatted(JDBC_PREFIX, HOSTNAME, PORT, DATABASE))
+                .databaseUser(DB_USER)
+                .driverClassName(POSTGRES_DRIVER_CLASS)
                 .build();
 
         final String token = new String(service.getPassword(context));
-        assertTrue(token.startsWith("example.us-west-2.rds.amazonaws.com:5432/"));
-        assertTrue(token.contains("DBUser=dbuser"));
+        assertTrue(token.startsWith("%s:%d/".formatted(HOSTNAME, PORT)));
+        assertTrue(token.contains("DBUser=" + DB_USER));
     }
 
     @Test
     void testGeneratesTokenWithDefaultPort() {
         final DatabasePasswordProvider service = getService();
         final DatabasePasswordRequestContext context = DatabasePasswordRequestContext.builder()
-                .jdbcUrl("jdbc:postgresql://example.us-west-2.rds.amazonaws.com/db")
-                .databaseUser("dbuser")
-                .driverClassName("org.postgresql.Driver")
+                .jdbcUrl("%s%s:%d/%s".formatted(JDBC_PREFIX, HOSTNAME, PORT, DATABASE))
+                .databaseUser(DB_USER)
+                .driverClassName(POSTGRES_DRIVER_CLASS)
                 .build();
 
         final String token = new String(service.getPassword(context));
-        assertTrue(token.startsWith("example.us-west-2.rds.amazonaws.com:5432/"));
-        assertTrue(token.contains("DBUser=dbuser"));
+        assertTrue(token.startsWith("%s:%d/".formatted(HOSTNAME, PORT)));
+        assertTrue(token.contains("DBUser=" + DB_USER));
     }
 
     @Test

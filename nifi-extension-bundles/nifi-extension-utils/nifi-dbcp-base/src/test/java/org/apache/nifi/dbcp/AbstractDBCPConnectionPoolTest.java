@@ -94,10 +94,10 @@ class AbstractDBCPConnectionPoolTest {
         mockDataSourceConfigurationDefaults();
         when(configurationContext.getProperty(eq(DBCPProperties.KERBEROS_USER_SERVICE))).thenReturn(kerberosUserServiceProperty);
         when(kerberosUserServiceProperty.asControllerService(eq(KerberosUserService.class))).thenReturn(kerberosUserService);
-        when(configurationContext.getProperty(eq(DBCPProperties.DB_PASSWORD_PROVIDER))).thenReturn(passwordProviderProperty);
-        when(passwordProviderProperty.asControllerService(eq(DatabasePasswordProvider.class))).thenReturn(null);
         when(driver.connect(any(), any())).thenReturn(connection);
         when(connection.isValid(eq(TIMEOUT))).thenReturn(true);
+        when(configurationContext.getProperty(eq(DBCPProperties.PASSWORD_SOURCE))).thenReturn(propertyValue(DBCPProperties.PASSWORD_SOURCE,
+                DBCPProperties.PasswordSource.PASSWORD.getValue()));
 
         final List<ConfigVerificationResult> results = connectionPool.verify(configurationContext, componentLog, Collections.emptyMap());
 
@@ -129,6 +129,8 @@ class AbstractDBCPConnectionPoolTest {
         when(kerberosUserServiceProperty.asControllerService(eq(KerberosUserService.class))).thenReturn(null);
         when(configurationContext.getProperty(eq(DBCPProperties.DB_PASSWORD_PROVIDER))).thenReturn(passwordProviderProperty);
         when(passwordProviderProperty.asControllerService(eq(DatabasePasswordProvider.class))).thenReturn(databasePasswordProvider);
+        when(configurationContext.getProperty(eq(DBCPProperties.PASSWORD_SOURCE))).thenReturn(propertyValue(DBCPProperties.PASSWORD_SOURCE,
+                DBCPProperties.PasswordSource.PASSWORD_PROVIDER.getValue()));
         when(connection.isValid(eq(TIMEOUT))).thenReturn(true);
         when(databasePasswordProvider.getPassword(any())).thenAnswer(invocation -> "token".toCharArray());
 
@@ -172,6 +174,8 @@ class AbstractDBCPConnectionPoolTest {
         lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_DRIVER_LOCATION))).thenReturn(propertyValue(DBCPProperties.DB_DRIVER_LOCATION, ""));
         lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_USER))).thenReturn(propertyValue(DBCPProperties.DB_USER, "dbuser"));
         lenient().when(configurationContext.getProperty(eq(DBCPProperties.DB_PASSWORD))).thenReturn(propertyValue(DBCPProperties.DB_PASSWORD, "secret"));
+        lenient().when(configurationContext.getProperty(eq(DBCPProperties.PASSWORD_SOURCE))).thenReturn(propertyValue(DBCPProperties.PASSWORD_SOURCE,
+                DBCPProperties.PasswordSource.PASSWORD.getValue()));
     }
 
     private PropertyValue propertyValue(final PropertyDescriptor descriptor, final String value) {

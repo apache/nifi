@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.dbcp.utils;
 
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.resource.ResourceCardinality;
@@ -65,6 +66,14 @@ public final class DBCPProperties {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    public static final PropertyDescriptor PASSWORD_SOURCE = new PropertyDescriptor.Builder()
+            .name("Password Source")
+            .description("Specifies whether to supply the database password directly or obtain it from a Database Password Provider.")
+            .allowableValues(PasswordSource.class)
+            .defaultValue(PasswordSource.PASSWORD.getValue())
+            .required(true)
+            .build();
+
     public static final PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .description("The password for the database user")
@@ -72,13 +81,15 @@ public final class DBCPProperties {
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .dependsOn(PASSWORD_SOURCE, PasswordSource.PASSWORD.getValue())
             .build();
 
     public static final PropertyDescriptor DB_PASSWORD_PROVIDER = new PropertyDescriptor.Builder()
             .name("Database Password Provider")
             .description("Controller Service that supplies database passwords on demand. When configured, the Password property is ignored.")
-            .required(false)
+            .required(true)
             .identifiesControllerService(DatabasePasswordProvider.class)
+            .dependsOn(PASSWORD_SOURCE, PasswordSource.PASSWORD_PROVIDER.getValue())
             .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
@@ -129,6 +140,34 @@ public final class DBCPProperties {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
+
+    public enum PasswordSource implements DescribedValue {
+        PASSWORD("Password", "Use the configured Password property for database authentication."),
+        PASSWORD_PROVIDER("Password Provider", "Obtain database passwords from a configured Database Password Provider controller service.");
+
+        private final String displayName;
+        private final String description;
+
+        PasswordSource(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getValue() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
 
     public static final PropertyDescriptor MIN_IDLE = new PropertyDescriptor.Builder()
             .name("Minimum Idle Connections")
