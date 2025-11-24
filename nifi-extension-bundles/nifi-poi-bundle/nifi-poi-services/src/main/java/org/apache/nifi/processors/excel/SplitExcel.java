@@ -143,6 +143,28 @@ public class SplitExcel extends AbstractProcessor {
             REL_SPLIT
     );
 
+    private static final CellCopyPolicy XSSF_CELL_COPY_POLICY = new CellCopyPolicy.Builder()
+            .cellFormula(false) // NOTE: setting to false allows for copying the evaluated formula value.
+            .cellStyle(CellCopyPolicy.DEFAULT_COPY_CELL_STYLE_POLICY)
+            .cellValue(CellCopyPolicy.DEFAULT_COPY_CELL_VALUE_POLICY)
+            .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
+            .mergeHyperlink(CellCopyPolicy.DEFAULT_MERGE_HYPERLINK_POLICY)
+            .rowHeight(CellCopyPolicy.DEFAULT_COPY_ROW_HEIGHT_POLICY)
+            .copyHyperlink(false) // NOTE: the hyperlinks appear at end of sheet, so we need to iterate them separately at the end.
+            .mergedRegions(false) // NOTE: set to false because of the explicit merge region handling in the copyRows method.
+            .build();
+
+    private static final CellCopyPolicy HSSF_CELL_COPY_POLICY = new CellCopyPolicy.Builder()
+            .cellFormula(false) // NOTE: setting to false allows for copying the evaluated formula value.
+            .cellStyle(CellCopyPolicy.DEFAULT_COPY_CELL_STYLE_POLICY)
+            .cellValue(CellCopyPolicy.DEFAULT_COPY_CELL_VALUE_POLICY)
+            .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
+            .mergeHyperlink(CellCopyPolicy.DEFAULT_MERGE_HYPERLINK_POLICY)
+            .rowHeight(CellCopyPolicy.DEFAULT_COPY_ROW_HEIGHT_POLICY)
+            .copyHyperlink(CellCopyPolicy.DEFAULT_COPY_HYPERLINK_POLICY)
+            .mergedRegions(CellCopyPolicy.DEFAULT_COPY_MERGED_REGIONS_POLICY)
+            .build();
+
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
@@ -163,16 +185,15 @@ public class SplitExcel extends AbstractProcessor {
         final ProtectionType protectionType = context.getProperty(PROTECTION_TYPE).asAllowableValue(ProtectionType.class);
         final String password = protectionType == ProtectionType.PASSWORD ? context.getProperty(PASSWORD).getValue() : null;
         final InputFileType inputFileType = context.getProperty(INPUT_FILE_TYPE).asAllowableValue(InputFileType.class);
-        final CellCopyPolicy cellCopyPolicy = createCellCopyPolicy(inputFileType);
         final List<WorkbookSplit> workbookSplits = new ArrayList<>();
 
         try {
             session.read(originalFlowFile, in -> {
 
                 if (inputFileType == InputFileType.XLSX) {
-                    handleXSSF(session, originalFlowFile, in, password, workbookSplits, cellCopyPolicy);
+                    handleXSSF(session, originalFlowFile, in, password, workbookSplits);
                 } else {
-                    handleHSSF(session, originalFlowFile, in, password, workbookSplits, cellCopyPolicy);
+                    handleHSSF(session, originalFlowFile, in, password, workbookSplits);
                 }
             });
         } catch (ExcelRuntimeException | IllegalStateException | ProcessException e) {
@@ -217,28 +238,8 @@ public class SplitExcel extends AbstractProcessor {
         session.transfer(flowFileSplits, REL_SPLIT);
     }
 
-    private CellCopyPolicy createCellCopyPolicy(InputFileType inputFileType) {
-        CellCopyPolicy.Builder builder = new CellCopyPolicy.Builder()
-                .cellFormula(false) // NOTE: setting to false allows for copying the evaluated formula value.
-                .cellStyle(CellCopyPolicy.DEFAULT_COPY_CELL_STYLE_POLICY)
-                .cellValue(CellCopyPolicy.DEFAULT_COPY_CELL_VALUE_POLICY)
-                .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
-                .mergeHyperlink(CellCopyPolicy.DEFAULT_MERGE_HYPERLINK_POLICY)
-                .rowHeight(CellCopyPolicy.DEFAULT_COPY_ROW_HEIGHT_POLICY);
-
-        if (inputFileType == InputFileType.XLSX) {
-            builder.copyHyperlink(false) // NOTE: the hyperlinks appear at end of sheet, so we need to iterate them separately at the end.
-                    .mergedRegions(false); // NOTE: set to false because of the explicit merge region handling in the copyRows method.
-        } else {
-            builder.copyHyperlink(CellCopyPolicy.DEFAULT_COPY_HYPERLINK_POLICY)
-                    .mergedRegions(CellCopyPolicy.DEFAULT_COPY_MERGED_REGIONS_POLICY);
-        }
-
-        return builder.build();
-    }
-
     private void handleXSSF(ProcessSession session, FlowFile originalFlowFile, InputStream inputStream, String password,
-                            List<WorkbookSplit> workbookSplits, CellCopyPolicy cellCopyPolicy) throws IOException {
+                            List<WorkbookSplit> workbookSplits) throws IOException {
         final Workbook originalWorkbook = StreamingReader.builder()
                 .rowCacheSize(100)
                 .bufferSize(4096)
@@ -253,7 +254,7 @@ public class SplitExcel extends AbstractProcessor {
 
             try (final SXSSFWorkbook newWorkbook = new SXSSFWorkbook(null, SXSSFWorkbook.DEFAULT_WINDOW_SIZE, false, true)) {
                 final SXSSFSheet newSheet = newWorkbook.createSheet(originalSheetName);
-                final int numberOfCopiedRows = copyRows(originalSheet, newSheet, cellCopyPolicy);
+                final int numberOfCopiedRows = copyRows(originalSheet, newSheet, XSSF_CELL_COPY_POLICY);
 
                 final FlowFile newFlowFile = session.create(originalFlowFile);
                 try (final OutputStream out = session.write(newFlowFile)) {
@@ -293,7 +294,7 @@ public class SplitExcel extends AbstractProcessor {
         return rowCount;
     }
 
-    private void handleHSSF(ProcessSession session, FlowFile originalFlowFile, InputStream inputStream, String password, List<WorkbookSplit> workbookSplits, CellCopyPolicy cellCopyPolicy) {
+    private void handleHSSF(ProcessSession session, FlowFile originalFlowFile, InputStream inputStream, String password, List<WorkbookSplit> workbookSplits) {
         // Providing the password to the HSSFWorkbook is done by setting a thread variable managed by
         // Biff8EncryptionKey. After the workbook is created, the thread variable can be cleared.
         Biff8EncryptionKey.setCurrentUserPassword(password);
@@ -317,7 +318,7 @@ public class SplitExcel extends AbstractProcessor {
                     while (originalRowsIterator.hasNext()) {
                         HSSFRow originalRow = (HSSFRow) originalRowsIterator.next();
                         HSSFRow newRow = newSheet.createRow(originalRow.getRowNum());
-                        newRow.copyRowFrom(originalRow, cellCopyPolicy, cellCopyContext);
+                        newRow.copyRowFrom(originalRow, HSSF_CELL_COPY_POLICY, cellCopyContext);
                     }
 
                     FlowFile newFlowFile = session.create(originalFlowFile);
