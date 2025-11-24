@@ -64,6 +64,14 @@ public class HostnameAndShareFlowFileFilter implements FlowFileFilter {
         return new HostSharePair(hostName, share);
     }
 
+    public String getHostName() {
+        return selectedHostSharePair.hostName();
+    }
+
+    public String getShare() {
+        return selectedHostSharePair.share();
+    }
+
     record HostSharePair(String hostName, String share) {
     }
 }

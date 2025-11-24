@@ -288,18 +288,16 @@ public class PutSmbFile extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        final HostnameAndShareFlowFileFilter fileFilter = new HostnameAndShareFlowFileFilter(context, batchSize);
-        final List<FlowFile> flowFiles = session.get(fileFilter);
+        final HostnameAndShareFlowFileFilter flowFileFilter = new HostnameAndShareFlowFileFilter(context, batchSize);
+        final List<FlowFile> flowFiles = session.get(flowFileFilter);
         if ( flowFiles.isEmpty() ) {
             return;
         }
         final ComponentLog logger = getLogger();
         logger.debug("Processing next {} flowfiles", flowFiles.size());
 
-        final FlowFile firstFlowFile = flowFiles.getFirst();
-        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions(firstFlowFile).getValue();
-        final String shareName = context.getProperty(SHARE).evaluateAttributeExpressions(firstFlowFile).getValue();
-
+        final String hostname = flowFileFilter.getHostName();
+        final String shareName = flowFileFilter.getShare();
         final String domain = context.getProperty(DOMAIN).getValue();
         final String username = context.getProperty(USERNAME).getValue();
         String password = context.getProperty(PASSWORD).getValue();
