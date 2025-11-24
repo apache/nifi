@@ -47,6 +47,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -326,6 +327,13 @@ public class JoltTransformRecord extends AbstractJoltTransform {
                     }
 
                     writeResult = writer.finishRecordSet();
+
+                    try {
+                        writer.close();
+                    } catch (final IOException ioe) {
+                        getLogger().warn("Failed to close Writer for {}", transformed);
+                    }
+
                     attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                     attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
                     attributes.putAll(writeResult.getAttributes());
