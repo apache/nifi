@@ -293,19 +293,16 @@ public class JoltTransformRecord extends AbstractJoltTransform {
                 }
             }
 
-            transformed = session.create(original);
             final WriteResult writeResult;
             final Map<String, String> attributes = new HashMap<>();
 
             if (firstValidRecord == null) {
                 // UPDATED LOGIC:
                 // All records were filtered out (or input was empty).
-                // The test expects 0 output files. We must remove the FlowFile we created
-                // and ensure 'transformed' is null so it isn't transferred to SUCCESS later.
-                session.remove(transformed);
-                transformed = null;
                 logger.info("{} had no Records to transform", original);
             } else {
+                transformed = session.create(original);
+
                 // We have at least one valid record, initialize writer with its schema
                 final RecordSchema writeSchema = writerFactory.getSchema(original.getAttributes(), firstValidRecord.getSchema());
 
