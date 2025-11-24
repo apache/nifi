@@ -330,7 +330,7 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
         }
         if (parameterProviderId != null) {
             final boolean hasUserEnteredParameters = parameters.stream()
-                    .anyMatch(parameter -> parameter.getParameter().getProvided() == null || !parameter.getParameter().getProvided());
+                    .anyMatch(parameter -> (parameter.getParameter().getProvided() == null || !parameter.getParameter().getProvided()) && !parameter.getParameter().getInherited());
             if (hasUserEnteredParameters) {
                 throw new IllegalArgumentException(String.format("User-entered Parameters may not be set on Context [%s] because its " +
                         "parameters are already provided by [%s]", parameterContextDTO.getName(), parameterProviderId));
