@@ -103,6 +103,7 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
     public static final PropertyDescriptor TCP_PORT = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(PORT)
         .name("TCP Port")
+        .displayName("TCP Port")
         .identifiesListenPort(org.apache.nifi.components.listen.TransportProtocol.TCP, "syslog")
         .dependsOn(PROTOCOL, TCP_VALUE)
         .build();
@@ -110,6 +111,7 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
     public static final PropertyDescriptor UDP_PORT = new PropertyDescriptor.Builder()
         .fromPropertyDescriptor(PORT)
         .name("UDP Port")
+        .displayName("UDP Port")
         .identifiesListenPort(org.apache.nifi.components.listen.TransportProtocol.UDP, "syslog")
         .dependsOn(PROTOCOL, UDP_VALUE)
         .build();
