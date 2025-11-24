@@ -27,6 +27,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.excel.InputFileType;
 import org.apache.nifi.excel.ProtectionType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -36,6 +37,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.poi.hssf.record.crypto.Biff8EncryptionKey;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellCopyContext;
 import org.apache.poi.ss.usermodel.CellCopyPolicy;
@@ -48,9 +53,12 @@ import org.apache.poi.ss.util.CellUtil;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,10 +74,10 @@ import static org.apache.nifi.flowfile.attributes.FragmentAttributes.SEGMENT_ORI
 @Tags({"split", "text"})
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @CapabilityDescription("This processor splits a multi sheet Microsoft Excel spreadsheet into multiple Microsoft Excel spreadsheets where each sheet from the original" +
-        " file is converted to an individual spreadsheet in its own flow file. Currently this processor is only capable of processing .xlsx" +
-        " (XSSF 2007 OOXML file format) Excel documents and not older .xls (HSSF '97(-2007) file format) documents." +
-        " Please note all original cell styles are dropped and formulas are removed leaving only the calculated values." +
-        " Even a single sheet Microsoft Excel spreadsheet is converted to its own flow file with all the original cell styles dropped and formulas removed."
+        " file is converted to an individual spreadsheet in its own flow file. This processor is capable of processing both password and non password protected" +
+        " modern XLSX and older XLS Excel spreadsheets." +
+        " Please note all original cell styles are copied and formulas are removed leaving only the calculated values." +
+        " Even a single sheet Microsoft Excel spreadsheet is converted to its own flow file with all the original cell styles copied and formulas removed."
 )
 @WritesAttributes({
         @WritesAttribute(attribute = "fragment.identifier", description = "All split Excel FlowFiles produced from the same parent Excel FlowFile will have the same randomly generated UUID added" +
@@ -100,6 +108,14 @@ public class SplitExcel extends AbstractProcessor {
             .dependsOn(PROTECTION_TYPE, ProtectionType.PASSWORD)
             .build();
 
+    public static final PropertyDescriptor INPUT_FILE_TYPE = new PropertyDescriptor.Builder()
+            .name("Input File Type")
+            .description("Specifies type of Excel input file.")
+            .required(true)
+            .allowableValues(InputFileType.class)
+            .defaultValue(InputFileType.XLSX)
+            .build();
+
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("The original FlowFile that was split into segments. If the FlowFile fails processing, nothing will be sent to this relationship")
@@ -117,7 +133,8 @@ public class SplitExcel extends AbstractProcessor {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             PROTECTION_TYPE,
-            PASSWORD
+            PASSWORD,
+            INPUT_FILE_TYPE
     );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -126,15 +143,26 @@ public class SplitExcel extends AbstractProcessor {
             REL_SPLIT
     );
 
-    private static final CellCopyPolicy CELL_COPY_POLICY = new CellCopyPolicy.Builder()
+    private static final CellCopyPolicy XSSF_CELL_COPY_POLICY = new CellCopyPolicy.Builder()
             .cellFormula(false) // NOTE: setting to false allows for copying the evaluated formula value.
             .cellStyle(CellCopyPolicy.DEFAULT_COPY_CELL_STYLE_POLICY)
             .cellValue(CellCopyPolicy.DEFAULT_COPY_CELL_VALUE_POLICY)
             .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
-            .copyHyperlink(false) // NOTE: the hyperlinks appear at end of sheet, so we need to iterate them separately at the end.
             .mergeHyperlink(CellCopyPolicy.DEFAULT_MERGE_HYPERLINK_POLICY)
-            .mergedRegions(false) // NOTE: set to false because of the explicit merge region handling in the copyRows method.
             .rowHeight(CellCopyPolicy.DEFAULT_COPY_ROW_HEIGHT_POLICY)
+            .copyHyperlink(false) // NOTE: the hyperlinks appear at end of sheet, so we need to iterate them separately at the end.
+            .mergedRegions(false) // NOTE: set to false because of the explicit merge region handling in the copyRows method.
+            .build();
+
+    private static final CellCopyPolicy HSSF_CELL_COPY_POLICY = new CellCopyPolicy.Builder()
+            .cellFormula(false) // NOTE: setting to false allows for copying the evaluated formula value.
+            .cellStyle(CellCopyPolicy.DEFAULT_COPY_CELL_STYLE_POLICY)
+            .cellValue(CellCopyPolicy.DEFAULT_COPY_CELL_VALUE_POLICY)
+            .condenseRows(CellCopyPolicy.DEFAULT_CONDENSE_ROWS_POLICY)
+            .mergeHyperlink(CellCopyPolicy.DEFAULT_MERGE_HYPERLINK_POLICY)
+            .rowHeight(CellCopyPolicy.DEFAULT_COPY_ROW_HEIGHT_POLICY)
+            .copyHyperlink(CellCopyPolicy.DEFAULT_COPY_HYPERLINK_POLICY)
+            .mergedRegions(CellCopyPolicy.DEFAULT_COPY_MERGED_REGIONS_POLICY)
             .build();
 
     @Override
@@ -156,35 +184,16 @@ public class SplitExcel extends AbstractProcessor {
 
         final ProtectionType protectionType = context.getProperty(PROTECTION_TYPE).asAllowableValue(ProtectionType.class);
         final String password = protectionType == ProtectionType.PASSWORD ? context.getProperty(PASSWORD).getValue() : null;
+        final InputFileType inputFileType = context.getProperty(INPUT_FILE_TYPE).asAllowableValue(InputFileType.class);
         final List<WorkbookSplit> workbookSplits = new ArrayList<>();
 
         try {
             session.read(originalFlowFile, in -> {
 
-                final Workbook originalWorkbook = StreamingReader.builder()
-                        .rowCacheSize(100)
-                        .bufferSize(4096)
-                        .password(password)
-                        .setReadHyperlinks(true) // NOTE: Needed for copying rows.
-                        .setReadSharedFormulas(true) // NOTE: If not set to true, then data with shared formulas fail.
-                        .open(in);
-
-                int index = 0;
-                for (final Sheet originalSheet : originalWorkbook) {
-                    final String originalSheetName = originalSheet.getSheetName();
-
-                    try (final SXSSFWorkbook newWorkbook = new SXSSFWorkbook(null, SXSSFWorkbook.DEFAULT_WINDOW_SIZE, false, true)) {
-                        final SXSSFSheet newSheet = newWorkbook.createSheet(originalSheetName);
-                        final int numberOfCopiedRows = copyRows(originalSheet, newSheet);
-
-                        final FlowFile newFlowFile = session.create(originalFlowFile);
-                        try (final OutputStream out = session.write(newFlowFile)) {
-                            newWorkbook.write(out);
-                            workbookSplits.add(new WorkbookSplit(index, newFlowFile, originalSheetName, numberOfCopiedRows));
-                        }
-                    }
-
-                    index++;
+                if (inputFileType == InputFileType.XLSX) {
+                    handleXSSF(session, originalFlowFile, in, password, workbookSplits);
+                } else {
+                    handleHSSF(session, originalFlowFile, in, password, workbookSplits);
                 }
             });
         } catch (ExcelRuntimeException | IllegalStateException | ProcessException e) {
@@ -229,6 +238,35 @@ public class SplitExcel extends AbstractProcessor {
         session.transfer(flowFileSplits, REL_SPLIT);
     }
 
+    private void handleXSSF(ProcessSession session, FlowFile originalFlowFile, InputStream inputStream, String password,
+                            List<WorkbookSplit> workbookSplits) throws IOException {
+        final Workbook originalWorkbook = StreamingReader.builder()
+                .rowCacheSize(100)
+                .bufferSize(4096)
+                .password(password)
+                .setReadHyperlinks(true) // NOTE: Needed for copying rows.
+                .setReadSharedFormulas(true) // NOTE: If not set to true, then data with shared formulas fail.
+                .open(inputStream);
+
+        int index = 0;
+        for (final Sheet originalSheet : originalWorkbook) {
+            final String originalSheetName = originalSheet.getSheetName();
+
+            try (final SXSSFWorkbook newWorkbook = new SXSSFWorkbook(null, SXSSFWorkbook.DEFAULT_WINDOW_SIZE, false, true)) {
+                final SXSSFSheet newSheet = newWorkbook.createSheet(originalSheetName);
+                final int numberOfCopiedRows = copyRows(originalSheet, newSheet);
+
+                final FlowFile newFlowFile = session.create(originalFlowFile);
+                try (final OutputStream out = session.write(newFlowFile)) {
+                    newWorkbook.write(out);
+                    workbookSplits.add(new WorkbookSplit(index, newFlowFile, originalSheetName, numberOfCopiedRows));
+                }
+            }
+
+            index++;
+        }
+    }
+
     private int copyRows(final Sheet originalSheet, final SXSSFSheet destinationSheet) {
         final CellCopyContext cellCopyContext = new CellCopyContext();
         int rowCount = 0;
@@ -239,7 +277,7 @@ public class SplitExcel extends AbstractProcessor {
 
             for (final Cell sourceCell : sourceRow) {
                 final Cell destCell = destinationRow.createCell(sourceCell.getColumnIndex());
-                CellUtil.copyCell(sourceCell, destCell, CELL_COPY_POLICY, cellCopyContext);
+                CellUtil.copyCell(sourceCell, destCell, XSSF_CELL_COPY_POLICY, cellCopyContext);
             }
 
             rowCount++;
@@ -256,5 +294,50 @@ public class SplitExcel extends AbstractProcessor {
         return rowCount;
     }
 
-    private record WorkbookSplit(int index, FlowFile content, String sheetName, int numRows) { }
+    private void handleHSSF(ProcessSession session, FlowFile originalFlowFile, InputStream inputStream, String password, List<WorkbookSplit> workbookSplits) {
+        // Providing the password to the HSSFWorkbook is done by setting a thread variable managed by
+        // Biff8EncryptionKey. After the workbook is created, the thread variable can be cleared.
+        Biff8EncryptionKey.setCurrentUserPassword(password);
+
+        try {
+            final HSSFWorkbook originalWorkbook = new HSSFWorkbook(inputStream);
+            final Iterator<Sheet> originalSheetsIterator = originalWorkbook.sheetIterator();
+            final CellCopyContext cellCopyContext = new CellCopyContext();
+
+            int index = 0;
+            while (originalSheetsIterator.hasNext()) {
+                final HSSFSheet originalSheet = (HSSFSheet) originalSheetsIterator.next();
+                final String originalSheetName = originalSheet.getSheetName();
+                //NOTE: Per the POI Javadocs, the rowIterator returns an iterator of the physical rows,
+                // hence the original number of rows should reflect this.
+                final int originalNumRows = originalSheet.getPhysicalNumberOfRows();
+                final Iterator<Row> originalRowsIterator = originalSheet.rowIterator();
+
+                try (HSSFWorkbook newWorkbook = new HSSFWorkbook()) {
+                    final HSSFSheet newSheet = newWorkbook.createSheet(originalSheetName);
+                    while (originalRowsIterator.hasNext()) {
+                        HSSFRow originalRow = (HSSFRow) originalRowsIterator.next();
+                        HSSFRow newRow = newSheet.createRow(originalRow.getRowNum());
+                        newRow.copyRowFrom(originalRow, HSSF_CELL_COPY_POLICY, cellCopyContext);
+                    }
+
+                    FlowFile newFlowFile = session.create(originalFlowFile);
+
+                    try (final OutputStream out = session.write(newFlowFile)) {
+                        newWorkbook.write(out);
+                        workbookSplits.add(new WorkbookSplit(index, newFlowFile, originalSheetName, originalNumRows));
+                    }
+                }
+                index++;
+            }
+
+        } catch (final IOException e) {
+            throw new ProcessException("Failed to split XLS file", e);
+        } finally {
+            Biff8EncryptionKey.setCurrentUserPassword(null);
+        }
+    }
+
+    private record WorkbookSplit(int index, FlowFile content, String sheetName, int numRows) {
+    }
 }
