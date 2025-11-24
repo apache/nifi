@@ -254,7 +254,7 @@ public class SplitExcel extends AbstractProcessor {
 
             try (final SXSSFWorkbook newWorkbook = new SXSSFWorkbook(null, SXSSFWorkbook.DEFAULT_WINDOW_SIZE, false, true)) {
                 final SXSSFSheet newSheet = newWorkbook.createSheet(originalSheetName);
-                final int numberOfCopiedRows = copyRows(originalSheet, newSheet, XSSF_CELL_COPY_POLICY);
+                final int numberOfCopiedRows = copyRows(originalSheet, newSheet);
 
                 final FlowFile newFlowFile = session.create(originalFlowFile);
                 try (final OutputStream out = session.write(newFlowFile)) {
@@ -267,7 +267,7 @@ public class SplitExcel extends AbstractProcessor {
         }
     }
 
-    private int copyRows(final Sheet originalSheet, final SXSSFSheet destinationSheet, CellCopyPolicy cellCopyPolicy) {
+    private int copyRows(final Sheet originalSheet, final SXSSFSheet destinationSheet) {
         final CellCopyContext cellCopyContext = new CellCopyContext();
         int rowCount = 0;
 
@@ -277,7 +277,7 @@ public class SplitExcel extends AbstractProcessor {
 
             for (final Cell sourceCell : sourceRow) {
                 final Cell destCell = destinationRow.createCell(sourceCell.getColumnIndex());
-                CellUtil.copyCell(sourceCell, destCell, cellCopyPolicy, cellCopyContext);
+                CellUtil.copyCell(sourceCell, destCell, XSSF_CELL_COPY_POLICY, cellCopyContext);
             }
 
             rowCount++;
