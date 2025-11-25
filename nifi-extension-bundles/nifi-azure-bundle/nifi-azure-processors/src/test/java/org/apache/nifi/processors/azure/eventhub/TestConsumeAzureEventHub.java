@@ -22,7 +22,10 @@ import com.azure.messaging.eventhubs.EventProcessorClient;
 import com.azure.messaging.eventhubs.models.Checkpoint;
 import com.azure.messaging.eventhubs.models.EventBatchContext;
 import com.azure.messaging.eventhubs.models.PartitionContext;
+import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.oauth2.AccessToken;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.azure.eventhub.checkpoint.CheckpointStrategy;
 import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
@@ -68,6 +71,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -100,6 +104,8 @@ public class TestConsumeAzureEventHub {
     private static final String FOURTH_CONTENT = "CONTENT-4";
     private static final String APPLICATION_PROPERTY = "application";
     private static final String APPLICATION_ATTRIBUTE_NAME = String.format("eventhub.property.%s", APPLICATION_PROPERTY);
+    private static final String EVENT_HUB_OAUTH_SERVICE_ID = "eventHubOauth";
+    private static final String BLOB_OAUTH_SERVICE_ID = "blobOauth";
 
     private static final String EXPECTED_TRANSIT_URI = String.format("amqps://%s%s/%s/ConsumerGroups/%s/Partitions/%s",
             EVENT_HUB_NAMESPACE,
@@ -196,6 +202,32 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, STORAGE_ACCOUNT_KEY);
         testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, STORAGE_TOKEN);
         testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithEventHubOAuthRequiresTokenProvider() throws InitializationException {
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.setProperty(ConsumeAzureEventHub.CHECKPOINT_STRATEGY, CheckpointStrategy.COMPONENT_STATE.getValue());
+        testRunner.setProperty(ConsumeAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.OAUTH2.getValue());
+        testRunner.assertNotValid();
+
+        configureEventHubOAuthTokenProvider();
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithBlobOAuthRequiresTokenProvider() throws InitializationException {
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_NAME);
+        testRunner.setProperty(ConsumeAzureEventHub.BLOB_STORAGE_AUTHENTICATION_STRATEGY, BlobStorageAuthenticationStrategy.OAUTH2.getValue());
+        testRunner.assertNotValid();
+
+        configureBlobOAuthTokenProvider();
+
+        testRunner.assertValid();
     }
 
     @Test
@@ -627,8 +659,21 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(PROXY_CONFIGURATION_SERVICE, serviceId);
     }
 
-    private class MockConsumeAzureEventHub extends ConsumeAzureEventHub {
+    private void configureEventHubOAuthTokenProvider() throws InitializationException {
+        final MockOAuth2AccessTokenProvider provider = new MockOAuth2AccessTokenProvider();
+        testRunner.addControllerService(EVENT_HUB_OAUTH_SERVICE_ID, provider);
+        testRunner.enableControllerService(provider);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, EVENT_HUB_OAUTH_SERVICE_ID);
+    }
 
+    private void configureBlobOAuthTokenProvider() throws InitializationException {
+        final MockOAuth2AccessTokenProvider provider = new MockOAuth2AccessTokenProvider();
+        testRunner.addControllerService(BLOB_OAUTH_SERVICE_ID, provider);
+        testRunner.enableControllerService(provider);
+        testRunner.setProperty(ConsumeAzureEventHub.BLOB_STORAGE_OAUTH2_ACCESS_TOKEN_PROVIDER, BLOB_OAUTH_SERVICE_ID);
+    }
+
+    private class MockConsumeAzureEventHub extends ConsumeAzureEventHub {
         @Override
         protected EventProcessorClient createClient(final ProcessContext context) {
             return eventProcessorClient;
@@ -637,6 +682,16 @@ public class TestConsumeAzureEventHub {
         @Override
         protected String getTransitUri(final PartitionContext partitionContext) {
             return EXPECTED_TRANSIT_URI;
+        }
+    }
+
+    private static class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
+        @Override
+        public AccessToken getAccessDetails() {
+            final AccessToken accessToken = new AccessToken();
+            accessToken.setAccessToken("access-token");
+            accessToken.setExpiresIn(TimeUnit.MINUTES.toSeconds(5));
+            return accessToken;
         }
     }
 }
