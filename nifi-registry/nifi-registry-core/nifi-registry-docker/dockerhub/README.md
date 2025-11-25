@@ -197,4 +197,4 @@ The following, optional environment variables may be added to configure extensio
 | NIFI_REGISTRY_S3_ACCESS_KEY           | Access Key                          |
 | NIFI_REGISTRY_S3_SECRET_ACCESS_KEY    | Secret Access Key                   |
 | NIFI_REGISTRY_S3_ENDPOINT_URL         | Endpoint URL                        |
-
+| NIFI_REGISTRY_S3_FORCE_PATH_STYLE     | Force Path Style                    |
