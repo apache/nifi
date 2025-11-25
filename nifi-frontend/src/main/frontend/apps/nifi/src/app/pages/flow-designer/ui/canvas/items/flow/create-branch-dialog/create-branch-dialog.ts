@@ -36,10 +36,7 @@ export class CreateBranchDialog extends CloseOnEscapeDialog {
     private formBuilder = inject(FormBuilder);
 
     createBranchForm = this.formBuilder.group({
-        branch: [
-            '',
-            [Validators.required, Validators.pattern(/^(?!\s).*$/), this.branchNotCurrentValidator.bind(this)]
-        ]
+        branch: ['', [Validators.required, Validators.pattern(/^(?!\s).*$/), this.branchNotCurrentValidator.bind(this)]]
     });
 
     currentBranch = this.dialogRequest.versionControlInformation.branch;
