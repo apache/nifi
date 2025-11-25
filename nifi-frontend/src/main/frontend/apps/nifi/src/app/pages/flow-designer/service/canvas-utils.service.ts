@@ -2221,7 +2221,9 @@ export class CanvasUtils {
             return false;
         }
 
-        const registryClient = this.registryClients.find((client) => client.id === versionControlInformation.registryId);
+        const registryClient = this.registryClients.find(
+            (client) => client.id === versionControlInformation.registryId
+        );
         return !!registryClient?.component.supportsBranching;
     }
 

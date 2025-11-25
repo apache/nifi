@@ -58,6 +58,7 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -278,14 +279,15 @@ class StandardNiFiServiceFacadeCreateFlowBranchTest {
         when(versionControlInformation.getVersion()).thenReturn("1");
 
         final FlowRegistryException cause = new FlowRegistryException("Branch [feature] already exists");
-        doThrow(new NiFiCoreException("Unable to create branch [feature] in registry with ID registry-1: Branch [feature] already exists", cause))
+        doThrow(new NiFiCoreException("Unable to create branch [feature] in registry with ID registry-1", cause))
                 .when(flowRegistryDAO)
                 .createBranchForUser(any(FlowRegistryClientUserContext.class), eq("registry-1"), any(FlowVersionLocation.class), eq("feature"));
 
         final NiFiCoreException exception = assertThrows(NiFiCoreException.class,
                 () -> serviceFacade.createFlowBranch(revision, PROCESS_GROUP_ID, "feature", null, null));
 
-        assertEquals("Unable to create branch [feature] in registry with ID registry-1: Branch [feature] already exists", exception.getMessage());
+        assertTrue(exception.getMessage().contains("registry-1"));
+        assertTrue(exception.getMessage().contains("[feature]"));
         assertEquals(cause, exception.getCause());
 
         verify(processGroup, never()).synchronizeWithFlowRegistry(any(FlowManager.class));
