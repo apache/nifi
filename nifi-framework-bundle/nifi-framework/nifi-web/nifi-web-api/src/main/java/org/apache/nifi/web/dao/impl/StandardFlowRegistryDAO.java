@@ -214,7 +214,7 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
     public void createBranchForUser(final FlowRegistryClientUserContext context, final String registryId, final FlowVersionLocation sourceLocation, final String newBranchName) {
         final FlowRegistryClientNode flowRegistry = flowController.getFlowManager().getFlowRegistryClient(registryId);
         if (flowRegistry == null) {
-            throw new IllegalArgumentException("The specified registry id is unknown to this NiFi.");
+            throw new IllegalArgumentException("Registry ID [%s] not found".formatted(registryId));
         }
 
         try {
@@ -222,7 +222,7 @@ public class StandardFlowRegistryDAO extends ComponentDAO implements FlowRegistr
         } catch (final UnsupportedOperationException e) {
             throw e;
         } catch (final IOException | FlowRegistryException ioe) {
-            throw new NiFiCoreException("Unable to create branch [" + newBranchName + "] in registry with ID " + registryId + ": " + ioe.getMessage(), ioe);
+            throw new NiFiCoreException("Unable to create branch [" + newBranchName + "] in registry with ID " + registryId, ioe);
         }
     }
 
