@@ -99,7 +99,7 @@ public class TestVersionsResource {
 
         final RegisteredFlowSnapshot resultEntity = (RegisteredFlowSnapshot) response.getEntity();
 
-        assertEquals(200, response.getStatus());
+        assertEquals(HttpURLConnection.HTTP_OK, response.getStatus());
         assertEquals(versionedFlowSnapshot, resultEntity);
 
         verify(versionedFlowSnapshot).setFlow(null);
@@ -109,7 +109,6 @@ public class TestVersionsResource {
         verify(innerVersionedProcessGroup).setVersionedFlowCoordinates(null);
         verify(innerInnerVersionedProcessGroup).setVersionedFlowCoordinates(null);
     }
-
 
     @Test
     public void testCreateFlowBranchRequiresBranchName() {
@@ -149,7 +148,7 @@ public class TestVersionsResource {
                 .thenReturn(expectedEntity);
 
         final Response response = versionsResource.createFlowBranch(groupId, requestEntity);
-        assertEquals(200, response.getStatus());
+        assertEquals(HttpURLConnection.HTTP_OK, response.getStatus());
         assertEquals(expectedEntity, response.getEntity());
 
         ArgumentCaptor<Revision> revisionCaptor = ArgumentCaptor.forClass(Revision.class);
@@ -296,7 +295,7 @@ public class TestVersionsResource {
                 .thenReturn(expectedEntity);
 
         final Response response = versionsResource.createFlowBranch(groupId, requestEntity);
-        assertEquals(200, response.getStatus());
+        assertEquals(HttpURLConnection.HTTP_OK, response.getStatus());
         assertEquals(expectedEntity, response.getEntity());
     }
 
