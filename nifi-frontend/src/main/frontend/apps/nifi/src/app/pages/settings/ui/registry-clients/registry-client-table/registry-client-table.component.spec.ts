@@ -440,5 +440,15 @@ describe('RegistryClientTable', () => {
 
             expect(component.clearBulletinsRegistryClient.next).toHaveBeenCalledWith(mockEntity);
         });
+
+        it('should emit viewRegistryClientDocumentation when viewDocumentationClicked is called', async () => {
+            const { component } = await setup();
+            const mockEntity = createMockRegistryClientEntity();
+            jest.spyOn(component.viewRegistryClientDocumentation, 'next');
+
+            component.viewDocumentationClicked(mockEntity);
+
+            expect(component.viewRegistryClientDocumentation.next).toHaveBeenCalledWith(mockEntity);
+        });
     });
 });
