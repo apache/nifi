@@ -55,6 +55,7 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.DATABASE_URL;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVERNAME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_PASSWORD_PROVIDER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_USER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
@@ -64,6 +65,9 @@ import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_TOTAL_CONNECTIONS;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_WAIT_TIME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_EVICTABLE_IDLE_TIME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_IDLE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.PASSWORD_SOURCE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.PasswordSource.PASSWORD;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.PasswordSource.PASSWORD_PROVIDER;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.SOFT_MIN_EVICTABLE_IDLE_TIME;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.VALIDATION_QUERY;
 import static org.apache.nifi.dbcp.utils.DBCPProperties.extractMillisWithInfinite;
@@ -105,7 +109,9 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         DB_DRIVER_LOCATION,
         KERBEROS_USER_SERVICE,
         DB_USER,
+        PASSWORD_SOURCE,
         DB_PASSWORD,
+        DB_PASSWORD_PROVIDER,
         MAX_WAIT_TIME,
         MAX_TOTAL_CONNECTIONS,
         VALIDATION_QUERY,
@@ -149,7 +155,10 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         final String url = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
         final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
-        final String password = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+        final PropertyValue passwordSourceProperty = context.getProperty(PASSWORD_SOURCE);
+        final String passwordSource = passwordSourceProperty == null ? PASSWORD.getValue() : passwordSourceProperty.getValue();
+        final boolean passwordProviderSelected = PASSWORD_PROVIDER.getValue().equals(passwordSource);
+        final String password = passwordProviderSelected ? null : context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
