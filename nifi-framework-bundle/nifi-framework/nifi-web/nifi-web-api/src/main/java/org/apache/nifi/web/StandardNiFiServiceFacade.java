@@ -6301,7 +6301,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         try {
             flowRegistryDAO.createBranchForUser(clientUserContext, versionControlInformation.getRegistryIdentifier(), sourceLocation, trimmedBranchName);
         } catch (final UnsupportedOperationException e) {
-            throw new IllegalArgumentException("Configured Flow Registry does not support branch creation.", e);
+            throw new IllegalArgumentException("Configured Flow Registry does not support branch creation", e);
         }
 
         final VersionControlInformationDTO updatedVersionControlInformation = new VersionControlInformationDTO();
@@ -6366,8 +6366,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     }
                 }
             } catch (final IOException | FlowRegistryException e) {
-                logger.warn("Failed to retrieve Flow Registry snapshot for Process Group {} on branch {} due to {}", group.getIdentifier(), trimmedBranchName, e.getMessage());
-                logger.debug("Failed to retrieve Flow Registry snapshot for Process Group {}", group.getIdentifier(), e);
+                logger.warn("Failed to retrieve Flow Registry snapshot for Process Group {}", group.getIdentifier(), e);
             }
         }
 
