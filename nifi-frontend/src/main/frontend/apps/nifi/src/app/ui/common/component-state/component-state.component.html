@@ -80,9 +80,7 @@
                     -->
                     <table mat-table class="hidden">
                         <tr mat-header-row *matHeaderRowDef="[]; sticky: true"></tr>
-                        <tr
-                            mat-row
-                            *matRowDef="let row; columns: []"></tr>
+                        <tr mat-row *matRowDef="let row; columns: []"></tr>
                     </table>
                 </div>
                 <div class="listing-table flex-1 relative">
@@ -115,7 +113,8 @@
                                             </th>
                                         }
                                         @if (displayedColumns.includes('actions')) {
-                                            <th class="mat-mdc-header-cell mdc-data-table__header-cell action-column"></th>
+                                            <th
+                                                class="mat-mdc-header-cell mdc-data-table__header-cell action-column"></th>
                                         }
                                     </tr>
                                 </thead>
