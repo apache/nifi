@@ -83,6 +83,10 @@
             - "Secret Access Key" - The secret access key to use when using STATIC credentials provider
             - "Endpoint URL" - An optional URL that overrides the default AWS S3 endpoint URL.
                  Set this when using an AWS S3 API compatible service hosted at a different URL.
+            - "Force Path Style" - Optional boolean value (true/false) that controls the URL style used for S3 requests.
+                 Defaults to false, which uses virtual-hosted-style URLs (e.g., https://bucket-name.s3.region.amazonaws.com/key).
+                 Set to true to use path-style URLs (e.g., https://s3.region.amazonaws.com/bucket-name/key).
+                 This is typically required for S3-compatible storage systems like MinIO, Ceph, or other non-AWS implementations.
      -->
     <!--
     <extensionBundlePersistenceProvider>
@@ -94,6 +98,7 @@
         <property name="Access Key"></property>
         <property name="Secret Access Key"></property>
         <property name="Endpoint URL"></property>
+        <property name="Force Path Style"></property>
     </extensionBundlePersistenceProvider>
     -->
 
