@@ -229,37 +229,37 @@ describe('RegistryClients', () => {
                         uri: mockRegistryClientEntity.uri,
                         fromTimestamp: '2023-10-08T12:00:00.000Z',
                         componentId: mockRegistryClientEntity.id,
-                    componentType: ComponentType.FlowRegistryClient
-                }
-            })
-        );
-    });
-
-    it('should dispatch navigateToComponentDocumentation action when viewRegistryClientDocumentation is called', async () => {
-        const { component, store } = await setup();
-        const mockRegistryClientEntity = createMockRegistryClientEntity();
-        jest.spyOn(store, 'dispatch');
-
-        component.viewRegistryClientDocumentation(mockRegistryClientEntity);
-
-        expect(store.dispatch).toHaveBeenCalledWith(
-            navigateToComponentDocumentation({
-                request: {
-                    backNavigation: {
-                        route: ['/settings', 'registry-clients', mockRegistryClientEntity.id],
-                        routeBoundary: ['/documentation'],
-                        context: 'Registry Client'
-                    },
-                    parameters: {
-                        componentType: ComponentType.FlowRegistryClient,
-                        type: mockRegistryClientEntity.component.type,
-                        group: mockRegistryClientEntity.component.bundle.group,
-                        artifact: mockRegistryClientEntity.component.bundle.artifact,
-                        version: mockRegistryClientEntity.component.bundle.version
+                        componentType: ComponentType.FlowRegistryClient
                     }
-                }
-            })
-        );
+                })
+            );
+        });
+
+        it('should dispatch navigateToComponentDocumentation action when viewRegistryClientDocumentation is called', async () => {
+            const { component, store } = await setup();
+            const mockRegistryClientEntity = createMockRegistryClientEntity();
+            jest.spyOn(store, 'dispatch');
+
+            component.viewRegistryClientDocumentation(mockRegistryClientEntity);
+
+            expect(store.dispatch).toHaveBeenCalledWith(
+                navigateToComponentDocumentation({
+                    request: {
+                        backNavigation: {
+                            route: ['/settings', 'registry-clients', mockRegistryClientEntity.id],
+                            routeBoundary: ['/documentation'],
+                            context: 'Registry Client'
+                        },
+                        parameters: {
+                            componentType: ComponentType.FlowRegistryClient,
+                            type: mockRegistryClientEntity.component.type,
+                            group: mockRegistryClientEntity.component.bundle.group,
+                            artifact: mockRegistryClientEntity.component.bundle.artifact,
+                            version: mockRegistryClientEntity.component.bundle.version
+                        }
+                    }
+                })
+            );
+        });
     });
-});
 });
