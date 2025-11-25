@@ -70,7 +70,7 @@ public final class DBCPProperties {
             .name("Password Source")
             .description("Specifies whether to supply the database password directly or obtain it from a Database Password Provider.")
             .allowableValues(PasswordSource.class)
-            .defaultValue(PasswordSource.PASSWORD.getValue())
+            .defaultValue(PasswordSource.PASSWORD)
             .required(true)
             .build();
 
@@ -81,7 +81,7 @@ public final class DBCPProperties {
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .dependsOn(PASSWORD_SOURCE, PasswordSource.PASSWORD.getValue())
+            .dependsOn(PASSWORD_SOURCE, PasswordSource.PASSWORD)
             .build();
 
     public static final PropertyDescriptor DB_PASSWORD_PROVIDER = new PropertyDescriptor.Builder()
@@ -89,7 +89,7 @@ public final class DBCPProperties {
             .description("Controller Service that supplies database passwords on demand. When configured, the Password property is ignored.")
             .required(true)
             .identifiesControllerService(DatabasePasswordProvider.class)
-            .dependsOn(PASSWORD_SOURCE, PasswordSource.PASSWORD_PROVIDER.getValue())
+            .dependsOn(PASSWORD_SOURCE, PasswordSource.PASSWORD_PROVIDER)
             .build();
 
     public static final PropertyDescriptor DB_DRIVERNAME = new PropertyDescriptor.Builder()
@@ -143,7 +143,7 @@ public final class DBCPProperties {
 
     public enum PasswordSource implements DescribedValue {
         PASSWORD("Password", "Use the configured Password property for database authentication."),
-        PASSWORD_PROVIDER("Password Provider", "Obtain database passwords from a configured Database Password Provider controller service.");
+        PASSWORD_PROVIDER("Password Provider", "Obtain database passwords from a configured Database Password Provider.");
 
         private final String displayName;
         private final String description;
@@ -160,7 +160,7 @@ public final class DBCPProperties {
 
         @Override
         public String getValue() {
-            return displayName;
+            return name();
         }
 
         @Override

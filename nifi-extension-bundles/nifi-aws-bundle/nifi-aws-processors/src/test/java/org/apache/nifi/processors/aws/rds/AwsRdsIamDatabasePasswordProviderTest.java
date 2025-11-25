@@ -18,9 +18,9 @@ package org.apache.nifi.processors.aws.rds;
 
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;
-import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
-import org.apache.nifi.processors.aws.s3.FetchS3Object;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +49,7 @@ class AwsRdsIamDatabasePasswordProviderTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        runner = TestRunners.newTestRunner(FetchS3Object.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         credentialsService = new AWSCredentialsProviderControllerService();
         runner.addControllerService("awsCredentials", credentialsService);
@@ -96,9 +96,9 @@ class AwsRdsIamDatabasePasswordProviderTest {
     void testMissingHostnameThrowsProcessException() {
         final DatabasePasswordProvider service = getService();
         final DatabasePasswordRequestContext context = DatabasePasswordRequestContext.builder()
-                .jdbcUrl("jdbc:postgresql:///dbname")
-                .databaseUser("dbuser")
-                .driverClassName("org.postgresql.Driver")
+                .jdbcUrl("%s/%s".formatted(JDBC_PREFIX, DATABASE))
+                .databaseUser(DB_USER)
+                .driverClassName(POSTGRES_DRIVER_CLASS)
                 .build();
 
         assertThrows(ProcessException.class, () -> service.getPassword(context));
