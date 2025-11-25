@@ -42,12 +42,5 @@
 
 <mat-dialog-actions align="end">
     <button mat-button mat-dialog-close>Cancel</button>
-    <button
-        mat-flat-button
-        color="primary"
-        (click)="submit()"
-        [disabled]="createBranchForm.invalid"
-    >
-        Create
-    </button>
+    <button mat-flat-button color="primary" (click)="submit()" [disabled]="createBranchForm.invalid">Create</button>
 </mat-dialog-actions>

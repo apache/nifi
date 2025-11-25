@@ -435,8 +435,8 @@ export const flowReducer = createReducer(
         startComponent,
         stopComponent,
         runOnce,
-    createFlowBranch,
-    createFlowBranchSuccess,
+        createFlowBranch,
+        createFlowBranchSuccess,
         (state) => ({
             ...state,
             saving: true
@@ -641,7 +641,8 @@ export const flowReducer = createReducer(
                     collection[componentIndex].revision = response.processGroupRevision;
                     collection[componentIndex].versionedFlowState = response.versionControlInformation?.state;
                     if (collection[componentIndex].component) {
-                        collection[componentIndex].component.versionControlInformation = response.versionControlInformation;
+                        collection[componentIndex].component.versionControlInformation =
+                            response.versionControlInformation;
                     }
                 }
             }

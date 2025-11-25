@@ -38,6 +38,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 
+import java.net.HttpURLConnection;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -239,7 +240,7 @@ public class TestVersionsResource {
                 .thenReturn(expectedEntity);
 
         final Response response = versionsResource.createFlowBranch(groupId, requestEntity);
-        assertEquals(200, response.getStatus());
+        assertEquals(HttpURLConnection.HTTP_OK, response.getStatus());
         assertEquals(expectedEntity, response.getEntity());
     }
 

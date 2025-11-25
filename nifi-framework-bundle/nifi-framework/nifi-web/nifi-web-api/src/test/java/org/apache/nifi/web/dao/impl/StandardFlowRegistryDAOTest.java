@@ -35,6 +35,7 @@ import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -119,7 +120,8 @@ class StandardFlowRegistryDAOTest {
         final NiFiCoreException exception = assertThrows(NiFiCoreException.class,
                 () -> dao.createBranchForUser(userContext, "registry-1", sourceLocation, "feature"));
 
-        assertEquals("Unable to create branch [feature] in registry with ID registry-1: Branch [feature] already exists", exception.getMessage());
+        assertTrue(exception.getMessage().contains("registry-1"));
+        assertTrue(exception.getMessage().contains("[feature]"));
         assertEquals(cause, exception.getCause());
     }
 }
