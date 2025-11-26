@@ -29,12 +29,10 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.AbstractListenEventBatchingProcessor;
-import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
 import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
@@ -119,11 +117,6 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
         }
 
         return result;
-    }
-
-    @Override
-    public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty(ListenerProperties.OLD_MESSAGE_DELIMITER_PROPERTY_NAME, ListenerProperties.MESSAGE_DELIMITER.getName());
     }
 
     @Override
