@@ -20,6 +20,7 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.kafka.shared.component.KafkaClientComponent;
 
 import static javax.security.auth.login.AppConfigurationEntry.LoginModuleControlFlag.REQUIRED;
+import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.isSaslExtensionProperty;
 
 /**
  * SASL OAuthBearer Login Module implementation of configuration provider
@@ -33,7 +34,8 @@ public class OAuthBearerLoginConfigProvider implements LoginConfigProvider {
      * Get JAAS configuration for activating OAuthBearer Login Module.
      * The login module uses callback handlers to acquire Access Tokens. NiFi's callback handler relies on {@link org.apache.nifi.oauth2.OAuth2AccessTokenProvider} controller service to get the token.
      * The controller service will be passed to the callback handler via Kafka config map (as an object, instead of the string-based JAAS config).
-     * The JAAS config contains the service id in order to make the callback handler unique to the given service (Kafka creates separate callback handlers based on JAAS config).
+     * The JAAS config contains the service id and the SASL extension properties in order to make the callback handler unique to the given configuration
+     * (the Kafka framework creates separate callback handlers based on JAAS config).
      *
      * @param context Property Context
      * @return JAAS configuration with OAuthBearer Login Module
@@ -44,6 +46,10 @@ public class OAuthBearerLoginConfigProvider implements LoginConfigProvider {
 
         final String serviceId = context.getProperty(KafkaClientComponent.OAUTH2_ACCESS_TOKEN_PROVIDER_SERVICE).getValue();
         builder.append(SERVICE_ID_KEY, serviceId);
+
+        context.getAllProperties().entrySet().stream()
+                .filter(entry -> isSaslExtensionProperty(entry.getKey()))
+                .forEach(entry -> builder.append(entry.getKey(), entry.getValue()));
 
         return builder.build();
     }
