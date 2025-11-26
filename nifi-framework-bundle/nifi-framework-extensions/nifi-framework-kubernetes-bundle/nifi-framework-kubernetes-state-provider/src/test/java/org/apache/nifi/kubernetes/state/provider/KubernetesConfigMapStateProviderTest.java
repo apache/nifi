@@ -23,7 +23,6 @@ import io.fabric8.kubernetes.api.model.StatusBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
-import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import io.fabric8.kubernetes.client.server.mock.KubernetesMockServer;
@@ -61,7 +60,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -182,13 +180,10 @@ class KubernetesConfigMapStateProviderTest {
     void testSetStateConflict() {
         final KubernetesClient mockClient = mock(KubernetesClient.class);
         final MixedOperation<ConfigMap, ConfigMapList, Resource<ConfigMap>> mockConfigMaps = mock(MixedOperation.class);
-        final NonNamespaceOperation<ConfigMap, ConfigMapList, Resource<ConfigMap>> mockNamespacedConfigMaps = mock(NonNamespaceOperation.class);
         final Resource<ConfigMap> mockResource = mock(Resource.class);
 
         when(mockClient.configMaps()).thenReturn(mockConfigMaps);
         when(mockConfigMaps.resource(any(ConfigMap.class))).thenReturn(mockResource);
-        when(mockConfigMaps.inNamespace(DEFAULT_NAMESPACE)).thenReturn(mockNamespacedConfigMaps);
-        when(mockNamespacedConfigMaps.withName(anyString())).thenReturn(mockResource);
 
         final String conflictMessageTemplate = "Operation cannot be fulfilled on configmaps \"nifi-component-%s\": "
                 + "the object has been modified; please apply your changes to the latest version and try again";
@@ -274,7 +269,7 @@ class KubernetesConfigMapStateProviderTest {
         setContext();
         provider.initialize(context);
 
-        final StateMap stateMap = new StandardStateMap(Collections.emptyMap(), Optional.empty());
+        final StateMap stateMap = new StandardStateMap(Collections.emptyMap(), Optional.empty(), Optional.empty());
         final boolean replaced = provider.replace(stateMap, Collections.emptyMap(), COMPONENT_ID);
 
         assertTrue(replaced);
