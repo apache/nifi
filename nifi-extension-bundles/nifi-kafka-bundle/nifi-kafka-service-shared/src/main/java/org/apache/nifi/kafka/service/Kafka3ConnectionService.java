@@ -84,12 +84,16 @@ import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEY_
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_LOCATION;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_PASSWORD;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_TRUSTSTORE_TYPE;
+import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.SASL_EXTENSION_PROPERTY_PREFIX;
+import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.isSaslExtensionProperty;
+import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.removeSaslExtensionPropertyPrefix;
 
 @Tags({"Apache", "Kafka", "Message", "Publish", "Consume"})
-@DynamicProperty(name = "The name of a Kafka configuration property.", value = "The value of a given Kafka configuration property.",
-        description = "These properties will be added on the Kafka configuration after loading any provided configuration properties."
+@DynamicProperty(name = "The name of a Kafka configuration property or a SASL extension property.", value = "The value of the given property.",
+        description = "Kafka configuration properties will be added on the Kafka configuration after loading any provided configuration properties."
                 + " In the event a dynamic property represents a property that was already set, its value will be ignored and WARN message logged."
-                + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration.",
+                + " For the list of available Kafka properties please refer to: http://kafka.apache.org/documentation.html#configuration."
+                + " SASL extension properties can be specified in " + SASL_EXTENSION_PROPERTY_PREFIX + "propertyName format (e.g. " + SASL_EXTENSION_PROPERTY_PREFIX + "logicalCluster).",
         expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT)
 @CapabilityDescription("Provides and manages connections to Kafka Brokers for producer or consumer operations.")
 public class Kafka3ConnectionService extends AbstractControllerService implements KafkaConnectionService, VerifiableControllerService, KafkaClientComponent {
@@ -214,8 +218,18 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        final String propertyName;
+        final String propertyType;
+        if (isSaslExtensionProperty(propertyDescriptorName)) {
+            propertyName = removeSaslExtensionPropertyPrefix(propertyDescriptorName);
+            propertyType = "SASL Extension";
+        } else {
+            propertyName = propertyDescriptorName;
+            propertyType = "Kafka Configuration";
+        }
+
         return new PropertyDescriptor.Builder()
-                .description("Specifies the value for '" + propertyDescriptorName + "' Kafka Configuration.")
+                .description("Specifies the value for '" + propertyName + "' " + propertyType + ".")
                 .name(propertyDescriptorName)
                 .addValidator(new DynamicPropertyValidator(ProducerConfig.class, ConsumerConfig.class))
                 .dynamic(true)
