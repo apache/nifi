@@ -17,6 +17,8 @@
 package org.apache.nifi.kafka.service.security;
 
 import org.apache.kafka.common.security.auth.AuthenticateCallbackHandler;
+import org.apache.kafka.common.security.auth.SaslExtensions;
+import org.apache.kafka.common.security.auth.SaslExtensionsCallback;
 import org.apache.kafka.common.security.oauthbearer.ClientJwtValidator;
 import org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
 import org.apache.kafka.common.security.oauthbearer.OAuthBearerToken;
@@ -29,10 +31,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.login.AppConfigurationEntry;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.isSaslExtensionProperty;
+import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.removeSaslExtensionPropertyPrefix;
 
 /**
  * {@link org.apache.kafka.common.security.auth.AuthenticateCallbackHandler} implementation to support OAuth 2 in NiFi Kafka components.
@@ -48,6 +56,8 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
 
     private OAuth2AccessTokenProvider accessTokenProvider;
     private ClientJwtValidator accessTokenValidator;
+
+    private Map<String, String> saslExtensions;
 
     @Override
     public void configure(final Map<String, ?> configs, final String saslMechanism, final List<AppConfigurationEntry> jaasConfigEntries) {
@@ -72,13 +82,23 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
         this.accessTokenProvider = accessTokenProvider;
         this.accessTokenValidator = new ClientJwtValidator();
         this.accessTokenValidator.configure(configs, saslMechanism, List.of());
+
+        this.saslExtensions = options.entrySet().stream()
+                .filter(entry -> isSaslExtensionProperty(entry.getKey()))
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toMap(entry -> removeSaslExtensionPropertyPrefix(entry.getKey()), entry -> entry.getValue().toString()),
+                        Collections::unmodifiableMap));
     }
 
     @Override
-    public void handle(final Callback[] callbacks) {
+    public void handle(final Callback[] callbacks) throws UnsupportedCallbackException {
         for (final Callback callback : callbacks) {
             if (callback instanceof OAuthBearerTokenCallback) {
                 handleTokenCallback((OAuthBearerTokenCallback) callback);
+            } else if (callback instanceof SaslExtensionsCallback) {
+                handleExtensionsCallback((SaslExtensionsCallback) callback);
+            } else {
+                throw new UnsupportedCallbackException(callback);
             }
         }
     }
@@ -86,6 +106,8 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
     private void handleTokenCallback(final OAuthBearerTokenCallback callback) {
         final String accessToken;
         try {
+            // Kafka's ExpiringCredentialRefreshingLogin calls this method when the current token is about to expire and expects a refreshed token, so forcefully update it
+            accessTokenProvider.refreshAccessDetails();
             accessToken = accessTokenProvider.getAccessDetails().getAccessToken();
         } catch (Exception e) {
             LOGGER.error("Could not retrieve access token", e);
@@ -100,6 +122,11 @@ public class OAuthBearerLoginCallbackHandler implements AuthenticateCallbackHand
             LOGGER.error("Could not validate and parse access token", e);
             callback.error("invalid_token", e.getMessage(), null);
         }
+    }
+
+    private void handleExtensionsCallback(final SaslExtensionsCallback callback) {
+        // a unique SaslExtensions object must be returned otherwise it will be lost upon relogin
+        callback.extensions(new SaslExtensions(saslExtensions));
     }
 
     @Override
