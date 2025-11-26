@@ -23,6 +23,7 @@ import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
 import org.apache.nifi.processor.util.listen.event.StandardEvent;
 import org.apache.nifi.processor.util.listen.response.ChannelResponder;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -166,6 +167,14 @@ public class TestListenUDP {
 
         runner.run(5);
         runner.assertAllFlowFilesTransferred(ListenUDP.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testMigrateProperties() {
+        final TestRunner migrationRunner = TestRunners.newTestRunner(ListenUDP.class);
+        final PropertyMigrationResult migrationResult = migrationRunner.migrateProperties();
+        assertEquals(ListenerProperties.MESSAGE_DELIMITER.getName(),
+                migrationResult.getPropertiesRenamed().get(ListenerProperties.OLD_MESSAGE_DELIMITER_PROPERTY_NAME));
     }
 
     @Test
