@@ -1295,6 +1295,13 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("The from timestamp must be specified.");
         }
 
+        // Collect RPG IDs to distinguish them from local connectables during authorization
+        final Set<String> remoteProcessGroupIds = serviceFacade.filterComponents(id, group ->
+                group.findAllRemoteProcessGroups().stream()
+                        .map(rpg -> rpg.getIdentifier())
+                        .collect(Collectors.toSet())
+        );
+
         // if the components are not specified, gather all authorized components
         if (clearBulletinsForGroupRequestEntity.getComponents() == null) {
             // get component IDs that the user has write access to
@@ -1344,8 +1351,10 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being cleared
                     final Set<String> requestComponentsToClear = clearBulletinsForGroupRequestEntity.getComponents();
                     requestComponentsToClear.forEach(componentId -> {
-                        final Authorizable connectable = lookup.getLocalConnectable(componentId);
-                        connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        final Authorizable authorizable = remoteProcessGroupIds.contains(componentId)
+                                ? lookup.getRemoteProcessGroup(componentId)
+                                : lookup.getLocalConnectable(componentId);
+                        authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
                 () -> { },
