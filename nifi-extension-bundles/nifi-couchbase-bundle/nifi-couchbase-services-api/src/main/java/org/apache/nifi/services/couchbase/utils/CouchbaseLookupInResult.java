@@ -14,15 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.services.couchbase.exception;
+package org.apache.nifi.services.couchbase.utils;
 
-public class CouchbaseException extends Exception {
-
-    public CouchbaseException(final String message) {
-        super(message);
-    }
-
-    public CouchbaseException(final String message, final Throwable cause) {
-        super(message, cause);
-    }
+public record CouchbaseLookupInResult(Object resultContent, long cas) {
 }
