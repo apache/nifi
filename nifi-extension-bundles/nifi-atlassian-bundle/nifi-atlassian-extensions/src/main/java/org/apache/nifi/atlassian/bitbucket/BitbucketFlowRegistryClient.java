@@ -49,7 +49,7 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
     static final PropertyDescriptor BITBUCKET_API_URL = new PropertyDescriptor.Builder()
             .name("Bitbucket API Instance")
             .description("The Bitbucket API host or base URL (for example, api.bitbucket.org for Cloud or https://bitbucket.example.com for Data Center)")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .addValidator(StandardValidators.URL_VALIDATOR)
             .defaultValue("api.bitbucket.org")
             .required(true)
             .build();

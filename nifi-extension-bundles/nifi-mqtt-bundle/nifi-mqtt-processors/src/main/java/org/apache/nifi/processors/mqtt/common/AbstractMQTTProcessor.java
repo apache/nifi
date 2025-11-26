@@ -115,7 +115,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
                     "the processor will use a round-robin algorithm to connect to the brokers on connection failure.")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .addValidator(StandardValidators.URI_LIST_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_CLIENTID = new PropertyDescriptor.Builder()

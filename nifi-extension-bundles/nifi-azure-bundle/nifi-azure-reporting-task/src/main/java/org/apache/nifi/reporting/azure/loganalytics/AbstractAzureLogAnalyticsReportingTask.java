@@ -90,7 +90,7 @@ public abstract class AbstractAzureLogAnalyticsReportingTask extends AbstractRep
     static final PropertyDescriptor LOG_ANALYTICS_URL_ENDPOINT_FORMAT = new PropertyDescriptor.Builder()
             .name("Log Analytics URL Endpoint Format").description("Log Analytics URL Endpoint Format").required(false)
             .defaultValue("https://{0}.ods.opinsights.azure.com/api/logs?api-version=2016-04-01")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.URL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT).build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
