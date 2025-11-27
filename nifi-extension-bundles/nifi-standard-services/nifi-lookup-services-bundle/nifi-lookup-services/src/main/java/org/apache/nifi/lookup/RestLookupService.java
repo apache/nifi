@@ -95,7 +95,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 "not flowfile attributes.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
-        .addValidator(StandardValidators.URI_LIST_VALIDATOR)
+        .addValidator(StandardValidators.URL_VALIDATOR)
         .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()

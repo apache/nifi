@@ -58,7 +58,7 @@ public class StandardSnowflakeIngestManagerProviderService extends AbstractContr
     public static final PropertyDescriptor HOST_URL = new PropertyDescriptor.Builder()
             .name("Snowflake URL")
             .description("Example host url: [account-locator].[cloud-region].[cloud]" + ConnectionUrlFormat.SNOWFLAKE_HOST_SUFFIX)
-            .addValidator(StandardValidators.URL_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .required(true)
             .dependsOn(ACCOUNT_IDENTIFIER_FORMAT, AccountIdentifierFormat.FULL_URL)
