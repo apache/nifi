@@ -23,6 +23,9 @@ public class SaslExtensionUtil {
 
     public static final String SASL_EXTENSION_PROPERTY_PREFIX = "sasl_extension_";
 
+    private SaslExtensionUtil() {
+    }
+
     public static boolean isSaslExtensionProperty(final String propertyName) {
         return propertyName.startsWith(SASL_EXTENSION_PROPERTY_PREFIX);
     }
