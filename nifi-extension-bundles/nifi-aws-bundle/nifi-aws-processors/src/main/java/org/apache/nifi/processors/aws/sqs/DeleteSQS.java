@@ -52,7 +52,7 @@ public class DeleteSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuil
     public static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()
             .name("Queue URL")
             .description("The URL of the queue delete from")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.URL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();
