@@ -28,11 +28,11 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
+import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
-import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
-import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
 import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
@@ -80,26 +80,15 @@ public final class AzureEventHubUtils {
                                                         PropertyDescriptor identityFederationTokenProviderDescriptor,
                                                         ValidationContext context) {
         List<ValidationResult> validationResults = new ArrayList<>();
-
         boolean accessPolicyIsSet = context.getProperty(accessPolicyDescriptor).isSet();
         boolean policyKeyIsSet = context.getProperty(policyKeyDescriptor).isSet();
         final AzureEventHubAuthenticationStrategy authenticationStrategy = Optional.ofNullable(
-                context.getProperty(AzureEventHubComponent.AUTHENTICATION_STRATEGY)
-                        .asAllowableValue(AzureEventHubAuthenticationStrategy.class))
+                context.getProperty(AzureEventHubComponent.AUTHENTICATION_STRATEGY).asAllowableValue(AzureEventHubAuthenticationStrategy.class))
                 .orElse(AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY);
 
         switch (authenticationStrategy) {
-            case MANAGED_IDENTITY -> {
-                if (accessPolicyIsSet || policyKeyIsSet) {
-                    final String msg = String.format(
-                            "When '%s' is set to '%s', '%s' and '%s' must not be set.",
-                            AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
-                            AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY.getDisplayName(),
-                            accessPolicyDescriptor.getDisplayName(),
-                            policyKeyDescriptor.getDisplayName()
-                    );
-                    validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
-                }
+            case MANAGED_IDENTITY, OAUTH2, IDENTITY_FEDERATION -> {
+                // Rely on required property + dependsOn validation to ensure proper configuration
             }
             case SHARED_ACCESS_SIGNATURE -> {
                 if (!accessPolicyIsSet || !policyKeyIsSet) {
@@ -113,31 +102,8 @@ public final class AzureEventHubUtils {
                     validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
                 }
             }
-            case OAUTH2 -> {
-                if (accessPolicyIsSet || policyKeyIsSet) {
-                    final String msg = String.format(
-                            "When '%s' is set to '%s', '%s' and '%s' must not be set.",
-                            AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
-                            AzureEventHubAuthenticationStrategy.OAUTH2.getDisplayName(),
-                            accessPolicyDescriptor.getDisplayName(),
-                            policyKeyDescriptor.getDisplayName()
-                    );
-                    validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
-                }
-            }
-            case IDENTITY_FEDERATION -> {
-                if (accessPolicyIsSet || policyKeyIsSet) {
-                    final String msg = String.format(
-                            "When '%s' is set to '%s', '%s' and '%s' must not be set.",
-                            AzureEventHubComponent.AUTHENTICATION_STRATEGY.getDisplayName(),
-                            AzureEventHubAuthenticationStrategy.IDENTITY_FEDERATION.getDisplayName(),
-                            accessPolicyDescriptor.getDisplayName(),
-                            policyKeyDescriptor.getDisplayName()
-                    );
-                    validationResults.add(new ValidationResult.Builder().subject("Credentials config").valid(false).explanation(msg).build());
-                }
-            }
         }
+
         ProxyConfiguration.validateProxySpec(context, validationResults, AzureEventHubComponent.PROXY_SPECS);
         return validationResults;
     }
