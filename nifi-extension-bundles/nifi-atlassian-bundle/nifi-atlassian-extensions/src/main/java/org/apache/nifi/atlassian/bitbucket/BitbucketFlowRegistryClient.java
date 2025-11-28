@@ -50,19 +50,25 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
 
     private static final Pattern HOST_PATTERN = Pattern.compile("(\\[[\\p{XDigit}:.]*[%\\p{Alnum}]*]|[^\\[/?#:]*)");
     private static final Validator BITBUCKET_API_URL_VALIDATOR = (subject, input, validationContext) -> {
+        final ValidationResult.Builder builder = new ValidationResult.Builder();
+        builder.subject(subject).input(input);
+
         if (input == null || input.isBlank()) {
-            return (new ValidationResult.Builder()).subject(subject).explanation(String.format("'%s' cannot be blank", subject)).input(input).build();
+            builder.explanation(String.format("'%s' cannot be blank", subject)).valid(false);
         } else if (HOST_PATTERN.matcher(input).matches()) {
-            return (new ValidationResult.Builder()).subject(subject).input(input).valid(true).build();
+            builder.explanation(String.format("%s is a valid host", subject)).valid(true);
         } else {
-            ValidationResult validationResult = StandardValidators.URL_VALIDATOR.validate(subject, input, validationContext);
+            final ValidationResult validationResult = StandardValidators.URL_VALIDATOR.validate(subject, input, validationContext);
             if (validationResult.isValid()) {
-                return validationResult;
+                builder.explanation(String.format("%s is a valid url", subject)).valid(true);
             } else {
-                return (new ValidationResult.Builder()).subject(subject).explanation(String.format("'%s' is neither a host or URL", subject)).input(input).build();
+                builder.explanation(String.format("'%s' is neither a host or URL", subject)).valid(false);
             }
         }
+
+        return builder.build();
     };
+
     static final PropertyDescriptor BITBUCKET_API_URL = new PropertyDescriptor.Builder()
             .name("Bitbucket API Instance")
             .description("The Bitbucket API host or base URL (for example, api.bitbucket.org for Cloud or https://bitbucket.example.com for Data Center)")
