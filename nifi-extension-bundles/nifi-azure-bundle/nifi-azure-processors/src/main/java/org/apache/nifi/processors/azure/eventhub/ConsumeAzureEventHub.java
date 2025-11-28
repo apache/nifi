@@ -81,11 +81,11 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.shared.azure.eventhubs.BlobStorageAuthenticationStrategy;
-import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
@@ -447,8 +447,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final String storageAccountKey = validationContext.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
         final String storageSasToken = validationContext.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
         final CheckpointStrategy checkpointStrategy = CheckpointStrategy.valueOf(validationContext.getProperty(CHECKPOINT_STRATEGY).getValue());
-        final boolean blobOauthProviderSet = validationContext.getProperty(BLOB_STORAGE_OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
-        final boolean blobIdentityFederationProviderSet = validationContext.getProperty(BLOB_STORAGE_IDENTITY_FEDERATION_TOKEN_PROVIDER).isSet();
 
         if ((recordReader != null && recordWriter == null) || (recordReader == null && recordWriter != null)) {
             results.add(new ValidationResult.Builder()
@@ -461,10 +459,10 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
 
         if (checkpointStrategy == CheckpointStrategy.AZURE_BLOB_STORAGE) {
             final BlobStorageAuthenticationStrategy blobStorageAuthenticationStrategy =
-                    validationContext.getProperty(BLOB_STORAGE_AUTHENTICATION_STRATEGY)
-                            .asAllowableValue(BlobStorageAuthenticationStrategy.class);
+                    validationContext.getProperty(BLOB_STORAGE_AUTHENTICATION_STRATEGY).asAllowableValue(BlobStorageAuthenticationStrategy.class);
 
             if (blobStorageAuthenticationStrategy == BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY) {
+                // needed because of expression language support
                 if (StringUtils.isBlank(storageAccountKey)) {
                     results.add(new ValidationResult.Builder()
                             .subject(STORAGE_ACCOUNT_KEY.getDisplayName())
@@ -475,18 +473,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                             .valid(false)
                             .build());
                 }
-
-                if (StringUtils.isNotBlank(storageSasToken)) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(STORAGE_SAS_TOKEN.getDisplayName())
-                            .explanation("%s must not be set when %s is %s."
-                                    .formatted(STORAGE_SAS_TOKEN.getDisplayName(),
-                                            BLOB_STORAGE_AUTHENTICATION_STRATEGY.getDisplayName(),
-                                            BlobStorageAuthenticationStrategy.STORAGE_ACCOUNT_KEY.getDisplayName()))
-                            .valid(false)
-                            .build());
-                }
             } else if (blobStorageAuthenticationStrategy == BlobStorageAuthenticationStrategy.SHARED_ACCESS_SIGNATURE) {
+                // needed because of expression language support
                 if (StringUtils.isBlank(storageSasToken)) {
                     results.add(new ValidationResult.Builder()
                             .subject(STORAGE_SAS_TOKEN.getDisplayName())
@@ -497,86 +485,16 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
                             .valid(false)
                             .build());
                 }
-
-                if (StringUtils.isNotBlank(storageAccountKey)) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(STORAGE_ACCOUNT_KEY.getDisplayName())
-                            .explanation("%s must not be set when %s is %s."
-                                    .formatted(STORAGE_ACCOUNT_KEY.getDisplayName(),
-                                            BLOB_STORAGE_AUTHENTICATION_STRATEGY.getDisplayName(),
-                                            BlobStorageAuthenticationStrategy.SHARED_ACCESS_SIGNATURE.getDisplayName()))
-                            .valid(false)
-                            .build());
-                }
             } else if (blobStorageAuthenticationStrategy == BlobStorageAuthenticationStrategy.OAUTH2) {
-                if (!blobOauthProviderSet) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(BLOB_STORAGE_OAUTH2_ACCESS_TOKEN_PROVIDER.getDisplayName())
-                            .explanation("%s must be set when %s is %s."
-                                    .formatted(BLOB_STORAGE_OAUTH2_ACCESS_TOKEN_PROVIDER.getDisplayName(),
-                                            BLOB_STORAGE_AUTHENTICATION_STRATEGY.getDisplayName(),
-                                            BlobStorageAuthenticationStrategy.OAUTH2.getDisplayName()))
-                            .valid(false)
-                            .build());
-                }
-
-                if (StringUtils.isNotBlank(storageAccountKey)) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(STORAGE_ACCOUNT_KEY.getDisplayName())
-                            .explanation("%s must not be set when %s is %s."
-                                    .formatted(STORAGE_ACCOUNT_KEY.getDisplayName(),
-                                            BLOB_STORAGE_AUTHENTICATION_STRATEGY.getDisplayName(),
-                                            BlobStorageAuthenticationStrategy.OAUTH2.getDisplayName()))
-                            .valid(false)
-                            .build());
-                }
-
-                if (StringUtils.isNotBlank(storageSasToken)) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(STORAGE_SAS_TOKEN.getDisplayName())
-                            .explanation("%s must not be set when %s is %s."
-                                    .formatted(STORAGE_SAS_TOKEN.getDisplayName(),
-                                            BLOB_STORAGE_AUTHENTICATION_STRATEGY.getDisplayName(),
-                                            BlobStorageAuthenticationStrategy.OAUTH2.getDisplayName()))
-                            .valid(false)
-                            .build());
-                }
-                if (blobIdentityFederationProviderSet) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(BLOB_STORAGE_IDENTITY_FEDERATION_TOKEN_PROVIDER.getDisplayName())
-                            .explanation("%s must not be set when %s is %s."
-                                    .formatted(BLOB_STORAGE_IDENTITY_FEDERATION_TOKEN_PROVIDER.getDisplayName(),
-                                            BLOB_STORAGE_AUTHENTICATION_STRATEGY.getDisplayName(),
-                                            BlobStorageAuthenticationStrategy.OAUTH2.getDisplayName()))
-                            .valid(false)
-                            .build());
-                }
+                // Rely on required property + dependsOn validation to ensure provider is configured
             } else if (blobStorageAuthenticationStrategy == BlobStorageAuthenticationStrategy.IDENTITY_FEDERATION) {
-                if (StringUtils.isNotBlank(storageAccountKey)) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(STORAGE_ACCOUNT_KEY.getDisplayName())
-                            .explanation("%s must not be set when %s is %s."
-                                    .formatted(STORAGE_ACCOUNT_KEY.getDisplayName(),
-                                            BLOB_STORAGE_AUTHENTICATION_STRATEGY.getDisplayName(),
-                                            BlobStorageAuthenticationStrategy.IDENTITY_FEDERATION.getDisplayName()))
-                            .valid(false)
-                            .build());
-                }
-
-                if (StringUtils.isNotBlank(storageSasToken)) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(STORAGE_SAS_TOKEN.getDisplayName())
-                            .explanation("%s must not be set when %s is %s."
-                                    .formatted(STORAGE_SAS_TOKEN.getDisplayName(),
-                                            BLOB_STORAGE_AUTHENTICATION_STRATEGY.getDisplayName(),
-                                            BlobStorageAuthenticationStrategy.IDENTITY_FEDERATION.getDisplayName()))
-                            .valid(false)
-                            .build());
-                }
+                // Rely on required property + dependsOn validation to ensure provider is configured
             }
         }
+
         results.addAll(AzureEventHubUtils.customValidate(ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY,
                 EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, EVENT_HUB_IDENTITY_FEDERATION_TOKEN_PROVIDER, validationContext));
+
         return results;
     }
 
