@@ -220,13 +220,16 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         final String propertyName;
         final String propertyType;
+        final ExpressionLanguageScope expressionLanguageScope;
 
         if (isSaslExtensionProperty(propertyDescriptorName)) {
             propertyName = removeSaslExtensionPropertyPrefix(propertyDescriptorName);
             propertyType = "SASL Extension";
+            expressionLanguageScope = ExpressionLanguageScope.NONE;
         } else {
             propertyName = propertyDescriptorName;
             propertyType = "Kafka Configuration";
+            expressionLanguageScope = ExpressionLanguageScope.ENVIRONMENT;
         }
 
         return new PropertyDescriptor.Builder()
@@ -234,7 +237,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
                 .name(propertyDescriptorName)
                 .addValidator(new DynamicPropertyValidator(ProducerConfig.class, ConsumerConfig.class))
                 .dynamic(true)
-                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+                .expressionLanguageSupported(expressionLanguageScope)
                 .build();
     }
 
