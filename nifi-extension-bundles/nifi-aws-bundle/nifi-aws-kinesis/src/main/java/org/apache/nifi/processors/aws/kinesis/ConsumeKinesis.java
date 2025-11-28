@@ -160,10 +160,6 @@ public class ConsumeKinesis extends AbstractProcessor {
     private static final Duration HTTP_CLIENTS_CONNECTION_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration HTTP_CLIENTS_READ_TIMEOUT = Duration.ofMinutes(3);
 
-    /**
-     * Best balance between throughput and CPU usage by KCL.
-     */
-    private static final int KINESIS_HTTP_CLIENT_CONCURRENCY_PER_TASK = 16;
     private static final int KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KiB
     private static final Duration KINESIS_HTTP_HEALTH_CHECK_PERIOD = Duration.ofMinutes(1);
 
@@ -455,11 +451,11 @@ public class ConsumeKinesis extends AbstractProcessor {
      * {@link software.amazon.kinesis.common.KinesisClientUtil#adjustKinesisClientBuilder(KinesisAsyncClientBuilder)}.
      */
     private static SdkAsyncHttpClient createKinesisHttpClient(final ProcessContext context) {
-        final int maxConcurrency = KINESIS_HTTP_CLIENT_CONCURRENCY_PER_TASK * context.getMaxConcurrentTasks();
-
         return createHttpClientBuilder(context)
                 .protocol(Protocol.HTTP2)
-                .maxConcurrency(maxConcurrency)
+                // Since we're using HTTP/2, multiple concurrent requests will reuse the same HTTP connection.
+                // Therefore, the number of real connections is going to be relatively small.
+                .maxConcurrency(Integer.MAX_VALUE)
                 .http2Configuration(Http2Configuration.builder()
                         .initialWindowSize(KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES)
                         .healthCheckPingPeriod(KINESIS_HTTP_HEALTH_CHECK_PERIOD)
