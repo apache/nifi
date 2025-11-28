@@ -1017,13 +1017,27 @@ public class AvroTypeUtil {
             }
         }
 
+        final Optional<Schema> matchingFixed = findFixedSchemaMatchingSize(fieldSchema.getTypes(), originalValue);
+        if (matchingFixed.isPresent()) {
+            try {
+                return conversion.apply(matchingFixed.get());
+            } catch (IllegalTypeConversionException e) {
+                logger.debug("Failed to convert value {} to fixed schema {}", originalValue, matchingFixed.get(), e);
+            }
+        }
+
         final Optional<Schema> mostSuitableType = DataTypeUtils.findMostSuitableType(
                 originalValue,
                 getNonNullSubSchemas(fieldSchema),
                 AvroTypeUtil::determineDataType
         );
+
         if (mostSuitableType.isPresent()) {
-            return conversion.apply(mostSuitableType.get());
+            try {
+                return conversion.apply(mostSuitableType.get());
+            } catch (IllegalTypeConversionException e) {
+                logger.debug("Failed to convert value {} to most suitable schema {}", originalValue, mostSuitableType.get(), e);
+            }
         }
 
         for (final Schema subSchema : fieldSchema.getTypes()) {
@@ -1055,6 +1069,36 @@ public class AvroTypeUtil {
         if (foundNonNull) {
             throw new IllegalTypeConversionException("Cannot convert value " + originalValue + " of type " + originalValue.getClass()
                 + " because no compatible types exist in the UNION for field " + fieldName);
+        }
+
+        return null;
+    }
+
+    private static Optional<Schema> findFixedSchemaMatchingSize(final List<Schema> subSchemas, final Object value) {
+        final Integer binarySize = getBinarySize(value);
+        if (binarySize == null) {
+            return Optional.empty();
+        }
+
+        return subSchemas.stream()
+            .filter(schema -> schema.getType() == Type.FIXED && schema.getFixedSize() == binarySize)
+            .findFirst();
+    }
+
+    private static Integer getBinarySize(final Object value) {
+        if (value instanceof byte[]) {
+            return ((byte[]) value).length;
+        }
+        if (value instanceof ByteBuffer byteBuffer) {
+            return byteBuffer.remaining();
+        }
+        if (value instanceof Object[] objects) {
+            if (objects.length == 0 || objects[0] instanceof Byte) {
+                return objects.length;
+            }
+        }
+        if (value instanceof GenericFixed fixed) {
+            return fixed.bytes().length;
         }
 
         return null;
