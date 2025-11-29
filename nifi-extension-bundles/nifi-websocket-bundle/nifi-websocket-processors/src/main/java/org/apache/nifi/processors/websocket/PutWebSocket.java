@@ -33,7 +33,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
@@ -104,11 +107,30 @@ public class PutWebSocket extends AbstractProcessor {
             .defaultValue("${" + ATTR_WS_ENDPOINT_ID + "}")
             .build();
 
+    private static final Pattern WEBSOCKETMESSAGE_TYPE_PATTERN = Pattern.compile("^(?:BINARY|TEXT)$");
+    private static final Validator WEBSOCKETMESSAGE_TYPE_VALIDATOR = (subject, input, context) -> {
+        final boolean matches = WEBSOCKETMESSAGE_TYPE_PATTERN.matcher(input).matches();
+        if (matches || context.isExpressionLanguagePresent(input)) {
+            return (new ValidationResult.Builder())
+                    .subject(subject)
+                    .input(input)
+                    .valid(true)
+                    .build();
+        } else {
+            return (new ValidationResult.Builder())
+                    .subject(subject)
+                    .valid(false)
+                    .explanation(String.format("%s must be either BINARY or TEXT", subject))
+                    .input(input)
+                    .build();
+        }
+    };
+
     public static final PropertyDescriptor PROP_WS_MESSAGE_TYPE = new PropertyDescriptor.Builder()
             .name("WebSocket Message Type")
             .description("The type of message content: TEXT or BINARY")
             .required(true)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .addValidator(WEBSOCKETMESSAGE_TYPE_VALIDATOR)
             .defaultValue(WebSocketMessage.Type.TEXT.toString())
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
