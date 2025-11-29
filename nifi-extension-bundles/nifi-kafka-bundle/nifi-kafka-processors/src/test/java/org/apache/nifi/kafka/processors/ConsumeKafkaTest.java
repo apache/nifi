@@ -31,6 +31,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.nifi.kafka.processors.ConsumeKafka.CONNECTION_SERVICE;
 import static org.apache.nifi.kafka.processors.ConsumeKafka.GROUP_ID;
@@ -88,7 +89,7 @@ class ConsumeKafkaTest {
     public void testVerifySuccessful() throws InitializationException {
         final PartitionState firstPartitionState = new PartitionState(TEST_TOPIC_NAME, FIRST_PARTITION);
         final List<PartitionState> partitionStates = Collections.singletonList(firstPartitionState);
-        when(kafkaConsumerService.getPartitionStates()).thenReturn(partitionStates);
+        when(kafkaConsumerService.getPartitionStatesByTopic()).thenReturn(Map.of(TEST_TOPIC_NAME, partitionStates));
         setConnectionService();
         when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
 
@@ -105,7 +106,7 @@ class ConsumeKafkaTest {
 
     @Test
     public void testVerifyFailed() throws InitializationException {
-        when(kafkaConsumerService.getPartitionStates()).thenThrow(new IllegalStateException());
+        when(kafkaConsumerService.getPartitionStatesByTopic()).thenThrow(new IllegalStateException());
         when(kafkaConnectionService.getConsumerService(any())).thenReturn(kafkaConsumerService);
         setConnectionService();
 
