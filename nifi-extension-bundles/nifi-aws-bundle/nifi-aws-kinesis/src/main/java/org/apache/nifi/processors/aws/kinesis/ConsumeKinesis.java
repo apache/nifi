@@ -80,6 +80,9 @@ import software.amazon.kinesis.processor.ShardRecordProcessor;
 import software.amazon.kinesis.processor.ShardRecordProcessorFactory;
 import software.amazon.kinesis.processor.SingleStreamTracker;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
+import software.amazon.kinesis.retrieval.RetrievalSpecificConfig;
+import software.amazon.kinesis.retrieval.fanout.FanOutConfig;
+import software.amazon.kinesis.retrieval.polling.PollingConfig;
 
 import java.net.URI;
 import java.nio.channels.Channels;
@@ -199,6 +202,17 @@ public class ConsumeKinesis extends AbstractProcessor {
             .identifiesControllerService(AwsCredentialsProviderService.class)
             .build();
 
+    static final PropertyDescriptor CONSUMER_TYPE = new PropertyDescriptor.Builder()
+            .name("Consumer Type")
+            .description("""
+                     The Consumer Type that is used to consume from the Kinesis records.
+                    (See processor's additional details for more information.)
+                    """)
+            .required(true)
+            .allowableValues(ConsumerType.class)
+            .defaultValue(ConsumerType.ENHANCED_FAN_OUT)
+            .build();
+
     static final PropertyDescriptor PROCESSING_STRATEGY = new PropertyDescriptor.Builder()
             .name("Processing Strategy")
             .description("Strategy for processing Kinesis Records and writing serialized output to FlowFiles.")
@@ -295,6 +309,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
             CUSTOM_REGION,
+            CONSUMER_TYPE,
             PROCESSING_STRATEGY,
             RECORD_READER,
             RECORD_WRITER,
@@ -401,6 +416,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         final ConfigsBuilder configsBuilder = new ConfigsBuilder(streamTracker, applicationName, kinesisClient, dynamoDbClient, cloudWatchClient, workerId, recordProcessorFactory);
 
         final MetricsFactory metricsFactory = configureMetricsFactory(context);
+        final RetrievalSpecificConfig retrievalSpecificConfig = configureRetrievalSpecificConfig(context, kinesisClient, streamName, applicationName);
 
         final InitializationStateChangeListener initializationListener = new InitializationStateChangeListener(getLogger());
 
@@ -411,7 +427,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                 configsBuilder.lifecycleConfig(),
                 configsBuilder.metricsConfig().metricsFactory(metricsFactory),
                 configsBuilder.processorConfig(),
-                configsBuilder.retrievalConfig()
+                configsBuilder.retrievalConfig().retrievalSpecificConfig(retrievalSpecificConfig)
         );
 
         final String schedulerThreadName = "%s-Scheduler-%s".formatted(getClass().getSimpleName(), getIdentifier());
@@ -542,6 +558,18 @@ public class ConsumeKinesis extends AbstractProcessor {
             case DISABLED -> new NullMetricsFactory();
             case LOGS -> new LogMetricsFactory();
             case CLOUDWATCH -> null; // If no metrics factory was provided, CloudWatch metrics factory is used by default.
+        };
+    }
+
+    private static RetrievalSpecificConfig configureRetrievalSpecificConfig(
+            final ProcessContext context,
+            final KinesisAsyncClient kinesisClient,
+            final String streamName,
+            final String applicationName) {
+        final ConsumerType consumerType = context.getProperty(CONSUMER_TYPE).asAllowableValue(ConsumerType.class);
+        return switch (consumerType) {
+            case SHARED_THROUGHPUT -> new PollingConfig(kinesisClient).streamName(streamName);
+            case ENHANCED_FAN_OUT -> new FanOutConfig(kinesisClient).streamName(streamName).applicationName(applicationName);
         };
     }
 
@@ -770,6 +798,34 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
 
         record Failure(Optional<Throwable> error) implements InitializationResult {
+        }
+    }
+
+    enum ConsumerType implements DescribedValue {
+        SHARED_THROUGHPUT("Shared Throughput", "A consumer shares the read throughput limits with other consumers"),
+        ENHANCED_FAN_OUT("Enhanced Fan-Out", "A consumer is granted a dedicated read throughput with a lower latency");
+
+        private final String displayName;
+        private final String description;
+
+        ConsumerType(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
         }
     }
 
