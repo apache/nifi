@@ -103,6 +103,18 @@ public class TestUpdateAttribute {
     }
 
     @Test
+    public void testDynamicPropertyWithUnsetParameter() {
+        runner.setProperty("attribute.with.param", "#{missing.parameter}");
+        runner.assertNotValid();
+        runner.setProperty("attribute.with.param", "#{missing.parameter}#{another.missing.parameter}");
+        runner.assertNotValid();
+        runner.setProperty("attribute.with.param", "#{missing.parameter} #{another.missing.parameter}");
+        runner.assertValid();
+        runner.setProperty("attribute.with.param", "#{missing.parameter}${now()}");
+        runner.assertValid();
+    }
+
+    @Test
     public void testBasicState() {
         runner.setProperty(UpdateAttribute.STORE_STATE, STORE_STATE_LOCALLY);
         runner.setProperty("count", "${getStateValue('count'):plus(1)}");

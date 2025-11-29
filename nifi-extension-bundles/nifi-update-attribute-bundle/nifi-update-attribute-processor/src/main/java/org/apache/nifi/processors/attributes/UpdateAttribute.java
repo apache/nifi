@@ -336,6 +336,27 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> reasons = new ArrayList<>(super.customValidate(context));
 
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                final Collection<String> referencedParameters = context.getReferencedParameters(descriptor.getName());
+                final List<String> unsetParameters = referencedParameters.stream()
+                        .filter(parameterName -> !context.isParameterDefined(parameterName) || !context.isParameterSet(parameterName))
+                        .toList();
+                if (!unsetParameters.isEmpty()) {
+                    final String evaluated = context.newPropertyValue(entry.getValue()).evaluateAttributeExpressions().getValue();
+                    if (StringUtils.isEmpty(evaluated)) {
+                        reasons.add(new ValidationResult.Builder()
+                                .subject(descriptor.getDisplayName())
+                                .valid(false)
+                                .explanation("Dynamic Property references a Parameter that is not set: " + referencedParameters.iterator().next())
+                                .build());
+                        continue;
+                    }
+                }
+            }
+        }
+
         if (!context.getProperty(STORE_STATE).getValue().equals(DO_NOT_STORE_STATE)) {
             String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
             if (initValue == null) {

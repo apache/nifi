@@ -77,6 +77,7 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     // This is only for testing purposes as we don't want to set env/sys variables in the tests
     private final Map<String, String> environmentVariables;
+    private final Map<String, String> contextParameters;
 
     private final ParameterLookup parameterLookup;
 
@@ -157,7 +158,16 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
         this.inputRequirement = component.getClass().getAnnotation(InputRequirement.class);
         this.stateManager = stateManager;
         this.environmentVariables = environmentVariables;
+        this.contextParameters = contextParameters == null ? Collections.emptyMap() : contextParameters;
         this.parameterLookup = contextParameters != null ? new MockParameterLookup(contextParameters) : ParameterLookup.EMPTY;
+    }
+
+    Map<String, String> getContextParameters() {
+        return contextParameters;
+    }
+
+    ParameterLookup getParameterLookup() {
+        return parameterLookup;
     }
 
 
