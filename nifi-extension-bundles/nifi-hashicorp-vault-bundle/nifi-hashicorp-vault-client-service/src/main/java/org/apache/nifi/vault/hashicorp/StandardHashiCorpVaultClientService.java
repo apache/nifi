@@ -138,6 +138,13 @@ public class StandardHashiCorpVaultClientService extends AbstractControllerServi
 
     @OnDisabled
     public void onDisabled() {
+        if (communicationService instanceof AutoCloseable autoCloseableCommunicationService) {
+            try {
+                autoCloseableCommunicationService.close();
+            } catch (final Exception e) {
+                getLogger().warn("Error closing HashiCorp Vault communication service", e);
+            }
+        }
         communicationService = null;
     }
 

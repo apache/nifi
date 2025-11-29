@@ -22,8 +22,11 @@ import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultPropertySource;
 import org.springframework.core.env.PropertySource;
-import org.springframework.vault.authentication.SimpleSessionManager;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.vault.authentication.LifecycleAwareSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
+import org.springframework.vault.client.VaultClients;
 import org.springframework.vault.core.VaultKeyValueOperations;
 import org.springframework.vault.core.VaultKeyValueOperationsSupport.KeyValueBackend;
 import org.springframework.vault.core.VaultTemplate;
@@ -31,7 +34,10 @@ import org.springframework.vault.core.VaultTransitOperations;
 import org.springframework.vault.support.Ciphertext;
 import org.springframework.vault.support.Plaintext;
 import org.springframework.vault.support.VaultResponseSupport;
+import org.springframework.web.client.RestOperations;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +49,9 @@ import java.util.Optional;
 /**
  * Implements the VaultCommunicationService using Spring Vault
  */
-public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaultCommunicationService {
+public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaultCommunicationService, Closeable {
+    private final LifecycleAwareSessionManager sessionManager;
+    private final ThreadPoolTaskScheduler taskScheduler;
     private final VaultTemplate vaultTemplate;
     private final VaultTransitOperations transitOperations;
     private final Map<String, VaultKeyValueOperations> keyValueOperationsMap;
@@ -57,9 +65,16 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
     public StandardHashiCorpVaultCommunicationService(final PropertySource<?>... propertySources) throws HashiCorpVaultConfigurationException {
         final HashiCorpVaultConfiguration vaultConfiguration = new HashiCorpVaultConfiguration(propertySources);
 
-        vaultTemplate = new VaultTemplate(vaultConfiguration.vaultEndpoint(),
-                ClientHttpRequestFactoryFactory.create(vaultConfiguration.clientOptions(), vaultConfiguration.sslConfiguration()),
-                new SimpleSessionManager(vaultConfiguration.clientAuthentication()));
+        taskScheduler = new ThreadPoolTaskScheduler();
+        taskScheduler.setThreadNamePrefix("hashicorp-vault-");
+        taskScheduler.setDaemon(true);
+        taskScheduler.afterPropertiesSet();
+
+        final ClientHttpRequestFactory clientHttpRequestFactory = ClientHttpRequestFactoryFactory.create(vaultConfiguration.clientOptions(), vaultConfiguration.sslConfiguration());
+        final RestOperations restOperations = VaultClients.createRestTemplate(vaultConfiguration.vaultEndpoint(), clientHttpRequestFactory);
+
+        sessionManager = new LifecycleAwareSessionManager(vaultConfiguration.clientAuthentication(), taskScheduler, restOperations);
+        vaultTemplate = new VaultTemplate(vaultConfiguration.vaultEndpoint(), clientHttpRequestFactory, sessionManager);
 
         transitOperations = vaultTemplate.opsForTransit();
         keyValueBackend = vaultConfiguration.getKeyValueBackend();
@@ -78,6 +93,12 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
      */
     public StandardHashiCorpVaultCommunicationService(final HashiCorpVaultProperties vaultProperties) throws HashiCorpVaultConfigurationException {
         this(new HashiCorpVaultPropertySource(vaultProperties));
+    }
+
+    @Override
+    public void close() throws IOException {
+        sessionManager.destroy();
+        taskScheduler.destroy();
     }
 
     @Override
