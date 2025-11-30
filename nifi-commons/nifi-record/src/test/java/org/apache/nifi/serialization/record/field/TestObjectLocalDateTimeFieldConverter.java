@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestObjectLocalDateTimeFieldConverter {
     private static final String FIELD_NAME = "test";
@@ -84,5 +85,13 @@ public class TestObjectLocalDateTimeFieldConverter {
     public void testWithDateFormatMicrosecondPrecision() {
         final LocalDateTime result = converter.convertField(MICROS_TIMESTAMP_LONG, Optional.of("yyyy-MM-dd'T'HH:mm:ss.SSSSSS"), FIELD_NAME);
         assertEquals(LOCAL_DATE_TIME_MICROS_PRECISION, result);
+    }
+
+    @Test
+    public void testDefaultFormatterIterationFallsBackToNumericParse() {
+        // Ensures the continue branch in ObjectLocalDateTimeFieldConverter (lines 96-102) keeps iterating through
+        // DEFAULT_DATE_TIME_FORMATTERS before attempting the numeric fallback which throws the expected exception.
+        assertThrows(FieldConversionException.class,
+                () -> converter.convertField("not-a-timestamp", Optional.empty(), FIELD_NAME));
     }
 }
