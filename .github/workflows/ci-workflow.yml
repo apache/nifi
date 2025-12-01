@@ -74,7 +74,7 @@ jobs:
           cat /proc/meminfo
           df
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Cache Node Modules
         uses: actions/cache@v4
         with:
@@ -83,7 +83,7 @@ jobs:
             **/node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'corretto'
           java-version: '21'
@@ -117,7 +117,7 @@ jobs:
           ${{ env.MAVEN_VERIFY_COMMAND }}        
           -P python-unit-tests
       - name: Upload Test Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: surefire-reports-ubuntu-21
           path: |
@@ -147,7 +147,7 @@ jobs:
           cat /proc/meminfo
           df
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Cache Node Modules
         uses: actions/cache@v4
         with:
@@ -190,7 +190,7 @@ jobs:
           ${{ env.MAVEN_VERIFY_COMMAND }}        
           -P python-unit-tests
       - name: Upload Test Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: surefire-reports-ubuntu-jdk-25
           path: |
@@ -214,7 +214,7 @@ jobs:
           sysctl machdep.cpu
           df
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Cache Node Modules
         uses: actions/cache@v4
         with:
@@ -223,7 +223,7 @@ jobs:
             **/node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '21'
@@ -265,7 +265,7 @@ jobs:
           ${{ env.MAVEN_VERIFY_COMMAND }}
           -P python-unit-tests
       - name: Upload Test Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: surefire-reports-macos-jp
           path: |
@@ -291,7 +291,7 @@ jobs:
           git config --global core.autocrlf false
           git config --global core.longpaths true
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Cache Node Modules
         uses: actions/cache@v4
         with:
@@ -300,7 +300,7 @@ jobs:
             **\node_modules
           key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '21'
@@ -337,7 +337,7 @@ jobs:
           ${{ env.MAVEN_COMMAND_WINDOWS }}
           ${{ env.MAVEN_VERIFY_COMMAND }}
       - name: Upload Test Reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: surefire-reports-windows-fr
           path: |
