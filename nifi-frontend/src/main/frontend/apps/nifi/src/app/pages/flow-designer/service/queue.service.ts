@@ -18,13 +18,11 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { NiFiCommon } from '@nifi/shared';
 import { DropRequest, SubmitEmptyQueueRequest, SubmitEmptyQueuesRequest } from '../state/queue';
 
 @Injectable({ providedIn: 'root' })
 export class QueueService {
     private httpClient = inject(HttpClient);
-    private nifiCommon = inject(NiFiCommon);
 
     private static readonly API: string = '../nifi-api';
 
@@ -43,10 +41,14 @@ export class QueueService {
     }
 
     pollEmptyQueueRequest(dropRequest: DropRequest): Observable<any> {
-        return this.httpClient.get(this.nifiCommon.stripProtocol(dropRequest.uri));
+        return this.httpClient.get(
+            `${QueueService.API}/flowfile-queues/${dropRequest.connectionId}/drop-requests/${dropRequest.id}`
+        );
     }
 
     deleteEmptyQueueRequest(dropRequest: DropRequest): Observable<any> {
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(dropRequest.uri));
+        return this.httpClient.delete(
+            `${QueueService.API}/flowfile-queues/${dropRequest.connectionId}/drop-requests/${dropRequest.id}`
+        );
     }
 }

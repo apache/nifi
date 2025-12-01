@@ -18,6 +18,7 @@
 export interface DropRequest {
     id: string;
     uri: string;
+    connectionId: string;
     submissionTime: string;
     lastUpdated: string;
     percentCompleted: number;
