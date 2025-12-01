@@ -935,7 +935,8 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                         getComponentStateAndOpenDialog({
                             request: {
                                 componentName: selectionData.component.name,
-                                componentUri: selectionData.uri,
+                                componentType: ComponentType.Processor,
+                                componentId: selectionData.id,
                                 canClear: this.canvasUtils.isConfigurable(selection)
                             }
                         })

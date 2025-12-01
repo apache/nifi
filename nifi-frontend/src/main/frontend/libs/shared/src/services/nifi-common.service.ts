@@ -772,6 +772,14 @@ export class NiFiCommon {
                 return 'labels';
             case ComponentType.RemoteProcessGroup:
                 return 'remote-process-groups';
+            case ComponentType.ControllerService:
+                return 'controller-services';
+            case ComponentType.ReportingTask:
+                return 'reporting-tasks';
+            case ComponentType.ParameterProvider:
+                return 'parameter-providers';
+            case ComponentType.FlowAnalysisRule:
+                return 'controller/flow-analysis-rules';
             default:
                 throw new Error(`Unknown component type: ${type}`);
         }
