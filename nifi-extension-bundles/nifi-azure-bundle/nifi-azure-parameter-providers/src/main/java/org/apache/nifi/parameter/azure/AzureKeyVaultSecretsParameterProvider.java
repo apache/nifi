@@ -61,7 +61,7 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
             .displayName("Key Vault URI")
             .description("Vault URI of the Key Vault that contains the secrets")
             .required(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.URI_VALIDATOR)
             .build();
     public static final PropertyDescriptor GROUP_NAME_PATTERN = new PropertyDescriptor.Builder()
             .name("group-name-pattern")

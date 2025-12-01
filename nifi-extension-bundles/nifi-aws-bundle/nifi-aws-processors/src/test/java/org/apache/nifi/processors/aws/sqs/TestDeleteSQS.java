@@ -38,7 +38,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestDeleteSQS {
 
     private TestRunner runner = null;
-    private DeleteSQS mockDeleteSQS = null;
     private SqsClient mockSQSClient = null;
 
     @BeforeEach
@@ -48,7 +47,7 @@ public class TestDeleteSQS {
                 .failed(Collections.emptyList())
                 .build();
         Mockito.when(mockSQSClient.deleteMessageBatch(Mockito.any(DeleteMessageBatchRequest.class))).thenReturn(mockResponse);
-        mockDeleteSQS = new DeleteSQS() {
+        DeleteSQS mockDeleteSQS = new DeleteSQS() {
 
             @Override
             protected SqsClient getClient(ProcessContext context) {

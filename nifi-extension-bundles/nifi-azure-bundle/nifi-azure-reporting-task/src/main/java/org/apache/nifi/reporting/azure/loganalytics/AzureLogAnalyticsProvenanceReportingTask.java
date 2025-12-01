@@ -161,7 +161,7 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                         .description("The URL of this instance to use in the Content URI of each event.").required(true)
                         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
                         .defaultValue("http://${hostname(true)}:8080/nifi")
-                        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR).build();
+                        .addValidator(StandardValidators.URL_VALIDATOR).build();
 
         static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
                         .name("Batch Size")

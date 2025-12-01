@@ -38,13 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestPutSQS {
 
     private TestRunner runner = null;
-    private PutSQS mockPutSQS = null;
     private SqsClient mockSQSClient = null;
 
     @BeforeEach
     public void setUp() {
         mockSQSClient = Mockito.mock(SqsClient.class);
-        mockPutSQS = new PutSQS() {
+        PutSQS mockPutSQS = new PutSQS() {
             @Override
             protected SqsClient getClient(ProcessContext context) {
                 return mockSQSClient;
