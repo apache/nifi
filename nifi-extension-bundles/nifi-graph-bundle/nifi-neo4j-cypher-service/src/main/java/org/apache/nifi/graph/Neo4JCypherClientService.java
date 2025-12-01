@@ -65,7 +65,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
             .required(true)
             .defaultValue("bolt://localhost:7687")
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .addValidator(StandardValidators.URL_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor USERNAME = new PropertyDescriptor.Builder()
