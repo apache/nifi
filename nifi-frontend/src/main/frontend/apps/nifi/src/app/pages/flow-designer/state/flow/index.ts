@@ -673,6 +673,7 @@ export interface FlowState {
 }
 
 export interface RunOnceRequest {
+    id: string;
     uri: string;
     revision: Revision;
 }

@@ -787,6 +787,7 @@ export class CanvasContextMenu implements ContextMenuDefinitionProvider {
                     this.store.dispatch(
                         runOnce({
                             request: {
+                                id: d.id,
                                 uri: d.uri,
                                 revision: this.client.getRevision(d)
                             }

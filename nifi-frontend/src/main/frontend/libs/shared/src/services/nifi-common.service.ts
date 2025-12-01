@@ -16,7 +16,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { BulletinEntity, SelectOption } from '../types';
+import { BulletinEntity, ComponentType, SelectOption } from '../types';
 
 @Injectable({
     providedIn: 'root'
@@ -739,10 +739,42 @@ export class NiFiCommon {
      * https://stackoverflow.com/a/59586462
      *
      * @param url
-     * @private
+     * @deprecated Use getComponentTypeApiPath() to construct relative URLs instead.
+     * This method is being phased out due to Angular 20.3.14+ treating protocol-relative
+     * URLs as absolute URLs, which breaks XSRF token injection.
      */
     public stripProtocol(url: string): string {
         return this.substringAfterFirst(url, ':');
+    }
+
+    /**
+     * Returns the API path segment for a given ComponentType.
+     * Use this to construct relative URLs for API calls.
+     *
+     * @param type The component type
+     * @returns The API path segment (e.g., 'processors', 'connections')
+     */
+    public getComponentTypeApiPath(type: ComponentType): string {
+        switch (type) {
+            case ComponentType.Processor:
+                return 'processors';
+            case ComponentType.ProcessGroup:
+                return 'process-groups';
+            case ComponentType.Connection:
+                return 'connections';
+            case ComponentType.InputPort:
+                return 'input-ports';
+            case ComponentType.OutputPort:
+                return 'output-ports';
+            case ComponentType.Funnel:
+                return 'funnels';
+            case ComponentType.Label:
+                return 'labels';
+            case ComponentType.RemoteProcessGroup:
+                return 'remote-process-groups';
+            default:
+                throw new Error(`Unknown component type: ${type}`);
+        }
     }
 
     /**
