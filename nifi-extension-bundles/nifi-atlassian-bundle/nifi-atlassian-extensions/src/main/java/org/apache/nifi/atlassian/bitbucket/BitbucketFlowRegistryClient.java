@@ -54,15 +54,15 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
         builder.subject(subject).input(input);
 
         if (input == null || input.isBlank()) {
-            builder.explanation(String.format("'%s' cannot be blank", subject)).valid(false);
+            builder.explanation("'%s' cannot be blank".formatted(subject)).valid(false);
         } else if (HOST_PATTERN.matcher(input).matches()) {
-            builder.explanation(String.format("%s is a valid host", subject)).valid(true);
+            builder.explanation("%s is a valid host".formatted(subject)).valid(true);
         } else {
             final ValidationResult validationResult = StandardValidators.URL_VALIDATOR.validate(subject, input, validationContext);
             if (validationResult.isValid()) {
-                builder.explanation(String.format("%s is a valid url", subject)).valid(true);
+                builder.explanation("%s is a valid URL".formatted(subject)).valid(true);
             } else {
-                builder.explanation(String.format("'%s' is neither a host or URL", subject)).valid(false);
+                builder.explanation("'%s' is neither a host or URL".formatted(subject)).valid(false);
             }
         }
 
