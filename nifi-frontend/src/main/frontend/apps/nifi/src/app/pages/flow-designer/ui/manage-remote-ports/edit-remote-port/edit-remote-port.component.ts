@@ -106,7 +106,6 @@ export class EditRemotePortComponent extends CloseOnEscapeDialog {
             configureRemotePort({
                 request: {
                     id: this.request.entity.id,
-                    uri: this.request.rpg.uri,
                     payload
                 }
             })
