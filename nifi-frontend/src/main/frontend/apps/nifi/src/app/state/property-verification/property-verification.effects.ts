@@ -148,7 +148,8 @@ export class PropertyVerificationEffects {
                                     attributes: response.configurationAnalysis.referencedAttributes
                                 }
                             },
-                            uri: response.requestContext.entity.uri
+                            componentType: response.requestContext.componentType,
+                            componentId: response.requestContext.entity.id
                         })
                         .pipe(
                             map((response) => {
@@ -235,7 +236,11 @@ export class PropertyVerificationEffects {
             switchMap(([, requestContext, verifyRequest]) => {
                 return from(
                     this.propertyVerificationService
-                        .getPropertyVerificationRequest(verifyRequest.requestId, requestContext.entity.uri)
+                        .getPropertyVerificationRequest(
+                            requestContext.componentType,
+                            requestContext.entity.id,
+                            verifyRequest.requestId
+                        )
                         .pipe(
                             map((response) => VerificationActions.pollPropertyVerificationSuccess({ response })),
                             catchError((errorResponse: HttpErrorResponse) => {
@@ -271,8 +276,9 @@ export class PropertyVerificationEffects {
             switchMap(([, requestContext, verifyRequest]) =>
                 from(
                     this.propertyVerificationService.deletePropertyVerificationRequest(
-                        verifyRequest.requestId,
-                        requestContext.entity.uri
+                        requestContext.componentType,
+                        requestContext.entity.id,
+                        verifyRequest.requestId
                     )
                 ).pipe(
                     map(() => VerificationActions.propertyVerificationComplete()),

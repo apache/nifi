@@ -33,7 +33,7 @@ import { EditRegistryClientDialogRequest, EditRegistryClientRequest } from '../.
 import { NifiSpinnerDirective } from '../../../../../ui/common/spinner/nifi-spinner.directive';
 import { Client } from '../../../../../service/client.service';
 import { MatSelectModule } from '@angular/material/select';
-import { TextTip, NiFiCommon, CopyDirective } from '@nifi/shared';
+import { TextTip, NiFiCommon, CopyDirective, ComponentType } from '@nifi/shared';
 import { MatTabsModule } from '@angular/material/tabs';
 import { PropertyTable } from '../../../../../ui/common/property-table/property-table.component';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
@@ -172,7 +172,8 @@ export class EditRegistryClient extends TabbedDialog {
     verifyClicked(entity: RegistryClientEntity): void {
         this.verify.next({
             entity,
-            properties: this.getModifiedProperties()
+            properties: this.getModifiedProperties(),
+            componentType: ComponentType.FlowRegistryClient
         });
     }
 }
