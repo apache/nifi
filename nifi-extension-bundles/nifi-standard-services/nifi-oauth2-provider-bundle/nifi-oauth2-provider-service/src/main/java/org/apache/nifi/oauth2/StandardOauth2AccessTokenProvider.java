@@ -66,6 +66,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @SupportsSensitiveDynamicProperties
@@ -467,19 +468,13 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private boolean isRefreshRequired() {
-        if (accessDetails.getExpiresIn() != null) {
-            final Instant expirationRefreshTime = accessDetails.getFetchTime()
-                    .plusSeconds(accessDetails.getExpiresIn())
-                    .minusSeconds(refreshWindowSeconds);
+        final long expirationTime = Optional.ofNullable(accessDetails.getExpiresIn()).orElse(defaultExpirationTimeSeconds);
 
-            return Instant.now().isAfter(expirationRefreshTime);
-        } else {
-            final Instant expirationRefreshTime = accessDetails.getFetchTime()
-                    .plusSeconds(defaultExpirationTimeSeconds)
-                    .minusSeconds(refreshWindowSeconds);
+        final Instant expirationRefreshTime = accessDetails.getFetchTime()
+                .plusSeconds(expirationTime)
+                .minusSeconds(refreshWindowSeconds);
 
-            return Instant.now().isAfter(expirationRefreshTime);
-        }
+        return Instant.now().isAfter(expirationRefreshTime);
     }
 
     private void acquireAccessDetails() {
