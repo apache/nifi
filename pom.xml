@@ -120,16 +120,16 @@
         <nifi.nar.maven.plugin.version>2.2.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.39.4</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.39.6</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>3.5.0</software.amazon.encryption.s3.version>
-        <azure.sdk.bom.version>1.3.2</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
+        <azure.sdk.bom.version>1.3.3</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
         <!-- Apache Commons -->
         <org.apache.commons.cli.version>1.11.0</org.apache.commons.cli.version>
         <org.apache.commons.codec.version>1.20.0</org.apache.commons.codec.version>
         <org.apache.commons.collections4.version>4.5.0</org.apache.commons.collections4.version>
         <org.apache.commons.compress.version>1.28.0</org.apache.commons.compress.version>
-        <org.apache.commons.configuration.version>2.12.0</org.apache.commons.configuration.version>
+        <org.apache.commons.configuration.version>2.13.0</org.apache.commons.configuration.version>
         <org.apache.commons.csv.version>1.14.1</org.apache.commons.csv.version>
         <org.apache.commons.io.version>2.21.0</org.apache.commons.io.version>
         <org.apache.commons.lang3.version>3.20.0</org.apache.commons.lang3.version>
@@ -203,8 +203,8 @@
         <!-- Testing and quality -->
         <junit.version>6.0.1</junit.version>
         <mockito.version>5.20.0</mockito.version>
-        <pmd.version>7.18.0</pmd.version>
-        <checkstyle.version>12.1.2</checkstyle.version>
+        <pmd.version>7.19.0</pmd.version>
+        <checkstyle.version>12.2.0</checkstyle.version>
         <testcontainers.version>2.0.2</testcontainers.version>
     </properties>
     <dependencyManagement>
