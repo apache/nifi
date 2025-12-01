@@ -54,7 +54,8 @@ public class BitbucketFlowRegistryClientTest {
     private static Stream<Arguments> apiUrlArgs() {
         return Stream.of(
                 Arguments.argumentSet("Valid URL", "https://bitbucket.example.com", true),
-                Arguments.argumentSet("Invalid URL", "https:\\bitbucket", false)
+                Arguments.argumentSet("Invalid URL", "https:\\bitbucket", false),
+                Arguments.argumentSet("Valid URL with port", "http://xxx.xxx.xxx.xxx:7990", true)
         );
     }
 
