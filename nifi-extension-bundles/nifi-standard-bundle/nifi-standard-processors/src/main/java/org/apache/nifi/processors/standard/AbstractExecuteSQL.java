@@ -248,6 +248,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         }
 
         final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
+        Map<String, String> retainedFlowFileAttributes = null;
 
         final ComponentLog logger = getLogger();
         final int queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
@@ -404,8 +405,10 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     // If we've reached the batch size, send out the flow files
                                     if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
                                         session.transfer(resultSetFlowFiles, REL_SUCCESS);
-                                        // Need to remove the original input file if it exists
-                                        if (fileToProcess != null) {
+                                        // Need to remove the original input file if it exists,
+                                        // but save the attributes to add them to the failure flow file if it is created
+                                        if (fileToProcess != null && retainedFlowFileAttributes == null) {
+                                            retainedFlowFileAttributes = new HashMap<>(fileToProcess.getAttributes());
                                             session.remove(fileToProcess);
                                             fileToProcess = null;
                                         }
@@ -492,20 +495,27 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         } catch (final ProcessException | SQLException e) {
             //If we had at least one result then it's OK to drop the original file, but if we had no results then
             //  pass the original flow file down the line to trigger downstream processors
-            if (fileToProcess == null) {
+            //  or create a new empty flow file with the original attributes if the original file no longer exists
+            FlowFile failureFlowFile = fileToProcess;
+            if (failureFlowFile == null && retainedFlowFileAttributes != null) {
+                failureFlowFile = session.create();
+                failureFlowFile = session.putAllAttributes(failureFlowFile, retainedFlowFileAttributes);
+            }
+
+            if (failureFlowFile == null) {
                 // This can happen if any exceptions occur while setting up the connection, statement, etc.
                 logger.error("Unable to execute SQL select query [{}]. No FlowFile to route to failure", selectQuery, e);
                 context.yield();
             } else {
                 if (context.hasIncomingConnection()) {
-                    logger.error("Unable to execute SQL select query [{}] for {} routing to failure", selectQuery, fileToProcess, e);
-                    fileToProcess = session.penalize(fileToProcess);
+                    logger.error("Unable to execute SQL select query [{}] for {} routing to failure", selectQuery, failureFlowFile, e);
+                    failureFlowFile = session.penalize(failureFlowFile);
                 } else {
                     logger.error("Unable to execute SQL select query [{}] routing to failure", selectQuery, e);
                     context.yield();
                 }
-                session.putAttribute(fileToProcess, RESULT_ERROR_MESSAGE, e.getMessage());
-                session.transfer(fileToProcess, REL_FAILURE);
+                session.putAttribute(failureFlowFile, RESULT_ERROR_MESSAGE, e.getMessage());
+                session.transfer(failureFlowFile, REL_FAILURE);
             }
         }
     }
