@@ -19,7 +19,6 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
-import { NiFiCommon } from '@nifi/shared';
 import {
     ConfigureReportingTaskRequest,
     CreateReportingTaskRequest,
@@ -35,7 +34,6 @@ import { ClusterConnectionService } from '../../../service/cluster-connection.se
 export class ReportingTaskService implements PropertyDescriptorRetriever {
     private httpClient = inject(HttpClient);
     private client = inject(Client);
-    private nifiCommon = inject(NiFiCommon);
     private clusterConnectionService = inject(ClusterConnectionService);
 
     private static readonly API: string = '../nifi-api';
@@ -67,7 +65,7 @@ export class ReportingTaskService implements PropertyDescriptorRetriever {
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             }
         });
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(entity.uri), { params });
+        return this.httpClient.delete(`${ReportingTaskService.API}/reporting-tasks/${entity.id}`, { params });
     }
 
     startReportingTask(startReportingTask: StartReportingTaskRequest): Observable<any> {
@@ -78,7 +76,7 @@ export class ReportingTaskService implements PropertyDescriptorRetriever {
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: 'RUNNING'
         };
-        return this.httpClient.put(`${this.nifiCommon.stripProtocol(entity.uri)}/run-status`, payload);
+        return this.httpClient.put(`${ReportingTaskService.API}/reporting-tasks/${entity.id}/run-status`, payload);
     }
 
     stopReportingTask(stopReportingTask: StopReportingTaskRequest): Observable<any> {
@@ -89,7 +87,7 @@ export class ReportingTaskService implements PropertyDescriptorRetriever {
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: 'STOPPED'
         };
-        return this.httpClient.put(`${this.nifiCommon.stripProtocol(entity.uri)}/run-status`, payload);
+        return this.httpClient.put(`${ReportingTaskService.API}/reporting-tasks/${entity.id}/run-status`, payload);
     }
 
     getPropertyDescriptor(id: string, propertyName: string, sensitive: boolean): Observable<any> {
@@ -104,15 +102,18 @@ export class ReportingTaskService implements PropertyDescriptorRetriever {
 
     updateReportingTask(configureReportingTask: ConfigureReportingTaskRequest): Observable<any> {
         return this.httpClient.put(
-            this.nifiCommon.stripProtocol(configureReportingTask.uri),
+            `${ReportingTaskService.API}/reporting-tasks/${configureReportingTask.id}`,
             configureReportingTask.payload
         );
     }
 
-    clearBulletins(request: { uri: string; fromTimestamp: string }): Observable<any> {
+    clearBulletins(request: { id: string; fromTimestamp: string }): Observable<any> {
         const payload = {
             fromTimestamp: request.fromTimestamp
         };
-        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.uri)}/bulletins/clear-requests`, payload);
+        return this.httpClient.post(
+            `${ReportingTaskService.API}/reporting-tasks/${request.id}/bulletins/clear-requests`,
+            payload
+        );
     }
 }

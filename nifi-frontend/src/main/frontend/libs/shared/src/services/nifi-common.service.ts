@@ -733,21 +733,6 @@ export class NiFiCommon {
     }
 
     /**
-     * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
-     * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
-     *
-     * https://stackoverflow.com/a/59586462
-     *
-     * @param url
-     * @deprecated Use getComponentTypeApiPath() to construct relative URLs instead.
-     * This method is being phased out due to Angular 20.3.14+ treating protocol-relative
-     * URLs as absolute URLs, which breaks XSRF token injection.
-     */
-    public stripProtocol(url: string): string {
-        return this.substringAfterFirst(url, ':');
-    }
-
-    /**
      * Returns the API path segment for a given ComponentType.
      * Use this to construct relative URLs for API calls.
      *

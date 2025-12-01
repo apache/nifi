@@ -599,7 +599,7 @@ export class UserListingEffects {
                                     UserListingActions.updateUserGroup({
                                         request: {
                                             revision: response.revision,
-                                            id: response.userGroup.id,
+                                            id: request.userGroup.id,
                                             uri: request.userGroup.uri,
                                             userGroupPayload: {
                                                 ...request.userGroup.component,
