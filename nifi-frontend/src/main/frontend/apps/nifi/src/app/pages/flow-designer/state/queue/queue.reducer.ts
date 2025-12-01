@@ -47,12 +47,7 @@ export const queueReducer = createReducer(
     })),
     on(submitEmptyQueueRequestSuccess, pollEmptyQueueRequestSuccess, (state, { response }) => ({
         ...state,
-        dropEntity: {
-            dropRequest: {
-                ...response.dropEntity.dropRequest,
-                connectionId: state.connectionId!
-            }
-        },
+        dropEntity: response.dropEntity,
         loadedTimestamp: response.dropEntity.dropRequest.lastUpdated,
         status: 'success' as const
     })),

@@ -18,7 +18,6 @@
 export interface DropRequest {
     id: string;
     uri: string;
-    connectionId: string;
     submissionTime: string;
     lastUpdated: string;
     percentCompleted: number;
@@ -42,6 +41,11 @@ export interface DropRequestEntity {
 
 export interface SubmitEmptyQueueRequest {
     connectionId: string;
+}
+
+export interface EmptyQueueRequest {
+    connectionId: string;
+    dropRequestId: string;
 }
 
 export interface SubmitEmptyQueuesRequest {

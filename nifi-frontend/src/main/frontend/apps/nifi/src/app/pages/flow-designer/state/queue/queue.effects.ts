@@ -201,9 +201,17 @@ export class QueueEffects {
     pollEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueActions.pollEmptyQueueRequest),
-            concatLatestFrom(() => this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull())),
-            switchMap(([, dropEntity]) => {
-                return from(this.queueService.pollEmptyQueueRequest(dropEntity.dropRequest)).pipe(
+            concatLatestFrom(() => [
+                this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull()),
+                this.store.select(selectDropConnectionId).pipe(isDefinedAndNotNull())
+            ]),
+            switchMap(([, dropEntity, connectionId]) => {
+                return from(
+                    this.queueService.pollEmptyQueueRequest({
+                        connectionId,
+                        dropRequestId: dropEntity.dropRequest.id
+                    })
+                ).pipe(
                     map((response) =>
                         QueueActions.pollEmptyQueueRequestSuccess({
                             response: {
@@ -242,11 +250,19 @@ export class QueueEffects {
     deleteEmptyQueueRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueActions.deleteEmptyQueueRequest),
-            concatLatestFrom(() => this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull())),
-            switchMap(([, dropEntity]) => {
+            concatLatestFrom(() => [
+                this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull()),
+                this.store.select(selectDropConnectionId).pipe(isDefinedAndNotNull())
+            ]),
+            switchMap(([, dropEntity, connectionId]) => {
                 this.dialog.closeAll();
 
-                return from(this.queueService.deleteEmptyQueueRequest(dropEntity.dropRequest)).pipe(
+                return from(
+                    this.queueService.deleteEmptyQueueRequest({
+                        connectionId,
+                        dropRequestId: dropEntity.dropRequest.id
+                    })
+                ).pipe(
                     map((response) =>
                         QueueActions.showEmptyQueueResults({
                             request: {

@@ -18,7 +18,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { DropRequest, SubmitEmptyQueueRequest, SubmitEmptyQueuesRequest } from '../state/queue';
+import { EmptyQueueRequest, SubmitEmptyQueueRequest, SubmitEmptyQueuesRequest } from '../state/queue';
 
 @Injectable({ providedIn: 'root' })
 export class QueueService {
@@ -40,15 +40,15 @@ export class QueueService {
         );
     }
 
-    pollEmptyQueueRequest(dropRequest: DropRequest): Observable<any> {
+    pollEmptyQueueRequest(request: EmptyQueueRequest): Observable<any> {
         return this.httpClient.get(
-            `${QueueService.API}/flowfile-queues/${dropRequest.connectionId}/drop-requests/${dropRequest.id}`
+            `${QueueService.API}/flowfile-queues/${request.connectionId}/drop-requests/${request.dropRequestId}`
         );
     }
 
-    deleteEmptyQueueRequest(dropRequest: DropRequest): Observable<any> {
+    deleteEmptyQueueRequest(request: EmptyQueueRequest): Observable<any> {
         return this.httpClient.delete(
-            `${QueueService.API}/flowfile-queues/${dropRequest.connectionId}/drop-requests/${dropRequest.id}`
+            `${QueueService.API}/flowfile-queues/${request.connectionId}/drop-requests/${request.dropRequestId}`
         );
     }
 }
