@@ -18,8 +18,8 @@ package org.apache.nifi.jms.processors;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.command.ActiveMQMessage;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -32,7 +32,7 @@ import jakarta.jms.Session;
 import jakarta.jms.StreamMessage;
 import jakarta.jms.TextMessage;
 
-@Disabled("Used for manual testing.")
+@EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true", disabledReason = "Used for manual testing.")
 public class ConsumeJMSManualTest {
     @Test
     public void testTextMessage() {
