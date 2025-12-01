@@ -66,7 +66,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @SupportsSensitiveDynamicProperties
@@ -468,7 +467,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private boolean isRefreshRequired() {
-        final long expirationTime = Optional.ofNullable(accessDetails.getExpiresIn()).orElse(defaultExpirationTimeSeconds);
+        final long expirationTime = accessDetails.getExpiresIn() != null ? accessDetails.getExpiresIn() : defaultExpirationTimeSeconds;
 
         final Instant expirationRefreshTime = accessDetails.getFetchTime()
                 .plusSeconds(expirationTime)
