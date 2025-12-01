@@ -59,7 +59,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager, final ParameterLookup parameterLookup) {
         this.context = processContext;
         this.stateManager = stateManager;
-        this.parameterLookup = parameterLookup != null ? parameterLookup : ParameterLookup.EMPTY;
+        this.parameterLookup = parameterLookup != null ? parameterLookup : processContext.getParameterLookup();
 
         final Map<PropertyDescriptor, String> properties = processContext.getProperties();
         expressionLanguageSupported = new HashMap<>(properties.size());
@@ -179,7 +179,9 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public Collection<String> getReferencedParameters(final String propertyName) {
-        final String rawPropertyValue = context.getProperty(propertyName).getValue();
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(propertyName).build();
+        final PropertyValue propertyValue = context.getPropertyWithoutValidatingExpressions(descriptor);
+        final String rawPropertyValue = propertyValue == null ? null : propertyValue.getValue();
         final boolean elSupported = isExpressionLanguageSupported(propertyName);
 
         final ParameterParser parser = elSupported ? new ExpressionLanguageAwareParameterParser() : new ExpressionLanguageAgnosticParameterParser();
@@ -192,12 +194,14 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public boolean isParameterDefined(final String parameterName) {
-        return true;
+        final Map<String, String> contextParameters = context.getContextParameters();
+        return contextParameters.containsKey(parameterName);
     }
 
     @Override
     public boolean isParameterSet(final String parameterName) {
-        return true;
+        final Map<String, String> contextParameters = context.getContextParameters();
+        return contextParameters.containsKey(parameterName) && contextParameters.get(parameterName) != null;
     }
 
 }
