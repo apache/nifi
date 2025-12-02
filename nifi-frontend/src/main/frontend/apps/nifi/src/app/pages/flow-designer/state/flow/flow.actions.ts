@@ -120,7 +120,6 @@ import {
 } from '../../../../state/shared';
 import { ErrorContext } from '../../../../state/error';
 import { CopyResponseContext, CopyResponseEntity } from '../../../../state/copy';
-import { BulletinEntity } from '@nifi/shared';
 
 const CANVAS_PREFIX = '[Canvas]';
 

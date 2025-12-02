@@ -19,28 +19,40 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ClearComponentStateRequest, ComponentStateEntity, LoadComponentStateRequest } from '../state/component-state';
 import { Observable } from 'rxjs';
-import { NiFiCommon } from '@nifi/shared';
+import { ComponentType, NiFiCommon } from '@nifi/shared';
 
 @Injectable({ providedIn: 'root' })
 export class ComponentStateService {
+    private static readonly API = '../nifi-api';
+
     private httpClient = inject(HttpClient);
     private nifiCommon = inject(NiFiCommon);
 
     getComponentState(request: LoadComponentStateRequest): Observable<ComponentStateEntity> {
+        const path = this.nifiCommon.getComponentTypeApiPath(request.componentType);
         return this.httpClient.get<ComponentStateEntity>(
-            `${this.nifiCommon.stripProtocol(request.componentUri)}/state`
+            `${ComponentStateService.API}/${path}/${request.componentId}/state`
         );
     }
 
     clearComponentState(request: ClearComponentStateRequest): Observable<any> {
-        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.componentUri)}/state/clear-requests`, {});
+        const path = this.nifiCommon.getComponentTypeApiPath(request.componentType);
+        return this.httpClient.post(
+            `${ComponentStateService.API}/${path}/${request.componentId}/state/clear-requests`,
+            {}
+        );
     }
 
-    clearComponentStateEntry(componentUri: string, componentStateEntity: ComponentStateEntity): Observable<any> {
+    clearComponentStateEntry(
+        componentType: ComponentType,
+        componentId: string,
+        componentStateEntity: ComponentStateEntity
+    ): Observable<any> {
         // To clear a specific state entry, we send the updated state
         // without the key to be cleared in the ComponentStateEntity format
+        const path = this.nifiCommon.getComponentTypeApiPath(componentType);
         return this.httpClient.post(
-            `${this.nifiCommon.stripProtocol(componentUri)}/state/clear-requests`,
+            `${ComponentStateService.API}/${path}/${componentId}/state/clear-requests`,
             componentStateEntity
         );
     }

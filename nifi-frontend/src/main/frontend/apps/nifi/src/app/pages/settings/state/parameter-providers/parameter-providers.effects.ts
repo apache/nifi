@@ -804,7 +804,7 @@ export class ParameterProvidersEffects {
             switchMap((request) =>
                 from(
                     this.parameterProviderService.clearBulletins({
-                        uri: request.uri,
+                        id: request.componentId,
                         fromTimestamp: request.fromTimestamp
                     })
                 ).pipe(

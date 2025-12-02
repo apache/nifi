@@ -45,6 +45,7 @@ import {
     selectParameterContexts,
     selectSaving,
     selectUpdateRequest,
+    selectUpdateRequestParameterContextId,
     selectDeleteUpdateRequestInitiated
 } from './parameter-context-listing.selectors';
 import { EditParameterRequest, EditParameterResponse, ParameterContextUpdateRequest } from '../../../../state/shared';
@@ -492,9 +493,17 @@ export class ParameterContextListingEffects {
     pollParameterContextUpdateRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ParameterContextListingActions.pollParameterContextUpdateRequest),
-            concatLatestFrom(() => this.store.select(selectUpdateRequest).pipe(isDefinedAndNotNull())),
-            switchMap(([, updateRequest]) =>
-                from(this.parameterContextService.pollParameterContextUpdate(updateRequest.request)).pipe(
+            concatLatestFrom(() => [
+                this.store.select(selectUpdateRequestParameterContextId).pipe(isDefinedAndNotNull()),
+                this.store.select(selectUpdateRequest).pipe(isDefinedAndNotNull())
+            ]),
+            switchMap(([, parameterContextId, updateRequest]) =>
+                from(
+                    this.parameterContextService.pollParameterContextUpdate(
+                        parameterContextId,
+                        updateRequest.request.requestId
+                    )
+                ).pipe(
                     map((response) =>
                         ParameterContextListingActions.pollParameterContextUpdateRequestSuccess({
                             response: {
@@ -542,10 +551,13 @@ export class ParameterContextListingEffects {
         () =>
             this.actions$.pipe(
                 ofType(ParameterContextListingActions.deleteParameterContextUpdateRequest),
-                concatLatestFrom(() => this.store.select(selectUpdateRequest).pipe(isDefinedAndNotNull())),
-                tap(([, updateRequest]) => {
+                concatLatestFrom(() => [
+                    this.store.select(selectUpdateRequestParameterContextId).pipe(isDefinedAndNotNull()),
+                    this.store.select(selectUpdateRequest).pipe(isDefinedAndNotNull())
+                ]),
+                tap(([, parameterContextId, updateRequest]) => {
                     this.parameterContextService
-                        .deleteParameterContextUpdate(updateRequest.request)
+                        .deleteParameterContextUpdate(parameterContextId, updateRequest.request.requestId)
                         .subscribe((response) => {
                             this.store.dispatch(
                                 ParameterContextListingActions.deleteParameterContextUpdateRequestSuccess({

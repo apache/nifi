@@ -76,7 +76,6 @@ export interface LoadRemotePortsResponse {
 
 export interface ConfigureRemotePortRequest {
     id: string;
-    uri: string;
     payload: any;
     postUpdateNavigation?: string[];
 }

@@ -616,7 +616,8 @@ export class EditProcessor extends TabbedDialog {
     verifyClicked(entity: any): void {
         this.verify.next({
             entity,
-            properties: this.getModifiedProperties()
+            properties: this.getModifiedProperties(),
+            componentType: ComponentType.Processor
         });
     }
 

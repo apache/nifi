@@ -15,20 +15,25 @@
  * limitations under the License.
  */
 
+import { ComponentType } from '@nifi/shared';
+
 export const componentStateFeatureKey = 'componentState';
 
 export interface ComponentStateRequest {
     componentName: string;
-    componentUri: string;
+    componentType: ComponentType;
+    componentId: string;
     canClear: boolean;
 }
 
 export interface LoadComponentStateRequest {
-    componentUri: string;
+    componentType: ComponentType;
+    componentId: string;
 }
 
 export interface ClearComponentStateRequest {
-    componentUri: string;
+    componentType: ComponentType;
+    componentId: string;
 }
 
 export interface ClearStateEntryRequest {
@@ -73,7 +78,8 @@ export interface ComponentState {
 
 export interface ComponentStateState {
     componentName: string | null;
-    componentUri: string | null;
+    componentType: ComponentType | null;
+    componentId: string | null;
     componentState: ComponentState | null;
     canClear: boolean | null;
     clearing: boolean;

@@ -315,7 +315,7 @@ describe('RegistryClientsEffects', () => {
                 })
             );
             expect(mockRegistryClientService.clearBulletins).toHaveBeenCalledWith({
-                uri: mockRequest.uri,
+                id: mockRequest.componentId,
                 fromTimestamp: mockRequest.fromTimestamp
             });
         });

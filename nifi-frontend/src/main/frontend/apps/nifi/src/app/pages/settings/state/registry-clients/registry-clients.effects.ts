@@ -447,7 +447,7 @@ export class RegistryClientsEffects {
             switchMap((request) =>
                 from(
                     this.registryClientService.clearBulletins({
-                        uri: request.uri,
+                        id: request.componentId,
                         fromTimestamp: request.fromTimestamp
                     })
                 ).pipe(

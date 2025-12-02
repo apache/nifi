@@ -166,7 +166,8 @@ export class FlowAnalysisRules implements OnInit, OnDestroy {
         this.store.dispatch(
             getComponentStateAndOpenDialog({
                 request: {
-                    componentUri: entity.uri,
+                    componentType: ComponentType.FlowAnalysisRule,
+                    componentId: entity.id,
                     componentName: entity.component.name,
                     canClear
                 }

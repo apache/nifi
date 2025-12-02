@@ -55,6 +55,7 @@ export interface SelectParameterContextRequest {
 export interface ParameterContextListingState {
     parameterContexts: ParameterContextEntity[];
     updateRequestEntity: ParameterContextUpdateRequestEntity | null;
+    updateRequestParameterContextId: string | null;
     saving: boolean;
     loadedTimestamp: string;
     deleteUpdateRequestInitiated: boolean;

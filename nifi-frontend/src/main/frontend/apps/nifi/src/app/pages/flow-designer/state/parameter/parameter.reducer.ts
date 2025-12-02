@@ -31,6 +31,7 @@ import {
 
 export const initialState: ParameterState = {
     updateRequestEntity: null,
+    updateRequestParameterContextId: null,
     saving: false,
     error: null,
     status: 'pending'
@@ -50,9 +51,10 @@ export const parameterReducer = createReducer(
         ...state,
         saving: false
     })),
-    on(submitParameterContextUpdateRequest, (state) => ({
+    on(submitParameterContextUpdateRequest, (state, { request }) => ({
         ...state,
-        saving: true
+        saving: true,
+        updateRequestParameterContextId: request.id
     })),
     on(parameterApiError, (state, { error }) => ({
         ...state,

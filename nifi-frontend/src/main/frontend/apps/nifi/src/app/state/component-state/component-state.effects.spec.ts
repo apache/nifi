@@ -28,8 +28,9 @@ import { ErrorHelper } from '../../service/error-helper.service';
 import * as ComponentStateActions from './component-state.actions';
 import * as ErrorActions from '../error/error.actions';
 import { ComponentState, ComponentStateEntity, ClearStateEntryRequest } from './index';
-import { selectComponentUri, selectComponentState } from './component-state.selectors';
+import { selectComponentType, selectComponentId, selectComponentState } from './component-state.selectors';
 import { ErrorContextKey } from '../error';
+import { ComponentType } from '@nifi/shared';
 import { initialState as initialErrorState } from '../error/error.reducer';
 import { errorFeatureKey } from '../error';
 import { initialState as initialCurrentUserState } from '../current-user/current-user.reducer';
@@ -100,7 +101,8 @@ describe('ComponentStateEffects', () => {
         it('should load component state successfully', (done) => {
             const request = {
                 componentName: 'Test Component',
-                componentUri: 'https://localhost:8443/nifi-api/processors/test-id',
+                componentType: ComponentType.Processor,
+                componentId: 'test-id',
                 canClear: true
             };
 
@@ -115,7 +117,8 @@ describe('ComponentStateEffects', () => {
                     })
                 );
                 expect(componentStateService.getComponentState).toHaveBeenCalledWith({
-                    componentUri: request.componentUri
+                    componentType: request.componentType,
+                    componentId: request.componentId
                 });
                 done();
             });
@@ -124,7 +127,8 @@ describe('ComponentStateEffects', () => {
         it('should handle error when loading component state fails', (done) => {
             const request = {
                 componentName: 'Test Component',
-                componentUri: 'https://localhost:8443/nifi-api/processors/test-id',
+                componentType: ComponentType.Processor,
+                componentId: 'test-id',
                 canClear: true
             };
 
@@ -169,29 +173,33 @@ describe('ComponentStateEffects', () => {
 
     describe('clearComponentState$', () => {
         it('should clear component state successfully', (done) => {
-            const componentUri = 'https://localhost:8443/nifi-api/processors/test-id';
+            const componentType = ComponentType.Processor;
+            const componentId = 'test-id';
 
-            store.overrideSelector(selectComponentUri, componentUri);
+            store.overrideSelector(selectComponentType, componentType);
+            store.overrideSelector(selectComponentId, componentId);
             componentStateService.clearComponentState.mockReturnValue(of({}));
 
             actions$ = of(ComponentStateActions.clearComponentState());
 
             effects.clearComponentState$.subscribe((action) => {
                 expect(action).toEqual(ComponentStateActions.reloadComponentState());
-                expect(componentStateService.clearComponentState).toHaveBeenCalledWith({ componentUri });
+                expect(componentStateService.clearComponentState).toHaveBeenCalledWith({ componentType, componentId });
                 done();
             });
         });
 
         it('should handle error when clearing component state fails', (done) => {
-            const componentUri = 'https://localhost:8443/nifi-api/processors/test-id';
+            const componentType = ComponentType.Processor;
+            const componentId = 'test-id';
             const errorResponse = new HttpErrorResponse({
                 error: 'Internal Server Error',
                 status: 500,
                 statusText: 'Internal Server Error'
             });
 
-            store.overrideSelector(selectComponentUri, componentUri);
+            store.overrideSelector(selectComponentType, componentType);
+            store.overrideSelector(selectComponentId, componentId);
             errorHelper.getErrorString.mockReturnValue('Failed to clear the component state.');
             componentStateService.clearComponentState.mockReturnValue(throwError(() => errorResponse));
 
@@ -217,9 +225,11 @@ describe('ComponentStateEffects', () => {
 
     describe('reloadComponentState$', () => {
         it('should reload component state successfully', (done) => {
-            const componentUri = 'https://localhost:8443/nifi-api/processors/test-id';
+            const componentType = ComponentType.Processor;
+            const componentId = 'test-id';
 
-            store.overrideSelector(selectComponentUri, componentUri);
+            store.overrideSelector(selectComponentType, componentType);
+            store.overrideSelector(selectComponentId, componentId);
             componentStateService.getComponentState.mockReturnValue(of(mockComponentStateEntity));
 
             actions$ = of(ComponentStateActions.reloadComponentState());
@@ -230,20 +240,22 @@ describe('ComponentStateEffects', () => {
                         response: { componentState: mockComponentState }
                     })
                 );
-                expect(componentStateService.getComponentState).toHaveBeenCalledWith({ componentUri });
+                expect(componentStateService.getComponentState).toHaveBeenCalledWith({ componentType, componentId });
                 done();
             });
         });
 
         it('should handle error when reloading component state fails', (done) => {
-            const componentUri = 'https://localhost:8443/nifi-api/processors/test-id';
+            const componentType = ComponentType.Processor;
+            const componentId = 'test-id';
             const errorResponse = new HttpErrorResponse({
                 error: 'Service Unavailable',
                 status: 503,
                 statusText: 'Service Unavailable'
             });
 
-            store.overrideSelector(selectComponentUri, componentUri);
+            store.overrideSelector(selectComponentType, componentType);
+            store.overrideSelector(selectComponentId, componentId);
             errorHelper.getErrorString.mockReturnValue('Failed to reload the component state.');
             componentStateService.getComponentState.mockReturnValue(throwError(() => errorResponse));
 
@@ -269,7 +281,8 @@ describe('ComponentStateEffects', () => {
 
     describe('clearComponentStateEntry$', () => {
         it('should clear local state entry successfully', (done) => {
-            const componentUri = 'https://localhost:8443/nifi-api/processors/test-id';
+            const componentType = ComponentType.Processor;
+            const componentId = 'test-id';
             const request: ClearStateEntryRequest = {
                 keyToDelete: 'local-key1',
                 scope: 'LOCAL'
@@ -287,7 +300,8 @@ describe('ComponentStateEffects', () => {
                 componentState: updatedState
             };
 
-            store.overrideSelector(selectComponentUri, componentUri);
+            store.overrideSelector(selectComponentType, componentType);
+            store.overrideSelector(selectComponentId, componentId);
             store.overrideSelector(selectComponentState, mockComponentState);
             componentStateService.clearComponentStateEntry.mockReturnValue(of({}));
 
@@ -296,7 +310,8 @@ describe('ComponentStateEffects', () => {
             effects.clearComponentStateEntry$.subscribe((action) => {
                 expect(action).toEqual(ComponentStateActions.reloadComponentState());
                 expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(
-                    componentUri,
+                    componentType,
+                    componentId,
                     expectedComponentStateEntity
                 );
                 done();
@@ -304,7 +319,8 @@ describe('ComponentStateEffects', () => {
         });
 
         it('should clear cluster state entry successfully', (done) => {
-            const componentUri = 'https://localhost:8443/nifi-api/processors/test-id';
+            const componentType = ComponentType.Processor;
+            const componentId = 'test-id';
             const request: ClearStateEntryRequest = {
                 keyToDelete: 'cluster-key1',
                 scope: 'CLUSTER'
@@ -322,7 +338,8 @@ describe('ComponentStateEffects', () => {
                 componentState: updatedState
             };
 
-            store.overrideSelector(selectComponentUri, componentUri);
+            store.overrideSelector(selectComponentType, componentType);
+            store.overrideSelector(selectComponentId, componentId);
             store.overrideSelector(selectComponentState, mockComponentState);
             componentStateService.clearComponentStateEntry.mockReturnValue(of({}));
 
@@ -331,7 +348,8 @@ describe('ComponentStateEffects', () => {
             effects.clearComponentStateEntry$.subscribe((action) => {
                 expect(action).toEqual(ComponentStateActions.reloadComponentState());
                 expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(
-                    componentUri,
+                    componentType,
+                    componentId,
                     expectedComponentStateEntity
                 );
                 done();
@@ -339,7 +357,8 @@ describe('ComponentStateEffects', () => {
         });
 
         it('should handle error when clearing state entry fails', (done) => {
-            const componentUri = 'https://localhost:8443/nifi-api/processors/test-id';
+            const componentType = ComponentType.Processor;
+            const componentId = 'test-id';
             const request: ClearStateEntryRequest = {
                 keyToDelete: 'local-key1',
                 scope: 'LOCAL'
@@ -351,7 +370,8 @@ describe('ComponentStateEffects', () => {
                 statusText: 'Bad Request'
             });
 
-            store.overrideSelector(selectComponentUri, componentUri);
+            store.overrideSelector(selectComponentType, componentType);
+            store.overrideSelector(selectComponentId, componentId);
             store.overrideSelector(selectComponentState, mockComponentState);
             errorHelper.getErrorString.mockReturnValue('Failed to clear state entry: local-key1.');
             componentStateService.clearComponentStateEntry.mockReturnValue(throwError(() => errorResponse));
@@ -376,7 +396,8 @@ describe('ComponentStateEffects', () => {
         });
 
         it('should handle state without the specified scope', (done) => {
-            const componentUri = 'https://localhost:8443/nifi-api/processors/test-id';
+            const componentType = ComponentType.Processor;
+            const componentId = 'test-id';
             const request: ClearStateEntryRequest = {
                 keyToDelete: 'nonexistent-key',
                 scope: 'LOCAL'
@@ -387,7 +408,8 @@ describe('ComponentStateEffects', () => {
                 localState: undefined
             };
 
-            store.overrideSelector(selectComponentUri, componentUri);
+            store.overrideSelector(selectComponentType, componentType);
+            store.overrideSelector(selectComponentId, componentId);
             store.overrideSelector(selectComponentState, stateWithoutLocal);
             componentStateService.clearComponentStateEntry.mockReturnValue(of({}));
 
@@ -395,9 +417,13 @@ describe('ComponentStateEffects', () => {
 
             effects.clearComponentStateEntry$.subscribe((action) => {
                 expect(action).toEqual(ComponentStateActions.reloadComponentState());
-                expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(componentUri, {
-                    componentState: stateWithoutLocal
-                });
+                expect(componentStateService.clearComponentStateEntry).toHaveBeenCalledWith(
+                    componentType,
+                    componentId,
+                    {
+                        componentState: stateWithoutLocal
+                    }
+                );
                 done();
             });
         });
