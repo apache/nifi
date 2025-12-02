@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -182,7 +183,7 @@ public class PythonControllerInteractionIT {
     }
 
     @Test
-    @Disabled("Just for manual testing...")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true", disabledReason = "Just for manual testing...")
     public void runPrettyPrintJsonManyThreads() throws IOException {
         // Create a PrettyPrintJson Processor
         final TestRunner runner = createFlowFileTransform(PRETTY_PRINT_JSON);

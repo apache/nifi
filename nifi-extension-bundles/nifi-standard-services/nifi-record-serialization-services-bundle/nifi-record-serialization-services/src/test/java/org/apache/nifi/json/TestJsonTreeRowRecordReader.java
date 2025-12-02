@@ -35,8 +35,8 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.util.EqualsWrapper;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -142,7 +142,8 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    @Disabled("Intended only for manual testing to determine performance before/after modifications")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Intended only for manual testing to determine performance before/after modifications")
     void testPerformanceOnLocalFile() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
 
@@ -169,7 +170,8 @@ class TestJsonTreeRowRecordReader {
     }
 
     @Test
-    @Disabled("Intended only for manual testing to determine performance before/after modifications")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Intended only for manual testing to determine performance before/after modifications")
     void testPerformanceOnIndividualMessages() throws Exception {
         final RecordSchema schema = new SimpleRecordSchema(Collections.emptyList());
 

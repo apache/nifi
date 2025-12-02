@@ -63,6 +63,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -705,7 +706,8 @@ public class StandardProcessSessionIT {
 
 
     @Test
-    @Disabled("Test should be run manually only - not for automated builds/CI env")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Test should be run manually only - not for automated builds/CI env")
     public void testUpdateFlowFileRepoFailsOnSessionCommit() throws IOException {
         final ContentClaim contentClaim = contentRepo.create("original".getBytes());
 
@@ -2572,7 +2574,8 @@ public class StandardProcessSessionIT {
     }
 
     @Test
-    @Disabled("Intended for manual performance testing; should not be run in an automated environment")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Intended for manual performance testing; should not be run in an automated environment")
     public void testCloneThenWriteCountsClaimReferencesProperly() throws IOException {
         final ContentClaim originalClaim = contentRepo.create(false);
         try (final OutputStream out = contentRepo.write(originalClaim)) {
