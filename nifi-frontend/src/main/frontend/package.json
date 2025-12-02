@@ -17,7 +17,7 @@
         "@angular/animations": "20.2.4",
         "@angular/cdk": "20.2.4",
         "@angular/common": "20.2.4",
-        "@angular/compiler": "20.2.4",
+        "@angular/compiler": "20.3.15",
         "@angular/core": "20.2.4",
         "@angular/forms": "20.2.4",
         "@angular/material": "20.2.4",
