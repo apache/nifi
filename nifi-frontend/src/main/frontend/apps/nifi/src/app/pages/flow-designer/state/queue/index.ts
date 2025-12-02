@@ -52,6 +52,11 @@ export interface SubmitEmptyQueuesRequest {
     processGroupId: string;
 }
 
+export interface EmptyQueuesRequest {
+    processGroupId: string;
+    dropRequestId: string;
+}
+
 export interface PollEmptyQueueSuccess {
     dropEntity: DropRequestEntity;
 }

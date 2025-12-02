@@ -203,15 +203,21 @@ export class QueueEffects {
             ofType(QueueActions.pollEmptyQueueRequest),
             concatLatestFrom(() => [
                 this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull()),
-                this.store.select(selectDropConnectionId).pipe(isDefinedAndNotNull())
+                this.store.select(selectDropConnectionId),
+                this.store.select(selectDropProcessGroupId)
             ]),
-            switchMap(([, dropEntity, connectionId]) => {
-                return from(
-                    this.queueService.pollEmptyQueueRequest({
-                        connectionId,
-                        dropRequestId: dropEntity.dropRequest.id
-                    })
-                ).pipe(
+            switchMap(([, dropEntity, connectionId, processGroupId]) => {
+                const poll$ = connectionId
+                    ? this.queueService.pollEmptyQueueRequest({
+                          connectionId,
+                          dropRequestId: dropEntity.dropRequest.id
+                      })
+                    : this.queueService.pollEmptyQueuesRequest({
+                          processGroupId: processGroupId!,
+                          dropRequestId: dropEntity.dropRequest.id
+                      });
+
+                return from(poll$).pipe(
                     map((response) =>
                         QueueActions.pollEmptyQueueRequestSuccess({
                             response: {
@@ -252,17 +258,23 @@ export class QueueEffects {
             ofType(QueueActions.deleteEmptyQueueRequest),
             concatLatestFrom(() => [
                 this.store.select(selectDropRequestEntity).pipe(isDefinedAndNotNull()),
-                this.store.select(selectDropConnectionId).pipe(isDefinedAndNotNull())
+                this.store.select(selectDropConnectionId),
+                this.store.select(selectDropProcessGroupId)
             ]),
-            switchMap(([, dropEntity, connectionId]) => {
+            switchMap(([, dropEntity, connectionId, processGroupId]) => {
                 this.dialog.closeAll();
 
-                return from(
-                    this.queueService.deleteEmptyQueueRequest({
-                        connectionId,
-                        dropRequestId: dropEntity.dropRequest.id
-                    })
-                ).pipe(
+                const delete$ = connectionId
+                    ? this.queueService.deleteEmptyQueueRequest({
+                          connectionId,
+                          dropRequestId: dropEntity.dropRequest.id
+                      })
+                    : this.queueService.deleteEmptyQueuesRequest({
+                          processGroupId: processGroupId!,
+                          dropRequestId: dropEntity.dropRequest.id
+                      });
+
+                return from(delete$).pipe(
                     map((response) =>
                         QueueActions.showEmptyQueueResults({
                             request: {
