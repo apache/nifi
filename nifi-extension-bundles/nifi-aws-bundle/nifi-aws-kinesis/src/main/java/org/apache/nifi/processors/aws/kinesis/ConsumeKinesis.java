@@ -196,7 +196,6 @@ public class ConsumeKinesis extends AbstractProcessor {
             .description("""
                     The Controller Service that is used to obtain AWS credentials provider.
                     Ensure that the credentials provided have access to Kinesis, DynamoDB and (optional) CloudWatch.
-                    (See processor's additional details for more information.)
                     """)
             .required(true)
             .identifiesControllerService(AwsCredentialsProviderService.class)
@@ -204,10 +203,7 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     static final PropertyDescriptor CONSUMER_TYPE = new PropertyDescriptor.Builder()
             .name("Consumer Type")
-            .description("""
-                     The Consumer Type that is used to consume from the Kinesis records.
-                    (See processor's additional details for more information.)
-                    """)
+            .description("Strategy for reading records from Amazon Kinesis streams.")
             .required(true)
             .allowableValues(ConsumerType.class)
             .defaultValue(ConsumerType.ENHANCED_FAN_OUT)
@@ -227,7 +223,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                     The Record Reader to use for parsing the data received from Kinesis.
 
                     The Record Reader is responsible for providing schemas for the records. If the schemas change frequently,
-                    it might hinder performance of the processor. (See processor's additional details for more information.)
+                    it might hinder performance of the processor.
                     """)
             .required(true)
             .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
@@ -920,9 +916,8 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     enum OutputStrategy implements DescribedValue {
         USE_VALUE("Use Content as Value", "Write only the Kinesis Record value to the FlowFile record."),
-        USE_WRAPPER("Use Wrapper", "Write the Kinesis Record value and metadata into the FlowFile record. (See additional details for more information.)"),
-        INJECT_METADATA("Inject Metadata",
-                "Write the Kinesis Record value to the FlowFile record and add a sub-record to it with metadata. (See additional details for more information.)");
+        USE_WRAPPER("Use Wrapper", "Write the Kinesis Record value and metadata into the FlowFile record."),
+        INJECT_METADATA("Inject Metadata", "Write the Kinesis Record value to the FlowFile record and add a sub-record to it with metadata.");
 
         private final String displayName;
         private final String description;
