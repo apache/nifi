@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
@@ -33,6 +34,7 @@ import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Pattern;
 
 @Tags({ "atlassian", "bitbucket", "registry", "flow" })
 @CapabilityDescription("Flow Registry Client that uses the Bitbucket REST API to version control flows in a Bitbucket Repository.")
@@ -46,10 +48,31 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
             .required(true)
             .build();
 
+    private static final Pattern HOST_PATTERN = Pattern.compile("(\\[[\\p{XDigit}:.]*[%\\p{Alnum}]*]|[^\\[/?#:]*)");
+    private static final Validator BITBUCKET_API_URL_VALIDATOR = (subject, input, validationContext) -> {
+        final ValidationResult.Builder builder = new ValidationResult.Builder();
+        builder.subject(subject).input(input);
+
+        if (input == null || input.isBlank()) {
+            builder.explanation("'%s' cannot be blank".formatted(subject)).valid(false);
+        } else if (HOST_PATTERN.matcher(input).matches()) {
+            builder.explanation("%s is a valid host".formatted(subject)).valid(true);
+        } else {
+            final ValidationResult validationResult = StandardValidators.URL_VALIDATOR.validate(subject, input, validationContext);
+            if (validationResult.isValid()) {
+                builder.explanation("%s is a valid URL".formatted(subject)).valid(true);
+            } else {
+                builder.explanation("'%s' is neither a host or URL".formatted(subject)).valid(false);
+            }
+        }
+
+        return builder.build();
+    };
+
     static final PropertyDescriptor BITBUCKET_API_URL = new PropertyDescriptor.Builder()
             .name("Bitbucket API Instance")
             .description("The Bitbucket API host or base URL (for example, api.bitbucket.org for Cloud or https://bitbucket.example.com for Data Center)")
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .addValidator(BITBUCKET_API_URL_VALIDATOR)
             .defaultValue("api.bitbucket.org")
             .required(true)
             .build();
