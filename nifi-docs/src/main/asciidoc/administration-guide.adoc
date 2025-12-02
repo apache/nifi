@@ -503,6 +503,8 @@ NOTE: For changes to _nifi.properties_ and _login-identity-providers.xml_ to tak
 [[kerberos_login_identity_provider]]
 === Kerberos
 
+NOTE: The Kerberos Provider is deprecated for removal in subsequent releases.
+
 Below is an example and description of configuring a Login Identity Provider that integrates with a Kerberos Key Distribution Center (KDC) to authenticate users.
 
 Set the following in _nifi.properties_ to enable Kerberos username/password authentication:
