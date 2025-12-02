@@ -196,6 +196,14 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         .required(true)
         .build();
 
+    public static final PropertyDescriptor DEFAULT_EXPIRATION_TIME = new PropertyDescriptor.Builder()
+        .name("Default Expiration Time")
+        .description("Expiration time to use when the returned access token does not include an expiration time.")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .defaultValue("1 hour")
+        .required(true)
+        .build();
+
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
         .name("SSL Context Service")
         .addValidator(Validator.VALID)
@@ -231,6 +239,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
         RESOURCE,
         AUDIENCE,
         REFRESH_WINDOW,
+        DEFAULT_EXPIRATION_TIME,
         SSL_CONTEXT_SERVICE,
         HTTP_PROTOCOL_STRATEGY,
         ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
@@ -257,6 +266,7 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     private volatile String resource;
     private volatile String audience;
     private volatile long refreshWindowSeconds;
+    private volatile long defaultExpirationTimeSeconds;
     private volatile Map<String, String> customFormParameters = new HashMap<>();
 
     private volatile AccessToken accessDetails;
@@ -428,12 +438,13 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
 
             AccessToken accessDetailsWithRefreshTokenOnly = new AccessToken();
             accessDetailsWithRefreshTokenOnly.setRefreshToken(refreshToken);
-            accessDetailsWithRefreshTokenOnly.setExpiresIn(-1);
+            accessDetailsWithRefreshTokenOnly.setExpiresIn(-1L);
 
             this.accessDetails = accessDetailsWithRefreshTokenOnly;
         }
 
         refreshWindowSeconds = context.getProperty(REFRESH_WINDOW).asTimePeriod(TimeUnit.SECONDS);
+        defaultExpirationTimeSeconds = context.getProperty(DEFAULT_EXPIRATION_TIME).asTimePeriod(TimeUnit.SECONDS);
 
         Map<String, String> formParameters = new HashMap<>();
         for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
@@ -456,8 +467,10 @@ public class StandardOauth2AccessTokenProvider extends AbstractControllerService
     }
 
     private boolean isRefreshRequired() {
+        final long expirationTime = accessDetails.getExpiresIn() != null ? accessDetails.getExpiresIn() : defaultExpirationTimeSeconds;
+
         final Instant expirationRefreshTime = accessDetails.getFetchTime()
-                .plusSeconds(accessDetails.getExpiresIn())
+                .plusSeconds(expirationTime)
                 .minusSeconds(refreshWindowSeconds);
 
         return Instant.now().isAfter(expirationRefreshTime);
