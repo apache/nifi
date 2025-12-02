@@ -52,6 +52,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class PropertyMigrationIT extends NiFiSystemIT {
     private static final String SERVICE = "Service";
 
+    @Override
+    protected boolean isAllowFactoryReuse() {
+        return false;
+    }
+
+    @Override
+    protected boolean isDestroyEnvironmentAfterEachTest() {
+        return true;
+    }
+
     @AfterEach
     public void restoreNars() {
         // Stop the NiFi instance, ensure that the nifi-system-test-extensions-nar and nifi-alternate-config-extensions bundles
