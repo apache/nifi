@@ -407,7 +407,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                         session.transfer(resultSetFlowFiles, REL_SUCCESS);
                                         // Need to remove the original input file if it exists,
                                         // but save the attributes to add them to the failure flow file if it is created
-                                        if (fileToProcess != null && retainedFlowFileAttributes == null) {
+                                        if (fileToProcess != null) {
                                             retainedFlowFileAttributes = new HashMap<>(fileToProcess.getAttributes());
                                             session.remove(fileToProcess);
                                             fileToProcess = null;
