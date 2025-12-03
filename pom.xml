@@ -120,7 +120,7 @@
         <nifi.nar.maven.plugin.version>2.2.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.39.6</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.40.0</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>3.5.0</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.3</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
