@@ -339,20 +339,12 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
             if (descriptor.isDynamic()) {
-                final Collection<String> referencedParameters = context.getReferencedParameters(descriptor.getName());
-                final List<String> unsetParameters = referencedParameters.stream()
-                        .filter(parameterName -> !context.isParameterDefined(parameterName) || !context.isParameterSet(parameterName))
-                        .toList();
-                if (!unsetParameters.isEmpty()) {
-                    final String evaluated = context.newPropertyValue(entry.getValue()).evaluateAttributeExpressions().getValue();
-                    if (StringUtils.isEmpty(evaluated)) {
-                        reasons.add(new ValidationResult.Builder()
-                                .subject(descriptor.getDisplayName())
-                                .valid(false)
-                                .explanation("Dynamic Property references a Parameter that is not set: " + referencedParameters.iterator().next())
-                                .build());
-                        continue;
-                    }
+                if (entry.getValue() == null) {
+                    reasons.add(new ValidationResult.Builder()
+                            .subject(descriptor.getDisplayName())
+                            .valid(false)
+                            .explanation("Dynamic Property %s is null. Does it reference an unset parameter?".formatted(descriptor.getName()))
+                            .build());
                 }
             }
         }
