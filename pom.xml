@@ -939,6 +939,8 @@
                                         <exclude>org.apache.groovy:groovy-test</exclude>
                                         <!-- Hamcrest should not be used for testing -->
                                         <exclude>org.hamcrest:hamcrest</exclude>
+                                        <!-- org.lz4:lz4-java is no longer maintained -->
+                                        <exclude>org.lz4:lz4-java</exclude>
                                     </excludes>
                                 </bannedDependencies>
                             </rules>
