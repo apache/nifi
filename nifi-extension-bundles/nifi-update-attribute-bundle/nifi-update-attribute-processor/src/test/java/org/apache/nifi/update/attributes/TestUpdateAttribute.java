@@ -112,6 +112,8 @@ public class TestUpdateAttribute {
         runner.assertValid();
         runner.setProperty("attribute.with.param", "#{missing.parameter}${now()}");
         runner.assertValid();
+        runner.setProperty("attribute.with.param", "${#{missing.parameter}:isEmpty():ifElse('', #{missing.parameter})}");
+        runner.assertValid();
     }
 
     @Test
