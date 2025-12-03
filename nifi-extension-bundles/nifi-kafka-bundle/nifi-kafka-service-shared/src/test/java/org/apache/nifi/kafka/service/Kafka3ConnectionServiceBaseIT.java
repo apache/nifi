@@ -78,6 +78,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -300,6 +301,15 @@ public class Kafka3ConnectionServiceBaseIT {
         final ConfigVerificationResult firstResult = results.iterator().next();
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, firstResult.getOutcome());
         assertNotNull(firstResult.getExplanation());
+
+        final Optional<ConfigVerificationResult> clusterDescriptionStep = results.stream().filter(it -> "Kafka Cluster Description".equals(it.getVerificationStepName())).findFirst();
+        assertTrue(clusterDescriptionStep.isPresent());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, clusterDescriptionStep.get().getOutcome());
+
+        final Pattern brokerPattern = Pattern.compile("Kafka Node Reachability - Node \\d+ \\(.*:\\d+\\)");
+        final Optional<ConfigVerificationResult> reachBrokerStep = results.stream().filter(it -> brokerPattern.matcher(it.getVerificationStepName()).matches()).findFirst();
+        assertTrue(reachBrokerStep.isPresent());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, reachBrokerStep.get().getOutcome());
     }
 
     @Test
