@@ -63,18 +63,21 @@ import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -82,7 +85,7 @@ import static org.mockito.ArgumentMatchers.any;
 
 public class TestStandardControllerServiceProvider {
 
-    private static StateManagerProvider stateManagerProvider = new StateManagerProvider() {
+    private static final StateManagerProvider stateManagerProvider = new StateManagerProvider() {
         @Override
         public StateManager getStateManager(final String componentId, final boolean dropStateKeySupported) {
             final StateManager stateManager = Mockito.mock(StateManager.class);
@@ -125,7 +128,9 @@ public class TestStandardControllerServiceProvider {
 
     @BeforeAll
     public static void setNiFiProps() {
-        niFiProperties = NiFiProperties.createBasicNiFiProperties(TestStandardControllerServiceProvider.class.getResource("/conf/nifi.properties").getFile());
+        final URL propertiesUrl = TestStandardControllerServiceProvider.class.getResource("/conf/nifi.properties");
+        assertNotNull(propertiesUrl);
+        niFiProperties = NiFiProperties.createBasicNiFiProperties(propertiesUrl.getFile());
 
         // load the system bundle
         systemBundle = SystemBundle.create(niFiProperties);
@@ -201,7 +206,7 @@ public class TestStandardControllerServiceProvider {
 
     @Test
     @Timeout(10)
-    public void testEnableDisableWithReference() throws InterruptedException {
+    public void testEnableDisableWithReference() {
         final ProcessGroup group = new MockProcessGroup(flowManager);
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
 
@@ -217,41 +222,22 @@ public class TestStandardControllerServiceProvider {
 
         setProperty(serviceNodeA, ServiceA.OTHER_SERVICE.getName(), "B");
 
-        try {
-            provider.enableControllerService(serviceNodeA);
-        } catch (final IllegalStateException expected) {
-        }
+        // Enable Controller Service A and wait for completion
+        final CompletableFuture<Void> enableServiceA = provider.enableControllerService(serviceNodeA);
+        enableServiceA.join();
+        assertEquals(ValidationStatus.VALID, serviceNodeA.getValidationStatus());
+        assertEquals(ControllerServiceState.ENABLED, serviceNodeA.getState());
+        assertEquals(ValidationStatus.VALID, serviceNodeB.getValidationStatus());
+        assertEquals(ControllerServiceState.ENABLED, serviceNodeB.getState());
 
-        assertSame(ControllerServiceState.ENABLING, serviceNodeA.getState());
-
-        serviceNodeB.performValidation();
-        assertSame(ValidationStatus.VALID, serviceNodeB.getValidationStatus(5, TimeUnit.SECONDS));
-        provider.enableControllerService(serviceNodeB);
-
-        serviceNodeA.performValidation();
-
-        final long maxTime = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        // Wait for Service A to become ENABLED. This will happen in a background thread after approximately 5 seconds, now that Service A is valid.
-        while (serviceNodeA.getState() != ControllerServiceState.ENABLED && System.nanoTime() <= maxTime) {
-            Thread.sleep(5L);
-        }
-        assertSame(ControllerServiceState.ENABLED, serviceNodeA.getState());
         assertThrows(IllegalStateException.class, () -> provider.disableControllerService(serviceNodeB));
 
-        provider.disableControllerService(serviceNodeA);
-        waitForServiceState(serviceNodeA, ControllerServiceState.DISABLED);
-
-        provider.disableControllerService(serviceNodeB);
-        waitForServiceState(serviceNodeB, ControllerServiceState.DISABLED);
-    }
-
-    private void waitForServiceState(final ControllerServiceNode service, final ControllerServiceState desiredState) {
-        while (service.getState() != desiredState) {
-            try {
-                Thread.sleep(50L);
-            } catch (final InterruptedException ignored) {
-            }
-        }
+        final CompletableFuture<Void> disableServiceA = provider.disableControllerService(serviceNodeA);
+        disableServiceA.join();
+        assertEquals(ControllerServiceState.DISABLED, serviceNodeA.getState());
+        final CompletableFuture<Void> disableServiceB = provider.disableControllerService(serviceNodeB);
+        disableServiceB.join();
+        assertEquals(ControllerServiceState.DISABLED, serviceNodeB.getState());
     }
 
     @Test
