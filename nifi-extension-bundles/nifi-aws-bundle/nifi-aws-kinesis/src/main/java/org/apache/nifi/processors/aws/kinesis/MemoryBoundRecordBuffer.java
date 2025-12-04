@@ -394,7 +394,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     }
 
     private record RecordBatch(List<KinesisClientRecord> records,
-                               @Nullable RecordProcessorCheckpointer checkpointer,
+                               RecordProcessorCheckpointer checkpointer,
                                long batchSizeBytes) {
         int size() {
             return records.size();
@@ -439,11 +439,12 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
         private final long checkpointIntervalMillis;
         private volatile long nextCheckpointTimeMillis;
+
         /**
-         * A last records checkpointer that was ignored due to the checkpoint interval.
+         * A last record checkpointer and sequence number that was ignored due to the checkpoint interval.
          * If null, the last checkpoint was successful or no checkpoint was attempted yet.
          */
-        private volatile @Nullable RecordProcessorCheckpointer lastIgnoredCheckpointer = null;
+        private volatile @Nullable LastIgnoredCheckpoint lastIgnoredCheckpoint;
 
         /**
          * Queues for managing record batches with their checkpointers in different states.
@@ -524,13 +525,15 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             batchesCount.addAndGet(-checkpointedBatches.size());
 
             final RecordProcessorCheckpointer lastBatchCheckpointer = checkpointedBatches.getLast().checkpointer();
+            final KinesisClientRecord lastRecord = checkpointedBatches.getLast().records().getLast();
+
             if (System.currentTimeMillis() >= nextCheckpointTimeMillis) {
-                checkpointSafely(lastBatchCheckpointer);
+                checkpointSequenceNumber(lastBatchCheckpointer, lastRecord.sequenceNumber(), lastRecord.subSequenceNumber());
                 nextCheckpointTimeMillis = System.currentTimeMillis() + checkpointIntervalMillis;
-                lastIgnoredCheckpointer = null;
+                lastIgnoredCheckpoint = null;
             } else {
                 // Saving the checkpointer for later, in case shutdown happens before the next checkpoint.
-                lastIgnoredCheckpointer = lastBatchCheckpointer;
+                lastIgnoredCheckpoint = new LastIgnoredCheckpoint(lastBatchCheckpointer, lastRecord.sequenceNumber(), lastRecord.subSequenceNumber());
             }
 
             final CountDownLatch localEmptyBufferLatch = this.emptyBufferLatch;
@@ -568,7 +571,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
                 if (batchesCount.get() == 0) {
                     // Buffer is empty, perform final checkpoint.
-                    checkpointSafely(checkpointer);
+                    checkpointLastReceivedRecord(checkpointer);
                     return;
                 }
 
@@ -588,13 +591,17 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             }
 
             if (batchesCount.get() == 0) {
-                checkpointSafely(checkpointer);
+                checkpointLastReceivedRecord(checkpointer);
             } else {
                 // If there are still records in the buffer, checkpointing with the latest provided checkpointer is not safe.
                 // But, if the records were committed without checkpointing in the past, we can checkpoint them now.
-                final RecordProcessorCheckpointer lastCheckpointer = this.lastIgnoredCheckpointer;
-                if (lastCheckpointer != null) {
-                    checkpointSafely(lastCheckpointer);
+                final LastIgnoredCheckpoint ignoredCheckpoint = this.lastIgnoredCheckpoint;
+                if (ignoredCheckpoint != null) {
+                    checkpointSequenceNumber(
+                            ignoredCheckpoint.checkpointer(),
+                            ignoredCheckpoint.sequenceNumber(),
+                            ignoredCheckpoint.subSequenceNumber()
+                    );
                 }
             }
         }
@@ -629,22 +636,28 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             return invalidated.get() || batchesCount.get() == 0;
         }
 
+        private void checkpointLastReceivedRecord(final RecordProcessorCheckpointer checkpointer) {
+            logger.debug("Performing checkpoint for buffer with id {}. Checkpointing the last received record", bufferId);
+
+            checkpointSafely(checkpointer::checkpoint);
+        }
+
+        private void checkpointSequenceNumber(final RecordProcessorCheckpointer checkpointer, final String sequenceNumber, final long subSequenceNumber) {
+            logger.debug("Performing checkpoint for buffer with id {}. Sequence number: [{}], sub sequence number: [{}]",
+                    bufferId, sequenceNumber, subSequenceNumber);
+
+            checkpointSafely(() -> checkpointer.checkpoint(sequenceNumber, subSequenceNumber));
+        }
+
         /**
          * Performs checkpointing using exponential backoff and jitter, if needed.
          *
-         * @param checkpointer the checkpointer to use.
+         * @param checkpointAction the action which performs the checkpointing.
          */
-        private void checkpointSafely(final @Nullable RecordProcessorCheckpointer checkpointer) {
-            if (checkpointer == null) {
-                logger.warn("Attempting to checkpoint records with a null checkpointer. Ignoring checkpoint");
-                return;
-            }
-
-            logger.debug("Performing checkpoint for buffer with id {}", bufferId);
-
+        private void checkpointSafely(final CheckpointAction checkpointAction) {
             for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {
-                    checkpointer.checkpoint();
+                    checkpointAction.doCheckpoint();
                     if (attempt > 1) {
                         logger.debug("Checkpoint succeeded on attempt {}", attempt);
                     }
@@ -679,6 +692,17 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             final long baseDelayMillis = Math.min(desiredBaseDelayMillis, MAX_RETRY_DELAY_MILLIS);
             final long jitterMillis = RANDOM.nextLong(baseDelayMillis / 4); // Up to 25% jitter.
             return baseDelayMillis + jitterMillis;
+        }
+
+        private interface CheckpointAction {
+
+            /**
+             * Throws the same set of exceptions as {@link RecordProcessorCheckpointer#checkpoint()} and {@link RecordProcessorCheckpointer#checkpoint(String, long)}.
+             */
+            void doCheckpoint() throws KinesisClientLibDependencyException, InvalidStateException, ThrottlingException, ShutdownException, IllegalArgumentException;
+        }
+
+        private record LastIgnoredCheckpoint(RecordProcessorCheckpointer checkpointer, String sequenceNumber, long subSequenceNumber) {
         }
     }
 }
