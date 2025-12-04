@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -83,6 +84,7 @@ import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TASKS;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TASK_ATTACHMENTS;
 import static org.apache.nifi.processors.asana.AsanaObjectType.AV_COLLECT_TEAM_MEMBERS;
 
+@DeprecationNotice(reason = "Depends on unsupported java-asana library")
 @TriggerSerially
 @PrimaryNodeOnly
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
