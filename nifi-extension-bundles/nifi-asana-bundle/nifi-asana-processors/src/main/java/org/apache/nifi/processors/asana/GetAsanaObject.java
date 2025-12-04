@@ -210,8 +210,8 @@ public class GetAsanaObject extends AbstractProcessor {
             REL_UPDATED,
             REL_REMOVED
     );
-    protected static final GenericObjectSerDe<String> STATE_MAP_KEY_SERIALIZER = new GenericObjectSerDe<>();
-    protected static final GenericObjectSerDe<Map<String, String>> STATE_MAP_VALUE_SERIALIZER = new GenericObjectSerDe<>();
+    protected static final StringSerDe STATE_MAP_KEY_SERIALIZER = new StringSerDe();
+    protected static final MapStringSerDe STATE_MAP_VALUE_SERIALIZER = new MapStringSerDe();
 
     private volatile AsanaObjectFetcher objectFetcher;
     private volatile Integer batchSize;
