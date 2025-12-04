@@ -25,6 +25,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -72,6 +73,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
@@ -266,7 +268,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
         return topicPatternFound
             .map(pattern -> new Subscription(groupId, pattern, autoOffsetReset))
-            .orElseGet(() -> new Subscription(groupId, pollingContext.getTopics(), autoOffsetReset));
+            .orElseGet(() -> new Subscription(groupId, pollingContext.getPartition(), pollingContext.getTopics(), autoOffsetReset));
     }
 
     @Override
