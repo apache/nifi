@@ -22,7 +22,7 @@ import org.apache.nifi.kafka.shared.property.SecurityProtocol;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
+import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Disabled;
@@ -74,15 +74,15 @@ public class PublishKafkaSSLIT {
 
     private String addSSLContextService(final TestRunner runner) throws InitializationException {
         final String identifier = SSLContextService.class.getSimpleName();
-        final SSLContextService service = new StandardRestrictedSSLContextService();
+        final SSLContextService service = new StandardSSLContextService();
         runner.addControllerService(identifier, service);
 
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE, KEYSTORE_PATH);
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_PASSWORD);
-        runner.setProperty(service, StandardRestrictedSSLContextService.KEYSTORE_TYPE, KeystoreType.JKS.name());
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH);
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
-        runner.setProperty(service, StandardRestrictedSSLContextService.TRUSTSTORE_TYPE, KeystoreType.JKS.name());
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE, KEYSTORE_PATH);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_PASSWORD, KEYSTORE_PASSWORD);
+        runner.setProperty(service, StandardSSLContextService.KEYSTORE_TYPE, KeystoreType.JKS.name());
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE, TRUSTSTORE_PATH);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD);
+        runner.setProperty(service, StandardSSLContextService.TRUSTSTORE_TYPE, KeystoreType.JKS.name());
 
         runner.enableControllerService(service);
         return identifier;
