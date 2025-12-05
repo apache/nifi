@@ -31,8 +31,10 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
@@ -223,6 +225,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         }
 
         saveUpdateProcessGroupAction(groupId, operation);
+        saveActions(getComponentActions(groupId, componentIds, operation), logger);
     }
 
     /**
@@ -273,6 +276,21 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             port = processGroup.findOutputPort(componentId);
             if (port != null) {
                 actions.add(generateUpdateConnectableAction(port, operation, Component.OutputPort));
+                continue;
+            }
+
+            ProcessGroup internalProcessGroup = processGroup.findProcessGroup(componentId);
+            if (internalProcessGroup != null) {
+                actions.add(generateUpdateProcessGroupAction(internalProcessGroup, operation));
+                continue;
+            }
+
+            RemoteGroupPort remoteGroupPort = processGroup.findRemoteGroupPort(componentId);
+            if (remoteGroupPort != null) {
+                RemoteProcessGroup remoteProcessGroup = remoteGroupPort.getRemoteProcessGroup();
+                if (remoteProcessGroup != null) {
+                    actions.add(generateUpdateRemoteProcessGroupAction(remoteProcessGroup, operation));
+                }
             }
         }
 
@@ -400,6 +418,26 @@ public class ProcessGroupAuditor extends NiFiAuditor {
 
         // add this action
         saveAction(action, logger);
+    }
+
+    private Action generateUpdateProcessGroupAction(final ProcessGroup processGroup, final Operation operation) {
+        final FlowChangeAction action = createFlowChangeAction();
+        action.setSourceId(processGroup.getIdentifier());
+        action.setSourceName(processGroup.getName());
+        action.setSourceType(Component.ProcessGroup);
+        action.setOperation(operation);
+
+        return action;
+    }
+
+    private Action generateUpdateRemoteProcessGroupAction(final RemoteProcessGroup remoteProcessGroup, final Operation operation) {
+        final FlowChangeAction action = createFlowChangeAction();
+        action.setSourceId(remoteProcessGroup.getIdentifier());
+        action.setSourceName(remoteProcessGroup.getName());
+        action.setSourceType(Component.RemoteProcessGroup);
+        action.setOperation(operation);
+
+        return action;
     }
 
     private Action generateUpdateConnectableAction(final Connectable connectable, final Operation operation, final Component component) {
