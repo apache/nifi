@@ -319,21 +319,36 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         return processGroup == null ? null : processGroup.getParameterContext();
     }
 
-
+    /**
+     * Get Controller Services required to be enabled with filtering based on satisfied dependencies
+     *
+     * @return Controller Service Nodes required to be enabled
+     */
     @Override
     public List<ControllerServiceNode> getRequiredControllerServices() {
-        Set<ControllerServiceNode> requiredServices = new HashSet<>();
-        for (Entry<PropertyDescriptor, String> entry : getEffectivePropertyValues().entrySet()) {
-            PropertyDescriptor descriptor = entry.getKey();
-            if (descriptor.getControllerServiceDefinition() != null && entry.getValue() != null) {
-                // CS property could point to a non-existent CS, so protect against requiredNode being null
-                final String referenceId = entry.getValue();
-                final ControllerServiceNode requiredNode = serviceProvider.getControllerServiceNode(referenceId);
-                if (requiredNode != null) {
-                    requiredServices.add(requiredNode);
+        final Set<ControllerServiceNode> requiredServices = new HashSet<>();
+
+        final ValidationContext validationContext = getValidationContext();
+        for (final Entry<PropertyDescriptor, String> entry : getEffectivePropertyValues().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final Class<? extends ControllerService> controllerServiceDefinition = descriptor.getControllerServiceDefinition();
+            final String referenceId = entry.getValue();
+            // Skip Property Descriptors not referencing Controller Services
+            if (controllerServiceDefinition == null || referenceId == null) {
+                continue;
+            }
+
+            // Controller Services with unsatisfied dependencies are not required
+            final boolean dependencySatisfied = validationContext.isDependencySatisfied(descriptor, this::getPropertyDescriptor);
+            if (dependencySatisfied) {
+                final ControllerServiceNode requiredServiceNode = serviceProvider.getControllerServiceNode(referenceId);
+                if (requiredServiceNode == null) {
+                    LOG.warn("Referenced Controller Service [{}] not found for Service [{}] Property [{}]", referenceId, getIdentifier(), descriptor.getName());
                 } else {
-                    LOG.warn("Unable to locate referenced controller service with id {}", referenceId);
+                    requiredServices.add(requiredServiceNode);
                 }
+            } else {
+                LOG.debug("Referenced Controller Service [{}] not required for Service [{}] Property [{}]", referenceId, getIdentifier(), descriptor.getName());
             }
         }
         return new ArrayList<>(requiredServices);
