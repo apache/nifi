@@ -24,6 +24,7 @@ import com.azure.messaging.eventhubs.models.EventBatchContext;
 import com.azure.messaging.eventhubs.models.PartitionContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.ProcessContext;
@@ -479,7 +480,8 @@ public class TestConsumeAzureEventHub {
                 Map.entry("storage-sas-token", ConsumeAzureEventHub.STORAGE_SAS_TOKEN.getName()),
                 Map.entry("storage-container-name", ConsumeAzureEventHub.STORAGE_CONTAINER_NAME.getName()),
                 Map.entry("event-hub-shared-access-policy-primary-key", ConsumeAzureEventHub.POLICY_PRIMARY_KEY.getName()),
-                Map.entry(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME)
+                Map.entry(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
         );
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());

@@ -40,6 +40,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 import reactor.core.publisher.Mono;
@@ -81,6 +83,10 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
             .defaultValue("10 secs")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
+
+    protected static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
+
+    public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS);
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")

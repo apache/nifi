@@ -125,6 +125,7 @@ public class DeleteAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty(AbstractAzureBlobProcessor_v12.OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, BLOB_NAME.getName());
         config.renameProperty("delete-snapshots-option", DELETE_SNAPSHOTS_OPTION.getName());
         config.renameProperty(AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CONTAINER.getName());
