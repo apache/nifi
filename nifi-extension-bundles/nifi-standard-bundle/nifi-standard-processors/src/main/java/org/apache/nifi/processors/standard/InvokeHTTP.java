@@ -64,6 +64,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.oauth2.TokenRefreshStrategy;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -664,6 +665,7 @@ public class InvokeHTTP extends AbstractProcessor {
         config.renameProperty("flow-file-naming-strategy", RESPONSE_FLOW_FILE_NAMING_STRATEGY.getName());
         config.renameProperty("Add Response Headers to Request", RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED.getName());
         config.renameProperty("Follow Redirects", RESPONSE_REDIRECTS_ENABLED.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     @Override

@@ -52,6 +52,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -159,6 +160,7 @@ public class FetchDropbox extends AbstractProcessor implements DropboxTrait {
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty(OLD_CREDENTIAL_SERVICE_PROPERTY_NAME, CREDENTIAL_SERVICE.getName());
         config.renameProperty("file", FILE.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     private FileMetadata fetchFile(String fileId, ProcessSession session, FlowFile outFlowFile) throws DbxException {
