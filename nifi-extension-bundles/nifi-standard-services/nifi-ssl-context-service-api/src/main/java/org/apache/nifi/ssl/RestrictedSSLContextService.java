@@ -17,9 +17,9 @@
 package org.apache.nifi.ssl;
 
 /**
- * Simple extension of the regular {@link SSLContextService} to allow for restricted implementations
- * of that interface.
+ * Historical extension of the regular {@link SSLContextService} no longer providing differentiated capabilities
  */
+@Deprecated(forRemoval = true)
 public interface RestrictedSSLContextService extends SSLContextService {
 
 }
