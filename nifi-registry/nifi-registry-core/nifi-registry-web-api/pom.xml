@@ -316,7 +316,7 @@
         <dependency>
             <groupId>com.unboundid</groupId>
             <artifactId>unboundid-ldapsdk</artifactId>
-            <version>7.0.3</version>
+            <version>7.0.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
