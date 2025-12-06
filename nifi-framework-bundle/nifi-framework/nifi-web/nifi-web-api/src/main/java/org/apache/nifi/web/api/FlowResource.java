@@ -64,6 +64,8 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -1176,7 +1178,7 @@ public class FlowResource extends ApplicationResource {
 
                 final Predicate<ControllerServiceNode> filter;
                 if (ControllerServiceState.ENABLED.equals(desiredState)) {
-                    filter = service -> !service.isActive();
+                    filter = this::isControllerServiceNodeEligibleForEnabling;
                 } else {
                     filter = ControllerServiceNode::isActive;
                 }
@@ -1240,6 +1242,26 @@ public class FlowResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    private boolean isControllerServiceNodeEligibleForEnabling(final ControllerServiceNode controllerServiceNode) {
+        final boolean eligibleForEnabling;
+
+        if (controllerServiceNode.isActive()) {
+            // Active Controller Services are enabled
+            eligibleForEnabling = false;
+        } else {
+            final Collection<ValidationResult> validationErrors = controllerServiceNode.getValidationErrors();
+            if (validationErrors == null || validationErrors.isEmpty()) {
+                // VALID or VALIDATING Controller Services can be enabled
+                eligibleForEnabling = true;
+            } else {
+                // INVALID Controller Services can be enabled when Validation Results are limited to other disabled Controller Services
+                eligibleForEnabling = validationErrors.stream().allMatch(DisabledServiceValidationResult.class::isInstance);
+            }
+        }
+
+        return eligibleForEnabling;
     }
 
     /**
