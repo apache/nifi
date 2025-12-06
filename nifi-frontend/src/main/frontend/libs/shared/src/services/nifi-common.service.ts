@@ -736,13 +736,40 @@ export class NiFiCommon {
      * The NiFi model contain the url for each component. That URL is an absolute URL. Angular CSRF handling
      * does not work on absolute URLs, so we need to strip off the proto for the request header to be added.
      *
-     * https://stackoverflow.com/a/59586462
+     * IMPORTANT: This method must handle ports correctly. When behind SSL-terminating proxies,
+     * the backend may include ports in the URI (e.g., "https://hostname:80/nifi-api/...").
+     * Simply removing the scheme is not sufficient because it leaves the port, causing Angular's
+     * HttpClient to misinterpret the URL as an absolute URL with the wrong port.
      *
-     * @param url
-     * @private
+     * Solution: Return a relative URL using just the path component, allowing Angular to use
+     * the current page's origin/scheme, which is correctly proxied by the reverse proxy.
+     *
+     * Examples:
+     *   "https://hostname:443/nifi-api/processors/123" → "/nifi-api/processors/123"
+     *   "https://hostname:8443/nifi-api/processors/123" → "/nifi-api/processors/123"
+     *   "http://localhost:8080/nifi-api/path" → "/nifi-api/path"
+     *
+     * https://issues.apache.org/jira/browse/NIFI-14433
+     *
+     * @param url - The absolute URL from the backend
+     * @returns Relative URL path + query + hash
      */
     public stripProtocol(url: string): string {
-        return this.substringAfterFirst(url, ':');
+        if (!url) {
+            return url;
+        }
+
+        try {
+            // Parse the URL and return only the path component
+            // This makes the URL relative to the current origin, which is correctly
+            // proxied by reverse proxies (e.g., Google Cloud Run, OpenShift, AWS ALB)
+            const urlObject = new URL(url);
+            return urlObject.pathname + urlObject.search + urlObject.hash;
+        } catch (e) {
+            // This maintains backward compatibility with any edge cases
+	    console.warn('Failed to parse URL in stripProtocol, falling back to basic scheme removal', url);
+            return this.substringAfterFirst(url, '://');
+        }
     }
 
     /**
