@@ -50,6 +50,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -369,6 +370,7 @@ public class FetchGoogleDrive extends AbstractProcessor implements GoogleDriveTr
         config.renameProperty(OLD_CONNECT_TIMEOUT_PROPERTY_NAME, CONNECT_TIMEOUT.getName());
         config.renameProperty(OLD_READ_TIMEOUT_PROPERTY_NAME, READ_TIMEOUT.getName());
         config.renameProperty(GoogleUtils.OLD_GCP_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     private String getExportType(final String mimeType, final ProcessContext context) {

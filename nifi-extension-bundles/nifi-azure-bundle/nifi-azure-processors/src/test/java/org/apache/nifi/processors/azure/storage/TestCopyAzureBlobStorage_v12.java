@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.PropertyMigrationResult;
@@ -37,7 +38,8 @@ public class TestCopyAzureBlobStorage_v12 {
                         AzureStorageUtils.OLD_CONFLICT_RESOLUTION_DESCRIPTOR_NAME, AzureStorageUtils.CONFLICT_RESOLUTION.getName(),
                         AzureStorageUtils.OLD_CREATE_CONTAINER_DESCRIPTOR_NAME, AzureStorageUtils.CREATE_CONTAINER.getName(),
                         AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, CopyAzureBlobStorage_v12.DESTINATION_CONTAINER_NAME.getName(),
-                        AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, CopyAzureBlobStorage_v12.DESTINATION_STORAGE_CREDENTIALS_SERVICE.getName());
+                        AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, CopyAzureBlobStorage_v12.DESTINATION_STORAGE_CREDENTIALS_SERVICE.getName(),
+                        ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE);
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

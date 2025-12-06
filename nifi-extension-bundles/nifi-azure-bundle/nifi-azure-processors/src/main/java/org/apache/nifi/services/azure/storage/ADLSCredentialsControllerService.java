@@ -25,6 +25,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
@@ -128,6 +129,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
             config.removeProperty(propNameUseManagedIdentity);
         }
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     @OnEnabled

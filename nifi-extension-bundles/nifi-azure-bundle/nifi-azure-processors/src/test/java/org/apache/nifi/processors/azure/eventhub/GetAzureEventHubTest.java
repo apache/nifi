@@ -22,6 +22,7 @@ import com.azure.messaging.eventhubs.models.PartitionContext;
 import com.azure.messaging.eventhubs.models.PartitionEvent;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.ProcessContext;
@@ -109,13 +110,14 @@ public class GetAzureEventHubTest {
     void testMigration() {
         TestRunner testRunner = TestRunners.newTestRunner(GetAzureEventHub.class);
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
-        final Map<String, String> expected = Map.of(
-                "Event Hub Consumer Group", GetAzureEventHub.CONSUMER_GROUP.getName(),
-                "Event Hub Message Enqueue Time", GetAzureEventHub.ENQUEUE_TIME.getName(),
-                "Partition Recivier Fetch Size", GetAzureEventHub.RECEIVER_FETCH_SIZE.getName(),
-                "Partition Receiver Timeout (millseconds)", GetAzureEventHub.RECEIVER_FETCH_TIMEOUT.getName(),
-                AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, GetAzureEventHub.POLICY_PRIMARY_KEY.getName(),
-                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("Event Hub Consumer Group", GetAzureEventHub.CONSUMER_GROUP.getName()),
+                Map.entry("Event Hub Message Enqueue Time", GetAzureEventHub.ENQUEUE_TIME.getName()),
+                Map.entry("Partition Recivier Fetch Size", GetAzureEventHub.RECEIVER_FETCH_SIZE.getName()),
+                Map.entry("Partition Receiver Timeout (millseconds)", GetAzureEventHub.RECEIVER_FETCH_TIMEOUT.getName()),
+                Map.entry(AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, GetAzureEventHub.POLICY_PRIMARY_KEY.getName()),
+                Map.entry(AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
         );
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -36,7 +37,8 @@ public class TestDeleteAzureDataLakeStorage {
                         AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName(),
                         AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName(),
                         "filesystem-object-type", DeleteAzureDataLakeStorage.FILESYSTEM_OBJECT_TYPE.getName(),
-                        AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, DeleteAzureDataLakeStorage.FILE.getName()
+                        AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, DeleteAzureDataLakeStorage.FILE.getName(),
+                        ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE
                 );
 
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());

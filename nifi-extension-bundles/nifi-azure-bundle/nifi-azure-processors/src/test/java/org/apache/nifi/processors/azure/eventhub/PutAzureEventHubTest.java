@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.eventhub;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.azure.messaging.eventhubs.models.SendOptions;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.ProcessContext;
@@ -105,7 +106,8 @@ public class PutAzureEventHubTest {
                 "partitioning-key-attribute-name", PutAzureEventHub.PARTITIONING_KEY_ATTRIBUTE_NAME.getName(),
                 "max-batch-size", PutAzureEventHub.MAX_BATCH_SIZE.getName(),
                 AzureEventHubUtils.OLD_POLICY_PRIMARY_KEY_DESCRIPTOR_NAME, PutAzureEventHub.POLICY_PRIMARY_KEY.getName(),
-                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME
+                AzureEventHubUtils.OLD_USE_MANAGED_IDENTITY_DESCRIPTOR_NAME, AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME,
+                ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE
         );
 
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
