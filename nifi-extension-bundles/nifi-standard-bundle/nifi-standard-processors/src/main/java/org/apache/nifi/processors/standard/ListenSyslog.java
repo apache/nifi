@@ -193,22 +193,12 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
         .defaultValue(ClientAuth.REQUIRED.name())
         .dependsOn(SSL_CONTEXT_SERVICE)
         .build();
-    public static final PropertyDescriptor SOCKET_KEEP_ALIVE = new PropertyDescriptor.Builder()
-            .name("Socket Keep Alive")
-            .description("Whether or not to have TCP socket keep alive turned on. Timing details depend on operating system properties.")
-            .required(true)
-            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
-            .defaultValue(Boolean.FALSE.toString())
-            .dependsOn(PROTOCOL, TCP_VALUE)
-            .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             PROTOCOL,
             TCP_PORT,
             UDP_PORT,
             NETWORK_INTF_NAME,
-            SOCKET_KEEP_ALIVE,
             SSL_CONTEXT_SERVICE,
             CLIENT_AUTH,
             RECV_BUFFER_SIZE,
@@ -246,8 +236,11 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
 
     @Override
     public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
+        // Remove both historical and migrated Property Names
+        propertyConfiguration.removeProperty("Socket Keep Alive");
+        propertyConfiguration.removeProperty("socket-keep-alive");
+
         propertyConfiguration.renameProperty("Max Number of TCP Connections", WORKER_THREADS.getName());
-        propertyConfiguration.renameProperty("socket-keep-alive", SOCKET_KEEP_ALIVE.getName());
 
         // Older version of ListenSyslog had a single "Port" property.
         // Starting with 2.7.0, ListenSyslog now uses two mutually exclusive "TCP Port" and "UDP Port" properties in order to support the ListenPortDefinition feature of Property Descriptors.
@@ -319,19 +312,16 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
         final int maxSocketBufferSize;
         final int workerThreads;
         final SSLContextProvider sslContextProvider;
-        final Boolean socketKeepAlive;
         if (transportProtocol == TransportProtocol.TCP) {
             port = context.getProperty(TCP_PORT).evaluateAttributeExpressions().asInteger();
             maxSocketBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
             workerThreads = context.getProperty(WORKER_THREADS).asLong().intValue();
             sslContextProvider = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class);
-            socketKeepAlive = context.getProperty(SOCKET_KEEP_ALIVE).asBoolean();
         } else {
             port = context.getProperty(UDP_PORT).evaluateAttributeExpressions().asInteger();
             maxSocketBufferSize = 1_000_000;
             workerThreads = 2;
             sslContextProvider = null;
-            socketKeepAlive = false;
         }
 
         final InetAddress address = getListenAddress(networkInterfaceName);
@@ -341,8 +331,6 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
         factory.setThreadNamePrefix(String.format("%s[%s]", ListenSyslog.class.getSimpleName(), getIdentifier()));
         factory.setWorkerThreads(workerThreads);
         factory.setSocketReceiveBuffer(maxSocketBufferSize);
-
-        factory.setSocketKeepAlive(socketKeepAlive);
 
         if (sslContextProvider != null) {
             final SSLContext sslContext = sslContextProvider.createContext();

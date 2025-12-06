@@ -84,7 +84,6 @@ public class TestListenSyslog {
         final TransportProtocol protocol = TransportProtocol.TCP;
         runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
         runner.setProperty(ListenSyslog.TCP_PORT, "0");
-        runner.setProperty(ListenSyslog.SOCKET_KEEP_ALIVE, Boolean.FALSE.toString());
 
         assertSendSuccess(protocol);
     }
@@ -94,7 +93,6 @@ public class TestListenSyslog {
         final TransportProtocol protocol = TransportProtocol.TCP;
         runner.setProperty(ListenSyslog.PROTOCOL, protocol.toString());
         runner.setProperty(ListenSyslog.TCP_PORT, "0");
-        runner.setProperty(ListenSyslog.SOCKET_KEEP_ALIVE, Boolean.FALSE.toString());
         runner.setProperty(ListenSyslog.PARSE_MESSAGES, Boolean.FALSE.toString());
         runner.setProperty(ListenSyslog.MAX_BATCH_SIZE, "2");
 
@@ -110,7 +108,7 @@ public class TestListenSyslog {
         final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS);
         assertEquals(1, successFlowFiles.size(), "Success FlowFiles not matched");
 
-        final MockFlowFile flowFile = successFlowFiles.iterator().next();
+        final MockFlowFile flowFile = successFlowFiles.getFirst();
 
         final String batchedMessages = String.format("%s\n%s", VALID_MESSAGE, VALID_MESSAGE);
         flowFile.assertContentEquals(batchedMessages);
@@ -166,7 +164,7 @@ public class TestListenSyslog {
         final List<MockFlowFile> invalidFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID);
         assertEquals(1, invalidFlowFiles.size(), "Invalid FlowFiles not matched");
 
-        final MockFlowFile flowFile = invalidFlowFiles.iterator().next();
+        final MockFlowFile flowFile = invalidFlowFiles.getFirst();
         flowFile.assertAttributeEquals(SyslogAttributes.SYSLOG_SENDER.key(), LOCALHOST_ADDRESS);
         flowFile.assertAttributeEquals(SyslogAttributes.SYSLOG_PROTOCOL.key(), protocol.toString());
         flowFile.assertAttributeEquals(SyslogAttributes.SYSLOG_PORT.key(), Integer.toString(listeningPort));
@@ -189,7 +187,7 @@ public class TestListenSyslog {
         final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS);
         assertEquals(1, successFlowFiles.size(), "Success FlowFiles not matched");
 
-        final MockFlowFile flowFile = successFlowFiles.iterator().next();
+        final MockFlowFile flowFile = successFlowFiles.getFirst();
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), MIME_TYPE);
         flowFile.assertAttributeEquals(SyslogAttributes.SYSLOG_SENDER.key(), LOCALHOST_ADDRESS);
         flowFile.assertAttributeEquals(SyslogAttributes.SYSLOG_PROTOCOL.key(), protocol.toString());
@@ -209,7 +207,7 @@ public class TestListenSyslog {
 
         final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
         assertFalse(events.isEmpty(), "Provenance Events not found");
-        final ProvenanceEventRecord eventRecord = events.iterator().next();
+        final ProvenanceEventRecord eventRecord = events.getFirst();
         assertEquals(ProvenanceEventType.RECEIVE, eventRecord.getEventType());
         final String transitUri = String.format("%s://%s:%d", protocol.toString().toLowerCase(), LOCALHOST_ADDRESS, port);
         assertEquals(transitUri, eventRecord.getTransitUri(), "Provenance Transit URI not matched");
@@ -253,7 +251,7 @@ public class TestListenSyslog {
 
         assertNotNull(listenPorts);
         assertEquals(1, listenPorts.size());
-        final ListenPort listenPort = listenPorts.get(0);
+        final ListenPort listenPort = listenPorts.getFirst();
         assertEquals(portNumber, listenPort.getPortNumber());
         assertEquals(convertProtocol(protocol), listenPort.getTransportProtocol());
         assertEquals(List.of("syslog"), listenPort.getApplicationProtocols());
