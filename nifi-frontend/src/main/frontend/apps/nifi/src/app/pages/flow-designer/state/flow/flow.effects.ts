@@ -147,6 +147,7 @@ import { EditRemoteProcessGroup } from '../../ui/canvas/items/remote-process-gro
 import { HttpErrorResponse } from '@angular/common/http';
 import { SaveVersionDialog } from '../../ui/canvas/items/flow/save-version-dialog/save-version-dialog.component';
 import { ChangeVersionDialog } from '../../ui/canvas/items/flow/change-version-dialog/change-version-dialog';
+import { CreateBranchDialog } from '../../ui/canvas/items/flow/create-branch-dialog/create-branch-dialog';
 import { ChangeVersionProgressDialog } from '../../ui/canvas/items/flow/change-version-progress-dialog/change-version-progress-dialog';
 import { LocalChangesDialog } from '../../ui/canvas/items/flow/local-changes-dialog/local-changes-dialog';
 import { ClusterConnectionService } from '../../../../service/cluster-connection.service';
@@ -4086,6 +4087,99 @@ export class FlowEffects {
     /////////////////////////////
     // Change version effects
     /////////////////////////////
+
+    openCreateBranchDialogRequest$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.openCreateBranchDialogRequest),
+            map((action) => action.request),
+            switchMap((request) =>
+                from(this.flowService.getVersionInformation(request.processGroupId)).pipe(
+                    map((response) => {
+                        const versionControlInformation = response.versionControlInformation;
+                        if (!versionControlInformation) {
+                            return FlowActions.flowSnackbarError({
+                                error: 'Process Group is no longer under version control.'
+                            });
+                        }
+
+                        return FlowActions.openCreateBranchDialog({
+                            request: {
+                                processGroupId: request.processGroupId,
+                                revision: response.processGroupRevision,
+                                versionControlInformation
+                            }
+                        });
+                    }),
+                    catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                )
+            )
+        )
+    );
+
+    openCreateBranchDialog$ = createEffect(
+        () =>
+            this.actions$.pipe(
+                ofType(FlowActions.openCreateBranchDialog),
+                map((action) => action.request),
+                tap((request) => {
+                    const dialogRef = this.dialog.open(CreateBranchDialog, {
+                        ...SMALL_DIALOG,
+                        data: request,
+                        autoFocus: true
+                    });
+
+                    dialogRef.componentInstance.createBranch.pipe(take(1)).subscribe((branch) => {
+                        dialogRef.close();
+                        this.store.dispatch(
+                            FlowActions.createFlowBranch({
+                                request: {
+                                    processGroupId: request.processGroupId,
+                                    revision: request.revision,
+                                    branch,
+                                    sourceBranch: request.versionControlInformation.branch,
+                                    sourceVersion: request.versionControlInformation.version
+                                }
+                            })
+                        );
+                    });
+                })
+            ),
+        { dispatch: false }
+    );
+
+    createFlowBranch$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createFlowBranch),
+            map((action) => action.request),
+            switchMap((request) =>
+                this.flowService.createFlowBranch(request).pipe(
+                    map((response) => FlowActions.createFlowBranchSuccess({ response })),
+                    catchError((errorResponse: HttpErrorResponse) => of(this.snackBarOrFullScreenError(errorResponse)))
+                )
+            )
+        )
+    );
+
+    createFlowBranchSuccess$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(FlowActions.createFlowBranchSuccess),
+            map((action) => action.response),
+            tap((response) => {
+                const branch = response.versionControlInformation?.branch;
+                const message = branch
+                    ? `Process Group is now tracking branch ${branch}.`
+                    : 'Branch creation completed successfully.';
+
+                this.store.dispatch(
+                    FlowActions.showOkDialog({
+                        title: 'Create Branch',
+                        message
+                    })
+                );
+            }),
+            switchMap(() => of(FlowActions.reloadFlow()))
+        )
+    );
 
     openChangeVersionDialogRequest$ = createEffect(() =>
         this.actions$.pipe(
