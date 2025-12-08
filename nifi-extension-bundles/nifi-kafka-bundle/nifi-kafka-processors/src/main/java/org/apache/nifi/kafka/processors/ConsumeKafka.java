@@ -446,7 +446,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
                 throw new ProcessException(
                         String.format(
-                                "Illegal Partition Assignment: There are %d partition%s statically assigned using the %s.* property names, but the Kafka topic(s) have %d partition%s",
+                                "Illegal Partition Assignment: There %s %d partition%s statically assigned using the %s.* property names, but the Kafka topic(s) have %d partition%s",
+                                numAssignedPartitions == 1 ? "is" : "are",
                                 numAssignedPartitions,
                                 numAssignedPartitions == 1 ? "" : "s",
                                 PARTITIONS_PROPERTY_PREFIX,
@@ -686,14 +687,14 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 final String thisTopic = topicAndPartitionStates.getKey();
                 final int partitionsThisTopic = topicAndPartitionStates.getValue().size();
                 if (partitionsEachTopic != 0 && partitionsThisTopic != partitionsEachTopic) {
-                    String.format(
+                    throw new IllegalStateException(String.format(
                             "The topics do not have the same number of partitions. Topic '%s' has %d partition%s, while others have %d partition%s",
                             thisTopic,
                             partitionsThisTopic,
                             partitionsThisTopic == 1 ? "" : "s",
                             partitionsEachTopic,
                             partitionsEachTopic == 1 ? "" : "s"
-                    );
+                    ));
                 }
 
                 partitionsEachTopic = partitionsThisTopic;
