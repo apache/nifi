@@ -53,21 +53,21 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 @Tags({"graph", "gremlin", "cypher", "enrich", "record"})
-@CapabilityDescription("This processor uses fields from FlowFile records to add property values to nodes in a graph. Each record is associated with an individual node "
+@CapabilityDescription("This processor uses fields from FlowFile records to add property values to nodes or edges in a graph. Each record is associated with an individual node/edge "
         + "(associated by the specified 'identifier' field value), and a single FlowFile will be output for all successful operations. Failed records will be sent as "
         + "individual FlowFiles to the failure relationship.")
 @WritesAttributes({
         @WritesAttribute(attribute = EnrichGraphRecord.GRAPH_OPERATION_TIME, description = "The amount of time it took to execute all of the graph operations."),
 })
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
-@DynamicProperty(name = "Field(s) containing values to be added to the matched node as properties",
+@DynamicProperty(name = "Field(s) containing values to be added to the matched node/edge as properties. If no user-defined properties are added, all fields except the identifier "
+        + "will be added as properties on the node/edge",
         value = "The variable name to be set", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "A dynamic property specifying a RecordField Expression identifying field(s) for whose values will be added to the matched node as properties")
 public class EnrichGraphRecord extends  AbstractGraphExecutor {
@@ -244,28 +244,44 @@ public class EnrichGraphRecord extends  AbstractGraphExecutor {
                 FlowFile graph = session.create(input);
 
                 try {
-                    Map<String, Object> dynamicPropertyMap = new HashMap<>();
-                    for (String entry : dynamic.keySet()) {
-                        if (!dynamicPropertyMap.containsKey(entry)) {
-                            final List<FieldValue> propertyValues = getRecordValue(record, dynamic.get(entry));
-                            // Use the first value if multiple are found
-                            if (propertyValues == null || propertyValues.isEmpty() || propertyValues.get(0).getValue() == null) {
-                                throw new IOException("Dynamic property field(s) not found in record (check the RecordPath Expression), sending this record to failure");
-                            }
-
-                            dynamicPropertyMap.put(entry, propertyValues.get(0).getValue());
-                        }
-                    }
-
-                    dynamicPropertyMap.putAll(input.getAttributes());
-                    getLogger().debug("Dynamic Properties: {}", dynamicPropertyMap);
                     final String identifierField = context.getProperty(IDENTIFIER_FIELD).evaluateAttributeExpressions(input).getValue();
-                    final String nodeType = context.getProperty(NODE_TYPE).evaluateAttributeExpressions(input).getValue();
                     final RecordPath identifierPath = recordPathCache.getCompiled(identifierField);
                     final List<FieldValue> identifierValues = getRecordValue(record, identifierPath);
                     if (identifierValues == null || identifierValues.isEmpty()) {
                         throw new IOException("Identifier field(s) not found in record (check the RecordPath Expression), sending this record to failure");
                     }
+                    Map<String, Object> dynamicPropertyMap = new HashMap<>();
+                    Set<String> keySet = dynamic.keySet();
+                    if (keySet.isEmpty()) {
+                        // Add all dynamic properties at the top level except the identifier field
+                        List<String> fieldNames = record.getSchema().getFieldNames();
+                        for (String fieldName : fieldNames) {
+                            if (fieldName.equals(identifierField)) {
+                                continue;
+                            }
+                            final List<FieldValue> propertyValues = getRecordValue(record, recordPathCache.getCompiled("/" + fieldName));
+                            // Use the first value if multiple are found
+                            if (propertyValues == null || propertyValues.isEmpty() || propertyValues.get(0).getValue() == null) {
+                                throw new IOException("Dynamic property field(s) not found in record (check the RecordPath Expression), sending this record to failure");
+                            }
+
+                            dynamicPropertyMap.put(fieldName, propertyValues.get(0).getValue());
+                        }
+                    } else {
+                        for (String entry : dynamic.keySet()) {
+                            if (!dynamicPropertyMap.containsKey(entry)) {
+                                final List<FieldValue> propertyValues = getRecordValue(record, dynamic.get(entry));
+                                // Use the first value if multiple are found
+                                if (propertyValues == null || propertyValues.isEmpty() || propertyValues.get(0).getValue() == null) {
+                                    throw new IOException("Dynamic property field(s) not found in record (check the RecordPath Expression), sending this record to failure");
+                                }
+
+                                dynamicPropertyMap.put(entry, propertyValues.get(0).getValue());
+                            }
+                        }
+                    }
+
+                    final String nodeType = context.getProperty(NODE_TYPE).evaluateAttributeExpressions(input).getValue();
                     List<Tuple<String, String>> identifiersAndValues = new ArrayList<>(identifierValues.size());
                     for (FieldValue fieldValue: identifierValues) {
                         if (fieldValue.getValue() == null) {

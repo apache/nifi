@@ -72,8 +72,8 @@ public class TestEnrichGraphRecord {
         attributes.put("id", "123");
 
         String inputContent = "[{\"id\": \"123\", \"name\": \"Node1\"},{\"id\": \"789\", \"name\": \"Node2\"}]";
-        testRunner.setProperty(IDENTIFIER_FIELD, "//id");
-        testRunner.setProperty("name", "//name");
+        testRunner.setProperty(IDENTIFIER_FIELD, "/id");
+        testRunner.setProperty("name", "/name");
         testRunner.enqueue(inputContent.getBytes(), attributes);
 
         testRunner.run();
@@ -103,8 +103,8 @@ public class TestEnrichGraphRecord {
 
         String inputContent = "[{\"id\": \"123\", \"name\": \"Node1\", \"relationship\": \"ASSOCIATED_WITH\"}," +
                 "{\"id\": \"789\", \"name\": \"Node2\",\"relationship\": \"ASSOCIATED_WITH\"}]";
-        testRunner.setProperty(IDENTIFIER_FIELD, "//relationship");
-        testRunner.setProperty("name", "//name");
+        testRunner.setProperty(IDENTIFIER_FIELD, "/relationship");
+        testRunner.setProperty("name", "/name");
         testRunner.setProperty(NODE_TYPE, GraphClientService.EDGES_TYPE);
         testRunner.enqueue(inputContent.getBytes(), attributes);
 
