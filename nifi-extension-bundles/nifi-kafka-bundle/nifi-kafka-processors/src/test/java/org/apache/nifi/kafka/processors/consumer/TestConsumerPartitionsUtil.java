@@ -36,24 +36,24 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-public class TestConsumerPartitionsUtil {
+class TestConsumerPartitionsUtil {
     private final ComponentLog logger = mock();
     private String hostname;
 
     @BeforeEach
-    public void setup() throws UnknownHostException {
+    void setup() throws UnknownHostException {
         hostname = InetAddress.getLocalHost().getHostName();
     }
 
     @Test
-    public void testNoPartitionAssignments() throws UnknownHostException {
-        final Map<String, String> properties = Collections.singletonMap("key", "value");
+    void testNoPartitionAssignments() throws UnknownHostException {
+        final Map<String, String> properties = Map.of("key", "value");
         final int[] partitions = ConsumerPartitionsUtil.getPartitionsForHost(properties, logger);
         assertNull(partitions);
     }
 
     @Test
-    public void testAllPartitionsAssignedToOneHost() throws UnknownHostException {
+    void testAllPartitionsAssignedToOneHost() throws UnknownHostException {
         final Map<String, String> properties = new HashMap<>();
         properties.put("key", "value");
         properties.put("partitions." + hostname, "0, 1, 2, 3");
@@ -64,7 +64,7 @@ public class TestConsumerPartitionsUtil {
     }
 
     @Test
-    public void testSomePartitionsSkipped() {
+    void testSomePartitionsSkipped() {
         final Map<String, String> properties = new HashMap<>();
         properties.put("key", "value");
         properties.put("partitions." + hostname, "0, 1, 2, 3, 5");
@@ -79,7 +79,7 @@ public class TestConsumerPartitionsUtil {
     }
 
     @Test
-    public void testCurrentNodeNotSpecified() {
+    void testCurrentNodeNotSpecified() {
         final Map<String, String> properties = new HashMap<>();
         properties.put("key", "value");
         properties.put("partitions.other-host", "0, 1, 2, 3");
@@ -90,7 +90,7 @@ public class TestConsumerPartitionsUtil {
     }
 
     @Test
-    public void testPartitionListedTwice() {
+    void testPartitionListedTwice() {
         final Map<String, String> properties = new HashMap<>();
         properties.put("key", "value");
         properties.put("partitions." + hostname, "2");
@@ -102,7 +102,7 @@ public class TestConsumerPartitionsUtil {
     }
 
     @Test
-    public void testNodeWithNoAssignment() throws UnknownHostException {
+    void testNodeWithNoAssignment() throws UnknownHostException {
         final Map<String, String> properties = new HashMap<>();
         properties.put("key", "value");
         properties.put("partitions." + hostname, "");

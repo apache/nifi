@@ -76,7 +76,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -445,16 +444,23 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             if (partitionCount != numAssignedPartitions) {
                 context.yield();
 
-                throw new ProcessException("Illegal Partition Assignment: There are "
-                        + numAssignedPartitions + " partitions statically assigned using the " + PARTITIONS_PROPERTY_PREFIX + ".* property names,"
-                        + " but the Kafka topic(s) have " + partitionCount + " partitions");
+                throw new ProcessException(
+                        String.format(
+                                "Illegal Partition Assignment: There are %d partition%s statically assigned using the %s.* property names, but the Kafka topic(s) have %d partition%s",
+                                numAssignedPartitions,
+                                numAssignedPartitions == 1 ? "" : "s",
+                                PARTITIONS_PROPERTY_PREFIX,
+                                partitionCount,
+                                partitionCount == 1 ? "" : "s"
+                        )
+                );
             }
 
             final int[] assignedPartitions;
             try {
                 assignedPartitions = ConsumerPartitionsUtil.getPartitionsForHost(context.getAllProperties(), getLogger());
             } catch (final UnknownHostException uhe) {
-                throw new ProcessException("Could not determine localhost's hostname", uhe);
+                throw new ProcessException("Failed to resolve local host address", uhe);
             }
 
             availablePartitionedPollingContexts.clear();
@@ -483,14 +489,18 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final KafkaConsumerService consumerService = getConsumerService(context);
-        final PollingContext pollingContext = Optional.ofNullable(consumerServiceToPartitionedPollingContext.get(consumerService))
-                .orElse(this.pollingContext);
 
         if (consumerService == null) {
             getLogger().debug("No Kafka Consumer Service available; will yield and return immediately");
             context.yield();
             return;
         }
+
+        final PollingContext partitionedPollingContext = consumerServiceToPartitionedPollingContext.get(consumerService);
+
+        final PollingContext pollingContext = partitionedPollingContext == null ?
+                this.pollingContext :
+                partitionedPollingContext;
 
         final long maxUncommittedMillis = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         final long stopTime = System.currentTimeMillis() + maxUncommittedMillis;
@@ -622,14 +632,14 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                             .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
                             .explanation(String.format("Partitions [%d] found for Topics %s", partitionStates.size(), pollingContext.getTopics()));
                 } catch (final Exception e) {
-                    getLogger().error("Topics {} Partition verification failed", pollingContext.getTopics(), e);
+                    verificationLogger.error("Topics {} Partition verification failed", pollingContext.getTopics(), e);
                     verificationPartitions
                             .outcome(ConfigVerificationResult.Outcome.FAILED)
                             .explanation(String.format("Topics %s Partition access failed: %s", pollingContext.getTopics(), e));
                 }
                 verificationResults.add(verificationPartitions.build());
             } catch (IOException e) {
-                getLogger().warn("Couldn't close KafkaConsumerService after verification.", e);
+                verificationLogger.warn("Failed to close KafkaConsumerService after verification", e);
             }
         }
 
@@ -671,17 +681,25 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         int partitionsEachTopic = 0;
         try (KafkaConsumerService kafkaConsumerService = connectionService.getConsumerService(this.pollingContext)) {
-            Map<String, List<PartitionState>> topicToPartitionStates = kafkaConsumerService.getPartitionStatesByTopic();
-            for (List<PartitionState> partitionStatesForTopic : topicToPartitionStates.values()) {
-                final int partitionsThisTopic = partitionStatesForTopic.size();
+            final Map<String, List<PartitionState>> topicToPartitionStates = kafkaConsumerService.getPartitionStatesByTopic();
+            for (Map.Entry<String, List<PartitionState>> topicAndPartitionStates : topicToPartitionStates.entrySet()) {
+                final String thisTopic = topicAndPartitionStates.getKey();
+                final int partitionsThisTopic = topicAndPartitionStates.getValue().size();
                 if (partitionsEachTopic != 0 && partitionsThisTopic != partitionsEachTopic) {
-                    throw new IllegalStateException("The specific topic names do not have the same number of partitions");
+                    String.format(
+                            "The topics do not have the same number of partitions. Topic '%s' has %d partition%s, while others have %d partition%s",
+                            thisTopic,
+                            partitionsThisTopic,
+                            partitionsThisTopic == 1 ? "" : "s",
+                            partitionsEachTopic,
+                            partitionsEachTopic == 1 ? "" : "s"
+                    );
                 }
 
                 partitionsEachTopic = partitionsThisTopic;
             }
         } catch (IOException e) {
-            getLogger().warn("Couldn't close KafkaConsumerService after partition assignment check.", e);
+            getLogger().warn("Failed to close KafkaConsumerService after partition assignment check", e);
         }
 
         return partitionsEachTopic;
@@ -690,7 +708,10 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private void recreatePartitionedConsumerServices() {
         PollingContext partitionedPollingContext;
         while ((partitionedPollingContext = availablePartitionedPollingContexts.poll()) != null) {
-            getLogger().info("Creating new Partitioned Kafka Consumer Service.");
+            final Collection<String> topics = partitionedPollingContext.getTopics();
+            final Integer partition = partitionedPollingContext.getPartition();
+
+            getLogger().info("Creating new Partitioned Kafka Consumer Service for topic(s): {}, partition {}", topics, partition);
 
             final KafkaConsumerService partitionedConsumerService = connectionService.getConsumerService(partitionedPollingContext);
 
@@ -768,7 +789,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         return createPollingContext(context, null);
     }
 
-    private PollingContext createPollingContext(final ProcessContext context, Integer partition) {
+    private PollingContext createPollingContext(final ProcessContext context, final Integer partition) {
         final String groupId = context.getProperty(GROUP_ID).getValue();
         final String offsetReset = context.getProperty(AUTO_OFFSET_RESET).getValue();
         final AutoOffsetReset autoOffsetReset = AutoOffsetReset.valueOf(offsetReset.toUpperCase());

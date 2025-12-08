@@ -42,7 +42,7 @@ public class ConsumerPartitionsUtil {
             return null;
         }
 
-        logger.info("Found the following mapping of hosts to partitions: {}", hostnameToPartitionString);
+        logger.debug("Found the following mapping of hosts to partitions: {}", hostnameToPartitionString);
 
         // Determine the partitions based on hostname/IP.
         int[] partitionsForThisHost = getPartitionsForThisHost(partitionsByHost);
@@ -62,65 +62,6 @@ public class ConsumerPartitionsUtil {
         }
 
         return partitionsByHost;
-    }
-
-    private static int[] getPartitionsForThisHost(final Map<String, int[]> partitionsByHost) throws UnknownHostException {
-        // Determine the partitions based on hostname/IP.
-        final InetAddress localhost = InetAddress.getLocalHost();
-        int[] partitionsForThisHost = partitionsByHost.get(localhost.getCanonicalHostName());
-        if (partitionsForThisHost != null) {
-            return partitionsForThisHost;
-        }
-
-        partitionsForThisHost = partitionsByHost.get(localhost.getHostName());
-        if (partitionsForThisHost != null) {
-            return partitionsForThisHost;
-        }
-
-        return partitionsByHost.get(localhost.getHostAddress());
-    }
-
-    private static Map<String, String> mapHostnamesToPartitionStrings(final Map<String, String> properties) {
-        final Map<String, String> hostnameToPartitionString = new HashMap<>();
-        for (final Map.Entry<String, String> entry : properties.entrySet()) {
-            final String propertyName = entry.getKey();
-            if (!propertyName.startsWith(PARTITION_PROPERTY_NAME_PREFIX)) {
-                continue;
-            }
-
-            if (propertyName.length() <= PARTITION_PROPERTY_NAME_PREFIX.length()) {
-                continue;
-            }
-
-            final String propertyNameAfterPrefix = propertyName.substring(PARTITION_PROPERTY_NAME_PREFIX.length());
-            hostnameToPartitionString.put(propertyNameAfterPrefix, entry.getValue());
-        }
-
-        return hostnameToPartitionString;
-    }
-
-    private static int[] parsePartitions(final String hostname, final String propertyValue) {
-        final String[] splits = propertyValue.split(",");
-        final List<Integer> partitionList = new ArrayList<>();
-        for (final String split : splits) {
-            if (split.isBlank()) {
-                continue;
-            }
-
-            try {
-                final int partition = Integer.parseInt(split.trim());
-                if (partition < 0) {
-                    throw new IllegalArgumentException("Found invalid value for the partitions for hostname " + hostname + ": " + split + " is negative");
-                }
-
-                partitionList.add(partition);
-            } catch (final NumberFormatException nfe) {
-                throw new IllegalArgumentException("Found invalid value for the partitions for hostname " + hostname + ": " + split + " is not an integer");
-            }
-        }
-
-        // Map out List<Integer> to int[]
-        return partitionList.stream().mapToInt(Integer::intValue).toArray();
     }
 
     public static ValidationResult validateConsumePartitions(final Map<String, String> properties) {
@@ -205,5 +146,64 @@ public class ConsumerPartitionsUtil {
         }
 
         return count;
+    }
+
+    private static int[] getPartitionsForThisHost(final Map<String, int[]> partitionsByHost) throws UnknownHostException {
+        // Determine the partitions based on hostname/IP.
+        final InetAddress localhost = InetAddress.getLocalHost();
+        int[] partitionsForThisHost = partitionsByHost.get(localhost.getCanonicalHostName());
+        if (partitionsForThisHost != null) {
+            return partitionsForThisHost;
+        }
+
+        partitionsForThisHost = partitionsByHost.get(localhost.getHostName());
+        if (partitionsForThisHost != null) {
+            return partitionsForThisHost;
+        }
+
+        return partitionsByHost.get(localhost.getHostAddress());
+    }
+
+    private static Map<String, String> mapHostnamesToPartitionStrings(final Map<String, String> properties) {
+        final Map<String, String> hostnameToPartitionString = new HashMap<>();
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String propertyName = entry.getKey();
+            if (!propertyName.startsWith(PARTITION_PROPERTY_NAME_PREFIX)) {
+                continue;
+            }
+
+            if (propertyName.length() <= PARTITION_PROPERTY_NAME_PREFIX.length()) {
+                continue;
+            }
+
+            final String propertyNameAfterPrefix = propertyName.substring(PARTITION_PROPERTY_NAME_PREFIX.length());
+            hostnameToPartitionString.put(propertyNameAfterPrefix, entry.getValue());
+        }
+
+        return hostnameToPartitionString;
+    }
+
+    private static int[] parsePartitions(final String hostname, final String propertyValue) {
+        final String[] splits = propertyValue.split(",");
+        final List<Integer> partitionList = new ArrayList<>();
+        for (final String split : splits) {
+            if (split.isBlank()) {
+                continue;
+            }
+
+            try {
+                final int partition = Integer.parseInt(split.trim());
+                if (partition < 0) {
+                    throw new IllegalArgumentException("Found invalid value for the partitions for hostname " + hostname + ": " + split + " is negative");
+                }
+
+                partitionList.add(partition);
+            } catch (final NumberFormatException nfe) {
+                throw new IllegalArgumentException("Found invalid value for the partitions for hostname " + hostname + ": " + split + " is not an integer");
+            }
+        }
+
+        // Map out List<Integer> to int[]
+        return partitionList.stream().mapToInt(Integer::intValue).toArray();
     }
 }

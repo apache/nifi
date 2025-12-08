@@ -35,7 +35,7 @@ public class Subscription {
     private final Pattern topicPattern;
     private final AutoOffsetReset autoOffsetReset;
 
-    public Subscription(final String groupId, final Integer partition, final Collection<String> topics, final AutoOffsetReset autoOffsetReset) {
+    public Subscription(final String groupId, final Collection<String> topics, final Integer partition, final AutoOffsetReset autoOffsetReset) {
         this.groupId = Objects.requireNonNull(groupId, "Group ID required");
         this.topics = Collections.unmodifiableCollection(Objects.requireNonNull(topics, "Topics required"));
         this.partition = partition;
