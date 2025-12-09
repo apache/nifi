@@ -4570,7 +4570,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     public CompletableFuture<Void> purge() {
         final CompletableFuture<Void> purgeFuture = new CompletableFuture<>();
 
-        final Thread purgeThread = Thread.ofVirtual().name("Purge " + this).start(() -> {
+        Thread.ofVirtual().name("Purge " + this).start(() -> {
             try {
                 stopProcessing().get();
                 controllerServiceProvider.disableControllerServicesAsync(getControllerServices(true)).get();

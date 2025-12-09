@@ -80,7 +80,6 @@ public class StandardConnectorNode implements ConnectorNode {
     private volatile FrameworkFlowContext workingFlowContext;
 
     private volatile String name;
-    private volatile boolean performValidation = true;
     private volatile FrameworkConnectorInitializationContext initializationContext;
 
 
@@ -494,7 +493,7 @@ public class StandardConnectorNode implements ConnectorNode {
                 stepName, groupName, propertyName, this));
         }
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             return getConnector().fetchAllowableValues(stepName, groupName, propertyName, workingFlowContext);
         }
     }
@@ -506,7 +505,7 @@ public class StandardConnectorNode implements ConnectorNode {
                 stepName, groupName, propertyName, this));
         }
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             return getConnector().fetchAllowableValues(stepName, groupName, propertyName, workingFlowContext, filter);
         }
     }
@@ -515,7 +514,7 @@ public class StandardConnectorNode implements ConnectorNode {
     public void initializeConnector(final FrameworkConnectorInitializationContext initializationContext) {
         this.initializationContext = initializationContext;
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().initialize(initializationContext);
         }
 
@@ -529,7 +528,7 @@ public class StandardConnectorNode implements ConnectorNode {
         }
 
         final VersionedExternalFlow initialFlow;
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             initialFlow = getConnector().getInitialFlow();
         }
 
@@ -551,13 +550,11 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void pauseValidationTrigger() {
-        performValidation = false;
+        // No-op for ConnectorNode
     }
 
     @Override
     public void resumeValidationTrigger() {
-        performValidation = true;
-
         logger.debug("Resuming Triggering of Validation State for {}; Resetting validation state", this);
         resetValidationState();
     }
@@ -566,7 +563,7 @@ public class StandardConnectorNode implements ConnectorNode {
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final List<PropertyGroupConfiguration> groupConfigurations) {
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
 
             final DescribedValueProvider allowableValueProvider = (step, groupName, propertyName) ->
                 fetchAllowableValues(step, groupName, propertyName, workingFlowContext);
@@ -644,7 +641,7 @@ public class StandardConnectorNode implements ConnectorNode {
             return results;
         }
 
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             results.addAll(getConnector().verify(workingFlowContext));
         }
 
@@ -669,7 +666,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public List<ConfigurationStep> getConfigurationSteps() {
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             return getConnector().getConfigurationSteps(workingFlowContext);
         }
     }
@@ -771,7 +768,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     private List<DescribedValue> fetchAllowableValues(final String stepName, final String groupName, final String propertyName, final FlowContext context) {
         final List<AllowableValue> allowableValues;
-        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             allowableValues = getConnector().fetchAllowableValues(stepName, groupName, propertyName, activeFlowContext);
         }
 
