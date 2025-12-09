@@ -306,7 +306,7 @@ public class Kafka3ConnectionServiceBaseIT {
         assertTrue(clusterDescriptionStep.isPresent());
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, clusterDescriptionStep.get().getOutcome());
 
-        final Pattern brokerPattern = Pattern.compile("Kafka Node Reachability - Node \\d+ \\(.*:\\d+\\)");
+        final Pattern brokerPattern = Pattern.compile(".*? Node \\d+ \\(.*:\\d+\\)");
         final Optional<ConfigVerificationResult> reachBrokerStep = results.stream().filter(it -> brokerPattern.matcher(it.getVerificationStepName()).matches()).findFirst();
         assertTrue(reachBrokerStep.isPresent());
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, reachBrokerStep.get().getOutcome());

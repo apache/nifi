@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.kafka.service.verification;
+package org.apache.nifi.kafka.service;
 
 import org.apache.commons.io.function.IOTriConsumer;
 import org.apache.kafka.clients.admin.Admin;
@@ -25,7 +25,6 @@ import org.apache.kafka.common.Node;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.logging.ComponentLog;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -46,7 +45,7 @@ import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCES
 /**
  * Verifies Kafka cluster connectivity and node reachability.
  */
-public class KafkaClusterVerifier {
+class KafkaClusterVerifier {
 
     private static final String CLUSTER_DESCRIPTION_STEP = "Kafka Cluster Description";
     private static final String NODE_CONFIG_CHECK_STEP = "Kafka Node Reachability";
@@ -56,13 +55,13 @@ public class KafkaClusterVerifier {
     private final ComponentLog logger;
     private final IOTriConsumer<String, Integer, Duration> socketConnector;
 
-    public KafkaClusterVerifier(final Duration verifyTimeout, final ComponentLog logger) {
+    KafkaClusterVerifier(final Duration verifyTimeout, final ComponentLog logger) {
         this.verifyTimeout = verifyTimeout;
         this.logger = logger;
         this.socketConnector = KafkaClusterVerifier::defaultReachServer;
     }
 
-    @VisibleForTesting
+    // visible for testing
     KafkaClusterVerifier(final Duration verifyTimeout, final ComponentLog logger, final IOTriConsumer<String, Integer, Duration> socketConnector) {
         this.verifyTimeout = verifyTimeout;
         this.logger = logger;
@@ -77,17 +76,17 @@ public class KafkaClusterVerifier {
      * @param bootstrapServers Bootstrap servers configuration string
      * @return List of verification results
      */
-    public List<ConfigVerificationResult> verifyClusterConnectivity(final Admin admin, final String bootstrapServers) {
+    List<ConfigVerificationResult> verifyClusterConnectivity(final Admin admin, final String bootstrapServers) {
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         // Use virtual thread executor for lightweight parallel execution
         try (final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            final DescribeClusterResultInternal describeClusterResultInternal = describeCluster(admin);
-            results.add(describeClusterResultInternal.result());
+            final ClusterNodeResult clusterNodeResult = describeCluster(admin);
+            results.add(clusterNodeResult.result());
 
-            if (describeClusterResultInternal.nodes() != null) {
+            if (clusterNodeResult.nodes() != null) {
                 // Check each node's configuration
-                results.addAll(verifyNodesReachability(describeClusterResultInternal.nodes(), executor));
+                results.addAll(verifyNodesReachability(clusterNodeResult.nodes(), executor));
 
             } else {
                 // Fallback to checking bootstrap servers
@@ -98,9 +97,9 @@ public class KafkaClusterVerifier {
         return results;
     }
 
-    private record DescribeClusterResultInternal(Collection<Node> nodes, ConfigVerificationResult result) { }
+    private record ClusterNodeResult(Collection<Node> nodes, ConfigVerificationResult result) { }
 
-    private DescribeClusterResultInternal describeCluster(final Admin admin) {
+    private ClusterNodeResult describeCluster(final Admin admin) {
         Collection<Node> nodes = null;
         ConfigVerificationResult configVerificationResult;
         try {
@@ -109,7 +108,7 @@ public class KafkaClusterVerifier {
             final KafkaFuture<Collection<Node>> nodesFuture = describeClusterResult.nodes();
             nodes = nodesFuture.get();
 
-            final String clusterExplanation = String.format("Cluster Nodes Found [%d]", nodes.size());
+            final String clusterExplanation = "Cluster Nodes Found [%d]".formatted(nodes.size());
             configVerificationResult =
                 new ConfigVerificationResult.Builder()
                     .verificationStepName(CLUSTER_DESCRIPTION_STEP)
@@ -139,7 +138,7 @@ public class KafkaClusterVerifier {
             }
         }
 
-        return new DescribeClusterResultInternal(nodes, configVerificationResult);
+        return new ClusterNodeResult(nodes, configVerificationResult);
     }
 
     private boolean isCausedByAuthorizationException(final Exception e) {
@@ -189,7 +188,7 @@ public class KafkaClusterVerifier {
                         new ConfigVerificationResult.Builder()
                                 .verificationStepName(verifyNodeStepName(node))
                                 .outcome(FAILED)
-                                .explanation(String.format("Task execution failed: %s", e))
+                                .explanation("Task execution failed: %s".formatted(e))
                                 .build()
                 );
             }
@@ -221,13 +220,13 @@ public class KafkaClusterVerifier {
             logger.warn("Node {} ({}:{}) is not reachable", node.id(), node.host(), node.port(), e);
             return stepBuilder
                 .outcome(FAILED)
-                .explanation(String.format("Connection failed: %s", e))
+                .explanation("Connection failed: %s".formatted(e))
                 .build();
         }
     }
 
     private String verifyNodeStepName(final Node node) {
-        return String.format("%s - Node %s (%s:%d)", NODE_CONFIG_CHECK_STEP, node.id(), node.host(), node.port());
+        return "%s - Node %s (%s:%d)".formatted(NODE_CONFIG_CHECK_STEP, node.id(), node.host(), node.port());
     }
 
     /**
@@ -291,7 +290,7 @@ public class KafkaClusterVerifier {
                         new ConfigVerificationResult.Builder()
                                 .verificationStepName(verifyBootstrapServerStepName(server))
                                 .outcome(FAILED)
-                                .explanation(String.format("Task execution failed: %s", e))
+                                .explanation("Task execution failed: %s".formatted(e))
                                 .build()
                 );
             }
@@ -333,7 +332,7 @@ public class KafkaClusterVerifier {
                 logger.warn("Bootstrap Server {} is not reachable", server, e);
                 return stepBuilder
                     .outcome(FAILED)
-                    .explanation(String.format("Connection failed: %s", e))
+                    .explanation("Connection failed: %s".formatted(e))
                     .build();
             }
 
@@ -341,13 +340,13 @@ public class KafkaClusterVerifier {
             logger.warn("Bootstrap Server {} reachability check failed", server, e);
             return stepBuilder
                     .outcome(FAILED)
-                    .explanation(String.format("Invalid format or error: %s", e))
+                    .explanation("Invalid format or error: %s".formatted(e))
                     .build();
         }
     }
 
     private String verifyBootstrapServerStepName(final String server) {
-        return String.format("%s - %s", BOOTSTRAP_REACHABILITY_STEP, server);
+        return "%s - %s".formatted(BOOTSTRAP_REACHABILITY_STEP, server);
     }
 
     private void reachServer(final String host, final int port) throws IOException {

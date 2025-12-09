@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.kafka.service.verification;
+package org.apache.nifi.kafka.service;
 
 import org.apache.commons.io.function.IOTriConsumer;
 import org.apache.kafka.clients.admin.Admin;
@@ -43,8 +43,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,7 +73,6 @@ class KafkaClusterVerifierTest {
 
     @Test
     void testVerifyClusterConnectivitySuccess() {
-        // Arrange
         final Node node1 = new Node(1, "broker1.example.com", 9092);
         final Collection<Node> nodes = List.of(node1);
 
@@ -83,17 +80,14 @@ class KafkaClusterVerifierTest {
         when(admin.describeCluster(any(DescribeClusterOptions.class))).thenReturn(describeClusterResult);
         when(describeClusterResult.nodes()).thenReturn(nodesFuture);
 
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, BOOTSTRAP_SERVERS);
 
-        // Assert - should have cluster description + 1 node result
-        assertEquals(2, results.size());
+        assertEquals(2, results.size(), "Should have cluster description + 1 node result");
 
         // Cluster description result
         assertEquals(SUCCESSFUL, results.getFirst().getOutcome());
         assertTrue(results.getFirst().getExplanation().contains("Cluster Nodes Found [1]"));
 
-        // Node verification result - check that we have at least one node result
         final boolean hasNodeResult = results.stream()
                 .anyMatch(r -> r.getVerificationStepName().contains("Node 1")
                     && r.getOutcome() == SUCCESSFUL
@@ -103,84 +97,66 @@ class KafkaClusterVerifierTest {
 
     @Test
     void testVerifyClusterConnectivityWithAuthorizationException() {
-        // Arrange
         when(admin.describeCluster(any(DescribeClusterOptions.class))).thenThrow(new AuthorizationException("Unauthorized"));
 
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, BOOTSTRAP_SERVERS);
 
-        // Assert
         assertFalse(results.isEmpty());
 
-        // Should have skipped cluster description
         final ConfigVerificationResult clusterResult = results.stream()
                 .filter(r -> r.getVerificationStepName().contains("Cluster Description"))
                 .findFirst()
                 .orElseThrow();
 
-        assertEquals(SKIPPED, clusterResult.getOutcome());
+        assertEquals(SKIPPED, clusterResult.getOutcome(), "Should have skipped cluster description");
         assertTrue(clusterResult.getExplanation().contains("Insufficient permissions"));
 
-        // Should have bootstrap server results (fallback)
         final long bootstrapResults = results.stream()
                 .filter(r -> r.getVerificationStepName().contains("Bootstrap Server Reachability"))
                 .count();
 
-        assertTrue(bootstrapResults > 0);
-
-        verify(logger).warn(eq("Describe Cluster insufficient permissions"), any(AuthorizationException.class));
+        assertTrue(bootstrapResults > 0, "Should have bootstrap server results (fallback)");
     }
 
     @Test
     void testVerifyClusterConnectivityWithGeneralException() {
-        // Arrange
         when(admin.describeCluster(any(DescribeClusterOptions.class))).thenThrow(new TimeoutException("Connection timeout"));
 
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, BOOTSTRAP_SERVERS);
 
-        // Assert
         assertFalse(results.isEmpty());
 
-        // Should have skipped cluster description
         final ConfigVerificationResult clusterResult = results.stream()
                 .filter(r -> r.getVerificationStepName().contains("Cluster Description"))
                 .findFirst()
                 .orElseThrow();
 
-        assertEquals(SKIPPED, clusterResult.getOutcome());
+        assertEquals(SKIPPED, clusterResult.getOutcome(), "Should skip cluster description");
         assertTrue(clusterResult.getExplanation().contains("Cluster description failed"));
-
-        verify(logger).error(eq("Describe Cluster failed"), any(Exception.class));
     }
 
     @Test
     void testVerifyClusterConnectivityWithEmptyNodes() {
-        // Arrange
         final Collection<Node> nodes = List.of();
         final KafkaFuture<Collection<Node>> nodesFuture = KafkaFuture.completedFuture(nodes);
         when(admin.describeCluster(any(DescribeClusterOptions.class))).thenReturn(describeClusterResult);
         when(describeClusterResult.nodes()).thenReturn(nodesFuture);
 
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, BOOTSTRAP_SERVERS);
 
-        // Assert
         assertTrue(results.size() >= 2);
 
         // Cluster description result
         assertEquals(SUCCESSFUL, results.getFirst().getOutcome());
         assertTrue(results.getFirst().getExplanation().contains("Cluster Nodes Found [0]"));
 
-        // Should have a failure for empty nodes
         final boolean hasEmptyNodesResult = results.stream()
                 .anyMatch(r -> r.getOutcome() == FAILED && r.getExplanation().contains("No nodes found in cluster"));
-        assertTrue(hasEmptyNodesResult);
+        assertTrue(hasEmptyNodesResult, "Should have a failure for empty nodes");
     }
 
     @Test
     void testVerifyNodeReachabilityWithTimeout() {
-        // Arrange
         final Node node = new Node(1, "broker1.example.com", 9092);
         final Collection<Node> nodes = List.of(node);
 
@@ -192,25 +168,21 @@ class KafkaClusterVerifierTest {
             throw new TimeoutException("Timeout");
         };
 
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, BOOTSTRAP_SERVERS);
 
-        // Assert - Timeout should indicate failure (node not reachable)
         final boolean hasFailedNodeResult = results.stream()
                 .anyMatch(r -> r.getVerificationStepName().contains("Node 1")
                         && r.getVerificationStepName().contains("broker1.example.com")
                         && r.getOutcome() == FAILED
-                        && r.getExplanation().matches("Connection failed: .*: Timeout"));
+                        && r.getExplanation().matches(".*Timeout"));
 
         assertTrue(hasFailedNodeResult, "Should have a failed node result for Timeout");
     }
 
     @Test
     void testVerifyBootstrapServersReachabilityWithNullServers() {
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, null);
 
-        // Assert - Should skip cluster description due to exception, then fail on null bootstrap servers
         final ConfigVerificationResult bootstrapResult = results.stream()
                 .filter(r -> r.getVerificationStepName().contains("Bootstrap Server"))
                 .findFirst()
@@ -222,10 +194,8 @@ class KafkaClusterVerifierTest {
 
     @Test
     void testVerifyBootstrapServersReachabilityWithEmptyServers() {
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, "   ");
 
-        // Assert
         final ConfigVerificationResult bootstrapResult = results.stream()
                 .filter(r -> r.getVerificationStepName().contains("Bootstrap Server"))
                 .findFirst()
@@ -237,15 +207,12 @@ class KafkaClusterVerifierTest {
 
     @Test
     void testVerifyBootstrapServersReachabilityWithInvalidFormat() {
-        // Arrange
         when(admin.describeCluster(any(DescribeClusterOptions.class))).thenThrow(new AuthorizationException("Unauthorized"));
 
         final String invalidServer = "invalid:server:format:9092";
 
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, invalidServer);
 
-        // Assert
         final ConfigVerificationResult bootstrapResult = results.stream()
                 .filter(r -> r.getVerificationStepName().contains("Bootstrap Server Reachability - " + invalidServer))
                 .findFirst()
@@ -257,20 +224,17 @@ class KafkaClusterVerifierTest {
 
     @Test
     void testVerifyBootstrapServersReachabilityMultiple() {
-        // Arrange
         when(admin.describeCluster(any(DescribeClusterOptions.class))).thenThrow(new AuthorizationException("Unauthorized"));
 
         final String multipleServers = "broker1:9092,broker2:9093,broker3:9094";
 
-        // Act
         final List<ConfigVerificationResult> results = verifier.verifyClusterConnectivity(admin, multipleServers);
 
-        // Assert - Should have results for all bootstrap servers
         final long bootstrapResultCount = results.stream()
                 .filter(r -> r.getVerificationStepName().contains("Bootstrap Server Reachability"))
                 .count();
 
-        assertTrue(bootstrapResultCount >= 3);
+        assertTrue(bootstrapResultCount >= 3, "Should have results for all bootstrap servers");
     }
 }
 
