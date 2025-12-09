@@ -179,7 +179,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public void registerMockBundle(final ClassLoader classLoader, final File workingDirectory) {
-        final BundleDetails mockBundleDetails = new BundleDetails.Builder()
+        new BundleDetails.Builder()
             .workingDir(workingDirectory)
             .coordinate(new BundleCoordinate("org.apache.nifi.mock", "nifi-connector-mock-bundle", "1.0.0"))
             .build();

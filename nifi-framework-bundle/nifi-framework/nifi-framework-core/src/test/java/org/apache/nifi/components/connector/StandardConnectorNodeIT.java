@@ -226,13 +226,11 @@ public class StandardConnectorNodeIT {
     }
 
     private void configure(final ConnectorNode connectorNode, final ConnectorConfiguration configuration) throws FlowUpdateException {
-        try (final FlowEngine flowEngine = new FlowEngine(1, "flow-engine")) {
-            connectorNode.prepareForUpdate();
-            for (final ConfigurationStepConfiguration stepConfig : configuration.getConfigurationStepConfigurations()) {
-                connectorNode.setConfiguration(stepConfig.stepName(), stepConfig.propertyGroupConfigurations());
-            }
-            connectorNode.applyUpdate();
+        connectorNode.prepareForUpdate();
+        for (final ConfigurationStepConfiguration stepConfig : configuration.getConfigurationStepConfigurations()) {
+            connectorNode.setConfiguration(stepConfig.stepName(), stepConfig.propertyGroupConfigurations());
         }
+        connectorNode.applyUpdate();
     }
 
     private ConnectorNode initializeDynamicFlowConnector() {
@@ -350,14 +348,12 @@ public class StandardConnectorNodeIT {
         // Because the component is being removed and there's data queued in its incoming connection, it should fail.
         final ConnectorConfiguration removeLogConfiguration = createConnectorConfiguration("Second Iteration", 5, false, false);
 
-        try (final FlowEngine flowEngine = new FlowEngine(1, "flow-engine")) {
-            connectorNode.prepareForUpdate();
-            final Throwable cause = assertThrows(FlowUpdateException.class, () -> configure(connectorNode, removeLogConfiguration));
-            connectorNode.abortUpdate(cause);
+        connectorNode.prepareForUpdate();
+        final Throwable cause = assertThrows(FlowUpdateException.class, () -> configure(connectorNode, removeLogConfiguration));
+        connectorNode.abortUpdate(cause);
 
-            rootGroup.findAllConnections().contains(connection);
-            assertFalse(connection.getFlowFileQueue().isEmpty());
-        }
+        rootGroup.findAllConnections().contains(connection);
+        assertFalse(connection.getFlowFileQueue().isEmpty());
     }
 
 
@@ -367,33 +363,31 @@ public class StandardConnectorNodeIT {
             SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
         assertNotNull(connectorNode);
 
-        try (final FlowEngine flowEngine = new FlowEngine(1, "flow-engine")) {
-            connectorNode.prepareForUpdate();
-            assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
+        connectorNode.prepareForUpdate();
+        assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
 
-            final Path tempFile = Files.createTempFile("StandardConnectorNodeIT", ".txt");
-            Files.writeString(tempFile, String.join("\n", "red", "blue", "yellow"));
+        final Path tempFile = Files.createTempFile("StandardConnectorNodeIT", ".txt");
+        Files.writeString(tempFile, String.join("\n", "red", "blue", "yellow"));
 
-            final ConnectorConfiguration configuration = createFileConfiguration(tempFile.toFile().getAbsolutePath());
-            configure(connectorNode, configuration);
+        final ConnectorConfiguration configuration = createFileConfiguration(tempFile.toFile().getAbsolutePath());
+        configure(connectorNode, configuration);
 
-            connectorNode.prepareForUpdate();
-            assertEquals(List.of("File", "Colors"), getConfigurationStepNames(connectorNode));
+        connectorNode.prepareForUpdate();
+        assertEquals(List.of("File", "Colors"), getConfigurationStepNames(connectorNode));
 
-            final ConfigurationStep colorConfigurationStep = connectorNode.getConfigurationSteps().stream()
-                .filter(step -> step.getName().equals("Colors"))
-                .findFirst()
-                .orElseThrow();
+        final ConfigurationStep colorConfigurationStep = connectorNode.getConfigurationSteps().stream()
+            .filter(step -> step.getName().equals("Colors"))
+            .findFirst()
+            .orElseThrow();
 
-            assertNotNull(colorConfigurationStep);
-            assertEquals(1, colorConfigurationStep.getPropertyGroups().size());
-            final ConnectorPropertyGroup primaryColorsPropertyGroup = colorConfigurationStep.getPropertyGroups().getFirst();
+        assertNotNull(colorConfigurationStep);
+        assertEquals(1, colorConfigurationStep.getPropertyGroups().size());
+        final ConnectorPropertyGroup primaryColorsPropertyGroup = colorConfigurationStep.getPropertyGroups().getFirst();
 
-            final List<String> allowableValues = primaryColorsPropertyGroup.getProperties().getFirst().getAllowableValues().stream()
-                .map(DescribedValue::getValue)
-                .toList();
-            assertEquals(List.of("red", "blue", "yellow"), allowableValues);
-        }
+        final List<String> allowableValues = primaryColorsPropertyGroup.getProperties().getFirst().getAllowableValues().stream()
+            .map(DescribedValue::getValue)
+            .toList();
+        assertEquals(List.of("red", "blue", "yellow"), allowableValues);
     }
 
     @Test
@@ -402,29 +396,27 @@ public class StandardConnectorNodeIT {
             SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
         assertNotNull(connectorNode);
 
-        try (final FlowEngine flowEngine = new FlowEngine(1, "testSimpleValidation")) {
-            connectorNode.prepareForUpdate();
-            assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
+        connectorNode.prepareForUpdate();
+        assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
 
-            final ConnectorConfiguration configuration = createFileConfiguration("/non/existent/file");
-            configure(connectorNode, configuration);
+        final ConnectorConfiguration configuration = createFileConfiguration("/non/existent/file");
+        configure(connectorNode, configuration);
 
-            final ValidationState validationState = connectorNode.performValidation();
-            assertNotNull(validationState);
-            assertEquals(ValidationStatus.INVALID, validationState.getStatus());
-            assertEquals(1, validationState.getValidationErrors().size());
+        final ValidationState validationState = connectorNode.performValidation();
+        assertNotNull(validationState);
+        assertEquals(ValidationStatus.INVALID, validationState.getStatus());
+        assertEquals(1, validationState.getValidationErrors().size());
 
-            final ValidationResult result = validationState.getValidationErrors().iterator().next();
-            result.getExplanation().contains("/non/existent/file");
+        final ValidationResult result = validationState.getValidationErrors().iterator().next();
+        result.getExplanation().contains("/non/existent/file");
 
-            final ConnectorConfiguration validConfig = createFileConfiguration(".");
-            configure(connectorNode, validConfig);
+        final ConnectorConfiguration validConfig = createFileConfiguration(".");
+        configure(connectorNode, validConfig);
 
-            final ValidationState updatedValidationState = connectorNode.performValidation();
-            assertEquals(ValidationStatus.VALID, updatedValidationState.getStatus(),
-                "Expected valid state but invalid due to " + updatedValidationState.getValidationErrors());
-            assertEquals(List.of(), updatedValidationState.getValidationErrors());
-        }
+        final ValidationState updatedValidationState = connectorNode.performValidation();
+        assertEquals(ValidationStatus.VALID, updatedValidationState.getStatus(),
+            "Expected valid state but invalid due to " + updatedValidationState.getValidationErrors());
+        assertEquals(List.of(), updatedValidationState.getValidationErrors());
     }
 
     @Test
