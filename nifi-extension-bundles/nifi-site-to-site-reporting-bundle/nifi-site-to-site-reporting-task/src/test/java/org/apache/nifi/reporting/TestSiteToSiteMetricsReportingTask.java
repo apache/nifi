@@ -36,8 +36,6 @@ import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 
@@ -62,7 +60,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.when;
 
-@DisabledOnOs(OS.WINDOWS)
 public class TestSiteToSiteMetricsReportingTask {
 
     private ReportingContext context;
@@ -99,7 +96,7 @@ public class TestSiteToSiteMetricsReportingTask {
         status.setProcessGroupStatus(groupStatuses);
     }
 
-    public MockSiteToSiteMetricsReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
+    MockSiteToSiteMetricsReportingTask initTask(Map<PropertyDescriptor, String> customProperties) throws InitializationException, IOException {
 
         final MockSiteToSiteMetricsReportingTask task = new MockSiteToSiteMetricsReportingTask();
         Map<PropertyDescriptor, String> properties = new HashMap<>();
@@ -219,7 +216,7 @@ public class TestSiteToSiteMetricsReportingTask {
         task.onTrigger(context);
 
         assertEquals(1, task.dataSent.size());
-        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonArray array = jsonReader.readObject().getJsonArray("metrics");
         for (int i = 0; i < array.size(); i++) {
@@ -247,7 +244,7 @@ public class TestSiteToSiteMetricsReportingTask {
         task.onTrigger(context);
 
         assertEquals(1, task.dataSent.size());
-        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        final String msg = new String(task.dataSent.getFirst(), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonArray array = jsonReader.readObject().getJsonArray("metrics");
         for (int i = 0; i < array.size(); i++) {
@@ -274,7 +271,7 @@ public class TestSiteToSiteMetricsReportingTask {
         task.onTrigger(context);
 
         assertEquals(1, task.dataSent.size());
-        String[] data = new String(task.dataSent.get(0)).split(",");
+        String[] data = new String(task.dataSent.getFirst()).split(",");
         assertEquals("\"nifi\"", data[0]);
         assertEquals("\"1234\"", data[1]);
         assertEquals("\"100\"", data[10]); // FlowFilesQueued
