@@ -754,7 +754,6 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final String managedGroupId = UUID.nameUUIDFromBytes((id + "-root").getBytes(StandardCharsets.UTF_8)).toString();
-        final String workingGroupId = UUID.nameUUIDFromBytes((id + "-working").getBytes(StandardCharsets.UTF_8)).toString();
         final ProcessGroup managedRootGroup = createProcessGroup(managedGroupId);
 
         final String paramContextId = UUID.nameUUIDFromBytes((id + "-parameter-context").getBytes(StandardCharsets.UTF_8)).toString();

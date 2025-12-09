@@ -44,6 +44,7 @@ public class MockStateManagerProvider implements StateManagerProvider {
         return stateManager;
     }
 
+    @Override
     public StateManager getStateManager(final String componentId, final boolean dropStateKeySupported) {
         return getStateManager(componentId);
     }
@@ -60,6 +61,7 @@ public class MockStateManagerProvider implements StateManagerProvider {
     public void disableClusterProvider() {
     }
 
+    @Override
     public boolean isClusterProviderEnabled() {
         return false;
     }

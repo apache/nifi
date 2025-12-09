@@ -1951,6 +1951,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return getConnectorMethods(getProcessor().getClass());
     }
 
+    @Override
     public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final ProcessContext processContext) throws InvocationFailedException {
         final ConfigurableComponent component = getComponent();
 
