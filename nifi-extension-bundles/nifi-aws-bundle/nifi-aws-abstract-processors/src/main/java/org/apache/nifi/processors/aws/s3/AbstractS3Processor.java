@@ -347,7 +347,7 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
         }
     }
 
-    @ConnectorMethod(name="getAvailableRegions", description="Returns the list of available AWS regions")
+    @ConnectorMethod(name = "getAvailableRegions", description = "Returns the list of available AWS regions")
     public List<String> getAvailableRegions() {
         return RegionUtil.getAwsRegionAllowableValues().stream()
             .map(AllowableValue::getValue)

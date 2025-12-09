@@ -25,7 +25,6 @@ import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.util.List;
-import java.util.Map;
 
 public class GhostConnector implements Connector {
     private final String identifier;
@@ -74,7 +73,8 @@ public class GhostConnector implements Connector {
     }
 
     @Override
-    public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext, final ConnectorValidationContext connectorValidationContext) {
+    public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext,
+            final ConnectorValidationContext connectorValidationContext) {
         return validationResults;
     }
 
