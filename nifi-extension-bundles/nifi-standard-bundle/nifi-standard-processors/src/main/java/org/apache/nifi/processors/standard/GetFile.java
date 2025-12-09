@@ -185,7 +185,7 @@ public class GetFile extends AbstractProcessor {
                     that appear in the Input Directory""")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("10 sec")
+            .defaultValue("30 sec")
             .build();
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
             .name("Batch Size")
