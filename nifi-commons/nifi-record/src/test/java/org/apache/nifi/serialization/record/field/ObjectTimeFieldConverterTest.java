@@ -26,7 +26,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Optional;
 
@@ -93,17 +92,17 @@ public class ObjectTimeFieldConverterTest {
     @ParameterizedTest
     @MethodSource("org.apache.nifi.serialization.record.field.DateTimeTestUtil#offsetSource")
     public void testConvertFieldTimeOffset(final String offset) {
-        final String timeString = TIME_DEFAULT + offset;
+        final String inputLocalTimeString = TIME_DEFAULT;
+        final String inputOffsetTimeString = inputLocalTimeString + offset;
 
-        final Time expected = new Time(
-                ZonedDateTime.of(LocalDate.EPOCH, LocalTime.parse(timeString, DateTimeFormatter.ofPattern(TIME_WITH_OFFSET_PATTERN)), ZoneId.of(offset))
-                        .toInstant()
-                        .toEpochMilli()
-        );
+        final LocalTime inputLocalTime = LocalTime.parse(inputLocalTimeString);
+        final ZonedDateTime inputTimeOnEpochStartDate = ZonedDateTime.of(LocalDate.EPOCH, inputLocalTime, ZoneId.of(offset));
+        final long inputTimeEpochMs = inputTimeOnEpochStartDate.toInstant().toEpochMilli();
+        final Time expectedTime = new Time(inputTimeEpochMs);
 
-        final Time time = CONVERTER.convertField(timeString, Optional.of(TIME_WITH_OFFSET_PATTERN), FIELD_NAME);
+        final Time convertedTime = CONVERTER.convertField(inputOffsetTimeString, Optional.of(TIME_WITH_OFFSET_PATTERN), FIELD_NAME);
 
-        assertEquals(expected.toString(), time.toString());
+        assertEquals(expectedTime.toString(), convertedTime.toString());
     }
 
 }

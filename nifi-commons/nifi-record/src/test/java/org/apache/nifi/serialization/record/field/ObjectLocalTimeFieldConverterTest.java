@@ -23,7 +23,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,15 +40,17 @@ class ObjectLocalTimeFieldConverterTest {
     @ParameterizedTest
     @MethodSource("org.apache.nifi.serialization.record.field.DateTimeTestUtil#offsetSource")
     void testConvertFieldStringWithTimeOffset(final String offset) {
-        final String timeString = TIME_DEFAULT + offset;
+        final String inputLocalTimeString = TIME_DEFAULT;
+        final String inputOffsetTimeString = inputLocalTimeString + offset;
 
-        final LocalTime expected = ZonedDateTime.of(LocalDate.EPOCH, LocalTime.parse(timeString, DateTimeFormatter.ofPattern(TIME_WITH_OFFSET_PATTERN)), ZoneId.of(offset))
-                .withZoneSameInstant(ZoneId.systemDefault())
-                .toLocalTime();
+        final LocalTime inputLocalTime = LocalTime.parse(inputLocalTimeString);
+        final ZonedDateTime inputTimeOnEpochStartDateInOriginalTimeZone = ZonedDateTime.of(LocalDate.EPOCH, inputLocalTime, ZoneId.of(offset));
+        final ZonedDateTime inputTimeOnEpochStartDateInSystemTimeZone = inputTimeOnEpochStartDateInOriginalTimeZone.withZoneSameInstant(ZoneId.systemDefault());
+        final LocalTime expectedLocalTime = inputTimeOnEpochStartDateInSystemTimeZone.toLocalTime();
 
-        final LocalTime localTime = CONVERTER.convertField(timeString, Optional.of(TIME_WITH_OFFSET_PATTERN), FIELD_NAME);
+        final LocalTime convertedLocalTime = CONVERTER.convertField(inputOffsetTimeString, Optional.of(TIME_WITH_OFFSET_PATTERN), FIELD_NAME);
 
-        assertEquals(expected, localTime);
+        assertEquals(expectedLocalTime, convertedLocalTime);
     }
 
 }
