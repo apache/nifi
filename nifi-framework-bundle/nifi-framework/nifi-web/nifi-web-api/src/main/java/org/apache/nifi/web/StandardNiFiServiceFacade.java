@@ -162,7 +162,6 @@ import org.apache.nifi.parameter.ParameterGroupConfiguration;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterReferenceManager;
-import org.apache.nifi.parameter.StandardParameterContext;
 import org.apache.nifi.parameter.StandardParameterContext.Builder;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.VerifiableProcessor;
