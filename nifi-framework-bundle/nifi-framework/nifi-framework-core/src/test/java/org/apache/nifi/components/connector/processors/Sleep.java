@@ -145,7 +145,7 @@ public class Sleep extends AbstractProcessor {
             }
         } catch (final InterruptedException interruptedException) {
             Thread.currentThread().interrupt();
-            logger.warn("Sleep processor interrupted while sleeping for {} ms", new Object[] {durationMillis});
+            logger.warn("Sleep processor interrupted while sleeping for {} ms", durationMillis);
         }
     }
 }

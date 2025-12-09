@@ -123,31 +123,37 @@ public class MockConnectorInitializationContext implements FrameworkConnectorIni
             this.mockExtensionMapper = mockExtensionMapper;
         }
 
+        @Override
         public Builder identifier(final String identifier) {
             this.identifier = identifier;
             return this;
         }
 
+        @Override
         public Builder name(final String name) {
             this.name = name;
             return this;
         }
 
+        @Override
         public Builder componentLog(final ComponentLog componentLog) {
             this.componentLog = componentLog;
             return this;
         }
 
+        @Override
         public Builder secretsManager(final SecretsManager secretsManager) {
             this.secretsManager = secretsManager;
             return this;
         }
 
+        @Override
         public Builder assetManager(final AssetManager assetManager) {
             this.assetManager = assetManager;
             return this;
         }
 
+        @Override
         public MockConnectorInitializationContext build() {
             return new MockConnectorInitializationContext(this);
         }

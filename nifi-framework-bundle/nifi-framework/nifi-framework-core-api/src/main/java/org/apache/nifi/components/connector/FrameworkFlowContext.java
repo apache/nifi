@@ -25,6 +25,7 @@ import org.apache.nifi.groups.ProcessGroup;
 public interface FrameworkFlowContext extends FlowContext {
     ProcessGroup getManagedProcessGroup();
 
+    @Override
     MutableConnectorConfigurationContext getConfigurationContext();
 
     void updateFlow(VersionedExternalFlow versionedExternalFlow, AssetManager assetManager) throws FlowUpdateException;

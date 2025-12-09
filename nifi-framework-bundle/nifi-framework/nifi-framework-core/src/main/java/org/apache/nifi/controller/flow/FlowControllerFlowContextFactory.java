@@ -25,8 +25,6 @@ import org.apache.nifi.components.connector.ProcessGroupFacadeFactory;
 import org.apache.nifi.components.connector.ProcessGroupFactory;
 import org.apache.nifi.components.connector.StandardFlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
-import org.apache.nifi.components.connector.components.ParameterContextFacade;
-import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.components.connector.facades.standalone.StandaloneParameterContextFacade;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.flow.Bundle;
@@ -78,8 +76,6 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
         final ProcessGroup processGroup = processGroupFactory.create(workingGroupId);
         copyGroupContents(activeManagedProcessGroup, processGroup, connectorId + "-working-context");
 
-        final ProcessGroupFacade processGroupFacade = processGroupFacadeFactory.create(processGroup, connectorLogger);
-        final ParameterContextFacade parameterContextFacade = new StandaloneParameterContextFacade(flowController, processGroup);
         final MutableConnectorConfigurationContext workingConfigurationContext = activeConfigurationContext.clone();
 
         return new StandardFlowContext(processGroup, workingConfigurationContext, processGroupFacadeFactory,

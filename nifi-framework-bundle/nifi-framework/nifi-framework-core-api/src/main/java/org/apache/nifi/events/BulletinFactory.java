@@ -70,7 +70,6 @@ public final class BulletinFactory {
     }
 
     public static Bulletin createBulletin(final ConnectorNode connector, final String category, final String severity, final String message) {
-        final String groupId = connector.getProcessGroupIdentifier();
         final String connectorName = connector.getName();
         return createBulletin(null, connectorName, connector.getIdentifier(), ComponentType.CONNECTOR, connector.getName(), category, severity, message, null, null);
     }
