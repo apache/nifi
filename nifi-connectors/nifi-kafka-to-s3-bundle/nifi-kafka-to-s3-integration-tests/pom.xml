@@ -65,11 +65,23 @@
         </dependency>
 
         <!-- Kafka client for producing test data -->
+        <!-- Override vulnerable kafka clients -->
         <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>kafka-clients</artifactId>
-            <version>3.9.0</version>
-            <scope>test</scope>
+            <version>4.1.1</version>
+            <exclusions>
+                <!-- Excluded and replaced with at.yawk.lz4 version -->
+                <exclusion>
+                    <groupId>org.lz4</groupId>
+                    <artifactId>lz4-java</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+            <version>1.10.1</version>
         </dependency>
 
         <!-- Confluent Schema Registry and Avro dependencies for testing -->
