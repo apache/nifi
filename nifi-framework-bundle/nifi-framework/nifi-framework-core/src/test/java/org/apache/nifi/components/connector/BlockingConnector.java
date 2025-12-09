@@ -24,7 +24,6 @@ import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 public class BlockingConnector implements Connector {
@@ -72,7 +71,8 @@ public class BlockingConnector implements Connector {
     }
 
     @Override
-    public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext, final ConnectorValidationContext connectorValidationContext) {
+    public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext,
+            final ConnectorValidationContext connectorValidationContext) {
         return List.of();
     }
 

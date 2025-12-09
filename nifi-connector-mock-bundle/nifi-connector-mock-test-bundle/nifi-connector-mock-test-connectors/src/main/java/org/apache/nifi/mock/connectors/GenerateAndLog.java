@@ -27,7 +27,6 @@ import org.apache.nifi.components.connector.util.VersionedFlowUtils;
 import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.util.List;
-import java.util.Map;
 
 public class GenerateAndLog extends AbstractConnector {
 

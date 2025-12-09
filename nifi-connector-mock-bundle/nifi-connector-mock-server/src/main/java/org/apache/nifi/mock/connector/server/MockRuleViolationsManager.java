@@ -33,8 +33,8 @@ public class MockRuleViolationsManager implements RuleViolationsManager {
     }
 
     @Override
-    public void upsertGroupViolations(final VersionedProcessGroup processGroup, final Collection<RuleViolation> violations, final Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations) {
-
+    public void upsertGroupViolations(final VersionedProcessGroup processGroup, final Collection<RuleViolation> violations,
+            final Map<VersionedComponent, Collection<RuleViolation>> componentToRuleViolations) {
     }
 
     @Override

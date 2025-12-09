@@ -20,7 +20,6 @@ package org.apache.nifi.mock.connector.server;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.PropertyGroupConfiguration;
-import org.apache.nifi.processor.Processor;
 
 import java.io.Closeable;
 import java.time.Duration;
