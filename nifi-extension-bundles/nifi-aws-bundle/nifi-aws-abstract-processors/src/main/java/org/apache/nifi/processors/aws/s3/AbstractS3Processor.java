@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
@@ -321,7 +320,7 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
         }
     }
 
-    @ConnectorMethod(name="getAvailableRegions", description="Returns the list of available AWS regions")
+    @ConnectorMethod(name = "getAvailableRegions", description = "Returns the list of available AWS regions")
     public List<String> getAvailableRegions() {
         return RegionUtil.getAwsRegionAllowableValues().stream()
             .map(AllowableValue::getValue)

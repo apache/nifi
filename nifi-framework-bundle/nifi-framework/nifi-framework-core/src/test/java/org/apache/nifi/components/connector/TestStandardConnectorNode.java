@@ -604,7 +604,9 @@ public class TestStandardConnectorNode {
         }
 
         @Override
-        public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext, final ConnectorValidationContext connectorValidationContext) {
+        public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext,
+                final ConnectorValidationContext connectorValidationContext) {
+
             final ValidationResult invalidResult = new ValidationResult.Builder()
                 .subject("Test Property")
                 .valid(false)

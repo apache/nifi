@@ -25,7 +25,6 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 public class SleepingConnector implements Connector {
     private final Duration sleepDuration;
@@ -67,10 +66,10 @@ public class SleepingConnector implements Connector {
     }
 
     @Override
-    public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext, final ConnectorValidationContext connectorValidationContext) {
+    public List<ValidationResult> validateConfigurationStep(final ConfigurationStep configurationStep, final ConnectorConfigurationContext connectorConfigurationContext,
+            final ConnectorValidationContext connectorValidationContext) {
         return List.of();
     }
-
 
     @Override
     public List<ConfigurationStep> getConfigurationSteps(final FlowContext fLowContext) {

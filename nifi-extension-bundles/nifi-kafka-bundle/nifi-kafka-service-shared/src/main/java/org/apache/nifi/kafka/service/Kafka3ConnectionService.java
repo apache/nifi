@@ -304,8 +304,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
     }
 
     @ConnectorMethod(
-        name="listTopicNames",
-        description="Returns a list of topic names available in the Kafka cluster",
+        name = "listTopicNames",
+        description = "Returns a list of topic names available in the Kafka cluster",
         arguments = {
             @MethodArgument(name = "context", type = ConfigurationContext.class, description = "The configuration context that specifies connectivity details")
         })
