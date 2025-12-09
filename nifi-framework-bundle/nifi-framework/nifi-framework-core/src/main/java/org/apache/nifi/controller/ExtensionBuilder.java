@@ -568,7 +568,7 @@ public class ExtensionBuilder {
            .name(name)
            .componentLog(componentLog)
            .secretsManager(flowController.getConnectorRepository().getSecretsManager())
-           .assetManager(flowController.getAssetManager())
+           .assetManager(flowController.getConnectorAssetManager())
            .build();
    }
 

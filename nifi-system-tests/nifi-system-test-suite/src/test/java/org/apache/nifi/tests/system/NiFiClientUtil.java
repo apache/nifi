@@ -67,6 +67,7 @@ import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceDTO;
@@ -125,6 +126,7 @@ import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -163,6 +165,12 @@ public class NiFiClientUtil {
 
     private ProcessorClient getProcessorClient() {
         final ProcessorClient client = nifiClient.getProcessorClient();
+        client.acknowledgeDisconnectedNode();
+        return client;
+    }
+
+    private ConnectorClient getConnectorClient() {
+        final ConnectorClient client = nifiClient.getConnectorClient();
         client.acknowledgeDisconnectedNode();
         return client;
     }
@@ -227,6 +235,32 @@ public class NiFiClientUtil {
         final ProcessorEntity processor = getProcessorClient().createProcessor(processGroupId, entity);
         logger.info("Created Processor [type={}, id={}, name={}, parentGroupId={}] for Test [{}]", simpleName(type), processor.getId(), processor.getComponent().getName(), processGroupId, testName);
         return processor;
+    }
+
+    public ConnectorEntity createConnector(final String simpleTypeName) throws NiFiClientException, IOException {
+        final String connectorType = NiFiSystemIT.TEST_CONNECTORS_PACKAGE + "." + simpleTypeName;
+        return createConnector(connectorType, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+    }
+
+    public ConnectorEntity createConnector(final String type, final String bundleGroupId, final String artifactId, final String version)
+            throws NiFiClientException, IOException {
+        final ConnectorDTO dto = new ConnectorDTO();
+        dto.setType(type);
+
+        final BundleDTO bundle = new BundleDTO();
+        bundle.setGroup(bundleGroupId);
+        bundle.setArtifact(artifactId);
+        bundle.setVersion(version);
+        dto.setBundle(bundle);
+
+        final ConnectorEntity entity = new ConnectorEntity();
+        entity.setComponent(dto);
+        entity.setRevision(createNewRevision());
+        entity.setDisconnectedNodeAcknowledged(true);
+
+        final ConnectorEntity connector = getConnectorClient().createConnector(entity);
+        logger.info("Created Connector [type={}, id={}, name={}] for Test [{}]", simpleName(type), connector.getId(), connector.getComponent().getName(), testName);
+        return connector;
     }
 
     private String simpleName(final String type) {

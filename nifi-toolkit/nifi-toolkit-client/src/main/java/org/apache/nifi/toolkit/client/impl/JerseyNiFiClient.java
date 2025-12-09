@@ -28,6 +28,7 @@ import org.apache.nifi.toolkit.client.AccessClient;
 import org.apache.nifi.toolkit.client.ConnectionClient;
 import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.ControllerClient;
+import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.ControllerServicesClient;
 import org.apache.nifi.toolkit.client.CountersClient;
 import org.apache.nifi.toolkit.client.FlowClient;
@@ -229,6 +230,16 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
+    public ConnectorClient getConnectorClient() {
+        return new JerseyConnectorClient(baseTarget);
+    }
+
+    @Override
+    public ConnectorClient getConnectorClient(final RequestConfig requestConfig) {
+        return new JerseyConnectorClient(baseTarget, requestConfig);
+    }
+
+    @Override
     public CountersClient getCountersClient() {
         return new JerseyCountersClient(baseTarget);
     }
@@ -363,7 +374,7 @@ public class JerseyNiFiClient implements NiFiClient {
         JacksonJaxbJsonProvider jacksonJaxbJsonProvider = new JacksonJaxbJsonProvider();
 
         ObjectMapper mapper = new ObjectMapper();
-        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.ALWAYS));
         mapper.setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(mapper.getTypeFactory()));
         // Ignore unknown properties so that deployed client remain compatible with
         // future versions of NiFi that add new fields

@@ -68,36 +68,20 @@ public class StandardAssetManager implements AssetManager {
     }
 
     @Override
-    public Asset createAsset(final String parameterContextId, final String assetName, final InputStream contents) throws IOException {
-        final String assetId = createAssetId(parameterContextId, assetName);
+    public Asset createAsset(final String ownerId, final String assetName, final InputStream contents) throws IOException {
+        final String assetId = createAssetId(ownerId, assetName);
+        final File assetFile = getFile(ownerId, assetName);
+        return saveAsset(ownerId, assetId, assetName, contents, assetFile);
+    }
 
-        final File file = getFile(parameterContextId, assetName);
-        final File dir = file.getParentFile();
-        if (!dir.exists()) {
-            try {
-                Files.createDirectories(dir.toPath());
-            } catch (final IOException ioe) {
-                throw new IOException("Could not create directory in order to store asset", ioe);
-            }
+    @Override
+    public Asset saveAsset(final String ownerId, final String assetId, final String assetName, final InputStream contents) throws IOException {
+        final String generatedAssetId = createAssetId(ownerId, assetName);
+        if (!generatedAssetId.equals(assetId)) {
+            throw new IllegalArgumentException("The provided asset id [%s] does not match the id this asset manager generated for the given owner and name".formatted(assetId));
         }
-
-        // Write contents to a temporary file, then move it to the final location.
-        // This allows us to avoid a situation where we upload a file, then we attempt to overwrite it but fail, leaving a corrupt asset.
-        final File tempFile = new File(dir, file.getName() + ".tmp");
-        logger.debug("Writing temp asset file [{}]", tempFile.getAbsolutePath());
-
-        try {
-            Files.copy(contents, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        } catch (final Exception e) {
-            throw new IOException("Failed to write asset to file " + tempFile.getAbsolutePath(), e);
-        }
-
-        Files.move(tempFile.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-
-        final String digest = computeDigest(file);
-        final Asset asset = new StandardAsset(assetId, parameterContextId, assetName, file, digest);
-        assets.put(assetId, asset);
-        return asset;
+        final File assetFile = getFile(ownerId, assetName);
+        return saveAsset(ownerId, assetId, assetName, contents, assetFile);
     }
 
     @Override
@@ -106,22 +90,22 @@ public class StandardAssetManager implements AssetManager {
     }
 
     @Override
-    public List<Asset> getAssets(final String parameterContextId) {
+    public List<Asset> getAssets(final String ownerId) {
         final List<Asset> allAssets = new ArrayList<>(assets.values());
-        final List<Asset> paramContextAssets = new ArrayList<>();
+        final List<Asset> ownerAssets = new ArrayList<>();
         for (final Asset asset : allAssets) {
-            if (asset.getParameterContextIdentifier().equals(parameterContextId)) {
-                paramContextAssets.add(asset);
+            if (asset.getOwnerIdentifier().equals(ownerId)) {
+                ownerAssets.add(asset);
             }
         }
-        return paramContextAssets;
+        return ownerAssets;
     }
 
     @Override
-    public Asset createMissingAsset(final String parameterContextId, final String assetName) {
-        final String assetId = createAssetId(parameterContextId, assetName);
-        final File file = getFile(parameterContextId, assetName);
-        final Asset asset = new StandardAsset(assetId, parameterContextId, assetName, file, null);
+    public Asset createMissingAsset(final String ownerId, final String assetName) {
+        final String assetId = createAssetId(ownerId, assetName);
+        final File file = getFile(ownerId, assetName);
+        final Asset asset = new StandardAsset(assetId, ownerId, assetName, file, null);
         assets.put(assetId, asset);
         return asset;
     }
@@ -155,14 +139,43 @@ public class StandardAssetManager implements AssetManager {
         return Optional.of(removed);
     }
 
-    private String createAssetId(final String parameterContextId, final String assetName) {
-        final String seed = parameterContextId + "/" + assetName;
+    private Asset saveAsset(final String ownerId, final String assetId, final String assetName, final InputStream contents, final File assetFile) throws IOException {
+        final File dir = assetFile.getParentFile();
+        if (!dir.exists()) {
+            try {
+                Files.createDirectories(dir.toPath());
+            } catch (final IOException ioe) {
+                throw new IOException("Could not create directory in order to store asset", ioe);
+            }
+        }
+
+        // Write contents to a temporary file, then move it to the final location.
+        // This allows us to avoid a situation where we upload a file, then we attempt to overwrite it but fail, leaving a corrupt asset.
+        final File tempFile = new File(dir, assetFile.getName() + ".tmp");
+        logger.debug("Writing temp asset file [{}]", tempFile.getAbsolutePath());
+
+        try {
+            Files.copy(contents, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (final Exception e) {
+            throw new IOException("Failed to write asset to file " + tempFile.getAbsolutePath(), e);
+        }
+
+        Files.move(tempFile.toPath(), assetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+        final String digest = computeDigest(assetFile);
+        final Asset asset = new StandardAsset(assetId, ownerId, assetName, assetFile, digest);
+        assets.put(assetId, asset);
+        return asset;
+    }
+
+    private String createAssetId(final String ownerId, final String assetName) {
+        final String seed = ownerId + "/" + assetName;
         return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
     }
 
-    private File getFile(final String paramContextId, final String assetName) {
+    private File getFile(final String ownerId, final String assetName) {
         final Path parentPath = assetStorageLocation.toPath().normalize();
-        final Path assetPath = Paths.get(paramContextId, assetName).normalize();
+        final Path assetPath = Paths.get(ownerId, assetName).normalize();
         final Path fullPath = parentPath.resolve(assetPath);
         return fullPath.toFile();
     }
@@ -183,17 +196,17 @@ public class StandardAssetManager implements AssetManager {
                 continue;
             }
 
-            final String contextId = file.getName();
+            final String ownerId = file.getName();
             final File[] assetFiles = file.listFiles();
             if (assetFiles == null) {
-                logger.warn("Unable to determine which assets exist for Parameter Context {}", contextId);
+                logger.warn("Unable to determine which assets exist for owner {}", ownerId);
                 continue;
             }
 
             for (final File assetFile : assetFiles) {
-                final String assetId = createAssetId(contextId, assetFile.getName());
+                final String assetId = createAssetId(ownerId, assetFile.getName());
                 final String digest = computeDigest(assetFile);
-                final Asset asset = new StandardAsset(assetId, contextId, assetFile.getName(), assetFile, digest);
+                final Asset asset = new StandardAsset(assetId, ownerId, assetFile.getName(), assetFile, digest);
                 assets.put(assetId, asset);
             }
         }

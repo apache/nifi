@@ -1085,7 +1085,7 @@ public class VersionedComponentFlowMapper {
 
             switch (valueReference) {
                 case StringLiteralValue stringLiteral -> versionedReference.setValue(stringLiteral.getValue());
-                case AssetReference assetRef -> versionedReference.setAssetId(assetRef.getAssetIdentifier());
+                case AssetReference assetRef -> versionedReference.setAssetIds(assetRef.getAssetIdentifiers());
                 case SecretReference secretRef -> {
                     versionedReference.setProviderId(secretRef.getProviderId());
                     versionedReference.setProviderName(secretRef.getProviderName());

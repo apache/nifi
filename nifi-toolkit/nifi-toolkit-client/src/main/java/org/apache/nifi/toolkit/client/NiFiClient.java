@@ -89,6 +89,12 @@ public interface NiFiClient extends Closeable {
 
     ParamContextClient getParamContextClient(RequestConfig requestConfig);
 
+    // ----- ConnectorClient -----
+
+    ConnectorClient getConnectorClient();
+
+    ConnectorClient getConnectorClient(RequestConfig requestConfig);
+
     // ----- CountersClient -----
 
     CountersClient getCountersClient();

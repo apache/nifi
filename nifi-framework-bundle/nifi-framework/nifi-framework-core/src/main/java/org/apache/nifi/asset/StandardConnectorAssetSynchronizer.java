@@ -21,11 +21,9 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.client.NiFiRestApiRetryableException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.parameter.Parameter;
-import org.apache.nifi.parameter.ParameterContext;
-import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.dto.AssetDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
@@ -39,17 +37,17 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Synchronizes assets from the cluster coordinator using the NiFi REST API.
+ * Synchronizes connector assets from the cluster coordinator using the NiFi REST API.
  */
-public class StandardAssetSynchronizer implements AssetSynchronizer {
+public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
 
-    private static final Logger logger = LoggerFactory.getLogger(StandardAssetSynchronizer.class);
+    private static final Logger logger = LoggerFactory.getLogger(StandardConnectorAssetSynchronizer.class);
 
     private static final Duration CLUSTER_COORDINATOR_RETRY_DURATION = Duration.ofSeconds(60);
     private static final Duration LIST_ASSETS_RETRY_DURATION = Duration.ofMinutes(5);
@@ -61,11 +59,11 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
     private final WebClientService webClientService;
     private final NiFiProperties properties;
 
-    public StandardAssetSynchronizer(final FlowController flowController,
-                                     final ClusterCoordinator clusterCoordinator,
-                                     final WebClientService webClientService,
-                                     final NiFiProperties properties) {
-        this.assetManager = flowController.getAssetManager();
+    public StandardConnectorAssetSynchronizer(final FlowController flowController,
+                                              final ClusterCoordinator clusterCoordinator,
+                                              final WebClientService webClientService,
+                                              final NiFiProperties properties) {
+        this.assetManager = flowController.getConnectorAssetManager();
         this.flowManager = flowController.getFlowManager();
         this.clusterCoordinator = clusterCoordinator;
         this.webClientService = webClientService;
@@ -75,117 +73,112 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
     @Override
     public void synchronize() {
         if (clusterCoordinator == null) {
-            logger.info("Clustering is not configured: Asset synchronization disabled");
+            logger.info("Clustering is not configured: Connector asset synchronization disabled");
             return;
         }
 
-        // This sync method is called from the method that loads the flow from a connection response, which means there must already be a cluster coordinator to
-        // have gotten a response from, but during testing there were cases where calling clusterCoordinator.getElectedActiveCoordinatorNode() was still null, so
-        // the helper method here will keep checking for the identifier up to a certain threshold to avoid slight timing issues
         final NodeIdentifier coordinatorNodeId = getElectedActiveCoordinatorNode();
         if (coordinatorNodeId == null) {
-            logger.warn("Unable to obtain the node identifier for the cluster coordinator: Asset synchronization disabled");
+            logger.warn("Unable to obtain the node identifier for the cluster coordinator: Connector asset synchronization disabled");
             return;
         }
 
         if (clusterCoordinator.isActiveClusterCoordinator()) {
-            logger.info("Current node is the cluster coordinator: Asset synchronization disabled");
+            logger.info("Current node is the cluster coordinator: Connector asset synchronization disabled");
             return;
         }
 
         final String coordinatorAddress = coordinatorNodeId.getApiAddress();
         final int coordinatorPort = coordinatorNodeId.getApiPort();
         final AssetsRestApiClient assetsRestApiClient = new AssetsRestApiClient(webClientService, coordinatorAddress, coordinatorPort, properties.isHTTPSConfigured());
-        logger.info("Synchronizing assets with cluster coordinator at {}:{}", coordinatorAddress, coordinatorPort);
+        logger.info("Synchronizing connector assets with cluster coordinator at {}:{}", coordinatorAddress, coordinatorPort);
 
-        final ParameterContextManager parameterContextManager = flowManager.getParameterContextManager();
-        final Set<ParameterContext> parameterContexts = parameterContextManager.getParameterContexts();
-        logger.info("Found {} parameter contexts for synchronizing assets", parameterContexts.size());
+        final List<ConnectorNode> connectors = flowManager.getAllConnectors();
+        logger.info("Found {} connectors for synchronizing assets", connectors.size());
 
-        for (final ParameterContext parameterContext : parameterContexts) {
+        for (final ConnectorNode connector : connectors) {
             try {
-                synchronize(assetsRestApiClient, parameterContext);
+                synchronize(assetsRestApiClient, connector);
             } catch (final Exception e) {
-                logger.error("Failed to synchronize assets for parameter context [{}]", parameterContext.getIdentifier(), e);
+                logger.error("Failed to synchronize assets for connector [{}]", connector.getIdentifier(), e);
             }
         }
     }
 
-    private void synchronize(final AssetsRestApiClient assetsRestApiClient, final ParameterContext parameterContext) {
-        final Map<String, Asset> existingAssets = parameterContext.getParameters().values().stream()
-                .map(Parameter::getReferencedAssets)
-                .flatMap(Collection::stream)
+    private void synchronize(final AssetsRestApiClient assetsRestApiClient, final ConnectorNode connector) {
+        final String connectorId = connector.getIdentifier();
+
+        final Map<String, Asset> existingAssets = assetManager.getAssets(connectorId).stream()
                 .collect(Collectors.toMap(Asset::getIdentifier, Function.identity()));
 
         if (existingAssets.isEmpty()) {
-            logger.info("Parameter context [{}] does not contain any assets to synchronize", parameterContext.getIdentifier());
+            logger.info("Connector [{}] does not contain any assets to synchronize", connectorId);
             return;
         }
 
-        logger.info("Parameter context [{}] has {} assets on the current node", parameterContext.getIdentifier(), existingAssets.size());
+        logger.info("Connector [{}] has {} assets on the current node", connectorId, existingAssets.size());
 
-        final AssetsEntity coordinatorAssetsEntity = listAssetsWithRetry(assetsRestApiClient, parameterContext.getIdentifier());
+        final AssetsEntity coordinatorAssetsEntity = listConnectorAssetsWithRetry(assetsRestApiClient, connectorId);
         if (coordinatorAssetsEntity == null) {
-            logger.error("Timeout listing assets from cluster coordinator for parameter context [{}]", parameterContext.getIdentifier());
+            logger.error("Timeout listing assets from cluster coordinator for connector [{}]", connectorId);
             return;
         }
 
         final Collection<AssetEntity> coordinatorAssets = coordinatorAssetsEntity.getAssets();
         if (coordinatorAssets == null || coordinatorAssets.isEmpty()) {
-            logger.info("Parameter context [{}] did not return any assets from the cluster coordinator", parameterContext.getIdentifier());
+            logger.info("Connector [{}] did not return any assets from the cluster coordinator", connectorId);
             return;
         }
 
-        logger.info("Parameter context [{}] returned {} assets from the cluster coordinator", parameterContext.getIdentifier(), coordinatorAssets.size());
+        logger.info("Connector [{}] returned {} assets from the cluster coordinator", connectorId, coordinatorAssets.size());
 
         for (final AssetEntity coordinatorAssetEntity : coordinatorAssets) {
             final AssetDTO coordinatorAsset = coordinatorAssetEntity.getAsset();
             final Asset matchingAsset = existingAssets.get(coordinatorAsset.getId());
             try {
-                synchronize(assetsRestApiClient, parameterContext, coordinatorAsset, matchingAsset);
+                synchronize(assetsRestApiClient, connectorId, coordinatorAsset, matchingAsset);
             } catch (final Exception e) {
-                logger.error("Failed to synchronize asset [id={},name={}] for parameter context [{}]",
-                        coordinatorAsset.getId(), coordinatorAsset.getName(), parameterContext.getIdentifier(), e);
+                logger.error("Failed to synchronize asset [id={},name={}] for connector [{}]",
+                        coordinatorAsset.getId(), coordinatorAsset.getName(), connectorId, e);
             }
         }
     }
 
-    private void synchronize(final AssetsRestApiClient assetsRestApiClient, final ParameterContext parameterContext, final AssetDTO coordinatorAsset, final Asset matchingAsset) {
-        final String paramContextId = parameterContext.getIdentifier();
+    private void synchronize(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final AssetDTO coordinatorAsset, final Asset matchingAsset) {
         final String assetId = coordinatorAsset.getId();
         final String assetName = coordinatorAsset.getName();
         if (matchingAsset == null || !matchingAsset.getFile().exists()) {
-            logger.info("Synchronizing missing asset [id={},name={}] for parameter context [{}]", assetId, assetName, paramContextId);
-            synchronizeAssetWithRetry(assetsRestApiClient, paramContextId, coordinatorAsset);
+            logger.info("Synchronizing missing asset [id={},name={}] for connector [{}]", assetId, assetName, connectorId);
+            synchronizeConnectorAssetWithRetry(assetsRestApiClient, connectorId, coordinatorAsset);
         } else {
             final String coordinatorAssetDigest = coordinatorAsset.getDigest();
             final String matchingAssetDigest = matchingAsset.getDigest().orElse(null);
             if (!coordinatorAssetDigest.equals(matchingAssetDigest)) {
-                logger.info("Synchronizing asset [id={},name={}] with updated digest [{}] for parameter context [{}]",
-                        assetId, assetName, coordinatorAssetDigest, paramContextId);
-                synchronizeAssetWithRetry(assetsRestApiClient, paramContextId, coordinatorAsset);
+                logger.info("Synchronizing asset [id={},name={}] with updated digest [{}] for connector [{}]",
+                        assetId, assetName, coordinatorAssetDigest, connectorId);
+                synchronizeConnectorAssetWithRetry(assetsRestApiClient, connectorId, coordinatorAsset);
             } else {
-                logger.info("Coordinator asset [id={},name={}] found for parameter context [{}]: retrieval not required",  assetId, assetName, paramContextId);
+                logger.info("Coordinator asset [id={},name={}] found for connector [{}]: retrieval not required", assetId, assetName, connectorId);
             }
         }
     }
 
-    private AssetsEntity listAssetsWithRetry(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId) {
+    private AssetsEntity listConnectorAssetsWithRetry(final AssetsRestApiClient assetsRestApiClient, final String connectorId) {
         final Instant expirationTime = Instant.ofEpochMilli(System.currentTimeMillis() + LIST_ASSETS_RETRY_DURATION.toMillis());
         while (System.currentTimeMillis() < expirationTime.toEpochMilli()) {
-            final AssetsEntity assetsEntity = listAssets(assetsRestApiClient, parameterContextId);
+            final AssetsEntity assetsEntity = listConnectorAssets(assetsRestApiClient, connectorId);
             if (assetsEntity != null) {
                 return assetsEntity;
             }
-            logger.info("Unable to list assets from cluster coordinator for parameter context [{}]: retrying until [{}]", parameterContextId, expirationTime);
+            logger.info("Unable to list assets from cluster coordinator for connector [{}]: retrying until [{}]", connectorId, expirationTime);
             sleep(Duration.ofSeconds(5));
         }
         return null;
     }
 
-    private AssetsEntity listAssets(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId) {
+    private AssetsEntity listConnectorAssets(final AssetsRestApiClient assetsRestApiClient, final String connectorId) {
         try {
-            return assetsRestApiClient.getParameterContextAssets(parameterContextId);
+            return assetsRestApiClient.getConnectorAssets(connectorId);
         } catch (final NiFiRestApiRetryableException e) {
             final Throwable rootCause = ExceptionUtils.getRootCause(e);
             logger.warn("{}, root cause [{}]: retrying", e.getMessage(), rootCause.getMessage());
@@ -193,27 +186,27 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         }
     }
 
-    private void synchronizeAssetWithRetry(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId, final AssetDTO coordinatorAsset) {
+    private void synchronizeConnectorAssetWithRetry(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final AssetDTO coordinatorAsset) {
         final Instant expirationTime = Instant.ofEpochMilli(System.currentTimeMillis() + SYNC_ASSET_RETRY_DURATION.toMillis());
         while (System.currentTimeMillis() < expirationTime.toEpochMilli()) {
-            final Asset syncedAsset = synchronizeAsset(assetsRestApiClient, parameterContextId, coordinatorAsset);
+            final Asset syncedAsset = synchronizeConnectorAsset(assetsRestApiClient, connectorId, coordinatorAsset);
             if (syncedAsset != null) {
                 return;
             }
-            logger.info("Unable to synchronize asset [id={},name={}] for parameter context [{}]: retrying until [{}]",
-                    coordinatorAsset.getId(), coordinatorAsset.getName(), parameterContextId, expirationTime);
+            logger.info("Unable to synchronize asset [id={},name={}] for connector [{}]: retrying until [{}]",
+                    coordinatorAsset.getId(), coordinatorAsset.getName(), connectorId, expirationTime);
             sleep(Duration.ofSeconds(5));
         }
     }
 
-    private Asset synchronizeAsset(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId, final AssetDTO coordinatorAsset) {
+    private Asset synchronizeConnectorAsset(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final AssetDTO coordinatorAsset) {
         final String assetId = coordinatorAsset.getId();
         final String assetName = coordinatorAsset.getName();
         if (Boolean.TRUE == coordinatorAsset.getMissingContent()) {
-            return assetManager.createMissingAsset(parameterContextId, assetName);
+            return assetManager.createMissingAsset(connectorId, assetName);
         } else {
-            try (final InputStream assetInputStream = assetsRestApiClient.getParameterContextAssetContent(parameterContextId, assetId)) {
-                return assetManager.createAsset(parameterContextId, assetName, assetInputStream);
+            try (final InputStream assetInputStream = assetsRestApiClient.getConnectorAssetContent(connectorId, assetId)) {
+                return assetManager.saveAsset(connectorId, assetId, assetName, assetInputStream);
             } catch (final NiFiRestApiRetryableException e) {
                 final Throwable rootCause = ExceptionUtils.getRootCause(e);
                 logger.warn("{}, root cause [{}]: retrying", e.getMessage(), rootCause.getMessage());
@@ -248,3 +241,5 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         }
     }
 }
+
+
