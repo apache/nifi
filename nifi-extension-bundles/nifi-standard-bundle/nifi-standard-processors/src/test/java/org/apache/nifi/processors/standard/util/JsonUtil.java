@@ -26,8 +26,14 @@ public class JsonUtil {
     }
 
     public static String getExpectedContent(Path path) throws IOException {
+        String fileContent = Files.readString(path);
+
+        return getExpectedContent(fileContent);
+    }
+
+    public static String getExpectedContent(String string) {
         final boolean windows = System.getProperty("os.name").startsWith("Windows");
-        String expectedContent = Files.readString(path);
+        String expectedContent = string;
 
         if (windows) {
             expectedContent = expectedContent.replaceAll("\n", "\r\n");
