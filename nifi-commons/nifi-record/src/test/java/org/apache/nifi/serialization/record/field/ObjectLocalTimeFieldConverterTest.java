@@ -17,7 +17,7 @@
 package org.apache.nifi.serialization.record.field;
 
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -25,11 +25,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
-import java.util.TimeZone;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ObjectLocalTimeFieldConverterTest {
+class ObjectLocalTimeFieldConverterTest {
 
     private static final ObjectLocalTimeFieldConverter CONVERTER = new ObjectLocalTimeFieldConverter();
 
@@ -37,28 +36,20 @@ public class ObjectLocalTimeFieldConverterTest {
 
     private static final String TIME_DEFAULT = "12:30:45";
 
-    private static final String TIME_OFFSET = "Z";
-
-    private static final String TIME_WITH_OFFSET = TIME_DEFAULT + TIME_OFFSET;
-
-    private static final String TIME_WITH_OFFSET_PATTERN = "HH:mm:ssX";
+    private static final String TIME_WITH_OFFSET_PATTERN = "HH:mm:ssXXX";
 
     @ParameterizedTest
-    @ValueSource(strings = {"GMT-03:00", "GMT", "GMT+03:00"})
-    public void testConvertFieldStringWithTimeOffset(final String localTimeZone) {
-        final LocalTime expected = ZonedDateTime.of(LocalDate.EPOCH, LocalTime.parse(TIME_WITH_OFFSET, DateTimeFormatter.ofPattern(TIME_WITH_OFFSET_PATTERN)), ZoneId.of(TIME_OFFSET))
-                .withZoneSameInstant(ZoneId.of(localTimeZone))
+    @MethodSource("org.apache.nifi.serialization.record.field.DateTimeTestUtil#offsetSource")
+    void testConvertFieldStringWithTimeOffset(final String offset) {
+        final String timeString = TIME_DEFAULT + offset;
+
+        final LocalTime expected = ZonedDateTime.of(LocalDate.EPOCH, LocalTime.parse(timeString, DateTimeFormatter.ofPattern(TIME_WITH_OFFSET_PATTERN)), ZoneId.of(offset))
+                .withZoneSameInstant(ZoneId.systemDefault())
                 .toLocalTime();
 
-        final TimeZone defaultTimeZone = TimeZone.getDefault();
-        try {
-            TimeZone.setDefault(TimeZone.getTimeZone(ZoneId.of(localTimeZone)));
+        final LocalTime localTime = CONVERTER.convertField(timeString, Optional.of(TIME_WITH_OFFSET_PATTERN), FIELD_NAME);
 
-            final LocalTime localTime = CONVERTER.convertField(TIME_WITH_OFFSET, Optional.of(TIME_WITH_OFFSET_PATTERN), FIELD_NAME);
-
-            assertEquals(expected, localTime);
-        } finally {
-            TimeZone.setDefault(defaultTimeZone);
-        }
+        assertEquals(expected, localTime);
     }
+
 }
