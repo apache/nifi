@@ -310,7 +310,7 @@ public class KafkaToS3IT {
         connectionVerificationResults.assertNoFailures();
 
         // Apply the configuration that we've now validated
-        runner.configurePropertyValues("Kafka Connection", kafkaServerConfig);
+        runner.configure("Kafka Connection", kafkaServerConfig);
 
         // Perform verification to ensure that valid topic configuration passes
         final Map<String, String> topic1Config = Map.of(
@@ -383,9 +383,9 @@ public class KafkaToS3IT {
             Map.entry("Merge Latency", "1 sec")
         );
 
-        runner.configurePropertyValues("Kafka Connection", kafkaServerConfig);
-        runner.configurePropertyValues("Kafka Topics", kafkaTopicConfig);
-        runner.configurePropertyValues("S3 Configuration", s3Config);
+        runner.configure("Kafka Connection", kafkaServerConfig);
+        runner.configure("Kafka Topics", kafkaTopicConfig);
+        runner.configure("S3 Configuration", s3Config);
         runner.applyUpdate();
 
         final List<ValidationResult> validationResults = runner.validate();
@@ -456,7 +456,7 @@ public class KafkaToS3IT {
         final ConnectorConfigVerificationResult connectionVerificationResults = runner.verifyConfiguration("Kafka Connection", kafkaConnectionConfig);
         connectionVerificationResults.assertNoFailures();
 
-        runner.configurePropertyValues("Kafka Connection", kafkaConnectionConfig);
+        runner.configure("Kafka Connection", kafkaConnectionConfig);
 
         final Map<String, String> avroTopicConfig = Map.of(
             "Topic Names", "avro-topic",
@@ -540,9 +540,9 @@ public class KafkaToS3IT {
             Map.entry("Merge Latency", "1 sec")
         );
 
-        runner.configurePropertyValues("Kafka Connection", kafkaConnectionConfig);
-        runner.configurePropertyValues("Kafka Topics", kafkaTopicConfig);
-        runner.configurePropertyValues("S3 Configuration", s3Config);
+        runner.configure("Kafka Connection", kafkaConnectionConfig);
+        runner.configure("Kafka Topics", kafkaTopicConfig);
+        runner.configure("S3 Configuration", s3Config);
         runner.applyUpdate();
 
         final List<ValidationResult> validationResults = runner.validate();
@@ -636,9 +636,9 @@ public class KafkaToS3IT {
             Map.entry("Merge Latency", "1 sec")
         );
 
-        runner.configurePropertyValues("Kafka Connection", kafkaServerConfig);
-        runner.configurePropertyValues("Kafka Topics", jsonTopicConfig);
-        runner.configurePropertyValues("S3 Configuration", s3InvalidConfig);
+        runner.configure("Kafka Connection", kafkaServerConfig);
+        runner.configure("Kafka Topics", jsonTopicConfig);
+        runner.configure("S3 Configuration", s3InvalidConfig);
         runner.applyUpdate();
 
         // Run the Connector with the invalid S3 endpoint to queue the JSON data. Wait for data to be queued up.
@@ -663,7 +663,7 @@ public class KafkaToS3IT {
             Map.entry("Merge Latency", "1 sec")
         );
 
-        runner.configurePropertyValues("S3 Configuration", s3ValidJsonConfig);
+        runner.configure("S3 Configuration", s3ValidJsonConfig);
         runner.applyUpdate();
 
         // Make sure there is no data in S3 yet.
@@ -701,9 +701,9 @@ public class KafkaToS3IT {
             "Schema Registry URL", getSchemaRegistryUrl()
         );
 
-        runner.configurePropertyValues("Kafka Connection", kafkaConnectionWithSchemaRegistry);
-        runner.configurePropertyValues("Kafka Topics", avroTopicConfig);
-        runner.configurePropertyValues("S3 Configuration", s3ValidAvroConfig);
+        runner.configure("Kafka Connection", kafkaConnectionWithSchemaRegistry);
+        runner.configure("Kafka Topics", avroTopicConfig);
+        runner.configure("S3 Configuration", s3ValidAvroConfig);
         runner.applyUpdate();
 
         // After draining, there should be one JSON file in S3.

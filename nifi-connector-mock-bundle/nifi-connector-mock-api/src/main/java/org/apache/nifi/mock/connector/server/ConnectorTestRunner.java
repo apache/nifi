@@ -18,8 +18,8 @@
 package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.StepConfiguration;
 
 import java.io.Closeable;
 import java.time.Duration;
@@ -30,13 +30,13 @@ public interface ConnectorTestRunner extends Closeable {
 
     void applyUpdate() throws FlowUpdateException;
 
-    void configurePropertyReferences(String stepName, Map<String, ConnectorValueReference> propertyValues) throws FlowUpdateException;
+    void configure(String stepName, StepConfiguration configuration) throws FlowUpdateException;
 
-    void configurePropertyValues(String stepName, Map<String, String> propertyValues) throws FlowUpdateException;
+    void configure(String stepName, Map<String, String> propertyValues) throws FlowUpdateException;
 
     ConnectorConfigVerificationResult verifyConfiguration(String stepName, Map<String, String> propertyValueOverrides);
 
-    ConnectorConfigVerificationResult verifyConfigurationWithReferences(String stepName, Map<String, ConnectorValueReference> propertyValueOverrides);
+    ConnectorConfigVerificationResult verifyConfiguration(String stepName, StepConfiguration configurationOverrides);
 
     void startConnector();
 

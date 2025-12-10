@@ -20,8 +20,8 @@ package org.apache.nifi.mock.connector;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.mock.connector.server.ConnectorConfigVerificationResult;
 import org.apache.nifi.mock.connector.server.ConnectorMockServer;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
@@ -122,13 +122,13 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
     }
 
     @Override
-    public void configurePropertyReferences(final String stepName, final Map<String, ConnectorValueReference> propertyValues) throws FlowUpdateException {
-        mockServer.configurePropertyReferences(stepName, propertyValues);
+    public void configure(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        mockServer.configure(stepName, configuration);
     }
 
     @Override
-    public void configurePropertyValues(final String stepName, final Map<String, String> propertyValues) throws FlowUpdateException {
-        mockServer.configurePropertyValues(stepName, propertyValues);
+    public void configure(final String stepName, final Map<String, String> propertyValues) throws FlowUpdateException {
+        mockServer.configure(stepName, propertyValues);
     }
 
     @Override
@@ -137,8 +137,8 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
     }
 
     @Override
-    public ConnectorConfigVerificationResult verifyConfigurationWithReferences(final String stepName, final Map<String, ConnectorValueReference> propertyValueOverrides) {
-        return mockServer.verifyConfigurationWithReferences(stepName, propertyValueOverrides);
+    public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final StepConfiguration configurationOverrides) {
+        return mockServer.verifyConfiguration(stepName, configurationOverrides);
     }
 
     @Override

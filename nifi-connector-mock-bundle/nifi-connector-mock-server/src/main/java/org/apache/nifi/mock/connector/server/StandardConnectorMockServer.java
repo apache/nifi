@@ -31,6 +31,7 @@ import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.StandaloneConnectorRequestReplicator;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
@@ -203,31 +204,31 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     }
 
     @Override
-    public void configurePropertyReferences(final String stepName, final Map<String, ConnectorValueReference> propertyValues) throws FlowUpdateException {
-        connectorNode.setConfiguration(stepName, propertyValues);
+    public void configure(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        connectorNode.setConfiguration(stepName, configuration);
     }
 
     @Override
-    public void configurePropertyValues(final String stepName, final Map<String, String> propertyValues) throws FlowUpdateException {
-        final Map<String, ConnectorValueReference> references = toStringLiteralReferences(propertyValues);
-        configurePropertyReferences(stepName, references);
+    public void configure(final String stepName, final Map<String, String> propertyValues) throws FlowUpdateException {
+        final StepConfiguration configuration = toStringLiteralConfiguration(propertyValues);
+        configure(stepName, configuration);
     }
 
     @Override
     public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final Map<String, String> propertyValueOverrides) {
-        final Map<String, ConnectorValueReference> references = toStringLiteralReferences(propertyValueOverrides);
-        return verifyConfigurationWithReferences(stepName, references);
+        final StepConfiguration configuration = toStringLiteralConfiguration(propertyValueOverrides);
+        return verifyConfiguration(stepName, configuration);
     }
 
-    private Map<String, ConnectorValueReference> toStringLiteralReferences(final Map<String, String> propertyValues) {
+    private StepConfiguration toStringLiteralConfiguration(final Map<String, String> propertyValues) {
         final Map<String, ConnectorValueReference> references = new HashMap<>(propertyValues.size());
         propertyValues.forEach((key, value) -> references.put(key, new StringLiteralValue(value)));
-        return references;
+        return new StepConfiguration(references);
     }
 
     @Override
-    public ConnectorConfigVerificationResult verifyConfigurationWithReferences(final String stepName, final Map<String, ConnectorValueReference> propertyValueOverrides) {
-        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(stepName, propertyValueOverrides);
+    public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final StepConfiguration configurationOverrides) {
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(stepName, configurationOverrides);
         return new MockServerConfigVerificationResult(results);
     }
 

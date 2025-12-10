@@ -163,7 +163,7 @@ public class StandardConnectorNode implements ConnectorNode {
                 }
             }
 
-            configurationContext.setProperties(configStep.getName(), convertedProperties);
+            configurationContext.setProperties(configStep.getName(), new StepConfiguration(convertedProperties));
         }
 
         return configurationContext;
@@ -195,12 +195,8 @@ public class StandardConnectorNode implements ConnectorNode {
 
             // Update the active flow context based on the properties of the provided context, as the connector has now been updated.
             final ConnectorConfiguration workingConfig = contextToInherit.getConfigurationContext().toConnectorConfiguration();
-            for (final ConfigurationStepConfiguration stepConfig : workingConfig.getConfigurationStepConfigurations()) {
-                final Map<String, ConnectorValueReference> stepProperties = new HashMap<>();
-                for (final PropertyGroupConfiguration groupConfig : stepConfig.propertyGroupConfigurations()) {
-                    stepProperties.putAll(groupConfig.propertyValues());
-                }
-                activeFlowContext.getConfigurationContext().replaceProperties(stepConfig.stepName(), stepProperties);
+            for (final NamedStepConfiguration stepConfig : workingConfig.getNamedStepConfigurations()) {
+                activeFlowContext.getConfigurationContext().replaceProperties(stepConfig.stepName(), stepConfig.configuration());
             }
 
             // The update has been completed. Tear down and recreate the working flow context to ensure it is in a clean state.
@@ -244,9 +240,9 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public void setConfiguration(final String stepName, final Map<String, ConnectorValueReference> propertyValues) throws FlowUpdateException {
+    public void setConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
         // Update properties and check if the configuration changed.
-        final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().setProperties(stepName, propertyValues);
+        final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().setProperties(stepName, configuration);
         if (updateResult == ConfigurationUpdateResult.NO_CHANGES) {
             return;
         }
@@ -557,8 +553,8 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, ConnectorValueReference> propertyValueOverrides) {
-        final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(propertyValueOverrides);
+    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final StepConfiguration configurationOverrides) {
+        final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationOverrides);
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
@@ -608,11 +604,11 @@ public class StandardConnectorNode implements ConnectorNode {
         }
     }
 
-    private Map<String, String> resolvePropertyReferences(final Map<String, ConnectorValueReference> propertyValueOverrides) {
+    private Map<String, String> resolvePropertyReferences(final StepConfiguration configurationOverrides) {
         final Map<String, String> resolvedProperties = new HashMap<>();
 
         try {
-            for (final Map.Entry<String, ConnectorValueReference> entry : propertyValueOverrides.entrySet()) {
+            for (final Map.Entry<String, ConnectorValueReference> entry : configurationOverrides.getPropertyValues().entrySet()) {
                 final String propertyName = entry.getKey();
                 final ConnectorValueReference valueReference = entry.getValue();
                 final String resolvedValue = resolvePropertyReference(valueReference);

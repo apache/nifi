@@ -26,7 +26,6 @@ import org.apache.nifi.components.connector.ConnectorConfigurationContext;
 import org.apache.nifi.components.connector.ConnectorInitializationContext;
 import org.apache.nifi.components.connector.ConnectorValidationContext;
 import org.apache.nifi.components.connector.FlowUpdateException;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
 

@@ -23,14 +23,14 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.listen.ListenPortDefinition;
 import org.apache.nifi.components.connector.AssetReference;
-import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceDefinition;
@@ -1061,15 +1061,10 @@ public class VersionedComponentFlowMapper {
         final ConnectorConfiguration configuration = flowContext.getConfigurationContext().toConnectorConfiguration();
         final List<VersionedConfigurationStep> configurationSteps = new ArrayList<>();
 
-        for (final ConfigurationStepConfiguration stepConfiguration : configuration.getConfigurationStepConfigurations()) {
+        for (final NamedStepConfiguration stepConfiguration : configuration.getNamedStepConfigurations()) {
             final VersionedConfigurationStep versionedConfigurationStep = new VersionedConfigurationStep();
             versionedConfigurationStep.setName(stepConfiguration.stepName());
-
-            final Map<String, ConnectorValueReference> allProperties = new HashMap<>();
-            for (final PropertyGroupConfiguration groupConfiguration : stepConfiguration.propertyGroupConfigurations()) {
-                allProperties.putAll(groupConfiguration.propertyValues());
-            }
-            versionedConfigurationStep.setProperties(mapPropertyValues(allProperties));
+            versionedConfigurationStep.setProperties(mapPropertyValues(stepConfiguration.configuration()));
 
             configurationSteps.add(versionedConfigurationStep);
         }
@@ -1077,9 +1072,9 @@ public class VersionedComponentFlowMapper {
         return configurationSteps;
     }
 
-    private Map<String, VersionedConnectorValueReference> mapPropertyValues(final Map<String, ConnectorValueReference> propertyValues) {
+    private Map<String, VersionedConnectorValueReference> mapPropertyValues(final StepConfiguration configuration) {
         final Map<String, VersionedConnectorValueReference> versionedProperties = new HashMap<>();
-        for (final Map.Entry<String, ConnectorValueReference> entry : propertyValues.entrySet()) {
+        for (final Map.Entry<String, ConnectorValueReference> entry : configuration.getPropertyValues().entrySet()) {
             final ConnectorValueReference valueReference = entry.getValue();
 
             final VersionedConnectorValueReference versionedReference = new VersionedConnectorValueReference();

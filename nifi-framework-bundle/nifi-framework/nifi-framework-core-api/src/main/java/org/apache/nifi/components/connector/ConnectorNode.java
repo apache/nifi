@@ -33,7 +33,6 @@ import org.apache.nifi.logging.ComponentLog;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
@@ -105,7 +104,7 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     void resumeValidationTrigger();
 
-    List<ConfigVerificationResult> verifyConfigurationStep(String configurationStepName, Map<String, ConnectorValueReference> propertyValueOverrides);
+    List<ConfigVerificationResult> verifyConfigurationStep(String configurationStepName, StepConfiguration configurationOverrides);
 
     List<ConfigVerificationResult> verify();
 
@@ -180,10 +179,10 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * @param configurationStepName the name of the configuration step being set
      *                              (must match one of the names returned by {@link Connector#getConfigurationSteps(FlowContext)})
      *                              when providing the working flow context
-     * @param propertyValues the property values for the given configuration step
+     * @param configuration the configuration for the given configuration step
      * @throws FlowUpdateException if unable to apply the configuration changes
      */
-    void setConfiguration(String configurationStepName, Map<String, ConnectorValueReference> propertyValues) throws FlowUpdateException;
+    void setConfiguration(String configurationStepName, StepConfiguration configuration) throws FlowUpdateException;
 
     void prepareForUpdate() throws FlowUpdateException;
 

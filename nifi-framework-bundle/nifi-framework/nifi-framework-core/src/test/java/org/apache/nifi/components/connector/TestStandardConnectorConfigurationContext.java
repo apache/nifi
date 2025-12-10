@@ -38,13 +38,13 @@ public class TestStandardConnectorConfigurationContext {
         context = new StandardConnectorConfigurationContext(assetManager, secretsManager);
     }
 
-    private Map<String, ConnectorValueReference> toValueReferences(final Map<String, String> stringProperties) {
+    private StepConfiguration toStepConfiguration(final Map<String, String> stringProperties) {
         final Map<String, ConnectorValueReference> valueReferences = new HashMap<>();
         for (final Map.Entry<String, String> entry : stringProperties.entrySet()) {
             final String value = entry.getValue();
             valueReferences.put(entry.getKey(), value == null ? null : new StringLiteralValue(value));
         }
-        return valueReferences;
+        return new StepConfiguration(valueReferences);
     }
 
     @Test
@@ -53,7 +53,7 @@ public class TestStandardConnectorConfigurationContext {
         properties.put("key1", "value1");
         properties.put("key2", "value2");
 
-        context.setProperties("step1", toValueReferences(properties));
+        context.setProperties("step1", toStepConfiguration(properties));
 
         assertEquals("value1", context.getProperty("step1", "key1").getValue());
         assertEquals("value2", context.getProperty("step1", "key2").getValue());
@@ -63,11 +63,11 @@ public class TestStandardConnectorConfigurationContext {
     public void testSetPropertiesAddsNewProperties() {
         final Map<String, String> initialProperties = new HashMap<>();
         initialProperties.put("key1", "value1");
-        context.setProperties("step1", toValueReferences(initialProperties));
+        context.setProperties("step1", toStepConfiguration(initialProperties));
 
         final Map<String, String> newProperties = new HashMap<>();
         newProperties.put("key3", "value3");
-        context.setProperties("step1", toValueReferences(newProperties));
+        context.setProperties("step1", toStepConfiguration(newProperties));
 
         assertEquals("value1", context.getProperty("step1", "key1").getValue());
         assertEquals("value3", context.getProperty("step1", "key3").getValue());
@@ -78,12 +78,12 @@ public class TestStandardConnectorConfigurationContext {
         final Map<String, String> initialProperties = new HashMap<>();
         initialProperties.put("key1", "value1");
         initialProperties.put("key2", "value2");
-        context.setProperties("step1", toValueReferences(initialProperties));
+        context.setProperties("step1", toStepConfiguration(initialProperties));
 
         final Map<String, String> updatedProperties = new HashMap<>();
         updatedProperties.put("key2", "updatedValue2");
         updatedProperties.put("key3", "value3");
-        context.setProperties("step1", toValueReferences(updatedProperties));
+        context.setProperties("step1", toStepConfiguration(updatedProperties));
 
         assertEquals("value1", context.getProperty("step1", "key1").getValue());
         assertEquals("updatedValue2", context.getProperty("step1", "key2").getValue());
@@ -96,13 +96,13 @@ public class TestStandardConnectorConfigurationContext {
         initialProperties.put("key1", "value1");
         initialProperties.put("key2", "value2");
         initialProperties.put("key3", "value3");
-        context.setProperties("step1", toValueReferences(initialProperties));
+        context.setProperties("step1", toStepConfiguration(initialProperties));
 
         assertEquals("value2", context.getProperty("step1", "key2").getValue());
 
         final Map<String, String> updatedProperties = new HashMap<>();
         updatedProperties.put("key2", null);
-        context.setProperties("step1", toValueReferences(updatedProperties));
+        context.setProperties("step1", toStepConfiguration(updatedProperties));
 
         assertEquals("value1", context.getProperty("step1", "key1").getValue());
         assertNull(context.getProperty("step1", "key2").getValue());
@@ -115,11 +115,11 @@ public class TestStandardConnectorConfigurationContext {
         initialProperties.put("key1", "value1");
         initialProperties.put("key2", "value2");
         initialProperties.put("key3", "value3");
-        context.setProperties("step1", toValueReferences(initialProperties));
+        context.setProperties("step1", toStepConfiguration(initialProperties));
 
         final Map<String, String> updatedProperties = new HashMap<>();
         updatedProperties.put("key2", "updatedValue2");
-        context.setProperties("step1", toValueReferences(updatedProperties));
+        context.setProperties("step1", toStepConfiguration(updatedProperties));
 
         assertEquals("value1", context.getProperty("step1", "key1").getValue());
         assertEquals("updatedValue2", context.getProperty("step1", "key2").getValue());
@@ -130,11 +130,11 @@ public class TestStandardConnectorConfigurationContext {
     public void testSetPropertiesForDifferentSteps() {
         final Map<String, String> step1Properties = new HashMap<>();
         step1Properties.put("key1", "value1");
-        context.setProperties("step1", toValueReferences(step1Properties));
+        context.setProperties("step1", toStepConfiguration(step1Properties));
 
         final Map<String, String> step2Properties = new HashMap<>();
         step2Properties.put("key2", "value2");
-        context.setProperties("step2", toValueReferences(step2Properties));
+        context.setProperties("step2", toStepConfiguration(step2Properties));
 
         assertEquals("value1", context.getProperty("step1", "key1").getValue());
         assertNull(context.getProperty("step1", "key2").getValue());
@@ -152,7 +152,7 @@ public class TestStandardConnectorConfigurationContext {
     public void testGetPropertyReturnsEmptyForNonExistentProperty() {
         final Map<String, String> properties = new HashMap<>();
         properties.put("key1", "value1");
-        context.setProperties("step1", toValueReferences(properties));
+        context.setProperties("step1", toStepConfiguration(properties));
 
         final ConnectorPropertyValue propertyValue = context.getProperty("step1", "nonExistentProperty");
         assertNull(propertyValue.getValue());
@@ -167,14 +167,14 @@ public class TestStandardConnectorConfigurationContext {
         initialProps.put("d", "4");
         initialProps.put("e", "5");
         initialProps.put("f", "6");
-        context.setProperties("step1", toValueReferences(initialProps));
+        context.setProperties("step1", toStepConfiguration(initialProps));
 
         final Map<String, String> updateProps = new HashMap<>();
         updateProps.put("b", null);
         updateProps.put("c", "30");
         updateProps.put("g", "7");
         updateProps.put("h", "8");
-        context.setProperties("step1", toValueReferences(updateProps));
+        context.setProperties("step1", toStepConfiguration(updateProps));
 
         assertEquals("1", context.getProperty("step1", "a").getValue());
         assertNull(context.getProperty("step1", "b").getValue());
@@ -192,12 +192,12 @@ public class TestStandardConnectorConfigurationContext {
         step1Properties.put("key1", "value1");
         step1Properties.put("key2", "value2");
         step1Properties.put("key3", "value3");
-        context.setProperties("step1", toValueReferences(step1Properties));
+        context.setProperties("step1", toStepConfiguration(step1Properties));
 
         final Map<String, String> step2Properties = new HashMap<>();
         step2Properties.put("keyA", "valueA");
         step2Properties.put("keyB", "valueB");
-        context.setProperties("step2", toValueReferences(step2Properties));
+        context.setProperties("step2", toStepConfiguration(step2Properties));
 
         final MutableConnectorConfigurationContext clonedContext = context.clone();
 

@@ -23,23 +23,23 @@ public interface MutableConnectorConfigurationContext extends ConnectorConfigura
 
     /**
      * Sets the properties for the given step to the provided properties. Any existing properties
-     * for the step that are not included in the provided map will remain unchanged.
+     * for the step that are not included in the provided configuration will remain unchanged.
      *
      * @param stepName the name of the configuration step
-     * @param propertyValues the property values to set
+     * @param configuration the configuration to set
      * @return the result of the configuration update
      */
-    ConfigurationUpdateResult setProperties(String stepName, Map<String, ConnectorValueReference> propertyValues);
+    ConfigurationUpdateResult setProperties(String stepName, StepConfiguration configuration);
 
     /**
      * Replaces all of the properties for the given step with the provided properties. Any existing properties
-     * for the step that are not included in the provided map will be removed.
+     * for the step that are not included in the provided configuration will be removed.
      *
      * @param stepName the name of the configuration step
-     * @param propertyValues the property values to set
+     * @param configuration the configuration to set
      * @return the result of the configuration update
      */
-    ConfigurationUpdateResult replaceProperties(String stepName, Map<String, ConnectorValueReference> propertyValues);
+    ConfigurationUpdateResult replaceProperties(String stepName, StepConfiguration configuration);
 
     /**
      * Converts this mutable configuration context to an immutable ConnectorConfiguration.

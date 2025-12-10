@@ -41,6 +41,7 @@ import org.apache.nifi.components.connector.GhostConnector;
 import org.apache.nifi.components.connector.MutableConnectorConfigurationContext;
 import org.apache.nifi.components.connector.SecretsManager;
 import org.apache.nifi.components.connector.StandardConnectorNode;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -516,7 +517,7 @@ public class ExtensionBuilder {
        return connectorNode;
    }
 
-   private void initializeDefaultValues(final Connector connector, final FrameworkFlowContext flowContext) {
+    private void initializeDefaultValues(final Connector connector, final FrameworkFlowContext flowContext) {
        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), identifier)) {
            final List<ConfigurationStep> configSteps = connector.getConfigurationSteps(flowContext);
 
@@ -531,7 +532,7 @@ public class ExtensionBuilder {
                    }
                }
 
-               flowContext.getConfigurationContext().setProperties(step.getName(), defaultValues);
+               flowContext.getConfigurationContext().setProperties(step.getName(), new StepConfiguration(defaultValues));
            }
        }
    }

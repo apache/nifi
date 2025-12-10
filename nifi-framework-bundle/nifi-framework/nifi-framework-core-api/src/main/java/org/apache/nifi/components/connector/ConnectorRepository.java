@@ -21,7 +21,6 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Future;
 
 public interface ConnectorRepository {
@@ -76,7 +75,7 @@ public interface ConnectorRepository {
      */
     Future<Void> stopConnector(ConnectorNode connector);
 
-    void configureConnector(ConnectorNode connector, String stepName, Map<String, ConnectorValueReference> propertyValues) throws FlowUpdateException;
+    void configureConnector(ConnectorNode connector, String stepName, StepConfiguration configuration) throws FlowUpdateException;
 
     void applyUpdate(ConnectorNode connector) throws FlowUpdateException;
 
