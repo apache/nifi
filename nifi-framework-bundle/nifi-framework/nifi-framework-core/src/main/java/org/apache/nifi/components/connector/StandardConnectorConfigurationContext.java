@@ -21,6 +21,7 @@ import org.apache.nifi.asset.AssetManager;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -78,6 +79,36 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
     }
 
     @Override
+    public Set<String> getPropertyNames(final String configurationStepName) {
+        readLock.lock();
+        try {
+            final StepConfiguration config = propertyConfigurations.get(configurationStepName);
+            if (config == null) {
+                return Collections.emptySet();
+            }
+
+            return new HashSet<>(config.getPropertyValues().keySet());
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
+    public Set<String> getPropertyNames(final ConfigurationStep configurationStep) {
+        return getPropertyNames(configurationStep.getName());
+    }
+
+    @Override
+    public StepConfigurationContext scopedToStep(final String stepName) {
+        return new StandardStepConfigurationContext(stepName, this);
+    }
+
+    @Override
+    public StepConfigurationContext scopedToStep(final ConfigurationStep configurationStep) {
+        return scopedToStep(configurationStep.getName());
+    }
+
+    @Override
     public StandardConnectorConfigurationContext createWithOverrides(final String stepName, final Map<String, String> propertyOverrides) {
         final StandardConnectorConfigurationContext created = new StandardConnectorConfigurationContext(assetManager, secretsManager);
         readLock.lock();
@@ -94,7 +125,12 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
                 final Map<String, ConnectorValueReference> mergedProperties = new HashMap<>(existingConfig.getPropertyValues());
                 for (final Map.Entry<String, String> override : propertyOverrides.entrySet()) {
                     final String propertyValue = override.getValue();
-                    mergedProperties.put(override.getKey(), propertyValue == null ? null : new StringLiteralValue(propertyValue));
+                    if (propertyValue == null) {
+                        mergedProperties.remove(override.getKey());
+                        continue;
+                    }
+
+                    mergedProperties.put(override.getKey(), new StringLiteralValue(propertyValue));
                 }
                 created.setProperties(stepName, new StepConfiguration(mergedProperties));
             }
