@@ -32,6 +32,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptRunner;
@@ -78,6 +79,11 @@ public class ScriptedReportingTask extends AbstractReportingTask {
     protected volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
     private volatile String scriptToRun = null;
     private volatile JmxJvmMetrics vmMetrics;
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        ScriptingComponentHelper.migrateProperties(config);
+    }
 
     /**
      * Returns a list of property descriptors supported by this processor. The list always includes properties such as
