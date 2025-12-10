@@ -70,12 +70,9 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
             .identifiesControllerService(RecordSetWriterFactory.class)
             .build();
 
-    static final PropertyDescriptor LANGUAGE = new PropertyDescriptor.Builder()
-            .name(ScriptingComponentHelper.SCRIPT_ENGINE_PROPERTY)
-            .description("The Language to use for the script")
+    static final PropertyDescriptor LANGUAGE = ScriptingComponentHelper.getScriptEnginePropertyBuilder()
             .allowableValues(SCRIPT_OPTIONS)
             .defaultValue("Groovy")
-            .required(true)
             .build();
 
     protected static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -140,8 +137,8 @@ abstract class ScriptedRecordProcessor extends AbstractProcessor implements Sear
     }
 
     @Override
-    public void migrateProperties(PropertyConfiguration config) {
-        config.renameProperty("Script Engine", LANGUAGE.getName());
+    public void migrateProperties(final PropertyConfiguration config) {
+        ScriptingComponentHelper.migrateProperties(config);
     }
 
     protected static Bindings setupBindings(final ScriptEngine scriptEngine) {
