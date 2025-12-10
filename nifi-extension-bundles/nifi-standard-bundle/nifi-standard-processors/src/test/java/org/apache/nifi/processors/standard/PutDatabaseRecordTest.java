@@ -2157,6 +2157,234 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         conn.close();
     }
 
+    @Test
+    public void testInsertWithPreQuery() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        recreateTable(createPersons);
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.INT);
+        parser.addSchemaField("dt", RecordFieldType.DATE);
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
+
+        parser.addRecord(1, "rec1", 101, jdbcDate1);
+        parser.addRecord(2, "rec2", 102, jdbcDate2);
+        parser.addRecord(3, "rec3", 103, null);
+        parser.addRecord(4, "rec4", 104, null);
+        parser.addRecord(5, null, 105, null);
+
+        runner.setProperty(PutDatabaseRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals("rec1", rs.getString(2));
+        assertEquals(101, rs.getInt(3));
+        assertEquals(jdbcDate1.toString(), rs.getDate(4).toString());
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertEquals("rec2", rs.getString(2));
+        assertEquals(102, rs.getInt(3));
+        assertEquals(jdbcDate2.toString(), rs.getDate(4).toString());
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        assertEquals("rec3", rs.getString(2));
+        assertEquals(103, rs.getInt(3));
+        assertNull(rs.getDate(4));
+        assertTrue(rs.next());
+        assertEquals(4, rs.getInt(1));
+        assertEquals("rec4", rs.getString(2));
+        assertEquals(104, rs.getInt(3));
+        assertNull(rs.getDate(4));
+        assertTrue(rs.next());
+        assertEquals(5, rs.getInt(1));
+        assertNull(rs.getString(2));
+        assertEquals(105, rs.getInt(3));
+        assertNull(rs.getDate(4));
+        assertFalse(rs.next());
+
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void testInsertWithPreQueryFail() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        recreateTable(createPersons);
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.INT);
+        parser.addSchemaField("dt", RecordFieldType.DATE);
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
+
+        parser.addRecord(1, "rec1", 101, jdbcDate1);
+        parser.addRecord(2, "rec2", 102, jdbcDate2);
+        parser.addRecord(3, "rec3", 103, null);
+        parser.addRecord(4, "rec4", 104, null);
+        parser.addRecord(5, null, 105, null);
+
+        runner.setProperty(PutDatabaseRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS()");
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+        assertFalse(rs.next());
+
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void testInsertWithPostQuery() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        recreateTable(createPersons);
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.INT);
+        parser.addSchemaField("dt", RecordFieldType.DATE);
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
+
+        parser.addRecord(1, "rec1", 101, jdbcDate1);
+        parser.addRecord(2, "rec2", 102, jdbcDate2);
+        parser.addRecord(3, "rec3", 103, null);
+        parser.addRecord(4, "rec4", 104, null);
+        parser.addRecord(5, null, 105, null);
+
+        runner.setProperty(PutDatabaseRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        runner.setProperty(PutDatabaseRecord.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals("rec1", rs.getString(2));
+        assertEquals(101, rs.getInt(3));
+        assertEquals(jdbcDate1.toString(), rs.getDate(4).toString());
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertEquals("rec2", rs.getString(2));
+        assertEquals(102, rs.getInt(3));
+        assertEquals(jdbcDate2.toString(), rs.getDate(4).toString());
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
+        assertEquals("rec3", rs.getString(2));
+        assertEquals(103, rs.getInt(3));
+        assertNull(rs.getDate(4));
+        assertTrue(rs.next());
+        assertEquals(4, rs.getInt(1));
+        assertEquals("rec4", rs.getString(2));
+        assertEquals(104, rs.getInt(3));
+        assertNull(rs.getDate(4));
+        assertTrue(rs.next());
+        assertEquals(5, rs.getInt(1));
+        assertNull(rs.getString(2));
+        assertEquals(105, rs.getInt(3));
+        assertNull(rs.getDate(4));
+        assertFalse(rs.next());
+
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void testInsertWithPostQueryFail() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        recreateTable(createPersons);
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addSchemaField("code", RecordFieldType.INT);
+        parser.addSchemaField("dt", RecordFieldType.DATE);
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26);
+        Date jdbcDate1 = Date.valueOf(testDate1); // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26);
+        Date jdbcDate2 = Date.valueOf(testDate2); // in local TZ
+
+        parser.addRecord(1, "rec1", 101, jdbcDate1);
+        parser.addRecord(2, "rec2", 102, jdbcDate2);
+        parser.addRecord(3, "rec3", 103, null);
+        parser.addRecord(4, "rec4", 104, null);
+        parser.addRecord(5, null, 105, null);
+
+        runner.setProperty(PutDatabaseRecord.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        runner.setProperty(PutDatabaseRecord.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS()");
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1);
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM PERSONS");
+        assertFalse(rs.next());
+
+        stmt.close();
+        conn.close();
+    }
+
     private void recreateTable() throws ProcessException {
         try (final Connection conn = dbcp.getConnection();
              final Statement stmt = conn.createStatement()) {
