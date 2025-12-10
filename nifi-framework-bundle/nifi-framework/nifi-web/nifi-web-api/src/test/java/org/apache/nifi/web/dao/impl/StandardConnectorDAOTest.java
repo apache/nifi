@@ -159,13 +159,13 @@ class StandardConnectorDAOTest {
             new AllowableValue("value2", "Value 2", "Second value")
         );
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        when(connectorNode.fetchAllowableValues(STEP_NAME, GROUP_NAME, PROPERTY_NAME)).thenReturn(expectedValues);
+        when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME)).thenReturn(expectedValues);
 
         final List<AllowableValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, GROUP_NAME, PROPERTY_NAME, null);
 
         assertEquals(expectedValues, result);
-        verify(connectorNode).fetchAllowableValues(STEP_NAME, GROUP_NAME, PROPERTY_NAME);
-        verify(connectorNode, never()).fetchAllowableValues(any(), any(), any(), any());
+        verify(connectorNode).fetchAllowableValues(STEP_NAME, PROPERTY_NAME);
+        verify(connectorNode, never()).fetchAllowableValues(any(), any(), any());
     }
 
     @Test
@@ -174,13 +174,13 @@ class StandardConnectorDAOTest {
             new AllowableValue("value1", "Value 1", "First value")
         );
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        when(connectorNode.fetchAllowableValues(STEP_NAME, GROUP_NAME, PROPERTY_NAME)).thenReturn(expectedValues);
+        when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME)).thenReturn(expectedValues);
 
         final List<AllowableValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, GROUP_NAME, PROPERTY_NAME, "");
 
         assertEquals(expectedValues, result);
-        verify(connectorNode).fetchAllowableValues(STEP_NAME, GROUP_NAME, PROPERTY_NAME);
-        verify(connectorNode, never()).fetchAllowableValues(any(), any(), any(), any());
+        verify(connectorNode).fetchAllowableValues(STEP_NAME, PROPERTY_NAME);
+        verify(connectorNode, never()).fetchAllowableValues(any(), any(), any());
     }
 
     @Test
@@ -190,13 +190,13 @@ class StandardConnectorDAOTest {
             new AllowableValue("filtered-value", "Filtered Value", "Filtered result")
         );
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        when(connectorNode.fetchAllowableValues(STEP_NAME, GROUP_NAME, PROPERTY_NAME, filter)).thenReturn(expectedValues);
+        when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME, filter)).thenReturn(expectedValues);
 
         final List<AllowableValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, GROUP_NAME, PROPERTY_NAME, filter);
 
         assertEquals(expectedValues, result);
-        verify(connectorNode).fetchAllowableValues(STEP_NAME, GROUP_NAME, PROPERTY_NAME, filter);
-        verify(connectorNode, never()).fetchAllowableValues(STEP_NAME, GROUP_NAME, PROPERTY_NAME);
+        verify(connectorNode).fetchAllowableValues(STEP_NAME, PROPERTY_NAME, filter);
+        verify(connectorNode, never()).fetchAllowableValues(STEP_NAME, PROPERTY_NAME);
     }
 
     @Test

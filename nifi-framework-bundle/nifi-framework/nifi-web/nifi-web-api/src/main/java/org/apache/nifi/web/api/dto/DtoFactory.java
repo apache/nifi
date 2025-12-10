@@ -66,23 +66,23 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.components.validation.ValidationState;
-import org.apache.nifi.components.validation.ValidationStatus;
-import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConfigurationStep;
-import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.validation.ValidationState;
+import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -5280,7 +5280,7 @@ public final class DtoFactory {
         dto.setConfigurationStepDescription(step.getDescription());
 
         // Get the current configuration values for this step
-        final ConfigurationStepConfiguration stepConfig = configuration.getConfigurationStepConfigurations().stream()
+        final NamedStepConfiguration stepConfig = configuration.getNamedStepConfigurations().stream()
                 .filter(c -> step.getName().equals(c.stepName()))
                 .findFirst()
                 .orElse(null);
@@ -5293,7 +5293,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    private PropertyGroupConfigurationDTO createPropertyGroupConfigurationDtoFromGroup(final ConnectorPropertyGroup propertyGroup, final ConfigurationStepConfiguration stepConfig) {
+    private PropertyGroupConfigurationDTO createPropertyGroupConfigurationDtoFromGroup(final ConnectorPropertyGroup propertyGroup, final NamedStepConfiguration namedStepConfig) {
         if (propertyGroup == null) {
             return null;
         }
@@ -5314,16 +5314,11 @@ public final class DtoFactory {
         // Get the current property values for this group if they exist
         // Use LinkedHashMap to preserve the order from the connector
         final Map<String, ConnectorValueReferenceDTO> propertyValues = new LinkedHashMap<>();
-        if (stepConfig != null) {
-            final PropertyGroupConfiguration groupConfig = stepConfig.propertyGroupConfigurations().stream()
-                    .filter(g -> propertyGroup.getName().equals(g.groupName()))
-                    .findFirst()
-                    .orElse(null);
-
-            if (groupConfig != null) {
-                for (final Map.Entry<String, ConnectorValueReference> entry : groupConfig.propertyValues().entrySet()) {
-                    propertyValues.put(entry.getKey(), createConnectorValueReferenceDto(entry.getValue()));
-                }
+        if (namedStepConfig != null) {
+            final StepConfiguration stepConfig = namedStepConfig.configuration();
+            for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                final ConnectorValueReference valueReference = stepConfig.getPropertyValue(descriptor.getName());
+                propertyValues.put(descriptor.getName(), createConnectorValueReferenceDto(valueReference));
             }
         }
 

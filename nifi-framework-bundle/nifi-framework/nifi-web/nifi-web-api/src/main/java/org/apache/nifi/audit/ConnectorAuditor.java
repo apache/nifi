@@ -24,13 +24,13 @@ import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.components.connector.AssetReference;
-import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
@@ -225,13 +225,13 @@ public class ConnectorAuditor extends NiFiAuditor {
         final ConnectorNode connector = connectorDAO.getConnector(connectorId);
 
         // Capture the current property values before the update
-        final Map<String, Map<String, String>> previousValues = extractCurrentPropertyValues(connector, configurationStepName);
+        final Map<String, String> previousValues = extractCurrentPropertyValues(connector, configurationStepName);
 
         proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
             // Extract the new property values from the DTO
-            final Map<String, Map<String, String>> newValues = extractPropertyValuesFromDto(configurationStepConfiguration);
+            final Map<String, String> newValues = extractPropertyValuesFromDto(configurationStepConfiguration);
 
             // Generate audit actions for each changed property
             final List<Action> actions = generateConfigurationChangeActions(connector, configurationStepName, previousValues, newValues);
@@ -248,27 +248,22 @@ public class ConnectorAuditor extends NiFiAuditor {
      * @param configurationStepName the name of the configuration step
      * @return a map of property group name to property name to property value
      */
-    private Map<String, Map<String, String>> extractCurrentPropertyValues(final ConnectorNode connector, final String configurationStepName) {
-        final Map<String, Map<String, String>> result = new HashMap<>();
-
+    private Map<String, String> extractCurrentPropertyValues(final ConnectorNode connector, final String configurationStepName) {
         final ConnectorConfiguration configuration = connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
-        for (final ConfigurationStepConfiguration stepConfig : configuration.getConfigurationStepConfigurations()) {
-            if (Objects.equals(stepConfig.stepName(), configurationStepName)) {
-                for (final PropertyGroupConfiguration groupConfig : stepConfig.propertyGroupConfigurations()) {
-                    final String groupName = groupConfig.groupName();
-                    final Map<String, String> propertyValues = new HashMap<>();
-
-                    for (final Map.Entry<String, ConnectorValueReference> entry : groupConfig.propertyValues().entrySet()) {
-                        propertyValues.put(entry.getKey(), formatValueReference(entry.getValue()));
-                    }
-
-                    result.put(groupName, propertyValues);
+        for (final NamedStepConfiguration namedStepConfiguration : configuration.getNamedStepConfigurations()) {
+            final String stepName = namedStepConfiguration.stepName();
+            final StepConfiguration stepConfiguration = namedStepConfiguration.configuration();
+            if (Objects.equals(stepName, configurationStepName)) {
+                final Map<String, String> propertyValues = new HashMap<>();
+                for (final Map.Entry<String, ConnectorValueReference> entry : stepConfiguration.getPropertyValues().entrySet()) {
+                    propertyValues.put(entry.getKey(), formatValueReference(entry.getValue()));
                 }
-                break;
+
+                return propertyValues;
             }
         }
 
-        return result;
+        return new HashMap<>();
     }
 
     /**
@@ -277,21 +272,16 @@ public class ConnectorAuditor extends NiFiAuditor {
      * @param configurationStepDto the configuration step DTO
      * @return a map of property group name to property name to property value
      */
-    private Map<String, Map<String, String>> extractPropertyValuesFromDto(final ConfigurationStepConfigurationDTO configurationStepDto) {
-        final Map<String, Map<String, String>> result = new HashMap<>();
+    private Map<String, String> extractPropertyValuesFromDto(final ConfigurationStepConfigurationDTO configurationStepDto) {
+        final Map<String, String> result = new HashMap<>();
 
         if (configurationStepDto.getPropertyGroupConfigurations() != null) {
             for (final PropertyGroupConfigurationDTO groupDto : configurationStepDto.getPropertyGroupConfigurations()) {
-                final String groupName = groupDto.getPropertyGroupName();
-                final Map<String, String> propertyValues = new HashMap<>();
-
                 if (groupDto.getPropertyValues() != null) {
                     for (final Map.Entry<String, ConnectorValueReferenceDTO> entry : groupDto.getPropertyValues().entrySet()) {
-                        propertyValues.put(entry.getKey(), formatValueReferenceDto(entry.getValue()));
+                        result.put(entry.getKey(), formatValueReferenceDto(entry.getValue()));
                     }
                 }
-
-                result.put(groupName, propertyValues);
             }
         }
 
@@ -349,45 +339,38 @@ public class ConnectorAuditor extends NiFiAuditor {
      * @return list of actions for changed properties
      */
     private List<Action> generateConfigurationChangeActions(final ConnectorNode connector, final String configurationStepName,
-                                                            final Map<String, Map<String, String>> previousValues, final Map<String, Map<String, String>> newValues) {
+                                                            final Map<String, String> previousValues, final Map<String, String> newValues) {
         final List<Action> actions = new ArrayList<>();
         final Date timestamp = new Date();
 
         final FlowChangeExtensionDetails connectorDetails = new FlowChangeExtensionDetails();
         connectorDetails.setType(connector.getComponentType());
 
-        // Iterate through all property groups in the new values
-        for (final Map.Entry<String, Map<String, String>> groupEntry : newValues.entrySet()) {
-            final String groupName = groupEntry.getKey();
-            final Map<String, String> newGroupValues = groupEntry.getValue();
-            final Map<String, String> previousGroupValues = previousValues.getOrDefault(groupName, new HashMap<>());
+        // Iterate through all properties in the new values
+        for (final Map.Entry<String, String> propertyEntry : newValues.entrySet()) {
+            final String propertyName = propertyEntry.getKey();
+            final String newValue = propertyEntry.getValue();
+            final String previousValue = previousValues.get(propertyName);
 
-            // Check each property in this group
-            for (final Map.Entry<String, String> propertyEntry : newGroupValues.entrySet()) {
-                final String propertyName = propertyEntry.getKey();
-                final String newValue = propertyEntry.getValue();
-                final String previousValue = previousGroupValues.get(propertyName);
+            // Only create an action if the value changed
+            if (!Objects.equals(previousValue, newValue)) {
+                final String fullPropertyName = formatPropertyName(configurationStepName, propertyName);
 
-                // Only create an action if the value changed
-                if (!Objects.equals(previousValue, newValue)) {
-                    final String fullPropertyName = formatPropertyName(configurationStepName, groupName, propertyName);
+                final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
+                actionDetails.setName(fullPropertyName);
+                actionDetails.setPreviousValue(previousValue);
+                actionDetails.setValue(newValue);
 
-                    final FlowChangeConfigureDetails actionDetails = new FlowChangeConfigureDetails();
-                    actionDetails.setName(fullPropertyName);
-                    actionDetails.setPreviousValue(previousValue);
-                    actionDetails.setValue(newValue);
+                final FlowChangeAction configurationAction = createFlowChangeAction();
+                configurationAction.setOperation(Operation.Configure);
+                configurationAction.setTimestamp(timestamp);
+                configurationAction.setSourceId(connector.getIdentifier());
+                configurationAction.setSourceName(connector.getName());
+                configurationAction.setSourceType(Component.Connector);
+                configurationAction.setComponentDetails(connectorDetails);
+                configurationAction.setActionDetails(actionDetails);
 
-                    final FlowChangeAction configurationAction = createFlowChangeAction();
-                    configurationAction.setOperation(Operation.Configure);
-                    configurationAction.setTimestamp(timestamp);
-                    configurationAction.setSourceId(connector.getIdentifier());
-                    configurationAction.setSourceName(connector.getName());
-                    configurationAction.setSourceType(Component.Connector);
-                    configurationAction.setComponentDetails(connectorDetails);
-                    configurationAction.setActionDetails(actionDetails);
-
-                    actions.add(configurationAction);
-                }
+                actions.add(configurationAction);
             }
         }
 
@@ -398,15 +381,11 @@ public class ConnectorAuditor extends NiFiAuditor {
      * Formats the property name for audit logging, including step and group context.
      *
      * @param stepName the configuration step name
-     * @param groupName the property group name
      * @param propertyName the property name
      * @return the formatted property name
      */
-    private String formatPropertyName(final String stepName, final String groupName, final String propertyName) {
-        if (groupName == null || groupName.isEmpty()) {
-            return stepName + " / " + propertyName;
-        }
-        return stepName + " / " + groupName + " / " + propertyName;
+    private String formatPropertyName(final String stepName, final String propertyName) {
+        return stepName + " / " + propertyName;
     }
 
     /**
