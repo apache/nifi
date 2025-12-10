@@ -28,6 +28,7 @@ import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
 public class ConnectorEntity extends ComponentEntity implements Permissible<ConnectorDTO>, OperationPermissible {
     private ConnectorDTO component;
     private ConnectorStatusDTO status;
+    private PermissionsDTO operatePermissions;
 
     @Override
     @Schema(description = "The Connector DTO")
@@ -40,14 +41,15 @@ public class ConnectorEntity extends ComponentEntity implements Permissible<Conn
         this.component = component;
     }
 
+    @Schema(description = "The permissions for this component operations.")
     @Override
     public PermissionsDTO getOperatePermissions() {
-        return getPermissions();
+        return operatePermissions;
     }
 
     @Override
-    public void setOperatePermissions(final PermissionsDTO permissions) {
-        setPermissions(permissions);
+    public void setOperatePermissions(final PermissionsDTO operatePermissions) {
+        this.operatePermissions = operatePermissions;
     }
 
     @Schema(description = "The status of the connector.")

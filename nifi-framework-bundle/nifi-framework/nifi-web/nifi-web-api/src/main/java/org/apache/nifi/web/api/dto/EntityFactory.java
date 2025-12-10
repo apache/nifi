@@ -130,11 +130,13 @@ public final class EntityFactory {
 
     public ConnectorEntity createConnectorEntity(final ConnectorDTO dto,
                                                  final RevisionDTO revision,
-                                                 final PermissionsDTO permissions) {
+                                                 final PermissionsDTO permissions,
+                                                 final PermissionsDTO operatePermissions) {
         final ConnectorEntity entity = new ConnectorEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
             entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
