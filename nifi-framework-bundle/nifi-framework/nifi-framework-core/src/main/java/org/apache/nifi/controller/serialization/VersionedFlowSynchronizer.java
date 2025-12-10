@@ -67,7 +67,6 @@ import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnector;
-import org.apache.nifi.flow.VersionedConnectorPropertyGroup;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -1089,40 +1088,14 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private boolean isConfigurationStepUpdated(final ConfigurationStepConfiguration existingStep, final VersionedConfigurationStep versionedStep) {
-        final List<PropertyGroupConfiguration> existingPropertyGroups = existingStep.propertyGroupConfigurations();
-        final List<VersionedConnectorPropertyGroup> versionedPropertyGroups = versionedStep.getPropertyGroups();
-
-        if (versionedPropertyGroups == null || versionedPropertyGroups.isEmpty()) {
-            return existingPropertyGroups != null && !existingPropertyGroups.isEmpty();
+        final Map<String, ConnectorValueReference> existingProperties = new HashMap<>();
+        for (final PropertyGroupConfiguration groupConfig : existingStep.propertyGroupConfigurations()) {
+            existingProperties.putAll(groupConfig.propertyValues());
         }
 
-        if (existingPropertyGroups.size() != versionedPropertyGroups.size()) {
-            return true;
-        }
-
-        final Map<String, PropertyGroupConfiguration> existingGroupsByName = new HashMap<>();
-        existingPropertyGroups.forEach(group -> existingGroupsByName.put(group.groupName(), group));
-
-        for (final VersionedConnectorPropertyGroup versionedGroup : versionedPropertyGroups) {
-            final PropertyGroupConfiguration existingGroup = existingGroupsByName.get(versionedGroup.getName());
-            if (existingGroup == null) {
-                return true;
-            }
-
-            if (isPropertyGroupUpdated(existingGroup, versionedGroup)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean isPropertyGroupUpdated(final PropertyGroupConfiguration existingGroup, final VersionedConnectorPropertyGroup versionedGroup) {
-        final Map<String, ConnectorValueReference> existingProperties = existingGroup.propertyValues();
-        final Map<String, VersionedConnectorValueReference> versionedProperties = versionedGroup.getProperties();
-
+        final Map<String, VersionedConnectorValueReference> versionedProperties = versionedStep.getProperties();
         if (versionedProperties == null || versionedProperties.isEmpty()) {
-            return existingProperties != null && !existingProperties.isEmpty();
+            return !existingProperties.isEmpty();
         }
 
         if (existingProperties.size() != versionedProperties.size()) {
@@ -1134,8 +1107,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final VersionedConnectorValueReference versionedRef = versionedEntry.getValue();
             final ConnectorValueReference existingRef = existingProperties.get(propertyName);
 
-            final boolean valuesMatch = equals(versionedRef, existingRef);
-            if (!valuesMatch) {
+            if (!equals(versionedRef, existingRef)) {
                 return true;
             }
         }

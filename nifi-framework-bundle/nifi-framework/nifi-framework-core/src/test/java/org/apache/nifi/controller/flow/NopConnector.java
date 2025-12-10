@@ -31,6 +31,7 @@ import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A simple no-op Connector implementation for testing purposes.
@@ -122,7 +123,7 @@ public class NopConnector implements Connector {
     }
 
     @Override
-    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final List<PropertyGroupConfiguration> overrides, final FlowContext flowContext) {
+    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
         return List.of();
     }
 
@@ -150,12 +151,12 @@ public class NopConnector implements Connector {
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String groupName, final String propertyName, final FlowContext workingContext, final String filter) {
+    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext workingContext, final String filter) {
         return List.of();
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String groupName, final String propertyName, final FlowContext workingContext) {
+    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext workingContext) {
         return List.of();
     }
 

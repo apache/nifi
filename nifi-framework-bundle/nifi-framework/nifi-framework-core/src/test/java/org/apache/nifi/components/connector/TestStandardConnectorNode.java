@@ -346,7 +346,7 @@ public class TestStandardConnectorNode {
         final ConnectorConfiguration newConfiguration = createTestConfiguration();
 
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("testGroup", createGroupConfig());
+        connectorNode.setConfiguration("testGroup", createPropertyValues());
         connectorNode.applyUpdate();
 
         assertEquals(newConfiguration, connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration());
@@ -362,7 +362,7 @@ public class TestStandardConnectorNode {
         final ConnectorConfiguration newConfiguration = createTestConfiguration();
 
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("testGroup", createGroupConfig());
+        connectorNode.setConfiguration("testGroup", createPropertyValues());
         connectorNode.applyUpdate();
 
         assertEquals(newConfiguration, connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration());
@@ -374,14 +374,14 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("step1", createGroupConfig("propertyGroup1", Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("step1", createPropertyValues(Map.of("prop1", "value1")));
         connectorNode.applyUpdate();
 
         final ConnectorConfiguration newConfiguration = createTestConfiguration("step1", "prop1", "value2");
 
         connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("step1", createGroupConfig("propertyGroup1", Map.of("prop1", "value2")));
+        connectorNode.setConfiguration("step1", createPropertyValues(Map.of("prop1", "value2")));
         connectorNode.applyUpdate();
         assertEquals(newConfiguration, connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration());
     }
@@ -392,7 +392,7 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("configurationStep1", createGroupConfig("propertyGroup1", Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("configurationStep1", createPropertyValues(Map.of("prop1", "value1")));
         connectorNode.applyUpdate();
 
         final ConnectorConfiguration newConfiguration = createTestConfigurationWithMultipleGroups();
@@ -400,8 +400,8 @@ public class TestStandardConnectorNode {
         // Wait for Connector to fully stop
         connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("configurationStep1", createGroupConfig("propertyGroup1", Map.of("prop1", "value1")));
-        connectorNode.setConfiguration("configurationStep2", createGroupConfig("propertyGroup2", Map.of("prop2", "value2")));
+        connectorNode.setConfiguration("configurationStep1", createPropertyValues(Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("configurationStep2", createPropertyValues(Map.of("prop2", "value2")));
         connectorNode.applyUpdate();
 
         assertEquals(newConfiguration, connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration());
@@ -413,13 +413,13 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("configurationStep1", createGroupConfig("propertyGroup1", Map.of("prop1", "value1")));
-        connectorNode.setConfiguration("configurationStep2", createGroupConfig("propertyGroup2", Map.of("prop2", "value2")));
+        connectorNode.setConfiguration("configurationStep1", createPropertyValues(Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("configurationStep2", createPropertyValues(Map.of("prop2", "value2")));
         connectorNode.applyUpdate();
 
         connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("configurationStep1", createGroupConfig("propertyGroup1", Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("configurationStep1", createPropertyValues(Map.of("prop1", "value1")));
         connectorNode.applyUpdate();
 
         final List<ConfigurationStepConfiguration> expectedSteps = List.of(
@@ -439,7 +439,7 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("testGroup", createGroupConfig());
+        connectorNode.setConfiguration("testGroup", createPropertyValues());
         connectorNode.applyUpdate();
     }
 
@@ -450,12 +450,12 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("configurationStep1", createGroupConfig("configurationStep1", Map.of("prop1", "value1")));
+        connectorNode.setConfiguration("configurationStep1", createPropertyValues(Map.of("prop1", "value1")));
         connectorNode.applyUpdate();
         trackingConnector.reset();
 
         connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("configurationStep1", createGroupConfig("configurationStep1", Map.of("prop1", "value2")));
+        connectorNode.setConfiguration("configurationStep1", createPropertyValues(Map.of("prop1", "value2")));
         connectorNode.applyUpdate();
 
         assertTrue(trackingConnector.wasOnPropertyGroupConfiguredCalled("configurationStep1"));
@@ -468,8 +468,7 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
         connectorNode.prepareForUpdate();
-        final List<PropertyGroupConfiguration> groupConfig = createGroupConfig("testGroup", Map.of("testProperty", "invalidValue"));
-        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep("testStep", groupConfig);
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep("testStep", Map.of("testProperty", new StringLiteralValue("invalidValue")));
 
         assertFalse(results.isEmpty());
         final List<ConfigVerificationResult> failedResults = results.stream()
@@ -511,17 +510,20 @@ public class TestStandardConnectorNode {
         return new ConnectorDetails(connector, bundleCoordinate, componentLog);
     }
 
-    private List<PropertyGroupConfiguration> createGroupConfig() {
-        return createGroupConfig("propertyGroup1", Map.of("testProperty", "testValue"));
+    private Map<String, ConnectorValueReference> createPropertyValues() {
+        return createPropertyValues(Map.of("testProperty", "testValue"));
     }
 
-    private List<PropertyGroupConfiguration> createGroupConfig(final String groupName, final Map<String, String> properties) {
+    private Map<String, ConnectorValueReference> createPropertyValues(final Map<String, String> properties) {
         final Map<String, ConnectorValueReference> valueReferences = new java.util.HashMap<>();
         for (final Map.Entry<String, String> entry : properties.entrySet()) {
             valueReferences.put(entry.getKey(), new StringLiteralValue(entry.getValue()));
         }
-        final PropertyGroupConfiguration propertyGroupConfiguration = new PropertyGroupConfiguration(groupName, valueReferences);
-        return List.of(propertyGroupConfiguration);
+        return valueReferences;
+    }
+
+    private List<PropertyGroupConfiguration> createGroupConfig(final String groupName, final Map<String, String> properties) {
+        return List.of(new PropertyGroupConfiguration(groupName, createPropertyValues(properties)));
     }
 
     private ConnectorConfiguration createTestConfiguration() {
@@ -577,7 +579,7 @@ public class TestStandardConnectorNode {
         }
 
         @Override
-        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final List<PropertyGroupConfiguration> overrides, final FlowContext flowContext) {
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
         }
 
@@ -632,7 +634,7 @@ public class TestStandardConnectorNode {
         }
 
         @Override
-        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final List<PropertyGroupConfiguration> overrides, final FlowContext flowContext) {
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
         }
     }

@@ -82,6 +82,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -228,7 +229,11 @@ public class StandardConnectorNodeIT {
     private void configure(final ConnectorNode connectorNode, final ConnectorConfiguration configuration) throws FlowUpdateException {
         connectorNode.prepareForUpdate();
         for (final ConfigurationStepConfiguration stepConfig : configuration.getConfigurationStepConfigurations()) {
-            connectorNode.setConfiguration(stepConfig.stepName(), stepConfig.propertyGroupConfigurations());
+            final Map<String, ConnectorValueReference> allProperties = new HashMap<>();
+            for (final PropertyGroupConfiguration groupConfig : stepConfig.propertyGroupConfigurations()) {
+                allProperties.putAll(groupConfig.propertyValues());
+            }
+            connectorNode.setConfiguration(stepConfig.stepName(), allProperties);
         }
         connectorNode.applyUpdate();
     }

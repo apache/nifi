@@ -33,6 +33,7 @@ import org.apache.nifi.logging.ComponentLog;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Future;
 
@@ -63,9 +64,9 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
 
     BundleCoordinate getBundleCoordinate();
 
-    List<AllowableValue> fetchAllowableValues(String stepName, String groupName, String propertyName);
+    List<AllowableValue> fetchAllowableValues(String stepName, String propertyName);
 
-    List<AllowableValue> fetchAllowableValues(String stepName, String groupName, String propertyName, String filter);
+    List<AllowableValue> fetchAllowableValues(String stepName, String propertyName, String filter);
 
     void initializeConnector(FrameworkConnectorInitializationContext initializationContext);
 
@@ -104,7 +105,7 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     void resumeValidationTrigger();
 
-    List<ConfigVerificationResult> verifyConfigurationStep(String configurationStepName, List<PropertyGroupConfiguration> propertyGroupConfigurations);
+    List<ConfigVerificationResult> verifyConfigurationStep(String configurationStepName, Map<String, ConnectorValueReference> propertyValueOverrides);
 
     List<ConfigVerificationResult> verify();
 
@@ -179,10 +180,10 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * @param configurationStepName the name of the configuration step being set
      *                              (must match one of the names returned by {@link Connector#getConfigurationSteps(FlowContext)})
      *                              when providing the working flow context
-     * @param propertyGroupConfigurations the list of PropertyGroupConfigurations for the given configuration step
+     * @param propertyValues the property values for the given configuration step
      * @throws FlowUpdateException if unable to apply the configuration changes
      */
-    void setConfiguration(String configurationStepName, List<PropertyGroupConfiguration> propertyGroupConfigurations) throws FlowUpdateException;
+    void setConfiguration(String configurationStepName, Map<String, ConnectorValueReference> propertyValues) throws FlowUpdateException;
 
     void prepareForUpdate() throws FlowUpdateException;
 

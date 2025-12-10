@@ -66,7 +66,6 @@ import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedConnector;
-import org.apache.nifi.flow.VersionedConnectorPropertyGroup;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
@@ -1065,17 +1064,14 @@ public class VersionedComponentFlowMapper {
         for (final ConfigurationStepConfiguration stepConfiguration : configuration.getConfigurationStepConfigurations()) {
             final VersionedConfigurationStep versionedConfigurationStep = new VersionedConfigurationStep();
             versionedConfigurationStep.setName(stepConfiguration.stepName());
-            configurationSteps.add(versionedConfigurationStep);
 
-            final List<VersionedConnectorPropertyGroup> propertyGroups = new ArrayList<>();
-            versionedConfigurationStep.setPropertyGroups(propertyGroups);
-
+            final Map<String, ConnectorValueReference> allProperties = new HashMap<>();
             for (final PropertyGroupConfiguration groupConfiguration : stepConfiguration.propertyGroupConfigurations()) {
-                final VersionedConnectorPropertyGroup versionedGroup = new VersionedConnectorPropertyGroup();
-                versionedGroup.setName(groupConfiguration.groupName());
-                versionedGroup.setProperties(mapPropertyValues(groupConfiguration.propertyValues()));
-                propertyGroups.add(versionedGroup);
+                allProperties.putAll(groupConfiguration.propertyValues());
             }
+            versionedConfigurationStep.setProperties(mapPropertyValues(allProperties));
+
+            configurationSteps.add(versionedConfigurationStep);
         }
 
         return configurationSteps;

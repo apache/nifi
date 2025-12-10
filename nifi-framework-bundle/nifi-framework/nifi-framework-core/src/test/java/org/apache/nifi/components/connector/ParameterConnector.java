@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.List;
+import java.util.Map;
 
 public class ParameterConnector extends AbstractConnector {
     private volatile boolean initialized = false;
@@ -103,13 +104,13 @@ public class ParameterConnector extends AbstractConnector {
     }
 
     @Override
-    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final List<PropertyGroupConfiguration> overrides, final FlowContext workingContext) {
+    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext workingContext) {
         return List.of();
     }
 
     private void updateTextParameter(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
         final ConnectorConfigurationContext configContext = workingContext.getConfigurationContext();
-        final String textValue = configContext.getProperty(TEXT_STEP, TEXT_GROUP, TEXT_PROPERTY).getValue();
+        final String textValue = configContext.getProperty(TEXT_STEP, TEXT_PROPERTY).getValue();
 
         // Update the "Text" parameter with the configured property value
         final ParameterValue textParameter = new ParameterValue.Builder()
@@ -120,7 +121,7 @@ public class ParameterConnector extends AbstractConnector {
 
         final ParameterValue sleepDurationParameter = new ParameterValue.Builder()
             .name("Sleep Duration")
-            .value(configContext.getProperty(TEXT_STEP, TEXT_GROUP, SLEEP_DURATION).getValue())
+            .value(configContext.getProperty(TEXT_STEP, SLEEP_DURATION).getValue())
             .sensitive(false)
             .build();
 

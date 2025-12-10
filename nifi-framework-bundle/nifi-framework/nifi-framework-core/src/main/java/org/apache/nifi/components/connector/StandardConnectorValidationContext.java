@@ -73,8 +73,8 @@ public class StandardConnectorValidationContext implements ConnectorValidationCo
     }
 
     @Override
-    public List<DescribedValue> fetchAllowableValues(final String stepName, final String groupName, final String propertyName) {
-        return allowableValueProvider.fetchAllowableValues(stepName, groupName, propertyName);
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName) {
+        return allowableValueProvider.fetchAllowableValues(stepName, propertyName);
     }
 
     private static class ParameterLookupBridge implements ParameterLookup {

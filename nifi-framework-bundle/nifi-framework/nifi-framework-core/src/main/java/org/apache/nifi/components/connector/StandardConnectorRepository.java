@@ -157,8 +157,8 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
-    public void configureConnector(final ConnectorNode connector, final String stepName, final List<PropertyGroupConfiguration> stepConfiguration) throws FlowUpdateException {
-        connector.setConfiguration(stepName, stepConfiguration);
+    public void configureConnector(final ConnectorNode connector, final String stepName, final Map<String, ConnectorValueReference> propertyValues) throws FlowUpdateException {
+        connector.setConfiguration(stepName, propertyValues);
     }
 
     @Override
