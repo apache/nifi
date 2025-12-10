@@ -65,7 +65,7 @@ public class DynamicAllowableValuesConnector extends AbstractConnector {
 
         final ConnectorConfigurationContext configContext = flowContext.getConfigurationContext();
 
-        if (configContext.getProperty(FILE_STEP, FILE_PROPERTY_GROUP, FILE_PATH) != null) {
+        if (configContext.getProperty(FILE_STEP, FILE_PATH) != null) {
             final Set<ProcessorFacade> processorsFacades = flowContext.getRootGroup().getProcessors();
             if (processorsFacades.isEmpty()) {
                 return steps;
@@ -112,13 +112,13 @@ public class DynamicAllowableValuesConnector extends AbstractConnector {
         final VersionedExternalFlow externalFlow = VersionedFlowUtils.loadFlowFromResource("flows/choose-color.json");
         final VersionedProcessGroup rootGroup = externalFlow.getFlowContents();
         final VersionedProcessor processor = rootGroup.getProcessors().iterator().next();
-        processor.setProperties(Map.of("File", workingContext.getConfigurationContext().getProperty(FILE_STEP, FILE_PROPERTY_GROUP, FILE_PATH).getValue()));
+        processor.setProperties(Map.of("File", workingContext.getConfigurationContext().getProperty(FILE_STEP, FILE_PATH).getValue()));
 
         getInitializationContext().updateFlow(activeContext, externalFlow);
     }
 
     @Override
-    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final List<PropertyGroupConfiguration> overrides, final FlowContext flowContext) {
+    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
         return List.of();
     }
 

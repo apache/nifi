@@ -17,29 +17,29 @@
 
 package org.apache.nifi.components.connector;
 
-import java.util.List;
+import java.util.Map;
 
 public interface MutableConnectorConfigurationContext extends ConnectorConfigurationContext {
 
     /**
      * Sets the properties for the given step to the provided properties. Any existing properties
-     * for the step that are not included in the provided list will remain unchanged.
+     * for the step that are not included in the provided configuration will remain unchanged.
      *
      * @param stepName the name of the configuration step
-     * @param propertyGroupConfigurations the property group configurations to set
+     * @param configuration the configuration to set
      * @return the result of the configuration update
      */
-    ConfigurationUpdateResult setProperties(String stepName, List<PropertyGroupConfiguration> propertyGroupConfigurations);
+    ConfigurationUpdateResult setProperties(String stepName, StepConfiguration configuration);
 
     /**
      * Replaces all of the properties for the given step with the provided properties. Any existing properties
-     * for the step that are not included in the provided list will be removed.
+     * for the step that are not included in the provided configuration will be removed.
      *
      * @param stepName the name of the configuration step
-     * @param propertyGroupConfigurations the property group configurations to set
+     * @param configuration the configuration to set
      * @return the result of the configuration update
      */
-    ConfigurationUpdateResult replaceProperties(String stepName, List<PropertyGroupConfiguration> propertyGroupConfigurations);
+    ConfigurationUpdateResult replaceProperties(String stepName, StepConfiguration configuration);
 
     /**
      * Converts this mutable configuration context to an immutable ConnectorConfiguration.
@@ -48,7 +48,7 @@ public interface MutableConnectorConfigurationContext extends ConnectorConfigura
     ConnectorConfiguration toConnectorConfiguration();
 
     @Override
-    MutableConnectorConfigurationContext createWithOverrides(String stepName, List<PropertyGroupConfiguration> propertyGroupConfigurations);
+    MutableConnectorConfigurationContext createWithOverrides(String stepName, Map<String, String> propertyValues);
 
     /**
      * Creates a clone of this MutableConnectorConfigurationContext.

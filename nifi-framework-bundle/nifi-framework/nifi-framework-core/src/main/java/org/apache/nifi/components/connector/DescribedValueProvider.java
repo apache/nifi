@@ -23,6 +23,6 @@ import java.util.List;
 
 public interface DescribedValueProvider {
 
-    List<DescribedValue> fetchAllowableValues(String stepName, String groupName, String propertyName);
+    List<DescribedValue> fetchAllowableValues(String stepName, String propertyName);
 
 }
