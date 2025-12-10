@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -131,6 +132,44 @@ class TestDeleteFile {
         runner.assertPenalizeCount(1);
     }
 
+    @Test
+    void testDeleteDirectoryAfterDeleteOfItsLastFile() throws IOException {
+        final Path directory = Files.createDirectory(testDirectory.resolve("test-directory")).toAbsolutePath();
+        final String filename = "someFile";
+        enqueue(directory.toString(), filename);
+        final Path fileToDelete = Files.writeString(directory.resolve(filename), "some content");
+        assertExists(fileToDelete);
+
+        runner.setProperty(DeleteFile.DELETE_EMPTY_DIRECTORY, Boolean.toString(true));
+        runner.run();
+
+        assertNotExists(fileToDelete);
+        assertNotExists(directory);
+        runner.assertAllFlowFilesTransferred(DeleteFile.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testDeleteDirectoryAfterDeleteOfOneOfMany() throws IOException {
+        final Path directory = Files.createDirectory(testDirectory.resolve("test-directory")).toAbsolutePath();
+        final String filename = "someFile";
+        enqueue(directory.toString(), filename);
+        final Path fileToDelete = Files.writeString(directory.resolve(filename), "some content");
+        final String anotherFilename = "anotherFile";
+        final Path anotherFile = Files.writeString(directory.resolve(anotherFilename), "some content");
+        assertExists(fileToDelete);
+        assertExists(anotherFile);
+
+        runner.setProperty(DeleteFile.DELETE_EMPTY_DIRECTORY, Boolean.toString(true));
+        runner.run();
+
+        assertNotExists(fileToDelete);
+        assertExists(directory);
+        runner.assertAllFlowFilesTransferred(DeleteFile.REL_SUCCESS, 1);
+
+        MockComponentLog logger = runner.getLogger();
+        assertTrue(logger.getWarnMessages().getFirst().getMsg().contains("not empty"));
+    }
+
     private MockFlowFile enqueue(String directoryPath, String filename) {
         final Map<String, String> attributes = Map.of(
                 CoreAttributes.ABSOLUTE_PATH.key(), directoryPath,
@@ -141,10 +180,10 @@ class TestDeleteFile {
     }
 
     private static void assertNotExists(Path filePath) {
-        assertTrue(Files.notExists(filePath), () -> "File " + filePath + "still exists");
+        assertTrue(Files.notExists(filePath), () -> "File %s still exists".formatted(filePath));
     }
 
     private static void assertExists(Path filePath) {
-        assertTrue(Files.exists(filePath), () -> "File " + filePath + "does not exist");
+        assertTrue(Files.exists(filePath), () -> "File %s does not exist".formatted(filePath));
     }
 }
