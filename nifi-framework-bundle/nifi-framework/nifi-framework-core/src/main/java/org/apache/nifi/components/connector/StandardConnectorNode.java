@@ -37,7 +37,6 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
-import org.apache.nifi.flow.VersionedConnectorPropertyGroup;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.ProcessGroup;
@@ -47,6 +46,8 @@ import org.apache.nifi.nar.NarCloseable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -154,23 +155,15 @@ public class StandardConnectorNode implements ConnectorNode {
             initializationContext.getAssetManager(), initializationContext.getSecretsManager());
 
         for (final VersionedConfigurationStep configStep : flowConfiguration) {
-            final List<PropertyGroupConfiguration> groupConfigurations = new ArrayList<>();
-
-            for (final VersionedConnectorPropertyGroup propertyGroup : configStep.getPropertyGroups()) {
-                final Map<String, ConnectorValueReference> convertedProperties = new HashMap<>();
-                if (propertyGroup.getProperties() != null) {
-                    for (final Map.Entry<String, VersionedConnectorValueReference> entry : propertyGroup.getProperties().entrySet()) {
-                        final VersionedConnectorValueReference versionedRef = entry.getValue();
-                        final ConnectorValueReference valueReference = createValueReference(versionedRef);
-                        convertedProperties.put(entry.getKey(), valueReference);
-                    }
+            final Map<String, ConnectorValueReference> convertedProperties = new HashMap<>();
+            if (configStep.getProperties() != null) {
+                for (final Map.Entry<String, VersionedConnectorValueReference> entry : configStep.getProperties().entrySet()) {
+                    final ConnectorValueReference valueReference = createValueReference(entry.getValue());
+                    convertedProperties.put(entry.getKey(), valueReference);
                 }
-
-                final PropertyGroupConfiguration groupConfiguration = new PropertyGroupConfiguration(propertyGroup.getName(), convertedProperties);
-                groupConfigurations.add(groupConfiguration);
             }
 
-            configurationContext.setProperties(configStep.getName(), groupConfigurations);
+            configurationContext.setProperties(configStep.getName(), new StepConfiguration(convertedProperties));
         }
 
         return configurationContext;
@@ -202,8 +195,8 @@ public class StandardConnectorNode implements ConnectorNode {
 
             // Update the active flow context based on the properties of the provided context, as the connector has now been updated.
             final ConnectorConfiguration workingConfig = contextToInherit.getConfigurationContext().toConnectorConfiguration();
-            for (final ConfigurationStepConfiguration stepConfig : workingConfig.getConfigurationStepConfigurations()) {
-                activeFlowContext.getConfigurationContext().replaceProperties(stepConfig.stepName(), stepConfig.propertyGroupConfigurations());
+            for (final NamedStepConfiguration stepConfig : workingConfig.getNamedStepConfigurations()) {
+                activeFlowContext.getConfigurationContext().replaceProperties(stepConfig.stepName(), stepConfig.configuration());
             }
 
             // The update has been completed. Tear down and recreate the working flow context to ensure it is in a clean state.
@@ -247,9 +240,9 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public void setConfiguration(final String stepName, final List<PropertyGroupConfiguration> groupConfigurations) throws FlowUpdateException {
+    public void setConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
         // Update properties and check if the configuration changed.
-        final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().setProperties(stepName, groupConfigurations);
+        final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().setProperties(stepName, configuration);
         if (updateResult == ConfigurationUpdateResult.NO_CHANGES) {
             return;
         }
@@ -487,26 +480,26 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String groupName, final String propertyName) {
+    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName) {
         if (workingFlowContext == null) {
-            throw new IllegalStateException("Cannot fetch Allowable Values for %s.%s.%s because %s is not being updated.".formatted(
-                stepName, groupName, propertyName, this));
+            throw new IllegalStateException("Cannot fetch Allowable Values for %s.%s because %s is not being updated.".formatted(
+                stepName, propertyName, this));
         }
 
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
-            return getConnector().fetchAllowableValues(stepName, groupName, propertyName, workingFlowContext);
+            return getConnector().fetchAllowableValues(stepName, propertyName, workingFlowContext);
         }
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String groupName, final String propertyName, final String filter) {
+    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final String filter) {
         if (workingFlowContext == null) {
-            throw new IllegalStateException("Cannot fetch Allowable Values for %s.%s.%s because %s is not being updated.".formatted(
-                stepName, groupName, propertyName, this));
+            throw new IllegalStateException("Cannot fetch Allowable Values for %s.%s because %s is not being updated.".formatted(
+                stepName, propertyName, this));
         }
 
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
-            return getConnector().fetchAllowableValues(stepName, groupName, propertyName, workingFlowContext, filter);
+            return getConnector().fetchAllowableValues(stepName, propertyName, workingFlowContext, filter);
         }
     }
 
@@ -560,16 +553,16 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final List<PropertyGroupConfiguration> groupConfigurations) {
+    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final StepConfiguration configurationOverrides) {
+        final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationOverrides);
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
-        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
 
-            final DescribedValueProvider allowableValueProvider = (step, groupName, propertyName) ->
-                fetchAllowableValues(step, groupName, propertyName, workingFlowContext);
+            final DescribedValueProvider allowableValueProvider = (step, propertyName) ->
+                fetchAllowableValues(step, propertyName, workingFlowContext);
 
-            final List<PropertyGroupConfiguration> propertyOverrides = Collections.unmodifiableList(groupConfigurations);
-            final MutableConnectorConfigurationContext configContext = workingFlowContext.getConfigurationContext().createWithOverrides(stepName, propertyOverrides);
+            final MutableConnectorConfigurationContext configContext = workingFlowContext.getConfigurationContext().createWithOverrides(stepName, resolvedPropertyOverrides);
             final ConnectorValidationContext validationContext = new StandardConnectorValidationContext(
                 configContext.toConnectorConfiguration(), allowableValueProvider, workingFlowContext.getParameterContext());
 
@@ -606,9 +599,43 @@ public class StandardConnectorNode implements ConnectorNode {
                 results.addAll(invalidConfigResults);
             }
 
-            results.addAll(getConnector().verifyConfigurationStep(stepName, propertyOverrides, workingFlowContext));
+            results.addAll(getConnector().verifyConfigurationStep(stepName, resolvedPropertyOverrides, workingFlowContext));
             return results;
         }
+    }
+
+    private Map<String, String> resolvePropertyReferences(final StepConfiguration configurationOverrides) {
+        final Map<String, String> resolvedProperties = new HashMap<>();
+
+        try {
+            for (final Map.Entry<String, ConnectorValueReference> entry : configurationOverrides.getPropertyValues().entrySet()) {
+                final String propertyName = entry.getKey();
+                final ConnectorValueReference valueReference = entry.getValue();
+                final String resolvedValue = resolvePropertyReference(valueReference);
+                resolvedProperties.put(propertyName, resolvedValue);
+            }
+        } catch (final IOException ioe) {
+            throw new UncheckedIOException("Failed to resolve Secret references for " + this, ioe);
+        }
+
+        return resolvedProperties;
+    }
+
+    private String resolvePropertyReference(final ConnectorValueReference valueReference) throws IOException {
+        if (valueReference == null) {
+            return null;
+        }
+
+        return switch (valueReference) {
+            case StringLiteralValue stringLiteralValue -> stringLiteralValue.getValue();
+            case AssetReference assetReference -> initializationContext.getAssetManager().getAsset(assetReference.getAssetIdentifier())
+                .map(asset -> asset.getFile().getAbsolutePath())
+                .orElse(null);
+            case SecretReference secretReference -> initializationContext.getSecretsManager()
+                .getSecret((SecretReference) valueReference)
+                .map(Secret::getValue)
+                .orElse(null);
+        };
     }
 
     private Optional<ConfigurationStep> getConfigurationStep(final String stepName) {
@@ -760,16 +787,16 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private ConnectorValidationContext createValidationContext(final FrameworkFlowContext context) {
-        final DescribedValueProvider allowableValueProvider = (stepName, groupName, propertyName) ->
-            fetchAllowableValues(stepName, groupName, propertyName, context);
+        final DescribedValueProvider allowableValueProvider = (stepName, propertyName) ->
+            fetchAllowableValues(stepName, propertyName, context);
         final ConnectorConfiguration connectorConfiguration = context.getConfigurationContext().toConnectorConfiguration();
         return new StandardConnectorValidationContext(connectorConfiguration, allowableValueProvider, context.getParameterContext());
     }
 
-    private List<DescribedValue> fetchAllowableValues(final String stepName, final String groupName, final String propertyName, final FlowContext context) {
+    private List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext context) {
         final List<AllowableValue> allowableValues;
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
-            allowableValues = getConnector().fetchAllowableValues(stepName, groupName, propertyName, activeFlowContext);
+            allowableValues = getConnector().fetchAllowableValues(stepName, propertyName, activeFlowContext);
         }
 
         if (allowableValues == null || allowableValues.isEmpty()) {

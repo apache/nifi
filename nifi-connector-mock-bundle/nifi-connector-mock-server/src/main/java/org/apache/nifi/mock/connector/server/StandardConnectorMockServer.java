@@ -28,9 +28,11 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
+import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
 import org.apache.nifi.components.connector.StandaloneConnectorRequestReplicator;
+import org.apache.nifi.components.connector.StepConfiguration;
+import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
@@ -56,7 +58,9 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -200,13 +204,31 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     }
 
     @Override
-    public void configure(final String stepName, final List<PropertyGroupConfiguration> groupConfigurations) throws FlowUpdateException {
-        connectorNode.setConfiguration(stepName, groupConfigurations);
+    public void configure(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        connectorNode.setConfiguration(stepName, configuration);
     }
 
     @Override
-    public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final List<PropertyGroupConfiguration> groupConfigurations) {
-        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(stepName, groupConfigurations);
+    public void configure(final String stepName, final Map<String, String> propertyValues) throws FlowUpdateException {
+        final StepConfiguration configuration = toStringLiteralConfiguration(propertyValues);
+        configure(stepName, configuration);
+    }
+
+    @Override
+    public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final Map<String, String> propertyValueOverrides) {
+        final StepConfiguration configuration = toStringLiteralConfiguration(propertyValueOverrides);
+        return verifyConfiguration(stepName, configuration);
+    }
+
+    private StepConfiguration toStringLiteralConfiguration(final Map<String, String> propertyValues) {
+        final Map<String, ConnectorValueReference> references = new HashMap<>(propertyValues.size());
+        propertyValues.forEach((key, value) -> references.put(key, new StringLiteralValue(value)));
+        return new StepConfiguration(references);
+    }
+
+    @Override
+    public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final StepConfiguration configurationOverrides) {
+        final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(stepName, configurationOverrides);
         return new MockServerConfigVerificationResult(results);
     }
 

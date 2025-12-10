@@ -17,7 +17,5 @@
 
 package org.apache.nifi.components.connector;
 
-import java.util.List;
-
-public record ConfigurationStepConfiguration(String stepName, List<PropertyGroupConfiguration> propertyGroupConfigurations) {
+public record NamedStepConfiguration(String stepName, StepConfiguration configuration) {
 }

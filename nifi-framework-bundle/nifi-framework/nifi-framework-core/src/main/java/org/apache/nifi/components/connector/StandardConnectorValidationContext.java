@@ -27,12 +27,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 public class StandardConnectorValidationContext implements ConnectorValidationContext {
     private final DescribedValueProvider allowableValueProvider;
-    private final Map<String, List<PropertyGroupConfiguration>> groupConfigurations;
+    private final Map<String, StepConfiguration> stepConfigurations;
     private final ParameterLookup parameterLookup;
 
     public StandardConnectorValidationContext(final ConnectorConfiguration connectorConfiguration, final DescribedValueProvider allowableValueProvider,
@@ -40,9 +39,9 @@ public class StandardConnectorValidationContext implements ConnectorValidationCo
 
         this.allowableValueProvider = allowableValueProvider;
 
-        groupConfigurations = new HashMap<>();
-        for (final ConfigurationStepConfiguration stepConfiguration : connectorConfiguration.getConfigurationStepConfigurations()) {
-            groupConfigurations.put(stepConfiguration.stepName(), stepConfiguration.propertyGroupConfigurations());
+        stepConfigurations = new HashMap<>();
+        for (final NamedStepConfiguration stepConfiguration : connectorConfiguration.getNamedStepConfigurations()) {
+            stepConfigurations.put(stepConfiguration.stepName(), stepConfiguration.configuration());
         }
 
         parameterLookup = new ParameterLookupBridge(parameterContextFacade);
@@ -50,31 +49,26 @@ public class StandardConnectorValidationContext implements ConnectorValidationCo
 
     @Override
     public ValidationContext createValidationContext(final String stepName, final String propertyGroupName) {
-        final List<PropertyGroupConfiguration> propertyGroupConfigurations = groupConfigurations.getOrDefault(stepName, Collections.emptyList());
+        final StepConfiguration stepConfig = stepConfigurations.get(stepName);
+        final Map<String, ConnectorValueReference> stepProperties = stepConfig != null ? stepConfig.getPropertyValues() : Collections.emptyMap();
 
-        for (final PropertyGroupConfiguration groupConfiguration : propertyGroupConfigurations) {
-            if (Objects.equals(groupConfiguration.groupName(), propertyGroupName)) {
-                final Map<String, String> stringValues = new HashMap<>();
-                for (final Map.Entry<String, ConnectorValueReference> entry : groupConfiguration.propertyValues().entrySet()) {
-                    final ConnectorValueReference valueRef = entry.getValue();
+        final Map<String, String> stringValues = new HashMap<>();
+        for (final Map.Entry<String, ConnectorValueReference> entry : stepProperties.entrySet()) {
+            final ConnectorValueReference valueRef = entry.getValue();
 
-                    if (valueRef instanceof StringLiteralValue stringLiteral) {
-                        stringValues.put(entry.getKey(), stringLiteral.getValue());
-                    } else {
-                        stringValues.put(entry.getKey(), null);
-                    }
-                }
-
-                return new ConnectorValidationContextBridge(stringValues, parameterLookup);
+            if (valueRef instanceof StringLiteralValue stringLiteral) {
+                stringValues.put(entry.getKey(), stringLiteral.getValue());
+            } else {
+                stringValues.put(entry.getKey(), null);
             }
         }
 
-        return new ConnectorValidationContextBridge(Collections.emptyMap(), parameterLookup);
+        return new ConnectorValidationContextBridge(stringValues, parameterLookup);
     }
 
     @Override
-    public List<DescribedValue> fetchAllowableValues(final String stepName, final String groupName, final String propertyName) {
-        return allowableValueProvider.fetchAllowableValues(stepName, groupName, propertyName);
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName) {
+        return allowableValueProvider.fetchAllowableValues(stepName, propertyName);
     }
 
     private static class ParameterLookupBridge implements ParameterLookup {

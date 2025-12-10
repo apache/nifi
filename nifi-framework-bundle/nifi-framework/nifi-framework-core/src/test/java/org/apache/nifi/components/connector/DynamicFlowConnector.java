@@ -40,6 +40,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class DynamicFlowConnector extends AbstractConnector {
@@ -141,7 +142,7 @@ public class DynamicFlowConnector extends AbstractConnector {
     }
 
     @Override
-    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final List<PropertyGroupConfiguration> overrides, final FlowContext flowContext) {
+    public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
         return List.of();
     }
 
@@ -166,13 +167,13 @@ public class DynamicFlowConnector extends AbstractConnector {
 
     private void updateSourceStep(final FlowContext flowContext, final VersionedProcessGroup rootGroup) {
         final ConnectorConfigurationContext configContext = flowContext.getConfigurationContext();
-        final String sourceText = configContext.getProperty(SOURCE_STEP, SOURCE_GROUP, SOURCE_TEXT).getValue();
+        final String sourceText = configContext.getProperty(SOURCE_STEP, SOURCE_TEXT).getValue();
 
         final VersionedProcessor sourceTextProcessor = VersionedFlowUtils.findProcessor(rootGroup,
             p -> p.getType().equals(OverwriteFlowFile.class.getName())).orElseThrow();
         sourceTextProcessor.getProperties().put(OverwriteFlowFile.CONTENT.getName(), sourceText);
 
-        final boolean count = configContext.getProperty(SOURCE_STEP, SOURCE_GROUP, COUNT_FLOWFILES).asBoolean();
+        final boolean count = configContext.getProperty(SOURCE_STEP, COUNT_FLOWFILES).asBoolean();
         if (count) {
             final Bundle systemBundle = new Bundle();
             systemBundle.setArtifact("system");
@@ -191,7 +192,7 @@ public class DynamicFlowConnector extends AbstractConnector {
     private void updateDuplicationStep(final FlowContext flowContext, final VersionedProcessGroup rootGroup) {
         final ConnectorConfigurationContext configContext = flowContext.getConfigurationContext();
 
-        final int numCopies = configContext.getProperty(DUPLICATION_STEP, DUPLICATION_GROUP, NUM_COPIES).asInteger();
+        final int numCopies = configContext.getProperty(DUPLICATION_STEP, NUM_COPIES).asInteger();
         final VersionedProcessor duplicateProcessor = VersionedFlowUtils.findProcessor(rootGroup,
             p -> p.getType().equals(DuplicateFlowFile.class.getName())).orElseThrow();
         duplicateProcessor.getProperties().put(DuplicateFlowFile.NUM_DUPLICATES.getName(), String.valueOf(numCopies));
@@ -218,7 +219,7 @@ public class DynamicFlowConnector extends AbstractConnector {
     private void updateDestinationStep(final FlowContext flowContext, final VersionedProcessGroup rootGroup) {
         final ConnectorConfigurationContext configContext = flowContext.getConfigurationContext();
 
-        final boolean logContents = configContext.getProperty(DESTINATION_STEP, DESTINATION_GROUP, LOG_FLOWFILE_CONTENTS).asBoolean();
+        final boolean logContents = configContext.getProperty(DESTINATION_STEP, LOG_FLOWFILE_CONTENTS).asBoolean();
         if (!logContents) {
             return;
         }
