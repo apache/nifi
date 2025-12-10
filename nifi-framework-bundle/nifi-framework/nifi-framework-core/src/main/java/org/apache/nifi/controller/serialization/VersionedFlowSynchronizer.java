@@ -26,7 +26,7 @@ import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
-import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorValueReference;
@@ -35,7 +35,6 @@ import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.FlowUpdateException;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
@@ -67,7 +66,6 @@ import org.apache.nifi.flow.VersionedAsset;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnector;
-import org.apache.nifi.flow.VersionedConnectorPropertyGroup;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -1082,19 +1080,19 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final List<VersionedConfigurationStep> versionedConfigurationSteps = versionedConnector.getActiveFlowConfiguration();
         if (versionedConfigurationSteps == null || versionedConfigurationSteps.isEmpty()) {
-            return existingConfiguration != null && !existingConfiguration.getConfigurationStepConfigurations().isEmpty();
+            return existingConfiguration != null && !existingConfiguration.getNamedStepConfigurations().isEmpty();
         }
 
-        final Set<ConfigurationStepConfiguration> existingStepConfigurations = existingConfiguration.getConfigurationStepConfigurations();
+        final Set<NamedStepConfiguration> existingStepConfigurations = existingConfiguration.getNamedStepConfigurations();
         if (existingStepConfigurations.size() != versionedConfigurationSteps.size()) {
             return true;
         }
 
-        final Map<String, ConfigurationStepConfiguration> existingStepsByName = existingStepConfigurations.stream()
-            .collect(Collectors.toMap(ConfigurationStepConfiguration::stepName, Function.identity()));
+        final Map<String, NamedStepConfiguration> existingStepsByName = existingStepConfigurations.stream()
+            .collect(Collectors.toMap(NamedStepConfiguration::stepName, Function.identity()));
 
         for (final VersionedConfigurationStep versionedStep : versionedConfigurationSteps) {
-            final ConfigurationStepConfiguration existingStep = existingStepsByName.get(versionedStep.getName());
+            final NamedStepConfiguration existingStep = existingStepsByName.get(versionedStep.getName());
             if (existingStep == null) {
                 return true;
             }
@@ -1107,44 +1105,15 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         return false;
     }
 
-    private boolean isConfigurationStepUpdated(final ConfigurationStepConfiguration existingStep, final VersionedConfigurationStep versionedStep) {
-        final List<PropertyGroupConfiguration> existingPropertyGroups = existingStep.propertyGroupConfigurations();
-        final List<VersionedConnectorPropertyGroup> versionedPropertyGroups = versionedStep.getPropertyGroups();
+    private boolean isConfigurationStepUpdated(final NamedStepConfiguration existingStep, final VersionedConfigurationStep versionedStep) {
+        final Map<String, ConnectorValueReference> existingProperties = existingStep.configuration().getPropertyValues();
 
-        if (versionedPropertyGroups == null || versionedPropertyGroups.isEmpty()) {
-            return existingPropertyGroups != null && !existingPropertyGroups.isEmpty();
-        }
-
-        if (existingPropertyGroups.size() != versionedPropertyGroups.size()) {
-            return true;
-        }
-
-        final Map<String, PropertyGroupConfiguration> existingGroupsByName = new HashMap<>();
-        existingPropertyGroups.forEach(group -> existingGroupsByName.put(group.groupName(), group));
-
-        for (final VersionedConnectorPropertyGroup versionedGroup : versionedPropertyGroups) {
-            final PropertyGroupConfiguration existingGroup = existingGroupsByName.get(versionedGroup.getName());
-            if (existingGroup == null) {
-                return true;
-            }
-
-            if (isPropertyGroupUpdated(existingGroup, versionedGroup)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean isPropertyGroupUpdated(final PropertyGroupConfiguration existingGroup, final VersionedConnectorPropertyGroup versionedGroup) {
-        final Map<String, ConnectorValueReference> existingProperties = existingGroup.propertyValues();
-        final Map<String, VersionedConnectorValueReference> versionedProperties = versionedGroup.getProperties();
-
+        final Map<String, VersionedConnectorValueReference> versionedProperties = versionedStep.getProperties();
         if (versionedProperties == null || versionedProperties.isEmpty()) {
             return existingProperties != null && !existingProperties.isEmpty();
         }
 
-        if (existingProperties.size() != versionedProperties.size()) {
+        if (existingProperties == null || existingProperties.size() != versionedProperties.size()) {
             return true;
         }
 
@@ -1153,8 +1122,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final VersionedConnectorValueReference versionedRef = versionedEntry.getValue();
             final ConnectorValueReference existingRef = existingProperties.get(propertyName);
 
-            final boolean valuesMatch = equals(versionedRef, existingRef);
-            if (!valuesMatch) {
+            if (!equals(versionedRef, existingRef)) {
                 return true;
             }
         }

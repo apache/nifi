@@ -19,11 +19,11 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -35,15 +35,17 @@ import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorStateTransition;
+import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowContextFactory;
 import org.apache.nifi.components.connector.FrameworkConnectorInitializationContext;
 import org.apache.nifi.components.connector.FrameworkConnectorInitializationContextBuilder;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.GhostConnector;
 import org.apache.nifi.components.connector.MutableConnectorConfigurationContext;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
 import org.apache.nifi.components.connector.SecretsManager;
 import org.apache.nifi.components.connector.StandardConnectorNode;
+import org.apache.nifi.components.connector.StepConfiguration;
+import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -108,7 +110,6 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -510,29 +511,29 @@ public class ExtensionBuilder {
 
         final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);
 
-       final Authorizable connectorsAuthorizable = new Authorizable() {
-           @Override
-           public Authorizable getParentAuthorizable() {
-               return null;
-           }
+        final Authorizable connectorsAuthorizable = new Authorizable() {
+            @Override
+            public Authorizable getParentAuthorizable() {
+                return null;
+            }
 
-           @Override
-           public Resource getResource() {
-               return ResourceFactory.getConnectorsResource();
-           }
-       };
+            @Override
+            public Resource getResource() {
+                return ResourceFactory.getConnectorsResource();
+            }
+        };
 
-       final ConnectorNode connectorNode = new StandardConnectorNode(
-           identifier,
-           flowController.getFlowManager(),
-           extensionManager,
-           connectorsAuthorizable,
-           connectorDetails,
-           componentType,
-           activeConfigurationContext,
-           connectorStateTransition,
-           flowContextFactory
-       );
+        final ConnectorNode connectorNode = new StandardConnectorNode(
+            identifier,
+            flowController.getFlowManager(),
+            extensionManager,
+            connectorsAuthorizable,
+            connectorDetails,
+            componentType,
+            activeConfigurationContext,
+            connectorStateTransition,
+            flowContextFactory
+        );
 
         initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
         // TODO: If an Exception is thrown in the call to #initialize, we should create a Ghosted Connector
@@ -546,22 +547,17 @@ public class ExtensionBuilder {
             final List<ConfigurationStep> configSteps = connector.getConfigurationSteps(flowContext);
 
             for (final ConfigurationStep step : configSteps) {
-                final List<ConnectorPropertyGroup> propertyGroups = step.getPropertyGroups();
-                final List<PropertyGroupConfiguration> propertyGroupConfigurations = new ArrayList<>();
+                final Map<String, ConnectorValueReference> defaultValues = new HashMap<>();
 
-                for (final ConnectorPropertyGroup propertyGroup : propertyGroups) {
-                    final Map<String, String> defaultValues = new HashMap<>();
-
+                for (final ConnectorPropertyGroup propertyGroup : step.getPropertyGroups()) {
                     for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
                         final String name = descriptor.getName();
                         final String defaultValue = descriptor.getDefaultValue();
-                        defaultValues.put(name, defaultValue);
+                        defaultValues.put(name, new StringLiteralValue(defaultValue));
                     }
-
-                    propertyGroupConfigurations.add(PropertyGroupConfiguration.fromStringValues(propertyGroup.getName(), defaultValues));
                 }
 
-                flowContext.getConfigurationContext().setProperties(step.getName(), propertyGroupConfigurations);
+                flowContext.getConfigurationContext().setProperties(step.getName(), new StepConfiguration(defaultValues));
             }
         }
     }
