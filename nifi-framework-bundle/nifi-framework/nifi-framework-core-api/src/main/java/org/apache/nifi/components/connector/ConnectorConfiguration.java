@@ -32,6 +32,15 @@ public class ConnectorConfiguration {
         return stepConfigurations;
     }
 
+    public NamedStepConfiguration getNamedStepConfiguration(final String name) {
+        for (final NamedStepConfiguration stepConfiguration : stepConfigurations) {
+            if (stepConfiguration.stepName().equals(name)) {
+                return stepConfiguration;
+            }
+        }
+        return null;
+    }
+
     @Override
     public boolean equals(final Object other) {
         if (other == null || getClass() != other.getClass()) {

@@ -20,7 +20,9 @@ package org.apache.nifi.mock.connector;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.mock.connector.server.ConnectorConfigVerificationResult;
 import org.apache.nifi.mock.connector.server.ConnectorMockServer;
@@ -132,13 +134,35 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
     }
 
     @Override
+    public void configure(final String stepName, final Map<String, String> propertyValues, final Map<String, ConnectorValueReference> propertyReferences) throws FlowUpdateException {
+        mockServer.configure(stepName, propertyValues, propertyReferences);
+    }
+
+    @Override
+    public SecretReference createSecretReference(final String secretName) {
+        return mockServer.createSecretReference(secretName);
+    }
+
+    @Override
     public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final Map<String, String> propertyValueOverrides) {
         return mockServer.verifyConfiguration(stepName, propertyValueOverrides);
     }
 
     @Override
+    public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final Map<String, String> propertyValueOverrides,
+            final Map<String, ConnectorValueReference> referenceOverrides) {
+
+        return mockServer.verifyConfiguration(stepName, propertyValueOverrides, referenceOverrides);
+    }
+
+    @Override
     public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final StepConfiguration configurationOverrides) {
         return mockServer.verifyConfiguration(stepName, configurationOverrides);
+    }
+
+    @Override
+    public void addSecret(final String name, final String value) {
+        mockServer.addSecret(name, value);
     }
 
     @Override

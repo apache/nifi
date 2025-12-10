@@ -30,9 +30,11 @@ import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StandaloneConnectorRequestReplicator;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
@@ -48,6 +50,7 @@ import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
+import org.apache.nifi.mock.connector.server.secrets.ConnectorTestRunnerSecretsManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -74,6 +77,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     private FlowController flowController;
     private MockExtensionDiscoveringManager extensionManager;
     private ConnectorNode connectorNode;
+    private ConnectorRepository connectorRepository;
     private FlowEngine flowEngine;
     private MockExtensionMapper mockExtensionMapper;
     private FlowFileTransferCounts initialFlowFileTransferCounts = new FlowFileTransferCounts(0L, 0L, 0L, 0L);
@@ -113,7 +117,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             throw new RuntimeException("Failed to initialize FlowFile Repository", e);
         }
 
-        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        connectorRepository = flowController.getConnectorRepository();
         if (!(connectorRepository instanceof MockConnectorRepository)) {
             throw new IllegalStateException("Connector Repository is not an instance of MockConnectorRepository");
         }
@@ -210,19 +214,32 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public void configure(final String stepName, final Map<String, String> propertyValues) throws FlowUpdateException {
-        final StepConfiguration configuration = toStringLiteralConfiguration(propertyValues);
-        configure(stepName, configuration);
+        configure(stepName, propertyValues, Collections.emptyMap());
+    }
+
+    @Override
+    public void configure(final String stepName, final Map<String, String> propertyValues, final Map<String, ConnectorValueReference> propertyReferences) throws FlowUpdateException {
+        final StepConfiguration stepConfiguration = createStepConfiguration(propertyValues, propertyReferences);
+        configure(stepName, stepConfiguration);
     }
 
     @Override
     public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final Map<String, String> propertyValueOverrides) {
-        final StepConfiguration configuration = toStringLiteralConfiguration(propertyValueOverrides);
+        return verifyConfiguration(stepName, propertyValueOverrides, Collections.emptyMap());
+    }
+
+    @Override
+    public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final Map<String, String> propertyValueOverrides,
+            final Map<String, ConnectorValueReference> referenceOverrides) {
+
+        final StepConfiguration configuration = createStepConfiguration(propertyValueOverrides, referenceOverrides);
         return verifyConfiguration(stepName, configuration);
     }
 
-    private StepConfiguration toStringLiteralConfiguration(final Map<String, String> propertyValues) {
-        final Map<String, ConnectorValueReference> references = new HashMap<>(propertyValues.size());
-        propertyValues.forEach((key, value) -> references.put(key, new StringLiteralValue(value)));
+    private StepConfiguration createStepConfiguration(final Map<String, String> propertyValues, final Map<String, ConnectorValueReference> propertyReferences) {
+        final Map<String, ConnectorValueReference> references = new HashMap<>();
+        propertyValues.forEach((key, value) -> references.put(key, value == null ? null : new StringLiteralValue(value)));
+        references.putAll(propertyReferences);
         return new StepConfiguration(references);
     }
 
@@ -230,6 +247,21 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     public ConnectorConfigVerificationResult verifyConfiguration(final String stepName, final StepConfiguration configurationOverrides) {
         final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep(stepName, configurationOverrides);
         return new MockServerConfigVerificationResult(results);
+    }
+
+    @Override
+    public void addSecret(final String name, final String value) {
+        final SecretsManager secretsManager = connectorRepository.getSecretsManager();
+        if (!(secretsManager instanceof final ConnectorTestRunnerSecretsManager testRunnerSecretsManager)) {
+            throw new IllegalStateException("Secrets Manager is not an instance of ConnectorTestRunnerSecretsManager");
+        }
+
+        testRunnerSecretsManager.addSecret(name, value);
+    }
+
+    @Override
+    public SecretReference createSecretReference(final String secretName) {
+        return new SecretReference(ConnectorTestRunner.SECRET_PROVIDER_ID, ConnectorTestRunner.SECRET_PROVIDER_NAME, secretName);
     }
 
     @Override
