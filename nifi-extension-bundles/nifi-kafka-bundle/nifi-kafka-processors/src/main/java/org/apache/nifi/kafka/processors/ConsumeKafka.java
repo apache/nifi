@@ -499,9 +499,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         final PollingContext partitionedPollingContext = consumerServiceToPartitionedPollingContext.get(consumerService);
 
-        final PollingContext pollingContext = partitionedPollingContext == null ?
-                this.pollingContext :
-                partitionedPollingContext;
+        final PollingContext pollingContext = partitionedPollingContext == null
+                ? this.pollingContext
+                : partitionedPollingContext;
 
         final long maxUncommittedMillis = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         final long stopTime = System.currentTimeMillis() + maxUncommittedMillis;
