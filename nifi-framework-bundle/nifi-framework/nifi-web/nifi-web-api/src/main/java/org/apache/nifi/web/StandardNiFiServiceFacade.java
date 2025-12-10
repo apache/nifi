@@ -3494,7 +3494,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ConnectorNode connector = connectorDAO.getConnector(snapshot.getComponent().getId());
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(connector);
-        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(connector));
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions);
     }
 
     @Override
@@ -3503,7 +3504,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
             final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(node.getIdentifier()));
             final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
-            return entityFactory.createConnectorEntity(dto, revision, permissions);
+            final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+            return entityFactory.createConnectorEntity(dto, revision, permissions, operatePermissions);
         }).collect(Collectors.toSet());
     }
 
@@ -3513,7 +3515,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
         final RevisionDTO revision = dtoFactory.createRevisionDTO(revisionManager.getRevision(node.getIdentifier()));
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
-        return entityFactory.createConnectorEntity(dto, revision, permissions);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        return entityFactory.createConnectorEntity(dto, revision, permissions, operatePermissions);
     }
 
     @Override
@@ -3539,7 +3542,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
-        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions);
     }
 
     @Override
@@ -3565,7 +3569,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final ConnectorDTO dto = snapshot.getComponent();
         final PermissionsDTO permissions = new PermissionsDTO();
         permissions.setCanRead(Boolean.FALSE);
-        return entityFactory.createConnectorEntity(dto, dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions);
+        permissions.setCanWrite(Boolean.FALSE);
+        final PermissionsDTO operatePermissions = new PermissionsDTO();
+        operatePermissions.setCanRead(Boolean.FALSE);
+        operatePermissions.setCanWrite(Boolean.FALSE);
+        return entityFactory.createConnectorEntity(dto, dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions);
     }
 
     @Override
@@ -3590,7 +3598,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
-        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions);
     }
 
     @Override
@@ -3648,7 +3657,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
-        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions);
     }
 
     @Override
