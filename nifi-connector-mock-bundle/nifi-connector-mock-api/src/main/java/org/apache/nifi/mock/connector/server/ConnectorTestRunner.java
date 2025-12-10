@@ -19,23 +19,24 @@ package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.FlowUpdateException;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
+import org.apache.nifi.components.connector.StepConfiguration;
 
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 public interface ConnectorTestRunner extends Closeable {
 
     void applyUpdate() throws FlowUpdateException;
 
-    default void configure(String stepName, PropertyGroupConfiguration groupConfiguration) throws FlowUpdateException {
-        configure(stepName, List.of(groupConfiguration));
-    }
+    void configure(String stepName, StepConfiguration configuration) throws FlowUpdateException;
 
-    void configure(String stepName, List<PropertyGroupConfiguration> groupConfigurations) throws FlowUpdateException;
+    void configure(String stepName, Map<String, String> propertyValues) throws FlowUpdateException;
 
-    ConnectorConfigVerificationResult verifyConfiguration(String stepName, List<PropertyGroupConfiguration> groupConfigurations);
+    ConnectorConfigVerificationResult verifyConfiguration(String stepName, Map<String, String> propertyValueOverrides);
+
+    ConnectorConfigVerificationResult verifyConfiguration(String stepName, StepConfiguration configurationOverrides);
 
     void startConnector();
 

@@ -16,21 +16,20 @@
  */
 package org.apache.nifi.components.connector;
 
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
 public class ConnectorConfiguration {
 
-    private final Set<ConfigurationStepConfiguration> configurationStepConfigurations;
+    private final Set<NamedStepConfiguration> stepConfigurations;
 
-    public ConnectorConfiguration(final Collection<ConfigurationStepConfiguration> configurationStepConfigurations) {
-        this.configurationStepConfigurations = new HashSet<>(configurationStepConfigurations);
+    public ConnectorConfiguration(final Set<NamedStepConfiguration> stepConfigurations) {
+        this.stepConfigurations = new HashSet<>(stepConfigurations);
     }
 
-    public Set<ConfigurationStepConfiguration> getConfigurationStepConfigurations() {
-        return configurationStepConfigurations;
+    public Set<NamedStepConfiguration> getNamedStepConfigurations() {
+        return stepConfigurations;
     }
 
     @Override
@@ -40,18 +39,18 @@ public class ConnectorConfiguration {
         }
 
         final ConnectorConfiguration that = (ConnectorConfiguration) other;
-        return Objects.equals(configurationStepConfigurations, that.configurationStepConfigurations);
+        return Objects.equals(stepConfigurations, that.stepConfigurations);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(configurationStepConfigurations);
+        return Objects.hashCode(stepConfigurations);
     }
 
     @Override
     public String toString() {
-        return "ConnectorConfiguration{" +
-               "configurationStepConfigurations=" + configurationStepConfigurations +
-               '}';
+        return "ConnectorConfiguration[" +
+               "stepConfigurations=" + stepConfigurations +
+               "]";
     }
 }
