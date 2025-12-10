@@ -27,7 +27,9 @@ import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockEventAccess;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.MockReportingContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,17 +71,35 @@ class ScriptedReportingTaskTest {
     private MockReportingContext reportingContext;
 
     @BeforeEach
-    public void setUp(@Mock ComponentLog logger) {
+    public void setUp() {
         task = new MockScriptedReportingTask();
         properties = new HashMap<>();
         configurationContext = new MockConfigurationContext(properties, null, null);
         reportingContext = new MockReportingContext(new LinkedHashMap<>(), null);
-        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
-        when(initContext.getLogger()).thenReturn(logger);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final String scriptLanguage = "Script Language";
+        final Map<String, String> propertyValues = Map.of(
+                scriptLanguage, "Groovy"
+        );
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+
+        final ScriptedReportingTask scriptedReportingTask = new ScriptedReportingTask();
+        scriptedReportingTask.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        final String scriptLanguageRenamed = propertiesRenamed.get(scriptLanguage);
+        assertEquals(ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName(), scriptLanguageRenamed);
     }
 
     @Test
     void testProvenanceGroovyScript() throws Exception {
+        setInitializationContext();
+
         properties.put(SCRIPT_ENGINE_PROPERTY_DESCRIPTOR, GROOVY);
         Files.copy(Paths.get("src/test/resources/groovy/test_log_provenance_events.groovy"), targetPath, StandardCopyOption.REPLACE_EXISTING);
         properties.put(ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
@@ -111,6 +131,8 @@ class ScriptedReportingTaskTest {
 
     @Test
     void testVMEventsGroovyScript() throws Exception {
+        setInitializationContext();
+
         properties.put(SCRIPT_ENGINE_PROPERTY_DESCRIPTOR, GROOVY);
         Files.copy(Paths.get("src/test/resources/groovy/test_log_vm_stats.groovy"), targetPath, StandardCopyOption.REPLACE_EXISTING);
         properties.put(ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
@@ -124,6 +146,11 @@ class ScriptedReportingTaskTest {
         @SuppressWarnings("unchecked")
         final Map<String, Long> x = (Map<String, Long>) se.get("x");
         assertTrue(x.get("uptime") >= 0);
+    }
+
+    private void setInitializationContext() {
+        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
+        when(initContext.getLogger()).thenReturn(mock(ComponentLog.class));
     }
 
     private void run() throws Exception {
