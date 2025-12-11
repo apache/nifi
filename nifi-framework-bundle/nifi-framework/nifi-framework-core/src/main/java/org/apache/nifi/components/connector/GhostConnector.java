@@ -61,7 +61,6 @@ public class GhostConnector implements Connector {
 
     @Override
     public void start(final FlowContext activeContext) throws FlowUpdateException {
-        throw new UnsupportedOperationException("Cannot start a Ghosted Connector");
     }
 
     @Override
@@ -90,7 +89,6 @@ public class GhostConnector implements Connector {
 
     @Override
     public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
-        throw new UnsupportedOperationException("Cannot update a Ghosted Connector");
     }
 
     @Override
@@ -99,7 +97,6 @@ public class GhostConnector implements Connector {
 
     @Override
     public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) throws FlowUpdateException {
-        throw new UnsupportedOperationException("Cannot update a Ghosted Connector");
     }
 
     @Override
