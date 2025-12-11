@@ -45,6 +45,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -90,8 +91,17 @@ public class ScriptingComponentHelper {
 
     public static void migrateProperties(final PropertyConfiguration configuration) {
         Objects.requireNonNull(configuration, "Property Configuration required");
-        // Revert name changes from NIFI-15108
-        configuration.renameProperty(SCRIPT_LANGUAGE_PROPERTY_NAME, SCRIPT_ENGINE_PROPERTY_NAME);
+
+        final Optional<String> scriptEnginePropertyValueFound = configuration.getRawPropertyValue(SCRIPT_ENGINE_PROPERTY_NAME);
+        final String scriptEngineProperty = scriptEnginePropertyValueFound.orElse(null);
+
+        if (scriptEngineProperty == null || scriptEngineProperty.isEmpty()) {
+            // Revert Script Language property changes from NIFI-15108 when Script Engine property is not defined
+            configuration.renameProperty(SCRIPT_LANGUAGE_PROPERTY_NAME, SCRIPT_ENGINE_PROPERTY_NAME);
+        } else {
+            // Remove Script Language property when Script Engine property is defined from an earlier configuration
+            configuration.removeProperty(SCRIPT_LANGUAGE_PROPERTY_NAME);
+        }
     }
 
     public String getScriptEngineName() {
