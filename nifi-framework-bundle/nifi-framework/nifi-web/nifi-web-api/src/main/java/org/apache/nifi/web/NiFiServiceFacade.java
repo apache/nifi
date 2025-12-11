@@ -82,9 +82,8 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
-import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
@@ -221,7 +220,7 @@ public interface NiFiServiceFacade {
 
     void verifyCanVerifyConnectorConfigurationStep(String connectorId, String configurationStepName);
 
-    List<ConfigVerificationResultDTO> performConnectorConfigurationStepVerification(String connectorId, String configurationStepName, List<PropertyGroupConfigurationDTO> propertyGroupConfigurations);
+    List<ConfigVerificationResultDTO> performConnectorConfigurationStepVerification(String connectorId, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);
 
     SearchResultsDTO searchConnector(String connectorId, String query);
 

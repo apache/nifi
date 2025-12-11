@@ -29,6 +29,7 @@ public class ConfigurationStepConfigurationDTO {
 
     private String configurationStepName;
     private String configurationStepDescription;
+    private String configurationStepDocumentation;
     private List<PropertyGroupConfigurationDTO> propertyGroupConfigurations;
 
     /**
@@ -53,6 +54,18 @@ public class ConfigurationStepConfigurationDTO {
 
     public void setConfigurationStepDescription(final String configurationStepDescription) {
         this.configurationStepDescription = configurationStepDescription;
+    }
+
+    /**
+     * @return the configuration step documentation in markdown
+     */
+    @Schema(description = "Extended documentation or help text for the configuration step.")
+    public String getConfigurationStepDocumentation() {
+        return configurationStepDocumentation;
+    }
+
+    public void setConfigurationStepDocumentation(final String configurationStepDocumentation) {
+        this.configurationStepDocumentation = configurationStepDocumentation;
     }
 
     /**

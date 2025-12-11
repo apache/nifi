@@ -56,7 +56,6 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
-import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
@@ -1011,8 +1010,8 @@ public class ConnectorResource extends ApplicationResource {
 
         final Consumer<AsynchronousWebRequest<VerifyConnectorConfigStepRequestEntity, List<ConfigVerificationResultDTO>>> updateTask = asyncRequest -> {
             try {
-                final List<PropertyGroupConfigurationDTO> propertyGroupConfigurations = requestDto.getConfigurationStep().getPropertyGroupConfigurations();
-                final List<ConfigVerificationResultDTO> results = serviceFacade.performConnectorConfigurationStepVerification(connectorId, configurationStepName, propertyGroupConfigurations);
+                final ConfigurationStepConfigurationDTO configurationStep = requestDto.getConfigurationStep();
+                final List<ConfigVerificationResultDTO> results = serviceFacade.performConnectorConfigurationStepVerification(connectorId, configurationStepName, configurationStep);
                 asyncRequest.markStepComplete(results);
             } catch (final Exception e) {
                 logger.error("Failed to verify Connector Configuration Step", e);
