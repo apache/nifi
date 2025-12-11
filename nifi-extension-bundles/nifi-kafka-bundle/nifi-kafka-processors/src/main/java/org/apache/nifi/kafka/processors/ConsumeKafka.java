@@ -604,13 +604,13 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         try {
             consumerService.close();
             activeConsumerCount.decrementAndGet();
-
+        } catch (final IOException ioe) {
+            getLogger().warn("Failed to close Kafka Consumer Service", ioe);
+        } finally {
             final PollingContext partitionedPollingContext = consumerServiceToPartitionedPollingContext.remove(consumerService);
             if (partitionedPollingContext != null) {
                 availablePartitionedPollingContexts.add(partitionedPollingContext);
             }
-        } catch (final IOException ioe) {
-            getLogger().warn("Failed to close Kafka Consumer Service", ioe);
         }
     }
 

@@ -31,8 +31,6 @@ import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.SASL_EXTENSION
  * Validator for dynamic Kafka properties
  */
 public class DynamicPropertyValidator implements Validator {
-    private static final String PARTITIONS_PROPERTY_PREFIX = "partitions";
-
     private final Set<String> clientPropertyNames;
 
     public DynamicPropertyValidator(final Class<?>... kafkaClientClasses) {
@@ -48,9 +46,7 @@ public class DynamicPropertyValidator implements Validator {
         final ValidationResult.Builder builder = new ValidationResult.Builder();
         builder.subject(subject);
 
-        if (subject.startsWith(PARTITIONS_PROPERTY_PREFIX)) {
-            builder.valid(true);
-        } else if (subject.startsWith(SASL_EXTENSION_PROPERTY_PREFIX)) {
+        if (subject.startsWith(SASL_EXTENSION_PROPERTY_PREFIX)) {
             builder.valid(true);
         } else {
             final boolean valid = clientPropertyNames.contains(subject);
