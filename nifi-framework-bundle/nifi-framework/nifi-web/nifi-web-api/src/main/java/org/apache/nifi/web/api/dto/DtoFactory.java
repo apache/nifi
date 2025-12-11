@@ -73,15 +73,15 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConfigurationStep;
-import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -5279,14 +5279,16 @@ public final class DtoFactory {
         final ConfigurationStepConfigurationDTO dto = new ConfigurationStepConfigurationDTO();
         dto.setConfigurationStepName(step.getName());
         dto.setConfigurationStepDescription(step.getDescription());
+        dto.setConfigurationStepDocumentation(step.getDocumentation());
 
-        // Get the current configuration values for this step
-        final ConfigurationStepConfiguration stepConfig = configuration.getConfigurationStepConfigurations().stream()
+        // Get the current configuration values for this step from the flat StepConfiguration
+        final StepConfiguration stepConfig = configuration.getNamedStepConfigurations().stream()
                 .filter(c -> step.getName().equals(c.stepName()))
+                .map(NamedStepConfiguration::configuration)
                 .findFirst()
                 .orElse(null);
 
-        // Convert property groups from the schema, merging in current values
+        // Convert property groups from the schema, merging in current values from flat stepConfig
         final List<PropertyGroupConfigurationDTO> propertyGroupDtos = step.getPropertyGroups().stream()
                 .map(propertyGroup -> createPropertyGroupConfigurationDtoFromGroup(propertyGroup, stepConfig))
                 .collect(Collectors.toList());
@@ -5294,7 +5296,7 @@ public final class DtoFactory {
         return dto;
     }
 
-    private PropertyGroupConfigurationDTO createPropertyGroupConfigurationDtoFromGroup(final ConnectorPropertyGroup propertyGroup, final ConfigurationStepConfiguration stepConfig) {
+    private PropertyGroupConfigurationDTO createPropertyGroupConfigurationDtoFromGroup(final ConnectorPropertyGroup propertyGroup, final StepConfiguration stepConfig) {
         if (propertyGroup == null) {
             return null;
         }
@@ -5312,18 +5314,15 @@ public final class DtoFactory {
         }
         dto.setPropertyDescriptors(propertyDescriptorMap);
 
-        // Get the current property values for this group if they exist
+        // Get the current property values for this group's properties from flat stepConfig
         // Use LinkedHashMap to preserve the order from the connector
         final Map<String, ConnectorValueReferenceDTO> propertyValues = new LinkedHashMap<>();
         if (stepConfig != null) {
-            final PropertyGroupConfiguration groupConfig = stepConfig.propertyGroupConfigurations().stream()
-                    .filter(g -> propertyGroup.getName().equals(g.groupName()))
-                    .findFirst()
-                    .orElse(null);
-
-            if (groupConfig != null) {
-                for (final Map.Entry<String, ConnectorValueReference> entry : groupConfig.propertyValues().entrySet()) {
-                    propertyValues.put(entry.getKey(), createConnectorValueReferenceDto(entry.getValue()));
+            // For each property in this group, check if there's a value in the flat stepConfig
+            for (final ConnectorPropertyDescriptor propertyDescriptor : propertyGroup.getProperties()) {
+                final ConnectorValueReference valueRef = stepConfig.getPropertyValue(propertyDescriptor.getName());
+                if (valueRef != null) {
+                    propertyValues.put(propertyDescriptor.getName(), createConnectorValueReferenceDto(valueRef));
                 }
             }
         }

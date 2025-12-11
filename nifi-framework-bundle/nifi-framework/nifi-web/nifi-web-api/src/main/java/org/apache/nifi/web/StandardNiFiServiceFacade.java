@@ -287,7 +287,6 @@ import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
-import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.dto.PropertyHistoryDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
@@ -3697,8 +3696,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public List<ConfigVerificationResultDTO> performConnectorConfigurationStepVerification(final String connectorId,
-            final String configurationStepName, final List<PropertyGroupConfigurationDTO> propertyGroupConfigurations) {
-        final List<ConfigVerificationResult> verificationResults = connectorDAO.verifyConfigurationStep(connectorId, configurationStepName, propertyGroupConfigurations);
+            final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepConfiguration) {
+        final List<ConfigVerificationResult> verificationResults = connectorDAO.verifyConfigurationStep(connectorId, configurationStepName, configurationStepConfiguration);
         return verificationResults.stream()
                 .map(result -> dtoFactory.createConfigVerificationResultDto(result))
                 .collect(Collectors.toList());
@@ -3714,7 +3713,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public ConnectorPropertyAllowableValuesEntity getConnectorPropertyAllowableValues(final String connectorId,
             final String stepName, final String groupName, final String propertyName, final String filter) {
-        final List<AllowableValue> allowableValues = connectorDAO.fetchAllowableValues(connectorId, stepName, groupName, propertyName, filter);
+        // groupName is retained for REST API backward compatibility but is no longer used by the underlying API
+        final List<AllowableValue> allowableValues = connectorDAO.fetchAllowableValues(connectorId, stepName, propertyName, filter);
 
         final List<AllowableValueEntity> allowableValueEntities = allowableValues.stream()
                 .map(av -> entityFactory.createAllowableValueEntity(dtoFactory.createAllowableValueDto(av), true))
