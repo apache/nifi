@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.groovyx.util;
 
+import org.apache.nifi.logging.ComponentLog;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,13 +35,13 @@ public class Files {
      *
      * @return file list defined by classpath parameter
      */
-    public static Set<File> listPathsFiles(String classpath) {
-        if (classpath == null || classpath.length() == 0) {
+    public static Set<File> listPathsFiles(String classpath, ComponentLog logger) {
+        if (classpath == null || classpath.isEmpty()) {
             return Collections.emptySet();
         }
         Set<File> files = new HashSet<>();
         for (String cp : classpath.split("\\s*[;,]\\s*")) {
-            files.addAll(listPathFiles(cp));
+            files.addAll(listPathFiles(cp, logger));
         }
         return files;
     }
@@ -49,7 +50,7 @@ public class Files {
      * returns file list from one path. the path could be exact filename (one file returned), exact directory (all files from dir returned)
      * or exact dir with masked file names like ./dir/*.jar (all jars returned)
      */
-    public static List<File> listPathFiles(String path) {
+    public static List<File> listPathFiles(String path, ComponentLog logger) {
         File f = new File(path);
         String fname = f.getName();
         if (fname.contains("?") || fname.contains("*")) {
@@ -58,8 +59,8 @@ public class Files {
             return list == null ? Collections.emptyList() : Arrays.asList(list);
         }
         if (!f.exists()) {
-            System.err.println("WARN: path not found for: " + f);
+           logger.warn("path not found for {}", f);
         }
-        return Arrays.asList(f);
+        return List.of(f);
     }
 }
