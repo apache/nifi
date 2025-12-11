@@ -318,7 +318,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             conf.setDebug(true);
             shell = new GroovyShell(conf);
             if (addClasspath != null && !addClasspath.isEmpty()) {
-                for (File fcp : Files.listPathsFiles(addClasspath)) {
+                for (File fcp : Files.listPathsFiles(addClasspath, getLogger())) {
                     if (!fcp.exists()) {
                         throw new ProcessException("Path not found `" + fcp + "` for `" + ADD_CLASSPATH.getDisplayName() + "`");
                     }
