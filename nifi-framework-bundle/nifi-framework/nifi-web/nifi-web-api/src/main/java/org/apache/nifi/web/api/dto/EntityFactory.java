@@ -913,8 +913,7 @@ public final class EntityFactory {
     }
 
     public ConnectorPropertyAllowableValuesEntity createConnectorPropertyAllowableValuesEntity(
-            final String configurationStepName, final String propertyGroupName, final String propertyName,
-            final List<AllowableValueEntity> allowableValues) {
+            final String configurationStepName, final String propertyGroupName, final String propertyName, final List<AllowableValueEntity> allowableValues) {
         final ConnectorPropertyAllowableValuesEntity entity = new ConnectorPropertyAllowableValuesEntity();
         entity.setConfigurationStepName(configurationStepName);
         entity.setPropertyGroupName(propertyGroupName);

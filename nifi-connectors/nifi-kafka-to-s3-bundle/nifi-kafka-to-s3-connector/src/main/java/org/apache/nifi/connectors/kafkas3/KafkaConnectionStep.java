@@ -29,6 +29,37 @@ import java.util.List;
 public class KafkaConnectionStep {
     public static final String STEP_NAME = "Kafka Connection";
 
+    // Temporary documentation to verify the inline documentation feature in the UI.
+    // In practice, this content should probably be loaded from an external file.
+    private static final String KAFKA_CONNECTION_DOCUMENTATION = """
+        # Kafka Connection Configuration
+
+        This step configures the connection to your Apache Kafka cluster.
+
+        ## Kafka Server Settings
+
+        Enter the bootstrap servers for your Kafka cluster. You can specify multiple brokers
+        as a comma-separated list (e.g., `broker1:9092,broker2:9092,broker3:9092`).
+
+        ### Security Configuration
+
+        Select the appropriate security protocol based on your Kafka cluster configuration:
+
+        | Protocol | Description |
+        |----------|-------------|
+        | PLAINTEXT | No encryption or authentication |
+        | SSL | TLS encryption without SASL authentication |
+        | SASL_PLAINTEXT | SASL authentication without encryption |
+        | SASL_SSL | Both SASL authentication and TLS encryption (recommended) |
+
+        If using SASL authentication, provide your username and password credentials.
+
+        ## Schema Registry (Optional)
+
+        If your Kafka topics use Avro, Protobuf, or JSON Schema, configure the Schema Registry
+        URL to enable schema-based serialization and deserialization.
+        """;
+
     public static final ConnectorPropertyDescriptor KAFKA_BROKERS = new ConnectorPropertyDescriptor.Builder()
         .name("Kafka Brokers")
         .description("A comma-separated list of Kafka brokers to connect to.")
@@ -127,6 +158,7 @@ public class KafkaConnectionStep {
     public static final ConfigurationStep KAFKA_CONNECTION_STEP = new ConfigurationStep.Builder()
         .name(STEP_NAME)
         .description("Configure Kafka connection settings")
+        .documentation(KAFKA_CONNECTION_DOCUMENTATION)
         .propertyGroups(List.of(
             KAFKA_SERVER_GROUP,
             SCHEMA_REGISTRY_GROUP
