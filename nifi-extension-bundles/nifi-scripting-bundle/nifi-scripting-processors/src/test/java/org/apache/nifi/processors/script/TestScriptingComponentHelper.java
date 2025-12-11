@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,6 +38,7 @@ class TestScriptingComponentHelper {
     private static final String SCRIPT_LANGUAGE = "Script Language";
     private static final String SCRIPT_ENGINE = "Script Engine";
     private static final String CONFIGURED_SCRIPT_ENGINE = "AWK";
+    private static final String GROOVY_SCRIPT_ENGINE = "Groovy";
 
     @Test
     void testScriptEngineAllowableValuesWithDescriptions() {
@@ -75,5 +77,24 @@ class TestScriptingComponentHelper {
 
         final String scriptLanguageRenamed = propertiesRenamed.get(SCRIPT_LANGUAGE);
         assertEquals(SCRIPT_ENGINE, scriptLanguageRenamed);
+    }
+
+    @Test
+    void testMigratePropertiesPreferringScriptEngineProperty() {
+        final Map<String, String> propertyValues = Map.of(
+                SCRIPT_LANGUAGE, CONFIGURED_SCRIPT_ENGINE,
+                SCRIPT_ENGINE, GROOVY_SCRIPT_ENGINE
+        );
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+
+        ScriptingComponentHelper.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+
+        final Set<String> propertiesRemoved = result.getPropertiesRemoved();
+        assertTrue(propertiesRemoved.contains(SCRIPT_LANGUAGE), "Script Language property should be removed");
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        assertTrue(propertiesRenamed.isEmpty(), "Properties should not be renamed when Script Engine is defined");
     }
 }
