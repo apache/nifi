@@ -753,6 +753,18 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final boolean transitioned = this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLING, future);
         if (transitioned) {
+            // If we transitioned from ENABLING to DISABLING, we need to immediately complete the disable
+            // because the enable task may be scheduled to run far in the future (up to 10 minutes) due to
+            // validation retries. Rather than making the user wait, we immediately transition to DISABLED.
+            scheduler.execute(() -> {
+                stateTransition.disable();
+
+                // Now all components that reference this service will be invalid. Trigger validation to occur so that
+                // this is reflected in any response that may go back to a user/client.
+                for (final ComponentNode component : getReferences().getReferencingComponents()) {
+                    component.performValidation();
+                }
+            });
             return future;
         }
 

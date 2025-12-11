@@ -59,6 +59,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Repository
@@ -186,6 +188,25 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 if (ControllerServiceState.ENABLED.equals(purposedControllerServiceState)) {
                     serviceProvider.enableControllerService(controllerService);
                 } else if (ControllerServiceState.DISABLED.equals(purposedControllerServiceState)) {
+                    // First, unschedule all referencing schedulable components (processors, reporting tasks, etc.)
+                    final Map<ComponentNode, Future<Void>> unscheduleFutures = serviceProvider.unscheduleReferencingComponents(controllerService);
+
+                    // Wait for all referencing components to stop
+                    for (final Map.Entry<ComponentNode, Future<Void>> entry : unscheduleFutures.entrySet()) {
+                        try {
+                            entry.getValue().get(30, TimeUnit.SECONDS);
+                        } catch (final Exception e) {
+                            throw new NiFiCoreException("Failed to stop referencing component " + entry.getKey().getIdentifier(), e);
+                        }
+                    }
+
+                    // Next, disable all referencing controller services
+                    serviceProvider.disableReferencingServices(controllerService);
+
+                    // Verify that all referencing components are now stopped before disabling
+                    controllerService.verifyCanDisable();
+
+                    // Finally, disable the controller service itself
                     serviceProvider.disableControllerService(controllerService);
                 }
             }
@@ -328,9 +349,12 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
 
                     if (ControllerServiceState.ENABLED.equals(purposedControllerServiceState)) {
                         controllerService.verifyCanEnable();
-                    } else if (ControllerServiceState.DISABLED.equals(purposedControllerServiceState)) {
-                        controllerService.verifyCanDisable();
                     }
+                    // Note: We don't call verifyCanDisable() here because we will automatically
+                    // stop referencing components (processors, reporting tasks) and disable
+                    // referencing controller services before disabling this service.
+                    // The verifyCanDisable() check is performed in updateControllerService()
+                    // AFTER the referencing components have been stopped.
                 }
             } catch (final IllegalArgumentException iae) {
                 throw new IllegalArgumentException("Controller Service state: Value must be one of [ENABLED, DISABLED]");
