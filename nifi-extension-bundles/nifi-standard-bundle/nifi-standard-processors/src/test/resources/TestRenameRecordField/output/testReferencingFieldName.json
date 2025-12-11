@@ -2,4 +2,8 @@
   "UPDATED_name" : "John Doe",
   "UPDATED_age" : 30,
   "UPDATED_application" : "Apache NiFi"
+}, {
+  "UPDATED_name" : "Jane Smith",
+  "UPDATED_age" : 25,
+  "UPDATED_application" : "Apache Kafka"
 } ]
