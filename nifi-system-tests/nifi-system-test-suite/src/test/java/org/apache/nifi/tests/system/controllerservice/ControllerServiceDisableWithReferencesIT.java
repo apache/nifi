@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * System tests for verifying that disabling a Controller Service properly stops
@@ -125,12 +126,6 @@ public class ControllerServiceDisableWithReferencesIT extends NiFiSystemIT {
         final ControllerServiceEntity updatedService = getNifiClient().getControllerServicesClient().getControllerService(failureService.getId());
         assertEquals("DISABLED", updatedService.getComponent().getState(),
             "Controller Service should be disabled");
-    }
-
-    private void assertTrue(boolean condition, String message) {
-        if (!condition) {
-            throw new AssertionError(message);
-        }
     }
 }
 
