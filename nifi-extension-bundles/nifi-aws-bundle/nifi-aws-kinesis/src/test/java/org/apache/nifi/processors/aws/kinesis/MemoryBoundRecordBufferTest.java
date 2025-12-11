@@ -54,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MemoryBoundRecordBufferTest {
@@ -352,6 +353,33 @@ class MemoryBoundRecordBufferTest {
         assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer2.latestCheckpointedSequenceNumber());
 
         assertTrue(recordBuffer.acquireBufferLease().isEmpty(), "Buffer should not be available after shutdown");
+    }
+
+    @Test
+    void testShutdownShardConsumption_whileOtherShardIsValid() {
+        final int bufferSize = 100;
+
+        // Create buffer with small memory limit.
+        final MemoryBoundRecordBuffer recordBuffer = new MemoryBoundRecordBuffer(new NopComponentLog(), bufferSize, CHECKPOINT_INTERVAL);
+        final ShardBufferId bufferId1 = recordBuffer.createBuffer(SHARD_ID_1);
+        final ShardBufferId bufferId2 = recordBuffer.createBuffer(SHARD_ID_2);
+
+        final List<KinesisClientRecord> records1 = List.of(createRecordWithSize(bufferSize));
+        recordBuffer.addRecords(bufferId1, records1, checkpointer1);
+
+        // Shutting down a buffer with a record.
+        recordBuffer.shutdownShardConsumption(bufferId1, checkpointer1);
+
+        // Adding records to another buffer.
+        final List<KinesisClientRecord> records2 = List.of(createRecordWithSize(bufferSize));
+        assertTimeoutPreemptively(
+                Duration.ofSeconds(1),
+                () -> recordBuffer.addRecords(bufferId2, records2, checkpointer2),
+                "Records should be added to a buffer without memory backpressure");
+
+        final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
+        assertEquals(SHARD_ID_2, lease.shardId(), "Expected to acquire a lease for " + SHARD_ID_2);
+        assertEquals(records2, recordBuffer.consumeRecords(lease));
     }
 
     @Test
