@@ -334,7 +334,7 @@ describe('ControllerServicesEffects', () => {
             );
 
             expect(controllerServiceService.clearBulletins).toHaveBeenCalledWith({
-                uri: request.uri,
+                id: request.componentId,
                 fromTimestamp: request.fromTimestamp
             });
             expect(result).toEqual(clearControllerServiceBulletinsSuccess({ response: expectedResponse }));
@@ -421,7 +421,7 @@ describe('ControllerServicesEffects', () => {
             await new Promise<void>((resolve) =>
                 effects.clearControllerServiceBulletins$.pipe(take(1)).subscribe(() => {
                     expect(controllerServiceService.clearBulletins).toHaveBeenCalledWith({
-                        uri: request.uri,
+                        id: request.componentId,
                         fromTimestamp: request.fromTimestamp
                     });
                     expect(controllerServiceService.clearBulletins).toHaveBeenCalledTimes(1);

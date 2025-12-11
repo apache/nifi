@@ -18,6 +18,7 @@ package org.apache.nifi.controller.asana;
 
 import com.asana.Client;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -30,6 +31,7 @@ import java.util.List;
 
 import static org.apache.nifi.controller.asana.StandardAsanaClient.ASANA_CLIENT_OPTION_BASE_URL;
 
+@DeprecationNotice(reason = "Depends on unsupported java-asana library")
 @CapabilityDescription("Common service to authenticate with Asana, and to work on a specified workspace.")
 @Tags({"asana", "service", "authentication"})
 public class StandardAsanaClientProviderService extends AbstractControllerService implements AsanaClientProviderService {

@@ -246,7 +246,7 @@ describe('ManagementControllerServicesEffects', () => {
             });
 
             expect(mockManagementControllerServiceService.clearBulletins).toHaveBeenCalledWith({
-                uri: request.uri,
+                id: request.componentId,
                 fromTimestamp: request.fromTimestamp
             });
         });

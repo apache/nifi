@@ -45,6 +45,7 @@ import { NgxSkeletonLoaderComponent } from 'ngx-skeleton-loader';
 import { MatIconButton } from '@angular/material/button';
 import { RegistryClientTable } from './registry-client-table/registry-client-table.component';
 import { ComponentType, NiFiCommon } from '@nifi/shared';
+import { navigateToComponentDocumentation } from '../../../../state/documentation/documentation.actions';
 
 @Component({
     selector: 'registry-clients',
@@ -126,6 +127,27 @@ export class RegistryClients implements OnInit, OnDestroy {
             promptRegistryClientDeletion({
                 request: {
                     registryClient: entity
+                }
+            })
+        );
+    }
+
+    viewRegistryClientDocumentation(entity: RegistryClientEntity): void {
+        this.store.dispatch(
+            navigateToComponentDocumentation({
+                request: {
+                    backNavigation: {
+                        route: ['/settings', 'registry-clients', entity.id],
+                        routeBoundary: ['/documentation'],
+                        context: 'Registry Client'
+                    },
+                    parameters: {
+                        componentType: ComponentType.FlowRegistryClient,
+                        type: entity.component.type,
+                        group: entity.component.bundle.group,
+                        artifact: entity.component.bundle.artifact,
+                        version: entity.component.bundle.version
+                    }
                 }
             })
         );

@@ -40,7 +40,7 @@ import {
     ReportingTaskEntity,
     UpdateReportingTaskRequest
 } from '../../../state/reporting-tasks';
-import { NifiTooltipDirective, NiFiCommon, TextTip, CopyDirective } from '@nifi/shared';
+import { NifiTooltipDirective, NiFiCommon, TextTip, CopyDirective, ComponentType } from '@nifi/shared';
 import { ClusterConnectionService } from '../../../../../service/cluster-connection.service';
 import {
     ConfigVerificationResult,
@@ -249,7 +249,8 @@ export class EditReportingTask extends TabbedDialog {
     verifyClicked(entity: ReportingTaskEntity): void {
         this.verify.next({
             entity,
-            properties: this.getModifiedProperties()
+            properties: this.getModifiedProperties(),
+            componentType: ComponentType.ReportingTask
         });
     }
 

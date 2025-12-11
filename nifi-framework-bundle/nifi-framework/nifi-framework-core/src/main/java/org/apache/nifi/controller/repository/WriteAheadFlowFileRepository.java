@@ -808,7 +808,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         final Runnable checkpointRunnable = () -> {
             try {
-                logger.info("Initiating checkpoint of FlowFile Repository");
+                logger.debug("Initiating checkpoint of FlowFile Repository");
                 final long start = System.nanoTime();
                 final int numRecordsCheckpointed = checkpoint();
                 final long end = System.nanoTime();

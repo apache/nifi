@@ -35,11 +35,11 @@ import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
 public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
-    RecordSchema getSchema() {
+    protected RecordSchema getSchema() {
         return schema;
     }
 
-    SchemaRecordReader getRecordReader() {
+    protected SchemaRecordReader getRecordReader() {
         return recordReader;
     }
 
@@ -52,27 +52,27 @@ public class EventIdFirstSchemaRecordReader extends CompressableRecordReader {
     private List<String> eventTypes;
     private long firstEventId;
 
-    List<String> getComponentIds() {
+    protected List<String> getComponentIds() {
         return componentIds;
     }
 
-    List<String> getComponentTypes() {
+    protected List<String> getComponentTypes() {
         return componentTypes;
     }
 
-    List<String> getQueueIds() {
+    protected List<String> getQueueIds() {
         return queueIds;
     }
 
-    List<String> getEventTypes() {
+    protected List<String> getEventTypes() {
         return eventTypes;
     }
 
-    long getFirstEventId() {
+    protected long getFirstEventId() {
         return firstEventId;
     }
 
-    long getSystemTimeOffset() {
+    protected long getSystemTimeOffset() {
         return systemTimeOffset;
     }
 

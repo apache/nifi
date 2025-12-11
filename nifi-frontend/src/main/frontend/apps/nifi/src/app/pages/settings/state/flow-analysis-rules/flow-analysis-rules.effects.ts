@@ -583,7 +583,7 @@ export class FlowAnalysisRulesEffects {
             switchMap((request) =>
                 from(
                     this.flowAnalysisRuleService.clearBulletins({
-                        uri: request.uri,
+                        id: request.componentId,
                         fromTimestamp: request.fromTimestamp
                     })
                 ).pipe(

@@ -171,32 +171,32 @@ public class GeoEnrichIP extends AbstractEnrichIP {
 
         final Map<String, String> attrs = new HashMap<>();
         attrs.put(new StringBuilder(ipAttributeName).append(".geo.lookup.micros").toString(), String.valueOf(stopWatch.getDuration(TimeUnit.MICROSECONDS)));
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.city").toString(), response.getCity().getName());
+        attrs.put(new StringBuilder(ipAttributeName).append(".geo.city").toString(), response.city().name());
 
-        final Double latitude = response.getLocation().getLatitude();
+        final Double latitude = response.location().latitude();
         if (latitude != null) {
             attrs.put(new StringBuilder(ipAttributeName).append(".geo.latitude").toString(), latitude.toString());
         }
 
-        final Double longitude = response.getLocation().getLongitude();
+        final Double longitude = response.location().longitude();
         if (longitude != null) {
             attrs.put(new StringBuilder(ipAttributeName).append(".geo.longitude").toString(), longitude.toString());
         }
 
-        final Integer accuracy = response.getLocation().getAccuracyRadius();
+        final Integer accuracy = response.location().accuracyRadius();
         if (accuracy != null) {
             attrs.put(new StringBuilder(ipAttributeName).append(".accuracy").toString(), String.valueOf(accuracy));
         }
 
         int i = 0;
-        for (final Subdivision subd : response.getSubdivisions()) {
-            attrs.put(new StringBuilder(ipAttributeName).append(".geo.subdivision.").append(i).toString(), subd.getName());
-            attrs.put(new StringBuilder(ipAttributeName).append(".geo.subdivision.isocode.").append(i).toString(), subd.getIsoCode());
+        for (final Subdivision subd : response.subdivisions()) {
+            attrs.put(new StringBuilder(ipAttributeName).append(".geo.subdivision.").append(i).toString(), subd.name());
+            attrs.put(new StringBuilder(ipAttributeName).append(".geo.subdivision.isocode.").append(i).toString(), subd.isoCode());
             i++;
         }
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.country").toString(), response.getCountry().getName());
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.country.isocode").toString(), response.getCountry().getIsoCode());
-        attrs.put(new StringBuilder(ipAttributeName).append(".geo.postalcode").toString(), response.getPostal().getCode());
+        attrs.put(new StringBuilder(ipAttributeName).append(".geo.country").toString(), response.country().name());
+        attrs.put(new StringBuilder(ipAttributeName).append(".geo.country.isocode").toString(), response.country().isoCode());
+        attrs.put(new StringBuilder(ipAttributeName).append(".geo.postalcode").toString(), response.postal().code());
         flowFile = session.putAllAttributes(flowFile, attrs);
 
         session.transfer(flowFile, REL_FOUND);

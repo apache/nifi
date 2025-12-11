@@ -25,8 +25,11 @@ import com.maxmind.geoip2.model.ConnectionTypeResponse;
 import com.maxmind.geoip2.model.ConnectionTypeResponse.ConnectionType;
 import com.maxmind.geoip2.model.DomainResponse;
 import com.maxmind.geoip2.model.IspResponse;
+import com.maxmind.geoip2.record.City;
+import com.maxmind.geoip2.record.Continent;
 import com.maxmind.geoip2.record.Country;
 import com.maxmind.geoip2.record.Location;
+import com.maxmind.geoip2.record.Postal;
 import com.maxmind.geoip2.record.Subdivision;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -305,7 +308,7 @@ public class IPLookupService extends AbstractControllerService implements Record
                 throw new LookupFailureException("Failed to lookup Domain information for IP Address " + inetAddress, e);
             }
 
-            domainName = domainResponse == null ? null : domainResponse.getDomain();
+            domainName = domainResponse == null ? null : domainResponse.domain();
         } else {
             domainName = null;
         }
@@ -324,7 +327,7 @@ public class IPLookupService extends AbstractControllerService implements Record
             if (connectionTypeResponse == null) {
                 connectionType = null;
             } else {
-                final ConnectionType type = connectionTypeResponse.getConnectionType();
+                final ConnectionType type = connectionTypeResponse.connectionType();
                 connectionType = type == null ? null : type.name();
             }
         } else {
@@ -402,21 +405,29 @@ public class IPLookupService extends AbstractControllerService implements Record
         }
 
         final Map<String, Object> values = new HashMap<>();
-        values.put(CitySchema.CITY.getFieldName(), city.getCity().getName());
+        final City cityRecord = city.city();
+        values.put(CitySchema.CITY.getFieldName(), cityRecord == null ? null : cityRecord.name());
 
-        final Location location = city.getLocation();
-        values.put(CitySchema.ACCURACY.getFieldName(), location.getAccuracyRadius());
-        values.put(CitySchema.TIMEZONE.getFieldName(), location.getTimeZone());
-        values.put(CitySchema.LATITUDE.getFieldName(), location.getLatitude());
-        values.put(CitySchema.LONGITUDE.getFieldName(), location.getLongitude());
-        values.put(CitySchema.CONTINENT.getFieldName(), city.getContinent().getName());
-        values.put(CitySchema.POSTALCODE.getFieldName(), city.getPostal().getCode());
-        values.put(CitySchema.COUNTRY.getFieldName(), createRecord(city.getCountry()));
+        final Location location = city.location();
+        values.put(CitySchema.ACCURACY.getFieldName(), location == null ? null : location.accuracyRadius());
+        values.put(CitySchema.TIMEZONE.getFieldName(), location == null ? null : location.timeZone());
+        values.put(CitySchema.LATITUDE.getFieldName(), location == null ? null : location.latitude());
+        values.put(CitySchema.LONGITUDE.getFieldName(), location == null ? null : location.longitude());
 
-        final Object[] subdivisions = new Object[city.getSubdivisions().size()];
+        final Continent continent = city.continent();
+        values.put(CitySchema.CONTINENT.getFieldName(), continent == null ? null : continent.name());
+
+        final Postal postal = city.postal();
+        values.put(CitySchema.POSTALCODE.getFieldName(), postal == null ? null : postal.code());
+        values.put(CitySchema.COUNTRY.getFieldName(), createRecord(city.country()));
+
+        final List<Subdivision> subdivisionList = city.subdivisions();
+        final Object[] subdivisions = subdivisionList == null ? new Object[0] : new Object[subdivisionList.size()];
         int i = 0;
-        for (final Subdivision subdivision : city.getSubdivisions()) {
-            subdivisions[i++] = createRecord(subdivision);
+        if (subdivisionList != null) {
+            for (final Subdivision subdivision : subdivisionList) {
+                subdivisions[i++] = createRecord(subdivision);
+            }
         }
         values.put(CitySchema.SUBDIVISIONS.getFieldName(), subdivisions);
 
@@ -429,8 +440,8 @@ public class IPLookupService extends AbstractControllerService implements Record
         }
 
         final Map<String, Object> values = new HashMap<>(2);
-        values.put(CitySchema.SUBDIVISION_NAME.getFieldName(), subdivision.getName());
-        values.put(CitySchema.SUBDIVISION_ISO.getFieldName(), subdivision.getIsoCode());
+        values.put(CitySchema.SUBDIVISION_NAME.getFieldName(), subdivision.name());
+        values.put(CitySchema.SUBDIVISION_ISO.getFieldName(), subdivision.isoCode());
         return new MapRecord(CitySchema.SUBDIVISION_SCHEMA, values);
     }
 
@@ -440,8 +451,8 @@ public class IPLookupService extends AbstractControllerService implements Record
         }
 
         final Map<String, Object> values = new HashMap<>(2);
-        values.put(CitySchema.COUNTRY_NAME.getFieldName(), country.getName());
-        values.put(CitySchema.COUNTRY_ISO.getFieldName(), country.getIsoCode());
+        values.put(CitySchema.COUNTRY_NAME.getFieldName(), country.name());
+        values.put(CitySchema.COUNTRY_ISO.getFieldName(), country.isoCode());
         return new MapRecord(CitySchema.COUNTRY_SCHEMA, values);
     }
 
@@ -451,10 +462,10 @@ public class IPLookupService extends AbstractControllerService implements Record
         }
 
         final Map<String, Object> values = new HashMap<>(4);
-        values.put(IspSchema.ASN.getFieldName(), isp.getAutonomousSystemNumber());
-        values.put(IspSchema.ASN_ORG.getFieldName(), isp.getAutonomousSystemOrganization());
-        values.put(IspSchema.NAME.getFieldName(), isp.getIsp());
-        values.put(IspSchema.ORG.getFieldName(), isp.getOrganization());
+        values.put(IspSchema.ASN.getFieldName(), isp.autonomousSystemNumber());
+        values.put(IspSchema.ASN_ORG.getFieldName(), isp.autonomousSystemOrganization());
+        values.put(IspSchema.NAME.getFieldName(), isp.isp());
+        values.put(IspSchema.ORG.getFieldName(), isp.organization());
 
         return new MapRecord(IspSchema.ISP_SCHEMA, values);
     }

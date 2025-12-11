@@ -336,6 +336,19 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> reasons = new ArrayList<>(super.customValidate(context));
 
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                if (entry.getValue() == null) {
+                    reasons.add(new ValidationResult.Builder()
+                            .subject(descriptor.getDisplayName())
+                            .valid(false)
+                            .explanation("Dynamic Property %s is null. Does it reference an unset parameter?".formatted(descriptor.getName()))
+                            .build());
+                }
+            }
+        }
+
         if (!context.getProperty(STORE_STATE).getValue().equals(DO_NOT_STORE_STATE)) {
             String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
             if (initValue == null) {

@@ -270,9 +270,10 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
                         }
 
                         try {
-                            Thread.sleep(1000L);
-                        } catch (InterruptedException ex) {
-                            logger.debug("NiFi Startup sleep interrupted", ex);
+                            TimeUnit.SECONDS.sleep(1);
+                        } catch (InterruptedException interrupted) {
+                            logger.warn("NiFi Startup sleep interrupted", interrupted);
+                            break;
                         }
                     }
                 }
@@ -282,7 +283,7 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
         @Override
         public void stop() {
             if (process == null) {
-                logger.info("NiFi Shutdown Ignored (runNiFi==null) [{}]", instanceDirectory.getName());
+                logger.debug("NiFi Shutdown request ignored [{}]", instanceDirectory.getName());
                 return;
             }
 

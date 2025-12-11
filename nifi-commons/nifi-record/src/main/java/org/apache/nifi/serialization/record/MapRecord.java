@@ -50,6 +50,7 @@ public class MapRecord implements Record {
     private static final Logger logger = LoggerFactory.getLogger(MapRecord.class);
 
     private RecordSchema schema;
+    private boolean mutableSchema = false; // Track if schema is a private copy that can be safely modified
     private final Map<String, Object> values;
     private Optional<SerializedForm> serializedForm;
     private final boolean checkTypes;
@@ -525,6 +526,15 @@ public class MapRecord implements Record {
             throw new IllegalArgumentException("Could not rename [" + field + "] to [" + newName + "] because a field already exists with the name [" + newName + "]");
         }
 
+        // Create a defensive copy of the schema to avoid modifying a shared schema instance.
+        // Multiple records often share the same schema object for efficiency. If we modify
+        // the shared schema, subsequent records would fail to find the original field name.
+        // Only copy if we haven't already made a private copy.
+        if (!mutableSchema) {
+            this.schema = new SimpleRecordSchema(new ArrayList<>(schema.getFields()));
+            this.mutableSchema = true;
+        }
+
         final String currentName = resolvedField.get().getFieldName();
         final boolean renamed = schema.renameField(currentName, newName);
         if (!renamed) {
@@ -545,7 +555,36 @@ public class MapRecord implements Record {
             if (schemaField.getDataType().getFieldType() == RecordFieldType.CHOICE) {
                 schemaFields.add(schemaField);
             } else if (fieldValue instanceof final Record childRecord) {
+                childRecord.regenerateSchema();
                 schemaFields.add(new RecordField(schemaField.getFieldName(), RecordFieldType.RECORD.getRecordDataType(childRecord.getSchema()), schemaField.isNullable()));
+            } else if (schemaField.getDataType().getFieldType() == RecordFieldType.ARRAY && fieldValue instanceof Object[]) {
+                // Handle arrays of records - regenerate schema based on actual element schemas
+                final ArrayDataType arrayType = (ArrayDataType) schemaField.getDataType();
+                final DataType elementType = arrayType.getElementType();
+                if (elementType.getFieldType() == RecordFieldType.RECORD) {
+                    final Object[] array = (Object[]) fieldValue;
+                    RecordSchema mergedElementSchema = null;
+                    for (final Object element : array) {
+                        if (element instanceof Record) {
+                            final Record elementRecord = (Record) element;
+                            elementRecord.regenerateSchema();
+                            if (mergedElementSchema == null) {
+                                mergedElementSchema = elementRecord.getSchema();
+                            } else {
+                                mergedElementSchema = DataTypeUtils.merge(mergedElementSchema, elementRecord.getSchema());
+                            }
+                        }
+                    }
+                    if (mergedElementSchema != null) {
+                        final DataType newElementType = RecordFieldType.RECORD.getRecordDataType(mergedElementSchema);
+                        final DataType newArrayType = RecordFieldType.ARRAY.getArrayDataType(newElementType);
+                        schemaFields.add(new RecordField(schemaField.getFieldName(), newArrayType, schemaField.isNullable()));
+                    } else {
+                        schemaFields.add(schemaField);
+                    }
+                } else {
+                    schemaFields.add(schemaField);
+                }
             } else {
                 schemaFields.add(schemaField);
             }

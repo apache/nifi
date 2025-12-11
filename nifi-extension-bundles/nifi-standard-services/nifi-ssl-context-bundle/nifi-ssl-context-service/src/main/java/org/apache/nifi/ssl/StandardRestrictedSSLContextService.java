@@ -19,6 +19,7 @@ package org.apache.nifi.ssl;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -30,6 +31,13 @@ import org.apache.nifi.security.util.TlsPlatform;
  * This class is functionally the same as {@link StandardSSLContextService}, but it restricts the allowable
  * values that can be selected for TLS/SSL protocols.
  */
+@DeprecationNotice(
+        reason = "No longer provides differentiated security features",
+        alternatives = {
+                PEMEncodedSSLContextProvider.class,
+                StandardSSLContextService.class
+        }
+)
 @Tags({"tls", "ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs"})
 @CapabilityDescription("Restricted implementation of the SSLContextService. Provides the ability to configure "
         + "keystore and/or truststore properties once and reuse that configuration throughout the application, "

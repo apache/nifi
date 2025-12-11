@@ -29,7 +29,8 @@ import {
 
 export const initialState: ComponentStateState = {
     componentName: null,
-    componentUri: null,
+    componentType: null,
+    componentId: null,
     componentState: null,
     canClear: null,
     clearing: false,
@@ -41,7 +42,8 @@ export const componentStateReducer = createReducer(
     on(getComponentStateAndOpenDialog, (state, { request }) => ({
         ...state,
         componentName: request.componentName,
-        componentUri: request.componentUri,
+        componentType: request.componentType,
+        componentId: request.componentId,
         canClear: request.canClear,
         status: 'loading' as const
     })),

@@ -282,11 +282,12 @@ public class AwsSecretsManagerParameterProvider extends AbstractParameterProvide
 
             for (final Map.Entry<String, JsonNode> field : secretObject.properties()) {
                 final String parameterName = field.getKey();
-                final String parameterValue = field.getValue().textValue();
-                if (parameterValue == null) {
-                    getLogger().debug("Secret [{}] Parameter [{}] has no value", secretName, parameterName);
+                final JsonNode valueNode = field.getValue();
+                if (!valueNode.isValueNode() || valueNode.isNull()) {
+                    getLogger().debug("Secret [{}] Parameter [{}] is null or not a supported value type", secretName, parameterName);
                     continue;
                 }
+                final String parameterValue = valueNode.asText();
 
                 parameters.add(createParameter(parameterName, parameterValue));
             }

@@ -243,8 +243,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
     @Override
     public CompletableFuture<Void> enableControllerService(final ControllerServiceNode serviceNode) {
         if (serviceNode.isActive()) {
-            final CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-            return future;
+            return CompletableFuture.completedFuture(null);
         }
 
         serviceNode.verifyCanEnable();
@@ -260,8 +259,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
 
                 future.get(30, TimeUnit.SECONDS);
-                logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
-            } catch (final ControllerServiceNotValidException csnve) {
+                logger.debug("{} enabled with state [{}]", controllerServiceNode, controllerServiceNode.getState());
+            } catch (final ControllerServiceNotValidException e) {
                 logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
             } catch (Exception e) {
                 logger.error("Failed to enable {}", controllerServiceNode, e);
@@ -284,7 +283,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 for (ControllerServiceNode requiredService : requiredServices) {
                     if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
                         skipStarting = true;
-                        logger.error("Will not start {} because its required service {} is not active and is not part of the collection of things to start", serviceNode, requiredService);
+                        logger.error("{} not started: Required Service {} not active and not requested for enabling", serviceNode, requiredService);
                     }
                 }
                 if (skipStarting) {
@@ -657,6 +656,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     private Class<? extends ControllerService> getServiceInterfaceByName(final Class<?> serviceClass, final String type) {
         for (final Class<?> serviceInterface : serviceClass.getInterfaces()) {
             if (!ControllerService.class.isAssignableFrom(serviceInterface)) {
@@ -679,6 +679,12 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return node == null ? null : node.getName();
     }
 
+    /**
+     * Remove Controller Service and suppress warnings related to InstanceClassLoader that may not be defined
+     *
+     * @param serviceNode Controller Service Node to be removed
+     */
+    @SuppressWarnings("resource")
     @Override
     public void removeControllerService(final ControllerServiceNode serviceNode) {
         requireNonNull(serviceNode);

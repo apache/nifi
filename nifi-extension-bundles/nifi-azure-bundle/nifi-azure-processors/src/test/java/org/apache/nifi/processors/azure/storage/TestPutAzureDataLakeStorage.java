@@ -20,6 +20,7 @@ import com.azure.core.http.rest.Response;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
@@ -76,14 +77,15 @@ public class TestPutAzureDataLakeStorage {
     void testMigration() {
         TestRunner runner = TestRunners.newTestRunner(PutAzureDataLakeStorage.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expectedRenamed = Map.of(
-                AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName(),
-                AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName(),
-                AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName(),
-                AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, AzureStorageUtils.FILE.getName(),
-                "conflict-resolution-strategy", PutAzureDataLakeStorage.CONFLICT_RESOLUTION.getName(),
-                "writing-strategy", PutAzureDataLakeStorage.WRITING_STRATEGY.getName(),
-                "base-temporary-path", PutAzureDataLakeStorage.BASE_TEMPORARY_PATH.getName()
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName()),
+                Map.entry(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName()),
+                Map.entry(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName()),
+                Map.entry(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, AzureStorageUtils.FILE.getName()),
+                Map.entry("conflict-resolution-strategy", PutAzureDataLakeStorage.CONFLICT_RESOLUTION.getName()),
+                Map.entry("writing-strategy", PutAzureDataLakeStorage.WRITING_STRATEGY.getName()),
+                Map.entry("base-temporary-path", PutAzureDataLakeStorage.BASE_TEMPORARY_PATH.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
         );
 
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());

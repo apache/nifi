@@ -122,6 +122,34 @@ public class TestSecretsManagerParameterValueProvider {
         assertNull(provider.getParameterValue("Does not exist", PARAMETER));
     }
 
+    @Test
+    public void testGetParameterValueWithNonStringValues() {
+        // JSON with string, number, boolean, and null values
+        final String secretString = "{ \"stringParam\": \"stringValue\", \"numberParam\": 5432, \"booleanParam\": true, \"nullParam\": null }";
+        mockGetSecretValueWithRawJson("MixedSecret", secretString);
+
+        provider.init(createContext(CONFIG_FILE, null, Collections.emptyMap()));
+
+        assertEquals("stringValue", provider.getParameterValue("MixedSecret", "stringParam"));
+        assertEquals("5432", provider.getParameterValue("MixedSecret", "numberParam"));
+        assertEquals("true", provider.getParameterValue("MixedSecret", "booleanParam"));
+        assertNull(provider.getParameterValue("MixedSecret", "nullParam"));
+    }
+
+    @Test
+    public void testGetParameterValueWithNestedObjectsReturnsNull() {
+        // JSON with nested objects and arrays that should return null
+        final String secretString = "{ \"validParam\": \"validValue\", \"nestedObject\": { \"inner\": \"value\" }, \"arrayParam\": [1, 2, 3] }";
+        mockGetSecretValueWithRawJson("NestedSecret", secretString);
+
+        provider.init(createContext(CONFIG_FILE, null, Collections.emptyMap()));
+
+        assertEquals("validValue", provider.getParameterValue("NestedSecret", "validParam"));
+        // Nested objects and arrays should return null
+        assertNull(provider.getParameterValue("NestedSecret", "nestedObject"));
+        assertNull(provider.getParameterValue("NestedSecret", "arrayParam"));
+    }
+
     private void runGetParameterValueTest(final String configFileName) throws JsonProcessingException {
         runGetParameterValueTest(CONTEXT, PARAMETER, configFileName);
     }
@@ -153,6 +181,13 @@ public class TestSecretsManagerParameterValueProvider {
             GetSecretValueResponse response = builder.build();
             when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenReturn(response);
         }
+    }
+
+    private void mockGetSecretValueWithRawJson(final String context, final String rawJsonSecretString) {
+        final GetSecretValueResponse response = GetSecretValueResponse.builder()
+                .secretString(rawJsonSecretString)
+                .build();
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest(context)))).thenReturn(response);
     }
 
     private static String getSecretName(final String context) {

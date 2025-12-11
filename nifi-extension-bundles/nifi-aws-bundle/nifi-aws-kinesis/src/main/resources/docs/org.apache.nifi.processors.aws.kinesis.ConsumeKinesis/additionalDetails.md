@@ -116,6 +116,16 @@ The following is an example policy document for `ConsumeKinesis`.
 **Note:** Replace "{Region}", "{Account}", "{Stream Name}", and "{Application Name}" in the ARNs with your own AWS region, 
 AWS account number, Kinesis data stream name, and `ConsumeKinesis` _Application Name_ property respectively.
 
+## Consumer Type
+
+Comparison of different Consumer Types from [Amazon Kinesis Streams documentation](https://docs.aws.amazon.com/streams/latest/dev/enhanced-consumers.html):
+
+| Characteristics           | Shared throughput consumers without enhanced fan-out                                                                                                                                                                 | Enhanced fan-out consumers                                                                                                                                                                           |
+|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Read throughput           | Fixed at a total of 2 MB/sec per shard. If there are multiple consumers reading from the same shard, they all share this throughput. The sum of the throughputs they receive from the shard doesn't exceed 2 MB/sec. | Scales as consumers register to use enhanced fan-out. Each consumer registered to use enhanced fan-out receives its own read throughput per shard, up to 2 MB/sec, independently of other consumers. |
+| Message propagation delay | An average of around 200 ms if you have one consumer reading from the stream. This average goes up to around 1000 ms if you have five consumers.                                                                     | Typically an average of 70 ms whether you have one consumer or five consumers.                                                                                                                       |
+| Cost                      | Not applicable                                                                                                                                                                                                       | There is a data retrieval cost and a consumer-shard hour cost. For more information, see [Amazon Kinesis Data Streams Pricing](https://aws.amazon.com/kinesis/data-streams/pricing/?nc=sn&loc=3).    |
+
 ## Record processing
 
 When _Processing Strategy_ property is set to _RECORD_, _ConsumeKinesis_ operates in Record mode.

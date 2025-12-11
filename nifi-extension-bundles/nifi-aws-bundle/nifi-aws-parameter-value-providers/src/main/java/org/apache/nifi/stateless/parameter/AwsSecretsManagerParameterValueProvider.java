@@ -118,8 +118,12 @@ public class AwsSecretsManagerParameterValueProvider extends AbstractSecretBased
                 logger.debug("Parameter [{}] not found", parameterName);
                 return null;
             }
+            if (!parameter.isValueNode() || parameter.isNull()) {
+                logger.debug("Parameter [{}] is null or not a supported value type", parameterName);
+                return null;
+            }
 
-            return parameter.textValue();
+            return parameter.asText();
         } catch (final JsonProcessingException e) {
             throw new IllegalArgumentException(String.format("Secret String for [%s] could not be parsed", parameterName), e);
         }

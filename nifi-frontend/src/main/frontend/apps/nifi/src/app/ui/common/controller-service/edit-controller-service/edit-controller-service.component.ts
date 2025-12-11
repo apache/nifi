@@ -34,7 +34,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
 import { AsyncPipe } from '@angular/common';
 import { MatTabsModule } from '@angular/material/tabs';
-import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective } from '@nifi/shared';
+import { NiFiCommon, TextTip, NifiTooltipDirective, CopyDirective, ComponentType } from '@nifi/shared';
 import { MatOptionModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { PropertyTable } from '../../property-table/property-table.component';
@@ -220,7 +220,8 @@ export class EditControllerService extends TabbedDialog {
     verifyClicked(entity: ControllerServiceEntity): void {
         this.verify.next({
             entity,
-            properties: this.getModifiedProperties()
+            properties: this.getModifiedProperties(),
+            componentType: ComponentType.ControllerService
         });
     }
 

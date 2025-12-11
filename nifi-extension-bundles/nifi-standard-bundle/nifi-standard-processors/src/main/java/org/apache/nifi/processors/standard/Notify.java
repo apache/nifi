@@ -227,6 +227,11 @@ public class Notify extends AbstractProcessor {
                 }
             }
 
+            if (logger.isDebugEnabled()) {
+                logger.debug("Evaluated FlowFile {} to signalId='{}' counterName='{}' delta={} bufferCount={} attrRegex='{}'",
+                        flowFile, signalId, counterName, delta, bufferCount, attributeCacheRegex);
+            }
+
             if (!signalBuffers.containsKey(signalId)) {
                 signalBuffers.put(signalId, new SignalBuffer());
             }
@@ -236,6 +241,9 @@ public class Notify extends AbstractProcessor {
                 flowFile.getAttributes().entrySet()
                         .stream().filter(e -> (!e.getKey().equals("uuid") && e.getKey().matches(attributeCacheRegex)))
                         .forEach(e -> signalBuffer.attributesToCache.put(e.getKey(), e.getValue()));
+                if (logger.isDebugEnabled()) {
+                    logger.debug("FlowFile {} added cached attributes {} for signalId='{}'", flowFile, signalBuffer.attributesToCache.keySet(), signalId);
+                }
             }
 
             signalBuffer.incrementDelta(counterName, delta);
@@ -250,7 +258,13 @@ public class Notify extends AbstractProcessor {
             // In case of Exception, just throw the exception so that processor can
             // retry after yielding for a while.
             try {
-                protocol.notify(signalId, signalBuffer.deltas, signalBuffer.attributesToCache);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Notifying signalId='{}' with deltas {} and cached attributes {}", signalId, signalBuffer.deltas, signalBuffer.attributesToCache);
+                }
+                final WaitNotifyProtocol.Signal signal = protocol.notify(signalId, signalBuffer.deltas, signalBuffer.attributesToCache);
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Post-notify state for signalId='{}': counts={} attributesKeys={}", signalId, signal.getCounts(), signal.getAttributes().keySet());
+                }
                 signalBuffer.flowFiles.forEach(flowFile ->
                         session.transfer(session.putAttribute(flowFile, NOTIFIED_ATTRIBUTE_NAME, String.valueOf(true)), REL_SUCCESS));
             } catch (IOException e) {

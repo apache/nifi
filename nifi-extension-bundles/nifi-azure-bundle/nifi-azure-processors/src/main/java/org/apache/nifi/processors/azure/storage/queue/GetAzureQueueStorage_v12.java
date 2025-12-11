@@ -36,8 +36,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -92,7 +90,6 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.SOCKS};
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             QUEUE_NAME,
             ENDPOINT_SUFFIX,
@@ -101,7 +98,7 @@ public class GetAzureQueueStorage_v12 extends AbstractAzureQueueStorage_v12 {
             MESSAGE_BATCH_SIZE,
             VISIBILITY_TIMEOUT,
             REQUEST_TIMEOUT,
-            ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
+            PROXY_CONFIGURATION_SERVICE
     );
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS

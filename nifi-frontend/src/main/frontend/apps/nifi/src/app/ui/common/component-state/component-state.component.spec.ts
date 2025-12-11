@@ -29,7 +29,7 @@ import { initialState as initialErrorState } from '../../../state/error/error.re
 import { errorFeatureKey } from '../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../state/current-user';
-import { NiFiCommon } from '@nifi/shared';
+import { ComponentType, NiFiCommon } from '@nifi/shared';
 
 describe('ComponentStateDialog', () => {
     let component: ComponentStateDialog;
@@ -62,7 +62,8 @@ describe('ComponentStateDialog', () => {
     const mockInitialState: ComponentStateState = {
         ...initialState,
         componentName: 'Test Component',
-        componentUri: 'https://localhost:8443/nifi-api/processors/test-id',
+        componentType: ComponentType.Processor,
+        componentId: 'test-id',
         componentState: mockComponentState,
         canClear: true,
         clearing: false,

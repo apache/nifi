@@ -22,7 +22,11 @@ import * as QueueListingActions from './queue-listing.actions';
 import { Store } from '@ngrx/store';
 import { CanvasState } from '../../../flow-designer/state';
 import { asyncScheduler, catchError, filter, from, interval, map, of, switchMap, take, takeUntil, tap } from 'rxjs';
-import { selectConnectionIdFromRoute, selectActiveListingRequest } from './queue-listing.selectors';
+import {
+    selectConnectionIdFromRoute,
+    selectActiveListingRequest,
+    selectSelectedConnection
+} from './queue-listing.selectors';
 import { QueueService } from '../../service/queue.service';
 import { ListingRequest } from './index';
 import { CancelDialog } from '../../../../ui/common/cancel-dialog/cancel-dialog.component';
@@ -166,9 +170,12 @@ export class QueueListingEffects {
     pollQueueListingRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueListingActions.pollQueueListingRequest),
-            concatLatestFrom(() => this.store.select(selectActiveListingRequest).pipe(isDefinedAndNotNull())),
-            switchMap(([, listingRequest]) => {
-                return from(this.queueService.pollQueueListingRequest(listingRequest)).pipe(
+            concatLatestFrom(() => [
+                this.store.select(selectSelectedConnection).pipe(isDefinedAndNotNull()),
+                this.store.select(selectActiveListingRequest).pipe(isDefinedAndNotNull())
+            ]),
+            switchMap(([, selectedConnection, listingRequest]) => {
+                return from(this.queueService.pollQueueListingRequest(selectedConnection.id, listingRequest.id)).pipe(
                     map((response) =>
                         QueueListingActions.pollQueueListingRequestSuccess({
                             response: {
@@ -213,19 +220,20 @@ export class QueueListingEffects {
     deleteQueueListingRequest$ = createEffect(() =>
         this.actions$.pipe(
             ofType(QueueListingActions.deleteQueueListingRequest),
-            concatLatestFrom(() => this.store.select(selectActiveListingRequest)),
-            tap(([, listingRequest]) => {
+            concatLatestFrom(() => [
+                this.store.select(selectSelectedConnection).pipe(isDefinedAndNotNull()),
+                this.store.select(selectActiveListingRequest).pipe(isDefinedAndNotNull())
+            ]),
+            tap(([, selectedConnection, listingRequest]) => {
                 this.dialog.closeAll();
 
-                if (listingRequest) {
-                    this.queueService.deleteQueueListingRequest(listingRequest).subscribe({
-                        error: (errorResponse: HttpErrorResponse) => {
-                            this.store.dispatch(
-                                ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
-                            );
-                        }
-                    });
-                }
+                this.queueService.deleteQueueListingRequest(selectedConnection.id, listingRequest.id).subscribe({
+                    error: (errorResponse: HttpErrorResponse) => {
+                        this.store.dispatch(
+                            ErrorActions.snackBarError({ error: this.errorHelper.getErrorString(errorResponse) })
+                        );
+                    }
+                });
             }),
             switchMap(() => of(QueueListingActions.deleteQueueListingRequestSuccess()))
         )
@@ -235,8 +243,15 @@ export class QueueListingEffects {
         this.actions$.pipe(
             ofType(QueueListingActions.viewFlowFile),
             map((action) => action.request),
-            switchMap((request) =>
-                from(this.queueService.getFlowFile(request.flowfileSummary)).pipe(
+            concatLatestFrom(() => this.store.select(selectSelectedConnection).pipe(isDefinedAndNotNull())),
+            switchMap(([request, selectedConnection]) =>
+                from(
+                    this.queueService.getFlowFile(
+                        selectedConnection.id,
+                        request.flowfileSummary.uuid,
+                        request.flowfileSummary.clusterNodeId
+                    )
+                ).pipe(
                     map((response) =>
                         QueueListingActions.openFlowFileDialog({
                             request: {

@@ -18,13 +18,16 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { NiFiCommon } from '@nifi/shared';
-import { DropRequest, SubmitEmptyQueueRequest, SubmitEmptyQueuesRequest } from '../state/queue';
+import {
+    EmptyQueueRequest,
+    EmptyQueuesRequest,
+    SubmitEmptyQueueRequest,
+    SubmitEmptyQueuesRequest
+} from '../state/queue';
 
 @Injectable({ providedIn: 'root' })
 export class QueueService {
     private httpClient = inject(HttpClient);
-    private nifiCommon = inject(NiFiCommon);
 
     private static readonly API: string = '../nifi-api';
 
@@ -42,11 +45,27 @@ export class QueueService {
         );
     }
 
-    pollEmptyQueueRequest(dropRequest: DropRequest): Observable<any> {
-        return this.httpClient.get(this.nifiCommon.stripProtocol(dropRequest.uri));
+    pollEmptyQueueRequest(request: EmptyQueueRequest): Observable<any> {
+        return this.httpClient.get(
+            `${QueueService.API}/flowfile-queues/${request.connectionId}/drop-requests/${request.dropRequestId}`
+        );
     }
 
-    deleteEmptyQueueRequest(dropRequest: DropRequest): Observable<any> {
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(dropRequest.uri));
+    deleteEmptyQueueRequest(request: EmptyQueueRequest): Observable<any> {
+        return this.httpClient.delete(
+            `${QueueService.API}/flowfile-queues/${request.connectionId}/drop-requests/${request.dropRequestId}`
+        );
+    }
+
+    pollEmptyQueuesRequest(request: EmptyQueuesRequest): Observable<any> {
+        return this.httpClient.get(
+            `${QueueService.API}/process-groups/${request.processGroupId}/empty-all-connections-requests/${request.dropRequestId}`
+        );
+    }
+
+    deleteEmptyQueuesRequest(request: EmptyQueuesRequest): Observable<any> {
+        return this.httpClient.delete(
+            `${QueueService.API}/process-groups/${request.processGroupId}/empty-all-connections-requests/${request.dropRequestId}`
+        );
     }
 }

@@ -28,8 +28,16 @@ import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -70,6 +78,8 @@ public class PutSmbFileTest {
     private final static String DOMAIN = "mydomain";
     private final static String USERNAME = "myusername";
     private final static String PASSWORD = "mypassword";
+
+    private static final AtomicInteger FLOWFILE_ID_COUNTER = new AtomicInteger(0);
 
     @Captor
     private ArgumentCaptor<Set<SMB2ShareAccess>> shareAccessSet;
@@ -142,6 +152,17 @@ public class PutSmbFileTest {
         return shareAccessSet.getValue();
     }
 
+    private List<MockFlowFile> generateFlowFile(int numberOfFlowFiles, Map<String, String> attributes) {
+        final List<MockFlowFile> result = new ArrayList<>();
+        for (int i = 0; i < numberOfFlowFiles; i++) {
+            final MockFlowFile flowFile = new MockFlowFile(FLOWFILE_ID_COUNTER.incrementAndGet());
+            flowFile.putAttributes(attributes);
+            result.add(flowFile);
+        }
+
+        return result;
+    }
+
     private AutoCloseable mockCloseable;
 
     @BeforeEach
@@ -161,6 +182,64 @@ public class PutSmbFileTest {
         if (mockCloseable != null) {
             mockCloseable.close();
         }
+    }
+
+    @Test
+    public void testHostnameAndShareEL() {
+        testRunner.setProperty(PutSmbFile.HOSTNAME, "${smb.hostname}");
+        testRunner.setProperty(PutSmbFile.SHARE, "${smb.share}");
+        testRunner.setProperty(PutSmbFile.BATCH_SIZE, "20");
+
+        // Add 10 FlowFiles with the same hostname and share property values
+        final Map<String, String> attributes1 = new HashMap<>(Map.of(
+                "smb.hostname", "test-host-1",
+                "smb.share", "test-share-1"
+        ));
+        final List<MockFlowFile> flowFiles1 = generateFlowFile(10, attributes1);
+        testRunner.enqueue(flowFiles1.toArray(new FlowFile[0]));
+
+        // Add 20 FlowFiles with a different hostname and share property value than the first 10
+        final Map<String, String> attributes2 = new HashMap<>(Map.of(
+                "smb.hostname", "test-host-2",
+                "smb.share", "test-share-2"
+        ));
+        final List<MockFlowFile> flowFiles2 = generateFlowFile(20, attributes2);
+        testRunner.enqueue(flowFiles2.toArray(new FlowFile[0]));
+
+        //trigger the processor only once
+        testRunner.run(1);
+
+        // Since 10 FlowFiles share the same hostname and share as the first processed FlowFile, 20 FlowFiles should remain in the queue.
+        assertEquals(20, testRunner.getQueueSize().getObjectCount());
+    }
+
+    @Test
+    public void testHostnameAndShareELWhenBatchsizeIsLowerThanAcceptableFlowFiles() {
+        testRunner.setProperty(PutSmbFile.HOSTNAME, "${smb.hostname}");
+        testRunner.setProperty(PutSmbFile.SHARE, "${smb.share}");
+        testRunner.setProperty(PutSmbFile.BATCH_SIZE, "10");
+
+        // Add 20 FlowFiles with the same hostname and share property values
+        final Map<String, String> attributes1 = new HashMap<>(Map.of(
+                "smb.hostname", "test-host-1",
+                "smb.share", "test-share-1"
+        ));
+        final List<MockFlowFile> flowFiles1 = generateFlowFile(20, attributes1);
+        testRunner.enqueue(flowFiles1.toArray(new FlowFile[0]));
+
+        // Add 20 FlowFiles with a different hostname and share property value than the first 20
+        final Map<String, String> attributes2 = new HashMap<>(Map.of(
+                "smb.hostname", "test-host-2",
+                "smb.share", "test-share-2"
+        ));
+        final List<MockFlowFile> flowFiles2 = generateFlowFile(20, attributes2);
+        testRunner.enqueue(flowFiles2.toArray(new FlowFile[0]));
+
+        //trigger the processor only once
+        testRunner.run(1);
+
+        // 20 FlowFiles share the same hostname and share as the first processed FlowFile, but since the batch size is 10, 30 FlowFiles should remain in the queue
+        assertEquals(30, testRunner.getQueueSize().getObjectCount());
     }
 
     @Test

@@ -193,7 +193,8 @@ export class ManagementControllerServices implements OnInit, OnDestroy {
         this.store.dispatch(
             getComponentStateAndOpenDialog({
                 request: {
-                    componentUri: entity.uri,
+                    componentType: ComponentType.ControllerService,
+                    componentId: entity.id,
                     componentName: entity.component.name,
                     canClear: entity.component.state === 'DISABLED'
                 }

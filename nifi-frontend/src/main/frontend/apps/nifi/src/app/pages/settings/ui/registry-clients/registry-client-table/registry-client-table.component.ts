@@ -19,7 +19,6 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { MatSortModule, Sort } from '@angular/material/sort';
 import { NgClass } from '@angular/common';
-import { ReportingTaskEntity } from '../../../state/reporting-tasks';
 import { TextTip, NiFiCommon, NifiTooltipDirective } from '@nifi/shared';
 import { BulletinsTip } from '../../../../../ui/common/tooltips/bulletins-tip/bulletins-tip.component';
 import { ValidationErrorsTip } from '../../../../../ui/common/tooltips/validation-errors-tip/validation-errors-tip.component';
@@ -55,6 +54,8 @@ export class RegistryClientTable {
 
     @Output() selectRegistryClient: EventEmitter<RegistryClientEntity> = new EventEmitter<RegistryClientEntity>();
     @Output() configureRegistryClient: EventEmitter<RegistryClientEntity> = new EventEmitter<RegistryClientEntity>();
+    @Output() viewRegistryClientDocumentation: EventEmitter<RegistryClientEntity> =
+        new EventEmitter<RegistryClientEntity>();
     @Output() deleteRegistryClient: EventEmitter<RegistryClientEntity> = new EventEmitter<RegistryClientEntity>();
     @Output() clearBulletinsRegistryClient: EventEmitter<RegistryClientEntity> =
         new EventEmitter<RegistryClientEntity>();
@@ -167,11 +168,15 @@ export class RegistryClientTable {
         this.clearBulletinsRegistryClient.next(entity);
     }
 
-    select(entity: ReportingTaskEntity): void {
+    viewDocumentationClicked(entity: RegistryClientEntity): void {
+        this.viewRegistryClientDocumentation.next(entity);
+    }
+
+    select(entity: RegistryClientEntity): void {
         this.selectRegistryClient.next(entity);
     }
 
-    isSelected(entity: ReportingTaskEntity): boolean {
+    isSelected(entity: RegistryClientEntity): boolean {
         if (this.selectedRegistryClientId) {
             return entity.id == this.selectedRegistryClientId;
         }

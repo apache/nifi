@@ -29,6 +29,11 @@ export const selectUpdateRequest = createSelector(
     (state: ParameterState) => state.updateRequestEntity
 );
 
+export const selectUpdateRequestParameterContextId = createSelector(
+    selectParameterState,
+    (state: ParameterState) => state.updateRequestParameterContextId
+);
+
 export const selectParameterSaving = createSelector(selectParameterState, (state: ParameterState) => state.saving);
 
 export const selectSaving = createSelector(selectParameterState, (state: ParameterState) => state.saving);

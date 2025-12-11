@@ -60,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -258,6 +259,7 @@ public class PutDropbox extends AbstractProcessor implements DropboxTrait {
         config.renameProperty("conflict-resolution-strategy", CONFLICT_RESOLUTION.getName());
         config.renameProperty("chunked-upload-size", CHUNKED_UPLOAD_SIZE.getName());
         config.renameProperty("chunked-upload-threshold", CHUNKED_UPLOAD_THRESHOLD.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     private void handleUploadError(final ConflictResolutionStrategy conflictResolution, final String uploadPath, final UploadErrorException e)  {

@@ -39,7 +39,7 @@ public class NiFiRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(NiFiRegistry.class);
 
     public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.registry.bootstrap.listen.port";
-
+    public static final String SECURITY_KRB5_CONF_PROPERTY = "java.security.krb5.conf";
 
     private final JettyServer server;
     private final BootstrapListener bootstrapListener;
@@ -85,6 +85,8 @@ public class NiFiRegistry {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
+        setKerberosConfiguration(properties);
+
         final long startTime = System.nanoTime();
 
         final String docsDirectory = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_BOOTSTRAP_DOCS_DIR_PROPERTY,
@@ -121,6 +123,17 @@ public class NiFiRegistry {
             LOGGER.info("Jetty web server shutdown completed (nicely or otherwise).");
         } catch (final Throwable t) {
             LOGGER.warn("Problem occurred ensuring Jetty web server was properly terminated", t);
+        }
+    }
+
+    private void setKerberosConfiguration(final NiFiRegistryProperties properties) {
+        final File kerberosConfigFile = properties.getKerberosConfigurationFile();
+        if (kerberosConfigFile == null) {
+            LOGGER.debug("NiFi Registry Kerberos Configuration not specified");
+        } else {
+            final String kerberosConfigFilePath = kerberosConfigFile.getAbsolutePath();
+            LOGGER.info("Using Kerberos configuration file defined at {}", kerberosConfigFilePath);
+            System.setProperty(SECURITY_KRB5_CONF_PROPERTY, kerberosConfigFilePath);
         }
     }
 

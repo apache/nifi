@@ -405,7 +405,7 @@ describe('ReportingTasksEffects', () => {
                 })
             );
             expect(mockReportingTaskService.clearBulletins).toHaveBeenCalledWith({
-                uri: mockRequest.uri,
+                id: mockRequest.componentId,
                 fromTimestamp: mockRequest.fromTimestamp
             });
         });

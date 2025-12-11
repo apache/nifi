@@ -42,6 +42,7 @@ import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -105,6 +106,11 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     private volatile File kerberosConfigFile = null;
     private volatile File kerberosServiceKeytab = null;
     volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        ScriptingComponentHelper.migrateProperties(config);
+    }
 
     /**
      * Returns the valid relationships for this processor as supplied by the

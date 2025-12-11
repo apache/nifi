@@ -1671,7 +1671,6 @@ export class FlowEffects {
                                 stopComponent({
                                     request: {
                                         id: stopComponentRequest.id,
-                                        uri: stopComponentRequest.uri,
                                         type: ComponentType.Processor,
                                         revision: stopComponentRequest.revision,
                                         errorStrategy: 'snackbar'
@@ -1688,7 +1687,6 @@ export class FlowEffects {
                                 disableComponent({
                                     request: {
                                         id: disableComponentsRequest.id,
-                                        uri: disableComponentsRequest.uri,
                                         type: ComponentType.Processor,
                                         revision: disableComponentsRequest.revision,
                                         errorStrategy: 'snackbar'
@@ -1705,7 +1703,6 @@ export class FlowEffects {
                                 enableComponent({
                                     request: {
                                         id: enableComponentsRequest.id,
-                                        uri: enableComponentsRequest.uri,
                                         type: ComponentType.Processor,
                                         revision: enableComponentsRequest.revision,
                                         errorStrategy: 'snackbar'
@@ -1722,7 +1719,6 @@ export class FlowEffects {
                                 startComponent({
                                     request: {
                                         id: startComponentRequest.id,
-                                        uri: startComponentRequest.uri,
                                         type: ComponentType.Processor,
                                         revision: startComponentRequest.revision,
                                         errorStrategy: 'snackbar'
@@ -3124,7 +3120,7 @@ export class FlowEffects {
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                     case ComponentType.Processor:
-                        if ('uri' in request && 'revision' in request) {
+                        if ('revision' in request) {
                             return from(this.flowService.enableComponent(request)).pipe(
                                 map((response) => {
                                     return FlowActions.enableComponentSuccess({
@@ -3150,7 +3146,7 @@ export class FlowEffects {
                         }
                         return of(
                             FlowActions.flowSnackbarError({
-                                error: `Enabling ${request.type} requires both uri and revision properties`
+                                error: `Enabling ${request.type} requires a revision property`
                             })
                         );
                     case ComponentType.ProcessGroup:
@@ -3260,7 +3256,7 @@ export class FlowEffects {
                     case ComponentType.InputPort:
                     case ComponentType.OutputPort:
                     case ComponentType.Processor:
-                        if ('uri' in request && 'revision' in request) {
+                        if ('revision' in request) {
                             return from(this.flowService.disableComponent(request)).pipe(
                                 map((response) => {
                                     return FlowActions.disableComponentSuccess({
@@ -3286,7 +3282,7 @@ export class FlowEffects {
                         }
                         return of(
                             FlowActions.flowSnackbarError({
-                                error: `Disabling ${request.type} requires both uri and revision properties`
+                                error: `Disabling ${request.type} requires a revision property`
                             })
                         );
                     case ComponentType.ProcessGroup:
@@ -3397,7 +3393,7 @@ export class FlowEffects {
                     case ComponentType.OutputPort:
                     case ComponentType.Processor:
                     case ComponentType.RemoteProcessGroup:
-                        if ('uri' in request && 'revision' in request) {
+                        if ('revision' in request) {
                             return from(this.flowService.startComponent(request)).pipe(
                                 map((response) => {
                                     return FlowActions.startComponentSuccess({
@@ -3423,7 +3419,7 @@ export class FlowEffects {
                         }
                         return of(
                             FlowActions.flowSnackbarError({
-                                error: `Starting ${request.type} requires both uri and revision properties`
+                                error: `Starting ${request.type} requires a revision property`
                             })
                         );
                     case ComponentType.ProcessGroup:
@@ -3597,7 +3593,7 @@ export class FlowEffects {
                     case ComponentType.OutputPort:
                     case ComponentType.Processor:
                     case ComponentType.RemoteProcessGroup:
-                        if ('uri' in request && 'revision' in request) {
+                        if ('revision' in request) {
                             return from(this.flowService.stopComponent(request)).pipe(
                                 map((response) => {
                                     return FlowActions.stopComponentSuccess({
@@ -3623,7 +3619,7 @@ export class FlowEffects {
                         }
                         return of(
                             FlowActions.flowSnackbarError({
-                                error: `Stopping ${request.type} requires both uri and revision properties`
+                                error: `Stopping ${request.type} requires a revision property`
                             })
                         );
                     case ComponentType.ProcessGroup:

@@ -1,0 +1,95 @@
+{
+  "encodingVersion": {
+    "majorVersion": 2,
+    "minorVersion": 0
+  },
+  "maxTimerDrivenThreadCount": 10,
+  "registries": [],
+  "parameterContexts": [],
+  "parameterProviders": [],
+  "controllerServices": [],
+  "reportingTasks": [],
+  "flowAnalysisRules": [],
+  "rootGroup": {
+    "identifier": "10b0aac8-4c39-3a71-807a-60128ba1ef34",
+    "instanceIdentifier": "35e0b881-019a-1000-190e-b9f7878b3cad",
+    "name": "NiFi Flow",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [
+      {
+        "identifier": "f22b1174-292d-337a-8115-83282e1ef4d4",
+        "instanceIdentifier": "c1a920de-019a-1000-6510-f3bca7dd9c69",
+        "name": "snapshot",
+        "comments": "",
+        "position": {
+          "x": -305.75,
+          "y": -385.75
+        },
+        "processGroups": [],
+        "remoteProcessGroups": [],
+        "processors": [],
+        "inputPorts": [],
+        "outputPorts": [],
+        "connections": [],
+        "labels": [],
+        "funnels": [],
+        "controllerServices": [
+          {
+            "identifier": "405590bc-42ab-352b-8b4c-10b1295437bb",
+            "instanceIdentifier": "c1ee80be-019a-1000-7fd0-7ecf915c9eb6",
+            "name": "LifecycleFailureService-0",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.LifecycleFailureService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "Enable Failure Count": "1000"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          }
+        ],
+        "defaultFlowFileExpiration": "0 sec",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "scheduledState": "ENABLED",
+        "executionEngine": "INHERITED",
+        "maxConcurrentTasks": 1,
+        "statelessFlowTimeout": "1 min",
+        "flowFileConcurrency": "UNBOUNDED",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "componentType": "PROCESS_GROUP",
+        "groupIdentifier": "10b0aac8-4c39-3a71-807a-60128ba1ef34"
+      }
+    ],
+    "remoteProcessGroups": [],
+    "processors": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "scheduledState": "ENABLED",
+    "executionEngine": "INHERITED",
+    "maxConcurrentTasks": 1,
+    "statelessFlowTimeout": "1 min",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  }
+}

@@ -28,6 +28,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -150,6 +151,7 @@ public class AmazonGlueSchemaRegistry extends AbstractControllerService implemen
         propertyConfiguration.renameProperty("cache-expiration", CACHE_EXPIRATION.getName());
         propertyConfiguration.renameProperty("aws-credentials-provider-service", AWS_CREDENTIALS_PROVIDER_SERVICE.getName());
         propertyConfiguration.renameProperty("ssl-context-service", SSL_CONTEXT_SERVICE.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(propertyConfiguration);
     }
 
     @Override

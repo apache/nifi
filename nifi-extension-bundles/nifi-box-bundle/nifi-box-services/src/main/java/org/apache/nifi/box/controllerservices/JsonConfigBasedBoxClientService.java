@@ -45,6 +45,7 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -255,5 +256,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         config.renameProperty("box-account-id", ACCOUNT_ID.getName());
         config.renameProperty("app-config-file", APP_CONFIG_FILE.getName());
         config.renameProperty("app-config-json", APP_CONFIG_JSON.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 }

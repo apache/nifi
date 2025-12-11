@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-graph-bundle</artifactId>
-        <version>2.7.0-SNAPSHOT</version>
+        <version>2.8.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-graph-test-clients</artifactId>
@@ -27,7 +27,7 @@
     <properties>
         <janusgraph.version>1.2.0-20251114-142114.b424a8f</janusgraph.version>
         <guava.version>33.5.0-jre</guava.version>
-        <amqp-client.version>5.27.1</amqp-client.version>
+        <amqp-client.version>5.28.0</amqp-client.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -76,7 +76,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-graph-client-service-api</artifactId>
-            <version>2.7.0-SNAPSHOT</version>
+            <version>2.8.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 

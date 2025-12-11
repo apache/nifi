@@ -26,6 +26,8 @@ import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
+import org.apache.nifi.deprecation.log.DeprecationLogger;
+import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
 import org.apache.nifi.kerberos.parser.KerberosPrincipalParser;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
@@ -45,6 +47,8 @@ public class KerberosProvider implements LoginIdentityProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(KerberosProvider.class);
 
+    private static final DeprecationLogger deprecationLogger = DeprecationLoggerFactory.getLogger(KerberosProvider.class);
+
     private KerberosAuthenticationProvider provider;
     private String issuer;
     private String defaultRealm;
@@ -57,6 +61,8 @@ public class KerberosProvider implements LoginIdentityProvider {
 
     @Override
     public final void onConfigured(final LoginIdentityProviderConfigurationContext configurationContext) throws ProviderCreationException {
+        deprecationLogger.warn("Kerberos Provider is deprecated for removal");
+
         final String rawExpiration = configurationContext.getProperty("Authentication Expiration");
         if (StringUtils.isBlank(rawExpiration)) {
             throw new ProviderCreationException("The Authentication Expiration must be specified.");

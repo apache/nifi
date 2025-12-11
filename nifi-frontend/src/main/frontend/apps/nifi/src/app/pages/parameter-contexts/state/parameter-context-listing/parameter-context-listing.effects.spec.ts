@@ -28,7 +28,7 @@ import { ParameterContextListingEffects } from './parameter-context-listing.effe
 import * as ParameterContextListingActions from './parameter-context-listing.actions';
 import { ParameterContextService } from '../../service/parameter-contexts.service';
 import { ErrorHelper } from '../../../../service/error-helper.service';
-import { Storage, NiFiCommon } from '@nifi/shared';
+import { Storage } from '@nifi/shared';
 import { initialState } from './parameter-context-listing.reducer';
 import { ParameterContextUpdateRequest, ParameterContextUpdateRequestEntity } from '../../../../state/shared';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -36,6 +36,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 describe('ParameterContextListingEffects', () => {
     interface SetupOptions {
         updateRequest?: ParameterContextUpdateRequestEntity | null;
+        updateRequestParameterContextId?: string | null;
         deleteUpdateRequestInitiated?: boolean;
         listStateOverride?: any;
     }
@@ -59,6 +60,7 @@ describe('ParameterContextListingEffects', () => {
 
     async function setup({
         updateRequest = null,
+        updateRequestParameterContextId = null,
         deleteUpdateRequestInitiated = false,
         listStateOverride
     }: SetupOptions = {}) {
@@ -73,6 +75,7 @@ describe('ParameterContextListingEffects', () => {
                                 ...initialState,
                                 ...listStateOverride,
                                 updateRequestEntity: updateRequest,
+                                updateRequestParameterContextId,
                                 deleteUpdateRequestInitiated
                             }
                         }
@@ -80,7 +83,11 @@ describe('ParameterContextListingEffects', () => {
                 }),
                 {
                     provide: ParameterContextService,
-                    useValue: { deleteParameterContextUpdate: jest.fn(), getParameterContexts: jest.fn() }
+                    useValue: {
+                        deleteParameterContextUpdate: jest.fn(),
+                        pollParameterContextUpdate: jest.fn(),
+                        getParameterContexts: jest.fn()
+                    }
                 },
                 { provide: MatDialog, useValue: { open: jest.fn() } },
                 { provide: Router, useValue: { navigate: jest.fn() } },
@@ -88,8 +95,7 @@ describe('ParameterContextListingEffects', () => {
                     provide: ErrorHelper,
                     useValue: { getErrorString: jest.fn(), handleLoadingError: jest.fn(), fullScreenError: jest.fn() }
                 },
-                { provide: Storage, useValue: { setItem: jest.fn() } },
-                { provide: NiFiCommon, useValue: { stripProtocol: jest.fn() } }
+                { provide: Storage, useValue: { setItem: jest.fn() } }
             ]
         }).compileComponents();
 
@@ -251,9 +257,11 @@ describe('ParameterContextListingEffects', () => {
         it('should call service when deleteUpdateRequestInitiated is false', async () => {
             const mockUpdateRequest = createMockUpdateRequest();
             const mockResponse = { request: mockUpdateRequest };
+            const parameterContextId = 'test-parameter-context-id';
 
             const { effects, parameterContextService } = await setup({
                 updateRequest: { request: mockUpdateRequest, parameterContextRevision: { version: 1 } },
+                updateRequestParameterContextId: parameterContextId,
                 deleteUpdateRequestInitiated: false
             });
 
@@ -262,16 +270,21 @@ describe('ParameterContextListingEffects', () => {
             action$.next(ParameterContextListingActions.deleteParameterContextUpdateRequest());
 
             effects.deleteParameterContextUpdateRequest$.subscribe(() => {
-                expect(parameterContextService.deleteParameterContextUpdate).toHaveBeenCalledWith(mockUpdateRequest);
+                expect(parameterContextService.deleteParameterContextUpdate).toHaveBeenCalledWith(
+                    parameterContextId,
+                    mockUpdateRequest.requestId
+                );
             });
         });
 
         it('should call service when deleteUpdateRequestInitiated is true', async () => {
             const mockUpdateRequest = createMockUpdateRequest();
             const mockResponse = { request: mockUpdateRequest };
+            const parameterContextId = 'test-parameter-context-id';
 
             const { effects, parameterContextService } = await setup({
                 updateRequest: { request: mockUpdateRequest, parameterContextRevision: { version: 1 } },
+                updateRequestParameterContextId: parameterContextId,
                 deleteUpdateRequestInitiated: true
             });
 
@@ -280,7 +293,10 @@ describe('ParameterContextListingEffects', () => {
             action$.next(ParameterContextListingActions.deleteParameterContextUpdateRequest());
 
             effects.deleteParameterContextUpdateRequest$.subscribe(() => {
-                expect(parameterContextService.deleteParameterContextUpdate).toHaveBeenCalledWith(mockUpdateRequest);
+                expect(parameterContextService.deleteParameterContextUpdate).toHaveBeenCalledWith(
+                    parameterContextId,
+                    mockUpdateRequest.requestId
+                );
             });
         });
     });

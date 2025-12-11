@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+import { ComponentType } from '@nifi/shared';
+
 export const propertyVerificationFeatureKey = 'propertyVerification';
 
 export enum Outcome {
@@ -30,6 +32,7 @@ export interface ModifiedProperties {
 export interface VerifyPropertiesRequestContext {
     entity: any;
     properties: ModifiedProperties;
+    componentType: ComponentType;
 }
 
 export interface ConfigurationAnalysisResponse {
@@ -79,7 +82,8 @@ export interface VerifyConfigRequestEntity {
 }
 
 export interface InitiateVerificationRequest {
-    uri: string;
+    componentType: ComponentType;
+    componentId: string;
     request: VerifyConfigRequestEntity;
 }
 

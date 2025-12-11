@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -375,5 +376,33 @@ public class TestStandardProcessorTestRunner {
 
         assertTrue(msg.getMsg().contains("expected test error"));
         assertNotNull(msg.getThrowable());
+    }
+
+    @Test
+    public void testControllerServiceReceivesConfiguredForClusteringSetting() throws InitializationException {
+        final ClusterAwareTestService testService = new ClusterAwareTestService();
+        final AddAttributeProcessor proc = new AddAttributeProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(proc);
+
+        assertFalse(testService.isConfiguredForClustering());
+
+        runner.setIsConfiguredForClustering(true);
+        runner.addControllerService("clusterService", testService);
+
+        assertTrue(testService.isConfiguredForClustering());
+    }
+
+    private static class ClusterAwareTestService extends AbstractControllerService {
+        private boolean configuredForClustering = false;
+
+        @Override
+        protected void init(final ControllerServiceInitializationContext context) {
+            // Capture the value during initialization
+            this.configuredForClustering = context.getNodeTypeProvider().isConfiguredForClustering();
+        }
+
+        public boolean isConfiguredForClustering() {
+            return configuredForClustering;
+        }
     }
 }

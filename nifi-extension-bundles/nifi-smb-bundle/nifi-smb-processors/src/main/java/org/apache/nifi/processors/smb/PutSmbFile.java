@@ -52,6 +52,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.smb.util.HostnameAndShareFlowFileFilter;
 
 import java.io.OutputStream;
 import java.net.URI;
@@ -95,6 +96,7 @@ public class PutSmbFile extends AbstractProcessor {
             .description("The network host to which files should be written.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
             .name("Share")
@@ -102,6 +104,7 @@ public class PutSmbFile extends AbstractProcessor {
             "after the hostname: \\\\hostname\\[share]\\dir1\\dir2")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
             .name("Directory")
@@ -285,16 +288,16 @@ public class PutSmbFile extends AbstractProcessor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-        List<FlowFile> flowFiles = session.get(batchSize);
+        final HostnameAndShareFlowFileFilter flowFileFilter = new HostnameAndShareFlowFileFilter(context, batchSize);
+        final List<FlowFile> flowFiles = session.get(flowFileFilter);
         if ( flowFiles.isEmpty() ) {
             return;
         }
         final ComponentLog logger = getLogger();
         logger.debug("Processing next {} flowfiles", flowFiles.size());
 
-        final String hostname = context.getProperty(HOSTNAME).getValue();
-        final String shareName = context.getProperty(SHARE).getValue();
-
+        final String hostname = flowFileFilter.getHostName();
+        final String shareName = flowFileFilter.getShare();
         final String domain = context.getProperty(DOMAIN).getValue();
         final String username = context.getProperty(USERNAME).getValue();
         String password = context.getProperty(PASSWORD).getValue();

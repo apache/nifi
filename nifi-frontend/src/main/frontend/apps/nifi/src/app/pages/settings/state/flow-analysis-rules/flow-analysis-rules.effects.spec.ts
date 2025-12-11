@@ -407,7 +407,7 @@ describe('FlowAnalysisRulesEffects', () => {
                 })
             );
             expect(mockFlowAnalysisRuleService.clearBulletins).toHaveBeenCalledWith({
-                uri: mockRequest.uri,
+                id: mockRequest.componentId,
                 fromTimestamp: mockRequest.fromTimestamp
             });
         });

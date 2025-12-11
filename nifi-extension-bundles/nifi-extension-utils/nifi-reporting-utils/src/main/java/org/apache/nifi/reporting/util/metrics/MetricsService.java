@@ -141,7 +141,13 @@ public class MetricsService {
         metrics.put(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed(DataUnit.B));
         metrics.put(MetricNames.JVM_HEAP_USAGE, virtualMachineMetrics.heapUsage());
         metrics.put(MetricNames.JVM_NON_HEAP_USAGE, virtualMachineMetrics.nonHeapUsage());
-        metrics.put(MetricNames.JVM_FILE_DESCRIPTOR_USAGE, virtualMachineMetrics.fileDescriptorUsage());
+        double fileDescriptorUsage = virtualMachineMetrics.fileDescriptorUsage();
+
+        if (Double.isNaN(fileDescriptorUsage)) {
+            fileDescriptorUsage = -1.0;
+        }
+
+        metrics.put(MetricNames.JVM_FILE_DESCRIPTOR_USAGE, fileDescriptorUsage);
         return metrics;
     }
 

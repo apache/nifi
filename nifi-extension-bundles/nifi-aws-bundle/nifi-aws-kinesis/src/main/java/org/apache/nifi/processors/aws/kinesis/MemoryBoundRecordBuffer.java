@@ -113,7 +113,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         }
 
         final RecordBatch recordBatch = new RecordBatch(records, checkpointer, calculateMemoryUsage(records));
-        memoryTracker.reserveMemory(recordBatch);
+        memoryTracker.reserveMemory(recordBatch, bufferId);
         final boolean addedRecords = buffer.offer(recordBatch);
 
         if (addedRecords) {
@@ -131,7 +131,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                     records.getLast().sequenceNumber(),
                     records.getLast().subSequenceNumber());
             // If the buffer was invalidated, we should free memory reserved for these records.
-            memoryTracker.freeMemory(List.of(recordBatch));
+            memoryTracker.freeMemory(List.of(recordBatch), bufferId);
         }
     }
 
@@ -152,28 +152,27 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     @Override
     public void shutdownShardConsumption(final ShardBufferId bufferId, final RecordProcessorCheckpointer checkpointer) {
-        final ShardBuffer buffer = shardBuffers.get(bufferId);
+        final ShardBuffer buffer = shardBuffers.remove(bufferId);
+
         if (buffer == null) {
             logger.debug("Buffer with id {} not found. Cannot shutdown shard consumption", bufferId);
-            return;
+        } else {
+            logger.debug("Shutting down the buffer {}. Checkpointing last consumed record", bufferId);
+            final Collection<RecordBatch> invalidatedBatches = buffer.shutdownBuffer(checkpointer);
+            memoryTracker.freeMemory(invalidatedBatches, bufferId);
         }
-
-        logger.debug("Shutting down the buffer {}. Checkpointing last consumed record", bufferId);
-        buffer.shutdownBuffer(checkpointer);
-
-        logger.debug("Removing buffer with id {} after successful last consumed record checkpoint", bufferId);
-        shardBuffers.remove(bufferId);
     }
 
     @Override
     public void consumerLeaseLost(final ShardBufferId bufferId) {
         final ShardBuffer buffer = shardBuffers.remove(bufferId);
 
-        logger.debug("Lease lost for buffer {}: Invalidating", bufferId);
-
-        if (buffer != null) {
+        if (buffer == null) {
+            logger.debug("Buffer with id {} not found. Ignoring lease lost event", bufferId);
+        } else {
+            logger.debug("Lease lost for buffer {}: Invalidating", bufferId);
             final Collection<RecordBatch> invalidatedBatches = buffer.invalidate();
-            memoryTracker.freeMemory(invalidatedBatches);
+            memoryTracker.freeMemory(invalidatedBatches, bufferId);
         }
     }
 
@@ -244,8 +243,9 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             return;
         }
 
+        logger.debug("Committing consumed records for buffer {}", bufferId);
         final List<RecordBatch> consumedBatches = buffer.commitConsumedRecords();
-        memoryTracker.freeMemory(consumedBatches);
+        memoryTracker.freeMemory(consumedBatches, bufferId);
     }
 
     @Override
@@ -259,6 +259,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         final ShardBuffer buffer = shardBuffers.get(bufferId);
 
         if (buffer != null) {
+            logger.debug("Rolling back consumed records for buffer {}", bufferId);
             buffer.rollbackConsumedRecords();
         }
     }
@@ -331,10 +332,11 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             this.maxMemoryBytes = maxMemoryBytes;
         }
 
-        void reserveMemory(final RecordBatch recordBatch) {
+        void reserveMemory(final RecordBatch recordBatch, final ShardBufferId bufferId) {
             final long consumedBytes = recordBatch.batchSizeBytes();
 
             if (consumedBytes == 0) {
+                logger.debug("The batch for buffer {} is empty. No need to reserve memory", bufferId);
                 return;
             }
 
@@ -352,8 +354,8 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                 } else {
                     final long newConsumedBytes = currentlyConsumedBytes + consumedBytes;
                     if (consumedMemoryBytes.compareAndSet(currentlyConsumedBytes, newConsumedBytes)) {
-                        logger.debug("Reserved {} bytes for {} records. Total consumed memory: {} bytes",
-                                consumedBytes, recordBatch.size(), newConsumedBytes);
+                        logger.debug("Reserved {} bytes for {} records for buffer {}. Total consumed memory: {} bytes",
+                                consumedBytes, recordBatch.size(), bufferId, newConsumedBytes);
                         break;
                     }
                     // If we're here, the compare and set operation failed, as another thread has modified the gauge in meantime.
@@ -362,8 +364,9 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             }
         }
 
-        void freeMemory(final Collection<RecordBatch> consumedBatches) {
+        void freeMemory(final Collection<RecordBatch> consumedBatches, final ShardBufferId bufferId) {
             if (consumedBatches.isEmpty()) {
+                logger.debug("No batches were consumed from buffer {}. No need to free memory", bufferId);
                 return;
             }
 
@@ -380,8 +383,8 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
                 final long newTotal = currentlyConsumedBytes - freedBytes;
                 if (consumedMemoryBytes.compareAndSet(currentlyConsumedBytes, newTotal)) {
-                    logger.debug("Freed {} bytes for {} batches. Total consumed memory: {} bytes",
-                            freedBytes, consumedBatches.size(), newTotal);
+                    logger.debug("Freed {} bytes for {} batches from buffer {}. Total consumed memory: {} bytes",
+                            freedBytes, consumedBatches.size(), bufferId, newTotal);
 
                     final CountDownLatch oldLatch = memoryAvailableLatch.getAndSet(new CountDownLatch(1));
                     oldLatch.countDown(); // Release any waiting threads for free memory.
@@ -394,7 +397,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     }
 
     private record RecordBatch(List<KinesisClientRecord> records,
-                               @Nullable RecordProcessorCheckpointer checkpointer,
+                               RecordProcessorCheckpointer checkpointer,
                                long batchSizeBytes) {
         int size() {
             return records.size();
@@ -439,11 +442,12 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
         private final long checkpointIntervalMillis;
         private volatile long nextCheckpointTimeMillis;
+
         /**
-         * A last records checkpointer that was ignored due to the checkpoint interval.
+         * A last record checkpointer and sequence number that was ignored due to the checkpoint interval.
          * If null, the last checkpoint was successful or no checkpoint was attempted yet.
          */
-        private volatile @Nullable RecordProcessorCheckpointer lastIgnoredCheckpointer = null;
+        private volatile @Nullable LastIgnoredCheckpoint lastIgnoredCheckpoint;
 
         /**
          * Queues for managing record batches with their checkpointers in different states.
@@ -524,13 +528,15 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             batchesCount.addAndGet(-checkpointedBatches.size());
 
             final RecordProcessorCheckpointer lastBatchCheckpointer = checkpointedBatches.getLast().checkpointer();
+            final KinesisClientRecord lastRecord = checkpointedBatches.getLast().records().getLast();
+
             if (System.currentTimeMillis() >= nextCheckpointTimeMillis) {
-                checkpointSafely(lastBatchCheckpointer);
+                checkpointSequenceNumber(lastBatchCheckpointer, lastRecord.sequenceNumber(), lastRecord.subSequenceNumber());
                 nextCheckpointTimeMillis = System.currentTimeMillis() + checkpointIntervalMillis;
-                lastIgnoredCheckpointer = null;
+                lastIgnoredCheckpoint = null;
             } else {
                 // Saving the checkpointer for later, in case shutdown happens before the next checkpoint.
-                lastIgnoredCheckpointer = lastBatchCheckpointer;
+                lastIgnoredCheckpoint = new LastIgnoredCheckpoint(lastBatchCheckpointer, lastRecord.sequenceNumber(), lastRecord.subSequenceNumber());
             }
 
             final CountDownLatch localEmptyBufferLatch = this.emptyBufferLatch;
@@ -568,7 +574,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
                 if (batchesCount.get() == 0) {
                     // Buffer is empty, perform final checkpoint.
-                    checkpointSafely(checkpointer);
+                    checkpointLastReceivedRecord(checkpointer);
                     return;
                 }
 
@@ -582,21 +588,28 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             }
         }
 
-        void shutdownBuffer(final RecordProcessorCheckpointer checkpointer) {
-            if (invalidated.get()) {
-                return;
+        Collection<RecordBatch> shutdownBuffer(final RecordProcessorCheckpointer checkpointer) {
+            if (invalidated.getAndSet(true)) {
+                return emptyList();
             }
 
             if (batchesCount.get() == 0) {
-                checkpointSafely(checkpointer);
-            } else {
-                // If there are still records in the buffer, checkpointing with the latest provided checkpointer is not safe.
-                // But, if the records were committed without checkpointing in the past, we can checkpoint them now.
-                final RecordProcessorCheckpointer lastCheckpointer = this.lastIgnoredCheckpointer;
-                if (lastCheckpointer != null) {
-                    checkpointSafely(lastCheckpointer);
-                }
+                checkpointLastReceivedRecord(checkpointer);
+                return emptyList();
             }
+
+            // If there are still records in the buffer, checkpointing with the latest provided checkpointer is not safe.
+            // But, if the records were committed without checkpointing in the past, we can checkpoint them now.
+            final LastIgnoredCheckpoint ignoredCheckpoint = this.lastIgnoredCheckpoint;
+            if (ignoredCheckpoint != null) {
+                checkpointSequenceNumber(
+                        ignoredCheckpoint.checkpointer(),
+                        ignoredCheckpoint.sequenceNumber(),
+                        ignoredCheckpoint.subSequenceNumber()
+                );
+            }
+
+            return drainInvalidatedBatches();
         }
 
         Collection<RecordBatch> invalidate() {
@@ -604,9 +617,17 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                 return emptyList();
             }
 
+            return drainInvalidatedBatches();
+        }
+
+        private Collection<RecordBatch> drainInvalidatedBatches() {
+            if (!invalidated.get()) {
+                throw new IllegalStateException("Unable to drain invalidated batches for valid shard buffer: " + bufferId);
+            }
+
             final List<RecordBatch> batches = new ArrayList<>();
             RecordBatch batch;
-            // If both consumeRecords and invalidate are called concurrently, invalidation must always consume all batches.
+            // If both consumeRecords and drainInvalidatedBatches are called concurrently, invalidation must always consume all batches.
             // Since consumeRecords moves batches from pending to in_progress, during invalidation pending batches should be drained first.
             while ((batch = pendingBatches.poll()) != null) {
                 batches.add(batch);
@@ -629,22 +650,28 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             return invalidated.get() || batchesCount.get() == 0;
         }
 
+        private void checkpointLastReceivedRecord(final RecordProcessorCheckpointer checkpointer) {
+            logger.debug("Performing checkpoint for buffer with id {}. Checkpointing the last received record", bufferId);
+
+            checkpointSafely(checkpointer::checkpoint);
+        }
+
+        private void checkpointSequenceNumber(final RecordProcessorCheckpointer checkpointer, final String sequenceNumber, final long subSequenceNumber) {
+            logger.debug("Performing checkpoint for buffer with id {}. Sequence number: [{}], sub sequence number: [{}]",
+                    bufferId, sequenceNumber, subSequenceNumber);
+
+            checkpointSafely(() -> checkpointer.checkpoint(sequenceNumber, subSequenceNumber));
+        }
+
         /**
          * Performs checkpointing using exponential backoff and jitter, if needed.
          *
-         * @param checkpointer the checkpointer to use.
+         * @param checkpointAction the action which performs the checkpointing.
          */
-        private void checkpointSafely(final @Nullable RecordProcessorCheckpointer checkpointer) {
-            if (checkpointer == null) {
-                logger.warn("Attempting to checkpoint records with a null checkpointer. Ignoring checkpoint");
-                return;
-            }
-
-            logger.debug("Performing checkpoint for buffer with id {}", bufferId);
-
+        private void checkpointSafely(final CheckpointAction checkpointAction) {
             for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
                 try {
-                    checkpointer.checkpoint();
+                    checkpointAction.doCheckpoint();
                     if (attempt > 1) {
                         logger.debug("Checkpoint succeeded on attempt {}", attempt);
                     }
@@ -670,6 +697,9 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                 } catch (final ShutdownException e) {
                     logger.warn("Failed to checkpoint records due to shutdown. Ignoring checkpoint", e);
                     return;
+                } catch (final RuntimeException e) {
+                    logger.warn("Failed to checkpoint records due to an error. Ignoring checkpoint", e);
+                    return;
                 }
             }
         }
@@ -679,6 +709,17 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             final long baseDelayMillis = Math.min(desiredBaseDelayMillis, MAX_RETRY_DELAY_MILLIS);
             final long jitterMillis = RANDOM.nextLong(baseDelayMillis / 4); // Up to 25% jitter.
             return baseDelayMillis + jitterMillis;
+        }
+
+        private interface CheckpointAction {
+
+            /**
+             * Throws the same set of exceptions as {@link RecordProcessorCheckpointer#checkpoint()} and {@link RecordProcessorCheckpointer#checkpoint(String, long)}.
+             */
+            void doCheckpoint() throws KinesisClientLibDependencyException, InvalidStateException, ThrottlingException, ShutdownException, IllegalArgumentException;
+        }
+
+        private record LastIgnoredCheckpoint(RecordProcessorCheckpointer checkpointer, String sequenceNumber, long subSequenceNumber) {
         }
     }
 }

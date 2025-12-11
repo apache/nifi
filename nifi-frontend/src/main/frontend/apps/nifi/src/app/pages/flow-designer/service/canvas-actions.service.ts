@@ -375,7 +375,6 @@ export class CanvasActionsService {
                     startable.each((d: any) => {
                         components.push({
                             id: d.id,
-                            uri: d.uri,
                             type: d.type,
                             revision: this.client.getRevision(d),
                             errorStrategy: 'snackbar'
@@ -406,7 +405,6 @@ export class CanvasActionsService {
                     stoppable.each((d: any) => {
                         components.push({
                             id: d.id,
-                            uri: d.uri,
                             type: d.type,
                             revision: this.client.getRevision(d),
                             errorStrategy: 'snackbar'
@@ -437,7 +435,6 @@ export class CanvasActionsService {
                     enableable.each((d: any) => {
                         components.push({
                             id: d.id,
-                            uri: d.uri,
                             type: d.type,
                             revision: this.client.getRevision(d),
                             errorStrategy: 'snackbar'
@@ -468,7 +465,6 @@ export class CanvasActionsService {
                     disableable.each((d: any) => {
                         components.push({
                             id: d.id,
-                            uri: d.uri,
                             type: d.type,
                             revision: this.client.getRevision(d),
                             errorStrategy: 'snackbar'

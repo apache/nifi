@@ -244,17 +244,19 @@ export class FlowService implements PropertyDescriptorRetriever {
     }
 
     updateComponent(updateComponent: UpdateComponentRequest): Observable<any> {
-        return this.httpClient.put(this.nifiCommon.stripProtocol(updateComponent.uri), updateComponent.payload);
+        const path = this.nifiCommon.getComponentTypeApiPath(updateComponent.type);
+        return this.httpClient.put(`${FlowService.API}/${path}/${updateComponent.id}`, updateComponent.payload);
     }
 
     deleteComponent(deleteComponent: DeleteComponentRequest): Observable<any> {
+        const path = this.nifiCommon.getComponentTypeApiPath(deleteComponent.type);
         const params = new HttpParams({
             fromObject: {
                 ...this.client.getRevision(deleteComponent.entity),
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             }
         });
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(deleteComponent.uri), { params });
+        return this.httpClient.delete(`${FlowService.API}/${path}/${deleteComponent.id}`, { params });
     }
 
     replayLastProvenanceEvent(request: ReplayLastProvenanceEventRequest): Observable<any> {
@@ -267,25 +269,28 @@ export class FlowService implements PropertyDescriptorRetriever {
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: 'RUN_ONCE'
         };
-        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, startRequest);
+        // runOnce is only for processors
+        return this.httpClient.put(`${FlowService.API}/processors/${request.id}/run-status`, startRequest);
     }
 
     enableComponent(request: EnableComponentRequest): Observable<any> {
+        const path = this.nifiCommon.getComponentTypeApiPath(request.type);
         const enableRequest: ComponentRunStatusRequest = {
             revision: request.revision,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: 'STOPPED'
         };
-        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, enableRequest);
+        return this.httpClient.put(`${FlowService.API}/${path}/${request.id}/run-status`, enableRequest);
     }
 
     disableComponent(request: DisableComponentRequest): Observable<any> {
+        const path = this.nifiCommon.getComponentTypeApiPath(request.type);
         const disableRequest: ComponentRunStatusRequest = {
             revision: request.revision,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: 'DISABLED'
         };
-        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, disableRequest);
+        return this.httpClient.put(`${FlowService.API}/${path}/${request.id}/run-status`, disableRequest);
     }
 
     enableAllControllerServices(id: string): Observable<any> {
@@ -307,25 +312,28 @@ export class FlowService implements PropertyDescriptorRetriever {
     }
 
     startComponent(request: StartComponentRequest): Observable<any> {
+        const path = this.nifiCommon.getComponentTypeApiPath(request.type);
         const startRequest: ComponentRunStatusRequest = {
             revision: request.revision,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: request.type === ComponentType.RemoteProcessGroup ? 'TRANSMITTING' : 'RUNNING'
         };
-        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, startRequest);
+        return this.httpClient.put(`${FlowService.API}/${path}/${request.id}/run-status`, startRequest);
     }
 
     stopComponent(request: StopComponentRequest): Observable<any> {
+        const path = this.nifiCommon.getComponentTypeApiPath(request.type);
         const stopRequest: ComponentRunStatusRequest = {
             revision: request.revision,
             disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged(),
             state: 'STOPPED'
         };
-        return this.httpClient.put(`${this.nifiCommon.stripProtocol(request.uri)}/run-status`, stopRequest);
+        return this.httpClient.put(`${FlowService.API}/${path}/${request.id}/run-status`, stopRequest);
     }
 
     terminateThreads(request: TerminateThreadsRequest): Observable<any> {
-        return this.httpClient.delete(`${this.nifiCommon.stripProtocol(request.uri)}/threads`);
+        // terminateThreads is only for processors
+        return this.httpClient.delete(`${FlowService.API}/processors/${request.id}/threads`);
     }
 
     enableProcessGroup(request: EnableProcessGroupRequest): Observable<any> {
@@ -482,11 +490,15 @@ export class FlowService implements PropertyDescriptorRetriever {
     */
 
     clearBulletinForComponent(request: ClearBulletinsRequest): Observable<any> {
+        const path = this.nifiCommon.getComponentTypeApiPath(request.componentType);
         const payload = {
             fromTimestamp: request.fromTimestamp
         };
 
-        return this.httpClient.post(`${this.nifiCommon.stripProtocol(request.uri)}/bulletins/clear-requests`, payload);
+        return this.httpClient.post(
+            `${FlowService.API}/${path}/${request.componentId}/bulletins/clear-requests`,
+            payload
+        );
     }
 
     clearBulletinsForProcessGroup(request: ClearBulletinsForGroupRequest): Observable<any> {

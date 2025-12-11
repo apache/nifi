@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -31,14 +32,15 @@ public class TestMoveAzureDataLakeStorage {
     void testMigration() {
         TestRunner runner = TestRunners.newTestRunner(MoveAzureDataLakeStorage.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        final Map<String, String> expectedRenamed = Map.of(
-                AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName(),
-                AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, MoveAzureDataLakeStorage.DESTINATION_DIRECTORY.getName(),
-                AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, MoveAzureDataLakeStorage.DESTINATION_FILESYSTEM.getName(),
-                AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, AzureStorageUtils.FILE.getName(),
-                "conflict-resolution-strategy", MoveAzureDataLakeStorage.CONFLICT_RESOLUTION.getName(),
-                "source-filesystem-name", MoveAzureDataLakeStorage.SOURCE_FILESYSTEM.getName(),
-                "source-directory-name", MoveAzureDataLakeStorage.SOURCE_DIRECTORY.getName()
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName()),
+                Map.entry(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, MoveAzureDataLakeStorage.DESTINATION_DIRECTORY.getName()),
+                Map.entry(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, MoveAzureDataLakeStorage.DESTINATION_FILESYSTEM.getName()),
+                Map.entry(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, AzureStorageUtils.FILE.getName()),
+                Map.entry("conflict-resolution-strategy", MoveAzureDataLakeStorage.CONFLICT_RESOLUTION.getName()),
+                Map.entry("source-filesystem-name", MoveAzureDataLakeStorage.SOURCE_FILESYSTEM.getName()),
+                Map.entry("source-directory-name", MoveAzureDataLakeStorage.SOURCE_DIRECTORY.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
         );
 
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());

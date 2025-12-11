@@ -692,6 +692,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         final MockControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(
                 Objects.requireNonNull(service), Objects.requireNonNull(identifier), mockComponentLog, serviceStateManager, kerberosContext);
         controllerServiceStateManagers.put(identifier, serviceStateManager);
+        initContext.setConfiguredForClustering(context.isConfiguredForClustering());
         initContext.addControllerServices(context);
         service.initialize(initContext);
 

@@ -32,7 +32,29 @@ public final class ProxyServiceMigration {
     static final String PROXY_SERVICE_USERNAME = "proxy-user-name";
     static final String PROXY_SERVICE_PASSWORD = "proxy-user-password";
 
+    /**
+     * Obsolete property name for the Proxy Configuration Service property descriptor.
+     * Components using ProxyConfiguration.createProxyConfigPropertyDescriptor() should migrate
+     * from this name to the current name "Proxy Configuration Service".
+     */
+    public static final String OBSOLETE_PROXY_CONFIGURATION_SERVICE = "proxy-configuration-service";
+
+    /**
+     * Current property name for the Proxy Configuration Service property descriptor.
+     */
+    public static final String PROXY_CONFIGURATION_SERVICE = "Proxy Configuration Service";
+
     private ProxyServiceMigration() { }
+
+    /**
+     * Renames the obsolete proxy configuration service property name to the current name.
+     * This should be called by any component that uses ProxyConfiguration.createProxyConfigPropertyDescriptor().
+     *
+     * @param config the component's property config to be migrated
+     */
+    public static void renameProxyConfigurationServiceProperty(final PropertyConfiguration config) {
+        config.renameProperty(OBSOLETE_PROXY_CONFIGURATION_SERVICE, PROXY_CONFIGURATION_SERVICE);
+    }
 
     /**
      * Migrates component level proxy properties to ProxyConfigurationService with HTTP proxy type.
@@ -88,6 +110,9 @@ public final class ProxyServiceMigration {
                                               final Proxy.Type proxyType,
                                               final String proxyHostProperty, final String proxyPortProperty,
                                               final String proxyUsernameProperty, final String proxyPasswordProperty) {
+        // Rename the obsolete proxy configuration service property name to the current name
+        renameProxyConfigurationServiceProperty(config);
+
         if (config.isPropertySet(proxyHostProperty)) {
             final Map<String, String> proxyProperties = new HashMap<>();
             proxyProperties.put(PROXY_SERVICE_TYPE, proxyType.name());

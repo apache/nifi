@@ -44,5 +44,6 @@ case ${NIFI_REGISTRY_BUNDLE_PROVIDER} in
         add_property "Access Key"            "${NIFI_REGISTRY_S3_ACCESS_KEY:-}"
         add_property "Secret Access Key"     "${NIFI_REGISTRY_S3_SECRET_ACCESS_KEY:-}"
         add_property "Endpoint URL"          "${NIFI_REGISTRY_S3_ENDPOINT_URL:-}"
+        add_property "Force Path Style"      "${NIFI_REGISTRY_S3_FORCE_PATH_STYLE:-}"
         ;;
 esac

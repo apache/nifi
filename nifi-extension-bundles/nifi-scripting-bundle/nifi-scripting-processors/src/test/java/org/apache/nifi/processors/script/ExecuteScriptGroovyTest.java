@@ -16,15 +16,19 @@
  */
 package org.apache.nifi.processors.script;
 
+import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,12 +36,26 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     private static final Pattern SINGLE_POOL_THREAD_PATTERN = Pattern.compile("pool-\\d+-thread-1");
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         super.setupExecuteScript();
         runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testAddTimeAndThreadAttribute.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        runner.clearProperties();
+
+        final String scriptLanguage = "Script Language";
+        runner.setProperty(scriptLanguage, "Groovy");
+
+        final PropertyMigrationResult result = runner.migrateProperties();
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        final String scriptLanguageRenamed = propertiesRenamed.get(scriptLanguage);
+        assertEquals(ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName(), scriptLanguageRenamed);
     }
 
     @Test

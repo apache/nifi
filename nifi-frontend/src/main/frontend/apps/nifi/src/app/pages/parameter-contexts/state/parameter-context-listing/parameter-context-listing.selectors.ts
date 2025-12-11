@@ -50,6 +50,11 @@ export const selectUpdateRequest = createSelector(
     (state: ParameterContextListingState) => state.updateRequestEntity
 );
 
+export const selectUpdateRequestParameterContextId = createSelector(
+    selectParameterContextListingState,
+    (state: ParameterContextListingState) => state.updateRequestParameterContextId
+);
+
 export const selectParameterContexts = createSelector(
     selectParameterContextListingState,
     (state: ParameterContextListingState) => state.parameterContexts

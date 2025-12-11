@@ -277,7 +277,8 @@ describe('FlowAnalysisRules', () => {
             expect(store.dispatch).toHaveBeenCalledWith(
                 getComponentStateAndOpenDialog({
                     request: {
-                        componentUri: mockFlowAnalysisRuleEntity.uri,
+                        componentType: ComponentType.FlowAnalysisRule,
+                        componentId: mockFlowAnalysisRuleEntity.id,
                         componentName: mockFlowAnalysisRuleEntity.component.name,
                         canClear: true
                     }
@@ -296,7 +297,8 @@ describe('FlowAnalysisRules', () => {
             expect(store.dispatch).toHaveBeenCalledWith(
                 getComponentStateAndOpenDialog({
                     request: {
-                        componentUri: mockFlowAnalysisRuleEntity.uri,
+                        componentType: ComponentType.FlowAnalysisRule,
+                        componentId: mockFlowAnalysisRuleEntity.id,
                         componentName: mockFlowAnalysisRuleEntity.component.name,
                         canClear: false
                     }

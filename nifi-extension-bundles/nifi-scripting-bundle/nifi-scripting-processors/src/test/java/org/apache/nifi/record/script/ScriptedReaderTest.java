@@ -22,7 +22,9 @@ import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.MockComponentLog;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -78,6 +80,24 @@ class ScriptedReaderTest {
         runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, (String) null);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final String scriptLanguage = "Script Language";
+        final Map<String, String> propertyValues = Map.of(
+                scriptLanguage, "Groovy"
+        );
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+
+        final ScriptedReader scriptedReader = new ScriptedReader();
+        scriptedReader.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        final String scriptLanguageRenamed = propertiesRenamed.get(scriptLanguage);
+        assertEquals(ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName(), scriptLanguageRenamed);
     }
 
     @Test

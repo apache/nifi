@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor_v12;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.PropertyMigrationResult;
@@ -36,7 +37,8 @@ public class TestDeleteAzureBlobStorage_v12 {
                 Map.of(AbstractAzureBlobProcessor_v12.OLD_BLOB_NAME_PROPERTY_DESCRIPTOR_NAME, DeleteAzureBlobStorage_v12.BLOB_NAME.getName(),
                         "delete-snapshots-option", DeleteAzureBlobStorage_v12.DELETE_SNAPSHOTS_OPTION.getName(),
                         AzureStorageUtils.OLD_CONTAINER_DESCRIPTOR_NAME, DeleteAzureBlobStorage_v12.CONTAINER.getName(),
-                        AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName());
+                        AzureStorageUtils.OLD_BLOB_STORAGE_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE.getName(),
+                        ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE);
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

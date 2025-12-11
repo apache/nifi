@@ -1205,7 +1205,8 @@ then the following Expressions will result in the following values:
 | `${str:repeat(1)}` | `abc`
 | `${str:repeat(2)}` | `abcabc`
 | `${str:repeat(1,2)}` | `abc` or `abcabc` (at random)
-| `${str:repeat( ${str:length()} )}` | `abc` or `abcabc` or `abcabcabc` (at random)
+| `${str:repeat(${str:length()})}` | `abcabcabc`
+| `${str:repeat(1, ${str:length()})}` | `abc` or `abcabc` or `abcabcabc` (at random)
 |================================================================
 
 

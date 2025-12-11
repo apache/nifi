@@ -206,6 +206,11 @@ public class RenameRecordField extends AbstractRecordProcessor {
             }
         }
 
+        // After renaming fields (especially in nested records), we need to update the
+        // top-level record's schema to reflect the schema changes in nested records.
+        // This ensures the writer uses the correct schema with renamed fields.
+        record.regenerateSchema();
+
         return record;
     }
 }

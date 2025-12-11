@@ -707,7 +707,7 @@ export class ManagementControllerServicesEffects {
             switchMap((request) =>
                 from(
                     this.managementControllerServiceService.clearBulletins({
-                        uri: request.uri,
+                        id: request.componentId,
                         fromTimestamp: request.fromTimestamp
                     })
                 ).pipe(

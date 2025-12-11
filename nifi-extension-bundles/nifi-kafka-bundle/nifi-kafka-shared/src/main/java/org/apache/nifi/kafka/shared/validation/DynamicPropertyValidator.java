@@ -25,6 +25,8 @@ import org.apache.nifi.kafka.shared.property.provider.StandardKafkaPropertyNameP
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.apache.nifi.kafka.shared.util.SaslExtensionUtil.SASL_EXTENSION_PROPERTY_PREFIX;
+
 /**
  * Validator for dynamic Kafka properties
  */
@@ -48,10 +50,12 @@ public class DynamicPropertyValidator implements Validator {
 
         if (subject.startsWith(PARTITIONS_PROPERTY_PREFIX)) {
             builder.valid(true);
+        } else if (subject.startsWith(SASL_EXTENSION_PROPERTY_PREFIX)) {
+            builder.valid(true);
         } else {
             final boolean valid = clientPropertyNames.contains(subject);
             builder.valid(valid);
-            builder.explanation("must be a known Kafka client configuration property");
+            builder.explanation("must be a known Kafka client configuration property or a SASL extension property");
         }
 
         return builder.build();

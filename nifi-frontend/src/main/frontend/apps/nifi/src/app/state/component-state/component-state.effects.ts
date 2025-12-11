@@ -26,7 +26,7 @@ import { catchError, from, map, of, switchMap, tap } from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
 import { ComponentStateService } from '../../service/component-state.service';
 import { ComponentStateDialog } from '../../ui/common/component-state/component-state.component';
-import { selectComponentUri, selectComponentState } from './component-state.selectors';
+import { selectComponentType, selectComponentId, selectComponentState } from './component-state.selectors';
 import { isDefinedAndNotNull, XL_DIALOG } from '@nifi/shared';
 import * as ErrorActions from '../error/error.actions';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -48,25 +48,30 @@ export class ComponentStateEffects {
             map((action) => action.request),
             switchMap((request) =>
                 from(
-                    this.componentStateService.getComponentState({ componentUri: request.componentUri }).pipe(
-                        map((response: ComponentStateEntity) =>
-                            ComponentStateActions.loadComponentStateSuccess({
-                                response: {
-                                    componentState: response.componentState
-                                }
-                            })
-                        ),
-                        catchError((errorResponse: HttpErrorResponse) =>
-                            of(
-                                ErrorActions.snackBarError({
-                                    error: this.errorHelper.getErrorString(
-                                        errorResponse,
-                                        `Failed to get the component state for ${request.componentName}.`
-                                    )
+                    this.componentStateService
+                        .getComponentState({
+                            componentType: request.componentType,
+                            componentId: request.componentId
+                        })
+                        .pipe(
+                            map((response: ComponentStateEntity) =>
+                                ComponentStateActions.loadComponentStateSuccess({
+                                    response: {
+                                        componentState: response.componentState
+                                    }
                                 })
+                            ),
+                            catchError((errorResponse: HttpErrorResponse) =>
+                                of(
+                                    ErrorActions.snackBarError({
+                                        error: this.errorHelper.getErrorString(
+                                            errorResponse,
+                                            `Failed to get the component state for ${request.componentName}.`
+                                        )
+                                    })
+                                )
                             )
                         )
-                    )
                 )
             )
         )
@@ -101,10 +106,13 @@ export class ComponentStateEffects {
     clearComponentState$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ComponentStateActions.clearComponentState),
-            concatLatestFrom(() => this.store.select(selectComponentUri).pipe(isDefinedAndNotNull())),
-            switchMap(([, componentUri]) =>
+            concatLatestFrom(() => [
+                this.store.select(selectComponentType).pipe(isDefinedAndNotNull()),
+                this.store.select(selectComponentId).pipe(isDefinedAndNotNull())
+            ]),
+            switchMap(([, componentType, componentId]) =>
                 from(
-                    this.componentStateService.clearComponentState({ componentUri }).pipe(
+                    this.componentStateService.clearComponentState({ componentType, componentId }).pipe(
                         map(() => ComponentStateActions.reloadComponentState()),
                         catchError((errorResponse: HttpErrorResponse) =>
                             of(
@@ -130,10 +138,13 @@ export class ComponentStateEffects {
     reloadComponentState$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ComponentStateActions.reloadComponentState),
-            concatLatestFrom(() => this.store.select(selectComponentUri).pipe(isDefinedAndNotNull())),
-            switchMap(([, componentUri]) =>
+            concatLatestFrom(() => [
+                this.store.select(selectComponentType).pipe(isDefinedAndNotNull()),
+                this.store.select(selectComponentId).pipe(isDefinedAndNotNull())
+            ]),
+            switchMap(([, componentType, componentId]) =>
                 from(
-                    this.componentStateService.getComponentState({ componentUri }).pipe(
+                    this.componentStateService.getComponentState({ componentType, componentId }).pipe(
                         map((response: any) =>
                             ComponentStateActions.reloadComponentStateSuccess({
                                 response: {
@@ -166,10 +177,11 @@ export class ComponentStateEffects {
         this.actions$.pipe(
             ofType(ComponentStateActions.clearComponentStateEntry),
             concatLatestFrom(() => [
-                this.store.select(selectComponentUri).pipe(isDefinedAndNotNull()),
+                this.store.select(selectComponentType).pipe(isDefinedAndNotNull()),
+                this.store.select(selectComponentId).pipe(isDefinedAndNotNull()),
                 this.store.select(selectComponentState).pipe(isDefinedAndNotNull())
             ]),
-            switchMap(([action, componentUri, currentState]) => {
+            switchMap(([action, componentType, componentId, currentState]) => {
                 const { keyToDelete, scope } = action.request;
 
                 // Create new state without the deleted key
@@ -192,24 +204,26 @@ export class ComponentStateEffects {
                 };
 
                 return from(
-                    this.componentStateService.clearComponentStateEntry(componentUri, componentStateEntity).pipe(
-                        map(() => ComponentStateActions.reloadComponentState()),
-                        catchError((errorResponse: HttpErrorResponse) =>
-                            of(
-                                ComponentStateActions.clearComponentStateFailure({
-                                    errorContext: {
-                                        errors: [
-                                            this.errorHelper.getErrorString(
-                                                errorResponse,
-                                                `Failed to clear state entry: ${keyToDelete}.`
-                                            )
-                                        ],
-                                        context: ErrorContextKey.COMPONENT_STATE
-                                    }
-                                })
+                    this.componentStateService
+                        .clearComponentStateEntry(componentType, componentId, componentStateEntity)
+                        .pipe(
+                            map(() => ComponentStateActions.reloadComponentState()),
+                            catchError((errorResponse: HttpErrorResponse) =>
+                                of(
+                                    ComponentStateActions.clearComponentStateFailure({
+                                        errorContext: {
+                                            errors: [
+                                                this.errorHelper.getErrorString(
+                                                    errorResponse,
+                                                    `Failed to clear state entry: ${keyToDelete}.`
+                                                )
+                                            ],
+                                            context: ErrorContextKey.COMPONENT_STATE
+                                        }
+                                    })
+                                )
                             )
                         )
-                    )
                 );
             })
         )

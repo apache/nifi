@@ -47,8 +47,8 @@ import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
@@ -104,7 +104,8 @@ public class TestWriteAheadFlowFileRepository {
     }
 
     @Test
-    @Disabled("Intended only for local performance testing before/after making changes")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Intended only for local performance testing before/after making changes")
     public void testUpdatePerformance() throws IOException, InterruptedException {
         final FlowFileQueue queue = new FlowFileQueue() {
             private LoadBalanceCompression compression = LoadBalanceCompression.DO_NOT_COMPRESS;

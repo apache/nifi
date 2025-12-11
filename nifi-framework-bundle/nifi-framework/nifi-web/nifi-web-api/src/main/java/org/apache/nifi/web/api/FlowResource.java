@@ -64,6 +64,8 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -1176,7 +1178,7 @@ public class FlowResource extends ApplicationResource {
 
                 final Predicate<ControllerServiceNode> filter;
                 if (ControllerServiceState.ENABLED.equals(desiredState)) {
-                    filter = service -> !service.isActive();
+                    filter = this::isControllerServiceNodeEligibleForEnabling;
                 } else {
                     filter = ControllerServiceNode::isActive;
                 }
@@ -1242,6 +1244,26 @@ public class FlowResource extends ApplicationResource {
         );
     }
 
+    private boolean isControllerServiceNodeEligibleForEnabling(final ControllerServiceNode controllerServiceNode) {
+        final boolean eligibleForEnabling;
+
+        if (controllerServiceNode.isActive()) {
+            // Active Controller Services are enabled
+            eligibleForEnabling = false;
+        } else {
+            final Collection<ValidationResult> validationErrors = controllerServiceNode.getValidationErrors();
+            if (validationErrors == null || validationErrors.isEmpty()) {
+                // VALID or VALIDATING Controller Services can be enabled
+                eligibleForEnabling = true;
+            } else {
+                // INVALID Controller Services can be enabled when Validation Results are limited to other disabled Controller Services
+                eligibleForEnabling = validationErrors.stream().allMatch(DisabledServiceValidationResult.class::isInstance);
+            }
+        }
+
+        return eligibleForEnabling;
+    }
+
     /**
      * Clears bulletins for components in the specified Process Group.
      *
@@ -1295,6 +1317,13 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("The from timestamp must be specified.");
         }
 
+        // Collect RPG IDs to distinguish them from local connectables during authorization
+        final Set<String> remoteProcessGroupIds = serviceFacade.filterComponents(id, group ->
+                group.findAllRemoteProcessGroups().stream()
+                        .map(rpg -> rpg.getIdentifier())
+                        .collect(Collectors.toSet())
+        );
+
         // if the components are not specified, gather all authorized components
         if (clearBulletinsForGroupRequestEntity.getComponents() == null) {
             // get component IDs that the user has write access to
@@ -1344,8 +1373,10 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being cleared
                     final Set<String> requestComponentsToClear = clearBulletinsForGroupRequestEntity.getComponents();
                     requestComponentsToClear.forEach(componentId -> {
-                        final Authorizable connectable = lookup.getLocalConnectable(componentId);
-                        connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        final Authorizable authorizable = remoteProcessGroupIds.contains(componentId)
+                                ? lookup.getRemoteProcessGroup(componentId)
+                                : lookup.getLocalConnectable(componentId);
+                        authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
                 () -> { },

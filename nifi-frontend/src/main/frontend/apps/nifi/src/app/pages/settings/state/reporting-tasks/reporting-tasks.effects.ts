@@ -615,7 +615,7 @@ export class ReportingTasksEffects {
             switchMap((request) =>
                 from(
                     this.reportingTaskService.clearBulletins({
-                        uri: request.uri,
+                        id: request.componentId,
                         fromTimestamp: request.fromTimestamp
                     })
                 ).pipe(

@@ -1,0 +1,695 @@
+{
+  "encodingVersion": {
+    "majorVersion": 2,
+    "minorVersion": 0
+  },
+  "maxTimerDrivenThreadCount": 10,
+  "registries": [],
+  "parameterContexts": [],
+  "parameterProviders": [],
+  "controllerServices": [],
+  "reportingTasks": [],
+  "flowAnalysisRules": [],
+  "rootGroup": {
+    "identifier": "10b0aac8-4c39-3a71-807a-60128ba1ef34",
+    "instanceIdentifier": "35e0b881-019a-1000-190e-b9f7878b3cad",
+    "name": "NiFi Flow",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [
+      {
+        "identifier": "f22b1174-292d-337a-8115-83282e1ef4d4",
+        "instanceIdentifier": "c1a920de-019a-1000-6510-f3bca7dd9c69",
+        "name": "snapshot",
+        "comments": "",
+        "position": {
+          "x": -305.75,
+          "y": -385.75
+        },
+        "processGroups": [],
+        "remoteProcessGroups": [],
+        "processors": [
+          {
+            "identifier": "c1abdf6d-019a-1000-2d20-0e2dba89a292",
+            "instanceIdentifier": "0a622da4-8558-3409-f294-32010ae622ab",
+            "name": "CountFlowFiles",
+            "comments": "",
+            "position": {
+              "x": -1168.0,
+              "y": -896.0
+            },
+            "type": "org.apache.nifi.processors.tests.system.CountFlowFiles",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "count-service": "c1a97022-019a-1000-4c72-79bb12714423"
+            },
+            "propertyDescriptors": {},
+            "style": {},
+            "schedulingPeriod": "0 sec",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "executionNode": "ALL",
+            "penaltyDuration": "30 sec",
+            "yieldDuration": "1 sec",
+            "bulletinLevel": "WARN",
+            "runDurationMillis": 0,
+            "concurrentlySchedulableTaskCount": 1,
+            "autoTerminatedRelationships": [],
+            "scheduledState": "ENABLED",
+            "retryCount": 10,
+            "retriedRelationships": [],
+            "backoffMechanism": "PENALIZE_FLOWFILE",
+            "maxBackoffPeriod": "10 mins",
+            "componentType": "PROCESSOR",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "f4ed9bc0-a7e5-3281-92a7-9dc2062ef51c",
+            "instanceIdentifier": "c1c4d1a2-019a-1000-6f39-378a0b7e670b",
+            "name": "CountFlowFiles",
+            "comments": "",
+            "position": {
+              "x": -1672.0,
+              "y": -680.0
+            },
+            "type": "org.apache.nifi.processors.tests.system.CountFlowFiles",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "count-service": "c1a97022-019a-1000-4c72-79bb12714423"
+            },
+            "propertyDescriptors": {},
+            "style": {},
+            "schedulingPeriod": "0 sec",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "executionNode": "ALL",
+            "penaltyDuration": "30 sec",
+            "yieldDuration": "1 sec",
+            "bulletinLevel": "WARN",
+            "runDurationMillis": 0,
+            "concurrentlySchedulableTaskCount": 1,
+            "autoTerminatedRelationships": [
+              "success"
+            ],
+            "scheduledState": "ENABLED",
+            "retryCount": 10,
+            "retriedRelationships": [],
+            "backoffMechanism": "PENALIZE_FLOWFILE",
+            "maxBackoffPeriod": "10 mins",
+            "componentType": "PROCESSOR",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "786eeeb4-7026-327a-97de-c4cf3066d0da",
+            "instanceIdentifier": "c1aaf194-019a-1000-97b4-9de5c6038a2d",
+            "name": "CountFlowFiles",
+            "comments": "",
+            "position": {
+              "x": -1672.0,
+              "y": -896.0
+            },
+            "type": "org.apache.nifi.processors.tests.system.CountFlowFiles",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "count-service": "c1a97022-019a-1000-4c72-79bb12714423"
+            },
+            "propertyDescriptors": {},
+            "style": {},
+            "schedulingPeriod": "0 sec",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "executionNode": "ALL",
+            "penaltyDuration": "30 sec",
+            "yieldDuration": "1 sec",
+            "bulletinLevel": "WARN",
+            "runDurationMillis": 0,
+            "concurrentlySchedulableTaskCount": 1,
+            "autoTerminatedRelationships": [],
+            "scheduledState": "ENABLED",
+            "retryCount": 10,
+            "retriedRelationships": [],
+            "backoffMechanism": "PENALIZE_FLOWFILE",
+            "maxBackoffPeriod": "10 mins",
+            "componentType": "PROCESSOR",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "c1abf8ce-019a-1000-3c4f-fb9ff2068e93",
+            "instanceIdentifier": "8712e667-3cf5-3bb9-0472-3dba5c99d00b",
+            "name": "CountFlowFiles",
+            "comments": "",
+            "position": {
+              "x": -2224.0,
+              "y": -896.0
+            },
+            "type": "org.apache.nifi.processors.tests.system.CountFlowFiles",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "count-service": "c1a97022-019a-1000-4c72-79bb12714423"
+            },
+            "propertyDescriptors": {},
+            "style": {},
+            "schedulingPeriod": "0 sec",
+            "schedulingStrategy": "TIMER_DRIVEN",
+            "executionNode": "ALL",
+            "penaltyDuration": "30 sec",
+            "yieldDuration": "1 sec",
+            "bulletinLevel": "WARN",
+            "runDurationMillis": 0,
+            "concurrentlySchedulableTaskCount": 1,
+            "autoTerminatedRelationships": [],
+            "scheduledState": "ENABLED",
+            "retryCount": 10,
+            "retriedRelationships": [],
+            "backoffMechanism": "PENALIZE_FLOWFILE",
+            "maxBackoffPeriod": "10 mins",
+            "componentType": "PROCESSOR",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          }
+        ],
+        "inputPorts": [],
+        "outputPorts": [],
+        "connections": [
+          {
+            "identifier": "99ce85cb-2864-3eb1-b0ca-c2c3ab295e35",
+            "instanceIdentifier": "c1c53629-019a-1000-76d3-d440f14a6480",
+            "name": "",
+            "source": {
+              "id": "c1abf8ce-019a-1000-3c4f-fb9ff2068e93",
+              "type": "PROCESSOR",
+              "groupId": "f22b1174-292d-337a-8115-83282e1ef4d4",
+              "name": "CountFlowFiles",
+              "comments": "",
+              "instanceIdentifier": "8712e667-3cf5-3bb9-0472-3dba5c99d00b"
+            },
+            "destination": {
+              "id": "f4ed9bc0-a7e5-3281-92a7-9dc2062ef51c",
+              "type": "PROCESSOR",
+              "groupId": "f22b1174-292d-337a-8115-83282e1ef4d4",
+              "name": "CountFlowFiles",
+              "comments": "",
+              "instanceIdentifier": "c1c4d1a2-019a-1000-6f39-378a0b7e670b"
+            },
+            "labelIndex": 0,
+            "zIndex": 2,
+            "selectedRelationships": [
+              "success"
+            ],
+            "backPressureObjectThreshold": 10000,
+            "backPressureDataSizeThreshold": "1 GB",
+            "flowFileExpiration": "0 sec",
+            "prioritizers": [],
+            "bends": [],
+            "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute": "",
+            "loadBalanceCompression": "DO_NOT_COMPRESS",
+            "componentType": "CONNECTION",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "6a471e1d-32a8-34fc-95d6-cd30dba2b103",
+            "instanceIdentifier": "c1c4dc92-019a-1000-45fa-61adf7b9ee58",
+            "name": "",
+            "source": {
+              "id": "786eeeb4-7026-327a-97de-c4cf3066d0da",
+              "type": "PROCESSOR",
+              "groupId": "f22b1174-292d-337a-8115-83282e1ef4d4",
+              "name": "CountFlowFiles",
+              "comments": "",
+              "instanceIdentifier": "c1aaf194-019a-1000-97b4-9de5c6038a2d"
+            },
+            "destination": {
+              "id": "f4ed9bc0-a7e5-3281-92a7-9dc2062ef51c",
+              "type": "PROCESSOR",
+              "groupId": "f22b1174-292d-337a-8115-83282e1ef4d4",
+              "name": "CountFlowFiles",
+              "comments": "",
+              "instanceIdentifier": "c1c4d1a2-019a-1000-6f39-378a0b7e670b"
+            },
+            "labelIndex": 0,
+            "zIndex": 1,
+            "selectedRelationships": [
+              "success"
+            ],
+            "backPressureObjectThreshold": 10000,
+            "backPressureDataSizeThreshold": "1 GB",
+            "flowFileExpiration": "0 sec",
+            "prioritizers": [],
+            "bends": [],
+            "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute": "",
+            "loadBalanceCompression": "DO_NOT_COMPRESS",
+            "componentType": "CONNECTION",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "a2a51f78-cc69-36f6-bafc-e441e60ef6a4",
+            "instanceIdentifier": "c1e2bdec-019a-1000-d263-f93dd48054e8",
+            "name": "",
+            "source": {
+              "id": "c1abdf6d-019a-1000-2d20-0e2dba89a292",
+              "type": "PROCESSOR",
+              "groupId": "f22b1174-292d-337a-8115-83282e1ef4d4",
+              "name": "CountFlowFiles",
+              "comments": "",
+              "instanceIdentifier": "0a622da4-8558-3409-f294-32010ae622ab"
+            },
+            "destination": {
+              "id": "f4ed9bc0-a7e5-3281-92a7-9dc2062ef51c",
+              "type": "PROCESSOR",
+              "groupId": "f22b1174-292d-337a-8115-83282e1ef4d4",
+              "name": "CountFlowFiles",
+              "comments": "",
+              "instanceIdentifier": "c1c4d1a2-019a-1000-6f39-378a0b7e670b"
+            },
+            "labelIndex": 0,
+            "zIndex": 3,
+            "selectedRelationships": [
+              "success"
+            ],
+            "backPressureObjectThreshold": 10000,
+            "backPressureDataSizeThreshold": "1 GB",
+            "flowFileExpiration": "0 sec",
+            "prioritizers": [],
+            "bends": [],
+            "loadBalanceStrategy": "DO_NOT_LOAD_BALANCE",
+            "partitioningAttribute": "",
+            "loadBalanceCompression": "DO_NOT_COMPRESS",
+            "componentType": "CONNECTION",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          }
+        ],
+        "labels": [],
+        "funnels": [],
+        "controllerServices": [
+          {
+            "identifier": "405590bc-42ab-352b-8b4c-10b1295437bb",
+            "instanceIdentifier": "c1ee80be-019a-1000-7fd0-7ecf915c9eb6",
+            "name": "MigratePropertiesCountService-7",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "7"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "e6c0212a-ffeb-3479-ad45-6fc1906fbd87",
+            "instanceIdentifier": "c1eef06d-019a-1000-5923-def423e8e89b",
+            "name": "MigratePropertiesCountService-9",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "9"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "17f78983-e657-394c-9cd5-139edc287bfe",
+            "instanceIdentifier": "c1ee4d01-019a-1000-25d5-bcadd1cc2fbc",
+            "name": "MigratePropertiesCountService-6",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "6"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "e3ba5c31-d8e5-3d36-9d3c-2dc3f29d6371",
+            "instanceIdentifier": "c1ef2fd2-019a-1000-5814-e3b14cfd7185",
+            "name": "MigratePropertiesCountService-10",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "10"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "cf07376e-5c10-33b2-93d5-a9a4ee7c1c04",
+            "instanceIdentifier": "c1e6a9dd-019a-1000-99be-b7ea048419e6",
+            "name": "MigratePropertiesCountService-1",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "1"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "35881ce8-2803-3c0a-b38b-4c78a1d63d3a",
+            "instanceIdentifier": "c1a97022-019a-1000-4c72-79bb12714423",
+            "name": "MigratePropertiesCountService-0",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "0",
+              "count-service": "c1e6a9dd-019a-1000-99be-b7ea048419e6"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "4eff7e6a-7cfb-3869-b1bc-41a145d4f1ed",
+            "instanceIdentifier": "c1ef6d12-019a-1000-47a7-66a2e1fa14ed",
+            "name": "MigratePropertiesCountService-11",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "11"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "0f317a14-3462-3626-a64d-4228684dd344",
+            "instanceIdentifier": "c1eda538-019a-1000-b04f-ff355d6624fe",
+            "name": "MigratePropertiesCountService-3",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "3"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "04ec1f18-76bd-3d01-8317-7fccefea6e5c",
+            "instanceIdentifier": "c1ee16d6-019a-1000-eb16-178b7923f20f",
+            "name": "MigratePropertiesCountService-5",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "5"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "b6018d5e-1adb-38b2-9527-fe12638ba1ee",
+            "instanceIdentifier": "c1eddb74-019a-1000-eef7-db50e1ab98db",
+            "name": "MigratePropertiesCountService-4",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "4"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "e350d312-eb5d-3074-94f0-634de4384db2",
+            "instanceIdentifier": "c1ed6d0c-019a-1000-c334-064873c94518",
+            "name": "MigratePropertiesCountService-2",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "2"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          },
+          {
+            "identifier": "44b0e2cf-f2b6-31e0-8ae4-fb840d3651f0",
+            "instanceIdentifier": "c1eeb8d9-019a-1000-63b7-23f4e1eb2cdf",
+            "name": "MigratePropertiesCountService-8",
+            "comments": "",
+            "type": "org.apache.nifi.cs.tests.system.MigratePropertiesCountService",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-system-test-extensions-services-nar",
+              "version": "2.7.0-SNAPSHOT"
+            },
+            "properties": {
+              "start-value": "8"
+            },
+            "propertyDescriptors": {},
+            "controllerServiceApis": [
+              {
+                "type": "org.apache.nifi.cs.tests.system.CountService",
+                "bundle": {
+                  "group": "org.apache.nifi",
+                  "artifact": "nifi-system-test-extensions-services-api-nar",
+                  "version": "2.7.0-SNAPSHOT"
+                }
+              }
+            ],
+            "scheduledState": "ENABLED",
+            "bulletinLevel": "WARN",
+            "componentType": "CONTROLLER_SERVICE",
+            "groupIdentifier": "f22b1174-292d-337a-8115-83282e1ef4d4"
+          }
+        ],
+        "defaultFlowFileExpiration": "0 sec",
+        "defaultBackPressureObjectThreshold": 10000,
+        "defaultBackPressureDataSizeThreshold": "1 GB",
+        "scheduledState": "ENABLED",
+        "executionEngine": "INHERITED",
+        "maxConcurrentTasks": 1,
+        "statelessFlowTimeout": "1 min",
+        "flowFileConcurrency": "UNBOUNDED",
+        "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+        "componentType": "PROCESS_GROUP",
+        "groupIdentifier": "10b0aac8-4c39-3a71-807a-60128ba1ef34"
+      }
+    ],
+    "remoteProcessGroups": [],
+    "processors": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "scheduledState": "ENABLED",
+    "executionEngine": "INHERITED",
+    "maxConcurrentTasks": 1,
+    "statelessFlowTimeout": "1 min",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  }
+}

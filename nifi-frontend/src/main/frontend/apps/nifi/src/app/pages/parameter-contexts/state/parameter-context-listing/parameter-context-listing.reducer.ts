@@ -40,6 +40,7 @@ import { Revision } from '@nifi/shared';
 export const initialState: ParameterContextListingState = {
     parameterContexts: [],
     updateRequestEntity: null,
+    updateRequestParameterContextId: null,
     saving: false,
     loadedTimestamp: '',
     deleteUpdateRequestInitiated: false,
@@ -77,9 +78,10 @@ export const parameterContextListingReducer = createReducer(
             draftState.saving = false;
         });
     }),
-    on(submitParameterContextUpdateRequest, (state) => ({
+    on(submitParameterContextUpdateRequest, (state, { request }) => ({
         ...state,
-        saving: true
+        saving: true,
+        updateRequestParameterContextId: request.id
     })),
     on(
         submitParameterContextUpdateRequestSuccess,
@@ -126,6 +128,7 @@ export const parameterContextListingReducer = createReducer(
                 }
 
                 draftState.updateRequestEntity = null;
+                draftState.updateRequestParameterContextId = null;
                 draftState.saving = false;
                 draftState.deleteUpdateRequestInitiated = false;
             }

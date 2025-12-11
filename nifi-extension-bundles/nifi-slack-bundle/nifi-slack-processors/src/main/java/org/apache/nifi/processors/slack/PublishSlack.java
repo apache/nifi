@@ -217,7 +217,7 @@ public class PublishSlack extends AbstractProcessor {
         .name("Methods Endpoint Url Prefix")
         .description("Customization of the Slack Client. Set the methodsEndpointUrlPrefix. If you need to set a different URL prefix for Slack API Methods calls, " +
                      "you can set the one. Default value: https://slack.com/api/")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .addValidator(StandardValidators.URL_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(false)
         .build();

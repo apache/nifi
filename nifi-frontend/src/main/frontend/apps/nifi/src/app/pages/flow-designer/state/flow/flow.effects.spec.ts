@@ -19,7 +19,7 @@ import { FlowService } from '../../service/flow.service';
 import * as FlowActions from './flow.actions';
 import { of, ReplaySubject, take, throwError } from 'rxjs';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { ClearBulletinsResponse, ComponentHistoryEntity } from '../../../../state/shared';
+import { ComponentHistoryEntity } from '../../../../state/shared';
 import { EditProcessor } from '../../ui/canvas/items/processor/edit-processor/edit-processor.component';
 import { PropertyTableHelperService } from '../../../../service/property-table-helper.service';
 import { FlowEffects } from './flow.effects';

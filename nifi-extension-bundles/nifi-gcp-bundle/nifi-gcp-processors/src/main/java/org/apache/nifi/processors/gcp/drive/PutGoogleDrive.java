@@ -46,6 +46,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -329,7 +330,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
         config.renameProperty("chunked-upload-size", CHUNKED_UPLOAD_SIZE.getName());
         config.renameProperty("chunked-upload-threshold", CHUNKED_UPLOAD_THRESHOLD.getName());
         config.renameProperty(GoogleUtils.OLD_GCP_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, GCP_CREDENTIALS_PROVIDER_SERVICE.getName());
-
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     private FlowFile addAttributes(File file, FlowFile flowFile, ProcessSession session) {

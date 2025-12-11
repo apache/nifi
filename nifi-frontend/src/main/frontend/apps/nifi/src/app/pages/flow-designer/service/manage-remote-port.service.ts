@@ -18,7 +18,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { ComponentType, NiFiCommon } from '@nifi/shared';
+import { ComponentType } from '@nifi/shared';
 import { ConfigureRemotePortRequest, ToggleRemotePortTransmissionRequest } from '../state/manage-remote-ports';
 import { Client } from '../../../service/client.service';
 
@@ -26,7 +26,6 @@ import { Client } from '../../../service/client.service';
 export class ManageRemotePortService {
     private httpClient = inject(HttpClient);
     private client = inject(Client);
-    private nifiCommon = inject(NiFiCommon);
 
     private static readonly API: string = '../nifi-api';
 
@@ -35,15 +34,14 @@ export class ManageRemotePortService {
     }
 
     updateRemotePort(configureRemotePortRequest: ConfigureRemotePortRequest): Observable<any> {
+        const port = configureRemotePortRequest.payload.remoteProcessGroupPort;
         const type =
             configureRemotePortRequest.payload.type === ComponentType.InputPort ? 'input-ports' : 'output-ports';
         return this.httpClient.put(
-            `${this.nifiCommon.stripProtocol(configureRemotePortRequest.uri)}/${type}/${
-                configureRemotePortRequest.payload.remoteProcessGroupPort.id
-            }`,
+            `${ManageRemotePortService.API}/remote-process-groups/${port.groupId}/${type}/${port.id}`,
             {
                 revision: configureRemotePortRequest.payload.revision,
-                remoteProcessGroupPort: configureRemotePortRequest.payload.remoteProcessGroupPort,
+                remoteProcessGroupPort: port,
                 disconnectedNodeAcknowledged: configureRemotePortRequest.payload.disconnectedNodeAcknowledged
             }
         );

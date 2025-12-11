@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
@@ -26,49 +25,33 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLogMessage {
 
-    private TestableLogMessage testableLogMessage;
     private TestRunner runner;
 
-    private static class TestableLogMessage extends LogMessage {
-
-        MockComponentLog getMockComponentLog() {
-            ComponentLog mockLog = getLogger();
-
-            if (!(mockLog instanceof MockComponentLog)) {
-                throw new IllegalStateException("Logger is expected to be MockComponentLog, but was: " +
-                        mockLog.getClass());
-            }
-
-            return (MockComponentLog) mockLog;
-        }
-
-
-    }
-
     @BeforeEach
-    public void before() throws InitializationException {
-        testableLogMessage = new TestableLogMessage();
-        runner = TestRunners.newTestRunner(testableLogMessage);
-
+    void before() throws InitializationException {
+        runner = TestRunners.newTestRunner(LogMessage.class);
     }
 
     @AfterEach
-    public void after() throws InitializationException {
+    void after() throws InitializationException {
         runner.shutdown();
     }
 
     @Test
-    public void testInfoMessageLogged() {
+    void testInfoMessageLogged() {
 
         runner.setProperty(LogMessage.LOG_MESSAGE, "This should help the operator to follow the flow: ${foobar}");
         runner.setProperty(LogMessage.LOG_LEVEL, LogMessage.MessageLogLevel.info.toString());
@@ -81,8 +64,9 @@ public class TestLogMessage {
         List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
         assertEquals(1, successFlowFiles.size());
 
-        MockComponentLog mockComponentLog = testableLogMessage.getMockComponentLog();
+        MockComponentLog mockComponentLog = runner.getLogger();
 
+        assertFalse(mockComponentLog.getInfoMessages().isEmpty());
         assertTrue(mockComponentLog.getTraceMessages().isEmpty());
         assertTrue(mockComponentLog.getDebugMessages().isEmpty());
         assertTrue(mockComponentLog.getWarnMessages().isEmpty());
@@ -90,7 +74,7 @@ public class TestLogMessage {
     }
 
     @Test
-    public void testInfoMessageWithPrefixLogged() {
+    void testInfoMessageWithPrefixLogged() {
 
         runner.setProperty(LogMessage.LOG_PREFIX, "FOOBAR>>>");
         runner.setProperty(LogMessage.LOG_MESSAGE, "This should help the operator to follow the flow: ${foobar}");
@@ -105,12 +89,25 @@ public class TestLogMessage {
         List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(LogMessage.REL_SUCCESS);
         assertEquals(1, successFlowFiles.size());
 
-        MockComponentLog mockComponentLog = testableLogMessage.getMockComponentLog();
+        MockComponentLog mockComponentLog = runner.getLogger();
 
+        assertFalse(mockComponentLog.getInfoMessages().isEmpty());
         assertTrue(mockComponentLog.getTraceMessages().isEmpty());
         assertTrue(mockComponentLog.getDebugMessages().isEmpty());
         assertTrue(mockComponentLog.getWarnMessages().isEmpty());
         assertTrue(mockComponentLog.getErrorMessages().isEmpty());
     }
 
+    @Test
+    void testInvalidLogLevel() {
+        runner.setProperty(LogMessage.LOG_LEVEL, "whatever");
+        runner.assertNotValid();
+    }
+
+    @ParameterizedTest
+    @EnumSource(LogMessage.MessageLogLevel.class)
+    void testLogLevelCaseInsensitivity(LogMessage.MessageLogLevel logLevel) {
+        runner.setProperty(LogMessage.LOG_LEVEL, logLevel.name().toUpperCase());
+        runner.assertValid();
+    }
 }

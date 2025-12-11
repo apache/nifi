@@ -33,6 +33,7 @@ import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,7 +60,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     public MockValidationContext(final MockProcessContext processContext, final StateManager stateManager, final ParameterLookup parameterLookup) {
         this.context = processContext;
         this.stateManager = stateManager;
-        this.parameterLookup = parameterLookup != null ? parameterLookup : ParameterLookup.EMPTY;
+        this.parameterLookup = parameterLookup != null ? parameterLookup : processContext.getParameterLookup();
 
         final Map<PropertyDescriptor, String> properties = processContext.getProperties();
         expressionLanguageSupported = new HashMap<>(properties.size());
@@ -80,7 +81,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new MockPropertyValue(rawValue, this, null, true, context.getEnvironmentVariables());
+        return new MockPropertyValue(rawValue, this, null, true, context.getEnvironmentVariables(), parameterLookup);
     }
 
     @Override
@@ -98,12 +99,27 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        return context.getPropertyWithoutValidatingExpressions(property);
+        final PropertyDescriptor canonicalDescriptor = context.getPropertyDescriptor(property.getName());
+        if (canonicalDescriptor == null) {
+            return null;
+        }
+
+        final String propertyValue = getEffectiveValue(canonicalDescriptor);
+        return new MockPropertyValue(propertyValue, this, canonicalDescriptor, true, context.getEnvironmentVariables(), parameterLookup);
     }
 
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
-        return context.getProperties();
+        final Map<PropertyDescriptor, String> properties = context.getProperties();
+        final Map<PropertyDescriptor, String> effectiveProperties = new LinkedHashMap<>(properties.size());
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            final String effectiveValue = getEffectiveValue(descriptor, entry.getValue());
+            effectiveProperties.put(descriptor, effectiveValue);
+        }
+
+        return Collections.unmodifiableMap(effectiveProperties);
     }
 
     @Override
@@ -179,7 +195,9 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public Collection<String> getReferencedParameters(final String propertyName) {
-        final String rawPropertyValue = context.getProperty(propertyName).getValue();
+        final PropertyDescriptor descriptor = new PropertyDescriptor.Builder().name(propertyName).build();
+        final PropertyValue propertyValue = context.getPropertyWithoutValidatingExpressions(descriptor);
+        final String rawPropertyValue = propertyValue == null ? null : propertyValue.getValue();
         final boolean elSupported = isExpressionLanguageSupported(propertyName);
 
         final ParameterParser parser = elSupported ? new ExpressionLanguageAwareParameterParser() : new ExpressionLanguageAgnosticParameterParser();
@@ -192,12 +210,32 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public boolean isParameterDefined(final String parameterName) {
-        return true;
+        final Map<String, String> contextParameters = context.getContextParameters();
+        return contextParameters.containsKey(parameterName);
     }
 
     @Override
     public boolean isParameterSet(final String parameterName) {
-        return true;
+        final Map<String, String> contextParameters = context.getContextParameters();
+        return contextParameters.containsKey(parameterName) && contextParameters.get(parameterName) != null;
+    }
+
+    private String getEffectiveValue(final PropertyDescriptor descriptor) {
+        final String configuredValue = context.getProperties().get(descriptor);
+        return getEffectiveValue(descriptor, configuredValue);
+    }
+
+    private String getEffectiveValue(final PropertyDescriptor descriptor, final String configuredValue) {
+        final String value = configuredValue == null ? descriptor.getDefaultValue() : configuredValue;
+        if (value == null) {
+            return null;
+        }
+
+        final ParameterParser parser = descriptor.isExpressionLanguageSupported()
+                ? new ExpressionLanguageAwareParameterParser()
+                : new ExpressionLanguageAgnosticParameterParser();
+
+        return parser.parseTokens(value).substitute(parameterLookup);
     }
 
 }

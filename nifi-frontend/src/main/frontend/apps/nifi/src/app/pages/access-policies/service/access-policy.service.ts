@@ -20,7 +20,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
 import { AccessPolicyEntity, ComponentResourceAction, ResourceAction } from '../state/shared';
-import { NiFiCommon } from '@nifi/shared';
 import { TenantEntity } from '../../../state/shared';
 import { ClusterConnectionService } from '../../../service/cluster-connection.service';
 
@@ -28,7 +27,6 @@ import { ClusterConnectionService } from '../../../service/cluster-connection.se
 export class AccessPolicyService {
     private httpClient = inject(HttpClient);
     private client = inject(Client);
-    private nifiCommon = inject(NiFiCommon);
     private clusterConnectionService = inject(ClusterConnectionService);
 
     private static readonly API: string = '../nifi-api';
@@ -90,7 +88,7 @@ export class AccessPolicyService {
             }
         };
 
-        return this.httpClient.put(this.nifiCommon.stripProtocol(accessPolicy.uri), payload);
+        return this.httpClient.put(`${AccessPolicyService.API}/policies/${accessPolicy.id}`, payload);
     }
 
     deleteAccessPolicy(accessPolicy: AccessPolicyEntity): Observable<any> {
@@ -100,7 +98,7 @@ export class AccessPolicyService {
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             }
         });
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(accessPolicy.uri), { params });
+        return this.httpClient.delete(`${AccessPolicyService.API}/policies/${accessPolicy.id}`, { params });
     }
 
     getUsers(): Observable<any> {

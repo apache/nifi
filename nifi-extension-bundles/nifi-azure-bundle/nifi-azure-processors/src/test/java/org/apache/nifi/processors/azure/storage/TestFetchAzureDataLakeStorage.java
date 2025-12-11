@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
@@ -32,13 +33,15 @@ public class TestFetchAzureDataLakeStorage {
         TestRunner runner = TestRunners.newTestRunner(FetchAzureDataLakeStorage.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         final Map<String, String> expectedRenamed =
-                Map.of(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName(),
-                        AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName(),
-                        AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName(),
-                        AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, AzureStorageUtils.FILE.getName(),
-                        "number-of-retries", FetchAzureDataLakeStorage.NUM_RETRIES.getName(),
-                        "range-start", FetchAzureDataLakeStorage.RANGE_START.getName(),
-                        "range-length", FetchAzureDataLakeStorage.RANGE_LENGTH.getName()
+                Map.ofEntries(
+                        Map.entry(AzureStorageUtils.OLD_ADLS_CREDENTIALS_SERVICE_DESCRIPTOR_NAME, AzureStorageUtils.ADLS_CREDENTIALS_SERVICE.getName()),
+                        Map.entry(AzureStorageUtils.OLD_FILESYSTEM_DESCRIPTOR_NAME, AzureStorageUtils.FILESYSTEM.getName()),
+                        Map.entry(AzureStorageUtils.OLD_DIRECTORY_DESCRIPTOR_NAME, AzureStorageUtils.DIRECTORY.getName()),
+                        Map.entry(AzureStorageUtils.OLD_FILE_DESCRIPTOR_NAME, AzureStorageUtils.FILE.getName()),
+                        Map.entry("number-of-retries", FetchAzureDataLakeStorage.NUM_RETRIES.getName()),
+                        Map.entry("range-start", FetchAzureDataLakeStorage.RANGE_START.getName()),
+                        Map.entry("range-length", FetchAzureDataLakeStorage.RANGE_LENGTH.getName()),
+                        Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
                 );
 
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
