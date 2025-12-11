@@ -24,13 +24,13 @@ import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.ActionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.components.connector.AssetReference;
-import org.apache.nifi.components.connector.ConfigurationStepConfiguration;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
@@ -224,17 +224,14 @@ public class ConnectorAuditor extends NiFiAuditor {
                                               final ConfigurationStepConfigurationDTO configurationStepConfiguration, final ConnectorDAO connectorDAO) throws Throwable {
         final ConnectorNode connector = connectorDAO.getConnector(connectorId);
 
-        // Capture the current property values before the update
-        final Map<String, Map<String, String>> previousValues = extractCurrentPropertyValues(connector, configurationStepName);
+        // Capture the current property values before the update (flat map: property name -> value)
+        final Map<String, String> previousValues = extractCurrentPropertyValues(connector, configurationStepName);
 
         proceedingJoinPoint.proceed();
 
         if (isAuditable()) {
-            // Extract the new property values from the DTO
-            final Map<String, Map<String, String>> newValues = extractPropertyValuesFromDto(configurationStepConfiguration);
-
-            // Generate audit actions for each changed property
-            final List<Action> actions = generateConfigurationChangeActions(connector, configurationStepName, previousValues, newValues);
+            // Generate audit actions for each changed property, using the DTO for group structure
+            final List<Action> actions = generateConfigurationChangeActions(connector, configurationStepName, previousValues, configurationStepConfiguration);
             if (!actions.isEmpty()) {
                 saveActions(actions, logger);
             }
@@ -246,52 +243,19 @@ public class ConnectorAuditor extends NiFiAuditor {
      *
      * @param connector the connector node
      * @param configurationStepName the name of the configuration step
-     * @return a map of property group name to property name to property value
+     * @return a map of property name to property value
      */
-    private Map<String, Map<String, String>> extractCurrentPropertyValues(final ConnectorNode connector, final String configurationStepName) {
-        final Map<String, Map<String, String>> result = new HashMap<>();
+    private Map<String, String> extractCurrentPropertyValues(final ConnectorNode connector, final String configurationStepName) {
+        final Map<String, String> result = new HashMap<>();
 
         final ConnectorConfiguration configuration = connector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
-        for (final ConfigurationStepConfiguration stepConfig : configuration.getConfigurationStepConfigurations()) {
-            if (Objects.equals(stepConfig.stepName(), configurationStepName)) {
-                for (final PropertyGroupConfiguration groupConfig : stepConfig.propertyGroupConfigurations()) {
-                    final String groupName = groupConfig.groupName();
-                    final Map<String, String> propertyValues = new HashMap<>();
-
-                    for (final Map.Entry<String, ConnectorValueReference> entry : groupConfig.propertyValues().entrySet()) {
-                        propertyValues.put(entry.getKey(), formatValueReference(entry.getValue()));
-                    }
-
-                    result.put(groupName, propertyValues);
+        for (final NamedStepConfiguration namedStepConfig : configuration.getNamedStepConfigurations()) {
+            if (Objects.equals(namedStepConfig.stepName(), configurationStepName)) {
+                final StepConfiguration stepConfig = namedStepConfig.configuration();
+                for (final Map.Entry<String, ConnectorValueReference> entry : stepConfig.getPropertyValues().entrySet()) {
+                    result.put(entry.getKey(), formatValueReference(entry.getValue()));
                 }
                 break;
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Extracts property values from the configuration step DTO.
-     *
-     * @param configurationStepDto the configuration step DTO
-     * @return a map of property group name to property name to property value
-     */
-    private Map<String, Map<String, String>> extractPropertyValuesFromDto(final ConfigurationStepConfigurationDTO configurationStepDto) {
-        final Map<String, Map<String, String>> result = new HashMap<>();
-
-        if (configurationStepDto.getPropertyGroupConfigurations() != null) {
-            for (final PropertyGroupConfigurationDTO groupDto : configurationStepDto.getPropertyGroupConfigurations()) {
-                final String groupName = groupDto.getPropertyGroupName();
-                final Map<String, String> propertyValues = new HashMap<>();
-
-                if (groupDto.getPropertyValues() != null) {
-                    for (final Map.Entry<String, ConnectorValueReferenceDTO> entry : groupDto.getPropertyValues().entrySet()) {
-                        propertyValues.put(entry.getKey(), formatValueReferenceDto(entry.getValue()));
-                    }
-                }
-
-                result.put(groupName, propertyValues);
             }
         }
 
@@ -340,33 +304,39 @@ public class ConnectorAuditor extends NiFiAuditor {
     }
 
     /**
-     * Generates audit actions for configuration changes by comparing previous and new values.
+     * Generates audit actions for configuration changes by comparing previous values with the new values from the DTO.
      *
      * @param connector the connector node
      * @param configurationStepName the configuration step name
-     * @param previousValues the previous property values
-     * @param newValues the new property values
+     * @param previousValues the previous property values (flat map: property name -> value)
+     * @param configurationStepDto the configuration step DTO containing new values with group structure
      * @return list of actions for changed properties
      */
     private List<Action> generateConfigurationChangeActions(final ConnectorNode connector, final String configurationStepName,
-                                                            final Map<String, Map<String, String>> previousValues, final Map<String, Map<String, String>> newValues) {
+                                                            final Map<String, String> previousValues, final ConfigurationStepConfigurationDTO configurationStepDto) {
         final List<Action> actions = new ArrayList<>();
         final Date timestamp = new Date();
 
         final FlowChangeExtensionDetails connectorDetails = new FlowChangeExtensionDetails();
         connectorDetails.setType(connector.getComponentType());
 
-        // Iterate through all property groups in the new values
-        for (final Map.Entry<String, Map<String, String>> groupEntry : newValues.entrySet()) {
-            final String groupName = groupEntry.getKey();
-            final Map<String, String> newGroupValues = groupEntry.getValue();
-            final Map<String, String> previousGroupValues = previousValues.getOrDefault(groupName, new HashMap<>());
+        if (configurationStepDto.getPropertyGroupConfigurations() == null) {
+            return actions;
+        }
+
+        // Iterate through all property groups in the DTO to preserve group names for audit logging
+        for (final PropertyGroupConfigurationDTO groupDto : configurationStepDto.getPropertyGroupConfigurations()) {
+            final String groupName = groupDto.getPropertyGroupName();
+
+            if (groupDto.getPropertyValues() == null) {
+                continue;
+            }
 
             // Check each property in this group
-            for (final Map.Entry<String, String> propertyEntry : newGroupValues.entrySet()) {
+            for (final Map.Entry<String, ConnectorValueReferenceDTO> propertyEntry : groupDto.getPropertyValues().entrySet()) {
                 final String propertyName = propertyEntry.getKey();
-                final String newValue = propertyEntry.getValue();
-                final String previousValue = previousGroupValues.get(propertyName);
+                final String newValue = formatValueReferenceDto(propertyEntry.getValue());
+                final String previousValue = previousValues.get(propertyName);
 
                 // Only create an action if the value changed
                 if (!Objects.equals(previousValue, newValue)) {

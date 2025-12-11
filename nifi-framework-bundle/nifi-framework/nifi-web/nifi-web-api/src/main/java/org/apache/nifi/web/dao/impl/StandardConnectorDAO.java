@@ -24,21 +24,20 @@ import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.ConnectorValueType;
-import org.apache.nifi.components.connector.PropertyGroupConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
-import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
-import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
-import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
+import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.dao.ConnectorDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -121,30 +120,29 @@ public class StandardConnectorDAO implements ConnectorDAO {
     public void updateConnectorConfigurationStep(final String id, final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepDto) {
         final ConnectorNode connector = getConnector(id);
 
-        // Convert DTO to domain object - extract the property groups from the configuration step
-        final List<PropertyGroupConfiguration> propertyGroups = new ArrayList<>();
-        if (configurationStepDto.getPropertyGroupConfigurations() != null) {
-            propertyGroups.addAll(configurationStepDto.getPropertyGroupConfigurations().stream()
-                    .map(this::convertToPropertyGroupConfiguration)
-                    .toList());
-        }
+        // Convert DTO to domain object - flatten all property groups into a single StepConfiguration
+        final StepConfiguration stepConfiguration = convertToStepConfiguration(configurationStepDto);
 
         // Update the connector configuration through the repository
         try {
-            getConnectorRepository().configureConnector(connector, configurationStepName, propertyGroups);
+            getConnectorRepository().configureConnector(connector, configurationStepName, stepConfiguration);
         } catch (final Exception e) {
             throw new IllegalStateException("Failed to update connector configuration: " + e, e);
         }
     }
 
-    private PropertyGroupConfiguration convertToPropertyGroupConfiguration(final PropertyGroupConfigurationDTO dto) {
+    private StepConfiguration convertToStepConfiguration(final ConfigurationStepConfigurationDTO dto) {
         final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
-        if (dto.getPropertyValues() != null) {
-            for (final Map.Entry<String, ConnectorValueReferenceDTO> entry : dto.getPropertyValues().entrySet()) {
-                propertyValues.put(entry.getKey(), convertToConnectorValueReference(entry.getValue()));
+        if (dto.getPropertyGroupConfigurations() != null) {
+            for (final PropertyGroupConfigurationDTO groupDto : dto.getPropertyGroupConfigurations()) {
+                if (groupDto.getPropertyValues() != null) {
+                    for (final Map.Entry<String, ConnectorValueReferenceDTO> entry : groupDto.getPropertyValues().entrySet()) {
+                        propertyValues.put(entry.getKey(), convertToConnectorValueReference(entry.getValue()));
+                    }
+                }
             }
         }
-        return new PropertyGroupConfiguration(dto.getPropertyGroupName(), propertyValues);
+        return new StepConfiguration(propertyValues);
     }
 
     private ConnectorValueReference convertToConnectorValueReference(final ConnectorValueReferenceDTO dto) {
@@ -176,26 +174,19 @@ public class StandardConnectorDAO implements ConnectorDAO {
     }
 
     @Override
-    public List<ConfigVerificationResult> verifyConfigurationStep(final String id, final String configurationStepName, final List<PropertyGroupConfigurationDTO> propertyGroupConfigurationDtos) {
+    public List<ConfigVerificationResult> verifyConfigurationStep(final String id, final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepDto) {
         final ConnectorNode connector = getConnector(id);
-
-        final List<PropertyGroupConfiguration> propertyGroupConfigurations = new ArrayList<>();
-        if (propertyGroupConfigurationDtos != null) {
-            for (final PropertyGroupConfigurationDTO dto : propertyGroupConfigurationDtos) {
-                propertyGroupConfigurations.add(convertToPropertyGroupConfiguration(dto));
-            }
-        }
-
-        return connector.verifyConfigurationStep(configurationStepName, propertyGroupConfigurations);
+        final StepConfiguration stepConfiguration = convertToStepConfiguration(configurationStepDto);
+        return connector.verifyConfigurationStep(configurationStepName, stepConfiguration);
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String id, final String stepName, final String groupName, final String propertyName, final String filter) {
+    public List<AllowableValue> fetchAllowableValues(final String id, final String stepName, final String propertyName, final String filter) {
         final ConnectorNode connector = getConnector(id);
         if (filter == null || filter.isEmpty()) {
-            return connector.fetchAllowableValues(stepName, groupName, propertyName);
+            return connector.fetchAllowableValues(stepName, propertyName);
         } else {
-            return connector.fetchAllowableValues(stepName, groupName, propertyName, filter);
+            return connector.fetchAllowableValues(stepName, propertyName, filter);
         }
     }
 }

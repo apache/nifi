@@ -21,7 +21,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
-import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 
 import java.util.List;
 
@@ -51,9 +50,9 @@ public interface ConnectorDAO {
 
     void verifyCanVerifyConfigurationStep(String id, String configurationStepName);
 
-    List<ConfigVerificationResult> verifyConfigurationStep(String id, String configurationStepName, List<PropertyGroupConfigurationDTO> propertyGroupConfigurations);
+    List<ConfigVerificationResult> verifyConfigurationStep(String id, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);
 
-    List<AllowableValue> fetchAllowableValues(String id, String stepName, String groupName, String propertyName, String filter);
+    List<AllowableValue> fetchAllowableValues(String id, String stepName, String propertyName, String filter);
 }
 
 
