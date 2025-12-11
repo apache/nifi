@@ -21,8 +21,8 @@ import org.apache.nifi.registry.security.authentication.IdentityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
@@ -37,7 +37,7 @@ import java.io.IOException;
  * A class that will extract an identity / credentials claim from an HttpServlet Request using an injected IdentityProvider.
  *
  * This class is designed to be used in collaboration with an {@link IdentityAuthenticationProvider}. The identity/credentials will be
- * extracted by this filter and later validated by the {@link IdentityAuthenticationProvider} in the default SecurityInterceptorFilter.
+ * extracted by this filter and validated by the {@link IdentityAuthenticationProvider} via the {@link AuthenticationManager}.
  */
 public class IdentityFilter extends GenericFilterBean {
 
@@ -69,7 +69,7 @@ public class IdentityFilter extends GenericFilterBean {
 
         if (credentialsAlreadyPresent()) {
             logger.debug("Credentials already extracted for [{}], skipping credentials extraction filter using {}",
-                    SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString(),
+                    SecurityContextHolder.getContext().getAuthentication().getPrincipal(),
                     identityProvider.getClass().getSimpleName());
             filterChain.doFilter(servletRequest, servletResponse);
             return;
@@ -80,26 +80,31 @@ public class IdentityFilter extends GenericFilterBean {
         try {
             AuthenticationRequest authenticationRequest = identityProvider.extractCredentials((HttpServletRequest) servletRequest);
             if (authenticationRequest != null) {
-                Authentication authentication = new AuthenticationRequestToken(
+                Authentication authenticationRequestToken = new AuthenticationRequestToken(
                         authenticationRequest,
                         identityProvider.getClass(),
                         servletRequest.getRemoteAddr());
-                logger.debug("Adding credentials claim to SecurityContext to be authenticated. Credentials extracted by {}: {}",
+                logger.debug("Attempting to authenticate credentials extracted by {}: {}",
                         identityProvider.getClass().getSimpleName(),
                         authenticationRequest);
-                if (authenticationManager != null) {
-                    try {
-                        Authentication authenticated = authenticationManager.authenticate(authentication);
-                        SecurityContextHolder.getContext().setAuthentication(authenticated);
-                    } catch (AuthenticationException ex) {
-                        logger.debug("Authentication failed in IdentityFilter for provider {}: {}", identityProvider.getClass().getSimpleName(), ex.getMessage());
-                        throw ex;
-                    }
-                } else {
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                // Authenticate the request token using the AuthenticationManager,
+                // which will try all the configured AuthenticationProviders until it finds one that supports authenticating the type of extracted credentials
+                final Authentication authenticated = authenticationManager.authenticate(authenticationRequestToken);
+                if (authenticated != null && authenticated.isAuthenticated()) {
+                    SecurityContextHolder.getContext().setAuthentication(authenticated);
+                    logger.debug("Authentication successful for {}", authenticated.getName());
                 }
+            } else {
+                logger.debug("The {} did not find credentials it supports on the servlet request. " +
+                        "Allowing this request to continue through the filter chain where another filter might authenticate it.",
+                    identityProvider.getClass().getSimpleName());
             }
-        } catch (Exception e) {
+        } catch (final AuthenticationException e) {
+            logger.info("Authentication failed for credentials extracted by {}: {}", identityProvider.getClass().getSimpleName(), e.getMessage());
+            logger.debug("Authentication failure details", e);
+            // Allow request to continue, where it will result in a 401 error for paths that require an authenticated request
+        } catch (final Exception e) {
             logger.debug("Exception occurred while extracting credentials:", e);
         }
 
@@ -107,6 +112,7 @@ public class IdentityFilter extends GenericFilterBean {
     }
 
     private boolean credentialsAlreadyPresent() {
-        return SecurityContextHolder.getContext().getAuthentication() != null;
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.isAuthenticated();
     }
 }
