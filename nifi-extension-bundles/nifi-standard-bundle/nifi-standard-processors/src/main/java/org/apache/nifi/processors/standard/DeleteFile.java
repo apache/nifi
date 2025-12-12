@@ -109,9 +109,20 @@ public class DeleteFile extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    public static final PropertyDescriptor DELETE_EMPTY_DIRECTORY = new PropertyDescriptor.Builder()
+            .name("Delete Empty Directory")
+            .description("Allows for deleting an empty directory if the file deleted is the last file in the directory.")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             DIRECTORY_PATH,
-            FILENAME
+            FILENAME,
+            DELETE_EMPTY_DIRECTORY
     );
 
     @Override
@@ -134,6 +145,7 @@ public class DeleteFile extends AbstractProcessor {
 
         final String directoryPathProperty = context.getProperty(DIRECTORY_PATH).evaluateAttributeExpressions(flowFile).getValue();
         final String filename = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
+        final boolean deleteEmptyDirectory = context.getProperty(DELETE_EMPTY_DIRECTORY).evaluateAttributeExpressions(flowFile).asBoolean();
 
         try {
             final Path directoryPath = Paths.get(directoryPathProperty).toRealPath();
@@ -148,6 +160,22 @@ public class DeleteFile extends AbstractProcessor {
             }
 
             Files.delete(filePath);
+
+            if (deleteEmptyDirectory) {
+                final String[] directoryContents = directoryPath.toFile().list();
+                if (directoryContents != null) {
+                    if (directoryContents.length > 0) {
+                        getLogger().warn("Cannot delete directory {} as it is not empty.", directoryPath);
+                    } else {
+                        try {
+                            Files.delete(directoryPath);
+                            getLogger().debug("Configured directory {} has been deleted", directoryPath);
+                        } catch (IOException e) {
+                            getLogger().warn("Failed to delete directory {}", directoryPath, e);
+                        }
+                    }
+                }
+            }
 
             session.transfer(flowFile, REL_SUCCESS);
             final String transitUri = "file://%s".formatted(filePath);
