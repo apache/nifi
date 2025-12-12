@@ -18,6 +18,7 @@
 package org.apache.nifi.components.connector;
 
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
@@ -43,11 +44,13 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     private volatile ExtensionManager extensionManager;
     private volatile ConnectorRequestReplicator requestReplicator;
+    private volatile SecretsManager secretsManager;
 
     @Override
     public void initialize(final ConnectorRepositoryInitializationContext context) {
         this.extensionManager = context.getExtensionManager();
         this.requestReplicator = context.getRequestReplicator();
+        this.secretsManager = context.getSecretsManager();
     }
 
     @Override
@@ -171,6 +174,11 @@ public class StandardConnectorRepository implements ConnectorRepository {
             connector.abortUpdate(e);
             throw e;
         }
+    }
+
+    @Override
+    public SecretsManager getSecretsManager() {
+        return secretsManager;
     }
 
     @Override

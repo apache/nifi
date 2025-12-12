@@ -15,23 +15,26 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.components.connector;
+package org.apache.nifi.components.connector.secrets;
 
-import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.components.connector.secrets.SecretsManager;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.components.connector.Secret;
+import org.apache.nifi.components.connector.SecretReference;
 
-public interface FrameworkConnectorInitializationContextBuilder {
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
-    FrameworkConnectorInitializationContextBuilder identifier(String identifier);
+public interface SecretsManager {
 
-    FrameworkConnectorInitializationContextBuilder name(String name);
+    void initialize(SecretsManagerInitializationContext initializationContext);
 
-    FrameworkConnectorInitializationContextBuilder componentLog(ComponentLog componentLog);
+    List<Secret> getAllSecrets();
 
-    FrameworkConnectorInitializationContextBuilder assetManager(AssetManager assetManager);
+    Set<SecretProvider> getSecretProviders();
 
-    FrameworkConnectorInitializationContextBuilder secretsManager(SecretsManager secretsManager);
+    Optional<Secret> getSecret(SecretReference secretReference);
 
-    FrameworkConnectorInitializationContext build();
+    Map<SecretReference, Secret> getSecrets(Set<SecretReference> secretReferences);
+
 }
