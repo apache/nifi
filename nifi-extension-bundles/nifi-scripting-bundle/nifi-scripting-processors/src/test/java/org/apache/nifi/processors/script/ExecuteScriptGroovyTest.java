@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,11 +36,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ExecuteScriptGroovyTest extends BaseScriptTest {
     private static final Pattern SINGLE_POOL_THREAD_PATTERN = Pattern.compile("pool-\\d+-thread-1");
 
+    private static final String SCRIPT_LANGUAGE_PROPERTY = "Script Language";
+    private static final String SUPPORTED_SCRIPT_ENGINE = "Groovy";
+
     @BeforeEach
     public void setUp() {
         super.setupExecuteScript();
         runner.setValidateExpressionUsage(false);
-        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "Groovy");
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, SUPPORTED_SCRIPT_ENGINE);
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/testAddTimeAndThreadAttribute.groovy");
         runner.setProperty(ScriptingComponentUtils.MODULES, TEST_RESOURCE_LOCATION + "groovy");
     }
@@ -48,14 +52,33 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     void testMigrateProperties() {
         runner.clearProperties();
 
-        final String scriptLanguage = "Script Language";
-        runner.setProperty(scriptLanguage, "Groovy");
+        runner.setProperty(SCRIPT_LANGUAGE_PROPERTY, SUPPORTED_SCRIPT_ENGINE);
 
         final PropertyMigrationResult result = runner.migrateProperties();
 
         final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
-        final String scriptLanguageRenamed = propertiesRenamed.get(scriptLanguage);
+        final String scriptLanguageRenamed = propertiesRenamed.get(SCRIPT_LANGUAGE_PROPERTY);
         assertEquals(ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName(), scriptLanguageRenamed);
+    }
+
+    @Test
+    void testMigratePropertiesPreferringScriptEngineProperty() {
+        runner.clearProperties();
+
+        final String awkScriptEngine = "AWK";
+
+        runner.setProperty(SCRIPT_LANGUAGE_PROPERTY, awkScriptEngine);
+
+        final String scriptEngine = ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName();
+        runner.setProperty(scriptEngine, SUPPORTED_SCRIPT_ENGINE);
+
+        final PropertyMigrationResult result = runner.migrateProperties();
+
+        final Set<String> propertiesRemoved = result.getPropertiesRemoved();
+        assertTrue(propertiesRemoved.contains(SCRIPT_LANGUAGE_PROPERTY), "Script Language property should be removed");
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        assertTrue(propertiesRenamed.isEmpty(), "Properties should not be renamed when Script Engine is defined");
     }
 
     @Test

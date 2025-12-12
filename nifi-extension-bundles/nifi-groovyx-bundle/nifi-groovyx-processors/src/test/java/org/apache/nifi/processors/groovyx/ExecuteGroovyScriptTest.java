@@ -30,6 +30,7 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
@@ -64,6 +65,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnOs(OS.WINDOWS)
 public class ExecuteGroovyScriptTest {
@@ -186,6 +188,17 @@ public class ExecuteGroovyScriptTest {
 
         URL[] classpathURLs = proc.shell.getClassLoader().getURLs();
         assertEquals(expectedClasspathURLs, new HashSet<>(Arrays.asList(classpathURLs)));
+    }
+
+    @Test
+    void testNonExistingAdditionalClasspath() {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_BODY, ";");
+        runner.setProperty(ExecuteGroovyScript.ADD_CLASSPATH, "someOtherPath");
+        runner.assertNotValid();
+
+        final MockComponentLog logger = runner.getLogger();
+        assertEquals(1, logger.getWarnMessages().size());
+        assertTrue(logger.getWarnMessages().getFirst().getMsg().contains("not found"));
     }
 
     @Test

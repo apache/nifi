@@ -45,6 +45,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,6 +62,7 @@ class ScriptedReportingTaskTest {
     private static final String SCRIPT_ENGINE = "Script Engine";
     private static final PropertyDescriptor SCRIPT_ENGINE_PROPERTY_DESCRIPTOR = new PropertyDescriptor.Builder().name(SCRIPT_ENGINE).build();
     private static final String GROOVY = "Groovy";
+    private static final String SCRIPT_LANGUAGE_PROPERTY = "Script Language";
     @TempDir
     private Path targetPath;
     @Mock
@@ -80,9 +82,8 @@ class ScriptedReportingTaskTest {
 
     @Test
     void testMigrateProperties() {
-        final String scriptLanguage = "Script Language";
         final Map<String, String> propertyValues = Map.of(
-                scriptLanguage, "Groovy"
+                SCRIPT_LANGUAGE_PROPERTY, GROOVY
         );
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
 
@@ -92,8 +93,28 @@ class ScriptedReportingTaskTest {
         final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
 
         final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
-        final String scriptLanguageRenamed = propertiesRenamed.get(scriptLanguage);
+        final String scriptLanguageRenamed = propertiesRenamed.get(SCRIPT_LANGUAGE_PROPERTY);
         assertEquals(ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName(), scriptLanguageRenamed);
+    }
+
+    @Test
+    void testMigratePropertiesPreferringScriptEngineProperty() {
+        final Map<String, String> propertyValues = Map.of(
+                SCRIPT_LANGUAGE_PROPERTY, "AWK",
+                SCRIPT_ENGINE, GROOVY
+        );
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+
+        final ScriptedReportingTask scriptedReportingTask = new ScriptedReportingTask();
+        scriptedReportingTask.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+
+        final Set<String> propertiesRemoved = result.getPropertiesRemoved();
+        assertTrue(propertiesRemoved.contains(SCRIPT_LANGUAGE_PROPERTY), "Script Language property should be removed");
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        assertTrue(propertiesRenamed.isEmpty(), "Properties should not be renamed when Script Engine is defined");
     }
 
     @Test
