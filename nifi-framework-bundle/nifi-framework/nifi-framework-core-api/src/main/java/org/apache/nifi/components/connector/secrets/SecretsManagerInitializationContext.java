@@ -15,23 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.components.connector;
+package org.apache.nifi.components.connector.secrets;
 
-import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.components.connector.secrets.SecretsManager;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.controller.flow.FlowManager;
 
-public interface FrameworkConnectorInitializationContextBuilder {
+public interface SecretsManagerInitializationContext {
 
-    FrameworkConnectorInitializationContextBuilder identifier(String identifier);
+    FlowManager getFlowManager();
 
-    FrameworkConnectorInitializationContextBuilder name(String name);
-
-    FrameworkConnectorInitializationContextBuilder componentLog(ComponentLog componentLog);
-
-    FrameworkConnectorInitializationContextBuilder assetManager(AssetManager assetManager);
-
-    FrameworkConnectorInitializationContextBuilder secretsManager(SecretsManager secretsManager);
-
-    FrameworkConnectorInitializationContext build();
 }

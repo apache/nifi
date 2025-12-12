@@ -18,6 +18,7 @@
 package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 
 public interface FrameworkConnectorInitializationContext extends ConnectorInitializationContext {
 

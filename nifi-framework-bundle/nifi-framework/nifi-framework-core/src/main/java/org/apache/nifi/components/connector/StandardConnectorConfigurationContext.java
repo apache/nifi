@@ -18,6 +18,8 @@
 package org.apache.nifi.components.connector;
 
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.components.connector.secrets.SecretProvider;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

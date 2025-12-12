@@ -53,6 +53,10 @@ import org.apache.nifi.components.connector.ConnectorRepositoryInitializationCon
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
 import org.apache.nifi.components.connector.StandardConnectorRepoInitializationContext;
 import org.apache.nifi.components.connector.StandardConnectorRepository;
+import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.components.connector.secrets.SecretsManagerInitializationContext;
+import org.apache.nifi.components.connector.secrets.StandardSecretsManagerInitializationContext;
 import org.apache.nifi.components.monitor.LongRunningTaskMonitor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateProvider;
@@ -272,6 +276,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final String DEFAULT_SWAP_MANAGER_IMPLEMENTATION = "org.apache.nifi.controller.FileSystemSwapManager";
     public static final String DEFAULT_ASSET_MANAGER_IMPLEMENTATION = StandardAssetManager.class.getName();
     public static final String DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION = StandardConnectorRepository.class.getName();
+    public static final String DEFAULT_SECRETS_MANAGER_IMPLEMENTATION = ParameterProviderSecretsManager.class.getName();
 
     public static final String GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.seconds";
     public static final long DEFAULT_GRACEFUL_SHUTDOWN_SECONDS = 10;
@@ -622,7 +627,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         controllerServiceResolver = new StandardControllerServiceResolver(authorizer, flowManager, new VersionedComponentFlowMapper(extensionManager),
                 controllerServiceProvider, new StandardControllerServiceApiLookup(extensionManager));
 
-        connectorRepository = createConnectorRepository(nifiProperties, extensionManager, flowManager, this, connectorRequestReplicator);
+        final SecretsManager secretsManager = createSecretsManager(nifiProperties, extensionManager, flowManager);
+        connectorRepository = createConnectorRepository(nifiProperties, extensionManager, flowManager, secretsManager, this, connectorRequestReplicator);
 
         final PythonBridge rawPythonBridge = createPythonBridge(nifiProperties, controllerServiceProvider);
         final ClassLoader pythonBridgeClassLoader = rawPythonBridge.getClass().getClassLoader();
@@ -897,7 +903,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     private static ConnectorRepository createConnectorRepository(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowManager flowManager,
-                final NodeTypeProvider nodeTypeProvider, final ConnectorRequestReplicator requestReplicator) {
+                final SecretsManager secretsManager, final NodeTypeProvider nodeTypeProvider, final ConnectorRequestReplicator requestReplicator) {
 
         final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_REPOSITORY_IMPLEMENTATION, DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION);
 
@@ -905,12 +911,14 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             // Discover implementations of Connector Repository. This is not done at startup because the ConnectorRepository class is not
             // provided in the list of standard extension points. This is due to the fact that ConnectorRepository lives in the nifi-framework-core-api, and
             // does not make sense to refactor it into some other module due to its dependencies, simply to allow it to be discovered at startup.
-            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(ConnectorRepository.class), true);
+            final Set<Class<?>> additionalExtensionTypes = Set.of(ConnectorRepository.class, SecretsManager.class);
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), additionalExtensionTypes, true);
             final ConnectorRepository created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ConnectorRepository.class, properties);
 
             final ConnectorRepositoryInitializationContext initializationContext = new StandardConnectorRepoInitializationContext(
                 flowManager,
                 extensionManager,
+                secretsManager,
                 nodeTypeProvider,
                 requestReplicator
             );
@@ -921,6 +929,35 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                     created.initialize(initializationContext);
                 }
             }
+
+            LOG.info("Created Connector Repository of type {}", created.getClass().getSimpleName());
+
+            return created;
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static SecretsManager createSecretsManager(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowManager flowManager) {
+        final String implementationClassName = properties.getProperty(NiFiProperties.SECRETS_MANAGER_IMPLEMENTATION, DEFAULT_SECRETS_MANAGER_IMPLEMENTATION);
+
+        try {
+            // Discover implementations of Secrets Manager. This is not done at startup because the SecretsManager class is not
+            // provided in the list of standard extension points. This is due to the fact that SecretsManager lives in the nifi-framework-core-api, and
+            // does not make sense to refactor it into some other module due to its dependencies, simply to allow it to be discovered at startup.
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(SecretsManager.class), true);
+            final SecretsManager created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, SecretsManager.class, properties);
+
+            final SecretsManagerInitializationContext initializationContext = new StandardSecretsManagerInitializationContext(flowManager);
+
+            synchronized (created) {
+                // Ensure that any NAR dependencies are available when we initialize the ConnectorRepository
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, created.getClass(), "secrets-manager")) {
+                    created.initialize(initializationContext);
+                }
+            }
+
+            LOG.info("Created Secrets Manager of type {}", created.getClass().getSimpleName());
 
             return created;
         } catch (final Exception e) {

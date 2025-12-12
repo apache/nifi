@@ -32,6 +32,7 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.mock.connector.StandardConnectorTestRunner;
 import org.apache.nifi.mock.connector.server.ConnectorConfigVerificationResult;
@@ -299,18 +300,19 @@ public class KafkaToS3IT {
             "Kafka Brokers", "localhost:9093",
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
-            "Username", SCRAM_USERNAME,
-            "Password", SCRAM_PASSWORD
+            "Username", SCRAM_USERNAME
+        );
+        runner.addSecret("kafka-password", SCRAM_PASSWORD);
+        final Map<String, ConnectorValueReference> kafkaServerSecretRefs = Map.of(
+            "Password", runner.createSecretReference("kafka-password")
         );
 
-        runner.applyUpdate();
-
         // Perform verification to ensure that valid server configuration passes
-        final ConnectorConfigVerificationResult connectionVerificationResults = runner.verifyConfiguration("Kafka Connection", kafkaServerConfig);
+        final ConnectorConfigVerificationResult connectionVerificationResults = runner.verifyConfiguration("Kafka Connection", kafkaServerConfig, kafkaServerSecretRefs);
         connectionVerificationResults.assertNoFailures();
 
         // Apply the configuration that we've now validated
-        runner.configure("Kafka Connection", kafkaServerConfig);
+        runner.configure("Kafka Connection", kafkaServerConfig, kafkaServerSecretRefs);
 
         // Perform verification to ensure that valid topic configuration passes
         final Map<String, String> topic1Config = Map.of(
@@ -360,8 +362,11 @@ public class KafkaToS3IT {
             "Kafka Brokers", "localhost:9093",
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
-            "Username", SCRAM_USERNAME,
-            "Password", SCRAM_PASSWORD
+            "Username", SCRAM_USERNAME
+        );
+        runner.addSecret("kafka-password", SCRAM_PASSWORD);
+        final Map<String, ConnectorValueReference> kafkaSecretRefs = Map.of(
+            "Password", runner.createSecretReference("kafka-password")
         );
 
         final Map<String, String> kafkaTopicConfig = Map.of(
@@ -378,14 +383,17 @@ public class KafkaToS3IT {
             Map.entry("S3 Endpoint Override URL", localStackContainer.getEndpoint().toString()),
             Map.entry("S3 Authentication Strategy", "Access Key ID and Secret Key"),
             Map.entry("S3 Access Key ID", localStackContainer.getAccessKey()),
-            Map.entry("S3 Secret Access Key", localStackContainer.getSecretKey()),
             Map.entry("Target Object Size", "1 MB"),
             Map.entry("Merge Latency", "1 sec")
         );
+        runner.addSecret("s3-secret-key", localStackContainer.getSecretKey());
+        final Map<String, ConnectorValueReference> s3SecretRefs = Map.of(
+            "S3 Secret Access Key", runner.createSecretReference("s3-secret-key")
+        );
 
-        runner.configure("Kafka Connection", kafkaServerConfig);
+        runner.configure("Kafka Connection", kafkaServerConfig, kafkaSecretRefs);
         runner.configure("Kafka Topics", kafkaTopicConfig);
-        runner.configure("S3 Configuration", s3Config);
+        runner.configure("S3 Configuration", s3Config, s3SecretRefs);
         runner.applyUpdate();
 
         final List<ValidationResult> validationResults = runner.validate();
@@ -449,14 +457,17 @@ public class KafkaToS3IT {
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME,
-            "Password", SCRAM_PASSWORD,
             "Schema Registry URL", getSchemaRegistryUrl()
         );
+        runner.addSecret("kafka-password", SCRAM_PASSWORD);
+        final Map<String, ConnectorValueReference> kafkaSecretRefs = Map.of(
+            "Password", runner.createSecretReference("kafka-password")
+        );
 
-        final ConnectorConfigVerificationResult connectionVerificationResults = runner.verifyConfiguration("Kafka Connection", kafkaConnectionConfig);
+        final ConnectorConfigVerificationResult connectionVerificationResults = runner.verifyConfiguration("Kafka Connection", kafkaConnectionConfig, kafkaSecretRefs);
         connectionVerificationResults.assertNoFailures();
 
-        runner.configure("Kafka Connection", kafkaConnectionConfig);
+        runner.configure("Kafka Connection", kafkaConnectionConfig, kafkaSecretRefs);
 
         final Map<String, String> avroTopicConfig = Map.of(
             "Topic Names", "avro-topic",
@@ -517,8 +528,11 @@ public class KafkaToS3IT {
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME,
-            "Password", SCRAM_PASSWORD,
             "Schema Registry URL", getSchemaRegistryUrl()
+        );
+        runner.addSecret("kafka-password", SCRAM_PASSWORD);
+        final Map<String, ConnectorValueReference> kafkaSecretRefs = Map.of(
+            "Password", runner.createSecretReference("kafka-password")
         );
 
         final Map<String, String> kafkaTopicConfig = Map.of(
@@ -535,14 +549,17 @@ public class KafkaToS3IT {
             Map.entry("S3 Endpoint Override URL", localStackContainer.getEndpoint().toString()),
             Map.entry("S3 Authentication Strategy", "Access Key ID and Secret Key"),
             Map.entry("S3 Access Key ID", localStackContainer.getAccessKey()),
-            Map.entry("S3 Secret Access Key", localStackContainer.getSecretKey()),
             Map.entry("Target Object Size", "1 MB"),
             Map.entry("Merge Latency", "1 sec")
         );
+        runner.addSecret("s3-secret-key", localStackContainer.getSecretKey());
+        final Map<String, ConnectorValueReference> s3SecretRefs = Map.of(
+            "S3 Secret Access Key", runner.createSecretReference("s3-secret-key")
+        );
 
-        runner.configure("Kafka Connection", kafkaConnectionConfig);
+        runner.configure("Kafka Connection", kafkaConnectionConfig, kafkaSecretRefs);
         runner.configure("Kafka Topics", kafkaTopicConfig);
-        runner.configure("S3 Configuration", s3Config);
+        runner.configure("S3 Configuration", s3Config, s3SecretRefs);
         runner.applyUpdate();
 
         final List<ValidationResult> validationResults = runner.validate();
@@ -613,8 +630,11 @@ public class KafkaToS3IT {
             "Kafka Brokers", "localhost:9093",
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
-            "Username", SCRAM_USERNAME,
-            "Password", SCRAM_PASSWORD
+            "Username", SCRAM_USERNAME
+        );
+        runner.addSecret("kafka-password", SCRAM_PASSWORD);
+        final Map<String, ConnectorValueReference> kafkaSecretRefs = Map.of(
+            "Password", runner.createSecretReference("kafka-password")
         );
 
         final Map<String, String> jsonTopicConfig = Map.of(
@@ -631,14 +651,17 @@ public class KafkaToS3IT {
             Map.entry("S3 Endpoint Override URL", "http://invalid-s3-endpoint:9999"),
             Map.entry("S3 Authentication Strategy", "Access Key ID and Secret Key"),
             Map.entry("S3 Access Key ID", localStackContainer.getAccessKey()),
-            Map.entry("S3 Secret Access Key", localStackContainer.getSecretKey()),
             Map.entry("Target Object Size", "1 MB"),
             Map.entry("Merge Latency", "1 sec")
         );
+        runner.addSecret("s3-secret-key", localStackContainer.getSecretKey());
+        final Map<String, ConnectorValueReference> s3SecretRefs = Map.of(
+            "S3 Secret Access Key", runner.createSecretReference("s3-secret-key")
+        );
 
-        runner.configure("Kafka Connection", kafkaServerConfig);
+        runner.configure("Kafka Connection", kafkaServerConfig, kafkaSecretRefs);
         runner.configure("Kafka Topics", jsonTopicConfig);
-        runner.configure("S3 Configuration", s3InvalidConfig);
+        runner.configure("S3 Configuration", s3InvalidConfig, s3SecretRefs);
         runner.applyUpdate();
 
         // Run the Connector with the invalid S3 endpoint to queue the JSON data. Wait for data to be queued up.
@@ -658,12 +681,11 @@ public class KafkaToS3IT {
             Map.entry("S3 Endpoint Override URL", localStackContainer.getEndpoint().toString()),
             Map.entry("S3 Authentication Strategy", "Access Key ID and Secret Key"),
             Map.entry("S3 Access Key ID", localStackContainer.getAccessKey()),
-            Map.entry("S3 Secret Access Key", localStackContainer.getSecretKey()),
             Map.entry("Target Object Size", "1 MB"),
             Map.entry("Merge Latency", "1 sec")
         );
 
-        runner.configure("S3 Configuration", s3ValidJsonConfig);
+        runner.configure("S3 Configuration", s3ValidJsonConfig, s3SecretRefs);
         runner.applyUpdate();
 
         // Make sure there is no data in S3 yet.
@@ -679,7 +701,6 @@ public class KafkaToS3IT {
             Map.entry("S3 Endpoint Override URL", localStackContainer.getEndpoint().toString()),
             Map.entry("S3 Authentication Strategy", "Access Key ID and Secret Key"),
             Map.entry("S3 Access Key ID", localStackContainer.getAccessKey()),
-            Map.entry("S3 Secret Access Key", localStackContainer.getSecretKey()),
             Map.entry("Target Object Size", "1 MB"),
             Map.entry("Merge Latency", "1 sec")
         );
@@ -697,13 +718,12 @@ public class KafkaToS3IT {
             "Security Protocol", "SASL_PLAINTEXT",
             "SASL Mechanism", "PLAIN",
             "Username", SCRAM_USERNAME,
-            "Password", SCRAM_PASSWORD,
             "Schema Registry URL", getSchemaRegistryUrl()
         );
 
-        runner.configure("Kafka Connection", kafkaConnectionWithSchemaRegistry);
+        runner.configure("Kafka Connection", kafkaConnectionWithSchemaRegistry, kafkaSecretRefs);
         runner.configure("Kafka Topics", avroTopicConfig);
-        runner.configure("S3 Configuration", s3ValidAvroConfig);
+        runner.configure("S3 Configuration", s3ValidAvroConfig, s3SecretRefs);
         runner.applyUpdate();
 
         // After draining, there should be one JSON file in S3.

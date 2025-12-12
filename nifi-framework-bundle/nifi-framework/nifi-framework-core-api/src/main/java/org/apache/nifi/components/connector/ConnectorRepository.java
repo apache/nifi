@@ -17,6 +17,7 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 
@@ -80,6 +81,8 @@ public interface ConnectorRepository {
     void applyUpdate(ConnectorNode connector) throws FlowUpdateException;
 
     void inheritConfiguration(ConnectorNode connector, List<VersionedConfigurationStep> flowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
+
+    SecretsManager getSecretsManager();
 
     /**
      * Creates a new ConnectorStateTransition instance for managing the lifecycle state of a connector.
