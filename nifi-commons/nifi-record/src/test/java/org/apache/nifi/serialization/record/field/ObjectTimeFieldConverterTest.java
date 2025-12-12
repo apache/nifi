@@ -18,8 +18,14 @@ package org.apache.nifi.serialization.record.field;
 
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.Optional;
 
@@ -41,6 +47,8 @@ public class ObjectTimeFieldConverterTest {
     private static final String TIME_NANOSECONDS_PATTERN = "HH:mm:ss.SSSSSSSSS";
 
     private static final String TIME_NANOSECONDS = "12:30:45.123456789";
+
+    private static final String TIME_WITH_OFFSET_PATTERN = "HH:mm:ssXXX";
 
     @Test
     public void testConvertFieldNull() {
@@ -80,4 +88,21 @@ public class ObjectTimeFieldConverterTest {
         final Time time = CONVERTER.convertField(field, Optional.of(DEFAULT_PATTERN), FIELD_NAME);
         assertNotNull(time);
     }
+
+    @ParameterizedTest
+    @MethodSource("org.apache.nifi.serialization.record.field.DateTimeTestUtil#offsetSource")
+    public void testConvertFieldTimeOffset(final String offset) {
+        final String inputLocalTimeString = TIME_DEFAULT;
+        final String inputOffsetTimeString = inputLocalTimeString + offset;
+
+        final LocalTime inputLocalTime = LocalTime.parse(inputLocalTimeString);
+        final ZonedDateTime inputTimeOnEpochStartDate = ZonedDateTime.of(LocalDate.EPOCH, inputLocalTime, ZoneId.of(offset));
+        final long inputTimeEpochMs = inputTimeOnEpochStartDate.toInstant().toEpochMilli();
+        final Time expectedTime = new Time(inputTimeEpochMs);
+
+        final Time convertedTime = CONVERTER.convertField(inputOffsetTimeString, Optional.of(TIME_WITH_OFFSET_PATTERN), FIELD_NAME);
+
+        assertEquals(expectedTime.toString(), convertedTime.toString());
+    }
+
 }
