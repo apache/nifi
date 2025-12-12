@@ -18,7 +18,9 @@
 package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 
 import java.io.Closeable;
@@ -27,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 
 public interface ConnectorTestRunner extends Closeable {
+    String SECRET_PROVIDER_ID = "TestRunnerSecretsManager";
+    String SECRET_PROVIDER_NAME = "TestRunnerSecretsManager";
 
     void applyUpdate() throws FlowUpdateException;
 
@@ -34,9 +38,17 @@ public interface ConnectorTestRunner extends Closeable {
 
     void configure(String stepName, Map<String, String> propertyValues) throws FlowUpdateException;
 
+    void configure(String stepName, Map<String, String> propertyValues, Map<String, ConnectorValueReference> propertyReferences) throws FlowUpdateException;
+
+    SecretReference createSecretReference(String secretName);
+
     ConnectorConfigVerificationResult verifyConfiguration(String stepName, Map<String, String> propertyValueOverrides);
 
+    ConnectorConfigVerificationResult verifyConfiguration(String stepName, Map<String, String> propertyValueOverrides, Map<String, ConnectorValueReference> referenceOverrides);
+
     ConnectorConfigVerificationResult verifyConfiguration(String stepName, StepConfiguration configurationOverrides);
+
+    void addSecret(String name, String value);
 
     void startConnector();
 

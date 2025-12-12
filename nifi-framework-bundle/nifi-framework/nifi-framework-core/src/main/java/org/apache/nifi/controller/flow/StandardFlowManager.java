@@ -765,7 +765,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
         final ConnectorStateTransition stateTransition = connectorRepository.createStateTransition(type, id);
-        final StandardConnectorConfigurationContext activeConfigurationContext = new StandardConnectorConfigurationContext(flowController.getAssetManager(), null);
+        final StandardConnectorConfigurationContext activeConfigurationContext = new StandardConnectorConfigurationContext(
+            flowController.getAssetManager(), flowController.getConnectorRepository().getSecretsManager());
+
         final ProcessGroupFactory processGroupFactory = groupId -> createProcessGroup(groupId, false);
         final FlowContextFactory flowContextFactory = new FlowControllerFlowContextFactory(flowController, managedRootGroup, activeConfigurationContext, processGroupFactory);
 

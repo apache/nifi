@@ -279,16 +279,32 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
     }
 
     @Override
-    public void fetchParameters() {
+    public List<ParameterGroup> fetchParameterValues() {
         final ParameterProvider parameterProvider = parameterProviderRef.get().getParameterProvider();
         final ConfigurationContext configurationContext = getConfigurationContext();
-        List<ParameterGroup> fetchedParameterGroups;
+
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), parameterProvider.getIdentifier())) {
-            fetchedParameterGroups = parameterProvider.fetchParameters(configurationContext);
+            return parameterProvider.fetchParameters(configurationContext);
         } catch (final IOException | RuntimeException e) {
             throw new IllegalStateException(String.format("Error fetching parameters for %s: %s", this, e.getMessage()), e);
         }
+    }
 
+    @Override
+    public List<ParameterGroup> fetchParameterValues(final List<String> fullyQualifiedParameterNames) {
+        final ParameterProvider parameterProvider = parameterProviderRef.get().getParameterProvider();
+        final ConfigurationContext configurationContext = getConfigurationContext();
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), parameterProvider.getIdentifier())) {
+            return parameterProvider.fetchParameters(configurationContext, fullyQualifiedParameterNames);
+        } catch (final IOException | RuntimeException e) {
+            throw new IllegalStateException(String.format("Error fetching parameters for %s: %s", this, e.getMessage()), e);
+        }
+    }
+
+    @Override
+    public void fetchParameters() {
+        final List<ParameterGroup> fetchedParameterGroups = fetchParameterValues();
         if (fetchedParameterGroups == null || fetchedParameterGroups.isEmpty()) {
             return;
         }
