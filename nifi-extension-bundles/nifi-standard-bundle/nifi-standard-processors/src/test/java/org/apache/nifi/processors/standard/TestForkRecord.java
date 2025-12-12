@@ -437,6 +437,96 @@ public class TestForkRecord {
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertAttributeEquals("record.count", "6");
     }
 
+    @Test
+    public void testExtractWithParentFieldsAndInferredSchema() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("record-reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("record-writer", jsonWriter);
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(ForkRecord.RECORD_READER, "record-reader");
+        runner.setProperty(ForkRecord.RECORD_WRITER, "record-writer");
+        runner.setProperty(ForkRecord.MODE, ForkRecord.MODE_EXTRACT);
+        runner.setProperty(ForkRecord.INCLUDE_PARENT_FIELDS, "true");
+        runner.setProperty("bankAccounts", "/bankAccounts");
+
+        runner.enqueue(Paths.get("src/test/resources/TestForkRecord/input/complex-input-json-for-inference.json"));
+        runner.run();
+
+        runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(ForkRecord.REL_FORK, 1);
+
+        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestForkRecord/output/extract-bank-accounts-with-parents.json")));
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
+    }
+
+    @Test
+    public void testExtractFieldsAndInferredSchema() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("record-reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("record-writer", jsonWriter);
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(ForkRecord.RECORD_READER, "record-reader");
+        runner.setProperty(ForkRecord.RECORD_WRITER, "record-writer");
+        runner.setProperty(ForkRecord.MODE, ForkRecord.MODE_EXTRACT);
+        runner.setProperty(ForkRecord.INCLUDE_PARENT_FIELDS, "false");
+        runner.setProperty("address", "/address");
+
+        runner.enqueue(Paths.get("src/test/resources/TestForkRecord/input/complex-input-json-for-inference.json"));
+        runner.run();
+
+        runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(ForkRecord.REL_FORK, 1);
+
+        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestForkRecord/output/extract-address-without-parents.json")));
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
+    }
+
+    @Test
+    public void testExtractFieldsWithParentsAndFieldConflictAndInferredSchema() throws Exception {
+        TestRunner runner = TestRunners.newTestRunner(new ForkRecord());
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("record-reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("record-writer", jsonWriter);
+        runner.setProperty(jsonWriter, "Pretty Print JSON", "true");
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(ForkRecord.RECORD_READER, "record-reader");
+        runner.setProperty(ForkRecord.RECORD_WRITER, "record-writer");
+        runner.setProperty(ForkRecord.MODE, ForkRecord.MODE_EXTRACT);
+        runner.setProperty(ForkRecord.INCLUDE_PARENT_FIELDS, "true");
+        runner.setProperty("address", "/address");
+
+        runner.enqueue(Paths.get("src/test/resources/TestForkRecord/input/complex-input-json-for-inference.json"));
+        runner.run();
+
+        runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(ForkRecord.REL_FORK, 1);
+
+        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestForkRecord/output/extract-address-with-parents.json")));
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
+    }
+
     private class JsonRecordReader extends AbstractControllerService implements RecordReaderFactory {
 
         private static final JsonParserFactory jsonParserFactory = new JsonParserFactory();
