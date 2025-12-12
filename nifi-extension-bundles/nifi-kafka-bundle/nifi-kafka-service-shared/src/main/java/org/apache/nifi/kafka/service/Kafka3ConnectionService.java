@@ -310,6 +310,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
         final Properties consumerProperties = getConsumerProperties(configurationContext, clientProperties);
         consumerProperties.putAll(variables);
         try (final Admin admin = Admin.create(consumerProperties)) {
+            // Verify topic listing
             final ListTopicsResult listTopicsResult = admin.listTopics();
 
             final KafkaFuture<Collection<TopicListing>> requestedListings = listTopicsResult.listings();
@@ -322,6 +323,11 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
                             .explanation(topicListingExplanation)
                             .build()
             );
+
+            // Verify cluster connectivity and node reachability
+            final String bootstrapServers = configurationContext.getProperty(BOOTSTRAP_SERVERS).getValue();
+            final KafkaClusterVerifier clusterVerifier = new KafkaClusterVerifier(VERIFY_TIMEOUT, verificationLogger);
+            results.addAll(clusterVerifier.verifyClusterConnectivity(admin, bootstrapServers));
         } catch (final Exception e) {
             verificationLogger.error("Kafka Broker verification failed", e);
             results.add(
