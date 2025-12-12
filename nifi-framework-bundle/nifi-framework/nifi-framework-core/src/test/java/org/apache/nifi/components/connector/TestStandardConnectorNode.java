@@ -23,6 +23,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;

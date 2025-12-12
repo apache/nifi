@@ -22,7 +22,7 @@ import org.apache.nifi.components.connector.FrameworkConnectorInitializationCont
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.FrameworkConnectorInitializationContext;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
-import org.apache.nifi.components.connector.SecretsManager;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;

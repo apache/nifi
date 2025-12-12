@@ -139,6 +139,9 @@ public class NiFiProperties extends ApplicationProperties {
     // Connector Repository properties
     public static final String CONNECTOR_REPOSITORY_IMPLEMENTATION = "nifi.components.connectors.repository.implementation";
 
+    // Secrets Manager properties
+    public static final String SECRETS_MANAGER_IMPLEMENTATION = "nifi.secrets.manager.implementation";
+
     // security properties
     public static final String SECURITY_KEYSTORE = "nifi.security.keystore";
     public static final String SECURITY_KEYSTORE_TYPE = "nifi.security.keystoreType";

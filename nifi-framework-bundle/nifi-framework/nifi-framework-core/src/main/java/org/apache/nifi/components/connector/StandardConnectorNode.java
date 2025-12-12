@@ -577,17 +577,18 @@ public class StandardConnectorNode implements ConnectorNode {
             }
 
             final ConfigurationStep configurationStep = optionalStep.get();
-            final List<ValidationResult> validationResults = getConnector().validateConfigurationStep(configurationStep, configContext, validationContext);
+
+            final List<ValidationResult> validationResults = new ArrayList<>();
+            validatePropertyReferences(configurationStep, configurationOverrides, validationResults);
+
+            if (validationResults.isEmpty()) {
+                final List<ValidationResult> implValidationResults = getConnector().validateConfigurationStep(configurationStep, configContext, validationContext);
+                validationResults.addAll(implValidationResults);
+            }
 
             final List<ConfigVerificationResult> invalidConfigResults = validationResults.stream()
                 .filter(result -> !result.isValid())
-                .map(validationResult -> new ConfigVerificationResult.Builder()
-                    .verificationStepName("Property Validation - " + validationResult.getSubject())
-                    .outcome(Outcome.FAILED)
-                    .subject(validationResult.getSubject())
-                    .explanation(validationResult.getExplanation())
-                    .build()
-                )
+                .map(this::createConfigVerificationResult)
                 .toList();
 
             if (invalidConfigResults.isEmpty()) {
@@ -595,13 +596,23 @@ public class StandardConnectorNode implements ConnectorNode {
                     .verificationStepName("Property Validation")
                     .outcome(Outcome.SUCCESSFUL)
                     .build());
+
+                results.addAll(getConnector().verifyConfigurationStep(stepName, resolvedPropertyOverrides, workingFlowContext));
             } else {
                 results.addAll(invalidConfigResults);
             }
 
-            results.addAll(getConnector().verifyConfigurationStep(stepName, resolvedPropertyOverrides, workingFlowContext));
             return results;
         }
+    }
+
+    private ConfigVerificationResult createConfigVerificationResult(final ValidationResult validationResult) {
+        return new ConfigVerificationResult.Builder()
+            .verificationStepName("Property Validation - " + validationResult.getSubject())
+            .outcome(validationResult.isValid() ? Outcome.SUCCESSFUL : Outcome.FAILED)
+            .subject(validationResult.getSubject())
+            .explanation(validationResult.getExplanation())
+            .build();
     }
 
     private Map<String, String> resolvePropertyReferences(final StepConfiguration configurationOverrides) {
@@ -756,18 +767,23 @@ public class StandardConnectorNode implements ConnectorNode {
 
             final ConnectorValidationContext validationContext = createValidationContext(activeFlowContext);
 
-            List<ValidationResult> allResults;
-            try {
-                allResults = getConnector().validate(activeFlowContext, validationContext);
-            } catch (final Exception e) {
-                allResults = List.of(new ValidationResult.Builder()
+            final List<ValidationResult> allResults = new ArrayList<>();
+            validatePropertyReferences(allResults);
+
+            if (allResults.isEmpty()) {
+                try {
+                    final List<ValidationResult> implValidationResults = getConnector().validate(activeFlowContext, validationContext);
+                    allResults.addAll(implValidationResults);
+                } catch (final Exception e) {
+                    allResults.add(new ValidationResult.Builder()
                         .subject("Validation Failure")
                         .valid(false)
                         .explanation("Encountered a failure while attempting to perform validation: " + e.getMessage())
                         .build());
+                }
             }
 
-            if (allResults == null) {
+            if (allResults.isEmpty()) {
                 return new ValidationState(ValidationStatus.VALID, Collections.emptyList());
             }
 
@@ -784,6 +800,79 @@ public class StandardConnectorNode implements ConnectorNode {
 
             return new ValidationState(ValidationStatus.INVALID, relevantResults);
         }
+    }
+
+
+    private void validatePropertyReferences(final List<ValidationResult> allResults) {
+        final List<ConfigurationStep> configurationSteps = getConnector().getConfigurationSteps(activeFlowContext);
+        final ConnectorConfiguration connectorConfiguration = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
+
+        for (final ConfigurationStep step : configurationSteps) {
+            final NamedStepConfiguration namedStepConfig = connectorConfiguration.getNamedStepConfiguration(step.getName());
+            if (namedStepConfig == null) {
+                continue;
+            }
+
+            validatePropertyReferences(step, namedStepConfig.configuration(), allResults);
+        }
+    }
+
+    private void validatePropertyReferences(final ConfigurationStep step, final StepConfiguration stepConfig, final List<ValidationResult> allResults) {
+        for (final ConnectorPropertyGroup propertyGroup : step.getPropertyGroups()) {
+            for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
+                final PropertyType propertyType = descriptor.getType();
+                final ConnectorValueReference reference = stepConfig.getPropertyValue(descriptor.getName());
+
+                final String subject = step.getName() + " / " + descriptor.getName();
+
+                if (!isReferenceAllowed(reference, propertyType)) {
+                    final String providedReferenceType = switch (reference.getValueType()) {
+                        case ASSET_REFERENCE -> "<Asset reference>";
+                        case SECRET_REFERENCE -> "<Secret reference>";
+                        case STRING_LITERAL -> "<Explicit value>";
+                    };
+
+                    final String expectedReferenceType = propertyType == PropertyType.SECRET ? "a Secret reference" : "an Explicit value";
+
+                    allResults.add(new ValidationResult.Builder()
+                        .subject(subject)
+                        .input(providedReferenceType)
+                        .explanation("This property must be configured with " + expectedReferenceType)
+                        .build());
+                }
+            }
+        }
+    }
+
+    private boolean isReferenceAllowed(final ConnectorValueReference reference, final PropertyType propertyType) {
+        // If the reference is null or its value is unset, then it is allowed
+        if (reference == null) {
+            return true;
+        }
+
+        switch (reference) {
+            case StringLiteralValue stringLiteralValue -> {
+                if (stringLiteralValue.getValue() == null) {
+                    return true;
+                }
+            }
+            case AssetReference assetReference -> {
+                if (assetReference.getAssetIdentifier() == null) {
+                    return true;
+                }
+            }
+            case SecretReference secretReference -> {
+                if (secretReference.getSecretName() == null) {
+                    return true;
+                }
+            }
+        }
+
+        if (propertyType == PropertyType.SECRET) {
+            return reference.getValueType() == ConnectorValueType.SECRET_REFERENCE;
+        }
+
+        return reference.getValueType() != ConnectorValueType.SECRET_REFERENCE;
     }
 
     private ConnectorValidationContext createValidationContext(final FrameworkFlowContext context) {

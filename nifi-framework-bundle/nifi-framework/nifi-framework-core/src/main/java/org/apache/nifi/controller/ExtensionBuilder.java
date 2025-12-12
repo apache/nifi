@@ -42,7 +42,6 @@ import org.apache.nifi.components.connector.FrameworkConnectorInitializationCont
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.GhostConnector;
 import org.apache.nifi.components.connector.MutableConnectorConfigurationContext;
-import org.apache.nifi.components.connector.SecretsManager;
 import org.apache.nifi.components.connector.StandardConnectorNode;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
@@ -543,7 +542,7 @@ public class ExtensionBuilder {
                     for (final ConnectorPropertyDescriptor descriptor : propertyGroup.getProperties()) {
                         final String name = descriptor.getName();
                         final String defaultValue = descriptor.getDefaultValue();
-                        defaultValues.put(name, new StringLiteralValue(defaultValue));
+                        defaultValues.put(name, defaultValue == null ? null : new StringLiteralValue(defaultValue));
                     }
                 }
 
@@ -554,13 +553,12 @@ public class ExtensionBuilder {
 
     private FrameworkConnectorInitializationContext createConnectorInitializationContext(final ProcessGroup managedProcessGroup, final ComponentLog componentLog) {
         final String name = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
-        final SecretsManager secretsManager = null;
 
         return connectorInitializationContextBuilder
             .identifier(identifier)
             .name(name)
             .componentLog(componentLog)
-            .secretsManager(secretsManager)
+            .secretsManager(flowController.getConnectorRepository().getSecretsManager())
             .assetManager(flowController.getAssetManager())
             .build();
     }

@@ -17,6 +17,7 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.nar.ExtensionManager;
@@ -24,15 +25,18 @@ import org.apache.nifi.nar.ExtensionManager;
 public class StandardConnectorRepoInitializationContext implements ConnectorRepositoryInitializationContext {
     private final FlowManager flowManager;
     private final ExtensionManager extensionManager;
+    private final SecretsManager secretsManager;
     private final NodeTypeProvider nodeTypeProvider;
     private final ConnectorRequestReplicator requestReplicator;
 
     public StandardConnectorRepoInitializationContext(final FlowManager flowManager,
                                                      final ExtensionManager extensionManager,
+                                                     final SecretsManager secretsManager,
                                                      final NodeTypeProvider nodeTypeProvider,
                                                      final ConnectorRequestReplicator requestReplicator) {
         this.flowManager = flowManager;
         this.extensionManager = extensionManager;
+        this.secretsManager = secretsManager;
         this.nodeTypeProvider = nodeTypeProvider;
         this.requestReplicator = requestReplicator;
     }
@@ -45,6 +49,11 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
     @Override
     public ExtensionManager getExtensionManager() {
         return extensionManager;
+    }
+
+    @Override
+    public SecretsManager getSecretsManager() {
+        return secretsManager;
     }
 
     @Override
