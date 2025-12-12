@@ -7387,7 +7387,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         this.accessPolicyDAO = accessPolicyDAO;
     }
 
-    @Autowired
+    @Autowired(required = false)
     public void setClusterCoordinator(final ClusterCoordinator coordinator) {
         this.clusterCoordinator = coordinator;
     }

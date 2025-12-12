@@ -22,7 +22,7 @@ import org.apache.nifi.registry.db.entity.BundleEntity;
 import org.apache.nifi.registry.db.entity.FlowEntity;
 import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
