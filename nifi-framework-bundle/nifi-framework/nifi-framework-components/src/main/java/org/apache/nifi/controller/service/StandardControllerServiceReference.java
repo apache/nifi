@@ -25,6 +25,7 @@ import java.util.Set;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
+import org.apache.nifi.controller.ScheduledState;
 
 public class StandardControllerServiceReference implements ControllerServiceReference {
 
@@ -46,17 +47,25 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
         return Collections.unmodifiableSet(components);
     }
 
+    /**
+     * Determines if a component is running or in the process of starting.
+     * A component might be stuck in STARTING state if it references an invalid controller service
+     * (e.g., after a restart when the controller service configuration became invalid).
+     * Such components are considered "active" and would prevent the controller service from being disabled.
+     */
     private boolean isRunning(final ComponentNode component) {
-        if (component instanceof ReportingTaskNode) {
-            return ((ReportingTaskNode) component).isRunning();
+        if (component instanceof ReportingTaskNode reportingTaskNode) {
+            final ScheduledState state = reportingTaskNode.getScheduledState();
+            return state == ScheduledState.RUNNING || state == ScheduledState.STARTING;
         }
 
-        if (component instanceof ProcessorNode) {
-            return ((ProcessorNode) component).isRunning();
+        if (component instanceof ProcessorNode processorNode) {
+            final ScheduledState state = processorNode.getPhysicalScheduledState();
+            return state == ScheduledState.RUNNING || state == ScheduledState.STARTING;
         }
 
-        if (component instanceof ControllerServiceNode) {
-            return ((ControllerServiceNode) component).isActive();
+        if (component instanceof ControllerServiceNode controllerServiceNode) {
+            return controllerServiceNode.isActive();
         }
 
         return false;

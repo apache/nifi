@@ -20,6 +20,7 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -70,6 +71,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -82,6 +84,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 public class TestStandardControllerServiceProvider {
 
@@ -435,6 +438,107 @@ public class TestStandardControllerServiceProvider {
         // procNode.setScheduledState(ScheduledState.RUNNING);
         provider.unscheduleReferencingComponents(serviceNode);
         assertEquals(ScheduledState.STOPPED, procNode.getScheduledState());
+    }
+
+    /**
+     * Test that unscheduleReferencingComponents handles processors in STARTING state.
+     * This scenario can occur when a processor references an invalid controller service
+     * (e.g., after a restart when the controller service configuration became invalid).
+     * The processor might be stuck in STARTING state and should still be stopped.
+     */
+    @Test
+    public void testUnscheduleReferencingComponentsIncludesStartingProcessors() {
+        final ProcessGroup procGroup = new MockProcessGroup(flowManager);
+
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        final StandardProcessScheduler scheduler = createScheduler();
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
+        final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
+
+        // Create a mock processor that is in STARTING state
+        final ProcessorNode mockProcNode = Mockito.mock(ProcessorNode.class);
+        when(mockProcNode.getPhysicalScheduledState()).thenReturn(ScheduledState.STARTING);
+        when(mockProcNode.isRunning()).thenReturn(false); // isRunning() returns false for STARTING
+        when(mockProcNode.getScheduledState()).thenReturn(ScheduledState.RUNNING);
+
+        // Mock the process group and stop processor behavior
+        final ProcessGroup mockProcessGroup = Mockito.mock(ProcessGroup.class);
+        when(mockProcNode.getProcessGroup()).thenReturn(mockProcessGroup);
+        when(mockProcessGroup.stopProcessor(mockProcNode)).thenReturn(CompletableFuture.completedFuture(null));
+
+        serviceNode.addReference(mockProcNode, PropertyDescriptor.NULL_DESCRIPTOR);
+
+        // The unscheduleReferencingComponents should include the processor in STARTING state
+        // This verifies that the method checks for both RUNNING and STARTING states
+        provider.unscheduleReferencingComponents(serviceNode);
+
+        // Verify that verifyCanStop was called on the processor (indicating it was considered for stopping)
+        Mockito.verify(mockProcNode).verifyCanStop();
+        // Verify that stopProcessor was called
+        Mockito.verify(mockProcessGroup).stopProcessor(mockProcNode);
+    }
+
+    /**
+     * Test that getActiveReferences in StandardControllerServiceReference considers
+     * processors in STARTING state as active (in addition to RUNNING).
+     */
+    @Test
+    public void testGetActiveReferencesIncludesStartingProcessors() {
+        final ProcessGroup procGroup = new MockProcessGroup(flowManager);
+
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        final StandardProcessScheduler scheduler = createScheduler();
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
+        final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
+
+        // Create a mock processor that is in STARTING state
+        final ProcessorNode mockProcNode = Mockito.mock(ProcessorNode.class);
+        when(mockProcNode.getPhysicalScheduledState()).thenReturn(ScheduledState.STARTING);
+        when(mockProcNode.isRunning()).thenReturn(false); // isRunning() returns false for STARTING
+        when(mockProcNode.getScheduledState()).thenReturn(ScheduledState.RUNNING);
+
+        serviceNode.addReference(mockProcNode, PropertyDescriptor.NULL_DESCRIPTOR);
+
+        // Get active references - should include the STARTING processor
+        final Set<ComponentNode> activeReferences = serviceNode.getReferences().getActiveReferences();
+
+        // The STARTING processor should be considered active
+        assertTrue(activeReferences.contains(mockProcNode),
+            "Processor in STARTING state should be considered an active reference");
+    }
+
+    /**
+     * Test that getActiveReferences does not include processors in STOPPED state.
+     */
+    @Test
+    public void testGetActiveReferencesExcludesStoppedProcessors() {
+        final ProcessGroup procGroup = new MockProcessGroup(flowManager);
+
+        final FlowManager flowManager = Mockito.mock(FlowManager.class);
+        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+
+        final StandardProcessScheduler scheduler = createScheduler();
+        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
+        final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
+
+        // Create a mock processor that is in STOPPED state
+        final ProcessorNode mockProcNode = Mockito.mock(ProcessorNode.class);
+        when(mockProcNode.getPhysicalScheduledState()).thenReturn(ScheduledState.STOPPED);
+        when(mockProcNode.isRunning()).thenReturn(false);
+        when(mockProcNode.getScheduledState()).thenReturn(ScheduledState.STOPPED);
+
+        serviceNode.addReference(mockProcNode, PropertyDescriptor.NULL_DESCRIPTOR);
+
+        // Get active references - should NOT include the STOPPED processor
+        final Set<ComponentNode> activeReferences = serviceNode.getReferences().getActiveReferences();
+
+        // The STOPPED processor should NOT be considered active
+        assertFalse(activeReferences.contains(mockProcNode),
+            "Processor in STOPPED state should not be considered an active reference");
     }
 
     @Test
