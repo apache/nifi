@@ -31,13 +31,15 @@ public class PollingContext {
     private final Collection<String> topics;
     private final Pattern topicPattern;
     private final AutoOffsetReset autoOffsetReset;
+    private final Integer partition;
 
     public PollingContext(final String groupId, final Collection<String> topics,
-            final AutoOffsetReset autoOffsetReset) {
+            final AutoOffsetReset autoOffsetReset, final Integer partition) {
         this.groupId = Objects.requireNonNull(groupId, "Group ID required");
         this.topics = Collections.unmodifiableCollection(Objects.requireNonNull(topics, "Topics required"));
         this.topicPattern = null;
         this.autoOffsetReset = Objects.requireNonNull(autoOffsetReset, "Auto Offset Reset required");
+        this.partition = partition;
     }
 
     public PollingContext(final String groupId, final Pattern topicPattern,
@@ -46,6 +48,7 @@ public class PollingContext {
         this.topics = Collections.emptyList();
         this.topicPattern = Objects.requireNonNull(topicPattern, "Topic Patten required");
         this.autoOffsetReset = Objects.requireNonNull(autoOffsetReset, "Auto Offset Reset required");
+        this.partition = null;
     }
 
     public String getGroupId() {
@@ -64,9 +67,13 @@ public class PollingContext {
         return autoOffsetReset;
     }
 
+    public Integer getPartition() {
+        return partition;
+    }
+
     @Override
     public String toString() {
-        return String.format("Group ID [%s] Topics %s Topic Pattern [%s] Auto Offset Reset [%s]",
-                groupId, topics, topicPattern, autoOffsetReset);
+        return String.format("Group ID [%s] Topics %s Topic Pattern [%s] Auto Offset Reset [%s] Partition [%d]",
+                groupId, topics, topicPattern, autoOffsetReset, partition);
     }
 }

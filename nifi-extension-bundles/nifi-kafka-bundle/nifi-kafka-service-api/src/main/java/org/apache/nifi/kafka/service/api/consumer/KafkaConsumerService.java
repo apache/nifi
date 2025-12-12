@@ -22,6 +22,8 @@ import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Kafka Consumer Service must be closed to avoid leaking connection resources
@@ -57,4 +59,15 @@ public interface KafkaConsumerService extends Closeable {
      * @return List of Partition State information
      */
     List<PartitionState> getPartitionStates();
+
+    /**
+     *
+     * @return Map with the subscribed topics as keys and a list of PartitionState for a given topic as values
+     */
+    default Map<String, List<PartitionState>> getPartitionStatesByTopic() {
+        List<PartitionState> partitionStates = getPartitionStates();
+        Map<String, List<PartitionState>> topicToPartitionStates = partitionStates.stream().collect(Collectors.groupingBy(PartitionState::getTopic));
+
+        return topicToPartitionStates;
+    }
 }
