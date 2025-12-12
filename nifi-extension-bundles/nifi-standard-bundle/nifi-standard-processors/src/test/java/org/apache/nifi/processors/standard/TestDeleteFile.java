@@ -149,7 +149,7 @@ class TestDeleteFile {
     }
 
     @Test
-    void testDeleteDirectoryAfterDeleteOfOneOfMany() throws IOException {
+    void testDeleteDirectoryAfterDeleteOfNonLastFile() throws IOException {
         final Path directory = Files.createDirectory(testDirectory.resolve("test-directory")).toAbsolutePath();
         final String filename = "someFile";
         enqueue(directory.toString(), filename);
