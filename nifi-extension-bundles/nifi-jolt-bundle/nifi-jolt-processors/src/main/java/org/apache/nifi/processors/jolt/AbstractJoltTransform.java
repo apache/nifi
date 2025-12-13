@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processors.jolt;
 
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.JsonUtils;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.joltcommunity.jolt.JoltTransform;
+import io.joltcommunity.jolt.JsonUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;

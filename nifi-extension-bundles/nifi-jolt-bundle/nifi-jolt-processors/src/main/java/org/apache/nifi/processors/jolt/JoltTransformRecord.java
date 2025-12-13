@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.processors.jolt;
 
-import com.bazaarvoice.jolt.ContextualTransform;
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.Transform;
+import io.joltcommunity.jolt.ContextualTransform;
+import io.joltcommunity.jolt.JoltTransform;
+import io.joltcommunity.jolt.Transform;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.SideEffectFree;

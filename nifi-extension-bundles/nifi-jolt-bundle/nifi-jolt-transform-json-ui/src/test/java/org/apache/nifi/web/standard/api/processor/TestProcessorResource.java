@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.standard.api.processor;
 
-import com.bazaarvoice.jolt.JsonUtils;
+import io.joltcommunity.jolt.JsonUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.nifi.web.ComponentDescriptor;
 import org.apache.nifi.web.ComponentDetails;

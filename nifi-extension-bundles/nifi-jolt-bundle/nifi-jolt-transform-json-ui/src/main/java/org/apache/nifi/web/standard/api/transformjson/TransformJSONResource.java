@@ -17,8 +17,8 @@
 
 package org.apache.nifi.web.standard.api.transformjson;
 
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.JsonUtils;
+import io.joltcommunity.jolt.JoltTransform;
+import io.joltcommunity.jolt.JsonUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;

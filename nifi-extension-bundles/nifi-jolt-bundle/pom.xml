@@ -30,18 +30,18 @@
         <module>nifi-jolt-utils</module>
     </modules>
     <properties>
-        <jolt.version>0.1.8</jolt.version>
+        <jolt.version>1.1.0</jolt.version>
     </properties>
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.bazaarvoice.jolt</groupId>
-                <artifactId>jolt-core</artifactId>
+                <groupId>io.github.jolt-community.jolt</groupId>
+                <artifactId>jolt-community-core</artifactId>
                 <version>${jolt.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.bazaarvoice.jolt</groupId>
-                <artifactId>json-utils</artifactId>
+                <groupId>io.github.jolt-community.jolt</groupId>
+                <artifactId>json-community-utils</artifactId>
                 <version>${jolt.version}</version>
             </dependency>
             <dependency>

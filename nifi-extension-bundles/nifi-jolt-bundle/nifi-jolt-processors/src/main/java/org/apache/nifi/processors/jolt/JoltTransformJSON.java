@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.jolt;
 
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.JsonUtil;
-import com.bazaarvoice.jolt.JsonUtils;
 import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.joltcommunity.jolt.JoltTransform;
+import io.joltcommunity.jolt.JsonUtil;
+import io.joltcommunity.jolt.JsonUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.behavior.SideEffectFree;

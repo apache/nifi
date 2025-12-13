@@ -17,17 +17,18 @@
 
 package org.apache.nifi.jolt.util;
 
-import com.bazaarvoice.jolt.CardinalityTransform;
-import com.bazaarvoice.jolt.Chainr;
-import com.bazaarvoice.jolt.Defaultr;
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.Modifier;
-import com.bazaarvoice.jolt.Removr;
-import com.bazaarvoice.jolt.Shiftr;
-import com.bazaarvoice.jolt.Sortr;
-import com.bazaarvoice.jolt.SpecDriven;
-import com.bazaarvoice.jolt.chainr.spec.ChainrEntry;
-import com.bazaarvoice.jolt.exception.SpecException;
+import io.joltcommunity.jolt.CardinalityTransform;
+import io.joltcommunity.jolt.Chainr;
+import io.joltcommunity.jolt.Defaultr;
+import io.joltcommunity.jolt.JoltTransform;
+import io.joltcommunity.jolt.Modifier;
+import io.joltcommunity.jolt.Shiftr;
+import io.joltcommunity.jolt.Sortr;
+import io.joltcommunity.jolt.SpecDriven;
+import io.joltcommunity.jolt.chainr.spec.ChainrEntry;
+import io.joltcommunity.jolt.exception.SpecException;
+import io.joltcommunity.jolt.removr.Removr;
+
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
