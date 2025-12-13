@@ -521,7 +521,11 @@ public class ProcessorResource extends ApplicationResource {
             ) final ComponentStateEntity componentStateEntity) throws InterruptedException {
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, componentStateEntity);
+            if (componentStateEntity == null) {
+                return replicate(HttpMethod.POST);
+            } else {
+                return replicate(HttpMethod.POST, componentStateEntity);
+            }
         }
 
         final ProcessorEntity requestProcessorEntity = new ProcessorEntity();

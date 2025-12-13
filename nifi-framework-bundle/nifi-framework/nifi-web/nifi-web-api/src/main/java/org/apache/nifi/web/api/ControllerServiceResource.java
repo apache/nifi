@@ -378,7 +378,11 @@ public class ControllerServiceResource extends ApplicationResource {
             ) final ComponentStateEntity componentStateEntity) {
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, componentStateEntity);
+            if (componentStateEntity == null) {
+                return replicate(HttpMethod.POST);
+            } else {
+                return replicate(HttpMethod.POST, componentStateEntity);
+            }
         }
 
         final ControllerServiceEntity requestControllerServiceEntity = new ControllerServiceEntity();
