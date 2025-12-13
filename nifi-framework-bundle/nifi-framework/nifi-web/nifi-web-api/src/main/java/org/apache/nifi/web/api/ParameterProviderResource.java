@@ -472,7 +472,11 @@ public class ParameterProviderResource extends AbstractParameterResource {
             ) final ComponentStateEntity componentStateEntity) {
 
         if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, componentStateEntity);
+            if (componentStateEntity == null) {
+                return replicate(HttpMethod.POST);
+            } else {
+                return replicate(HttpMethod.POST, componentStateEntity);
+            }
         }
 
         final ParameterProviderEntity requestParameterProviderEntity = new ParameterProviderEntity();
