@@ -62,6 +62,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestJoltTransformRecord {
 
     final static String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
+    private static final String CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.TestCustomJoltTransform";
     static String chainrSpecContents;
     private TestRunner runner;
     private JoltTransformRecord processor;
@@ -237,7 +238,7 @@ public class TestJoltTransformRecord {
         runner.enableControllerService(writer);
         final String spec = Files.readString(Paths.get("src/test/resources/specs/customChainrSpec.json"));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.assertValid();
     }
@@ -262,7 +263,7 @@ public class TestJoltTransformRecord {
     public void testCustomTransformationWithInvalidClassPath() {
         final String customJarPath = "src/test/resources/TestJoltTransformRecord/FakeCustomJar.jar";
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(new byte[0]);
@@ -273,7 +274,7 @@ public class TestJoltTransformRecord {
     public void testCustomTransformationWithInvalidClassName() {
         final String customJarPath = "src/test/resources/TestJoltTransformRecord/TestCustomJoltTransform.jar";
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "FakeCustomJoltTransform");
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "org.apache.nifi.processors.jolt.FakeCustomJoltTransform");
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(new byte[0]);
@@ -587,7 +588,7 @@ public class TestJoltTransformRecord {
         final String customJarPath = "src/test/resources/TestJoltTransformRecord/TestCustomJoltTransform.jar";
         final String spec = Files.readString(Paths.get("src/test/resources/specs/defaultrSpec.json"));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.DEFAULTR);
         runner.enqueue(new byte[0]);
@@ -612,8 +613,8 @@ public class TestJoltTransformRecord {
         assertNotNull(t);
         final String customJarPath = t.getPath();
         final String spec = Files.readString(Paths.get("src/test/resources/specs/customChainrSpec.json"));
-        final String customJoltTransform = "TestCustomJoltTransform";
-        final String customClass = "TestCustomJoltTransform";
+        final String customJoltTransform = CUSTOM_CLASS_NAME;
+        final String customClass = CUSTOM_CLASS_NAME;
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, "${JOLT_SPEC}");
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "${CUSTOM_CLASS}");

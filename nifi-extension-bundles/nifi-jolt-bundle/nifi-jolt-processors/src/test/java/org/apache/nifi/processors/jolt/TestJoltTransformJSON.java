@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.processors.jolt;
 
-import com.bazaarvoice.jolt.Diffy;
-import com.bazaarvoice.jolt.JsonUtils;
+import io.joltcommunity.jolt.Diffy;
+import io.joltcommunity.jolt.JsonUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jolt.util.JoltTransformStrategy;
 import org.apache.nifi.processor.Processor;
@@ -54,6 +54,7 @@ class TestJoltTransformJSON {
     final static String SHIFTR_SPEC_PATH = "src/test/resources/specs/shiftrSpec.json";
     final static String SHIFTR_JSON_OUTPUT = "shiftrOutput.json";
     final static String CHAINR_JSON_OUTPUT = "chainrOutput.json";
+    private static final String CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.TestCustomJoltTransform";
     private static final String JSON_SOURCE_ATTR_NAME = "jsonSourceAttr";
 
     static String chainrSpecContents;
@@ -163,7 +164,7 @@ class TestJoltTransformJSON {
     void testCustomTransformationWithNoModule() throws IOException {
         final String spec = Files.readString(Paths.get("src/test/resources/specs/customChainrSpec.json"));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
         runner.run();
@@ -184,7 +185,7 @@ class TestJoltTransformJSON {
     void testCustomTransformationWithInvalidClassPath() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/FakeCustomJar.jar";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
@@ -195,7 +196,7 @@ class TestJoltTransformJSON {
     void testCustomTransformationWithInvalidClassName() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "FakeCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "org.apache.nifi.processors.jolt.FakeCustomJoltTransform");
         runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
@@ -379,7 +380,7 @@ class TestJoltTransformJSON {
     void testTransformInputWithCustomTransformationWithJar() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
@@ -391,7 +392,7 @@ class TestJoltTransformJSON {
     @Test
     void testExpressionLanguageJarFile() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
-        final String customJoltTransform = "TestCustomJoltTransform";
+        final String customJoltTransform = CUSTOM_CLASS_NAME;
 
         Map<String, String> customSpecs = new HashMap<>();
         customSpecs.put("JOLT_SPEC", chainrSpecContents);
@@ -411,7 +412,7 @@ class TestJoltTransformJSON {
     void testTransformInputWithCustomTransformationWithDir() throws IOException {
         final String customJarPath = "src/test/resources/TestJoltTransformJson";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
@@ -426,6 +427,7 @@ class TestJoltTransformJSON {
         final String spec = Files.readString(Paths.get("src/test/resources/specs/customChainrSpec.json"));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.enqueue(JSON_INPUT);
         runner.run();
 
@@ -437,7 +439,7 @@ class TestJoltTransformJSON {
         final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         final String spec = Files.readString(Paths.get("src/test/resources/specs/defaultrSpec.json"));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.DEFAULTR);
         runner.enqueue(JSON_INPUT);

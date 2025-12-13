@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.standard.api.transformjson;
 
-import com.bazaarvoice.jolt.Diffy;
-import com.bazaarvoice.jolt.JsonUtils;
+import io.joltcommunity.jolt.Diffy;
+import io.joltcommunity.jolt.JsonUtils;
 import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebRequestContext;
@@ -52,6 +52,7 @@ import static org.mockito.Mockito.mock;
 public class TestTransformJSONResource extends JerseyTest {
 
     public static final ServletContext servletContext = mock(ServletContext.class);
+    private static final String CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.TestCustomJoltTransform";
 
     @Override
     protected Application configure() {
@@ -165,7 +166,7 @@ public class TestTransformJSONResource extends JerseyTest {
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
 
         JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom", "[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
-        joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
+        joltSpecificationDTO.setCustomClass(CUSTOM_CLASS_NAME);
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -185,7 +186,7 @@ public class TestTransformJSONResource extends JerseyTest {
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
         JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom", "[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
-        joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
+        joltSpecificationDTO.setCustomClass(CUSTOM_CLASS_NAME);
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -206,7 +207,7 @@ public class TestTransformJSONResource extends JerseyTest {
         Mockito.when(niFiWebConfigurationContext.getComponentDetails(any(NiFiWebRequestContext.class))).thenReturn(componentDetails);
 
         JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom", "{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}");
-        joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
+        joltSpecificationDTO.setCustomClass(CUSTOM_CLASS_NAME);
         ValidationDTO validate  = client().target(getBaseUri())
                 .path("/standard/transformjson/validate")
                 .request()
@@ -221,7 +222,7 @@ public class TestTransformJSONResource extends JerseyTest {
         JoltSpecificationDTO joltSpecificationDTO = new JoltSpecificationDTO("jolt-transform-custom", "[{ \"operation\": \"default\", \"spec\":{ \"custom-id\" :4 }}]");
         String inputJson = "{\"rating\":{\"quality\":2,\"count\":1}}";
         joltSpecificationDTO.setInput(inputJson);
-        joltSpecificationDTO.setCustomClass("TestCustomJoltTransform");
+        joltSpecificationDTO.setCustomClass(CUSTOM_CLASS_NAME);
         final Response response = client().target(getBaseUri())
                 .path("/standard/transformjson/execute")
                 .request()
