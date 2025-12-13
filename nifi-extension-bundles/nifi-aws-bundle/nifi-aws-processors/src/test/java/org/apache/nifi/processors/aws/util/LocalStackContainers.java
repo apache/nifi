@@ -21,7 +21,7 @@ import org.testcontainers.utility.DockerImageName;
 
 public class LocalStackContainers {
 
-    private static final DockerImageName localStackImageName = DockerImageName.parse("localstack/localstack:4.10.0");
+    private static final DockerImageName localStackImageName = DockerImageName.parse("localstack/localstack:4.12.0");
 
     public static LocalStackContainer newContainer() {
         return new LocalStackContainer(localStackImageName);
