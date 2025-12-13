@@ -41,7 +41,7 @@
         <flyway.version>11.19.0</flyway.version>
         <flyway.tests.version>10.0.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
-        <jgit.version>7.4.0.202509020913-r</jgit.version>
+        <jgit.version>7.5.0.202512021534-r</jgit.version>
         <h2.version>2.4.240</h2.version>
     </properties>
     <dependencyManagement>
