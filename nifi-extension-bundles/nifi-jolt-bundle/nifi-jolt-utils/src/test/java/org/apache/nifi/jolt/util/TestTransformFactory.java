@@ -26,7 +26,10 @@ import io.joltcommunity.jolt.Modifier;
 import io.joltcommunity.jolt.Shiftr;
 import io.joltcommunity.jolt.Sortr;
 import io.joltcommunity.jolt.removr.Removr;
+import org.apache.nifi.processors.jolt.CustomTransformJarProvider;
+import org.apache.nifi.processors.jolt.TestCustomJoltTransform;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -41,7 +44,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestTransformFactory {
 
-    private static final String CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.TestCustomJoltTransform";
+    private static final String CUSTOM_CLASS_NAME = TestCustomJoltTransform.class.getName();
+    private static final String MISSING_CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.MissingCustomJoltTransform";
+
+    @TempDir
+    Path tempDir;
 
     @Test
     void testGetChainTransform() throws Exception {
@@ -114,7 +121,7 @@ class TestTransformFactory {
     @Test
     void testGetCustomTransformation() throws Exception {
         final String chainrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/chainrSpec.json")));
-        Path jarFilePath = Paths.get("src/test/resources/TestTransformFactory/TestCustomJoltTransform.jar");
+        Path jarFilePath = CustomTransformJarProvider.createCustomTransformJar(tempDir);
         URL[] urlPaths = new URL[1];
         urlPaths[0] = jarFilePath.toUri().toURL();
         ClassLoader customClassLoader = new URLClassLoader(urlPaths, this.getClass().getClassLoader());
@@ -126,7 +133,8 @@ class TestTransformFactory {
     @Test
     void testGetCustomTransformationNotFound() throws Exception {
         final String chainrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/chainrSpec.json")));
-        ClassNotFoundException cnf = assertThrows(ClassNotFoundException.class, () -> TransformFactory.getCustomTransform(this.getClass().getClassLoader(), CUSTOM_CLASS_NAME, chainrSpec));
-        assertEquals(CUSTOM_CLASS_NAME, cnf.getLocalizedMessage());
+        ClassNotFoundException cnf = assertThrows(ClassNotFoundException.class,
+                () -> TransformFactory.getCustomTransform(this.getClass().getClassLoader(), MISSING_CUSTOM_CLASS_NAME, chainrSpec));
+        assertEquals(MISSING_CUSTOM_CLASS_NAME, cnf.getLocalizedMessage());
     }
 }

@@ -29,6 +29,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -56,14 +57,18 @@ class TestJoltTransformJSON {
     final static String CHAINR_JSON_OUTPUT = "chainrOutput.json";
     private static final String CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.TestCustomJoltTransform";
     private static final String JSON_SOURCE_ATTR_NAME = "jsonSourceAttr";
-
-    static String chainrSpecContents;
+    private static Path customTransformJar;
+    private static String chainrSpecContents;
     private Processor processor;
     private TestRunner runner;
+
+    @TempDir
+    private static Path tempDir;
 
     @BeforeAll
     static void setUpBeforeAll() throws Exception {
         chainrSpecContents = Files.readString(Paths.get(CHAINR_SPEC_PATH));
+        customTransformJar = CustomTransformJarProvider.createCustomTransformJar(tempDir);
     }
 
     @BeforeEach
@@ -173,7 +178,7 @@ class TestJoltTransformJSON {
 
     @Test
     void testCustomTransformationWithMissingClassName() throws IOException {
-        final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
+        final String customJarPath = customTransformJar.toString();
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
@@ -194,7 +199,7 @@ class TestJoltTransformJSON {
 
     @Test
     void testCustomTransformationWithInvalidClassName() throws IOException {
-        final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
+        final String customJarPath = customTransformJar.toString();
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "org.apache.nifi.processors.jolt.FakeCustomJoltTransform");
         runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
@@ -378,10 +383,9 @@ class TestJoltTransformJSON {
 
     @Test
     void testTransformInputWithCustomTransformationWithJar() throws IOException {
-        final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
-        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
+        runner.setProperty(JoltTransformJSON.MODULES, customTransformJar.toString());
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
         runner.run();
@@ -391,7 +395,6 @@ class TestJoltTransformJSON {
 
     @Test
     void testExpressionLanguageJarFile() throws IOException {
-        final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         final String customJoltTransform = CUSTOM_CLASS_NAME;
 
         Map<String, String> customSpecs = new HashMap<>();
@@ -401,7 +404,7 @@ class TestJoltTransformJSON {
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, "${CUSTOM_JOLT_CLASS}");
         runner.setProperty(JoltTransformJSON.MODULES, "${CUSTOM_JAR}");
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
-        runner.setEnvironmentVariableValue("CUSTOM_JAR", customJarPath);
+        runner.setEnvironmentVariableValue("CUSTOM_JAR", customTransformJar.toString());
         runner.enqueue(JSON_INPUT, customSpecs);
         runner.run();
 
@@ -410,10 +413,9 @@ class TestJoltTransformJSON {
 
     @Test
     void testTransformInputWithCustomTransformationWithDir() throws IOException {
-        final String customJarPath = "src/test/resources/TestJoltTransformJson";
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, chainrSpecContents);
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
-        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
+        runner.setProperty(JoltTransformJSON.MODULES, customTransformJar.getParent().toString());
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(JSON_INPUT);
         runner.run();
@@ -423,10 +425,9 @@ class TestJoltTransformJSON {
 
     @Test
     void testTransformInputWithChainrEmbeddedCustomTransformation() throws IOException {
-        final String customJarPath = "src/test/resources/TestJoltTransformJson";
         final String spec = Files.readString(Paths.get("src/test/resources/specs/customChainrSpec.json"));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
+        runner.setProperty(JoltTransformJSON.MODULES, customTransformJar.getParent().toString());
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.enqueue(JSON_INPUT);
         runner.run();
@@ -436,11 +437,10 @@ class TestJoltTransformJSON {
 
     @Test
     void testTransformInputCustomTransformationIgnored() throws IOException {
-        final String customJarPath = "src/test/resources/TestJoltTransformJson/TestCustomJoltTransform.jar";
         final String spec = Files.readString(Paths.get("src/test/resources/specs/defaultrSpec.json"));
         runner.setProperty(JoltTransformJSON.JOLT_SPEC, spec);
         runner.setProperty(JoltTransformJSON.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
-        runner.setProperty(JoltTransformJSON.MODULES, customJarPath);
+        runner.setProperty(JoltTransformJSON.MODULES, customTransformJar.toString());
         runner.setProperty(JoltTransformJSON.JOLT_TRANSFORM, JoltTransformStrategy.DEFAULTR);
         runner.enqueue(JSON_INPUT);
         runner.run();
