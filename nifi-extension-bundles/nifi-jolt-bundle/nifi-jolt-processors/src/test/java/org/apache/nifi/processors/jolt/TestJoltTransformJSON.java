@@ -26,10 +26,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -45,6 +45,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -58,17 +60,20 @@ class TestJoltTransformJSON {
     private static final String CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.TestCustomJoltTransform";
     private static final String JSON_SOURCE_ATTR_NAME = "jsonSourceAttr";
     private static Path customTransformJar;
+    private static final Path CUSTOM_JAR_DIRECTORY = Paths.get("target", "test-custom-jolt", "json");
     private static String chainrSpecContents;
     private Processor processor;
     private TestRunner runner;
 
-    @TempDir
-    private static Path tempDir;
-
     @BeforeAll
     static void setUpBeforeAll() throws Exception {
         chainrSpecContents = Files.readString(Paths.get(CHAINR_SPEC_PATH));
-        customTransformJar = CustomTransformJarProvider.createCustomTransformJar(tempDir);
+        customTransformJar = CustomTransformJarProvider.createCustomTransformJar(CUSTOM_JAR_DIRECTORY);
+    }
+
+    @AfterAll
+    static void cleanUpCustomJar() {
+        FileUtils.deleteQuietly(CUSTOM_JAR_DIRECTORY.toFile());
     }
 
     @BeforeEach
