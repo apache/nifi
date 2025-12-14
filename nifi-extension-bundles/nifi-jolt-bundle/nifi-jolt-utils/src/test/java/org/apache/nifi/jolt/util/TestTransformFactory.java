@@ -124,10 +124,11 @@ class TestTransformFactory {
         Path jarFilePath = CustomTransformJarProvider.createCustomTransformJar(tempDir);
         URL[] urlPaths = new URL[1];
         urlPaths[0] = jarFilePath.toUri().toURL();
-        ClassLoader customClassLoader = new URLClassLoader(urlPaths, this.getClass().getClassLoader());
-        JoltTransform transform = TransformFactory.getCustomTransform(customClassLoader, CUSTOM_CLASS_NAME, JsonUtils.jsonToObject(chainrSpec));
-        assertNotNull(transform);
-        assertEquals(CUSTOM_CLASS_NAME, transform.getClass().getName());
+        try (URLClassLoader customClassLoader = new URLClassLoader(urlPaths, this.getClass().getClassLoader())) {
+            JoltTransform transform = TransformFactory.getCustomTransform(customClassLoader, CUSTOM_CLASS_NAME, JsonUtils.jsonToObject(chainrSpec));
+            assertNotNull(transform);
+            assertEquals(CUSTOM_CLASS_NAME, transform.getClass().getName());
+        }
     }
 
     @Test
