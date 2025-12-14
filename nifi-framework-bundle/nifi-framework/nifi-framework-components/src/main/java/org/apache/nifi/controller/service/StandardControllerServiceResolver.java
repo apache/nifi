@@ -26,7 +26,6 @@ import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -131,7 +130,6 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
             return;
         }
 
-        final Map<String, VersionedPropertyDescriptor> propertyDescriptors = component.getPropertyDescriptors();
         final Map<String, String> componentProperties = component.getProperties();
 
         for (final Map.Entry<String, String> entry : componentProperties.entrySet()) {
@@ -143,12 +141,13 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
                 continue;
             }
 
-            final VersionedPropertyDescriptor propertyDescriptor = propertyDescriptors.get(propertyName);
-            if (propertyDescriptor == null) {
-                continue;
-            }
-
-            if (!propertyDescriptor.getIdentifiesControllerService()) {
+            // Determine if this property identifies a Controller Service based on the
+            // current extension's required API mapping. This avoids dependence on the
+            // snapshot's VersionedPropertyDescriptor map, which may be out of date after
+            // property-name migration.
+            final ControllerServiceAPI descriptorRequiredApi = componentRequiredApis.get(propertyName);
+            if (descriptorRequiredApi == null) {
+                // Not a Controller Service property for the currently installed component
                 continue;
             }
 
@@ -158,18 +157,11 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
 
             // If the referenced Controller Service is available, there is nothing to resolve.
             if (availableControllerServiceIds.contains(propertyValue)) {
-                unresolvedServices.add(propertyValue);
                 continue;
             }
 
             final ExternalControllerServiceReference externalServiceReference = externalControllerServiceReferences == null ? null : externalControllerServiceReferences.get(propertyValue);
             if (externalServiceReference == null) {
-                unresolvedServices.add(propertyValue);
-                continue;
-            }
-
-            final ControllerServiceAPI descriptorRequiredApi = componentRequiredApis.get(propertyName);
-            if (descriptorRequiredApi == null) {
                 unresolvedServices.add(propertyValue);
                 continue;
             }

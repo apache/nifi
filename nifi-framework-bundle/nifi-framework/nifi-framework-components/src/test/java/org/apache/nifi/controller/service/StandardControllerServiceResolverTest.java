@@ -23,9 +23,11 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ControllerServiceAPI;
+import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -39,6 +41,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -136,6 +141,73 @@ public class StandardControllerServiceResolverTest {
 
         final String resolvedConvertRecordWriterId = childConvertRecord.getProperties().get("record-writer");
         assertEquals(parentWriter.getIdentifier(), resolvedConvertRecordWriterId);
+    }
+
+    @Test
+    public void testResolvesWhenDescriptorMissingButApiPresent() {
+        // Arrange a component with a migrated property name and missing descriptor key
+        final String propertyName = "SSL Context Service";
+        final String placeholderId = "11111111-1111-1111-1111-111111111111";
+        final String externalServiceName = "Default NiFi SSL Context Service";
+
+        final VersionedProcessor processor = new VersionedProcessor();
+        processor.setType("org.apache.nifi.processors.TestProc");
+        final Bundle procBundle = new Bundle();
+        procBundle.setGroup("g");
+        procBundle.setArtifact("a");
+        procBundle.setVersion("1.0.0");
+        processor.setBundle(procBundle);
+
+        final Map<String, String> props = new LinkedHashMap<>();
+        props.put(propertyName, placeholderId);
+        processor.setProperties(props);
+
+        // propertyDescriptors does NOT have the migrated key (simulating preflight rename without descriptor alignment)
+        final Map<String, VersionedPropertyDescriptor> descriptors = new HashMap<>();
+        processor.setPropertyDescriptors(descriptors);
+
+        // Available controller service visible in scope
+        final VersionedControllerService svc = new VersionedControllerService();
+        svc.setIdentifier("svc-1");
+        svc.setName(externalServiceName);
+        final ControllerServiceAPI api = new ControllerServiceAPI();
+        api.setType("org.apache.nifi.ssl.SSLContextService");
+        final Bundle apiBundle = new Bundle();
+        apiBundle.setGroup("org.apache.nifi");
+        apiBundle.setArtifact("nifi-ssl-context-service-api");
+        apiBundle.setVersion("1.0.0");
+        api.setBundle(apiBundle);
+        svc.setControllerServiceApis(List.of(api));
+
+        // External references map: placeholderId -> name
+        final Map<String, ExternalControllerServiceReference> externalRefs = new HashMap<>();
+        final ExternalControllerServiceReference extRef = new ExternalControllerServiceReference();
+        extRef.setName(externalServiceName);
+        externalRefs.put(placeholderId, extRef);
+
+        // componentRequiredApis indicates that this property identifies the SSLContextService API
+        final Map<String, ControllerServiceAPI> requiredApis = new HashMap<>();
+        requiredApis.put(propertyName, api);
+        when(controllerServiceApiLookup.getRequiredServiceApis(processor.getType(), processor.getBundle())).thenReturn(requiredApis);
+
+        // Build a minimal snapshot containing the processor and the available service
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setIdentifier("pg-1");
+        group.setName("Test Group");
+        group.setProcessors(new LinkedHashSet<>(Collections.singleton(processor)));
+        group.setControllerServices(new LinkedHashSet<>(Collections.singleton(svc)));
+
+        final RegisteredFlowSnapshot snapshot = new RegisteredFlowSnapshot();
+        snapshot.setFlowContents(group);
+        snapshot.setExternalControllerServices(externalRefs);
+
+        final FlowSnapshotContainer container = new FlowSnapshotContainer(snapshot);
+
+        // Invoke the public resolver to perform resolution
+        serviceResolver.resolveInheritedControllerServices(container, parentGroup.getIdentifier(), nifiUser);
+
+        // Assert property value was rewritten to local service ID and nothing left unresolved
+        assertEquals("svc-1", processor.getProperties().get(propertyName));
     }
 
     @Test
