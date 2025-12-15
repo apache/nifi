@@ -17,16 +17,18 @@
 
 package org.apache.nifi.components.connector.secrets;
 
-import org.apache.nifi.components.connector.Secret;
+import org.apache.nifi.authorization.Resource;
+import org.apache.nifi.authorization.resource.Authorizable;
 
 import java.util.Objects;
 
-public class StandardSecret implements Secret {
+public class StandardSecret implements AuthorizableSecret {
     private final String providerName;
     private final String groupName;
     private final String name;
     private final String description;
     private final String value;
+    private final Authorizable authorizable;
 
     private StandardSecret(final Builder builder) {
         this.providerName = builder.providerName;
@@ -34,6 +36,7 @@ public class StandardSecret implements Secret {
         this.name = builder.name;
         this.description = builder.description;
         this.value = builder.value;
+        this.authorizable = builder.authorizable;
     }
 
     @Override
@@ -63,13 +66,12 @@ public class StandardSecret implements Secret {
 
     @Override
     public String toString() {
-        return "StandardSecret[providerName=%s, groupName=%s, name=%s, description=%s]".formatted(
-             providerName, groupName, name, description);
+        return "StandardSecret[providerName=%s, groupName=%s, name=%s]".formatted(providerName, groupName, name);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(providerName, groupName, name, description);
+        return Objects.hash(providerName, groupName, name);
     }
 
     @Override
@@ -83,8 +85,17 @@ public class StandardSecret implements Secret {
         final StandardSecret other = (StandardSecret) obj;
         return Objects.equals(this.providerName, other.providerName)
             && Objects.equals(this.groupName, other.groupName)
-            &&  Objects.equals(this.name, other.name)
-            &&  Objects.equals(this.description, other.description);
+            &&  Objects.equals(this.name, other.name);
+    }
+
+    @Override
+    public Authorizable getParentAuthorizable() {
+        return authorizable.getParentAuthorizable();
+    }
+
+    @Override
+    public Resource getResource() {
+        return authorizable.getResource();
     }
 
     public static class Builder {
@@ -93,33 +104,52 @@ public class StandardSecret implements Secret {
         private String name;
         private String description;
         private String value;
+        private Authorizable authorizable;
 
-        public Builder providerName(String providerName) {
+        public Builder providerName(final String providerName) {
             this.providerName = providerName;
             return this;
         }
 
-        public Builder groupName(String groupName) {
+        public Builder groupName(final String groupName) {
             this.groupName = groupName;
             return this;
         }
 
-        public Builder name(String name) {
+        public Builder name(final String name) {
             this.name = name;
             return this;
         }
 
-        public Builder description(String description) {
+        public Builder description(final String description) {
             this.description = description;
             return this;
         }
 
-        public Builder value(String value) {
+        public Builder value(final String value) {
             this.value = value;
             return this;
         }
 
+        public Builder authorizable(final Authorizable authorizable) {
+            this.authorizable = authorizable;
+            return this;
+        }
+
         public StandardSecret build() {
+            if (providerName == null) {
+                throw new IllegalStateException("Provider name is required");
+            }
+            if (groupName == null) {
+                throw new IllegalStateException("Group name is required");
+            }
+            if (name == null) {
+                throw new IllegalStateException("Secret name is required");
+            }
+            if (authorizable == null) {
+                throw new IllegalStateException("Authorizable is required");
+            }
+
             return new StandardSecret(this);
         }
     }

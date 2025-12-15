@@ -17,6 +17,7 @@
 
 package org.apache.nifi.mock.connector.server.secrets;
 
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.secrets.SecretProvider;
 import org.apache.nifi.components.connector.secrets.StandardSecret;
@@ -29,6 +30,7 @@ import java.util.Map;
 
 public class ConnectorTestRunnerSecretProvider implements SecretProvider {
     public static final String GROUP_NAME = "Default";
+    private static final Authorizable AUTHORIZABLE = new ConnectorTestRunnerAuthorizable();
 
     private final Map<String, String> secrets = new HashMap<>();
 
@@ -55,6 +57,7 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
                 .groupName(GROUP_NAME)
                 .name(entry.getKey())
                 .value(entry.getValue())
+                .authorizable(AUTHORIZABLE)
                 .build();
 
             secrets.add(secret);
@@ -76,6 +79,7 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
                     .groupName(GROUP_NAME)
                     .name(secretName)
                     .value(value)
+                    .authorizable(AUTHORIZABLE)
                     .build();
 
                 matchingSecrets.add(secret);
