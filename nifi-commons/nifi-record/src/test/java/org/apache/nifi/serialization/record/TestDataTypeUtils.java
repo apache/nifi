@@ -1223,4 +1223,69 @@ public class TestDataTypeUtils {
         assertNull(DataTypeUtils.toLong("", fieldName));
         assertNull(DataTypeUtils.toShort("", fieldName));
     }
+
+    @Test
+    void testIsoDateCompatibilityWithoutExplicitFormat() {
+        assertTrue(DataTypeUtils.isDateTypeCompatible("2024-01-15", null));
+        assertTrue(DataTypeUtils.isDateTypeCompatible(" 2024-01-15 ", null));
+        assertTrue(DataTypeUtils.isDateTypeCompatible("2024-01-15Z", null));
+
+        assertFalse(DataTypeUtils.isDateTypeCompatible("15/01/2024", null));
+        assertFalse(DataTypeUtils.isDateTypeCompatible("", null));
+    }
+
+    @Test
+    void testIsoTimeCompatibilityWithoutExplicitFormat() {
+        assertTrue(DataTypeUtils.isTimeTypeCompatible("13:45:00", null));
+        assertTrue(DataTypeUtils.isTimeTypeCompatible("13:45:00Z", null));
+        assertTrue(DataTypeUtils.isTimeTypeCompatible(" 13:45:00.123 ", null));
+
+        assertFalse(DataTypeUtils.isTimeTypeCompatible("25:61", null));
+        assertFalse(DataTypeUtils.isTimeTypeCompatible("", null));
+    }
+
+    @Test
+    void testIsoTimestampCompatibilityWithoutExplicitFormat() {
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible("2024-01-15T13:45:00Z", null));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible("2024-01-15T13:45:00", null));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible(" 2024-01-15T13:45:00+01:00 ", null));
+
+        assertFalse(DataTypeUtils.isTimestampTypeCompatible("not-a-timestamp", null));
+        assertFalse(DataTypeUtils.isTimestampTypeCompatible("", null));
+    }
+
+    @Test
+    void testLegacyEpochCompatibilityWhenDefaultFormatsDisabled() {
+        // The three-argument overload keeps AbstractCSVRecordReader's non-coerce path aligned with legacy behaviour (see
+        // nifi-extension-bundles/.../csv/AbstractCSVRecordReader.java:122) by rejecting ISO strings when no explicit format
+        // is provided while still allowing epoch-based values.
+        assertFalse(DataTypeUtils.isDateTypeCompatible("2024-01-15", null, false));
+        assertFalse(DataTypeUtils.isTimeTypeCompatible("01:02:03", null, false));
+        assertFalse(DataTypeUtils.isTimestampTypeCompatible("2024-01-15T01:02:03Z", null, false));
+
+        assertTrue(DataTypeUtils.isDateTypeCompatible(String.valueOf(1700000000000L), null, false));
+        assertTrue(DataTypeUtils.isTimeTypeCompatible(String.valueOf(1700000000000L), null, false));
+        assertTrue(DataTypeUtils.isTimestampTypeCompatible(String.valueOf(1700000000000L), null, false));
+    }
+
+    @Test
+    void testUuidCompatibilityAcrossSupportedRepresentations() {
+        final UUID uuid = UUID.randomUUID();
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(uuid));
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(uuid.toString()));
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(" " + uuid + " "));
+
+        final byte[] uuidBytes = new byte[16];
+        Arrays.fill(uuidBytes, (byte) 1);
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(uuidBytes));
+
+        final Byte[] boxedBytes = new Byte[16];
+        Arrays.fill(boxedBytes, (byte) 2);
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(boxedBytes));
+
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible(new byte[15]));
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible(new Byte[15]));
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible("not-a-uuid"));
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible(""));
+    }
 }
