@@ -31,9 +31,15 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -50,14 +56,19 @@ class TestPutSFTP {
 
     private static final String TRANSIT_URI_FORMAT = "sftp://%s";
 
+    private static final OffsetDateTime LAST_MODIFIED_TIME_CONFIGURED = OffsetDateTime.ofInstant(Instant.ofEpochSecond(30), ZoneId.systemDefault());
+
     private SSHTestServer sshTestServer;
 
     private TestRunner runner;
+
+    private Path serverRootPath;
 
     @BeforeEach
     void setRunner(@TempDir final Path rootPath) throws IOException {
         sshTestServer = new SSHTestServer(rootPath);
         sshTestServer.startServer();
+        serverRootPath = rootPath;
 
         runner = TestRunners.newTestRunner(PutSFTP.class);
         runner.setProperty(SFTPTransfer.HOSTNAME, sshTestServer.getHost());
@@ -192,8 +203,27 @@ class TestPutSFTP {
         final List<ProvenanceEventRecord> records = runner.getProvenanceEvents();
         assertFalse(records.isEmpty());
 
-        final ProvenanceEventRecord record = records.iterator().next();
+        final ProvenanceEventRecord record = records.getFirst();
         final String firstTransitUri = String.format(TRANSIT_URI_FORMAT, sshTestServer.getHost());
         assertTrue(record.getTransitUri().startsWith(firstTransitUri), "Transit URI not found");
+    }
+
+    @Test
+    void testRunSetLastModifiedTime() throws IOException {
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern(SFTPTransfer.FILE_MODIFY_DATE_ATTR_FORMAT);
+        final String lastModifiedTimeConfigured = formatter.format(LAST_MODIFIED_TIME_CONFIGURED);
+
+        runner.setProperty(SFTPTransfer.LAST_MODIFIED_TIME, lastModifiedTimeConfigured);
+        runner.enqueue(FLOW_FILE_CONTENTS, Collections.singletonMap(CoreAttributes.FILENAME.key(), FIRST_FILENAME));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutSFTP.REL_SUCCESS);
+
+        final Path serverPath = serverRootPath.resolve(REMOTE_DIRECTORY).resolve(FIRST_FILENAME);
+        assertTrue(Files.exists(serverPath), "Server file not found [%s]".formatted(serverPath));
+
+        final FileTime lastModifiedTime = Files.getLastModifiedTime(serverPath);
+        final FileTime expectedLastModifiedTime = FileTime.from(LAST_MODIFIED_TIME_CONFIGURED.toInstant());
+        assertEquals(expectedLastModifiedTime, lastModifiedTime);
     }
 }

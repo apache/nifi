@@ -747,44 +747,13 @@ public class SFTPTransfer implements FileTransfer {
         }
         final String tempPath = buildFullPath(path, tempFilename);
 
-        final SftpClient.Attributes attributes;
         try {
             sftpClient.put(content, tempPath);
-            attributes = sftpClient.stat(tempPath);
         } catch (final SftpException e) {
             throw new IOException("Failed to transfer content to [%s]".formatted(fullPath), e);
         }
 
-        final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
-        if (StringUtils.isNotEmpty(permissions)) {
-            final int perms = numberPermissions(permissions);
-            attributes.setPermissions(perms);
-        }
-
-        final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
-        if (lastModifiedTime != null && !lastModifiedTime.isBlank()) {
-            final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
-            final OffsetDateTime offsetDateTime = OffsetDateTime.parse(lastModifiedTime, dateTimeFormatter);
-            final FileTime modifyTime = FileTime.from(offsetDateTime.toInstant());
-            attributes.setModifyTime(modifyTime);
-        }
-
-        final String owner = ctx.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
-        if (StringUtils.isNotEmpty(owner)) {
-            attributes.setOwner(owner);
-        }
-
-        final String group = ctx.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
-        if (StringUtils.isNotEmpty(group)) {
-            attributes.setGroup(group);
-        }
-
-        // Set Attributes on temporary file path to avoid potential timing issues with retrieval and removal of transferred files
-        try {
-            sftpClient.setStat(tempPath, attributes);
-        } catch (final SftpException e) {
-            logger.warn("Failed to set attributes on Remote File [{}]", tempPath, e);
-        }
+        setAttributes(flowFile, tempPath);
 
         if (!filename.equals(tempFilename)) {
             try {
@@ -807,6 +776,44 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         return fullPath;
+    }
+
+    private void setAttributes(final FlowFile flowFile, final String remotePath) {
+        final AttributesRequested attributesRequested = new AttributesRequested();
+
+        final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
+        if (StringUtils.isNotEmpty(permissions)) {
+            final int perms = numberPermissions(permissions);
+            attributesRequested.setPermissions(perms);
+        }
+
+        final String lastModifiedTime = ctx.getProperty(LAST_MODIFIED_TIME).evaluateAttributeExpressions(flowFile).getValue();
+        if (StringUtils.isNotBlank(lastModifiedTime)) {
+            final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(FILE_MODIFY_DATE_ATTR_FORMAT, Locale.US);
+            final OffsetDateTime offsetDateTime = OffsetDateTime.parse(lastModifiedTime, dateTimeFormatter);
+            final FileTime modifyTime = FileTime.from(offsetDateTime.toInstant());
+            attributesRequested.setModifyTime(modifyTime);
+        }
+
+        final String owner = ctx.getProperty(REMOTE_OWNER).evaluateAttributeExpressions(flowFile).getValue();
+        if (StringUtils.isNotEmpty(owner)) {
+            attributesRequested.setOwner(owner);
+        }
+
+        final String group = ctx.getProperty(REMOTE_GROUP).evaluateAttributeExpressions(flowFile).getValue();
+        if (StringUtils.isNotEmpty(group)) {
+            attributesRequested.setGroup(group);
+        }
+
+        if (attributesRequested.isConfigured()) {
+            try {
+                final SftpClient.Attributes attributes = sftpClient.stat(remotePath);
+                attributesRequested.setAttributes(attributes);
+                sftpClient.setStat(remotePath, attributes);
+            } catch (final IOException e) {
+                logger.warn("Failed to set attributes on Remote File [{}] for {}", remotePath, flowFile, e);
+            }
+        }
     }
 
     @Override
@@ -867,5 +874,56 @@ public class SFTPTransfer implements FileTransfer {
             }
         }
         return number;
+    }
+
+    private static class AttributesRequested {
+        private boolean configured;
+
+        private Integer permissions;
+
+        private FileTime modifyTime;
+
+        private String owner;
+
+        private String group;
+
+        void setPermissions(final int permissions) {
+            this.permissions = permissions;
+            this.configured = true;
+        }
+
+        void setModifyTime(final FileTime modifyTime) {
+            this.modifyTime = modifyTime;
+            this.configured = true;
+        }
+
+        void setOwner(final String owner) {
+            this.owner = owner;
+            this.configured = true;
+        }
+
+        void setGroup(final String group) {
+            this.group = group;
+            this.configured = true;
+        }
+
+        boolean isConfigured() {
+            return configured;
+        }
+
+        void setAttributes(final SftpClient.Attributes attributes) {
+            if (permissions != null) {
+                attributes.setPermissions(permissions);
+            }
+            if (modifyTime != null) {
+                attributes.setModifyTime(modifyTime);
+            }
+            if (StringUtils.isNotBlank(owner)) {
+                attributes.setOwner(owner);
+            }
+            if (StringUtils.isNotBlank(group)) {
+                attributes.setGroup(group);
+            }
+        }
     }
 }
