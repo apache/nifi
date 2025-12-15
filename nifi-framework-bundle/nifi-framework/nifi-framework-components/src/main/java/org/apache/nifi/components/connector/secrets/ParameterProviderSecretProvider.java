@@ -67,6 +67,7 @@ public class ParameterProviderSecretProvider implements SecretProvider {
             .name(descriptor.getName())
             .description(descriptor.getDescription())
             .value(parameter.getValue())
+            .authorizable(parameterProvider)
             .build();
     }
 
