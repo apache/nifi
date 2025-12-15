@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -30,20 +31,12 @@ import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
-import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.migration.ControllerServiceCreationDetails;
-import org.apache.nifi.migration.ControllerServiceFactory;
-import org.apache.nifi.migration.StandardPropertyConfiguration;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryUtils;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -72,6 +65,7 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.util.AffectedComponentUtils;
 import org.apache.nifi.web.util.CancellableTimedPause;
 import org.apache.nifi.web.util.ComponentLifecycle;
+import org.apache.nifi.web.util.FlowSnapshotPropertyMigrator;
 import org.apache.nifi.web.util.InvalidComponentAction;
 import org.apache.nifi.web.util.LifecycleManagementException;
 import org.slf4j.Logger;
@@ -84,11 +78,9 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -116,6 +108,13 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
     protected RequestManager<T, T> requestManager =
             new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L),
                     "Process Group Update Thread");
+
+    protected FlowSnapshotPropertyMigrator flowSnapshotPropertyMigrator;
+
+    @PostConstruct
+    protected void init() {
+        flowSnapshotPropertyMigrator = new FlowSnapshotPropertyMigrator(serviceFacade);
+    }
 
     /**
      * Perform actual flow update
@@ -207,7 +206,7 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         // Preflight: migrate snapshot property names using component-provided migration rules before resolving
         // External Controller Service references. This ensures resolution sees migrated property names.
         try {
-            preflightMigrateSnapshotProperties(flowSnapshotContainer);
+            flowSnapshotPropertyMigrator.migrate(flowSnapshotContainer);
         } catch (final Exception e) {
             logger.debug("Preflight property migration failed; continuing without it", e);
         }
@@ -239,161 +238,6 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 },
                 (revision, wrapper) -> submitFlowUpdateRequest(user, groupId, revision, wrapper, allowDirtyFlowUpdate)
         );
-    }
-
-    // ---- Preflight Snapshot Property Migration -----------------------------------------------
-    // This is a minimal, in-memory migration of the Versioned flow snapshot used only to assist
-    // External Controller Service resolution during flow update/replace. It does not create any
-    // services and does not affect live components.
-    private void preflightMigrateSnapshotProperties(final FlowSnapshotContainer flowSnapshotContainer) {
-        if (flowSnapshotContainer == null) {
-            return;
-        }
-
-        final RegisteredFlowSnapshot topLevelSnapshot = flowSnapshotContainer.getFlowSnapshot();
-        if (topLevelSnapshot == null || topLevelSnapshot.getFlowContents() == null) {
-            return;
-        }
-
-        final VersionedProcessGroup root = topLevelSnapshot.getFlowContents();
-        migrateProcessGroupPropertiesRecursively(root);
-
-        // Also migrate any child snapshots referenced by nested VersionedProcessGroups
-        if (root.getProcessGroups() != null) {
-            for (final VersionedProcessGroup child : root.getProcessGroups()) {
-                if (child.getVersionedFlowCoordinates() != null) {
-                    final RegisteredFlowSnapshot childSnapshot = flowSnapshotContainer.getChildSnapshot(child.getIdentifier());
-                    if (childSnapshot != null && childSnapshot.getFlowContents() != null) {
-                        migrateProcessGroupPropertiesRecursively(childSnapshot.getFlowContents());
-                    }
-                }
-            }
-        }
-    }
-
-    private void migrateProcessGroupPropertiesRecursively(final VersionedProcessGroup group) {
-        if (group == null) {
-            return;
-        }
-
-        // Processors
-        if (group.getProcessors() != null) {
-            group.getProcessors().forEach(this::preflightMigrateComponentProperties);
-        }
-
-        // Controller Services
-        if (group.getControllerServices() != null) {
-            group.getControllerServices().forEach(this::preflightMigrateComponentProperties);
-        }
-
-        // Recurse into child groups
-        if (group.getProcessGroups() != null) {
-            group.getProcessGroups().forEach(this::migrateProcessGroupPropertiesRecursively);
-        }
-    }
-
-    private void preflightMigrateComponentProperties(final VersionedConfigurableExtension component) {
-        if (component == null || component.getProperties() == null || component.getType() == null) {
-            return;
-        }
-
-        try {
-            final BundleCoordinate compatibleBundle = serviceFacade.getCompatibleBundle(component.getType(), FlowRegistryUtils.createBundleDto(component.getBundle()));
-            final ConfigurableComponent tempComponent = serviceFacade.getTempComponent(component.getType(), compatibleBundle);
-            if (tempComponent == null) {
-                return;
-            }
-
-            // Prepare property configuration: raw and effective values identical; identity resolver.
-            final Map<String, String> raw = new LinkedHashMap<>(component.getProperties());
-            final Map<String, String> effective = new LinkedHashMap<>(raw);
-            final StandardPropertyConfiguration propConfig =
-                    new StandardPropertyConfiguration(
-                            effective,
-                            raw,
-                            v -> v,
-                            component.getType(),
-                            new NoOpControllerServiceFactory());
-
-            // Invoke component-level property migration if supported
-            if (tempComponent instanceof Processor) {
-                ((Processor) tempComponent).migrateProperties(propConfig);
-            } else if (tempComponent instanceof ControllerService) {
-                ((ControllerService) tempComponent).migrateProperties(propConfig);
-            }
-
-            if (propConfig.isModified()) {
-                // Only persist key renames where the value did not change. Discard value additions/changes.
-                final Map<String, String> originalRaw = new LinkedHashMap<>(raw);
-                final Map<String, String> migratedRaw = new LinkedHashMap<>(propConfig.getRawProperties());
-
-                // Determine removed and added keys
-                final Set<String> removedKeys = new LinkedHashSet<>(originalRaw.keySet());
-                removedKeys.removeAll(migratedRaw.keySet());
-
-                final Set<String> addedKeys = new LinkedHashSet<>(migratedRaw.keySet());
-                addedKeys.removeAll(originalRaw.keySet());
-
-                // Build rename pairs where value remained exactly the same
-                final Map<String, String> renames = new LinkedHashMap<>(); // oldKey -> newKey
-                for (final String addedKey : addedKeys) {
-                    final String addedVal = migratedRaw.get(addedKey);
-
-                    String matchedRemoved = null;
-                    for (final String removedKey : removedKeys) {
-                        final String removedVal = originalRaw.get(removedKey);
-                        if (Objects.equals(removedVal, addedVal)) {
-                            if (matchedRemoved != null) {
-                                // Ambiguous match; skip persisting this added key
-                                matchedRemoved = null;
-                                break;
-                            }
-                            matchedRemoved = removedKey;
-                        }
-                    }
-
-                    if (matchedRemoved != null) {
-                        renames.put(matchedRemoved, addedKey);
-                    }
-                }
-
-                // Apply renames to the snapshot properties
-                if (!renames.isEmpty()) {
-                    final Map<String, String> snapshotProps = component.getProperties();
-                    for (final Map.Entry<String, String> rename : renames.entrySet()) {
-                        final String oldKey = rename.getKey();
-                        final String newKey = rename.getValue();
-                        final String value = snapshotProps.remove(oldKey);
-                        // Only put if the key truly changed or is absent
-                        if (value != null || !snapshotProps.containsKey(newKey)) {
-                            snapshotProps.put(newKey, value);
-                        }
-                    }
-                }
-            }
-        } catch (final Exception e) {
-            logger.debug("Preflight migration skipped for component type {} due to: {}", component.getType(), e.toString());
-        }
-    }
-
-    private static final class NoOpControllerServiceFactory implements ControllerServiceFactory {
-        @Override
-        public ControllerServiceCreationDetails getCreationDetails(final String implementationClassName,
-                                                                   final Map<String, String> serviceProperties) {
-            // Strict no-op: indicate no creation and no service identifier so createControllerService returns null
-            return new ControllerServiceCreationDetails(
-                    null, // serviceIdentifier
-                    null, // type
-                    null, // bundle
-                    java.util.Collections.emptyMap(),
-                    null  // creationState left null to avoid creation and modification
-            );
-        }
-
-        @Override
-        public ControllerServiceNode create(ControllerServiceCreationDetails creationDetails) {
-            return null;
-        }
     }
 
     /**
