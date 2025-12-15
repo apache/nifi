@@ -53,7 +53,7 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
      * (e.g., after a restart when the controller service configuration became invalid).
      * Such components are considered "active" and would prevent the controller service from being disabled.
      */
-    private boolean isRunning(final ComponentNode component) {
+    private boolean isActive(final ComponentNode component) {
         if (component instanceof ReportingTaskNode reportingTaskNode) {
             final ScheduledState state = reportingTaskNode.getScheduledState();
             return state == ScheduledState.RUNNING || state == ScheduledState.STARTING;
@@ -76,13 +76,13 @@ public class StandardControllerServiceReference implements ControllerServiceRefe
         final Set<ComponentNode> activeReferences = new HashSet<>();
 
         for (final ComponentNode component : components) {
-            if (isRunning(component)) {
+            if (isActive(component)) {
                 activeReferences.add(component);
             }
         }
 
         for (final ComponentNode component : findRecursiveReferences(ComponentNode.class)) {
-            if (isRunning(component)) {
+            if (isActive(component)) {
                 activeReferences.add(component);
             }
         }

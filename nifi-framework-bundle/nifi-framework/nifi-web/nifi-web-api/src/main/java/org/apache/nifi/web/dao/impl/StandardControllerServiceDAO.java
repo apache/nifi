@@ -188,26 +188,7 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
                 if (ControllerServiceState.ENABLED.equals(purposedControllerServiceState)) {
                     serviceProvider.enableControllerService(controllerService);
                 } else if (ControllerServiceState.DISABLED.equals(purposedControllerServiceState)) {
-                    // First, unschedule all referencing schedulable components (processors, reporting tasks, etc.)
-                    final Map<ComponentNode, Future<Void>> unscheduleFutures = serviceProvider.unscheduleReferencingComponents(controllerService);
-
-                    // Wait for all referencing components to stop
-                    for (final Map.Entry<ComponentNode, Future<Void>> entry : unscheduleFutures.entrySet()) {
-                        try {
-                            entry.getValue().get(30, TimeUnit.SECONDS);
-                        } catch (final Exception e) {
-                            throw new NiFiCoreException("Failed to stop referencing component " + entry.getKey().getIdentifier(), e);
-                        }
-                    }
-
-                    // Next, disable all referencing controller services
-                    serviceProvider.disableReferencingServices(controllerService);
-
-                    // Verify that all referencing components are now stopped before disabling
-                    controllerService.verifyCanDisable();
-
-                    // Finally, disable the controller service itself
-                    serviceProvider.disableControllerService(controllerService);
+                    disableControllerServiceAndReferences(controllerService);
                 }
             }
         }
@@ -231,6 +212,40 @@ public class StandardControllerServiceDAO extends ComponentDAO implements Contro
         }
 
         return controllerService;
+    }
+
+    /**
+     * Disables a Controller Service along with all its referencing components.
+     * This method handles the complete disable workflow:
+     * 1. Stops all referencing schedulable components (processors, reporting tasks, etc.)
+     * 2. Waits for all referencing components to stop
+     * 3. Disables all referencing controller services
+     * 4. Verifies the controller service can be disabled
+     * 5. Disables the controller service itself
+     *
+     * @param controllerService the controller service to disable
+     */
+    private void disableControllerServiceAndReferences(final ControllerServiceNode controllerService) {
+        // First, unschedule all referencing schedulable components (processors, reporting tasks, etc.)
+        final Map<ComponentNode, Future<Void>> unscheduleFutures = serviceProvider.unscheduleReferencingComponents(controllerService);
+
+        // Wait for all referencing components to stop
+        for (final Map.Entry<ComponentNode, Future<Void>> entry : unscheduleFutures.entrySet()) {
+            try {
+                entry.getValue().get(30, TimeUnit.SECONDS);
+            } catch (final Exception e) {
+                throw new NiFiCoreException("Failed to stop referencing component " + entry.getKey().getIdentifier(), e);
+            }
+        }
+
+        // Next, disable all referencing controller services
+        serviceProvider.disableReferencingServices(controllerService);
+
+        // Verify that all referencing components are now stopped before disabling
+        controllerService.verifyCanDisable();
+
+        // Finally, disable the controller service itself
+        serviceProvider.disableControllerService(controllerService);
     }
 
     private void updateBundle(final ControllerServiceNode controllerService, final ControllerServiceDTO controllerServiceDTO) {

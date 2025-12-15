@@ -84,6 +84,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TestStandardControllerServiceProvider {
@@ -450,21 +453,21 @@ public class TestStandardControllerServiceProvider {
     public void testUnscheduleReferencingComponentsIncludesStartingProcessors() {
         final ProcessGroup procGroup = new MockProcessGroup(flowManager);
 
-        final FlowManager flowManager = Mockito.mock(FlowManager.class);
-        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getGroup(anyString())).thenReturn(procGroup);
 
         final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
         final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         // Create a mock processor that is in STARTING state
-        final ProcessorNode mockProcNode = Mockito.mock(ProcessorNode.class);
+        final ProcessorNode mockProcNode = mock(ProcessorNode.class);
         when(mockProcNode.getPhysicalScheduledState()).thenReturn(ScheduledState.STARTING);
         when(mockProcNode.isRunning()).thenReturn(false); // isRunning() returns false for STARTING
         when(mockProcNode.getScheduledState()).thenReturn(ScheduledState.RUNNING);
 
         // Mock the process group and stop processor behavior
-        final ProcessGroup mockProcessGroup = Mockito.mock(ProcessGroup.class);
+        final ProcessGroup mockProcessGroup = mock(ProcessGroup.class);
         when(mockProcNode.getProcessGroup()).thenReturn(mockProcessGroup);
         when(mockProcessGroup.stopProcessor(mockProcNode)).thenReturn(CompletableFuture.completedFuture(null));
 
@@ -475,9 +478,9 @@ public class TestStandardControllerServiceProvider {
         provider.unscheduleReferencingComponents(serviceNode);
 
         // Verify that verifyCanStop was called on the processor (indicating it was considered for stopping)
-        Mockito.verify(mockProcNode).verifyCanStop();
+        verify(mockProcNode).verifyCanStop();
         // Verify that stopProcessor was called
-        Mockito.verify(mockProcessGroup).stopProcessor(mockProcNode);
+        verify(mockProcessGroup).stopProcessor(mockProcNode);
     }
 
     /**
@@ -488,15 +491,15 @@ public class TestStandardControllerServiceProvider {
     public void testGetActiveReferencesIncludesStartingProcessors() {
         final ProcessGroup procGroup = new MockProcessGroup(flowManager);
 
-        final FlowManager flowManager = Mockito.mock(FlowManager.class);
-        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getGroup(anyString())).thenReturn(procGroup);
 
         final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
         final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         // Create a mock processor that is in STARTING state
-        final ProcessorNode mockProcNode = Mockito.mock(ProcessorNode.class);
+        final ProcessorNode mockProcNode = mock(ProcessorNode.class);
         when(mockProcNode.getPhysicalScheduledState()).thenReturn(ScheduledState.STARTING);
         when(mockProcNode.isRunning()).thenReturn(false); // isRunning() returns false for STARTING
         when(mockProcNode.getScheduledState()).thenReturn(ScheduledState.RUNNING);
@@ -518,15 +521,15 @@ public class TestStandardControllerServiceProvider {
     public void testGetActiveReferencesExcludesStoppedProcessors() {
         final ProcessGroup procGroup = new MockProcessGroup(flowManager);
 
-        final FlowManager flowManager = Mockito.mock(FlowManager.class);
-        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.getGroup(anyString())).thenReturn(procGroup);
 
         final StandardProcessScheduler scheduler = createScheduler();
         final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
         final ControllerServiceNode serviceNode = createControllerService(ServiceA.class.getName(), "1", systemBundle.getBundleDetails().getCoordinate(), provider);
 
         // Create a mock processor that is in STOPPED state
-        final ProcessorNode mockProcNode = Mockito.mock(ProcessorNode.class);
+        final ProcessorNode mockProcNode = mock(ProcessorNode.class);
         when(mockProcNode.getPhysicalScheduledState()).thenReturn(ScheduledState.STOPPED);
         when(mockProcNode.isRunning()).thenReturn(false);
         when(mockProcNode.getScheduledState()).thenReturn(ScheduledState.STOPPED);

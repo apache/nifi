@@ -42,6 +42,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class ControllerServiceDisableWithReferencesIT extends NiFiSystemIT {
 
+    private static final String DISABLED = "DISABLED";
+    private static final String ENABLING = "ENABLING";
+    private static final String RUNNING = "RUNNING";
+    private static final String STOPPED = "STOPPED";
+
     /**
      * Test that disabling a Controller Service automatically stops referencing processors.
      * This verifies the fix for the issue where disabling a Controller Service would fail
@@ -64,24 +69,24 @@ public class ControllerServiceDisableWithReferencesIT extends NiFiSystemIT {
         // Start the processor
         getClientUtil().waitForValidProcessor(processor.getId());
         getClientUtil().startProcessor(processor);
-        getClientUtil().waitForProcessorState(processor.getId(), "RUNNING");
+        getClientUtil().waitForProcessorState(processor.getId(), RUNNING);
 
         // Now disable the controller service - this should automatically stop the processor first
         final ControllerServiceEntity serviceToDisable = getNifiClient().getControllerServicesClient().getControllerService(sleepService.getId());
         getClientUtil().disableControllerService(serviceToDisable);
 
         // Wait for the controller service to be disabled
-        getClientUtil().waitForControllerServiceRunStatus(sleepService.getId(), "DISABLED");
+        getClientUtil().waitForControllerServiceRunStatus(sleepService.getId(), DISABLED);
 
         // Verify the processor was stopped
         final ProcessorEntity updatedProcessor = getNifiClient().getProcessorClient().getProcessor(processor.getId());
         final ProcessorDTO processorDto = updatedProcessor.getComponent();
-        assertEquals("STOPPED", processorDto.getState(),
+        assertEquals(STOPPED, processorDto.getState(),
             "Processor should be stopped after disabling the referenced controller service");
 
         // Verify the controller service is disabled
         final ControllerServiceEntity updatedService = getNifiClient().getControllerServicesClient().getControllerService(sleepService.getId());
-        assertEquals("DISABLED", updatedService.getComponent().getState(),
+        assertEquals(DISABLED, updatedService.getComponent().getState(),
             "Controller Service should be disabled");
     }
 
@@ -105,7 +110,7 @@ public class ControllerServiceDisableWithReferencesIT extends NiFiSystemIT {
 
         // Verify it's in ENABLING state
         ControllerServiceEntity currentService = getNifiClient().getControllerServicesClient().getControllerService(failureService.getId());
-        assertEquals("ENABLING", currentService.getComponent().getState(),
+        assertEquals(ENABLING, currentService.getComponent().getState(),
             "Controller Service should be in ENABLING state");
 
         // Now disable the service - this should complete quickly (not wait for retry delay)
@@ -113,7 +118,7 @@ public class ControllerServiceDisableWithReferencesIT extends NiFiSystemIT {
         getClientUtil().disableControllerService(currentService);
 
         // Wait for the controller service to be disabled
-        getClientUtil().waitForControllerServiceRunStatus(failureService.getId(), "DISABLED");
+        getClientUtil().waitForControllerServiceRunStatus(failureService.getId(), DISABLED);
         final long endTime = System.currentTimeMillis();
 
         // Verify it completed in a reasonable time (less than 30 seconds)
@@ -124,7 +129,7 @@ public class ControllerServiceDisableWithReferencesIT extends NiFiSystemIT {
 
         // Verify the controller service is disabled
         final ControllerServiceEntity updatedService = getNifiClient().getControllerServicesClient().getControllerService(failureService.getId());
-        assertEquals("DISABLED", updatedService.getComponent().getState(),
+        assertEquals(DISABLED, updatedService.getComponent().getState(),
             "Controller Service should be disabled");
     }
 }
