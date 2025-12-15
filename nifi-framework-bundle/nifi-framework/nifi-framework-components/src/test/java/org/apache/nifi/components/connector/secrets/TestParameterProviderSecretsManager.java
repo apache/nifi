@@ -18,6 +18,7 @@ package org.apache.nifi.components.connector.secrets;
 
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.parameter.Parameter;
@@ -85,9 +86,15 @@ public class TestParameterProviderSecretsManager {
     }
 
     private ParameterProviderNode createMockedParameterProviderNode(final String id, final String name, final String groupName, final Parameter... parameters) {
+        return createMockedParameterProviderNode(id, name, groupName, ValidationStatus.VALID, parameters);
+    }
+
+    private ParameterProviderNode createMockedParameterProviderNode(final String id, final String name, final String groupName,
+            final ValidationStatus validationStatus, final Parameter... parameters) {
         final ParameterProviderNode node = mock(ParameterProviderNode.class);
         when(node.getIdentifier()).thenReturn(id);
         when(node.getName()).thenReturn(name);
+        when(node.getValidationStatus()).thenReturn(validationStatus);
 
         final List<Parameter> parameterList = List.of(parameters);
         final ParameterGroup group = new ParameterGroup(groupName, parameterList);
@@ -318,6 +325,31 @@ public class TestParameterProviderSecretsManager {
         final Optional<Secret> result = secretsManager.getSecret(referenceWithBothIdAndName);
         assertTrue(result.isPresent());
         assertEquals(PROVIDER_1_NAME, result.get().getProviderName());
+    }
+
+    @Test
+    public void testGetSecretProvidersFiltersOutInvalidProviders() {
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ParameterProviderNode validProvider = createMockedParameterProviderNode("valid-id", "Valid Provider", "Group",
+            ValidationStatus.VALID, createParameter("secret", "description", "value"));
+        final ParameterProviderNode invalidProvider = createMockedParameterProviderNode("invalid-id", "Invalid Provider", "Group",
+            ValidationStatus.INVALID, createParameter("secret2", "description2", "value2"));
+        final ParameterProviderNode validatingProvider = createMockedParameterProviderNode("validating-id", "Validating Provider", "Group",
+            ValidationStatus.VALIDATING, createParameter("secret3", "description3", "value3"));
+
+        final Set<ParameterProviderNode> allProviders = new HashSet<>();
+        allProviders.add(validProvider);
+        allProviders.add(invalidProvider);
+        allProviders.add(validatingProvider);
+        when(flowManager.getAllParameterProviders()).thenReturn(allProviders);
+
+        final ParameterProviderSecretsManager manager = new ParameterProviderSecretsManager();
+        manager.initialize(new StandardSecretsManagerInitializationContext(flowManager));
+
+        final Set<SecretProvider> secretProviders = manager.getSecretProviders();
+
+        assertEquals(1, secretProviders.size());
+        assertEquals("valid-id", secretProviders.iterator().next().getProviderId());
     }
 }
 
