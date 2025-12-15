@@ -25,10 +25,20 @@ import jakarta.xml.bind.annotation.XmlType;
 @XmlType(name = "secret")
 public class SecretDTO {
 
+    private String providerId;
     private String providerName;
     private String groupName;
     private String name;
     private String description;
+
+    @Schema(description = "The identifier of the secret provider that manages this secret.")
+    public String getProviderId() {
+        return providerId;
+    }
+
+    public void setProviderId(final String providerId) {
+        this.providerId = providerId;
+    }
 
     @Schema(description = "The name of the secret provider that manages this secret.")
     public String getProviderName() {

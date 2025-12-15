@@ -5450,6 +5450,7 @@ public final class DtoFactory {
         }
 
         final SecretDTO dto = new SecretDTO();
+        dto.setProviderId(secret.getProviderId());
         dto.setProviderName(secret.getProviderName());
         dto.setGroupName(secret.getGroupName());
         dto.setName(secret.getName());
