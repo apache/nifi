@@ -34,10 +34,10 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -55,18 +55,19 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
-import org.apache.commons.io.FileUtils;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJoltTransformRecord {
 
     final static String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
-    private static final String CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.TestCustomJoltTransform";
+    private static final String CUSTOM_CLASS_NAME = CustomTransformJarProvider.getCustomTransformClassName();
     private static String chainrSpecContents;
     private static Path customTransformJar;
-    private static final Path CUSTOM_JAR_DIRECTORY = Paths.get("target", "test-custom-jolt", "record");
+
+    @TempDir
+    private static Path tempDir;
+
     private TestRunner runner;
     private JoltTransformRecord processor;
     private MockRecordParser parser;
@@ -75,12 +76,7 @@ public class TestJoltTransformRecord {
     @BeforeAll
     static void setUpBeforeAll() throws Exception {
         chainrSpecContents = Files.readString(Paths.get(CHAINR_SPEC_PATH));
-        customTransformJar = CustomTransformJarProvider.createCustomTransformJar(CUSTOM_JAR_DIRECTORY);
-    }
-
-    @AfterAll
-    static void cleanUpCustomJar() {
-        FileUtils.deleteQuietly(CUSTOM_JAR_DIRECTORY.toFile());
+        customTransformJar = CustomTransformJarProvider.createCustomTransformJar(tempDir);
     }
 
     @BeforeEach

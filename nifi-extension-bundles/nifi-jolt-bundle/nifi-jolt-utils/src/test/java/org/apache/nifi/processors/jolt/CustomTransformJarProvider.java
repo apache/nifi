@@ -25,8 +25,13 @@ import java.util.jar.JarOutputStream;
 
 public final class CustomTransformJarProvider {
     private static final String CLASS_ENTRY = "org/apache/nifi/processors/jolt/TestCustomJoltTransform.class";
+    private static final String CUSTOM_TRANSFORM_CLASS_NAME = "org.apache.nifi.processors.jolt.TestCustomJoltTransform";
 
     private CustomTransformJarProvider() {
+    }
+
+    public static String getCustomTransformClassName() {
+        return CUSTOM_TRANSFORM_CLASS_NAME;
     }
 
     public static Path createCustomTransformJar(Path directory) throws IOException {

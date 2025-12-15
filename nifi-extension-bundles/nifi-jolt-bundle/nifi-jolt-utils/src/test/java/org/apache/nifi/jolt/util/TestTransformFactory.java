@@ -27,7 +27,6 @@ import io.joltcommunity.jolt.Shiftr;
 import io.joltcommunity.jolt.Sortr;
 import io.joltcommunity.jolt.removr.Removr;
 import org.apache.nifi.processors.jolt.CustomTransformJarProvider;
-import org.apache.nifi.processors.jolt.TestCustomJoltTransform;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -44,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestTransformFactory {
 
-    private static final String CUSTOM_CLASS_NAME = TestCustomJoltTransform.class.getName();
+    private static final String CUSTOM_CLASS_NAME = CustomTransformJarProvider.getCustomTransformClassName();
     private static final String MISSING_CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.MissingCustomJoltTransform";
 
     @TempDir
