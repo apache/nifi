@@ -20,7 +20,9 @@ import com.asana.models.Project;
 import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
@@ -185,6 +187,30 @@ public class StandardAsanaClientProviderServiceTest {
 
         runner.enableControllerService(service);
         assertThrows(RuntimeException.class, service::createClient);
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> propertyValues = Map.of(
+                PROP_ASANA_API_BASE_URL.getName(), "someUrl",
+                PROP_ASANA_PERSONAL_ACCESS_TOKEN.getName(), "someAccessToken",
+                PROP_ASANA_WORKSPACE_NAME.getName(), "someWorkspace"
+        );
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        StandardAsanaClientProviderService standardAsanaClientProviderService = new StandardAsanaClientProviderService();
+        standardAsanaClientProviderService.migrateProperties(configuration);
+
+        Map<String, String> expected = Map.ofEntries(
+                Map.entry("asana-api-url", PROP_ASANA_API_BASE_URL.getName()),
+                Map.entry("asana-personal-access-token", PROP_ASANA_PERSONAL_ACCESS_TOKEN.getName()),
+                Map.entry("asana-workspace-name", PROP_ASANA_WORKSPACE_NAME.getName())
+        );
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expected, propertiesRenamed);
     }
 
     private String getMockWebServerUrl() {

@@ -22,24 +22,33 @@ import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
+import org.apache.nifi.processors.aws.ObsoleteAbstractAwsProcessorProperties;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.region.RegionUtil;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient;
+import software.amazon.awssdk.services.kinesis.KinesisAsyncClient;
 import software.amazon.kinesis.common.ConfigsBuilder;
 import software.amazon.kinesis.common.InitialPositionInStream;
 import software.amazon.kinesis.coordinator.Scheduler;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
+import java.util.Set;
 
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -73,10 +82,12 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertEquals(assertionError.getMessage(), String.format("Processor has 3 validation failures:\n" +
-                        "'%s' is invalid because %s is required\n" +
-                        "'%s' is invalid because %s is required\n" +
-                        "'%s' is invalid because %s is required\n",
+        assertEquals(assertionError.getMessage(), String.format("""
+                        Processor has 3 validation failures:
+                        '%s' is invalid because %s is required
+                        '%s' is invalid because %s is required
+                        '%s' is invalid because %s is required
+                        """,
                 ConsumeKinesisStream.KINESIS_STREAM_NAME.getDisplayName(), ConsumeKinesisStream.KINESIS_STREAM_NAME.getDisplayName(),
                 ConsumeKinesisStream.APPLICATION_NAME.getDisplayName(), ConsumeKinesisStream.APPLICATION_NAME.getDisplayName(),
                 ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE.getDisplayName(), ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE.getDisplayName()
@@ -100,25 +111,27 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertEquals(assertionError.getMessage(), String.format("Processor has 14 validation failures:\n" +
-                        "'%s' validated against ' ' is invalid because %s must contain at least one character that is not white space\n" +
-                        "'%s' validated against 'not-a-reader' is invalid because Property references a Controller Service that does not exist\n" +
-                        "'%s' validated against 'not-a-writer' is invalid because Property references a Controller Service that does not exist\n" +
-                        "'%s' validated against 'not-a-url' is invalid because Not a valid URL\n" +
-                        "'%s' validated against 'not-an-enum-match' is invalid because Given value not found in allowed set '%s, %s, %s'\n" +
-                        "'%s' validated against 'not-valid-format' is invalid because Must be a valid java.time.DateTimeFormatter pattern, e.g. %s\n" +
-                        "'%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
-                        "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
-                        "'%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
-                        "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
-                        "'%s' validated against 'not-a-long' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
-                        "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
-                        "'%s' validated against 'not-an-int' is invalid because not a valid integer\n" +
-                        "'%s' validated against 'not-a-long' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
-                        "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
-                        "'%s' validated against 'not-a-boolean' is invalid because Given value not found in allowed set 'true, false'\n" +
-                        "'%s' validated against 'not-a-reader' is invalid because Invalid Controller Service: not-a-reader is not a valid Controller Service Identifier\n" +
-                        "'%s' validated against 'not-a-writer' is invalid because Invalid Controller Service: not-a-writer is not a valid Controller Service Identifier\n",
+        assertEquals(assertionError.getMessage(), String.format("""
+                        Processor has 14 validation failures:
+                        '%s' validated against ' ' is invalid because %s must contain at least one character that is not white space
+                        '%s' validated against 'not-a-reader' is invalid because Property references a Controller Service that does not exist
+                        '%s' validated against 'not-a-writer' is invalid because Property references a Controller Service that does not exist
+                        '%s' validated against 'not-a-url' is invalid because Not a valid URL
+                        '%s' validated against 'not-an-enum-match' is invalid because Given value not found in allowed set '%s, %s, %s'
+                        '%s' validated against 'not-valid-format' is invalid because Must be a valid java.time.DateTimeFormatter pattern, e.g. %s
+                        '%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and \
+                        TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days
+                        '%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and \
+                        TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days
+                        '%s' validated against 'not-a-long' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and \
+                        TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days
+                        '%s' validated against 'not-an-int' is invalid because not a valid integer
+                        '%s' validated against 'not-a-long' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and \
+                        TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days
+                        '%s' validated against 'not-a-boolean' is invalid because Given value not found in allowed set 'true, false'
+                        '%s' validated against 'not-a-reader' is invalid because Invalid Controller Service: not-a-reader is not a valid Controller Service Identifier
+                        '%s' validated against 'not-a-writer' is invalid because Invalid Controller Service: not-a-writer is not a valid Controller Service Identifier
+                        """,
                 ConsumeKinesisStream.APPLICATION_NAME.getName(), ConsumeKinesisStream.APPLICATION_NAME.getName(),
                 ConsumeKinesisStream.RECORD_READER.getDisplayName(),
                 ConsumeKinesisStream.RECORD_WRITER.getDisplayName(),
@@ -144,8 +157,10 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertEquals(assertionError.getMessage(), String.format("Processor has 1 validation failures:\n" +
-                        "'%s' is invalid because %s must be provided when %s is %s\n",
+        assertEquals(assertionError.getMessage(), String.format("""
+                        Processor has 1 validation failures:
+                        '%s' is invalid because %s must be provided when %s is %s
+                        """,
                 ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getName(), ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
                 ConsumeKinesisStream.INITIAL_STREAM_POSITION.getDisplayName(), InitialPositionInStream.AT_TIMESTAMP
         ));
@@ -159,8 +174,10 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertEquals(assertionError.getMessage(), String.format("Processor has 1 validation failures:\n" +
-                        "'%s' is invalid because %s must be parsable by %s\n",
+        assertEquals(assertionError.getMessage(), String.format("""
+                        Processor has 1 validation failures:
+                        '%s' is invalid because %s must be parsable by %s
+                        """,
                 ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getName(),
                 ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
                 ConsumeKinesisStream.TIMESTAMP_FORMAT.getDisplayName()
@@ -177,8 +194,10 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::assertValid);
-        assertEquals(assertionError.getMessage(), String.format("Processor has 1 validation failures:\n" +
-                        "'%s' is invalid because %s must be set if %s is set in order to write FlowFiles as Records.\n",
+        assertEquals(assertionError.getMessage(), String.format("""
+                        Processor has 1 validation failures:
+                        '%s' is invalid because %s must be set if %s is set in order to write FlowFiles as Records.
+                        """,
                 ConsumeKinesisStream.RECORD_WRITER.getName(),
                 ConsumeKinesisStream.RECORD_WRITER.getDisplayName(),
                 ConsumeKinesisStream.RECORD_READER.getDisplayName()
@@ -195,8 +214,10 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::assertValid);
-        assertEquals(assertionError.getMessage(), String.format("Processor has 1 validation failures:\n" +
-                        "'%s' is invalid because %s must be set if %s is set in order to write FlowFiles as Records.\n",
+        assertEquals(assertionError.getMessage(), String.format("""
+                        Processor has 1 validation failures:
+                        '%s' is invalid because %s must be set if %s is set in order to write FlowFiles as Records.
+                        """,
                 ConsumeKinesisStream.RECORD_READER.getName(),
                 ConsumeKinesisStream.RECORD_READER.getDisplayName(),
                 ConsumeKinesisStream.RECORD_WRITER.getDisplayName()
@@ -255,6 +276,45 @@ public class TestConsumeKinesisStream {
         runner.setProperty("leaseManagementConfig.MaxCacheMissesBeforeReload", "2"); // String with uppercase leading character in property name
 
         runner.assertValid();
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("aws-region", REGION.getName()),
+                Map.entry(AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, AbstractAwsProcessor.PROXY_CONFIGURATION_SERVICE.getName()),
+                Map.entry("kinesis-stream-name", "Amazon Kinesis Stream Name"),
+                Map.entry("amazon-kinesis-stream-application-name", "Application Name"),
+                Map.entry("amazon-kinesis-stream-initial-position", "Initial Stream Position"),
+                Map.entry("amazon-kinesis-stream-position-timestamp", "Stream Position Timestamp"),
+                Map.entry("amazon-kinesis-stream-timestamp-format", "Timestamp Format"),
+                Map.entry("amazon-kinesis-stream-failover-timeout", "Failover Timeout"),
+                Map.entry("amazon-kinesis-stream-graceful-shutdown-timeout", "Graceful Shutdown Timeout"),
+                Map.entry("amazon-kinesis-stream-checkpoint-interval", "Checkpoint Interval"),
+                Map.entry("amazon-kinesis-stream-retry-count", "Retry Count"),
+                Map.entry("amazon-kinesis-stream-retry-wait", "Retry Wait"),
+                Map.entry("amazon-kinesis-stream-dynamodb-override", "DynamoDB Override"),
+                Map.entry("amazon-kinesis-stream-cloudwatch-flag", "Report Metrics to CloudWatch"),
+                Map.entry("amazon-kinesis-stream-record-reader", "Record Reader"),
+                Map.entry("amazon-kinesis-stream-record-writer", "Record Writer")
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_ACCESS_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_SECRET_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_CREDENTIALS_FILE.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_HOST.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PORT.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_USERNAME.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PASSWORD.getValue()
+        );
+
+        assertEquals(expectedRemoved,
+                propertyMigrationResult.getPropertiesRemoved());
     }
 
     /*
@@ -318,16 +378,19 @@ public class TestConsumeKinesisStream {
     }
 
     private void assertConfigsBuilder(final ConfigsBuilder configsBuilder) {
-        assertEquals(configsBuilder.kinesisClient().serviceClientConfiguration().region().id(), Region.EU_WEST_2.id());
-        assertTrue(configsBuilder.dynamoDBClient().serviceClientConfiguration().endpointOverride().isEmpty());
-        assertTrue(configsBuilder.kinesisClient().serviceClientConfiguration().endpointOverride().isEmpty());
+        try (KinesisAsyncClient kinesisAsyncClient = configsBuilder.kinesisClient();
+             DynamoDbAsyncClient dynamoDbAsyncClient = configsBuilder.dynamoDBClient()) {
+            assertEquals(kinesisAsyncClient.serviceClientConfiguration().region().id(), Region.EU_WEST_2.id());
+            assertTrue(dynamoDbAsyncClient.serviceClientConfiguration().endpointOverride().isEmpty());
+            assertTrue(kinesisAsyncClient.serviceClientConfiguration().endpointOverride().isEmpty());
+        }
     }
 
     private void assertSchedulerConfigs(final Scheduler scheduler, final String hostname) {
         assertTrue(scheduler.leaseManagementConfig().workerIdentifier().startsWith(hostname));
         assertEquals(scheduler.coordinatorConfig().applicationName(), "test-application");
         assertEquals(scheduler.leaseManagementConfig().streamName(), "test-stream");
-        assertEquals(scheduler.retrievalConfig().streamTracker().streamConfigList().get(0).initialPositionInStreamExtended().getInitialPositionInStream(),
+        assertEquals(scheduler.retrievalConfig().streamTracker().streamConfigList().getFirst().initialPositionInStreamExtended().getInitialPositionInStream(),
                 InitialPositionInStream.TRIM_HORIZON );
         assertEquals(scheduler.coordinatorConfig().parentShardPollIntervalMillis(), 1);
     }

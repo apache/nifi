@@ -20,7 +20,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processors.aws.s3.AmazonS3EncryptionService;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -30,6 +32,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createCustomerKeySpec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,7 +41,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class TestStandardS3EncryptionService {
     private StandardS3EncryptionService service;
-    private ConfigurationContext context;
     private String strategyName;
     private String keyMaterial;
     private String keyMaterialMd5;
@@ -47,7 +49,7 @@ public class TestStandardS3EncryptionService {
     @BeforeEach
     public void setup() throws InitializationException {
         service = new StandardS3EncryptionService();
-        context = Mockito.mock(ConfigurationContext.class);
+        ConfigurationContext context = Mockito.mock(ConfigurationContext.class);
 
         S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
 
@@ -111,5 +113,26 @@ public class TestStandardS3EncryptionService {
         assertEquals(properties.get(1).getName(), StandardS3EncryptionService.KMS_KEY_ID.getName());
         assertEquals(properties.get(2).getName(), StandardS3EncryptionService.KEY_MATERIAL.getName());
         assertEquals(properties.get(3).getName(), StandardS3EncryptionService.COMMITMENT_POLICY.getName());
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> propertyValues = Map.of(
+                StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName(), strategyName,
+                StandardS3EncryptionService.KEY_MATERIAL.getName(), keyMaterial
+        );
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        final StandardS3EncryptionService standardS3EncryptionService = new StandardS3EncryptionService();
+        standardS3EncryptionService.migrateProperties(configuration);
+
+        Map<String, String> expected = Map.of(
+                "encryption-strategy", StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName()
+        );
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expected, propertiesRenamed);
     }
 }

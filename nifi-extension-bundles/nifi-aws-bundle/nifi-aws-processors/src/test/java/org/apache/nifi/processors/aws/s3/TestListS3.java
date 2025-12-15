@@ -20,8 +20,12 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.VerifiableProcessor;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
+import org.apache.nifi.processors.aws.ObsoleteAbstractAwsProcessorProperties;
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
 import org.apache.nifi.reporting.InitializationException;
@@ -57,7 +61,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -860,9 +866,36 @@ public class TestListS3 {
                         Map.entry("write-s3-object-tags", ListS3.WRITE_OBJECT_TAGS.getName()),
                         Map.entry("requester-pays", ListS3.REQUESTER_PAYS.getName()),
                         Map.entry("write-s3-user-metadata", ListS3.WRITE_USER_METADATA.getName()),
-                        Map.entry("record-writer", ListS3.RECORD_WRITER.getName()));
+                        Map.entry("record-writer", ListS3.RECORD_WRITER.getName()),
+                        Map.entry("canned-acl", AbstractS3Processor.CANNED_ACL.getName()),
+                        Map.entry("encryption-service", AbstractS3Processor.ENCRYPTION_SERVICE.getName()),
+                        Map.entry("use-chunked-encoding", AbstractS3Processor.USE_CHUNKED_ENCODING.getName()),
+                        Map.entry("use-path-style-access", AbstractS3Processor.USE_PATH_STYLE_ACCESS.getName()),
+                        Map.entry("aws-region", REGION.getName()),
+                        Map.entry(AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName()),
+                        Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListS3.TRACKING_STATE_CACHE.getName()),
+                        Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListS3.TRACKING_TIME_WINDOW.getName()),
+                        Map.entry(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListS3.INITIAL_LISTING_TARGET.getName()),
+                        Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+                );
 
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
 
-        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
+        Set<String> expectedRemoved = Set.of(
+                "Signer Override",
+                "custom-signer-class-name",
+                "Custom Signer Class Name",
+                "custom-signer-module-location",
+                "Custom Signer Module Location",
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_ACCESS_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_SECRET_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_CREDENTIALS_FILE.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_HOST.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PORT.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_USERNAME.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PASSWORD.getValue()
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 }

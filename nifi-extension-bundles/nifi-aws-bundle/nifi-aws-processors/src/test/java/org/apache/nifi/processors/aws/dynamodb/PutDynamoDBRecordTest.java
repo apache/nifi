@@ -18,9 +18,13 @@ package org.apache.nifi.processors.aws.dynamodb;
 
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
+import org.apache.nifi.processors.aws.ObsoleteAbstractAwsProcessorProperties;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
@@ -49,8 +53,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -274,6 +281,41 @@ public class PutDynamoDBRecordTest {
 
         assertTrue(captor.getAllValues().isEmpty());
         runner.assertAllFlowFilesTransferred(PutDynamoDBRecord.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testMigration() throws InitializationException {
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("aws-region", REGION.getName()),
+                Map.entry(AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, AbstractAwsProcessor.PROXY_CONFIGURATION_SERVICE.getName()),
+                Map.entry("Batch items for each request (between 1 and 50)", AbstractDynamoDBProcessor.BATCH_SIZE.getName()),
+                Map.entry("Json Document attribute", AbstractDynamoDBProcessor.JSON_DOCUMENT.getName()),
+                Map.entry("Character set of document", AbstractDynamoDBProcessor.DOCUMENT_CHARSET.getName()),
+                Map.entry("record-reader", PutDynamoDBRecord.RECORD_READER.getName()),
+                Map.entry("partition-key-strategy", PutDynamoDBRecord.PARTITION_KEY_STRATEGY.getName()),
+                Map.entry("partition-key-field", PutDynamoDBRecord.PARTITION_KEY_FIELD.getName()),
+                Map.entry("partition-key-attribute", PutDynamoDBRecord.PARTITION_KEY_ATTRIBUTE.getName()),
+                Map.entry("sort-key-strategy", PutDynamoDBRecord.SORT_KEY_STRATEGY.getName()),
+                Map.entry("sort-key-field", PutDynamoDBRecord.SORT_KEY_FIELD.getName())
+        );
+
+        final TestRunner runner = getTestRunner();
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+
+        Set<String> expectedRemoved = Set.of(
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_ACCESS_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_SECRET_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_CREDENTIALS_FILE.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_HOST.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PORT.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_USERNAME.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PASSWORD.getValue()
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private TestRunner getTestRunner() throws InitializationException {

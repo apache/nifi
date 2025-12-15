@@ -30,10 +30,12 @@ import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.processors.asana.mocks.MockAsanaClientProviderService;
 import org.apache.nifi.processors.asana.mocks.MockDistributedMapCacheClient;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -53,10 +55,13 @@ import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_CLIENT_
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_OBJECT_TYPE;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_OUTPUT_BATCH_SIZE;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_PROJECT;
+import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_SECTION;
+import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_TAG;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_ASANA_TEAM_NAME;
 import static org.apache.nifi.processors.asana.GetAsanaObject.PROP_DISTRIBUTED_CACHE_SERVICE;
 import static org.apache.nifi.processors.asana.GetAsanaObject.REL_NEW;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
@@ -429,6 +434,23 @@ public class GetAsanaObjectConfigurationTest {
         verify(mockService.client, atLeastOnce()).getTasks(any(Project.class));
         verify(mockService.client, atLeastOnce()).getStories(any());
         verifyNoMoreInteractions(mockService.client);
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("asana-controller-service", PROP_ASANA_CLIENT_SERVICE.getName()),
+                Map.entry("distributed-cache-service", PROP_DISTRIBUTED_CACHE_SERVICE.getName()),
+                Map.entry("asana-object-type", PROP_ASANA_OBJECT_TYPE.getName()),
+                Map.entry("asana-project-name", PROP_ASANA_PROJECT.getName()),
+                Map.entry("asana-section-name", PROP_ASANA_SECTION.getName()),
+                Map.entry("asana-tag-name", PROP_ASANA_TAG.getName()),
+                Map.entry("asana-team-name", PROP_ASANA_TEAM_NAME.getName()),
+                Map.entry("asana-output-batch-size", PROP_ASANA_OUTPUT_BATCH_SIZE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void withMockAsanaClientService() throws InitializationException {
