@@ -1029,7 +1029,10 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         for (final VersionedControllerService versionedControllerService : controllerServices) {
             final ControllerServiceNode serviceNode = flowManager.getRootControllerService(versionedControllerService.getInstanceIdentifier());
             if (controllerServicesAddedAndProperties.containsKey(serviceNode) || affectedComponentSet.isControllerServiceAffected(serviceNode.getIdentifier())) {
-                updateRootControllerService(serviceNode, versionedControllerService, controller.getEncryptor());
+                // Set Decrypted Properties for subsequent migrate configuration using actual values
+                final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties(), controller.getEncryptor());
+                controllerServicesAddedAndProperties.put(serviceNode, decryptedProperties);
+                updateRootControllerService(serviceNode, versionedControllerService, decryptedProperties);
             }
         }
 
@@ -1171,7 +1174,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private void updateRootControllerService(final ControllerServiceNode serviceNode, final VersionedControllerService versionedControllerService,
-                                             final PropertyEncryptor encryptor) {
+                                             final Map<String, String> decryptedProperties) {
         serviceNode.pauseValidationTrigger();
         try {
             serviceNode.setName(versionedControllerService.getName());
@@ -1187,7 +1190,6 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
 
             final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(serviceNode, versionedControllerService);
-            final Map<String, String> decryptedProperties = decryptProperties(versionedControllerService.getProperties(), encryptor);
             serviceNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
         } finally {
             serviceNode.resumeValidationTrigger();
