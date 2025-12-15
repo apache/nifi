@@ -972,6 +972,10 @@ public class ControllerFacade implements Authorizable {
         flowService.saveFlowChanges(TimeUnit.SECONDS, writeDelaySeconds);
     }
 
+    public void saveImmediate() throws IOException {
+        flowService.saveFlowChanges();
+    }
+
     /**
      * Returns the socket port that the local instance is listening on for
      * Site-to-Site communications

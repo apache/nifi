@@ -197,6 +197,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     public void applyUpdate() throws FlowUpdateException {
         final ConnectorState initialDesiredState = connectorNode.getDesiredState();
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.applyUpdate();
 
@@ -261,7 +262,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public SecretReference createSecretReference(final String secretName) {
-        return new SecretReference(ConnectorTestRunner.SECRET_PROVIDER_ID, ConnectorTestRunner.SECRET_PROVIDER_NAME, secretName);
+        return new SecretReference(ConnectorTestRunner.SECRET_PROVIDER_ID, ConnectorTestRunner.SECRET_PROVIDER_NAME, secretName, secretName);
     }
 
     @Override
