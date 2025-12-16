@@ -76,7 +76,7 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .description("Tenant ID of the Azure Active Directory hosting the Service Principal.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
-            .sensitive(true)
+            .sensitive(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(CREDENTIAL_CONFIGURATION_STRATEGY, SERVICE_PRINCIPAL)
             .build();
@@ -86,14 +86,14 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .description("Client ID (or Application ID) of the Client/Application having the Service Principal.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
-            .sensitive(true)
+            .sensitive(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .dependsOn(CREDENTIAL_CONFIGURATION_STRATEGY, SERVICE_PRINCIPAL)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = new PropertyDescriptor.Builder()
             .name("Service Principal Client Secret")
-            .description("Password of the Client/Application.")
+            .description("Secret value analogous to a password for the Client or Application.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .sensitive(true)
