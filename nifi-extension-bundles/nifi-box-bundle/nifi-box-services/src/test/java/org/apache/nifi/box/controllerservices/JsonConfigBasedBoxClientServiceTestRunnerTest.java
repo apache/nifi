@@ -136,7 +136,7 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
         testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.READ_TIMEOUT, "1234");
         testRunner.assertNotValid(testSubject);
     }
-    
+
     @Test
     void testMigration() {
         final Map<String, String> propertyValues = Map.of(
@@ -155,7 +155,7 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
                 Map.entry("app-config-json", JsonConfigBasedBoxClientService.APP_CONFIG_JSON.getName()),
                 Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE.getName())
         );
-        
+
         final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
         final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
 
