@@ -18,8 +18,16 @@ package org.apache.nifi.serialization.record.field;
 
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Time;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.Date;
 import java.util.Optional;
 
@@ -41,6 +49,8 @@ public class ObjectTimeFieldConverterTest {
     private static final String TIME_NANOSECONDS_PATTERN = "HH:mm:ss.SSSSSSSSS";
 
     private static final String TIME_NANOSECONDS = "12:30:45.123456789";
+
+    private static final String TIME_WITH_OFFSET_PATTERN = "HH:mm:ssXXX";
 
     @Test
     public void testConvertFieldNull() {
@@ -79,5 +89,23 @@ public class ObjectTimeFieldConverterTest {
         final long field = System.currentTimeMillis();
         final Time time = CONVERTER.convertField(field, Optional.of(DEFAULT_PATTERN), FIELD_NAME);
         assertNotNull(time);
+    }
+
+    @ParameterizedTest
+    @MethodSource("org.apache.nifi.serialization.record.field.DateTimeTestUtil#offsetSource")
+    public void testConvertFieldTimeOffset(final String offsetId) {
+        final ZoneOffset zoneOffset = ZoneOffset.of(offsetId);
+
+        final LocalTime localTime = LocalTime.parse(TIME_DEFAULT);
+        final ZonedDateTime zonedDateTime = ZonedDateTime.of(LocalDate.EPOCH, localTime, zoneOffset);
+        final ZonedDateTime zonedDateTimeAdjusted = zonedDateTime.withZoneSameInstant(ZoneId.systemDefault());
+        final Instant instant = zonedDateTimeAdjusted.toInstant();
+        final long epochMilliseconds = instant.toEpochMilli();
+        final Time expectedTime = new Time(epochMilliseconds);
+
+        final String localTimeWithOffsetId = TIME_DEFAULT + offsetId;
+        final Time convertedTime = CONVERTER.convertField(localTimeWithOffsetId, Optional.of(TIME_WITH_OFFSET_PATTERN), FIELD_NAME);
+
+        assertEquals(expectedTime.toString(), convertedTime.toString());
     }
 }
