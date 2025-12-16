@@ -31,7 +31,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestDropboxProcessorMigration {
-    
+
     @Test
     void testFetchDropboxMigration() {
         TestRunner runner = TestRunners.newTestRunner(FetchDropbox.class);
