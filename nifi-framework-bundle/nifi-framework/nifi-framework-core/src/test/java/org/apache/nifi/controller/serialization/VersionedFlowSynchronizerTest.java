@@ -19,6 +19,7 @@ package org.apache.nifi.controller.serialization;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SnippetManager;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -30,6 +31,7 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedReportingTask;
 import org.apache.nifi.groups.BundleUpdateStrategy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
@@ -42,6 +44,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -56,6 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -77,6 +81,10 @@ class VersionedFlowSynchronizerTest {
     private static final String ENCRYPTED_PROPERTY_VALUE = "enc{encoded}";
 
     private static final String DECRYPTED_PROPERTY_VALUE = "decoded";
+
+    private static final String REPORTING_TASK_INSTANCE_ID = "reporting-task-instance-id";
+
+    private static final String REPORTING_TASK_TYPE = "org.apache.nifi.reporting.TestReportingTask";
 
     @Mock
     private ExtensionManager extensionManager;
@@ -174,6 +182,69 @@ class VersionedFlowSynchronizerTest {
                 SENSITIVE_PROPERTY_NAME, DECRYPTED_PROPERTY_VALUE
         );
         assertEquals(expectedDecryptedProperties, originalProperties);
+    }
+
+    @Test
+    void testSyncInheritReportingTasksMigrateConfigurationBeforeStart() {
+        setRootGroup();
+        setFlowController();
+
+        // Create Versioned Reporting Task with RUNNING state to verify migration happens before start
+        final VersionedReportingTask reportingTask = getVersionedReportingTask();
+        final List<VersionedReportingTask> reportingTasks = List.of(reportingTask);
+        when(versionedDataflow.getReportingTasks()).thenReturn(reportingTasks);
+
+        // Return null for initial Reporting Task Node lookup indicating it needs to be created
+        final ReportingTaskNode reportingTaskNode = mock(ReportingTaskNode.class);
+        when(flowController.getReportingTaskNode(eq(REPORTING_TASK_INSTANCE_ID))).thenReturn(null);
+
+        // Mock Property Descriptor for sensitive Property with decrypted value
+        final PropertyDescriptor sensitivePropertyDescriptor = mock(PropertyDescriptor.class);
+        when(reportingTaskNode.getPropertyDescriptor(eq(SENSITIVE_PROPERTY_NAME))).thenReturn(sensitivePropertyDescriptor);
+        when(encryptor.decrypt(any())).thenReturn(DECRYPTED_PROPERTY_VALUE);
+
+        // Return created Reporting Task Node
+        when(flowController.createReportingTask(any(), eq(REPORTING_TASK_INSTANCE_ID), any(), eq(false))).thenReturn(reportingTaskNode);
+
+        versionedFlowSynchronizer.sync(flowController, dataFlow, flowService, BundleUpdateStrategy.USE_SPECIFIED_OR_GHOST);
+
+        // Verify migrateConfiguration is called with decrypted properties
+        final ArgumentCaptor<Map<String, String>> originalPropertiesCaptor = ArgumentCaptor.captor();
+        verify(reportingTaskNode).migrateConfiguration(originalPropertiesCaptor.capture(), any());
+
+        final Map<String, String> originalProperties = originalPropertiesCaptor.getValue();
+        final Map<String, String> expectedDecryptedProperties = Map.of(
+                PROPERTY_NAME, PROPERTY_VALUE,
+                SENSITIVE_PROPERTY_NAME, DECRYPTED_PROPERTY_VALUE
+        );
+        assertEquals(expectedDecryptedProperties, originalProperties);
+
+        // Verify that migrateConfiguration is called BEFORE startReportingTask
+        // This is the key assertion: migration must complete before task is started
+        final InOrder inOrder = inOrder(reportingTaskNode, flowController);
+        inOrder.verify(reportingTaskNode).migrateConfiguration(any(), any());
+        inOrder.verify(flowController).startReportingTask(reportingTaskNode);
+    }
+
+    private VersionedReportingTask getVersionedReportingTask() {
+        final VersionedReportingTask reportingTask = new VersionedReportingTask();
+        reportingTask.setInstanceIdentifier(REPORTING_TASK_INSTANCE_ID);
+        reportingTask.setBundle(CORE_BUNDLE);
+        reportingTask.setType(REPORTING_TASK_TYPE);
+        reportingTask.setName("Test Reporting Task");
+        reportingTask.setSchedulingStrategy("TIMER_DRIVEN");
+        reportingTask.setSchedulingPeriod("5 mins");
+
+        final Map<String, String> versionedProperties = Map.of(
+                PROPERTY_NAME, PROPERTY_VALUE,
+                SENSITIVE_PROPERTY_NAME, ENCRYPTED_PROPERTY_VALUE
+        );
+
+        reportingTask.setProperties(versionedProperties);
+        reportingTask.setPropertyDescriptors(Map.of());
+        // Set to RUNNING to verify migration happens before start
+        reportingTask.setScheduledState(ScheduledState.RUNNING);
+        return reportingTask;
     }
 
     private VersionedControllerService getVersionedControllerService() {
