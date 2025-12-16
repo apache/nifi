@@ -178,7 +178,7 @@ class VerifyContentMACTest {
 
         runner.assertAllFlowFilesTransferred(FAILURE);
     }
-    
+
     @Test
     void testMigration() {
         final Map<String, String> expected = Map.ofEntries(
