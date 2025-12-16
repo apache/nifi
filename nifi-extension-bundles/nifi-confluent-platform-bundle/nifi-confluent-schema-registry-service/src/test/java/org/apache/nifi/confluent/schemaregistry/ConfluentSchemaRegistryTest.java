@@ -105,7 +105,7 @@ class ConfluentSchemaRegistryTest {
         runner.setProperty(registry, "not.valid.subject", "NotValid");
         runner.assertNotValid(registry);
     }
-    
+
     @Test
     void testMigration() {
         final Map<String, String> propertyValues = Map.of();
