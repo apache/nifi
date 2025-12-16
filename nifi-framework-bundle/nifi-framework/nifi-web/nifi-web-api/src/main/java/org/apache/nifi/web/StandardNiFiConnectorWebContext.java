@@ -29,12 +29,12 @@ public class StandardNiFiConnectorWebContext implements NiFiConnectorWebContext 
 
     @Override
     @SuppressWarnings("unchecked")
-    public <T> T getConnector(final String connectorId) throws IllegalArgumentException {
+    public <T> ConnectorWebContext<T> getConnectorWebContext(final String connectorId) throws IllegalArgumentException {
         final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
         if (connectorNode == null) {
             throw new IllegalArgumentException("Unable to find connector with id: " + connectorId);
         }
-        return (T) connectorNode.getConnector();
+        return new ConnectorWebContext<>((T) connectorNode.getConnector(), connectorNode.getWorkingFlowContext(), connectorNode.getActiveFlowContext());
     }
 
     public void setConnectorDAO(final ConnectorDAO connectorDAO) {
