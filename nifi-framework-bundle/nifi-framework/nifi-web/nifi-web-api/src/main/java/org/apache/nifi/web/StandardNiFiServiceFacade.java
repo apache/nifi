@@ -80,6 +80,8 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
+import org.apache.nifi.components.connector.Secret;
+import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
@@ -295,6 +297,7 @@ import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RequiredPermissionDTO;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.SecretDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.dto.TenantDTO;
@@ -392,6 +395,7 @@ import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -7781,5 +7785,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public Set<String> filterComponents(final String groupId, final Function<ProcessGroup, Set<String>> getComponents) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         return getComponents.apply(processGroup);
+    }
+
+    @Override
+    public SecretsEntity getSecrets() {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final List<Secret> secrets = controllerFacade.getAllSecrets();
+        final List<SecretDTO> secretDtos = secrets.stream()
+                .filter(secret -> isSecretAuthorized(secret, user))
+                .map(dtoFactory::createSecretDto)
+                .toList();
+        return entityFactory.createSecretsEntity(secretDtos);
+    }
+
+    private boolean isSecretAuthorized(final Secret secret, final NiFiUser user) {
+        if (secret instanceof AuthorizableSecret authorizableSecret) {
+            final AuthorizationResult result = authorizableSecret.checkAuthorization(authorizer, RequestAction.READ, user);
+            return Result.Approved.equals(result.getResult());
+        }
+        return true;
     }
 }

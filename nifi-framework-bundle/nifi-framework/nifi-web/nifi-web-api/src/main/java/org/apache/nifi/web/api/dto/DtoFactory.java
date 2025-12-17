@@ -80,6 +80,7 @@ import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.NamedStepConfiguration;
+import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
@@ -5434,6 +5435,28 @@ public final class DtoFactory {
         dto.setOutcome(result.getOutcome().name());
         dto.setVerificationStepName(result.getVerificationStepName());
         dto.setSubject(result.getSubject());
+        return dto;
+    }
+
+    /**
+     * Creates a SecretDTO from the specified Secret. Note: The secret value is intentionally not included
+     * in the DTO for security reasons.
+     *
+     * @param secret the secret
+     * @return the DTO containing only the secret's metadata
+     */
+    public SecretDTO createSecretDto(final Secret secret) {
+        if (secret == null) {
+            return null;
+        }
+
+        final SecretDTO dto = new SecretDTO();
+        dto.setProviderId(secret.getProviderId());
+        dto.setProviderName(secret.getProviderName());
+        dto.setGroupName(secret.getGroupName());
+        dto.setName(secret.getName());
+        dto.setFullyQualifiedName(secret.getFullyQualifiedName());
+        dto.setDescription(secret.getDescription());
         return dto;
     }
 

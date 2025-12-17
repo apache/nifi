@@ -65,6 +65,7 @@ import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
 import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
 import org.apache.nifi.web.api.concurrent.RequestManager;
@@ -310,6 +311,53 @@ public class ConnectorResource extends ApplicationResource {
         final ConnectorEntity entity = serviceFacade.getConnector(id);
         populateRemainingConnectorEntityContent(entity);
 
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets all available secrets from the SecretsManager for configuring a specific connector.
+     *
+     * @param id The id of the connector being configured
+     * @return A secretsEntity containing metadata for all available secrets.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/secrets")
+    @Operation(
+            summary = "Gets all secrets available for configuring a connector",
+            description = "Returns metadata for all secrets available from all secret providers. "
+                    + "This endpoint is used when configuring a connector to discover available secrets. "
+                    + "Note: Actual secret values are not included in the response for security reasons.",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = SecretsEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+            }
+    )
+    public Response getSecrets(
+            @Parameter(
+                    description = "The connector id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        // NOTE: fetching secrets is handled by the node that receives the request and does not need to be replicated
+        // Secrets are sourced from ParameterProviders which should have consistent configuration across the cluster
+
+        // authorize access - require write permission on the specific connector since this is used for configuration
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(id);
+            connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+        });
+
+        final SecretsEntity entity = serviceFacade.getSecrets();
         return generateOkResponse(entity).build();
     }
 
