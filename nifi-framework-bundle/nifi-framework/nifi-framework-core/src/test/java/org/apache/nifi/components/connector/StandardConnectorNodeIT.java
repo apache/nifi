@@ -25,6 +25,8 @@ import org.apache.nifi.components.connector.processors.DuplicateFlowFile;
 import org.apache.nifi.components.connector.processors.LogFlowFileContents;
 import org.apache.nifi.components.connector.processors.OverwriteFlowFile;
 import org.apache.nifi.components.connector.processors.TerminateFlowFile;
+import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.services.CounterService;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationState;
@@ -116,6 +118,11 @@ public class StandardConnectorNodeIT {
         final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
         when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
         connectorRepository = new StandardConnectorRepository();
+
+        final SecretsManager secretsManager = new ParameterProviderSecretsManager();
+        final ConnectorRepositoryInitializationContext repoInitContext = mock(ConnectorRepositoryInitializationContext.class);
+        when(repoInitContext.getSecretsManager()).thenReturn(secretsManager);
+        connectorRepository.initialize(repoInitContext);
 
         final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         final BulletinRepository bulletinRepository = mock(BulletinRepository.class);
@@ -226,6 +233,7 @@ public class StandardConnectorNodeIT {
     }
 
     private void configure(final ConnectorNode connectorNode, final ConnectorConfiguration configuration) throws FlowUpdateException {
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         for (final NamedStepConfiguration stepConfig : configuration.getNamedStepConfigurations()) {
             connectorNode.setConfiguration(stepConfig.stepName(), stepConfig.configuration());
@@ -347,7 +355,6 @@ public class StandardConnectorNodeIT {
         // Because the component is being removed and there's data queued in its incoming connection, it should fail.
         final ConnectorConfiguration removeLogConfiguration = createConnectorConfiguration("Second Iteration", 5, false, false);
 
-        connectorNode.prepareForUpdate();
         final Throwable cause = assertThrows(FlowUpdateException.class, () -> configure(connectorNode, removeLogConfiguration));
         connectorNode.abortUpdate(cause);
 
@@ -362,7 +369,6 @@ public class StandardConnectorNodeIT {
             SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
         assertNotNull(connectorNode);
 
-        connectorNode.prepareForUpdate();
         assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
 
         final Path tempFile = Files.createTempFile("StandardConnectorNodeIT", ".txt");
@@ -371,6 +377,7 @@ public class StandardConnectorNodeIT {
         final ConnectorConfiguration configuration = createFileConfiguration(tempFile.toFile().getAbsolutePath());
         configure(connectorNode, configuration);
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         assertEquals(List.of("File", "Colors"), getConfigurationStepNames(connectorNode));
 
@@ -395,7 +402,6 @@ public class StandardConnectorNodeIT {
             SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
         assertNotNull(connectorNode);
 
-        connectorNode.prepareForUpdate();
         assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
 
         final ConnectorConfiguration configuration = createFileConfiguration("/non/existent/file");

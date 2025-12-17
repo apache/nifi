@@ -98,7 +98,7 @@ public class TestParameterProviderSecretsManager {
         when(node.fetchParameterValues(anyList())).thenAnswer(invocation -> {
             final List<String> requestedNames = invocation.getArgument(0);
             final List<Parameter> matchingParameters = parameterList.stream()
-                    .filter(p -> requestedNames.contains(p.getDescriptor().getName()))
+                    .filter(p -> requestedNames.contains(groupName + "." + p.getDescriptor().getName()))
                     .toList();
             if (matchingParameters.isEmpty()) {
                 return List.of();
@@ -111,21 +111,26 @@ public class TestParameterProviderSecretsManager {
 
     private Parameter createParameter(final String name, final String description, final String value) {
         final ParameterDescriptor descriptor = new ParameterDescriptor.Builder()
-                .name(name)
-                .description(description)
-                .build();
+            .name(name)
+            .description(description)
+            .build();
         return new Parameter.Builder()
-                .descriptor(descriptor)
-                .value(value)
-                .build();
+            .descriptor(descriptor)
+            .value(value)
+            .build();
     }
 
     private SecretReference createSecretReference(final String providerId, final String providerName, final String secretName) {
-        final SecretReference reference = mock(SecretReference.class);
-        when(reference.getProviderId()).thenReturn(providerId);
-        when(reference.getProviderName()).thenReturn(providerName);
-        when(reference.getSecretName()).thenReturn(secretName);
-        return reference;
+        final String groupName = getGroupName(secretName);
+        return new SecretReference(providerId, providerName, secretName, groupName + "." + secretName);
+    }
+
+    private String getGroupName(final String secretName) {
+        if (secretName.equals(SECRET_1_NAME) || secretName.equals(SECRET_2_NAME)) {
+            return GROUP_1_NAME;
+        }
+
+        return GROUP_2_NAME;
     }
 
     @Test

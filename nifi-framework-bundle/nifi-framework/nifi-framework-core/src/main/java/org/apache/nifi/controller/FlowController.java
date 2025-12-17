@@ -57,6 +57,8 @@ import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsMana
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.secrets.SecretsManagerInitializationContext;
 import org.apache.nifi.components.connector.secrets.StandardSecretsManagerInitializationContext;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
+import org.apache.nifi.components.connector.StandardConnectorValidationTrigger;
 import org.apache.nifi.components.monitor.LongRunningTaskMonitor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateProvider;
@@ -340,6 +342,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final FlowEngine validationThreadPool;
     private final FlowEngine flowAnalysisThreadPool;
     private final ValidationTrigger validationTrigger;
+    private final ConnectorValidationTrigger connectorValidationTrigger;
     private final ReloadComponent reloadComponent;
     private final VerifiableComponentFactory verifiableComponentFactory;
     private final ProvenanceAuthorizableFactory provenanceAuthorizableFactory;
@@ -692,6 +695,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         this.validationThreadPool = new FlowEngine(5, "Validate Components", true);
         this.validationTrigger = new StandardValidationTrigger(validationThreadPool, this::isInitialized);
+        this.connectorValidationTrigger = new StandardConnectorValidationTrigger(validationThreadPool, this::isInitialized);
 
         if (remoteInputSocketPort == null) {
             LOG.info("Not enabling RAW Socket Site-to-Site functionality because nifi.remote.input.socket.port is not set");
@@ -1586,6 +1590,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public ValidationTrigger getValidationTrigger() {
         return validationTrigger;
+    }
+
+    public ConnectorValidationTrigger getConnectorValidationTrigger() {
+        return connectorValidationTrigger;
     }
 
     public PropertyEncryptor getEncryptor() {

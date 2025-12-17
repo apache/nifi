@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -102,21 +103,44 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
-    public void applyUpdate(final ConnectorNode connector) throws FlowUpdateException {
+    public void applyUpdate(final ConnectorNode connector, final ConnectorUpdateContext context) throws FlowUpdateException {
         final ConnectorState initialDesiredState = connector.getDesiredState();
 
-        // Perform whatever preparation is necessary for the update. Default implementation is to stop the connector.
-        connector.prepareForUpdate();
+        // Transition the connector's state to PREPARING_FOR_UPDATE before starting the background process.
+        // This allows us to ensure that if we poll and see the state in the same state it was in before that
+        // we know the update has already completed (successfully or otherwise).
+        connector.transitionStateForUpdating();
 
+        // Update connector in a background thread. This will handle transitioning the Connector state appropriately
+        // so that it's clear when the update has completed.
+        lifecycleExecutor.submit(() -> updateConnector(connector, initialDesiredState, context));
+    }
+
+    private void updateConnector(final ConnectorNode connector, final ConnectorState initialDesiredState, final ConnectorUpdateContext context) {
         try {
+            // Perform whatever preparation is necessary for the update. Default implementation is to stop the connector.
+            connector.prepareForUpdate();
+
             // Wait for Connector State to become UPDATING
-            waitForState(connector, ConnectorState.UPDATING, Set.of(ConnectorState.PREPARING_FOR_UPDATE));
+            waitForState(connector, Set.of(ConnectorState.UPDATING), Set.of(ConnectorState.PREPARING_FOR_UPDATE));
 
             // Apply the update to the connector.
             connector.applyUpdate();
 
-            // Wait for Connector State to become UPDATED
-            waitForState(connector, ConnectorState.UPDATED, Set.of(ConnectorState.UPDATING));
+            // Now that the update has been applied, save the flow so that the updated configuration is persisted.
+            context.saveFlow();
+
+            // Wait for Connector State to become UPDATED, or to revert to the initial desired state because, depending upon timing,
+            // other nodes may have already seen the transition to UPDATED and moved the connector back to the initial desired state.
+            final Set<ConnectorState> desirableStates = new HashSet<>();
+            desirableStates.add(initialDesiredState);
+            desirableStates.add(ConnectorState.UPDATED);
+            if (initialDesiredState == ConnectorState.RUNNING) {
+                desirableStates.add(ConnectorState.STARTING);
+            } else if (initialDesiredState == ConnectorState.STOPPED) {
+                desirableStates.add(ConnectorState.STOPPING);
+            }
+            waitForState(connector, desirableStates, Set.of(ConnectorState.UPDATING));
 
             // If the initial desired state was RUNNING, start the connector again. Otherwise, stop it.
             // We don't simply leave it be as the prepareForUpdate / update may have changed the state of some components.
@@ -125,12 +149,16 @@ public class StandardConnectorRepository implements ConnectorRepository {
             } else {
                 connector.stop(lifecycleExecutor);
             }
+
+            // We've updated the state of the connector so save flow again
+            context.saveFlow();
         } catch (final Exception e) {
+            logger.error("Failed to apply connector update for {}", connector, e);
             connector.abortUpdate(e);
         }
     }
 
-    private void waitForState(final ConnectorNode connector, final ConnectorState desiredState, final Set<ConnectorState> allowableStates)
+    private void waitForState(final ConnectorNode connector, final Set<ConnectorState> desiredStates, final Set<ConnectorState> allowableStates)
                 throws FlowUpdateException, IOException, InterruptedException {
 
         // Wait for Connector State to become the desired state
@@ -138,24 +166,24 @@ public class StandardConnectorRepository implements ConnectorRepository {
         final long startNanos = System.nanoTime();
         while (true) {
             final ConnectorState clusterState = requestReplicator.getState(connector.getIdentifier());
-            if (clusterState == desiredState) {
-                logger.info("State for {} is now {}", connector, desiredState);
+            if (desiredStates.contains(clusterState)) {
+                logger.info("State for {} is now {}", connector, clusterState);
                 break;
             } else if (allowableStates.contains(clusterState)) {
                 final long elapsedSeconds = Duration.ofNanos(System.nanoTime() - startNanos).toSeconds();
                 if (++iterations % 10 == 0) {
-                    logger.info("Waiting for {} to transition to {}. Current state is {}; elapsed time = {} secs", connector, desiredState, clusterState, elapsedSeconds);
+                    logger.info("Waiting for {} to transition to one of {}. Current state is {}; elapsed time = {} secs", connector, desiredStates, clusterState, elapsedSeconds);
                 } else {
-                    logger.debug("Waiting for {} to transition to {}. Current state is {}; elapsed time = {} secs", connector, desiredState, clusterState, elapsedSeconds);
+                    logger.debug("Waiting for {} to transition to one of {}. Current state is {}; elapsed time = {} secs", connector, desiredStates, clusterState, elapsedSeconds);
                 }
 
                 Thread.sleep(Duration.ofSeconds(1));
                 continue;
             } else if (clusterState == ConnectorState.UPDATE_FAILED) {
-                throw new FlowUpdateException("State of " + connector + " transitioned to UPDATE_FAILED while waiting for state " + desiredState);
+                throw new FlowUpdateException("State of " + connector + " transitioned to UPDATE_FAILED while waiting for state to become one of " + desiredStates);
             }
 
-            throw new FlowUpdateException("While waiting for %s to transition to state of %s, connector transitioned to unexpected state: %s".formatted(connector, desiredState, clusterState) );
+            throw new FlowUpdateException("While waiting for %s to transition to state in set %s, connector transitioned to unexpected state: %s".formatted(connector, desiredStates, clusterState) );
         }
     }
 
@@ -165,11 +193,14 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
-    public void inheritConfiguration(final ConnectorNode connector, final List<VersionedConfigurationStep> flowConfiguration, final Bundle flowContextBundle) throws FlowUpdateException {
+    public void inheritConfiguration(final ConnectorNode connector, final List<VersionedConfigurationStep> activeFlowConfiguration,
+                final List<VersionedConfigurationStep> workingFlowConfiguration, final Bundle flowContextBundle) throws FlowUpdateException {
+
+        connector.transitionStateForUpdating();
         connector.prepareForUpdate();
 
         try {
-            connector.inheritConfiguration(flowConfiguration, flowContextBundle);
+            connector.inheritConfiguration(activeFlowConfiguration, workingFlowConfiguration, flowContextBundle);
         } catch (final Exception e) {
             connector.abortUpdate(e);
             throw e;

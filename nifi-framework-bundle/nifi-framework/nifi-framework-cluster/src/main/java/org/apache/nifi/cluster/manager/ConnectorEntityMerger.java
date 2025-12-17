@@ -51,21 +51,52 @@ public class ConnectorEntityMerger {
             return;
         }
 
-        // Basic connector state consistency check - all nodes should have same state
-        for (final Map.Entry<NodeIdentifier, ConnectorDTO> nodeEntry : dtoMap.entrySet()) {
-            final ConnectorDTO nodeConnector = nodeEntry.getValue();
-
-            if (nodeConnector != null) {
-                // Ensure state consistency across cluster
-                if (clientDto.getState() == null && nodeConnector.getState() != null) {
-                    clientDto.setState(nodeConnector.getState());
-                }
-            }
-        }
+        mergeState(clientDto, dtoMap);
 
         // Merge configuration steps to handle dynamic property descriptors
         mergeActiveConfiguration(clientDto, dtoMap);
         mergeWorkingConfiguration(clientDto, dtoMap);
+    }
+
+    /**
+     * Merges state from cluster nodes using priority-based selection.
+     * Priority (highest to lowest):
+     * 1. UPDATE_FAILED - indicates a failed update that needs attention
+     * 2. PREPARING_FOR_UPDATE - connector is preparing for update
+     * 3. UPDATING - connector is actively updating
+     * 4. UPDATED - connector has been updated
+     * 5. STARTING/STOPPING - connector is transitioning between run states
+     * 6. RUNNING/STOPPED/DISABLED - stable states
+     */
+    private static void mergeState(final ConnectorDTO clientDto, final Map<NodeIdentifier, ConnectorDTO> dtoMap) {
+        String mergedState = clientDto.getState();
+
+        for (final ConnectorDTO nodeConnector : dtoMap.values()) {
+            if (nodeConnector != null) {
+                final String nodeState = nodeConnector.getState();
+                if (nodeState != null) {
+                    if (getStatePriority(nodeState) > getStatePriority(mergedState)) {
+                        mergedState = nodeState;
+                    }
+                }
+            }
+        }
+
+        clientDto.setState(mergedState);
+    }
+
+    private static int getStatePriority(final String state) {
+        if (state == null) {
+            return 0;
+        }
+        return switch (state) {
+            case "UPDATE_FAILED" -> 6;
+            case "PREPARING_FOR_UPDATE" -> 5;
+            case "UPDATING" -> 4;
+            case "UPDATED" -> 3;
+            case "STARTING", "STOPPING" -> 2;
+            default -> 1; // RUNNING, STOPPED, DISABLED
+        };
     }
 
     private static void mergeActiveConfiguration(final ConnectorDTO clientDto, final Map<NodeIdentifier, ConnectorDTO> dtoMap) {

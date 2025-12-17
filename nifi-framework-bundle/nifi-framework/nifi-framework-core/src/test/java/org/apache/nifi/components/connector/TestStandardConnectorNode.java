@@ -40,6 +40,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +52,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -143,7 +144,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testCannotStartFromDisabledState() {
+    public void testCannotStartFromDisabledState() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         connectorNode.disable();
         assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
@@ -152,7 +153,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testCannotTransitionFromDisabledToRunning() {
+    public void testCannotTransitionFromDisabledToRunning() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         connectorNode.disable();
         assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
@@ -163,7 +164,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testEnableFromDisabledState() {
+    public void testEnableFromDisabledState() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         connectorNode.disable();
         assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
@@ -174,7 +175,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testDisableFromStoppedState() {
+    public void testDisableFromStoppedState() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
@@ -236,14 +237,14 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testVerifyCanDeleteWhenStopped() {
+    public void testVerifyCanDeleteWhenStopped() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
         connectorNode.verifyCanDelete();
     }
 
     @Test
-    public void testVerifyCanDeleteWhenDisabled() {
+    public void testVerifyCanDeleteWhenDisabled() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         connectorNode.disable();
         assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
@@ -260,7 +261,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testVerifyCanStartWhenStopped() {
+    public void testVerifyCanStartWhenStopped() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
         connectorNode.verifyCanStart();
@@ -279,7 +280,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testStopAlreadyStoppedReturnsImmediately() {
+    public void testStopAlreadyStoppedReturnsImmediately() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
@@ -346,6 +347,7 @@ public class TestStandardConnectorNode {
 
         final ConnectorConfiguration newConfiguration = createTestConfiguration();
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("testGroup", createStepConfiguration());
         connectorNode.applyUpdate();
@@ -362,6 +364,7 @@ public class TestStandardConnectorNode {
 
         final ConnectorConfiguration newConfiguration = createTestConfiguration();
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("testGroup", createStepConfiguration());
         connectorNode.applyUpdate();
@@ -374,6 +377,7 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value1")));
         connectorNode.applyUpdate();
@@ -381,6 +385,7 @@ public class TestStandardConnectorNode {
         final ConnectorConfiguration newConfiguration = createTestConfiguration("step1", "prop1", "value2");
 
         connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("step1", createStepConfiguration(Map.of("prop1", "value2")));
         connectorNode.applyUpdate();
@@ -392,6 +397,7 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("configurationStep1", createStepConfiguration(Map.of("prop1", "value1")));
         connectorNode.applyUpdate();
@@ -400,6 +406,7 @@ public class TestStandardConnectorNode {
 
         // Wait for Connector to fully stop
         connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("configurationStep1", createStepConfiguration(Map.of("prop1", "value1")));
         connectorNode.setConfiguration("configurationStep2", createStepConfiguration(Map.of("prop2", "value2")));
@@ -413,12 +420,14 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("configurationStep1", createStepConfiguration(Map.of("prop1", "value1")));
         connectorNode.setConfiguration("configurationStep2", createStepConfiguration(Map.of("prop2", "value2")));
         connectorNode.applyUpdate();
 
         connectorNode.stop(scheduler).get(5, TimeUnit.SECONDS);
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("configurationStep1", createStepConfiguration(Map.of("prop1", "value1")));
         connectorNode.applyUpdate();
@@ -437,6 +446,7 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("testGroup", createStepConfiguration());
         connectorNode.applyUpdate();
@@ -448,11 +458,13 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode(trackingConnector);
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("configurationStep1", createStepConfiguration(Map.of("prop1", "value1")));
         connectorNode.applyUpdate();
         trackingConnector.reset();
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         connectorNode.setConfiguration("configurationStep1", createStepConfiguration(Map.of("prop1", "value2")));
         connectorNode.applyUpdate();
@@ -466,6 +478,7 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode(validationFailingConnector);
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
+        connectorNode.transitionStateForUpdating();
         connectorNode.prepareForUpdate();
         final List<ConfigVerificationResult> results = connectorNode.verifyConfigurationStep("testStep", new StepConfiguration(Map.of("testProperty", new StringLiteralValue("invalidValue"))));
 
@@ -481,26 +494,50 @@ public class TestStandardConnectorNode {
         assertEquals("The property value is invalid", failedResult.getExplanation());
     }
 
-    private StandardConnectorNode createConnectorNode() {
+    private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);
     }
 
-    private StandardConnectorNode createConnectorNode(final Connector connector) {
+    private StandardConnectorNode createConnectorNode(final Connector connector) throws FlowUpdateException {
         final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
+        final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
         final StandardConnectorNode node = new StandardConnectorNode(
             "test-connector-id",
             mock(FlowManager.class),
-            extensionManager, null,
+            extensionManager,
+            null,
             createConnectorDetails(connector),
             "TestConnector",
+            connector.getClass().getCanonicalName(),
             new StandardConnectorConfigurationContext(assetManager, secretsManager),
             stateTransition,
-            flowContextFactory);
+            flowContextFactory,
+            validationTrigger);
 
-        node.initializeConnector(mock(FrameworkConnectorInitializationContext.class));
-        assertDoesNotThrow(node::loadInitialFlow);
+        // mock secrets manager
+        final SecretsManager secretsManager = mock(SecretsManager.class);
+        when(secretsManager.getAllSecrets()).thenReturn(List.of());
+        when(secretsManager.getSecrets(anySet())).thenReturn(Collections.emptyMap());
+
+        final FrameworkConnectorInitializationContext initializationContext = mock(FrameworkConnectorInitializationContext.class);
+        when(initializationContext.getSecretsManager()).thenReturn(secretsManager);
+
+        node.initializeConnector(initializationContext);
+        node.loadInitialFlow();
         return node;
+    }
+
+    private static class SynchronousConnectorValidationTrigger implements ConnectorValidationTrigger {
+        @Override
+        public void triggerAsync(final ConnectorNode connector) {
+            trigger(connector);
+        }
+
+        @Override
+        public void trigger(final ConnectorNode connector) {
+            connector.performValidation();
+        }
     }
 
     private ConnectorDetails createConnectorDetails(final Connector connector) {

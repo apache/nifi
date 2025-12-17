@@ -26,6 +26,7 @@ import jakarta.ws.rs.client.WebTarget;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.client.AccessClient;
 import org.apache.nifi.toolkit.client.ConnectionClient;
+import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.ControllerClient;
 import org.apache.nifi.toolkit.client.ControllerServicesClient;
 import org.apache.nifi.toolkit.client.CountersClient;
@@ -309,6 +310,16 @@ public class JerseyNiFiClient implements NiFiClient {
     @Override
     public SystemDiagnosticsClient getSystemsDiagnosticsClient(final RequestConfig requestConfig) {
         return new JerseySystemDiagnosticsClient(baseTarget, requestConfig);
+    }
+
+    @Override
+    public ConnectorClient getConnectorClient() {
+        return new JerseyConnectorClient(baseTarget);
+    }
+
+    @Override
+    public ConnectorClient getConnectorClient(final RequestConfig requestConfig) {
+        return new JerseyConnectorClient(baseTarget, requestConfig);
     }
 
     @Override
