@@ -33,6 +33,7 @@ import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorDetails;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorStateTransition;
 import org.apache.nifi.components.connector.ConnectorValueReference;
@@ -145,6 +146,7 @@ public class ExtensionBuilder {
    private MutableConnectorConfigurationContext activeConfigurationContext;
    private ConnectorStateTransition connectorStateTransition;
    private FrameworkConnectorInitializationContextBuilder connectorInitializationContextBuilder;
+   private ConnectorValidationTrigger connectorValidationTrigger;
 
    public ExtensionBuilder type(final String type) {
        this.type = type;
@@ -271,6 +273,11 @@ public class ExtensionBuilder {
 
    public ExtensionBuilder connectorInitializationContextBuilder(final FrameworkConnectorInitializationContextBuilder contextBuilder) {
        this.connectorInitializationContextBuilder = contextBuilder;
+       return this;
+   }
+
+   public ExtensionBuilder connectorValidationTrigger(final ConnectorValidationTrigger connectorValidationTrigger) {
+       this.connectorValidationTrigger = connectorValidationTrigger;
        return this;
    }
 
@@ -519,9 +526,11 @@ public class ExtensionBuilder {
            connectorsAuthorizable,
            connectorDetails,
            componentType,
+           type,
            activeConfigurationContext,
            connectorStateTransition,
-           flowContextFactory
+           flowContextFactory,
+           connectorValidationTrigger
        );
 
        initializeDefaultValues(connector, connectorNode.getActiveFlowContext());

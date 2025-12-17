@@ -5240,6 +5240,10 @@ public final class DtoFactory {
         dto.setId(connector.getIdentifier());
         dto.setName(connector.getName());
 
+        final ValidationState validationState = connector.getValidationState();
+        dto.setValidationStatus(validationState.getStatus().name());
+        dto.setValidationErrors(convertValidationErrors(validationState.getValidationErrors()));
+
         final String canonicalName = connector.getConnector().getClass().getCanonicalName();
         dto.setType(canonicalName != null ? canonicalName : connector.getConnector().getClass().getName());
 
@@ -5345,6 +5349,7 @@ public final class DtoFactory {
                 dto.setSecretProviderId(secretRef.getProviderId());
                 dto.setSecretProviderName(secretRef.getProviderName());
                 dto.setSecretName(secretRef.getSecretName());
+                dto.setFullyQualifiedSecretName(secretRef.getFullyQualifiedName());
             }
         }
 

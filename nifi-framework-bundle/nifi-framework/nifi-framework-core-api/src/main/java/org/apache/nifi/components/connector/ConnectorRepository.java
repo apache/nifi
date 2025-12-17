@@ -78,9 +78,10 @@ public interface ConnectorRepository {
 
     void configureConnector(ConnectorNode connector, String stepName, StepConfiguration configuration) throws FlowUpdateException;
 
-    void applyUpdate(ConnectorNode connector) throws FlowUpdateException;
+    void applyUpdate(ConnectorNode connector, ConnectorUpdateContext context) throws FlowUpdateException;
 
-    void inheritConfiguration(ConnectorNode connector, List<VersionedConfigurationStep> flowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
+    void inheritConfiguration(ConnectorNode connector, List<VersionedConfigurationStep> activeFlowConfiguration,
+        List<VersionedConfigurationStep> workingFlowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
 
     SecretsManager getSecretsManager();
 

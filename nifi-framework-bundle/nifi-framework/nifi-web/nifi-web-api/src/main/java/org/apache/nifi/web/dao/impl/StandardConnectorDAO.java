@@ -22,6 +22,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.ConnectorValueType;
 import org.apache.nifi.components.connector.SecretReference;
@@ -153,15 +154,15 @@ public class StandardConnectorDAO implements ConnectorDAO {
         return switch (valueType) {
             case STRING_LITERAL -> new StringLiteralValue(dto.getValue());
             case ASSET_REFERENCE -> new AssetReference(dto.getAssetIdentifier());
-            case SECRET_REFERENCE -> new SecretReference(dto.getSecretProviderId(), dto.getSecretProviderName(), dto.getSecretName());
+            case SECRET_REFERENCE -> new SecretReference(dto.getSecretProviderId(), dto.getSecretProviderName(), dto.getSecretName(), dto.getFullyQualifiedSecretName());
         };
     }
 
     @Override
-    public void applyConnectorUpdate(final String id) {
+    public void applyConnectorUpdate(final String id, final ConnectorUpdateContext updateContext) {
         final ConnectorNode connector = getConnector(id);
         try {
-            getConnectorRepository().applyUpdate(connector);
+            getConnectorRepository().applyUpdate(connector, updateContext);
         } catch (final Exception e) {
             throw new NiFiCoreException("Failed to apply connector update: " + e, e);
         }

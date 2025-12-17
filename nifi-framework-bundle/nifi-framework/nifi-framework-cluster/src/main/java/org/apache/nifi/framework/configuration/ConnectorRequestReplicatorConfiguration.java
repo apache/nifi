@@ -17,6 +17,7 @@
 
 package org.apache.nifi.framework.configuration;
 
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.replication.ClusteredConnectorRequestReplicator;
 import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
@@ -32,13 +33,16 @@ public class ConnectorRequestReplicatorConfiguration {
     @Bean
     public ConnectorRequestReplicator connectorRequestReplicator(
             final NiFiProperties nifiProperties,
-            final ObjectProvider<RequestReplicator> requestReplicatorProvider) {
+            final ObjectProvider<RequestReplicator> requestReplicatorProvider,
+            final ObjectProvider<ClusterCoordinator> clusterCoordinatorProvider) {
 
         if (nifiProperties.isClustered()) {
             // We have to use an ObjectProvider here and obtain a Supplier because of a circular dependency.
             // The request replicator will not be available when created. However, it will be
             // available before attempting to use the ConnectorRequestReplicator.
-            return new ClusteredConnectorRequestReplicator(requestReplicatorProvider::getIfAvailable);
+            final String httpsHostname = nifiProperties.getProperty(NiFiProperties.WEB_HTTPS_HOST);
+            final boolean httpsEnabled = httpsHostname != null;
+            return new ClusteredConnectorRequestReplicator(requestReplicatorProvider::getIfAvailable, clusterCoordinatorProvider::getIfAvailable, httpsEnabled);
         }
 
         return new StandaloneConnectorRequestReplicator();

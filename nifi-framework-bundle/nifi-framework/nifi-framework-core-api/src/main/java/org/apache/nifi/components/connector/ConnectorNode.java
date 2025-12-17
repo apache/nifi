@@ -21,6 +21,7 @@ import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.validation.ValidationState;
@@ -32,6 +33,7 @@ import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -60,6 +62,8 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * @return the fully qualified class name of the underlying Connector implementation
      */
     String getComponentType();
+
+    String getCanonicalClassName();
 
     BundleCoordinate getBundleCoordinate();
 
@@ -135,6 +139,18 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     ValidationState performValidation();
 
     /**
+     * Returns the current validation status of the connector.
+     * @return the current ValidationStatus
+     */
+    ValidationStatus getValidationStatus();
+
+    /**
+     * Returns the validation errors for the connector, or an empty collection if the connector is valid.
+     * @return the validation errors, or an empty collection if valid
+     */
+    Collection<ValidationResult> getValidationErrors();
+
+    /**
      * Enables the Connector. This method should only be invoked via the ConnectorRepository.
      */
     void enable();
@@ -143,6 +159,8 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * Disables the Connector. This method should only be invoked via the ConnectorRepository.
      */
     void disable();
+
+    ValidationState getValidationState();
 
     /**
      * Returns an Optional Duration indicating how long the Connector has been idle (i.e., not processed any FlowFiles and with no FlowFiles queued).
@@ -184,6 +202,8 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     void setConfiguration(String configurationStepName, StepConfiguration configuration) throws FlowUpdateException;
 
+    void transitionStateForUpdating();
+
     void prepareForUpdate() throws FlowUpdateException;
 
     /**
@@ -202,10 +222,12 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
 
     /**
      * Inherits the given flow configuration into this Connector's active flow configuration.
-     * @param flowConfiguration the flow configuration to inherit
+     * @param activeFlowConfiguration the active flow configuration to inherit
+     * @param workingFlowConfiguration the working flow configuration to inherit
      * @param flowContextBundle the bundle associated with the provided configuration
      * @throws FlowUpdateException if unable to inherit the given flow configuration
      * @throws IllegalStateException if the Connector is not in a state of UPDATING
      */
-    void inheritConfiguration(List<VersionedConfigurationStep> flowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
+    void inheritConfiguration(List<VersionedConfigurationStep> activeFlowConfiguration, List<VersionedConfigurationStep> workingFlowConfiguration,
+        Bundle flowContextBundle) throws FlowUpdateException;
 }

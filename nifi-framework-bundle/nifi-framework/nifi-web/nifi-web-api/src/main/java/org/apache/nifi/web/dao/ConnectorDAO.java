@@ -20,6 +20,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 
 import java.util.List;
@@ -46,7 +47,7 @@ public interface ConnectorDAO {
 
     void updateConnectorConfigurationStep(String id, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);
 
-    void applyConnectorUpdate(String id);
+    void applyConnectorUpdate(String id, ConnectorUpdateContext updateContext);
 
     void verifyCanVerifyConfigurationStep(String id, String configurationStepName);
 
