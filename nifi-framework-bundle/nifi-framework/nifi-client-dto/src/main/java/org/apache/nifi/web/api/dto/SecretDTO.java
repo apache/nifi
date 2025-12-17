@@ -29,6 +29,7 @@ public class SecretDTO {
     private String providerName;
     private String groupName;
     private String name;
+    private String fullyQualifiedName;
     private String description;
 
     @Schema(description = "The identifier of the secret provider that manages this secret.")
@@ -65,6 +66,15 @@ public class SecretDTO {
 
     public void setName(final String name) {
         this.name = name;
+    }
+
+    @Schema(description = "The fully qualified name of the secret, including the group name.")
+    public String getFullyQualifiedName() {
+        return fullyQualifiedName;
+    }
+
+    public void setFullyQualifiedName(final String fullyQualifiedName) {
+        this.fullyQualifiedName = fullyQualifiedName;
     }
 
     @Schema(description = "A description of the secret.")

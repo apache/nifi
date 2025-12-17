@@ -5454,6 +5454,7 @@ public final class DtoFactory {
         dto.setProviderName(secret.getProviderName());
         dto.setGroupName(secret.getGroupName());
         dto.setName(secret.getName());
+        dto.setFullyQualifiedName(secret.getFullyQualifiedName());
         dto.setDescription(secret.getDescription());
         return dto;
     }

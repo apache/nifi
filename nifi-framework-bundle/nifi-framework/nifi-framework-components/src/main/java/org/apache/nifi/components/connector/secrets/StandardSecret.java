@@ -49,11 +49,6 @@ public class StandardSecret implements AuthorizableSecret {
     }
 
     @Override
-    public String getProviderId() {
-        return providerId;
-    }
-
-    @Override
     public String getProviderName() {
         return providerName;
     }
