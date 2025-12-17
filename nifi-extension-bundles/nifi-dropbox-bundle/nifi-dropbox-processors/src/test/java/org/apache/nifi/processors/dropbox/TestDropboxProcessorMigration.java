@@ -82,7 +82,7 @@ public class TestDropboxProcessorMigration {
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
 
-        final Set<String> expectedRemoved = Set.of("Distributed Cache Service");
+        final Set<String> expectedRemoved = Set.of(AbstractListProcessor.OBSOLETE_DISTRIBUTED_CACHE_SERVICE);
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 }

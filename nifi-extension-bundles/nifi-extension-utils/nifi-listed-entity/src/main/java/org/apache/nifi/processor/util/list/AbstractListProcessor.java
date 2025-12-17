@@ -229,6 +229,8 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             .identifiesControllerService(RecordSetWriterFactory.class)
             .build();
 
+    public static final String OBSOLETE_DISTRIBUTED_CACHE_SERVICE = "Distributed Cache Service";
+
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
         REL_SUCCESS
     );
@@ -272,7 +274,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
-        config.removeProperty("Distributed Cache Service");
+        config.removeProperty(OBSOLETE_DISTRIBUTED_CACHE_SERVICE);
         config.renameProperty("target-system-timestamp-precision", TARGET_SYSTEM_TIMESTAMP_PRECISION.getName());
         config.renameProperty("listing-strategy", LISTING_STRATEGY.getName());
         config.renameProperty("record-writer", RECORD_WRITER.getName());
