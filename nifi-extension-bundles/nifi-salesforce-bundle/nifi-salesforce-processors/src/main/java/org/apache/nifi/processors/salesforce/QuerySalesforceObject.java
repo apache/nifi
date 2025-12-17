@@ -258,8 +258,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
     public static final String LAST_AGE_FILTER = "last_age_filter";
     private static final String STARTING_FIELD_NAME = "records";
     private static final String DATE_FORMAT = "yyyy-MM-dd";
-    private static final String TIME_FORMAT = "HH:mm:ss.SSSZ";
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
+    private static final String TIME_FORMAT = "HH:mm:ss.SSSX";
+    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSX";
     private static final String NEXT_RECORDS_URL = "nextRecordsUrl";
     private static final String TOTAL_SIZE = "totalSize";
     private static final String RECORDS = "records";
@@ -287,8 +287,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 TIME_FORMAT
         );
 
-        String salesforceVersion = context.getProperty(API_VERSION).getValue();
-        String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).getValue();
+        String salesforceVersion = context.getProperty(API_VERSION).evaluateAttributeExpressions().getValue();
+        String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).evaluateAttributeExpressions().getValue();
         OAuth2AccessTokenProvider accessTokenProvider = context.getProperty(TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
 
         SalesforceConfiguration salesforceConfiguration = SalesforceConfiguration.create(
@@ -298,7 +298,12 @@ public class QuerySalesforceObject extends AbstractProcessor {
                 context.getProperty(READ_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()
         );
 
-        salesforceRestService = new SalesforceRestClient(salesforceConfiguration);
+        salesforceRestService = getSalesforceRestClient(salesforceConfiguration);
+    }
+
+    // visible for testing
+    SalesforceRestClient getSalesforceRestClient(SalesforceConfiguration salesforceConfiguration) {
+        return new SalesforceRestClient(salesforceConfiguration);
     }
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -390,8 +395,8 @@ public class QuerySalesforceObject extends AbstractProcessor {
 
     private void processQuery(ProcessContext context, ProcessSession session, FlowFile originalFlowFile) {
         AtomicReference<String> nextRecordsUrl = new AtomicReference<>();
-        String sObject = context.getProperty(SOBJECT_NAME).getValue();
-        String fields = context.getProperty(FIELD_NAMES).getValue();
+        String sObject = context.getProperty(SOBJECT_NAME).evaluateAttributeExpressions().getValue();
+        String fields = context.getProperty(FIELD_NAMES).evaluateAttributeExpressions().getValue();
         String customWhereClause = context.getProperty(CUSTOM_WHERE_CONDITION).evaluateAttributeExpressions(originalFlowFile).getValue();
         RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
         boolean createZeroRecordFlowFiles = context.getProperty(CREATE_ZERO_RECORD_FILES).asBoolean();

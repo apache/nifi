@@ -201,8 +201,8 @@ public class PutSalesforceObject extends AbstractProcessor {
     }
 
     private SalesforceConfiguration createSalesforceConfiguration(ProcessContext context) {
-        String salesforceVersion = context.getProperty(API_VERSION).getValue();
-        String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).getValue();
+        String salesforceVersion = context.getProperty(API_VERSION).evaluateAttributeExpressions().getValue();
+        String instanceUrl = context.getProperty(SALESFORCE_INSTANCE_URL).evaluateAttributeExpressions().getValue();
         OAuth2AccessTokenProvider accessTokenProvider =
                 context.getProperty(TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
         return SalesforceConfiguration.create(instanceUrl, salesforceVersion,
