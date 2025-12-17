@@ -46,12 +46,14 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private volatile ExtensionManager extensionManager;
     private volatile ConnectorRequestReplicator requestReplicator;
     private volatile SecretsManager secretsManager;
+    private volatile ConnectorAssetRepository assetRepository;
 
     @Override
     public void initialize(final ConnectorRepositoryInitializationContext context) {
         this.extensionManager = context.getExtensionManager();
         this.requestReplicator = context.getRequestReplicator();
         this.secretsManager = context.getSecretsManager();
+        this.assetRepository = new StandardConnectorAssetRepository(context.getAssetManager());
     }
 
     @Override
@@ -223,4 +225,8 @@ public class StandardConnectorRepository implements ConnectorRepository {
         return new StandardConnectorInitializationContext.Builder();
     }
 
+    @Override
+    public ConnectorAssetRepository getAssetRepository() {
+        return assetRepository;
+    }
 }

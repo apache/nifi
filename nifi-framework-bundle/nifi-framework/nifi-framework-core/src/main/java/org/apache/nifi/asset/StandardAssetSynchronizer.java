@@ -212,7 +212,7 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
 
     private AssetsEntity listAssets(final AssetsRestApiClient assetsRestApiClient, final String parameterContextId) {
         try {
-            return assetsRestApiClient.getAssets(parameterContextId);
+            return assetsRestApiClient.getParameterContextAssets(parameterContextId);
         } catch (final NiFiRestApiRetryableException e) {
             final Throwable rootCause = ExceptionUtils.getRootCause(e);
             logger.warn("{}, root cause [{}]: retrying", e.getMessage(), rootCause.getMessage());
@@ -242,7 +242,7 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         if (Boolean.TRUE == coordinatorAsset.getMissingContent()) {
             return assetManager.createMissingAsset(parameterContextId, assetName);
         } else {
-            try (final InputStream assetInputStream = assetsRestApiClient.getAssetContent(parameterContextId, assetId)) {
+            try (final InputStream assetInputStream = assetsRestApiClient.getParameterContextAssetContent(parameterContextId, assetId)) {
                 return assetManager.createAsset(parameterContextId, assetName, assetInputStream);
             } catch (final NiFiRestApiRetryableException e) {
                 final Throwable rootCause = ExceptionUtils.getRootCause(e);

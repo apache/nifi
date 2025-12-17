@@ -17,6 +17,7 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
@@ -57,6 +58,9 @@ class StandardConnectorDAOTest {
     @Mock
     private ConnectorUpdateContext connectorUpdateContext;
 
+    @Mock
+    private ConnectorAssetRepository connectorAssetRepository;
+
     private static final String CONNECTOR_ID = "test-connector-id";
     private static final String STEP_NAME = "test-step";
     private static final String PROPERTY_NAME = "test-property";
@@ -67,6 +71,7 @@ class StandardConnectorDAOTest {
         connectorDAO.setFlowController(flowController);
 
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
+        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
     }
 
     @Test
@@ -211,6 +216,26 @@ class StandardConnectorDAOTest {
         );
 
         verify(connectorRepository).getConnector(CONNECTOR_ID);
+    }
+
+    @Test
+    void testDeleteConnectorRemovesConnectorAndAssets() {
+        connectorDAO.deleteConnector(CONNECTOR_ID);
+
+        verify(connectorRepository).removeConnector(CONNECTOR_ID);
+        verify(connectorAssetRepository).deleteAssets(CONNECTOR_ID);
+    }
+
+    @Test
+    void testDeleteConnectorDoesNotDeleteAssetsWhenRemovalFails() {
+        doThrow(new RuntimeException("Removal failed")).when(connectorRepository).removeConnector(CONNECTOR_ID);
+
+        assertThrows(RuntimeException.class, () ->
+            connectorDAO.deleteConnector(CONNECTOR_ID)
+        );
+
+        verify(connectorRepository).removeConnector(CONNECTOR_ID);
+        verify(connectorAssetRepository, never()).deleteAssets(any());
     }
 }
 

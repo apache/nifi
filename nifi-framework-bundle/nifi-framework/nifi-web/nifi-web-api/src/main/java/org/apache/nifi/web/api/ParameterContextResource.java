@@ -538,7 +538,7 @@ public class ParameterContextResource extends AbstractParameterResource {
         final Asset asset = assetManager.getAsset(assetId)
                 .orElseThrow(() -> new ResourceNotFoundException("Asset does not exist with the id %s".formatted(assetId)));
 
-        if (!asset.getParameterContextIdentifier().equals(parameterContextId)) {
+        if (!asset.getOwnerIdentifier().equals(parameterContextId)) {
             throw new ResourceNotFoundException("Asset does not exist with id %s".formatted(assetId));
         }
 
@@ -813,7 +813,7 @@ public class ParameterContextResource extends AbstractParameterResource {
                     }
                     final Asset asset = assetManager.getAsset(referencedAsset.getId())
                             .orElseThrow(() -> new IllegalArgumentException("Request contains a reference to an Asset (%s) that does not exist".formatted(referencedAsset)));
-                    if (!asset.getParameterContextIdentifier().equals(parameterContextDto.getId())) {
+                    if (!asset.getOwnerIdentifier().equals(parameterContextDto.getId())) {
                         throw new IllegalArgumentException("Request contains a reference to an Asset (%s) that does not exist in Parameter Context (%s)"
                                 .formatted(referencedAsset, parameterContextDto.getId()));
                     }

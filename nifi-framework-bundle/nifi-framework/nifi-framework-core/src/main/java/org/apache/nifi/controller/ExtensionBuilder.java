@@ -33,9 +33,9 @@ import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorDetails;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
-import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorStateTransition;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowContextFactory;
 import org.apache.nifi.components.connector.FrameworkConnectorInitializationContext;
@@ -282,10 +282,10 @@ public class ExtensionBuilder {
         return this;
     }
 
-   public ExtensionBuilder connectorValidationTrigger(final ConnectorValidationTrigger connectorValidationTrigger) {
-       this.connectorValidationTrigger = connectorValidationTrigger;
-       return this;
-   }
+    public ExtensionBuilder connectorValidationTrigger(final ConnectorValidationTrigger connectorValidationTrigger) {
+        this.connectorValidationTrigger = connectorValidationTrigger;
+        return this;
+    }
 
    public ProcessorNode buildProcessor() {
        requireNonNull(identifier, "Processor ID");
@@ -296,7 +296,6 @@ public class ExtensionBuilder {
        requireNonNull(nodeTypeProvider, "Node Type Provider");
        requireNonNull(reloadComponent, "Reload Component");
        requireNonNull(verifiableComponentFactory, "Verifiable Component Factory");
-
 
        boolean creationSuccessful = true;
         final StandardLoggingContext loggingContext = new StandardLoggingContext();
@@ -530,19 +529,19 @@ public class ExtensionBuilder {
             }
         };
 
-       final ConnectorNode connectorNode = new StandardConnectorNode(
-           identifier,
-           flowController.getFlowManager(),
-           extensionManager,
-           connectorsAuthorizable,
-           connectorDetails,
-           componentType,
-           type,
-           activeConfigurationContext,
-           connectorStateTransition,
-           flowContextFactory,
-           connectorValidationTrigger
-       );
+        final ConnectorNode connectorNode = new StandardConnectorNode(
+            identifier,
+            flowController.getFlowManager(),
+            extensionManager,
+            connectorsAuthorizable,
+            connectorDetails,
+            componentType,
+            type,
+            activeConfigurationContext,
+            connectorStateTransition,
+            flowContextFactory,
+            connectorValidationTrigger
+        );
 
         initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
         // TODO: If an Exception is thrown in the call to #initialize, we should create a Ghosted Connector
@@ -579,7 +578,7 @@ public class ExtensionBuilder {
             .name(name)
             .componentLog(componentLog)
             .secretsManager(flowController.getConnectorRepository().getSecretsManager())
-            .assetManager(flowController.getAssetManager())
+            .assetManager(flowController.getConnectorAssetManager())
             .build();
     }
 

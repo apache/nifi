@@ -66,6 +66,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
@@ -316,6 +317,7 @@ public final class DtoFactory {
     private EntityFactory entityFactory;
     private Authorizer authorizer;
     private ExtensionManager extensionManager;
+    private ConnectorAssetRepository connectorAssetRepository;
 
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
@@ -5205,12 +5207,16 @@ public final class DtoFactory {
         this.entityFactory = entityFactory;
     }
 
-    public void setBulletinRepository(BulletinRepository bulletinRepository) {
+    public void setBulletinRepository(final BulletinRepository bulletinRepository) {
         this.bulletinRepository = bulletinRepository;
     }
 
-    public void setExtensionManager(ExtensionManager extensionManager) {
+    public void setExtensionManager(final ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
+    }
+
+    public void setConnectorAssetRepository(final ConnectorAssetRepository connectorAssetRepository) {
+        this.connectorAssetRepository = connectorAssetRepository;
     }
 
     private ProcessingPerformanceStatusDTO createProcessingPerformanceStatusDTO(final ProcessingPerformanceStatus performanceStatus) {
@@ -5346,7 +5352,12 @@ public final class DtoFactory {
 
         switch (valueReference) {
             case StringLiteralValue stringLiteral -> dto.setValue(stringLiteral.getValue());
-            case AssetReference assetRef -> dto.setAssetIdentifier(assetRef.getAssetIdentifier());
+            case AssetReference assetRef -> {
+                final List<AssetReferenceDTO> assetReferences = assetRef.getAssetIdentifiers().stream()
+                    .map(this::createConnectorAssetReferenceDto)
+                    .toList();
+                dto.setAssetReferences(assetReferences);
+            }
             case SecretReference secretRef -> {
                 dto.setSecretProviderId(secretRef.getProviderId());
                 dto.setSecretProviderName(secretRef.getProviderName());
@@ -5356,6 +5367,11 @@ public final class DtoFactory {
         }
 
         return dto;
+    }
+
+    private AssetReferenceDTO createConnectorAssetReferenceDto(final String assetId) {
+        final String assetName = connectorAssetRepository.getAsset(assetId).map(Asset::getName).orElse(assetId);
+        return new AssetReferenceDTO(assetId, assetName);
     }
 
     private ConnectorPropertyDescriptorDTO createConnectorPropertyDescriptorDto(final ConnectorPropertyDescriptor propertyDescriptor) {
