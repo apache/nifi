@@ -4,9 +4,11 @@ import io.prometheus.client.Gauge;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class VersionInfoRegistry extends AbstractMetricsRegistry {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(VersionInfoRegistry.class);
     private static final String DEFAULT_LABEL_STRING = "unknown";
 
     public VersionInfoRegistry() {
@@ -24,6 +26,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
         return registry;
     }
     public static class VersionDetails { 
+
         public final String nifiVersion;
         public final String revision;
         public final String tag;
@@ -63,7 +66,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
         final String osArchitecture = System.getProperty("os.arch", DEFAULT_LABEL_STRING);
 
         try {
-            // NiFi internal API to get build specifics (this is the isolated access point)
+            // NiFi internal API to get build specifics
             final Bundle frameworkBundle = NarClassLoadersHolder.getInstance().getFrameworkBundle();
             if (frameworkBundle != null) {
                 final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
@@ -73,7 +76,9 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
                 buildBranch = frameworkDetails.getBuildBranch();
             }
         } catch (Exception e) {
+            LOGGER.debug("Could not retrieve NiFi bundle details for version info metric: {}", e.getMessage());
         }
         return new VersionDetails(nifiVersion, revision, tag, buildBranch, javaVersion, javaVendor, osVersion, osName, osArchitecture);
     }
+
 }
