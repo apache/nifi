@@ -189,7 +189,6 @@ public class TestParameterProviderSecretsManager {
         assertTrue(foundSecret3);
     }
 
-
     @Test
     public void testGetSecretReturnsPopulatedOptionalWhenSecretIsFoundById() {
         final SecretReference reference = createSecretReference(PROVIDER_1_ID, null, SECRET_1_NAME);

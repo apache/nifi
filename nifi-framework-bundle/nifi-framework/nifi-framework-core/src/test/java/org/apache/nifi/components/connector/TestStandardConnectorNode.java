@@ -52,7 +52,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -145,7 +144,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testCannotStartFromDisabledState() {
+    public void testCannotStartFromDisabledState() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         connectorNode.disable();
         assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
@@ -154,7 +153,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testCannotTransitionFromDisabledToRunning() {
+    public void testCannotTransitionFromDisabledToRunning() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         connectorNode.disable();
         assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
@@ -165,7 +164,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testEnableFromDisabledState() {
+    public void testEnableFromDisabledState() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         connectorNode.disable();
         assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
@@ -176,7 +175,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testDisableFromStoppedState() {
+    public void testDisableFromStoppedState() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
@@ -238,14 +237,14 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testVerifyCanDeleteWhenStopped() {
+    public void testVerifyCanDeleteWhenStopped() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
         connectorNode.verifyCanDelete();
     }
 
     @Test
-    public void testVerifyCanDeleteWhenDisabled() {
+    public void testVerifyCanDeleteWhenDisabled() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         connectorNode.disable();
         assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
@@ -262,7 +261,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testVerifyCanStartWhenStopped() {
+    public void testVerifyCanStartWhenStopped() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
         connectorNode.verifyCanStart();
@@ -281,7 +280,7 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testStopAlreadyStoppedReturnsImmediately() {
+    public void testStopAlreadyStoppedReturnsImmediately() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
@@ -495,12 +494,12 @@ public class TestStandardConnectorNode {
         assertEquals("The property value is invalid", failedResult.getExplanation());
     }
 
-    private StandardConnectorNode createConnectorNode() {
+    private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);
     }
 
-    private StandardConnectorNode createConnectorNode(final Connector connector) {
+    private StandardConnectorNode createConnectorNode(final Connector connector) throws FlowUpdateException {
         final ConnectorStateTransition stateTransition = new StandardConnectorStateTransition("TestConnectorNode");
         final ConnectorValidationTrigger validationTrigger = new SynchronousConnectorValidationTrigger();
         final StandardConnectorNode node = new StandardConnectorNode(
@@ -525,7 +524,7 @@ public class TestStandardConnectorNode {
         when(initializationContext.getSecretsManager()).thenReturn(secretsManager);
 
         node.initializeConnector(initializationContext);
-        assertDoesNotThrow(node::loadInitialFlow);
+        node.loadInitialFlow();
         return node;
     }
 

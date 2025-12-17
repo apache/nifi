@@ -121,44 +121,40 @@ public class StandardConnectorRepository implements ConnectorRepository {
             // Perform whatever preparation is necessary for the update. Default implementation is to stop the connector.
             connector.prepareForUpdate();
 
-            try {
-                // Wait for Connector State to become UPDATING
-                waitForState(connector, Set.of(ConnectorState.UPDATING), Set.of(ConnectorState.PREPARING_FOR_UPDATE));
+            // Wait for Connector State to become UPDATING
+            waitForState(connector, Set.of(ConnectorState.UPDATING), Set.of(ConnectorState.PREPARING_FOR_UPDATE));
 
-                // Apply the update to the connector.
-                connector.applyUpdate();
+            // Apply the update to the connector.
+            connector.applyUpdate();
 
-                // Now that the update has been applied, save the flow so that the updated configuration is persisted.
-                context.saveFlow();
+            // Now that the update has been applied, save the flow so that the updated configuration is persisted.
+            context.saveFlow();
 
-                // Wait for Connector State to become UPDATED, or to revert to the initial desired state because, depending upon timing,
-                // other nodes may have already seen the transition to UPDATED and moved the connector back to the initial desired state.
-                final Set<ConnectorState> desirableStates = new HashSet<>();
-                desirableStates.add(initialDesiredState);
-                desirableStates.add(ConnectorState.UPDATED);
-                if (initialDesiredState == ConnectorState.RUNNING) {
-                    desirableStates.add(ConnectorState.STARTING);
-                } else if (initialDesiredState == ConnectorState.STOPPED) {
-                    desirableStates.add(ConnectorState.STOPPING);
-                }
-                waitForState(connector, desirableStates, Set.of(ConnectorState.UPDATING));
-
-                // If the initial desired state was RUNNING, start the connector again. Otherwise, stop it.
-                // We don't simply leave it be as the prepareForUpdate / update may have changed the state of some components.
-                if (initialDesiredState == ConnectorState.RUNNING) {
-                    connector.start(lifecycleExecutor);
-                } else {
-                    connector.stop(lifecycleExecutor);
-                }
-
-                // We've updated the state of the connector so save flow again
-                context.saveFlow();
-            } catch (final Exception e) {
-                logger.error("Failed to apply connector update for {}", connector, e);
-                connector.abortUpdate(e);
+            // Wait for Connector State to become UPDATED, or to revert to the initial desired state because, depending upon timing,
+            // other nodes may have already seen the transition to UPDATED and moved the connector back to the initial desired state.
+            final Set<ConnectorState> desirableStates = new HashSet<>();
+            desirableStates.add(initialDesiredState);
+            desirableStates.add(ConnectorState.UPDATED);
+            if (initialDesiredState == ConnectorState.RUNNING) {
+                desirableStates.add(ConnectorState.STARTING);
+            } else if (initialDesiredState == ConnectorState.STOPPED) {
+                desirableStates.add(ConnectorState.STOPPING);
             }
+            waitForState(connector, desirableStates, Set.of(ConnectorState.UPDATING));
+
+            // If the initial desired state was RUNNING, start the connector again. Otherwise, stop it.
+            // We don't simply leave it be as the prepareForUpdate / update may have changed the state of some components.
+            if (initialDesiredState == ConnectorState.RUNNING) {
+                connector.start(lifecycleExecutor);
+            } else {
+                connector.stop(lifecycleExecutor);
+            }
+
+            // We've updated the state of the connector so save flow again
+            context.saveFlow();
         } catch (final Exception e) {
             logger.error("Failed to apply connector update for {}", connector, e);
+            connector.abortUpdate(e);
         }
     }
 
