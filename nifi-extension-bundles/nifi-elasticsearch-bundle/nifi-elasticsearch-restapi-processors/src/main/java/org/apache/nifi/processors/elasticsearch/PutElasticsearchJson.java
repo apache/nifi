@@ -178,9 +178,7 @@ public class PutElasticsearchJson extends AbstractPutElasticsearch {
     public void migrateProperties(final PropertyConfiguration config) {
         super.migrateProperties(config);
 
-        if (config.hasProperty("put-es-json-error-documents")) {
-            config.removeProperty("put-es-json-error-documents");
-        }
+        config.removeProperty("put-es-json-error-documents");
         config.renameProperty("put-es-json-id-attr", ID_ATTRIBUTE.getName());
         config.renameProperty("put-es-json-script", SCRIPT.getName());
         config.renameProperty("put-es-json-scripted-upsert", SCRIPTED_UPSERT.getName());
