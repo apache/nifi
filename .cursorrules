@@ -12,6 +12,9 @@ When it is necessary to lookup the API for reference, the API can generally be f
 Building
 --------
 NiFi is a complex Maven codebase. Never build code (testing or otherwise) using javac. Always use `mvn` instead.
+Additionally, building a maven module using the also-make flag (`-am`) is often very expensive and slow.
+Instead, only build the specific module you are modifying. Assume that the user has already built the entire
+codebase and that only the specific module you are modifying needs to be built again.
 
 Code Style
 ----------

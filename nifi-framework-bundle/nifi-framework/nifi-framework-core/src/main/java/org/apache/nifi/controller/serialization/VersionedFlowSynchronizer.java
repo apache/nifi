@@ -1076,9 +1076,18 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     }
 
     private boolean isConnectorConfigurationUpdated(final ConnectorNode existingConnector, final VersionedConnector versionedConnector) {
-        final ConnectorConfiguration existingConfiguration = existingConnector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final ConnectorConfiguration activeConfig = existingConnector.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final List<VersionedConfigurationStep> versionedActiveConfig = versionedConnector.getActiveFlowConfiguration();
+        final boolean activeContextChanged = isConnectorConfigurationUpdated(activeConfig, versionedActiveConfig);
 
-        final List<VersionedConfigurationStep> versionedConfigurationSteps = versionedConnector.getActiveFlowConfiguration();
+        final ConnectorConfiguration workingConfig = existingConnector.getWorkingFlowContext().getConfigurationContext().toConnectorConfiguration();
+        final List<VersionedConfigurationStep> versionedWorkingConfig = versionedConnector.getWorkingFlowConfiguration();
+        final boolean workingContextChanged = isConnectorConfigurationUpdated(workingConfig, versionedWorkingConfig);
+
+        return activeContextChanged || workingContextChanged;
+    }
+
+    private boolean isConnectorConfigurationUpdated(final ConnectorConfiguration existingConfiguration, final List<VersionedConfigurationStep> versionedConfigurationSteps) {
         if (versionedConfigurationSteps == null || versionedConfigurationSteps.isEmpty()) {
             return existingConfiguration != null && !existingConfiguration.getNamedStepConfigurations().isEmpty();
         }
@@ -1169,7 +1178,9 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // prepareForUpdate. If any fails, we can restore them and throw an Exception. We don't want to be throwing an Exception in the middle
         // of updating the flow.
         try {
-            connectorRepository.inheritConfiguration(connectorNode, versionedConnector.getActiveFlowConfiguration(), versionedConnector.getBundle());
+            final List<VersionedConfigurationStep> activeFlowConfig = versionedConnector.getActiveFlowConfiguration();
+            final List<VersionedConfigurationStep> workingFlowConfig = versionedConnector.getWorkingFlowConfiguration();
+            connectorRepository.inheritConfiguration(connectorNode, activeFlowConfig, workingFlowConfig, versionedConnector.getBundle());
         } catch (final FlowUpdateException e) {
             throw new RuntimeException(connectorNode + " failed to inherit configuration", e);
         }

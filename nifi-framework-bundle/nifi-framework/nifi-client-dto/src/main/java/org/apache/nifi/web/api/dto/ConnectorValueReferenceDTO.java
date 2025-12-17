@@ -32,6 +32,7 @@ public class ConnectorValueReferenceDTO {
     private String secretProviderId;
     private String secretProviderName;
     private String secretName;
+    private String fullyQualifiedSecretName;
 
     /**
      * @return the type of value (STRING_LITERAL, ASSET_REFERENCE, or SECRET_REFERENCE)
@@ -103,6 +104,15 @@ public class ConnectorValueReferenceDTO {
 
     public void setSecretName(final String secretName) {
         this.secretName = secretName;
+    }
+
+    public void setFullyQualifiedSecretName(final String fullyQualifiedSecretName) {
+        this.fullyQualifiedSecretName = fullyQualifiedSecretName;
+    }
+
+    @Schema(description = "The fully qualified secret name. Applicable when valueType is SECRET_REFERENCE.")
+    public String getFullyQualifiedSecretName() {
+        return fullyQualifiedSecretName;
     }
 }
 

@@ -79,6 +79,7 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationState;
@@ -3645,8 +3646,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         final RevisionClaim claim = new StandardRevisionClaim(revision);
 
+        final ConnectorUpdateContext updateContext = controllerFacade::saveImmediate;
+
         final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
-            connectorDAO.applyConnectorUpdate(connectorId);
+            connectorDAO.applyConnectorUpdate(connectorId, updateContext);
 
             final ConnectorNode node = connectorDAO.getConnector(connectorId);
             final ConnectorDTO dto = dtoFactory.createConnectorDto(node);

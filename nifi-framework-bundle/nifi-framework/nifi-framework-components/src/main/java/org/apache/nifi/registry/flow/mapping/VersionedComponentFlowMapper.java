@@ -1041,7 +1041,7 @@ public class VersionedComponentFlowMapper {
         versionedConnector.setInstanceIdentifier(connectorNode.getIdentifier());
         versionedConnector.setName(connectorNode.getName());
         versionedConnector.setScheduledState(mapConnectorState(connectorNode.getDesiredState()));
-        versionedConnector.setType(connectorNode.getComponentType());
+        versionedConnector.setType(connectorNode.getCanonicalClassName());
         versionedConnector.setBundle(mapBundle(connectorNode.getBundleCoordinate()));
 
         final List<VersionedConfigurationStep> activeFlowConfiguration = createVersionedConfigurationSteps(connectorNode.getActiveFlowContext());
@@ -1076,6 +1076,9 @@ public class VersionedComponentFlowMapper {
         final Map<String, VersionedConnectorValueReference> versionedProperties = new HashMap<>();
         for (final Map.Entry<String, ConnectorValueReference> entry : configuration.getPropertyValues().entrySet()) {
             final ConnectorValueReference valueReference = entry.getValue();
+            if (valueReference == null) {
+                continue;
+            }
 
             final VersionedConnectorValueReference versionedReference = new VersionedConnectorValueReference();
             versionedReference.setValueType(valueReference.getValueType().name());
@@ -1087,11 +1090,13 @@ public class VersionedComponentFlowMapper {
                     versionedReference.setProviderId(secretRef.getProviderId());
                     versionedReference.setProviderName(secretRef.getProviderName());
                     versionedReference.setSecretName(secretRef.getSecretName());
+                    versionedReference.setFullyQualifiedSecretName(secretRef.getFullyQualifiedName());
                 }
             }
 
             versionedProperties.put(entry.getKey(), versionedReference);
         }
+
         return versionedProperties;
     }
 

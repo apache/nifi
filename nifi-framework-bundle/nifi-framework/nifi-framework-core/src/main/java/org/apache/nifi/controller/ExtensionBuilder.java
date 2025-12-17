@@ -33,6 +33,7 @@ import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorDetails;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorStateTransition;
 import org.apache.nifi.components.connector.ConnectorValueReference;
@@ -147,6 +148,7 @@ public class ExtensionBuilder {
     private MutableConnectorConfigurationContext activeConfigurationContext;
     private ConnectorStateTransition connectorStateTransition;
     private FrameworkConnectorInitializationContextBuilder connectorInitializationContextBuilder;
+    private ConnectorValidationTrigger connectorValidationTrigger;
 
     public ExtensionBuilder type(final String type) {
         this.type = type;
@@ -280,17 +282,23 @@ public class ExtensionBuilder {
         return this;
     }
 
-    public ProcessorNode buildProcessor() {
-        requireNonNull(identifier, "Processor ID");
-        requireNonNull(type, "Processor Type");
-        requireNonNull(bundleCoordinate, "Bundle Coordinate");
-        requireNonNull(extensionManager, "Extension Manager");
-        requireNonNull(serviceProvider, "Controller Service Provider");
-        requireNonNull(nodeTypeProvider, "Node Type Provider");
-        requireNonNull(reloadComponent, "Reload Component");
-        requireNonNull(verifiableComponentFactory, "Verifiable Component Factory");
+   public ExtensionBuilder connectorValidationTrigger(final ConnectorValidationTrigger connectorValidationTrigger) {
+       this.connectorValidationTrigger = connectorValidationTrigger;
+       return this;
+   }
 
-        boolean creationSuccessful = true;
+   public ProcessorNode buildProcessor() {
+       requireNonNull(identifier, "Processor ID");
+       requireNonNull(type, "Processor Type");
+       requireNonNull(bundleCoordinate, "Bundle Coordinate");
+       requireNonNull(extensionManager, "Extension Manager");
+       requireNonNull(serviceProvider, "Controller Service Provider");
+       requireNonNull(nodeTypeProvider, "Node Type Provider");
+       requireNonNull(reloadComponent, "Reload Component");
+       requireNonNull(verifiableComponentFactory, "Verifiable Component Factory");
+
+
+       boolean creationSuccessful = true;
         final StandardLoggingContext loggingContext = new StandardLoggingContext();
         LoggableComponent<Processor> loggableComponent;
         try {
@@ -522,17 +530,19 @@ public class ExtensionBuilder {
             }
         };
 
-        final ConnectorNode connectorNode = new StandardConnectorNode(
-            identifier,
-            flowController.getFlowManager(),
-            extensionManager,
-            connectorsAuthorizable,
-            connectorDetails,
-            componentType,
-            activeConfigurationContext,
-            connectorStateTransition,
-            flowContextFactory
-        );
+       final ConnectorNode connectorNode = new StandardConnectorNode(
+           identifier,
+           flowController.getFlowManager(),
+           extensionManager,
+           connectorsAuthorizable,
+           connectorDetails,
+           componentType,
+           type,
+           activeConfigurationContext,
+           connectorStateTransition,
+           flowContextFactory,
+           connectorValidationTrigger
+       );
 
         initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
         // TODO: If an Exception is thrown in the call to #initialize, we should create a Ghosted Connector

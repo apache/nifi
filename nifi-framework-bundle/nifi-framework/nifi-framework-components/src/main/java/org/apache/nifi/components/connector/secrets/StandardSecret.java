@@ -23,20 +23,29 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import java.util.Objects;
 
 public class StandardSecret implements AuthorizableSecret {
+    private final String providerId;
     private final String providerName;
     private final String groupName;
     private final String name;
+    private final String fullyQualifiedName;
     private final String description;
     private final String value;
     private final Authorizable authorizable;
 
     private StandardSecret(final Builder builder) {
+        this.providerId = builder.providerId;
         this.providerName = builder.providerName;
         this.groupName = builder.groupName;
         this.name = builder.name;
         this.description = builder.description;
         this.value = builder.value;
         this.authorizable = builder.authorizable;
+        this.fullyQualifiedName = builder.fullyQualifiedName == null ? groupName + "." + name : builder.fullyQualifiedName;
+    }
+
+    @Override
+    public String getProviderId() {
+        return providerId;
     }
 
     @Override
@@ -62,6 +71,11 @@ public class StandardSecret implements AuthorizableSecret {
     @Override
     public String getValue() {
         return value;
+    }
+
+    @Override
+    public String getFullyQualifiedName() {
+        return fullyQualifiedName;
     }
 
     @Override
@@ -99,12 +113,19 @@ public class StandardSecret implements AuthorizableSecret {
     }
 
     public static class Builder {
+        private String providerId;
         private String providerName;
         private String groupName;
         private String name;
+        private String fullyQualifiedName;
         private String description;
         private String value;
         private Authorizable authorizable;
+
+        public Builder providerId(final String providerId) {
+            this.providerId = providerId;
+            return this;
+        }
 
         public Builder providerName(final String providerName) {
             this.providerName = providerName;
@@ -136,18 +157,26 @@ public class StandardSecret implements AuthorizableSecret {
             return this;
         }
 
+        public Builder fullyQualifiedName(final String fullyQualifiedName) {
+            this.fullyQualifiedName = fullyQualifiedName;
+            return this;
+        }
+
         public StandardSecret build() {
-            if (providerName == null) {
-                throw new IllegalStateException("Provider name is required");
-            }
             if (groupName == null) {
                 throw new IllegalStateException("Group name is required");
             }
-            if (name == null) {
-                throw new IllegalStateException("Secret name is required");
-            }
             if (authorizable == null) {
                 throw new IllegalStateException("Authorizable is required");
+            }
+            if (name == null || name.isEmpty()) {
+                throw new IllegalStateException("Secret name must be provided");
+            }
+            if (fullyQualifiedName == null || fullyQualifiedName.isEmpty()) {
+                throw new IllegalStateException("Secret fully qualified name must be provided");
+            }
+            if ((providerId == null || providerId.isEmpty()) && (providerName == null || providerName.isEmpty())) {
+                throw new IllegalStateException("Either Secret provider ID or provider name must be provided");
             }
 
             return new StandardSecret(this);

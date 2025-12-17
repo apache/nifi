@@ -17,6 +17,7 @@
 package org.apache.nifi.tests.system;
 
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.AbstractPort;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
@@ -27,6 +28,7 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.toolkit.client.ConnectionClient;
+import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.ProcessorClient;
@@ -34,8 +36,11 @@ import org.apache.nifi.toolkit.client.VersionsClient;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
+import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
+import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersSnapshotDTO;
@@ -54,10 +59,12 @@ import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
+import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.VersionedFlowDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
@@ -69,8 +76,10 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
@@ -113,6 +122,7 @@ import org.apache.nifi.web.api.entity.ReportingTasksEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
 import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
+import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowUpdateRequestEntity;
 import org.junit.jupiter.api.Assertions;
@@ -159,6 +169,12 @@ public class NiFiClientUtil {
 
     private ConnectionClient getConnectionClient() {
         final ConnectionClient client = nifiClient.getConnectionClient();
+        client.acknowledgeDisconnectedNode();
+        return client;
+    }
+
+    private ConnectorClient getConnectorClient() {
+        final ConnectorClient client = nifiClient.getConnectorClient();
         client.acknowledgeDisconnectedNode();
         return client;
     }
@@ -223,6 +239,162 @@ public class NiFiClientUtil {
         }
 
         return type.substring(lastIndex + 1);
+    }
+
+    public ConnectorEntity createConnector(final String simpleTypeName) throws NiFiClientException, IOException {
+        return createConnector(NiFiSystemIT.TEST_CONNECTORS_PACKAGE + "." + simpleTypeName, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
+    }
+
+    public ConnectorEntity createConnector(final String type, final String bundleGroupId, final String artifactId, final String version) throws NiFiClientException, IOException {
+        final ConnectorDTO dto = new ConnectorDTO();
+        dto.setType(type);
+
+        final BundleDTO bundle = new BundleDTO();
+        bundle.setGroup(bundleGroupId);
+        bundle.setArtifact(artifactId);
+        bundle.setVersion(version);
+        dto.setBundle(bundle);
+
+        final ConnectorEntity entity = new ConnectorEntity();
+        entity.setComponent(dto);
+        entity.setRevision(createNewRevision());
+        entity.setDisconnectedNodeAcknowledged(true);
+
+        final ConnectorEntity connector = getConnectorClient().createConnector(entity);
+        logger.info("Created Connector [type={}, id={}, name={}] for Test [{}]", simpleName(type), connector.getId(), connector.getComponent().getName(), testName);
+        return connector;
+    }
+
+    public ConfigurationStepEntity configureConnector(final String connectorId, final String configurationStepName,
+            final Map<String, String> properties) throws NiFiClientException, IOException {
+        final ConnectorEntity connectorEntity = getConnectorClient().getConnector(connectorId);
+        return configureConnector(connectorEntity, configurationStepName, properties);
+    }
+
+    public ConfigurationStepEntity configureConnector(final ConnectorEntity connectorEntity, final String configurationStepName,
+            final Map<String, String> properties) throws NiFiClientException, IOException {
+        final Map<String, ConnectorValueReferenceDTO> propertyValues = properties.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> createStringLiteralValueReference(entry.getValue())));
+
+        final PropertyGroupConfigurationDTO propertyGroupConfig = new PropertyGroupConfigurationDTO();
+        propertyGroupConfig.setPropertyValues(propertyValues);
+
+        final ConfigurationStepConfigurationDTO stepConfig = new ConfigurationStepConfigurationDTO();
+        stepConfig.setConfigurationStepName(configurationStepName);
+        stepConfig.setPropertyGroupConfigurations(Collections.singletonList(propertyGroupConfig));
+
+        final ConfigurationStepEntity stepEntity = new ConfigurationStepEntity();
+        stepEntity.setParentConnectorId(connectorEntity.getId());
+        stepEntity.setParentConnectorRevision(connectorEntity.getRevision());
+        stepEntity.setConfigurationStep(stepConfig);
+        stepEntity.setDisconnectedNodeAcknowledged(true);
+
+        final ConfigurationStepEntity result = getConnectorClient().updateConfigurationStep(stepEntity);
+        logger.info("Configured Connector [id={}, step={}] for Test [{}]", connectorEntity.getId(), configurationStepName, testName);
+        return result;
+    }
+
+    private ConnectorValueReferenceDTO createStringLiteralValueReference(final String value) {
+        final ConnectorValueReferenceDTO valueRef = new ConnectorValueReferenceDTO();
+        valueRef.setValueType("STRING_LITERAL");
+        valueRef.setValue(value);
+        return valueRef;
+    }
+
+    public ConnectorValueReferenceDTO createSecretValueReference(final String secretProviderId, final String secretName, final String fullyQualifiedSecretName) {
+        final ConnectorValueReferenceDTO valueRef = new ConnectorValueReferenceDTO();
+        valueRef.setValueType("SECRET_REFERENCE");
+        valueRef.setSecretProviderId(secretProviderId);
+        valueRef.setSecretName(secretName);
+        valueRef.setFullyQualifiedSecretName(fullyQualifiedSecretName);
+        return valueRef;
+    }
+
+    public ConfigurationStepEntity configureConnectorWithReferences(final String connectorId, final String configurationStepName,
+            final Map<String, ConnectorValueReferenceDTO> propertyValues) throws NiFiClientException, IOException {
+        final ConnectorEntity connectorEntity = getConnectorClient().getConnector(connectorId);
+        return configureConnectorWithReferences(connectorEntity, configurationStepName, propertyValues);
+    }
+
+    public ConfigurationStepEntity configureConnectorWithReferences(final ConnectorEntity connectorEntity, final String configurationStepName,
+            final Map<String, ConnectorValueReferenceDTO> propertyValues) throws NiFiClientException, IOException {
+        final PropertyGroupConfigurationDTO propertyGroupConfig = new PropertyGroupConfigurationDTO();
+        propertyGroupConfig.setPropertyValues(propertyValues);
+
+        final ConfigurationStepConfigurationDTO stepConfig = new ConfigurationStepConfigurationDTO();
+        stepConfig.setConfigurationStepName(configurationStepName);
+        stepConfig.setPropertyGroupConfigurations(Collections.singletonList(propertyGroupConfig));
+
+        final ConfigurationStepEntity stepEntity = new ConfigurationStepEntity();
+        stepEntity.setParentConnectorId(connectorEntity.getId());
+        stepEntity.setParentConnectorRevision(connectorEntity.getRevision());
+        stepEntity.setConfigurationStep(stepConfig);
+        stepEntity.setDisconnectedNodeAcknowledged(true);
+
+        final ConfigurationStepEntity result = getConnectorClient().updateConfigurationStep(stepEntity);
+        logger.info("Configured Connector [id={}, step={}] for Test [{}]", connectorEntity.getId(), configurationStepName, testName);
+        return result;
+    }
+
+    public void applyConnectorUpdate(final ConnectorEntity connectorEntity) throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorClient client = nifiClient.getConnectorClient();
+        final ConnectorEntity initialEntity = client.getConnector(connectorEntity.getId());
+        final ConnectorState initialState = ConnectorState.valueOf(initialEntity.getComponent().getState());
+        client.applyUpdate(connectorEntity);
+
+        while (true) {
+            final ConnectorEntity currentEntity = client.getConnector(connectorEntity.getId());
+            final String state = currentEntity.getComponent().getState();
+            final ConnectorState currentState = ConnectorState.valueOf(state);
+
+            switch (currentState) {
+                case UPDATE_FAILED:
+                    throw new IllegalStateException("Connector failed to update");
+                case UPDATED:
+                case UPDATING:
+                case PREPARING_FOR_UPDATE:
+                    logger.debug("Waiting for Connector [id={}] to finish updating (current state={})...", connectorEntity.getId(), state);
+                    break;
+                default:
+                    if (initialState == currentState) {
+                        logger.info("Connector [id={}] has successfully updated and now has state of {}", connectorEntity.getId(), state);
+                        return;
+                    }
+                    logger.debug("Waiting for Connector [id={}] to return to initial state of {} (current state={})...", connectorEntity.getId(), initialState, state);
+                    break;
+            }
+
+            // Wait 250 milliseconds before polling again
+            Thread.sleep(250L);
+        }
+    }
+
+    public void waitForValidConnector(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        waitForConnectorValidationStatus(connectorId, "VALID");
+    }
+
+    public void waitForInvalidConnector(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        waitForConnectorValidationStatus(connectorId, "INVALID");
+    }
+
+    public void waitForConnectorValidationStatus(final String connectorId, final String expectedStatus) throws NiFiClientException, IOException, InterruptedException {
+        int iteration = 0;
+        while (true) {
+            final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+            final String validationStatus = entity.getComponent().getValidationStatus();
+            if (expectedStatus.equals(validationStatus)) {
+                return;
+            }
+
+            if ("VALIDATING".equals(validationStatus)) {
+                logger.debug("Waiting for Connector {} to finish validating...", connectorId);
+            } else if (iteration++ % 30 == 0) { // Every 3 seconds log status
+                logger.info("Connector with ID {} has validation status {} but expected {}. Validation errors: {}",
+                    connectorId, validationStatus, expectedStatus, entity.getComponent().getValidationErrors());
+            }
+
+            Thread.sleep(100L);
+        }
     }
 
     public ParameterProviderEntity createParameterProvider(final String simpleTypeName) throws NiFiClientException, IOException {
@@ -1931,6 +2103,48 @@ public class NiFiClientUtil {
         return results.getRequest().getResults();
     }
 
+    public List<ConfigVerificationResultDTO> verifyConnectorStepConfig(final String connectorId, final String configurationStepName,
+            final Map<String, String> properties) throws NiFiClientException, IOException, InterruptedException {
+
+        final Map<String, ConnectorValueReferenceDTO> propertyValues = properties.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> createStringLiteralValueReference(entry.getValue())));
+
+        return verifyConnectorStepConfigWithReferences(connectorId, configurationStepName, propertyValues);
+    }
+
+    public List<ConfigVerificationResultDTO> verifyConnectorStepConfigWithReferences(final String connectorId, final String configurationStepName,
+            final Map<String, ConnectorValueReferenceDTO> propertyValues) throws NiFiClientException, IOException, InterruptedException {
+
+        final PropertyGroupConfigurationDTO propertyGroupConfig = new PropertyGroupConfigurationDTO();
+        propertyGroupConfig.setPropertyValues(propertyValues);
+
+        final ConfigurationStepConfigurationDTO stepConfig = new ConfigurationStepConfigurationDTO();
+        stepConfig.setConfigurationStepName(configurationStepName);
+        stepConfig.setPropertyGroupConfigurations(Collections.singletonList(propertyGroupConfig));
+
+        final VerifyConnectorConfigStepRequestDTO requestDto = new VerifyConnectorConfigStepRequestDTO();
+        requestDto.setConnectorId(connectorId);
+        requestDto.setConfigurationStepName(configurationStepName);
+        requestDto.setConfigurationStep(stepConfig);
+
+        final VerifyConnectorConfigStepRequestEntity verificationRequest = new VerifyConnectorConfigStepRequestEntity();
+        verificationRequest.setRequest(requestDto);
+
+        VerifyConnectorConfigStepRequestEntity results = getConnectorClient().submitConfigStepVerificationRequest(verificationRequest);
+        while (!results.getRequest().isComplete()) {
+            Thread.sleep(50L);
+            results = getConnectorClient().getConfigStepVerificationRequest(connectorId, configurationStepName, results.getRequest().getRequestId());
+        }
+
+        final String failureReason = results.getRequest().getFailureReason();
+        if (failureReason != null) {
+            throw new IllegalStateException("Configuration step verification failed: " + failureReason);
+        }
+
+        getConnectorClient().deleteConfigStepVerificationRequest(connectorId, configurationStepName, results.getRequest().getRequestId());
+
+        return results.getRequest().getResults();
+    }
 
     public ReportingTaskEntity createReportingTask(final String type, final String bundleGroupId, final String artifactId, final String version)
                 throws NiFiClientException, IOException {

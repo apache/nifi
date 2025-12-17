@@ -89,6 +89,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
     public static final String TEST_PYTHON_EXTENSIONS_ARTIFACT_ID = "python-extensions";
     public static final String TEST_PARAM_PROVIDERS_PACKAGE = "org.apache.nifi.parameter.tests.system";
     public static final String TEST_PROCESSORS_PACKAGE = "org.apache.nifi.processors.tests.system";
+    public static final String TEST_CONNECTORS_PACKAGE = "org.apache.nifi.connectors.tests.system";
     public static final String TEST_CS_PACKAGE = "org.apache.nifi.cs.tests.system";
     public static final String TEST_REPORTING_TASK_PACKAGE = "org.apache.nifi.reporting";
     public static final String TEST_FLOW_ANALYSIS_RULE_PACKAGE = "org.apache.nifi.flowanalysis";
