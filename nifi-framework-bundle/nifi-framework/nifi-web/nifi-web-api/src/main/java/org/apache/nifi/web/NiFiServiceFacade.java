@@ -161,6 +161,7 @@ import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantsEntity;
 import org.apache.nifi.web.api.entity.UserEntity;
 import org.apache.nifi.web.api.entity.UserGroupEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.VersionControlComponentMappingEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowEntity;
@@ -3197,4 +3198,16 @@ public interface NiFiServiceFacade {
      * @return the list of listen Ports accessible to the current user
      */
     Set<ListenPortDTO> getListenPorts(NiFiUser user);
+
+    // ----------------------------------------
+    // Secrets methods
+    // ----------------------------------------
+
+    /**
+     * Gets all secrets available from all secret providers. Note: The actual secret values are not included
+     * in the response for security reasons; only metadata is returned.
+     *
+     * @return the secrets entity containing metadata for all available secrets
+     */
+    SecretsEntity getSecrets();
 }
