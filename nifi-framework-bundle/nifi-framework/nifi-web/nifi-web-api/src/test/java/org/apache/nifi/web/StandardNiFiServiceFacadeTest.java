@@ -38,6 +38,8 @@ import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.Secret;
+import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
 import org.apache.nifi.controller.Counter;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
@@ -104,6 +106,7 @@ import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.apache.nifi.web.api.entity.CopyRequestEntity;
 import org.apache.nifi.web.api.entity.CopyResponseEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
 import org.apache.nifi.web.api.entity.TenantEntity;
@@ -1702,5 +1705,78 @@ public class StandardNiFiServiceFacadeTest {
 
         assertNotNull(result);
         assertEquals(0, result.getBulletinsCleared());
+    }
+
+    @Test
+    public void testGetSecretsFiltersUnauthorizedSecrets() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        final AuthorizableSecret authorizedSecret = mock(AuthorizableSecret.class);
+        when(authorizedSecret.getProviderName()).thenReturn("provider1");
+        when(authorizedSecret.getGroupName()).thenReturn("group1");
+        when(authorizedSecret.getName()).thenReturn("authorized-secret");
+        when(authorizedSecret.getDescription()).thenReturn("An authorized secret");
+        when(authorizedSecret.checkAuthorization(any(Authorizer.class), any(), any())).thenReturn(AuthorizationResult.approved());
+
+        final AuthorizableSecret unauthorizedSecret = mock(AuthorizableSecret.class);
+        when(unauthorizedSecret.getProviderName()).thenReturn("provider2");
+        when(unauthorizedSecret.getGroupName()).thenReturn("group2");
+        when(unauthorizedSecret.getName()).thenReturn("unauthorized-secret");
+        when(unauthorizedSecret.getDescription()).thenReturn("An unauthorized secret");
+        when(unauthorizedSecret.checkAuthorization(any(Authorizer.class), any(), any())).thenReturn(AuthorizationResult.denied());
+
+        when(controllerFacade.getAllSecrets()).thenReturn(List.of(authorizedSecret, unauthorizedSecret));
+
+        final SecretsEntity result = serviceFacade.getSecrets();
+
+        assertNotNull(result);
+        assertNotNull(result.getSecrets());
+        assertEquals(1, result.getSecrets().size());
+        assertEquals("authorized-secret", result.getSecrets().get(0).getName());
+    }
+
+    @Test
+    public void testGetSecretsWithNonAuthorizableSecrets() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        final Secret nonAuthorizableSecret = mock(Secret.class);
+        when(nonAuthorizableSecret.getProviderName()).thenReturn("provider1");
+        when(nonAuthorizableSecret.getGroupName()).thenReturn("group1");
+        when(nonAuthorizableSecret.getName()).thenReturn("non-authorizable-secret");
+        when(nonAuthorizableSecret.getDescription()).thenReturn("A non-authorizable secret");
+
+        when(controllerFacade.getAllSecrets()).thenReturn(List.of(nonAuthorizableSecret));
+
+        final SecretsEntity result = serviceFacade.getSecrets();
+
+        assertNotNull(result);
+        assertNotNull(result.getSecrets());
+        assertEquals(1, result.getSecrets().size());
+        assertEquals("non-authorizable-secret", result.getSecrets().get(0).getName());
+    }
+
+    @Test
+    public void testGetSecretsWithEmptyList() {
+        final Authentication authentication = new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(USER_1).build()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        final ControllerFacade controllerFacade = mock(ControllerFacade.class);
+        serviceFacade.setControllerFacade(controllerFacade);
+
+        when(controllerFacade.getAllSecrets()).thenReturn(List.of());
+
+        final SecretsEntity result = serviceFacade.getSecrets();
+
+        assertNotNull(result);
+        assertNotNull(result.getSecrets());
+        assertTrue(result.getSecrets().isEmpty());
     }
 }

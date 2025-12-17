@@ -46,6 +46,7 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.listen.ListenComponent;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
@@ -2006,6 +2007,15 @@ public class ControllerFacade implements Authorizable {
 
     public VersionedReportingTaskImporter createReportingTaskImporter() {
         return new StandardVersionedReportingTaskImporter(flowController);
+    }
+
+    /**
+     * Gets all secrets from the SecretsManager.
+     *
+     * @return list of all secrets available from all secret providers
+     */
+    public List<Secret> getAllSecrets() {
+        return flowController.getConnectorRepository().getSecretsManager().getAllSecrets();
     }
 
     /*

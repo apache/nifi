@@ -35,6 +35,7 @@ import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 import org.junit.jupiter.api.BeforeEach;
@@ -324,6 +325,32 @@ public class TestConnectorResource {
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade, never()).getConnectorPropertyAllowableValues(anyString(), anyString(), anyString(), anyString(), any());
+    }
+
+    @Test
+    public void testGetSecrets() {
+        final SecretsEntity responseEntity = new SecretsEntity();
+        responseEntity.setSecrets(List.of());
+
+        when(serviceFacade.getSecrets()).thenReturn(responseEntity);
+
+        try (Response response = connectorResource.getSecrets(CONNECTOR_ID)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(responseEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getSecrets();
+    }
+
+    @Test
+    public void testGetSecretsNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () -> connectorResource.getSecrets(CONNECTOR_ID));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getSecrets();
     }
 
     private ConnectorEntity createConnectorEntity() {
