@@ -247,7 +247,9 @@ import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ComponentValidationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
+import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -259,8 +261,6 @@ import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
-import org.apache.nifi.web.api.dto.ConnectorDTO;
-import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowAnalysisRuleViolationDTO;
 import org.apache.nifi.web.api.dto.FlowConfigurationDTO;
@@ -332,11 +332,10 @@ import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.AccessPolicySummaryEntity;
-import org.apache.nifi.web.api.entity.AllowableValueEntity;
-import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
@@ -344,9 +343,13 @@ import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.apache.nifi.web.api.entity.ComponentReferenceEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -391,9 +394,6 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.apache.nifi.web.api.entity.ConnectorEntity;
-import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
-import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
@@ -410,10 +410,10 @@ import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
-import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
+import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
 import org.apache.nifi.web.dao.FlowAnalysisRuleDAO;
 import org.apache.nifi.web.dao.FlowRegistryDAO;
@@ -3668,6 +3668,26 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public ConnectorEntity discardConnectorUpdate(final Revision revision, final String connectorId) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.discardWorkingConfiguration(connectorId);
+
+            final ConnectorNode node = connectorDAO.getConnector(connectorId);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions);
+    }
+
+    @Override
     public ProcessGroupFlowEntity getConnectorFlow(final String id, final boolean uiOnly) {
         final ConnectorNode connectorNode = connectorDAO.getConnector(id);
         final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
@@ -3728,6 +3748,29 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 .collect(Collectors.toList());
 
         return entityFactory.createConnectorPropertyAllowableValuesEntity(stepName, groupName, propertyName, allowableValueEntities);
+    }
+
+    @Override
+    public void verifyCreateConnectorAsset(final String connectorId) {
+        connectorDAO.verifyCreateAsset(connectorId);
+    }
+
+    @Override
+    public AssetEntity createConnectorAsset(final String connectorId, final String assetId, final String assetName, final InputStream content) throws IOException {
+        final Asset createdAsset = connectorDAO.createAsset(connectorId, assetId, assetName, content);
+        return dtoFactory.createAssetEntity(createdAsset);
+    }
+
+    @Override
+    public List<AssetEntity> getConnectorAssets(final String connectorId) {
+        return connectorDAO.getAssets(connectorId).stream()
+            .map(dtoFactory::createAssetEntity)
+            .toList();
+    }
+
+    @Override
+    public Optional<Asset> getConnectorAsset(final String assetId) {
+        return connectorDAO.getAsset(assetId);
     }
 
     @Override

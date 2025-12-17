@@ -96,4 +96,5 @@ public interface ConnectorRepository {
 
     FrameworkConnectorInitializationContextBuilder createInitializationContextBuilder();
 
+    ConnectorAssetRepository getAssetRepository();
 }

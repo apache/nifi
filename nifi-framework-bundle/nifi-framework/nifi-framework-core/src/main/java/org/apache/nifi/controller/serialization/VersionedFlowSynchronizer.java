@@ -1155,7 +1155,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         return switch (existingReference) {
             case StringLiteralValue stringLiteral -> Objects.equals(stringLiteral.getValue(), versionedReference.getValue());
-            case AssetReference assetRef -> Objects.equals(assetRef.getAssetIdentifier(), versionedReference.getAssetId());
+            case AssetReference assetRef -> Objects.equals(assetRef.getAssetIdentifiers(), versionedReference.getAssetIds());
             case SecretReference secretRef -> Objects.equals(secretRef.getProviderId(), versionedReference.getProviderId())
                                               && Objects.equals(secretRef.getSecretName(), versionedReference.getSecretName());
         };

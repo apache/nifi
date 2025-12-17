@@ -25,6 +25,7 @@ import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.asset.AssetSynchronizer;
 import org.apache.nifi.asset.StandardAssetComponentManager;
 import org.apache.nifi.asset.StandardAssetSynchronizer;
+import org.apache.nifi.asset.StandardConnectorAssetSynchronizer;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.heartbeat.HeartbeatMonitor;
@@ -262,7 +263,8 @@ public class FlowControllerConfiguration {
                     properties,
                     revisionManager,
                     narManager,
-                    assetSynchronizer(),
+                    parameterContextAssetSynchronizer(),
+                    connectorAssetSynchronizer(),
                     authorizer
             );
         } else {
@@ -273,7 +275,8 @@ public class FlowControllerConfiguration {
                     clusterCoordinator,
                     revisionManager,
                     narManager,
-                    assetSynchronizer(),
+                    parameterContextAssetSynchronizer(),
+                    connectorAssetSynchronizer(),
                     authorizer
             );
         }
@@ -462,13 +465,28 @@ public class FlowControllerConfiguration {
     }
 
     /**
-     * Asset Synchronizer depends on ClusterCoordinator, WebClientService, and NiFiProperties
+     * Parameter Conext Asset Synchronizer depends on ClusterCoordinator, WebClientService, and NiFiProperties
      *
      * @return Asset Synchronizer
      */
     @Bean
     public AssetSynchronizer assetSynchronizer() throws Exception {
         return new StandardAssetSynchronizer(flowController(), clusterCoordinator, webClientService(), properties, affectedComponentManager());
+    }
+
+    @Bean
+    public AssetSynchronizer parameterContextAssetSynchronizer() throws Exception {
+        return new StandardAssetSynchronizer(flowController(), clusterCoordinator, webClientService(), properties);
+    }
+
+    /**
+     * Connector Asset Synchronizer depends on ClusterCoordinator, WebClientService, and NiFiProperties
+     *
+     * @return Connector Asset Synchronizer
+     */
+    @Bean
+    public AssetSynchronizer connectorAssetSynchronizer() throws Exception {
+        return new StandardConnectorAssetSynchronizer(flowController(), clusterCoordinator, webClientService(), properties);
     }
 
     /**

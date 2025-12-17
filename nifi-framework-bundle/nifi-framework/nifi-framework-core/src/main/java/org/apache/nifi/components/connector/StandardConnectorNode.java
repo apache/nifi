@@ -17,6 +17,7 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -44,9 +45,11 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
@@ -54,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -211,7 +215,7 @@ public class StandardConnectorNode implements ConnectorNode {
         final ConnectorValueType valueType = ConnectorValueType.valueOf(versionedReference.getValueType());
         return switch (valueType) {
             case STRING_LITERAL -> new StringLiteralValue(versionedReference.getValue());
-            case ASSET_REFERENCE -> new AssetReference(versionedReference.getAssetId());
+            case ASSET_REFERENCE -> new AssetReference(versionedReference.getAssetIds());
             case SECRET_REFERENCE -> new SecretReference(versionedReference.getProviderId(), versionedReference.getProviderName(),
                 versionedReference.getSecretName(), versionedReference.getFullyQualifiedSecretName());
         };
@@ -735,14 +739,23 @@ public class StandardConnectorNode implements ConnectorNode {
 
         return switch (valueReference) {
             case StringLiteralValue stringLiteralValue -> stringLiteralValue.getValue();
-            case AssetReference assetReference -> initializationContext.getAssetManager().getAsset(assetReference.getAssetIdentifier())
-                .map(asset -> asset.getFile().getAbsolutePath())
-                .orElse(null);
+            case AssetReference assetReference -> resolveAssetReferences(assetReference);
             case SecretReference secretReference -> initializationContext.getSecretsManager()
-                .getSecret((SecretReference) valueReference)
+                .getSecret(secretReference)
                 .map(Secret::getValue)
                 .orElse(null);
         };
+    }
+
+    private String resolveAssetReferences(final AssetReference assetReference) {
+        final Set<String> resolvedAssetValues = new HashSet<>();
+        for (final String assetId : assetReference.getAssetIdentifiers()) {
+            initializationContext.getAssetManager().getAsset(assetId)
+                .map(Asset::getFile)
+                .map(File::getAbsolutePath)
+                .ifPresent(resolvedAssetValues::add);
+        }
+        return String.join(",", resolvedAssetValues);
     }
 
     private Optional<ConfigurationStep> getConfigurationStep(final String stepName) {
@@ -959,7 +972,7 @@ public class StandardConnectorNode implements ConnectorNode {
             results.add(new ValidationResult.Builder()
                 .subject("Asset Reference")
                 .valid(false)
-                .explanation("The referenced asset [" + invalidAssetRef.getAssetIdentifier() + "] could not be found")
+                .explanation("The referenced assets [" + StringUtils.join(invalidAssetRef.getAssetIdentifiers(), ",") + "] could not be found")
                 .build());
         }
     }
@@ -1004,7 +1017,7 @@ public class StandardConnectorNode implements ConnectorNode {
                 }
             }
             case AssetReference assetReference -> {
-                if (assetReference.getAssetIdentifier() == null) {
+                if (assetReference.getAssetIdentifiers() == null || assetReference.getAssetIdentifiers().isEmpty()) {
                     return true;
                 }
             }
@@ -1019,7 +1032,11 @@ public class StandardConnectorNode implements ConnectorNode {
             return reference.getValueType() == ConnectorValueType.SECRET_REFERENCE;
         }
 
-        return reference.getValueType() != ConnectorValueType.SECRET_REFERENCE;
+        if (propertyType == PropertyType.ASSET || propertyType == PropertyType.ASSET_LIST) {
+            return reference.getValueType() == ConnectorValueType.ASSET_REFERENCE;
+        }
+
+        return reference.getValueType() != ConnectorValueType.SECRET_REFERENCE && reference.getValueType() != ConnectorValueType.ASSET_REFERENCE;
     }
 
     private ConnectorValidationContext createValidationContext(final FrameworkFlowContext context) {

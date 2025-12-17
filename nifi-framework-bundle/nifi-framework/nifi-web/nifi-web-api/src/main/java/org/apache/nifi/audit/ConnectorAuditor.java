@@ -32,6 +32,7 @@ import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
+import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
@@ -49,6 +50,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Audits connector creation/removal and configuration changes.
@@ -275,7 +278,7 @@ public class ConnectorAuditor extends NiFiAuditor {
 
         return switch (valueRef) {
             case StringLiteralValue stringLiteral -> stringLiteral.getValue();
-            case AssetReference assetRef -> "asset:" + assetRef.getAssetIdentifier();
+            case AssetReference assetRef -> "assets:" + assetRef.getAssetIdentifiers();
             case SecretReference secretRef -> "secret:" + secretRef.getProviderId() + "/" + secretRef.getProviderName() + "/" + secretRef.getSecretName();
         };
     }
@@ -295,7 +298,10 @@ public class ConnectorAuditor extends NiFiAuditor {
         if (valueType == null || "STRING_LITERAL".equals(valueType)) {
             return valueRefDto.getValue();
         } else if ("ASSET_REFERENCE".equals(valueType)) {
-            return "asset:" + valueRefDto.getAssetIdentifier();
+            return "assets:" + Stream.ofNullable(valueRefDto.getAssetReferences())
+                .flatMap(List::stream)
+                .map(AssetReferenceDTO::getId)
+                .collect(Collectors.joining(","));
         } else if ("SECRET_REFERENCE".equals(valueType)) {
             return "secret:" + valueRefDto.getSecretProviderId() + "/" + valueRefDto.getSecretProviderName() + "/" + valueRefDto.getSecretName();
         }

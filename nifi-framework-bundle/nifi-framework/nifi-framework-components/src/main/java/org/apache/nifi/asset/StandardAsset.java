@@ -23,14 +23,14 @@ import java.util.Optional;
 
 public class StandardAsset implements Asset {
     private final String identifier;
-    private final String parameterContextIdentifier;
+    private final String ownerIdentifier;
     private final String name;
     private final File file;
     private final String digest;
 
-    public StandardAsset(final String identifier, final String paramContextIdentifier, final String name, final File file, final String digest) {
+    public StandardAsset(final String identifier, final String ownerIdentifier, final String name, final File file, final String digest) {
         this.identifier = Objects.requireNonNull(identifier, "Identifier is required");
-        this.parameterContextIdentifier = Objects.requireNonNull(paramContextIdentifier, "Parameter Context Identifier is required");
+        this.ownerIdentifier = Objects.requireNonNull(ownerIdentifier, "Owner Identifier is required");
         this.name = Objects.requireNonNull(name, "Name is required");
         this.file = Objects.requireNonNull(file, "File is required");
         this.digest = digest;
@@ -43,7 +43,12 @@ public class StandardAsset implements Asset {
 
     @Override
     public String getParameterContextIdentifier() {
-        return parameterContextIdentifier;
+        return ownerIdentifier;
+    }
+
+    @Override
+    public String getOwnerIdentifier() {
+        return ownerIdentifier;
     }
 
     @Override
