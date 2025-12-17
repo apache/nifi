@@ -83,6 +83,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
+import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StatusHistoryEntity;
@@ -919,6 +920,12 @@ public final class EntityFactory {
         entity.setPropertyGroupName(propertyGroupName);
         entity.setPropertyName(propertyName);
         entity.setAllowableValues(allowableValues);
+        return entity;
+    }
+
+    public SecretsEntity createSecretsEntity(final List<SecretDTO> secrets) {
+        final SecretsEntity entity = new SecretsEntity();
+        entity.setSecrets(secrets);
         return entity;
     }
 }

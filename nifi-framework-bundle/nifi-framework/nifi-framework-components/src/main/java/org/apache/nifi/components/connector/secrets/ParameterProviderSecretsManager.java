@@ -22,6 +22,8 @@ import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
 
+import org.apache.nifi.components.validation.ValidationStatus;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -60,6 +62,10 @@ public class ParameterProviderSecretsManager implements SecretsManager {
     public Set<SecretProvider> getSecretProviders() {
         final Set<SecretProvider> providers = new HashSet<>();
         for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
+            if (parameterProviderNode.getValidationStatus() != ValidationStatus.VALID) {
+                continue;
+            }
+
             providers.add(new ParameterProviderSecretProvider(parameterProviderNode));
         }
 
