@@ -202,7 +202,7 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
             return null;
         }
 
-        final List<Secret> secrets = provider.getSecrets(List.of(secretReference.getSecretName()));
+        final List<Secret> secrets = provider.getSecrets(List.of(secretReference.getFullyQualifiedName()));
         return secrets.isEmpty() ? null : secrets.getFirst().getValue();
     }
 

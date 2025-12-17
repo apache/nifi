@@ -23,6 +23,7 @@ import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.client.AccessClient;
 import org.apache.nifi.toolkit.client.ConnectionClient;
+import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.ControllerClient;
 import org.apache.nifi.toolkit.client.ControllerServicesClient;
 import org.apache.nifi.toolkit.client.CountersClient;
@@ -410,6 +411,16 @@ public class NiFiClientFactory implements ClientFactory<NiFiClient> {
         @Override
         public SystemDiagnosticsClient getSystemsDiagnosticsClient(final RequestConfig requestConfig) {
             return wrappedClient.getSystemsDiagnosticsClient(requestConfig);
+        }
+
+        @Override
+        public ConnectorClient getConnectorClient() {
+            return wrappedClient.getConnectorClient();
+        }
+
+        @Override
+        public ConnectorClient getConnectorClient(final RequestConfig requestConfig) {
+            return wrappedClient.getConnectorClient(requestConfig);
         }
 
         @Override

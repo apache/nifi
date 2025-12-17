@@ -28,6 +28,7 @@ import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.components.connector.components.ParameterContextFacade;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -50,6 +51,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -57,11 +59,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class StandardConnectorNode implements ConnectorNode {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorNode.class);
@@ -72,11 +76,16 @@ public class StandardConnectorNode implements ConnectorNode {
     private final Authorizable parentAuthorizable;
     private final ConnectorDetails connectorDetails;
     private final String componentType;
+    private final String componentCanonicalClass;
     private final BundleCoordinate bundleCoordinate;
     private final ConnectorStateTransition stateTransition;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final FlowContextFactory flowContextFactory;
     private final FrameworkFlowContext activeFlowContext;
+
+    private final AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
+    private final ConnectorValidationTrigger validationTrigger;
+    private volatile boolean triggerValidation = true;
 
     private volatile FrameworkFlowContext workingFlowContext;
 
@@ -85,9 +94,10 @@ public class StandardConnectorNode implements ConnectorNode {
 
 
     public StandardConnectorNode(final String identifier, final FlowManager flowManager, final ExtensionManager extensionManager,
-        final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails, final String componentType,
+        final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails, final String componentType, final String componentCanonicalClass,
         final MutableConnectorConfigurationContext configurationContext,
-        final ConnectorStateTransition stateTransition, final FlowContextFactory flowContextFactory) {
+        final ConnectorStateTransition stateTransition, final FlowContextFactory flowContextFactory,
+        final ConnectorValidationTrigger validationTrigger) {
 
         this.identifier = identifier;
         this.flowManager = flowManager;
@@ -95,9 +105,11 @@ public class StandardConnectorNode implements ConnectorNode {
         this.parentAuthorizable = parentAuthorizable;
         this.connectorDetails = connectorDetails;
         this.componentType = componentType;
+        this.componentCanonicalClass = componentCanonicalClass;
         this.bundleCoordinate = connectorDetails.getBundleCoordinate();
         this.stateTransition = stateTransition;
         this.flowContextFactory = flowContextFactory;
+        this.validationTrigger = validationTrigger;
 
         this.name = connectorDetails.getConnector().getClass().getSimpleName();
 
@@ -116,7 +128,7 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public void prepareForUpdate() throws FlowUpdateException {
+    public void transitionStateForUpdating() {
         final ConnectorState initialState = getCurrentState();
         if (initialState == ConnectorState.UPDATING || initialState == ConnectorState.PREPARING_FOR_UPDATE) {
             return;
@@ -124,6 +136,18 @@ public class StandardConnectorNode implements ConnectorNode {
 
         stateTransition.setDesiredState(ConnectorState.UPDATING);
         stateTransition.setCurrentState(ConnectorState.PREPARING_FOR_UPDATE);
+    }
+
+    @Override
+    public void prepareForUpdate() throws FlowUpdateException {
+        if (getCurrentState() != ConnectorState.PREPARING_FOR_UPDATE) {
+            throw new IllegalStateException("Cannot prepare update for " + this + " because its state is currently " + getCurrentState()
+                                            + "; it must be PREPARING_FOR_UPDATE.");
+        }
+        if (getDesiredState() != ConnectorState.UPDATING) {
+            throw new IllegalStateException("Cannot prepare update for " + this + " because its desired state is currently " + getDesiredState()
+                                            + "; it must be UPDATING.");
+        }
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().prepareForUpdate(workingFlowContext, activeFlowContext);
@@ -142,28 +166,42 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public void inheritConfiguration(final List<VersionedConfigurationStep> flowConfiguration, final Bundle flowContextBundle) throws FlowUpdateException {
-        final MutableConnectorConfigurationContext configurationContext = createConfigurationContext(flowConfiguration);
+    public void inheritConfiguration(final List<VersionedConfigurationStep> activeConfig, final List<VersionedConfigurationStep> workingConfig,
+                final Bundle flowContextBundle) throws FlowUpdateException {
+
+        final MutableConnectorConfigurationContext configurationContext = createConfigurationContext(activeConfig);
         final FrameworkFlowContext inheritContext = flowContextFactory.createWorkingFlowContext(identifier,
             connectorDetails.getComponentLog(), configurationContext, flowContextBundle);
 
+        // Apply the update for the active config
         applyUpdate(inheritContext);
+
+        // Configure the working config but do not apply
+        for (final VersionedConfigurationStep step : workingConfig) {
+            final StepConfiguration stepConfig = createStepConfiguration(step);
+            setConfiguration(step.getName(), stepConfig);
+        }
+    }
+
+    private StepConfiguration createStepConfiguration(final VersionedConfigurationStep step) {
+        final Map<String, ConnectorValueReference> convertedProperties = new HashMap<>();
+        if (step.getProperties() != null) {
+            for (final Map.Entry<String, VersionedConnectorValueReference> entry : step.getProperties().entrySet()) {
+                final ConnectorValueReference valueReference = createValueReference(entry.getValue());
+                convertedProperties.put(entry.getKey(), valueReference);
+            }
+        }
+
+        return new StepConfiguration(convertedProperties);
     }
 
     private MutableConnectorConfigurationContext createConfigurationContext(final List<VersionedConfigurationStep> flowConfiguration) {
         final StandardConnectorConfigurationContext configurationContext = new StandardConnectorConfigurationContext(
             initializationContext.getAssetManager(), initializationContext.getSecretsManager());
 
-        for (final VersionedConfigurationStep configStep : flowConfiguration) {
-            final Map<String, ConnectorValueReference> convertedProperties = new HashMap<>();
-            if (configStep.getProperties() != null) {
-                for (final Map.Entry<String, VersionedConnectorValueReference> entry : configStep.getProperties().entrySet()) {
-                    final ConnectorValueReference valueReference = createValueReference(entry.getValue());
-                    convertedProperties.put(entry.getKey(), valueReference);
-                }
-            }
-
-            configurationContext.setProperties(configStep.getName(), new StepConfiguration(convertedProperties));
+        for (final VersionedConfigurationStep versionedConfigStep : flowConfiguration) {
+            final StepConfiguration stepConfig = createStepConfiguration(versionedConfigStep);
+            configurationContext.setProperties(versionedConfigStep.getName(), stepConfig);
         }
 
         return configurationContext;
@@ -174,7 +212,8 @@ public class StandardConnectorNode implements ConnectorNode {
         return switch (valueType) {
             case STRING_LITERAL -> new StringLiteralValue(versionedReference.getValue());
             case ASSET_REFERENCE -> new AssetReference(versionedReference.getAssetId());
-            case SECRET_REFERENCE -> new SecretReference(versionedReference.getProviderId(), versionedReference.getProviderName(), versionedReference.getSecretName());
+            case SECRET_REFERENCE -> new SecretReference(versionedReference.getProviderId(), versionedReference.getProviderName(),
+                versionedReference.getSecretName(), versionedReference.getFullyQualifiedSecretName());
         };
     }
 
@@ -199,7 +238,11 @@ public class StandardConnectorNode implements ConnectorNode {
                 activeFlowContext.getConfigurationContext().replaceProperties(stepConfig.stepName(), stepConfig.configuration());
             }
 
+            getComponentLog().info("Working Context has been applied to Active Context");
+
             // The update has been completed. Tear down and recreate the working flow context to ensure it is in a clean state.
+
+            resetValidationState();
             recreateWorkingFlowContext();
         } catch (final Throwable t) {
             logger.error("Failed to finish update for {}", this, t);
@@ -475,6 +518,11 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
+    public String getCanonicalClassName() {
+        return componentCanonicalClass;
+    }
+
+    @Override
     public BundleCoordinate getBundleCoordinate() {
         return bundleCoordinate;
     }
@@ -532,6 +580,7 @@ public class StandardConnectorNode implements ConnectorNode {
             initializationContext.updateFlow(activeFlowContext, initialFlow);
         }
 
+        resetValidationState();
         recreateWorkingFlowContext();
     }
 
@@ -539,32 +588,37 @@ public class StandardConnectorNode implements ConnectorNode {
         destroyWorkingContext();
         workingFlowContext = flowContextFactory.createWorkingFlowContext(identifier,
             connectorDetails.getComponentLog(), activeFlowContext.getConfigurationContext(), activeFlowContext.getBundle());
+
+        getComponentLog().info("Working Flow Context has been recreated");
     }
 
     @Override
     public void pauseValidationTrigger() {
-        // No-op for ConnectorNode
+        triggerValidation = false;
     }
 
     @Override
     public void resumeValidationTrigger() {
+        triggerValidation = true;
         logger.debug("Resuming Triggering of Validation State for {}; Resetting validation state", this);
         resetValidationState();
     }
 
     @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final StepConfiguration configurationOverrides) {
-        final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationOverrides);
+        final List<SecretReference> invalidSecretRefs = new ArrayList<>();
+        final List<AssetReference> invalidAssetRefs = new ArrayList<>();
+        final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationOverrides, invalidSecretRefs, invalidAssetRefs);
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
 
-            final DescribedValueProvider allowableValueProvider = (step, propertyName) ->
-                fetchAllowableValues(step, propertyName, workingFlowContext);
+            final DescribedValueProvider allowableValueProvider = (step, propertyName) -> fetchAllowableValues(step, propertyName, workingFlowContext);
 
             final MutableConnectorConfigurationContext configContext = workingFlowContext.getConfigurationContext().createWithOverrides(stepName, resolvedPropertyOverrides);
-            final ConnectorValidationContext validationContext = new StandardConnectorValidationContext(
-                configContext.toConnectorConfiguration(), allowableValueProvider, workingFlowContext.getParameterContext());
+            final ConnectorConfiguration connectorConfig = configContext.toConnectorConfiguration();
+            final ParameterContextFacade paramContext = workingFlowContext.getParameterContext();
+            final ConnectorValidationContext validationContext = new StandardConnectorValidationContext(connectorConfig, allowableValueProvider, paramContext);
 
             final Optional<ConfigurationStep> optionalStep = getConfigurationStep(stepName);
             if (optionalStep.isEmpty()) {
@@ -581,6 +635,13 @@ public class StandardConnectorNode implements ConnectorNode {
             final List<ValidationResult> validationResults = new ArrayList<>();
             validatePropertyReferences(configurationStep, configurationOverrides, validationResults);
 
+            // If there are any invalid secrets or assets referenced, add Validation Results for them.
+            addInvalidReferenceResults(validationResults, invalidSecretRefs, invalidAssetRefs);
+
+            // If there are any framework-level validation failures, we do not run the Connector-specific validation because
+            // doing so would mean that we must provide weak guarantees about the state of the configuration when the Connector's
+            // validation is invoked. But if there are no framework-level validation failures, we can proceed to invoke the
+            // Connector's validation logic.
             if (validationResults.isEmpty()) {
                 final List<ValidationResult> implValidationResults = getConnector().validateConfigurationStep(configurationStep, configContext, validationContext);
                 validationResults.addAll(implValidationResults);
@@ -615,15 +676,50 @@ public class StandardConnectorNode implements ConnectorNode {
             .build();
     }
 
-    private Map<String, String> resolvePropertyReferences(final StepConfiguration configurationOverrides) {
+    private Map<String, String> resolvePropertyReferences(final StepConfiguration configurationOverrides, final List<SecretReference> invalidSecretRefs,
+                                                          final List<AssetReference> invalidAssetRefs) {
+
         final Map<String, String> resolvedProperties = new HashMap<>();
 
         try {
+            // Secret References can be expensive to lookup so we don't want to call getSecret() for each one. Instead, we
+            // want to find all Secrets by Provider and then call fetchSecrets() once per Provider.
+            final Set<SecretReference> secretReferences = configurationOverrides.getPropertyValues().values().stream()
+                .filter(Objects::nonNull)
+                .filter(ref -> ref.getValueType() == ConnectorValueType.SECRET_REFERENCE)
+                .map(ref -> (SecretReference) ref)
+                .collect(Collectors.toSet());
+
+            final Map<SecretReference, Secret> secretsByReference = initializationContext.getSecretsManager().getSecrets(secretReferences);
+            secretsByReference.forEach((ref, secret) -> {
+                if (secret == null) {
+                    invalidSecretRefs.add(ref);
+                }
+            });
+
             for (final Map.Entry<String, ConnectorValueReference> entry : configurationOverrides.getPropertyValues().entrySet()) {
                 final String propertyName = entry.getKey();
                 final ConnectorValueReference valueReference = entry.getValue();
+
+                if (valueReference == null) {
+                    continue;
+                }
+
+                // We've already looked up secrets above, so use the cached value here.
+                if (valueReference.getValueType() == ConnectorValueType.SECRET_REFERENCE) {
+                    final SecretReference secretReference = (SecretReference) valueReference;
+                    final Secret secret = secretsByReference.get(secretReference);
+                    final String resolvedValue = (secret == null) ? null : secret.getValue();
+                    resolvedProperties.put(propertyName, resolvedValue);
+                    continue;
+                }
+
                 final String resolvedValue = resolvePropertyReference(valueReference);
                 resolvedProperties.put(propertyName, resolvedValue);
+
+                if (resolvedValue == null && valueReference.getValueType() == ConnectorValueType.ASSET_REFERENCE) {
+                    invalidAssetRefs.add((AssetReference) valueReference);
+                }
             }
         } catch (final IOException ioe) {
             throw new UncheckedIOException("Failed to resolve Secret references for " + this, ioe);
@@ -758,7 +854,29 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private void resetValidationState() {
-        // TODO: Implement
+        validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
+
+        if (triggerValidation && validationTrigger != null) {
+            validationTrigger.triggerAsync(this);
+        } else {
+            logger.debug("Reset validation state of {} but will not trigger async validation because trigger has been paused or is null", this);
+        }
+    }
+
+    @Override
+    public ValidationStatus getValidationStatus() {
+        return validationState.get().getStatus();
+    }
+
+    @Override
+    public ValidationState getValidationState() {
+        return validationState.get();
+    }
+
+    @Override
+    public Collection<ValidationResult> getValidationErrors() {
+        final ValidationState state = validationState.get();
+        return state.getValidationErrors();
     }
 
     @Override
@@ -783,22 +901,26 @@ public class StandardConnectorNode implements ConnectorNode {
                 }
             }
 
+            final ValidationState resultState;
             if (allResults.isEmpty()) {
-                return new ValidationState(ValidationStatus.VALID, Collections.emptyList());
+                resultState = new ValidationState(ValidationStatus.VALID, Collections.emptyList());
+            } else {
+                // Filter out any results that are 'valid' and any results that are invalid due to the fact that a Controller Service is disabled,
+                // since these will not be relevant when started.
+                final List<ValidationResult> relevantResults = allResults.stream()
+                    .filter(result -> !result.isValid())
+                    .filter(result -> !DisabledServiceValidationResult.isMatch(result))
+                    .toList();
+
+                if (relevantResults.isEmpty()) {
+                    resultState = new ValidationState(ValidationStatus.VALID, Collections.emptyList());
+                } else {
+                    resultState = new ValidationState(ValidationStatus.INVALID, relevantResults);
+                }
             }
 
-            // Filter out any results that are 'valid' and any results that are invalid due to the fact that a Controller Service is disabled,
-            // since these will not be relevant when started.
-            final List<ValidationResult> relevantResults = allResults.stream()
-                .filter(result -> !result.isValid())
-                .filter(result -> !DisabledServiceValidationResult.isMatch(result))
-                .toList();
-
-            if (relevantResults.isEmpty()) {
-                return new ValidationState(ValidationStatus.VALID, Collections.emptyList());
-            }
-
-            return new ValidationState(ValidationStatus.INVALID, relevantResults);
+            validationState.set(resultState);
+            return resultState;
         }
     }
 
@@ -813,7 +935,32 @@ public class StandardConnectorNode implements ConnectorNode {
                 continue;
             }
 
+            final StepConfiguration stepConfiguration = namedStepConfig.configuration();
             validatePropertyReferences(step, namedStepConfig.configuration(), allResults);
+
+            // Check for invalid Secret and Asset references
+            final List<SecretReference> invalidSecrets = new ArrayList<>();
+            final List<AssetReference> invalidAssets = new ArrayList<>();
+            resolvePropertyReferences(stepConfiguration, invalidSecrets, invalidAssets);
+            addInvalidReferenceResults(allResults, invalidSecrets, invalidAssets);
+        }
+    }
+
+    private void addInvalidReferenceResults(final List<ValidationResult> results, final List<SecretReference> invalidSecretRefs, final List<AssetReference> invalidAssetRefs) {
+        for (final SecretReference invalidSecretRef : invalidSecretRefs) {
+            results.add(new ValidationResult.Builder()
+                .subject("Secret Reference")
+                .valid(false)
+                .explanation("The referenced secret [" + invalidSecretRef.getFullyQualifiedName() + "] could not be found")
+                .build());
+        }
+
+        for (final AssetReference invalidAssetRef : invalidAssetRefs) {
+            results.add(new ValidationResult.Builder()
+                .subject("Asset Reference")
+                .valid(false)
+                .explanation("The referenced asset [" + invalidAssetRef.getAssetIdentifier() + "] could not be found")
+                .build());
         }
     }
 

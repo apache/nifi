@@ -19,6 +19,7 @@ package org.apache.nifi.web.dao.impl;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.web.NiFiCoreException;
@@ -53,6 +54,9 @@ class StandardConnectorDAOTest {
     @Mock
     private ConnectorNode connectorNode;
 
+    @Mock
+    private ConnectorUpdateContext connectorUpdateContext;
+
     private static final String CONNECTOR_ID = "test-connector-id";
     private static final String STEP_NAME = "test-step";
     private static final String PROPERTY_NAME = "test-property";
@@ -69,10 +73,10 @@ class StandardConnectorDAOTest {
     void testApplyConnectorUpdate() throws Exception {
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
 
-        connectorDAO.applyConnectorUpdate(CONNECTOR_ID);
+        connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext);
 
         verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository).applyUpdate(connectorNode);
+        verify(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
     }
 
     @Test
@@ -80,54 +84,54 @@ class StandardConnectorDAOTest {
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(null);
 
         final ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
-            connectorDAO.applyConnectorUpdate(CONNECTOR_ID)
+            connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext)
         );
 
         assertEquals("Could not find Connector with ID " + CONNECTOR_ID, exception.getMessage());
         verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository, never()).applyUpdate(any(ConnectorNode.class));
+        verify(connectorRepository, never()).applyUpdate(any(ConnectorNode.class), any(ConnectorUpdateContext.class));
     }
 
     @Test
     void testApplyConnectorUpdateWithFlowUpdateException() throws Exception {
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        doThrow(new FlowUpdateException("Flow update failed")).when(connectorRepository).applyUpdate(connectorNode);
+        doThrow(new FlowUpdateException("Flow update failed")).when(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
 
         final NiFiCoreException exception = assertThrows(NiFiCoreException.class, () ->
-            connectorDAO.applyConnectorUpdate(CONNECTOR_ID)
+            connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext)
         );
 
         assertEquals("Failed to apply connector update: org.apache.nifi.components.connector.FlowUpdateException: Flow update failed", exception.getMessage());
         verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository).applyUpdate(connectorNode);
+        verify(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
     }
 
     @Test
     void testApplyConnectorUpdateWithRuntimeException() throws Exception {
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        doThrow(new RuntimeException("Test exception")).when(connectorRepository).applyUpdate(connectorNode);
+        doThrow(new RuntimeException("Test exception")).when(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
 
         final NiFiCoreException exception = assertThrows(NiFiCoreException.class, () ->
-            connectorDAO.applyConnectorUpdate(CONNECTOR_ID)
+            connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext)
         );
 
         assertEquals("Failed to apply connector update: java.lang.RuntimeException: Test exception", exception.getMessage());
         verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository).applyUpdate(connectorNode);
+        verify(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
     }
 
     @Test
     void testApplyConnectorUpdateWithNullException() throws Exception {
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        doThrow(new RuntimeException()).when(connectorRepository).applyUpdate(connectorNode);
+        doThrow(new RuntimeException()).when(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
 
         final NiFiCoreException exception = assertThrows(NiFiCoreException.class, () ->
-            connectorDAO.applyConnectorUpdate(CONNECTOR_ID)
+            connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext)
         );
 
         assertEquals("Failed to apply connector update: java.lang.RuntimeException", exception.getMessage());
         verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository).applyUpdate(connectorNode);
+        verify(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
     }
 
     @Test

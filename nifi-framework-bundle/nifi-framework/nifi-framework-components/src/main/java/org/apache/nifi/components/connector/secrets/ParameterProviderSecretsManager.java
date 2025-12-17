@@ -73,7 +73,7 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             return Optional.empty();
         }
 
-        final List<Secret> secrets = provider.getSecrets(List.of(secretReference.getSecretName()));
+        final List<Secret> secrets = provider.getSecrets(List.of(secretReference.getFullyQualifiedName()));
         if (secrets.isEmpty()) {
             return Optional.empty();
         }
@@ -105,13 +105,13 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             }
 
             final List<String> secretNames = new ArrayList<>();
-            references.forEach(ref -> secretNames.add(ref.getSecretName()));
+            references.forEach(ref -> secretNames.add(ref.getFullyQualifiedName()));
             final List<Secret> retrievedSecrets = provider.getSecrets(secretNames);
             final Map<String, Secret> secretsByName = retrievedSecrets.stream()
-                .collect(Collectors.toMap(Secret::getName, Function.identity()));
+                .collect(Collectors.toMap(Secret::getFullyQualifiedName, Function.identity()));
 
             for (final SecretReference secretReference : references) {
-                final Secret secret = secretsByName.get(secretReference.getSecretName());
+                final Secret secret = secretsByName.get(secretReference.getFullyQualifiedName());
                 secrets.put(secretReference, secret);
             }
         }

@@ -62,9 +62,11 @@ public class ParameterProviderSecretProvider implements SecretProvider {
         final ParameterDescriptor descriptor = parameter.getDescriptor();
 
         return new StandardSecret.Builder()
+            .providerId(getProviderId())
             .providerName(getProviderName())
             .groupName(groupName)
             .name(descriptor.getName())
+            .fullyQualifiedName(groupName + "." + descriptor.getName())
             .description(descriptor.getDescription())
             .value(parameter.getValue())
             .authorizable(parameterProvider)

@@ -781,6 +781,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .flowController(flowController)
             .connectorStateTransition(stateTransition)
             .connectorInitializationContextBuilder(flowController.getConnectorRepository().createInitializationContextBuilder())
+            .connectorValidationTrigger(flowController.getConnectorValidationTrigger())
             .buildConnector();
 
         if (firstTimeAdded) {

@@ -53,11 +53,13 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
         final List<Secret> secrets = new ArrayList<>();
         for (final Map.Entry<String, String> entry : this.secrets.entrySet()) {
             final Secret secret = new StandardSecret.Builder()
+                .providerId(ConnectorTestRunner.SECRET_PROVIDER_ID)
                 .providerName(ConnectorTestRunner.SECRET_PROVIDER_NAME)
                 .groupName(GROUP_NAME)
                 .name(entry.getKey())
                 .value(entry.getValue())
                 .authorizable(AUTHORIZABLE)
+                .fullyQualifiedName(GROUP_NAME + "." + entry.getKey())
                 .build();
 
             secrets.add(secret);
@@ -75,9 +77,11 @@ public class ConnectorTestRunnerSecretProvider implements SecretProvider {
 
             if (value != null) {
                 final Secret secret = new StandardSecret.Builder()
+                    .providerId(ConnectorTestRunner.SECRET_PROVIDER_ID)
                     .providerName(ConnectorTestRunner.SECRET_PROVIDER_NAME)
                     .groupName(GROUP_NAME)
                     .name(secretName)
+                    .fullyQualifiedName(GROUP_NAME + "." + secretName)
                     .value(value)
                     .authorizable(AUTHORIZABLE)
                     .build();

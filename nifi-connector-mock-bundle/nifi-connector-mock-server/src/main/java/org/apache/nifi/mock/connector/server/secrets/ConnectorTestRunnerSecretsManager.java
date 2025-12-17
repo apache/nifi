@@ -58,7 +58,7 @@ public class ConnectorTestRunnerSecretsManager implements SecretsManager {
             return Optional.empty();
         }
 
-        final List<Secret> secrets = provider.getSecrets(List.of(secretReference.getSecretName()));
+        final List<Secret> secrets = provider.getSecrets(List.of(secretReference.getFullyQualifiedName()));
         return secrets.isEmpty() ? Optional.empty() : Optional.of(secrets.getFirst());
     }
 
