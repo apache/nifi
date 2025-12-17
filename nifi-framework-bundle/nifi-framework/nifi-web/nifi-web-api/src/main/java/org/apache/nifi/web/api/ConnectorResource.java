@@ -28,6 +28,7 @@ import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.HttpMethod;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -36,27 +37,50 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.http.replication.RequestReplicationHeader;
+import org.apache.nifi.cluster.coordination.http.replication.UploadRequest;
+import org.apache.nifi.cluster.coordination.http.replication.UploadRequestReplicator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.manager.NodeResponse;
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.stream.io.MaxLengthInputStream;
 import org.apache.nifi.ui.extension.UiExtension;
 import org.apache.nifi.ui.extension.UiExtensionMapping;
+import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
-import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
+import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
+import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.RequestManager;
+import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
+import org.apache.nifi.web.api.concurrent.UpdateStep;
+import org.apache.nifi.web.api.dto.AssetDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
+import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
+import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -66,26 +90,24 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
-import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
-import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
-import org.apache.nifi.web.api.concurrent.RequestManager;
-import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
-import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
-import org.apache.nifi.web.api.concurrent.UpdateStep;
-import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
+import org.apache.nifi.web.client.api.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
@@ -98,10 +120,16 @@ public class ConnectorResource extends ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(ConnectorResource.class);
     private static final String VERIFICATION_REQUEST_TYPE = "verification-request";
+    private static final String FILENAME_HEADER = "Filename";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String UPLOAD_CONTENT_TYPE = "application/octet-stream";
+    private static final long MAX_ASSET_SIZE_BYTES = (long) DataUnit.GB.toB(1);
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
     private FlowResource flowResource;
+    private UploadRequestReplicator uploadRequestReplicator;
+
     private final RequestManager<VerifyConnectorConfigStepRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
             new AsyncRequestManager<>(100, 1L, "Connector Configuration Step Verification");
 
@@ -1243,6 +1271,83 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
+     * Discards the working configuration of a connector, reverting to the last applied configuration.
+     *
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id The id of the connector whose working configuration should be discarded.
+     * @return A connectorEntity.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/working-configuration")
+    @Operation(
+            summary = "Discards the working configuration of a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConnectorEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "This will discard any pending configuration changes for the connector and revert to the last applied configuration.",
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+            }
+    )
+    public Response discardConnectorUpdate(
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
+            )
+            @QueryParam(VERSION) final LongParameter version,
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
+            )
+            @QueryParam(CLIENT_ID) final ClientIdParameter clientId,
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @Parameter(
+                    description = "The connector id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        final ConnectorEntity requestConnectorEntity = new ConnectorEntity();
+        requestConnectorEntity.setId(id);
+
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                requestRevision,
+                lookup -> {
+                    final Authorizable connector = lookup.getConnector(id);
+                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> {
+                    // Verify the connector exists
+                    serviceFacade.getConnector(id);
+                },
+                (revision, connectorEntity) -> {
+                    final ConnectorEntity entity = serviceFacade.discardConnectorUpdate(revision, id);
+                    populateRemainingConnectorEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
      * Retrieves the flow for the process group managed by the specified connector.
      *
      * @param id The id of the connector
@@ -1380,6 +1485,204 @@ public class ConnectorResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+    @POST
+    @Consumes(MediaType.APPLICATION_OCTET_STREAM)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/assets")
+    @Operation(
+        summary = "Creates a new Asset in the given Connector",
+        responses = {
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = AssetEntity.class))),
+            @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+            @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+            @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+            @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+        },
+        description = "This endpoint will create a new Asset in the Connector. The Asset will be created with the given name and the contents of the file that is uploaded.",
+        security = {
+            @SecurityRequirement(name = "Write - /connectors/{uuid}")
+        }
+    )
+    public Response createAsset(
+        @PathParam("id") final String connectorId,
+        @HeaderParam(FILENAME_HEADER) final String assetName,
+        @Parameter(description = "The contents of the asset", required = true) final InputStream assetContents) throws IOException {
+
+        // Validate input
+        if (StringUtils.isBlank(assetName)) {
+            throw new IllegalArgumentException(FILENAME_HEADER + " header is required");
+        }
+        if (assetContents == null) {
+            throw new IllegalArgumentException("Asset contents must be specified.");
+        }
+
+        final String sanitizedAssetName = FileUtils.getSanitizedFilename(assetName);
+        if (!assetName.equals(sanitizedAssetName)) {
+            throw new IllegalArgumentException(FILENAME_HEADER + " header contains an invalid file name");
+        }
+
+        // If clustered and not all nodes are connected, do not allow creating an asset.
+        // Generally, we allow the flow to be modified when nodes are disconnected, but we do not allow creating an asset because
+        // the cluster has no mechanism for synchronizing those assets after the upload.
+        final ClusterCoordinator clusterCoordinator = getClusterCoordinator();
+        if (clusterCoordinator != null) {
+            final Set<NodeIdentifier> disconnectedNodes = clusterCoordinator.getNodeIdentifiers(NodeConnectionState.CONNECTING, NodeConnectionState.DISCONNECTED, NodeConnectionState.DISCONNECTING);
+            if (!disconnectedNodes.isEmpty()) {
+                throw new IllegalStateException("Cannot create an Asset because the following %s nodes are not currently connected: %s".formatted(disconnectedNodes.size(), disconnectedNodes));
+            }
+        }
+
+        final NiFiUser currentUser = NiFiUserUtils.getNiFiUser();
+
+        // Verify Connector exists
+        serviceFacade.verifyCreateConnectorAsset(connectorId);
+
+        // Authorize the request
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.WRITE, currentUser);
+        });
+
+        // If we need to replicate the request, we do so using the Upload Request Replicator, rather than the typical replicate() method.
+        // This is because Upload Request Replication works differently in that it needs to be able to replicate the InputStream multiple times,
+        // so it must create a file on disk to do so and then use the file's content to replicate the request. It also bypasses the two-phase
+        // commit process that is used for other requests because doing so would result in uploading the file twice to each node or providing a
+        // different request for each of the two phases.
+
+        final long startTime = System.currentTimeMillis();
+        final InputStream maxLengthInputStream = new MaxLengthInputStream(assetContents, MAX_ASSET_SIZE_BYTES);
+
+        final AssetEntity assetEntity;
+        if (isReplicateRequest()) {
+            final String uploadRequestId = UUID.randomUUID().toString();
+            final UploadRequest<AssetEntity> uploadRequest = new UploadRequest.Builder<AssetEntity>()
+                .user(NiFiUserUtils.getNiFiUser())
+                .filename(sanitizedAssetName)
+                .identifier(uploadRequestId)
+                .contents(maxLengthInputStream)
+                .header(FILENAME_HEADER, sanitizedAssetName)
+                .header(CONTENT_TYPE_HEADER, UPLOAD_CONTENT_TYPE)
+                .header(RequestReplicationHeader.CLUSTER_ID_GENERATION_SEED.getHeader(), uploadRequestId)
+                .exampleRequestUri(getAbsolutePath())
+                .responseClass(AssetEntity.class)
+                .successfulResponseStatus(HttpResponseStatus.OK.getCode())
+                .build();
+            assetEntity = uploadRequestReplicator.upload(uploadRequest);
+        } else {
+            final String assetId = generateUuid();
+            logger.info("Creating asset [id={},name={}] in Connector [{}]", assetId, sanitizedAssetName, connectorId);
+            assetEntity = serviceFacade.createConnectorAsset(connectorId, assetId, sanitizedAssetName, maxLengthInputStream);
+
+            final AssetDTO assetDTO = assetEntity.getAsset();
+            final long elapsedTime = System.currentTimeMillis() - startTime;
+            logger.info("Creation of asset [id={},name={}] in Connector [{}] completed in {} ms", assetDTO.getId(), assetDTO.getName(), connectorId, elapsedTime);
+        }
+
+        return generateOkResponse(assetEntity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/assets")
+    @Operation(
+        summary = "Lists the assets that belong to the Connector with the given ID",
+        responses = {
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = AssetsEntity.class))),
+            @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+            @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+            @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+            @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+        },
+        description = "Lists the assets that belong to the Connector with the given ID.",
+        security = {
+            @SecurityRequirement(name = "Read - /connectors/{uuid}")
+        }
+    )
+    public Response getAssets(
+        @Parameter(
+            description = "The connector id.",
+            required = true
+        )
+        @PathParam("id") final String connectorId
+    ) {
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final List<AssetEntity> connectorAssets = serviceFacade.getConnectorAssets(connectorId);
+        logger.debug("Returning [{}] assets for connector [{}]", connectorAssets.size(), connectorId);
+
+        final AssetsEntity assetsEntity = new AssetsEntity();
+        assetsEntity.setAssets(connectorAssets);
+
+        return generateOkResponse(assetsEntity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_OCTET_STREAM)
+    @Path("{id}/assets/{assetId}")
+    @Operation(
+        summary = "Retrieves the content of the asset with the given id for a connector",
+        responses = {
+            @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = byte[].class))),
+            @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+            @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+            @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+            @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+        },
+        security = {
+            @SecurityRequirement(name = "Read - /connectors/{uuid}")
+        }
+    )
+    public Response getAssetContent(
+        @Parameter(
+            description = "The connector id.",
+            required = true
+        )
+        @PathParam("id") final String connectorId,
+        @Parameter(
+            description = "The asset id.",
+            required = true
+        )
+        @PathParam("assetId") final String assetId
+    ) {
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        final Asset asset = serviceFacade.getConnectorAsset(assetId)
+            .orElseThrow(() -> new ResourceNotFoundException("Asset does not exist with id %s".formatted(assetId)));
+
+        if (!asset.getOwnerIdentifier().equals(connectorId)) {
+            throw new ResourceNotFoundException("Asset does not exist with id %s".formatted(assetId));
+        }
+
+        if (!asset.getFile().exists()) {
+            throw new IllegalStateException("Content does not exist for asset with id %s".formatted(assetId));
+        }
+
+        final StreamingOutput streamingOutput = outputStream -> {
+            try (final InputStream assetInputStream = new FileInputStream(asset.getFile())) {
+                assetInputStream.transferTo(outputStream);
+            }
+        };
+
+        return generateOkResponse(streamingOutput)
+            .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", asset.getName()))
+            .build();
+    }
+
     // -----------------
     // setters
     // -----------------
@@ -1398,4 +1701,10 @@ public class ConnectorResource extends ApplicationResource {
     public void setFlowResource(final FlowResource flowResource) {
         this.flowResource = flowResource;
     }
+
+    @Autowired(required = false)
+    public void setUploadRequestReplicator(final UploadRequestReplicator uploadRequestReplicator) {
+        this.uploadRequestReplicator = uploadRequestReplicator;
+    }
+
 }

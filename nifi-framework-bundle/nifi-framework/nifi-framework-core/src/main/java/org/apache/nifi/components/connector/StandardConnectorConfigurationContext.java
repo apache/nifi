@@ -17,10 +17,12 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.secrets.SecretProvider;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
@@ -185,15 +187,24 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
         try {
             return switch (reference) {
                 case StringLiteralValue stringLiteral -> stringLiteral;
-                case AssetReference assetReference -> assetManager.getAsset(assetReference.getAssetIdentifier())
-                    .map(asset -> asset.getFile().getAbsolutePath())
-                    .map(StringLiteralValue::new)
-                    .orElse(null);
+                case AssetReference assetReference -> resolveAssetReferences(assetReference);
                 case SecretReference secretReference -> new StringLiteralValue(getSecretValue(secretReference));
             };
         } catch (final IOException ioe) {
             throw new UncheckedIOException("Unable to obtain Secrets from Secret Manager", ioe);
         }
+    }
+
+    private StringLiteralValue resolveAssetReferences(final AssetReference assetReference) {
+        final Set<String> resolvedAssetValues = new HashSet<>();
+        for (final String assetId : assetReference.getAssetIdentifiers()) {
+            assetManager.getAsset(assetId)
+                .map(Asset::getFile)
+                .map(File::getAbsolutePath)
+                .ifPresent(resolvedAssetValues::add);
+        }
+
+        return new StringLiteralValue(String.join(",", resolvedAssetValues));
     }
 
     private String getSecretValue(final SecretReference secretReference) throws IOException {

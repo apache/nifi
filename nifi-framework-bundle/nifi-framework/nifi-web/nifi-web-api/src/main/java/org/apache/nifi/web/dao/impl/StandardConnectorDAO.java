@@ -16,15 +16,20 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.ConnectorAssetRepository;
+import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.ConnectorValueType;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
@@ -32,19 +37,31 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.dao.ConnectorDAO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Repository
 public class StandardConnectorDAO implements ConnectorDAO {
+
+    private static final Logger logger = LoggerFactory.getLogger(StandardConnectorDAO.class);
 
     private FlowController flowController;
 
@@ -59,6 +76,10 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     private ConnectorRepository getConnectorRepository() {
         return flowController.getConnectorRepository();
+    }
+
+    private ConnectorAssetRepository getConnectorAssetRepository() {
+        return flowController.getConnectorRepository().getAssetRepository();
     }
 
     @Override
@@ -91,6 +112,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
     @Override
     public void deleteConnector(final String id) {
         getConnectorRepository().removeConnector(id);
+        getConnectorAssetRepository().deleteAssets(id);
     }
 
     @Override
@@ -153,9 +175,16 @@ public class StandardConnectorDAO implements ConnectorDAO {
         final ConnectorValueType valueType = dto.getValueType() != null ? ConnectorValueType.valueOf(dto.getValueType()) : ConnectorValueType.STRING_LITERAL;
         return switch (valueType) {
             case STRING_LITERAL -> new StringLiteralValue(dto.getValue());
-            case ASSET_REFERENCE -> new AssetReference(dto.getAssetIdentifier());
+            case ASSET_REFERENCE -> new AssetReference(convertToAssetIdentifiers(dto.getAssetReferences()));
             case SECRET_REFERENCE -> new SecretReference(dto.getSecretProviderId(), dto.getSecretProviderName(), dto.getSecretName(), dto.getFullyQualifiedSecretName());
         };
+    }
+
+    private Set<String> convertToAssetIdentifiers(final List<AssetReferenceDTO> assetReferenceDTOs) {
+        if (assetReferenceDTOs == null || assetReferenceDTOs.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return assetReferenceDTOs.stream().map(AssetReferenceDTO::getId).collect(Collectors.toSet());
     }
 
     @Override
@@ -163,9 +192,17 @@ public class StandardConnectorDAO implements ConnectorDAO {
         final ConnectorNode connector = getConnector(id);
         try {
             getConnectorRepository().applyUpdate(connector, updateContext);
+            cleanUpAssets(connector);
         } catch (final Exception e) {
             throw new NiFiCoreException("Failed to apply connector update: " + e, e);
         }
+    }
+
+    @Override
+    public void discardWorkingConfiguration(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        connector.discardWorkingConfiguration();
+        cleanUpAssets(connector);
     }
 
     @Override
@@ -188,6 +225,64 @@ public class StandardConnectorDAO implements ConnectorDAO {
             return connector.fetchAllowableValues(stepName, propertyName);
         } else {
             return connector.fetchAllowableValues(stepName, propertyName, filter);
+        }
+    }
+
+    @Override
+    public void verifyCreateAsset(final String id) {
+        getConnector(id);
+    }
+
+    @Override
+    public Asset createAsset(final String id, final String assetId, final String assetName, final InputStream content) throws IOException {
+        final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
+        return assetRepository.storeAsset(id, assetId, assetName, content);
+    }
+
+    @Override
+    public List<Asset> getAssets(final String id) {
+        final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
+        return assetRepository.getAssets(id);
+    }
+
+    @Override
+    public Optional<Asset> getAsset(final String assetId) {
+        final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
+        return assetRepository.getAsset(assetId);
+    }
+
+    private void cleanUpAssets(final ConnectorNode connector) {
+        final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();
+        final ConnectorConfiguration activeConfiguration = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
+
+        final Set<String> referencedAssetIds = new HashSet<>();
+        for (final NamedStepConfiguration namedStepConfiguration : activeConfiguration.getNamedStepConfigurations()) {
+            final StepConfiguration stepConfiguration = namedStepConfiguration.configuration();
+            final Map<String, ConnectorValueReference> stepPropertyValues = stepConfiguration.getPropertyValues();
+            if (stepPropertyValues == null) {
+                continue;
+            }
+            for (final ConnectorValueReference valueReference : stepPropertyValues.values()) {
+                if (valueReference instanceof AssetReference assetReference) {
+                    referencedAssetIds.addAll(assetReference.getAssetIdentifiers());
+                }
+            }
+        }
+
+        logger.debug("Found {} assets referenced for Connector [{}]", referencedAssetIds.size(), connector.getIdentifier());
+
+        final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
+        final List<Asset> allConnectorAssets = assetRepository.getAssets(connector.getIdentifier());
+        for (final Asset asset : allConnectorAssets) {
+            final String assetId = asset.getIdentifier();
+            if (!referencedAssetIds.contains(assetId)) {
+                try {
+                    logger.info("Deleting unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier());
+                    assetRepository.deleteAsset(assetId);
+                } catch (final Exception e) {
+                    logger.warn("Unable to delete unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier(), e);
+                }
+            }
         }
     }
 }

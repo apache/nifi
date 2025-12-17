@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.toolkit.client;
 
+import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -24,7 +26,9 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 /**
  * Client for interacting with the Connector REST endpoints.
@@ -252,9 +256,44 @@ public interface ConnectorClient {
     ProcessGroupStatusEntity getStatus(String connectorId, boolean recursive) throws NiFiClientException, IOException;
 
     /**
+     * Creates an asset in the given connector.
+     *
+     * @param connectorId the connector ID
+     * @param assetName the asset name
+     * @param file the file
+     * @return the created asset entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    AssetEntity createAsset(String connectorId, String assetName, File file) throws NiFiClientException, IOException;
+
+    /**
+     * Lists the assets for the given connector.
+     *
+     * @param connectorId the connector ID
+     * @return the list of asset entities
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    AssetsEntity getAssets(String connectorId) throws NiFiClientException, IOException;
+
+    /**
+     * Retrieves the content of the given asset.
+     *
+     * @param connectorId the connector ID
+     * @param assetId the asset ID
+     * @param outputDirectory the directory to write the asset content
+     * @return the path to the asset content
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    Path getAssetContent(String connectorId, String assetId, File outputDirectory) throws NiFiClientException, IOException;
+
+    /**
      * Indicates that mutable requests should indicate that the client has
      * acknowledged that the node is disconnected.
      */
     void acknowledgeDisconnectedNode();
 }
+
 

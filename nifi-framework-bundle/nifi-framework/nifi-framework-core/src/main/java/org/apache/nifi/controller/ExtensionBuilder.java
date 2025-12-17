@@ -276,19 +276,19 @@ public class ExtensionBuilder {
         return this;
     }
 
-   public ExtensionBuilder connectorValidationTrigger(final ConnectorValidationTrigger connectorValidationTrigger) {
-       this.connectorValidationTrigger = connectorValidationTrigger;
-       return this;
-   }
+    public ExtensionBuilder connectorValidationTrigger(final ConnectorValidationTrigger connectorValidationTrigger) {
+        this.connectorValidationTrigger = connectorValidationTrigger;
+        return this;
+    }
 
-   public ProcessorNode buildProcessor() {
-       requireNonNull(identifier, "Processor ID");
-       requireNonNull(type, "Processor Type");
-       requireNonNull(bundleCoordinate, "Bundle Coordinate");
-       requireNonNull(extensionManager, "Extension Manager");
-       requireNonNull(serviceProvider, "Controller Service Provider");
-       requireNonNull(nodeTypeProvider, "Node Type Provider");
-       requireNonNull(reloadComponent, "Reload Component");
+    public ProcessorNode buildProcessor() {
+        requireNonNull(identifier, "Processor ID");
+        requireNonNull(type, "Processor Type");
+        requireNonNull(bundleCoordinate, "Bundle Coordinate");
+        requireNonNull(extensionManager, "Extension Manager");
+        requireNonNull(serviceProvider, "Controller Service Provider");
+        requireNonNull(nodeTypeProvider, "Node Type Provider");
+        requireNonNull(reloadComponent, "Reload Component");
 
         boolean creationSuccessful = true;
         final StandardLoggingContext loggingContext = new StandardLoggingContext();
@@ -519,19 +519,19 @@ public class ExtensionBuilder {
             }
         };
 
-       final ConnectorNode connectorNode = new StandardConnectorNode(
-           identifier,
-           flowController.getFlowManager(),
-           extensionManager,
-           connectorsAuthorizable,
-           connectorDetails,
-           componentType,
-           type,
-           activeConfigurationContext,
-           connectorStateTransition,
-           flowContextFactory,
-           connectorValidationTrigger
-       );
+        final ConnectorNode connectorNode = new StandardConnectorNode(
+            identifier,
+            flowController.getFlowManager(),
+            extensionManager,
+            connectorsAuthorizable,
+            connectorDetails,
+            componentType,
+            type,
+            activeConfigurationContext,
+            connectorStateTransition,
+            flowContextFactory,
+            connectorValidationTrigger
+        );
 
         initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
         // TODO: If an Exception is thrown in the call to #initialize, we should create a Ghosted Connector
@@ -568,7 +568,7 @@ public class ExtensionBuilder {
             .name(name)
             .componentLog(componentLog)
             .secretsManager(flowController.getConnectorRepository().getSecretsManager())
-            .assetManager(flowController.getAssetManager())
+            .assetManager(flowController.getConnectorAssetManager())
             .build();
     }
 

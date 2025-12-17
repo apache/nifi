@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -23,7 +24,10 @@ import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
+import java.util.Optional;
 
 public interface ConnectorDAO {
 
@@ -49,11 +53,21 @@ public interface ConnectorDAO {
 
     void applyConnectorUpdate(String id, ConnectorUpdateContext updateContext);
 
+    void discardWorkingConfiguration(String id);
+
     void verifyCanVerifyConfigurationStep(String id, String configurationStepName);
 
     List<ConfigVerificationResult> verifyConfigurationStep(String id, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);
 
     List<AllowableValue> fetchAllowableValues(String id, String stepName, String propertyName, String filter);
-}
 
+    void verifyCreateAsset(String id);
+
+    Asset createAsset(String id, String assetId, String assetName, InputStream content) throws IOException;
+
+    List<Asset> getAssets(String id);
+
+    Optional<Asset> getAsset(String assetId);
+
+}
 

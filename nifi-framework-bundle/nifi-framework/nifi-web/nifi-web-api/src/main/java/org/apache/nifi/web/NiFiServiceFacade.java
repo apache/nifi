@@ -17,6 +17,7 @@
 package org.apache.nifi.web;
 
 import io.prometheus.client.CollectorRegistry;
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -57,7 +58,9 @@ import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
+import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ControllerConfigurationDTO;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
@@ -82,8 +85,6 @@ import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
-import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
-import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ResourceDTO;
 import org.apache.nifi.web.api.dto.SnippetDTO;
 import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
@@ -108,9 +109,13 @@ import org.apache.nifi.web.api.entity.ClearBulletinsForGroupResultsEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsResultEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
+import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -150,10 +155,6 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
-import org.apache.nifi.web.api.entity.ConnectorEntity;
-import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
-import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
-import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.apache.nifi.web.api.entity.SnippetEntity;
 import org.apache.nifi.web.api.entity.StartVersionControlRequestEntity;
@@ -177,6 +178,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -215,6 +217,8 @@ public interface NiFiServiceFacade {
 
     ConnectorEntity applyConnectorUpdate(Revision revision, String connectorId);
 
+    ConnectorEntity discardConnectorUpdate(Revision revision, String connectorId);
+
     ProcessGroupFlowEntity getConnectorFlow(String id, boolean uiOnly);
 
     ProcessGroupStatusEntity getConnectorProcessGroupStatus(String id, Boolean recursive);
@@ -226,6 +230,14 @@ public interface NiFiServiceFacade {
     SearchResultsDTO searchConnector(String connectorId, String query);
 
     ConnectorPropertyAllowableValuesEntity getConnectorPropertyAllowableValues(String connectorId, String stepName, String groupName, String propertyName, String filter);
+
+    void verifyCreateConnectorAsset(String connectorId);
+
+    AssetEntity createConnectorAsset(String connectorId, String assetId, String assetName, InputStream content) throws IOException;
+
+    List<AssetEntity> getConnectorAssets(String connectorId);
+
+    Optional<Asset> getConnectorAsset(String assetId);
 
     // ----------------------------------------
     // Synchronization methods

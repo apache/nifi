@@ -19,11 +19,14 @@ package org.apache.nifi.toolkit.client.impl;
 import jakarta.ws.rs.client.Entity;
 import jakarta.ws.rs.client.WebTarget;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.AssetEntity;
+import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -33,8 +36,15 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Objects;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Jersey implementation of ConnectorClient.
@@ -326,6 +336,9 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
         if (connectorEntity == null) {
             throw new IllegalArgumentException("Connector entity cannot be null");
         }
+        if (StringUtils.isBlank(connectorEntity.getId())) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
         if (connectorEntity.getRevision() == null) {
             throw new IllegalArgumentException("Revision cannot be null");
         }
@@ -382,6 +395,79 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
             }
 
             return getRequestBuilder(target).get(ProcessGroupStatusEntity.class);
+        });
+    }
+
+    @Override
+    public AssetEntity createAsset(final String connectorId, final String assetName, final File file) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(assetName)) {
+            throw new IllegalArgumentException("Asset name cannot be null or blank");
+        }
+        if (file == null) {
+            throw new IllegalArgumentException("File cannot be null");
+        }
+        if (!file.exists()) {
+            throw new FileNotFoundException(file.getAbsolutePath());
+        }
+
+        try (final InputStream assetInputStream = new FileInputStream(file)) {
+            return executeAction("Error creating Connector Asset " + assetName + " for Connector " + connectorId, () -> {
+                final WebTarget target = connectorsTarget
+                    .path("{id}/assets")
+                    .resolveTemplate("id", connectorId);
+
+                return getRequestBuilder(target)
+                    .header("Filename", assetName)
+                    .post(
+                        Entity.entity(assetInputStream, MediaType.APPLICATION_OCTET_STREAM_TYPE),
+                        AssetEntity.class);
+            });
+        }
+    }
+
+    @Override
+    public AssetsEntity getAssets(final String connectorId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving Connector assets", () -> {
+            final WebTarget target = connectorsTarget
+                .path("{id}/assets")
+                .resolveTemplate("id", connectorId);
+            return getRequestBuilder(target).get(AssetsEntity.class);
+        });
+    }
+
+    @Override
+    public Path getAssetContent(final String connectorId, final String assetId, final File outputDirectory) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(assetId)) {
+            throw new IllegalArgumentException("Asset id cannot be null or blank");
+        }
+
+        return executeAction("Error getting Connector asset content", () -> {
+            final WebTarget target = connectorsTarget
+                .path("{id}/assets/{assetId}")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("assetId", assetId);
+
+            final Response response = getRequestBuilder(target)
+                .accept(MediaType.APPLICATION_OCTET_STREAM_TYPE)
+                .get();
+
+            final String filename = getContentDispositionFilename(response);
+            final File assetFile = new File(outputDirectory, filename);
+
+            try (final InputStream responseInputStream = response.readEntity(InputStream.class)) {
+                Files.copy(responseInputStream, assetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                return assetFile.toPath();
+            }
         });
     }
 }
