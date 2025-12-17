@@ -19,6 +19,8 @@ package org.apache.nifi.web.api.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 
+import java.util.List;
+
 /**
  * A reference to a connector property value, which includes the value and its type.
  * The value can be a string literal, a reference to an asset, or a reference to a secret.
@@ -28,11 +30,11 @@ public class ConnectorValueReferenceDTO {
 
     private String valueType;
     private String value;
-    private String assetIdentifier;
     private String secretProviderId;
     private String secretProviderName;
     private String secretName;
     private String fullyQualifiedSecretName;
+    private List<AssetReferenceDTO> assetReferences;
 
     /**
      * @return the type of value (STRING_LITERAL, ASSET_REFERENCE, or SECRET_REFERENCE)
@@ -56,18 +58,6 @@ public class ConnectorValueReferenceDTO {
 
     public void setValue(final String value) {
         this.value = value;
-    }
-
-    /**
-     * @return the asset identifier when valueType is ASSET_REFERENCE
-     */
-    @Schema(description = "The asset identifier. Applicable when valueType is ASSET_REFERENCE.")
-    public String getAssetIdentifier() {
-        return assetIdentifier;
-    }
-
-    public void setAssetIdentifier(final String assetIdentifier) {
-        this.assetIdentifier = assetIdentifier;
     }
 
     /**
@@ -113,6 +103,18 @@ public class ConnectorValueReferenceDTO {
     @Schema(description = "The fully qualified secret name. Applicable when valueType is SECRET_REFERENCE.")
     public String getFullyQualifiedSecretName() {
         return fullyQualifiedSecretName;
+    }
+
+    /**
+     * @return the asset identifiers when valueType is ASSET_REFERENCE
+     */
+    @Schema(description = "The asset references. Applicable when valueType is ASSET_REFERENCE.")
+    public List<AssetReferenceDTO> getAssetReferences() {
+        return assetReferences;
+    }
+
+    public void setAssetReferences(final List<AssetReferenceDTO> assetReferences) {
+        this.assetReferences = assetReferences;
     }
 }
 

@@ -124,6 +124,9 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String ASSET_MANAGER_IMPLEMENTATION = "nifi.asset.manager.implementation";
     public static final String ASSET_MANAGER_PREFIX = "nifi.asset.manager.properties.";
 
+    public static final String CONNECTOR_ASSET_MANAGER_IMPLEMENTATION = "nifi.connector.asset.manager.implementation";
+    public static final String CONNECTOR_ASSET_MANAGER_PREFIX = "nifi.connector.asset.manager.properties.";
+
     // status repository properties
     public static final String COMPONENT_STATUS_REPOSITORY_IMPLEMENTATION = "nifi.components.status.repository.implementation";
     public static final String COMPONENT_STATUS_SNAPSHOT_FREQUENCY = "nifi.components.status.snapshot.frequency";

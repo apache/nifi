@@ -14,27 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.components.connector;
 
-import org.apache.nifi.components.connector.secrets.SecretsManager;
-import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.controller.NodeTypeProvider;
-import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.asset.Asset;
 
-public interface ConnectorRepositoryInitializationContext {
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Optional;
 
-    FlowManager getFlowManager();
+public interface ConnectorAssetRepository {
 
-    ExtensionManager getExtensionManager();
+    Asset storeAsset(String connectorId, String assetId, String assetName, InputStream content) throws IOException;
 
-    SecretsManager getSecretsManager();
+    Optional<Asset> getAsset(String assetId);
 
-    AssetManager getAssetManager();
+    List<Asset> getAssets(String connectorId);
 
-    NodeTypeProvider getNodeTypeProvider();
+    void deleteAsset(String assetId);
 
-    ConnectorRequestReplicator getRequestReplicator();
+    void deleteAssets(String connectorId);
 
 }
