@@ -171,6 +171,7 @@ import org.apache.nifi.prometheusutil.ClusterMetricsRegistry;
 import org.apache.nifi.prometheusutil.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheusutil.JvmMetricsRegistry;
 import org.apache.nifi.prometheusutil.NiFiMetricsRegistry;
+import org.apache.nifi.prometheusutil.VersionInfoRegistry;
 import org.apache.nifi.prometheusutil.PrometheusMetricsUtil;
 import org.apache.nifi.registry.flow.FlowLocation;
 import org.apache.nifi.registry.flow.FlowRegistryBranch;
@@ -6639,6 +6640,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // Include registries which are fully refreshed upon each invocation
         NiFiMetricsRegistry nifiMetricsRegistry = new NiFiMetricsRegistry();
         BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
+        VersionInfoRegistry versionInfoRegistry = new VersionInfoRegistry();
 
         final NodeIdentifier node = controllerFacade.getNodeId();
         final String instId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
@@ -6661,6 +6663,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
 
+        //Add version info metrics to NiFi metrics
+        PrometheusMetricsUtil.createVersionInfoMetrics(versionInfoRegistry, instanceId);
         //Add flow file repository, content repository and provenance repository usage to NiFi metrics
         final StorageUsage flowFileRepositoryUsage = controllerFacade.getFlowFileRepositoryStorageUsage();
         final Map<String, StorageUsage> contentRepositoryUsage = controllerFacade.getContentRepositoryStorageUsage();
@@ -6737,7 +6741,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 jvmMetricsRegistry,
                 connectionAnalyticsMetricsRegistry,
                 bulletinMetricsRegistry,
-                clusterMetricsRegistry
+                clusterMetricsRegistry,
+                versionInfoRegistry
         );
 
         return metricsRegistries;
