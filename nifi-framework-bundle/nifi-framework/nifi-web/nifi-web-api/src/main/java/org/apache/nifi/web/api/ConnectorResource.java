@@ -90,13 +90,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
-import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
-import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
-import org.apache.nifi.web.api.concurrent.RequestManager;
-import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
-import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
-import org.apache.nifi.web.api.concurrent.UpdateStep;
-import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -1580,11 +1573,11 @@ public class ConnectorResource extends ApplicationResource {
             final String assetId = generateUuid();
             logger.info("Creating asset [id={},name={}] in Connector [{}]", assetId, sanitizedAssetName, connectorId);
             assetEntity = serviceFacade.createConnectorAsset(connectorId, assetId, sanitizedAssetName, maxLengthInputStream);
-        }
 
-        final AssetDTO assetDTO = assetEntity.getAsset();
-        final long elapsedTime = System.currentTimeMillis() - startTime;
-        logger.info("Creation of asset [id={},name={}] in Connector [{}] completed in {} ms", assetDTO.getId(), assetDTO.getName(), connectorId, elapsedTime);
+            final AssetDTO assetDTO = assetEntity.getAsset();
+            final long elapsedTime = System.currentTimeMillis() - startTime;
+            logger.info("Creation of asset [id={},name={}] in Connector [{}] completed in {} ms", assetDTO.getId(), assetDTO.getName(), connectorId, elapsedTime);
+        }
 
         return generateOkResponse(assetEntity).build();
     }
@@ -1625,6 +1618,7 @@ public class ConnectorResource extends ApplicationResource {
         }
 
         final List<AssetEntity> connectorAssets = serviceFacade.getConnectorAssets(connectorId);
+        logger.debug("Returning [{}] assets for connector [{}]", connectorAssets.size(), connectorId);
 
         final AssetsEntity assetsEntity = new AssetsEntity();
         assetsEntity.setAssets(connectorAssets);

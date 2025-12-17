@@ -24,7 +24,6 @@ import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
@@ -42,23 +41,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The structure of these tests is based on the clustered parameter context
  * asset synchronization tests in {@code ClusteredParameterContextIT}.
  */
-public class ClusteredConnectorsIT extends ConnectorsIT {
+public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
 
     @Override
     public NiFiInstanceFactory getInstanceFactory() {
         return createTwoNodeInstanceFactory();
     }
 
-    // TODO Remove the overriding of this method when ClusterConnectorRequestReplicator is fixed and allows this test to pass when clustered
-    @Disabled
-    @Test
-    @Override
-    public void testCreateConnectorAndUploadAsset() throws NiFiClientException, IOException, InterruptedException {
-        super.testCreateConnectorAndUploadAsset();
-    }
-
-    // TODO Remove the disabled when flow synchronization is fixed and a node can receive the flow from the cluster when connectors are present
-    @Disabled
     @Test
     public void testSynchronizeConnectorAssets() throws NiFiClientException, IOException, InterruptedException {
         waitForAllNodesConnected();
@@ -145,6 +134,8 @@ public class ClusteredConnectorsIT extends ConnectorsIT {
                 .anyMatch(a -> uploadedAssetId.equals(a.getAsset().getId()));
 
         assertTrue(assetStillPresent);
+
+        connectorClient.deleteConnector(connector);
     }
 }
 

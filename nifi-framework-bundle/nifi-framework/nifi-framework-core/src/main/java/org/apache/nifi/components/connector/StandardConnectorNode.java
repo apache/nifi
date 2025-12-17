@@ -45,6 +45,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -740,7 +741,7 @@ public class StandardConnectorNode implements ConnectorNode {
             case StringLiteralValue stringLiteralValue -> stringLiteralValue.getValue();
             case AssetReference assetReference -> resolveAssetReferences(assetReference);
             case SecretReference secretReference -> initializationContext.getSecretsManager()
-                .getSecret((SecretReference) valueReference)
+                .getSecret(secretReference)
                 .map(Secret::getValue)
                 .orElse(null);
         };
@@ -971,7 +972,7 @@ public class StandardConnectorNode implements ConnectorNode {
             results.add(new ValidationResult.Builder()
                 .subject("Asset Reference")
                 .valid(false)
-                .explanation("The referenced asset [" + invalidAssetRef.getAssetIdentifier() + "] could not be found")
+                .explanation("The referenced assets [" + StringUtils.join(invalidAssetRef.getAssetIdentifiers(), ",") + "] could not be found")
                 .build());
         }
     }

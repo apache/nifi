@@ -107,16 +107,8 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
 
     private void synchronize(final AssetsRestApiClient assetsRestApiClient, final ConnectorNode connector) {
         final String connectorId = connector.getIdentifier();
-
         final Map<String, Asset> existingAssets = assetManager.getAssets(connectorId).stream()
                 .collect(Collectors.toMap(Asset::getIdentifier, Function.identity()));
-
-        if (existingAssets.isEmpty()) {
-            logger.info("Connector [{}] does not contain any assets to synchronize", connectorId);
-            return;
-        }
-
-        logger.info("Connector [{}] has {} assets on the current node", connectorId, existingAssets.size());
 
         final AssetsEntity coordinatorAssetsEntity = listConnectorAssetsWithRetry(assetsRestApiClient, connectorId);
         if (coordinatorAssetsEntity == null) {

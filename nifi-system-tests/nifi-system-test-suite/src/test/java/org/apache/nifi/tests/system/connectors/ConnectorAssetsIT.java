@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class ConnectorsIT extends NiFiSystemIT {
+public class ConnectorAssetsIT extends NiFiSystemIT {
 
     @Test
     public void testCreateConnectorAndUploadAsset() throws NiFiClientException, IOException, InterruptedException {
@@ -112,7 +112,7 @@ public class ConnectorsIT extends NiFiSystemIT {
 
         propertyValues.put(propertyName, assetValueReference);
 
-        final ConfigurationStepEntity updatedConfigurationStepEntity = connectorClient.updateConfigurationStep(connectorId, configurationStepEntity);
+        final ConfigurationStepEntity updatedConfigurationStepEntity = connectorClient.updateConfigurationStep(configurationStepEntity);
         assertNotNull(updatedConfigurationStepEntity);
 
         // Retrieve the Connector configuration and verify that the Test Asset property has the Asset reference set
@@ -174,7 +174,7 @@ public class ConnectorsIT extends NiFiSystemIT {
         final Map<String, ConnectorValueReferenceDTO> propertyValuesWithoutAsset = groupWithoutAsset.getPropertyValues();
         propertyValuesWithoutAsset.put(propertyName, configuredAssetValue);
 
-        final ConfigurationStepEntity configurationStepEntityAfterRemoval = connectorClient.updateConfigurationStep(connectorId, configurationStepEntityWithoutAsset);
+        final ConfigurationStepEntity configurationStepEntityAfterRemoval = connectorClient.updateConfigurationStep(configurationStepEntityWithoutAsset);
         assertNotNull(configurationStepEntityAfterRemoval);
 
         // Apply the connector update so that unreferenced assets are cleaned up based on the active configuration
@@ -182,7 +182,7 @@ public class ConnectorsIT extends NiFiSystemIT {
         assertNotNull(connectorBeforeApply);
         connectorBeforeApply.setDisconnectedNodeAcknowledged(true);
 
-        final ConnectorEntity connectorAfterApply = connectorClient.applyConnectorUpdate(connectorBeforeApply);
+        final ConnectorEntity connectorAfterApply = connectorClient.applyUpdate(connectorBeforeApply);
         assertNotNull(connectorAfterApply);
 
         // Verify that the Asset has been removed from the Connector's Assets list
@@ -194,6 +194,8 @@ public class ConnectorsIT extends NiFiSystemIT {
                 .anyMatch(a -> uploadedAssetId.equals(a.getAsset().getId()));
 
         assertFalse(assetStillPresent);
+
+        connectorClient.deleteConnector(connectorAfterApply);
     }
 }
 
