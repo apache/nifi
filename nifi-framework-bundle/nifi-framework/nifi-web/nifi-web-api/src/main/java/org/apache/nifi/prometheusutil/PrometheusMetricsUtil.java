@@ -478,6 +478,13 @@ public class PrometheusMetricsUtil {
         return niFiMetricsRegistry.getRegistry();
     }
 
+    public static void createVersionInfoMetrics(final VersionInfoRegistry versionInfoRegistry, final String instanceId) {
+    // 1. Retrieve the calculated version details
+    final VersionInfoRegistry.VersionDetails details = versionInfoRegistry.getVersionDetails();
+
+    versionInfoRegistry.setDataPoint(1, "NIFI_VERSION_INFO",instanceId,details.nifiVersion,details.javaVersion,details.revision,details.tag,details.osName,details.osVersion); 
+}
+
     public static CollectorRegistry createClusterMetrics(final ClusterMetricsRegistry clusterMetricsRegistry, final String instId, final boolean isClustered, final boolean isConnectedToCluster,
                                                          final String connectedNodes, final int connectedNodeCount, final int totalNodeCount) {
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
