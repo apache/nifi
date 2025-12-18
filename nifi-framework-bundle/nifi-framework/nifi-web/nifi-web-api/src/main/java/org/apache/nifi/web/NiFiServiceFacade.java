@@ -655,6 +655,18 @@ public interface NiFiServiceFacade {
     String getAdditionalDetails(String group, String artifact, String version, String type);
 
     /**
+     * Return the step documentation for the specified Connector configuration step.
+     *
+     * @param group The bundle group
+     * @param artifact The bundle artifact
+     * @param version The bundle version
+     * @param connectorType The fully qualified class name of the Connector
+     * @param stepName The name of the configuration step
+     * @return The step documentation markdown content
+     */
+    String getStepDocumentation(String group, String artifact, String version, String connectorType, String stepName);
+
+    /**
      * Returns the list of parameter provider types.
      *
      * @param bundleGroupFilter if specified, must be member of bundle group
