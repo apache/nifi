@@ -565,6 +565,18 @@ public class StandardFlowComparator implements FlowComparator {
         final boolean shouldCompareVersioned = flowCoordinateDifferences.stream()
             .anyMatch(diff -> !diff.getFieldName().isPresent() || !diff.getFieldName().get().equals(FLOW_VERSION)) || flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP;
         final boolean bothGroupsVersioned = groupACoordinates != null && groupBCoordinates != null;
+        final boolean bothGroupsVersionedAndSame = bothGroupsVersioned && flowCoordinateDifferences.isEmpty();
+
+        // When both groups are versioned with the SAME coordinates (same registry, bucket, flow, and version),
+        // we should NOT compare their contents because the version being the same implies the contents are identical.
+        // This is important because the component identifiers in the registry snapshot may differ from local identifiers,
+        // which would incorrectly report components as added/removed even though the PG is up-to-date.
+        // This also means that we will ignore any potential local modifications in a nested versioned process group.
+        // In that case we expect the user to directly list changes on the nested versioned process group.
+        if (bothGroupsVersionedAndSame) {
+            return;
+        }
+
         final boolean compareGroupContents = !bothGroupsVersioned || shouldCompareVersioned || hasProcessGroupContents(groupA) || hasProcessGroupContents(groupB);
 
 
