@@ -442,12 +442,8 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         return stepDocsMap;
     }
 
-    private String stepNameToFileName(final String stepName) {
-        return stepName.replace(" ", "-");
-    }
-
     private String fileNameToStepName(final String fileName) {
-        return fileName.replace("-", " ");
+        return fileName.replace("_", " ");
     }
 
     private Map<String, String> loadAdditionalDetails(final BundleDetails bundleDetails) {

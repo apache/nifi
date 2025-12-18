@@ -5317,7 +5317,7 @@ public final class DtoFactory {
         final ConfigurationStepConfigurationDTO dto = new ConfigurationStepConfigurationDTO();
         dto.setConfigurationStepName(step.getName());
         dto.setConfigurationStepDescription(step.getDescription());
-        dto.setHasDocumentation(stepsWithDocumentation.contains(step.getName()));
+        dto.setDocumented(stepsWithDocumentation.contains(step.getName()));
 
         // Get the current configuration values for this step from the flat StepConfiguration
         final StepConfiguration stepConfig = configuration.getNamedStepConfigurations().stream()

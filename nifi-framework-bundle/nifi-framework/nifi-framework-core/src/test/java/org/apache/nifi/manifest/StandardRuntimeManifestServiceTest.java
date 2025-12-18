@@ -183,12 +183,12 @@ public class StandardRuntimeManifestServiceTest {
         final File testStepFile = stepDocs.get("Test Step");
         assertNotNull(testStepFile);
         assertTrue(testStepFile.exists());
-        assertEquals("Test-Step.md", testStepFile.getName());
+        assertEquals("Test_Step.md", testStepFile.getName());
 
         final File anotherTestStepFile = stepDocs.get("Another Test Step");
         assertNotNull(anotherTestStepFile);
         assertTrue(anotherTestStepFile.exists());
-        assertEquals("Another-Test-Step.md", anotherTestStepFile.getName());
+        assertEquals("Another_Test_Step.md", anotherTestStepFile.getName());
     }
 
     @Test
