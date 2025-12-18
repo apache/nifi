@@ -44,7 +44,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import org.springframework.lang.Nullable;
-import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.ConnectionPoolConfig;
 
 import javax.net.ssl.SSLContext;
 
@@ -345,7 +345,7 @@ public class RedisUtils {
         final String sentinelUsername = redisConfig.getSentinelUsername();
         final String sentinelPassword = redisConfig.getSentinelPassword();
         final Integer timeout = redisConfig.getTimeout();
-        final JedisPoolConfig poolConfig = createJedisPoolConfig(redisConfig);
+        final ConnectionPoolConfig poolConfig = createConnectionPoolConfig(redisConfig);
 
         JedisClientConfiguration.JedisClientConfigurationBuilder builder = JedisClientConfiguration.builder()
                 .connectTimeout(Duration.ofMillis(timeout))
@@ -442,8 +442,8 @@ public class RedisUtils {
         }
     }
 
-    private static JedisPoolConfig createJedisPoolConfig(final RedisConfig redisConfig) {
-        final JedisPoolConfig poolConfig = new JedisPoolConfig();
+    private static ConnectionPoolConfig createConnectionPoolConfig(final RedisConfig redisConfig) {
+        final ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
         poolConfig.setMaxTotal(redisConfig.getPoolMaxTotal());
         poolConfig.setMaxIdle(redisConfig.getPoolMaxIdle());
         poolConfig.setMinIdle(redisConfig.getPoolMinIdle());
