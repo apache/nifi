@@ -14,27 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import com.bazaarvoice.jolt.Chainr;
+package org.apache.nifi.processors.jolt;
 
-import com.bazaarvoice.jolt.SpecDriven;
-import com.bazaarvoice.jolt.Transform;
-
+import io.joltcommunity.jolt.Chainr;
+import io.joltcommunity.jolt.SpecDriven;
+import io.joltcommunity.jolt.Transform;
 
 public class TestCustomJoltTransform implements SpecDriven, Transform {
 
-    final private Transform customTransform;
+    private final Transform customTransform;
 
     public TestCustomJoltTransform(Object specJson) {
         this.customTransform = Chainr.fromSpec(specJson);
     }
 
     @Override
-    public Object transform(Object o) {
-        return customTransform.transform(o);
+    public Object transform(Object objectToTransform) {
+        return customTransform.transform(objectToTransform);
     }
-
-    public static void main(String[] args) {
-        System.out.println("This is a Test Custom Transform");
-    }
-
 }
