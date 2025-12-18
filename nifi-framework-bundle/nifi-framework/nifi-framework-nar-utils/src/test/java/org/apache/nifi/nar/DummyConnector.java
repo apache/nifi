@@ -61,7 +61,7 @@ public class DummyConnector implements Connector {
     }
 
     @Override
-    public List<ConfigurationStep> getConfigurationSteps(final FlowContext flowContext) {
+    public List<ConfigurationStep> getConfigurationSteps() {
         return List.of();
     }
 

@@ -116,7 +116,7 @@ public class DynamicFlowConnector extends AbstractConnector {
     );
 
     @Override
-    public List<ConfigurationStep> getConfigurationSteps(final FlowContext flowContext) {
+    public List<ConfigurationStep> getConfigurationSteps() {
         return configurationSteps;
     }
 

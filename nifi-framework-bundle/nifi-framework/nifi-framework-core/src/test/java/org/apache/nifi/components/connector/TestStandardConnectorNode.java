@@ -594,7 +594,7 @@ public class TestStandardConnectorNode {
         }
 
         @Override
-        public List<ConfigurationStep> getConfigurationSteps(final FlowContext flowContext) {
+        public List<ConfigurationStep> getConfigurationSteps() {
             return List.of();
         }
 
@@ -647,7 +647,7 @@ public class TestStandardConnectorNode {
         }
 
         @Override
-        public List<ConfigurationStep> getConfigurationSteps(final FlowContext flowContext) {
+        public List<ConfigurationStep> getConfigurationSteps() {
             final ConfigurationStep testStep = new ConfigurationStep.Builder()
                 .name("testStep")
                 .build();
