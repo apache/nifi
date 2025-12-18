@@ -196,8 +196,8 @@
         <jersey.bom.version>4.0.0</jersey.bom.version>
         <jetty.version>12.1.5</jetty.version>
         <servlet-api.version>6.1.0</servlet-api.version>
-        <spring.security.version>7.0.0</spring.security.version>
-        <spring.version>7.0.1</spring.version>
+        <spring.security.version>7.0.2</spring.security.version>
+        <spring.version>7.0.2</spring.version>
         <swagger.annotations.version>2.2.41</swagger.annotations.version>
 
         <!-- Testing and quality -->
