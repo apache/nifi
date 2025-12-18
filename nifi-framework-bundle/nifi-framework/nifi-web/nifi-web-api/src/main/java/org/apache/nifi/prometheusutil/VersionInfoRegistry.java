@@ -93,7 +93,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
                 buildBranch = frameworkDetails.getBuildBranch();
             }
         } catch (Exception e) {
-            LOGGER.debug("Could not retrieve NiFi bundle details for version info metric: {}", e.getMessage());
+            LOGGER.debug("Could not retrieve NiFi bundle details for version info metric", e);
         }
         return new VersionDetails(nifiVersion, revision, tag, buildBranch, javaVersion, javaVendor, osVersion, osName, osArchitecture);
     }
