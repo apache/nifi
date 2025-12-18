@@ -145,6 +145,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupCounts;
 import org.apache.nifi.history.History;
 import org.apache.nifi.nar.ExtensionDefinition;
+import org.apache.nifi.manifest.RuntimeManifestService;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarManifest;
@@ -318,6 +319,7 @@ public final class DtoFactory {
     private Authorizer authorizer;
     private ExtensionManager extensionManager;
     private ConnectorAssetRepository connectorAssetRepository;
+    private RuntimeManifestService runtimeManifestService;
 
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
         final ControllerConfigurationDTO dto = new ControllerConfigurationDTO();
@@ -5219,6 +5221,10 @@ public final class DtoFactory {
         this.connectorAssetRepository = connectorAssetRepository;
     }
 
+    public void setRuntimeManifestService(RuntimeManifestService runtimeManifestService) {
+        this.runtimeManifestService = runtimeManifestService;
+    }
+
     private ProcessingPerformanceStatusDTO createProcessingPerformanceStatusDTO(final ProcessingPerformanceStatus performanceStatus) {
 
         final ProcessingPerformanceStatusDTO performanceStatusDTO = new ProcessingPerformanceStatusDTO();
@@ -5273,16 +5279,38 @@ public final class DtoFactory {
             return null;
         }
 
+        final BundleCoordinate bundleCoordinate = connector.getBundleCoordinate();
+        final String connectorType = connector.getCanonicalClassName();
+
+        final Set<String> stepsWithDocumentation = discoverStepsWithDocumentation(bundleCoordinate, connectorType);
+
         final ConnectorConfiguration configuration = flowContext.getConfigurationContext().toConnectorConfiguration();
         final ConnectorConfigurationDTO dto = new ConnectorConfigurationDTO();
         final List<ConfigurationStepConfigurationDTO> configurationStepDtos = configurationSteps.stream()
-                .map(step -> createConfigurationStepConfigurationDtoFromStep(step, configuration))
+                .map(step -> createConfigurationStepConfigurationDtoFromStep(step, configuration, stepsWithDocumentation))
                 .collect(Collectors.toList());
         dto.setConfigurationStepConfigurations(configurationStepDtos);
         return dto;
     }
 
-    private ConfigurationStepConfigurationDTO createConfigurationStepConfigurationDtoFromStep(final ConfigurationStep step, final ConnectorConfiguration configuration) {
+    private Set<String> discoverStepsWithDocumentation(final BundleCoordinate bundleCoordinate, final String connectorType) {
+        if (runtimeManifestService == null) {
+            return Collections.emptySet();
+        }
+
+        try {
+            final Map<String, File> stepDocs = runtimeManifestService.discoverStepDocumentation(
+                    bundleCoordinate.getGroup(), bundleCoordinate.getId(), bundleCoordinate.getVersion(), connectorType);
+            return stepDocs.keySet();
+        } catch (final Exception e) {
+            logger.debug("Unable to discover step documentation for connector [{}]: {}", connectorType, e.getMessage());
+            return Collections.emptySet();
+        }
+    }
+
+    private ConfigurationStepConfigurationDTO createConfigurationStepConfigurationDtoFromStep(final ConfigurationStep step,
+                                                                                               final ConnectorConfiguration configuration,
+                                                                                               final Set<String> stepsWithDocumentation) {
         if (step == null) {
             return null;
         }
@@ -5290,7 +5318,7 @@ public final class DtoFactory {
         final ConfigurationStepConfigurationDTO dto = new ConfigurationStepConfigurationDTO();
         dto.setConfigurationStepName(step.getName());
         dto.setConfigurationStepDescription(step.getDescription());
-        dto.setConfigurationStepDocumentation(step.getDocumentation());
+        dto.setDocumented(stepsWithDocumentation.contains(step.getName()));
 
         // Get the current configuration values for this step from the flat StepConfiguration
         final StepConfiguration stepConfig = configuration.getNamedStepConfigurations().stream()

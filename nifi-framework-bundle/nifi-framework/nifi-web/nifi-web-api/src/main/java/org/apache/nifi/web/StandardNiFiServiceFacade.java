@@ -4375,6 +4375,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public String getStepDocumentation(final String group, final String artifact, final String version, final String connectorType, final String stepName) {
+        return controllerFacade.getStepDocumentation(group, artifact, version, connectorType, stepName);
+    }
+
+    @Override
     public Set<DocumentedTypeDTO> getParameterProviderTypes(final String bundleGroup, final String bundleArtifact, final String type) {
         return controllerFacade.getParameterProviderTypes(bundleGroup, bundleArtifact, type);
     }

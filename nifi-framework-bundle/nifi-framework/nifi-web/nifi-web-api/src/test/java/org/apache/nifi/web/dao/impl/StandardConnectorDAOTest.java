@@ -18,10 +18,13 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.connector.ConnectorAssetRepository;
+import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.MutableConnectorConfigurationContext;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -31,6 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -61,6 +65,15 @@ class StandardConnectorDAOTest {
     @Mock
     private ConnectorAssetRepository connectorAssetRepository;
 
+    @Mock
+    private FrameworkFlowContext frameworkFlowContext;
+
+    @Mock
+    private MutableConnectorConfigurationContext configurationContext;
+
+    @Mock
+    private ConnectorConfiguration connectorConfiguration;
+
     private static final String CONNECTOR_ID = "test-connector-id";
     private static final String STEP_NAME = "test-step";
     private static final String PROPERTY_NAME = "test-property";
@@ -71,12 +84,18 @@ class StandardConnectorDAOTest {
         connectorDAO.setFlowController(flowController);
 
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
-        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
     }
 
     @Test
     void testApplyConnectorUpdate() throws Exception {
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
+        when(connectorNode.getActiveFlowContext()).thenReturn(frameworkFlowContext);
+        when(frameworkFlowContext.getConfigurationContext()).thenReturn(configurationContext);
+        when(configurationContext.toConnectorConfiguration()).thenReturn(connectorConfiguration);
+        when(connectorConfiguration.getNamedStepConfigurations()).thenReturn(Collections.emptySet());
+        when(connectorNode.getIdentifier()).thenReturn(CONNECTOR_ID);
+        when(connectorAssetRepository.getAssets(CONNECTOR_ID)).thenReturn(Collections.emptyList());
 
         connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext);
 
@@ -220,6 +239,8 @@ class StandardConnectorDAOTest {
 
     @Test
     void testDeleteConnectorRemovesConnectorAndAssets() {
+        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
+
         connectorDAO.deleteConnector(CONNECTOR_ID);
 
         verify(connectorRepository).removeConnector(CONNECTOR_ID);

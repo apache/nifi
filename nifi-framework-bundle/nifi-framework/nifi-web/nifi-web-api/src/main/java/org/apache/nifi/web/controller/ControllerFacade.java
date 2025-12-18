@@ -695,6 +695,22 @@ public class ControllerFacade implements Authorizable {
         }
     }
 
+    public String getStepDocumentation(final String group, final String artifact, final String version, final String connectorType, final String stepName) {
+        final Map<String, File> stepDocsMap = runtimeManifestService.discoverStepDocumentation(group, artifact, version, connectorType);
+        final File stepDocFile = stepDocsMap.get(stepName);
+
+        if (stepDocFile == null) {
+            throw new ResourceNotFoundException("Unable to find step documentation for step [%s] in connector [%s]".formatted(stepName, connectorType));
+        }
+
+        try (final Stream<String> stepDocLines = Files.lines(stepDocFile.toPath())) {
+            return stepDocLines.collect(Collectors.joining("\n"));
+        } catch (final IOException e) {
+            throw new RuntimeException("Unable to load step documentation content for "
+                    + stepDocFile.getAbsolutePath() + " due to: " + e.getMessage(), e);
+        }
+    }
+
     /**
      * Gets the ParameterProvider types that this controller supports.
      *
