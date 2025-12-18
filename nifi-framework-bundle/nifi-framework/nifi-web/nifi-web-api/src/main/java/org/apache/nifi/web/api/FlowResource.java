@@ -106,6 +106,7 @@ import org.apache.nifi.web.api.entity.AboutEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AdditionalDetailsEntity;
+import org.apache.nifi.web.api.entity.StepDocumentationEntity;
 import org.apache.nifi.web.api.entity.BannerEntity;
 import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ClearBulletinsForGroupRequestEntity;
@@ -2338,6 +2339,50 @@ public class FlowResource extends ApplicationResource {
         entity.setAdditionalDetails(additionalDetails);
 
         // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("step-documentation/{group}/{artifact}/{version}/{connectorType}/{stepName}")
+    @Operation(
+            summary = "Retrieves the step documentation for the specified Connector configuration step.",
+            description = NON_GUARANTEED_ENDPOINT,
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = StepDocumentationEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The step documentation for the coordinates could not be located.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    public Response getStepDocumentation(
+            @Parameter(description = "The bundle group", required = true)
+            @PathParam("group") final String group,
+            @Parameter(description = "The bundle artifact", required = true)
+            @PathParam("artifact") final String artifact,
+            @Parameter(description = "The bundle version", required = true)
+            @PathParam("version") final String version,
+            @Parameter(description = "The fully qualified Connector type", required = true)
+            @PathParam("connectorType") final String connectorType,
+            @Parameter(description = "The configuration step name", required = true)
+            @PathParam("stepName") final String stepName
+    ) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final String stepDocumentation = serviceFacade.getStepDocumentation(group, artifact, version, connectorType, stepName);
+        final StepDocumentationEntity entity = new StepDocumentationEntity();
+        entity.setStepDocumentation(stepDocumentation);
+
         return generateOkResponse(entity).build();
     }
 

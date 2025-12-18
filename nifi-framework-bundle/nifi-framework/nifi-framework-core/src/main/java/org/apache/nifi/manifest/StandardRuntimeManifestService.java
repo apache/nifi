@@ -401,6 +401,51 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
         return additionalDetailsMap;
     }
 
+    @Override
+    public Map<String, File> discoverStepDocumentation(final String group, final String artifact, final String version, final String connectorType) {
+        final BundleCoordinate bundleCoordinate = new BundleCoordinate(group, artifact, version);
+        final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+
+        if (bundle == null) {
+            throw new ResourceNotFoundException("Unable to find bundle [" + bundleCoordinate + "]");
+        }
+
+        return discoverStepDocumentation(bundle.getBundleDetails(), connectorType);
+    }
+
+    private Map<String, File> discoverStepDocumentation(final BundleDetails bundleDetails, final String connectorType) {
+        final Map<String, File> stepDocsMap = new LinkedHashMap<>();
+
+        final File stepDocsDir = new File(bundleDetails.getWorkingDirectory(), "META-INF/docs/step-documentation/" + connectorType);
+        if (!stepDocsDir.exists()) {
+            LOGGER.debug("No step-documentation directory found for [{}] under [{}]", connectorType, bundleDetails.getWorkingDirectory().getAbsolutePath());
+            return stepDocsMap;
+        }
+
+        final File[] stepDocFiles = stepDocsDir.listFiles();
+        if (stepDocFiles == null) {
+            return stepDocsMap;
+        }
+
+        for (final File stepDocFile : stepDocFiles) {
+            if (!stepDocFile.isFile() || !stepDocFile.getName().endsWith(".md")) {
+                LOGGER.debug("Skipping [{}], not a markdown file...", stepDocFile.getAbsolutePath());
+                continue;
+            }
+
+            final String fileName = stepDocFile.getName().substring(0, stepDocFile.getName().length() - 3);
+            final String stepName = fileNameToStepName(fileName);
+            stepDocsMap.put(stepName, stepDocFile);
+            LOGGER.debug("Discovered step documentation for step [{}] at [{}]", stepName, stepDocFile.getAbsolutePath());
+        }
+
+        return stepDocsMap;
+    }
+
+    private String fileNameToStepName(final String fileName) {
+        return fileName.replace("_", " ");
+    }
+
     private Map<String, String> loadAdditionalDetails(final BundleDetails bundleDetails) {
         final Map<String, File> additionalDetailsMap = discoverAdditionalDetails(bundleDetails);
 
