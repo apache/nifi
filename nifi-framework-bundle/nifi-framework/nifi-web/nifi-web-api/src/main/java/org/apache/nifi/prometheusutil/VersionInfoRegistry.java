@@ -25,7 +25,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
     public CollectorRegistry getRegistry() {
         return registry;
     }
-    public static class VersionDetails { 
+    public static class VersionDetails {
 
         public final String nifiVersion;
         public final String revision;
@@ -38,7 +38,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
         public final String osArchitecture;
 
         public VersionDetails(String nifiVersion, String revision, String tag, String buildBranch,
-                              String javaVersion, String javaVendor, String osVersion, 
+                              String javaVersion, String javaVendor, String osVersion,
                               String osName, String osArchitecture) {
             this.nifiVersion = nifiVersion;
             this.revision = revision;

@@ -6662,9 +6662,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
         nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
                 instanceId, ROOT_PROCESS_GROUP, rootPGName, rootPGId, "");
-        
+
         //Add version info metrics to NiFi metrics
-        PrometheusMetricsUtil.createVersionInfoMetrics(versionInfoRegistry, instanceId); 
+        PrometheusMetricsUtil.createVersionInfoMetrics(versionInfoRegistry, instanceId);
         //Add flow file repository, content repository and provenance repository usage to NiFi metrics
         final StorageUsage flowFileRepositoryUsage = controllerFacade.getFlowFileRepositoryStorageUsage();
         final Map<String, StorageUsage> contentRepositoryUsage = controllerFacade.getContentRepositoryStorageUsage();
