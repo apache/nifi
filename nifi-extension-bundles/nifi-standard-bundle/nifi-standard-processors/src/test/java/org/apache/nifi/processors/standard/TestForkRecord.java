@@ -462,7 +462,7 @@ public class TestForkRecord {
         runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
 
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestForkRecord/output/extract-bank-accounts-with-parents.json")));
+        final String expectedOutput = JsonUtil.getExpectedContent(Paths.get("src/test/resources/TestForkRecord/output/extract-bank-accounts-with-parents.json"));
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
     }
@@ -492,7 +492,7 @@ public class TestForkRecord {
         runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
 
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestForkRecord/output/extract-address-without-parents.json")));
+        final String expectedOutput = JsonUtil.getExpectedContent(Paths.get("src/test/resources/TestForkRecord/output/extract-address-without-parents.json"));
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
     }
@@ -522,7 +522,7 @@ public class TestForkRecord {
         runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
 
-        final String expectedOutput = new String(Files.readAllBytes(Paths.get("src/test/resources/TestForkRecord/output/extract-address-with-parents.json")));
+        final String expectedOutput = JsonUtil.getExpectedContent(Paths.get("src/test/resources/TestForkRecord/output/extract-address-with-parents.json"));
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
         runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
     }
