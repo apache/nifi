@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.parameter.azure;
 
+import com.azure.core.http.HttpClient;
+import com.azure.core.http.jdk.httpclient.JdkHttpClientBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.SecretClientBuilder;
 import com.azure.security.keyvault.secrets.models.KeyVaultSecret;
@@ -190,7 +192,9 @@ public class AzureKeyVaultSecretsParameterProvider extends AbstractParameterProv
         final AzureCredentialsService credentialsService =
                 context.getProperty(AZURE_CREDENTIALS_SERVICE).asControllerService(AzureCredentialsService.class);
         final String vaultUrl = context.getProperty(KEY_VAULT_URI).getValue();
+        final HttpClient httpClient = new JdkHttpClientBuilder().build();
         return new SecretClientBuilder()
+                .httpClient(httpClient)
                 .credential(credentialsService.getCredentials())
                 .vaultUrl(vaultUrl)
                 .buildClient();
