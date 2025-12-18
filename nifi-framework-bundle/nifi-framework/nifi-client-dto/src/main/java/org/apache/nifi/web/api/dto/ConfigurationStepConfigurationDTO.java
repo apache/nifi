@@ -29,7 +29,7 @@ public class ConfigurationStepConfigurationDTO {
 
     private String configurationStepName;
     private String configurationStepDescription;
-    private String configurationStepDocumentation;
+    private boolean documented;
     private List<PropertyGroupConfigurationDTO> propertyGroupConfigurations;
 
     /**
@@ -57,15 +57,15 @@ public class ConfigurationStepConfigurationDTO {
     }
 
     /**
-     * @return the configuration step documentation in markdown
+     * @return whether this step has extended documentation available
      */
-    @Schema(description = "Extended documentation or help text for the configuration step.")
-    public String getConfigurationStepDocumentation() {
-        return configurationStepDocumentation;
+    @Schema(description = "Whether extended documentation is available for this configuration step.")
+    public boolean isDocumented() {
+        return documented;
     }
 
-    public void setConfigurationStepDocumentation(final String configurationStepDocumentation) {
-        this.configurationStepDocumentation = configurationStepDocumentation;
+    public void setDocumented(final boolean documented) {
+        this.documented = documented;
     }
 
     /**
