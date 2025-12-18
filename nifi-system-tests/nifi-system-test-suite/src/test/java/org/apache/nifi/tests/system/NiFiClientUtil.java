@@ -397,6 +397,27 @@ public class NiFiClientUtil {
         }
     }
 
+    public void waitForConnectorStopped(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        waitForConnectorState(connectorId, ConnectorState.STOPPED);
+    }
+
+    public void waitForConnectorState(final String connectorId, final ConnectorState desiredState) throws InterruptedException, NiFiClientException, IOException {
+        int iteration = 0;
+        while (true) {
+            final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+            final String state = entity.getComponent().getState();
+            if (desiredState.name().equals(state)) {
+                return;
+            }
+
+            if (iteration++ % 30 == 0) { // Every 3 seconds log status
+                logger.info("Connector with ID {} has state {} but waiting for state {}.", connectorId, state, desiredState);
+            }
+
+            Thread.sleep(100L);
+        }
+    }
+
     public ParameterProviderEntity createParameterProvider(final String simpleTypeName) throws NiFiClientException, IOException {
         return createParameterProvider(NiFiSystemIT.TEST_PARAM_PROVIDERS_PACKAGE + "." + simpleTypeName, NiFiSystemIT.NIFI_GROUP_ID, NiFiSystemIT.TEST_EXTENSIONS_ARTIFACT_ID, nifiVersion);
     }
