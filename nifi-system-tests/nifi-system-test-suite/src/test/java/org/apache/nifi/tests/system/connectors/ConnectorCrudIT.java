@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +43,10 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         // Create Connector
         final ConnectorEntity connector = getClientUtil().createConnector("NopConnector");
         assertNotNull(connector);
+
+        // Ensure that Parameter Context is not created for the Connector
+        final ParameterContextsEntity contextsEntity = getNifiClient().getParamContextClient().getParamContexts();
+        assertEquals(0, contextsEntity.getParameterContexts().size());
 
         // Configure the connector and apply the configuration
         getClientUtil().configureConnector(connector, "Ignored Step", Map.of("Ignored Property", "Hello, World!"));

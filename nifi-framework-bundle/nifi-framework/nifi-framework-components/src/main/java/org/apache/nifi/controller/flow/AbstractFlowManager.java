@@ -57,6 +57,7 @@ import org.apache.nifi.validation.RuleViolationsManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -628,8 +629,16 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     @Override
     public ParameterContext createParameterContext(final String id, final String name, final String description,
-                                                   final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
-                                                   final ParameterProviderConfiguration parameterProviderConfiguration) {
+               final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
+               final ParameterProviderConfiguration parameterProviderConfiguration) {
+
+        return createParameterContext(id, name, description, parameters, inheritedContextIds, parameterProviderConfiguration, true);
+    }
+
+    protected ParameterContext createParameterContext(final String id, final String name, final String description,
+                final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
+                final ParameterProviderConfiguration parameterProviderConfiguration, final boolean register) {
+
         final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
                 .anyMatch(paramContext -> paramContext.getName().equals(name));
 
@@ -660,8 +669,27 @@ public abstract class AbstractFlowManager implements FlowManager {
             parameterContext.setInheritedParameterContexts(parameterContextList);
         }
 
-        parameterContextManager.addParameterContext(parameterContext);
+        if (register) {
+            parameterContextManager.addParameterContext(parameterContext);
+        }
+
         return parameterContext;
+    }
+
+    @Override
+    public ParameterContext duplicateParameterContext(final String id, final ParameterContext source) {
+        final Map<String, Parameter> parameterMap = new HashMap<>();
+        for (final Parameter parameter : source.getParameters().values()) {
+            parameterMap.put(parameter.getDescriptor().getName(), parameter);
+        }
+
+        final List<String> inheritedContextIds = new ArrayList<>();
+        for (final ParameterContext inherited : source.getInheritedParameterContexts()) {
+            inheritedContextIds.add(inherited.getIdentifier());
+        }
+
+        return createParameterContext(id, source.getName(), source.getDescription(),
+            parameterMap, inheritedContextIds, source.getParameterProviderConfiguration(), false);
     }
 
     @Override
