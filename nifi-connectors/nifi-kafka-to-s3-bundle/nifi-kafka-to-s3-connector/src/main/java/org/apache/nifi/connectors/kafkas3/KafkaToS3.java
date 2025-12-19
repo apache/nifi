@@ -52,16 +52,18 @@ import java.util.stream.Collectors;
 @Tags({"kafka", "s3"})
 public class KafkaToS3 extends AbstractConnector {
 
+    private static final List<ConfigurationStep> configurationSteps = List.of(
+        KafkaConnectionStep.KAFKA_CONNECTION_STEP,
+        KafkaTopicsStep.KAFKA_TOPICS_STEP,
+        S3Step.S3_STEP
+    );
+
     private volatile CompletableFuture<Void> drainFlowFileFuture = null;
 
 
     @Override
-    public List<ConfigurationStep> getConfigurationSteps(final FlowContext flowContext) {
-        return List.of(
-            KafkaConnectionStep.KAFKA_CONNECTION_STEP,
-            KafkaTopicsStep.KAFKA_TOPICS_STEP,
-            S3Step.S3_STEP
-        );
+    public List<ConfigurationStep> getConfigurationSteps() {
+        return configurationSteps;
     }
 
     @Override

@@ -23,7 +23,6 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.VersionedComponent;
-import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
@@ -195,8 +194,7 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     /**
      * Updates the configuration of one of the configuration steps. This method should only be invoked via the ConnectorRepository.
      * @param configurationStepName the name of the configuration step being set
-     *                              (must match one of the names returned by {@link Connector#getConfigurationSteps(FlowContext)})
-     *                              when providing the working flow context
+     *                              (must match one of the names returned by {@link Connector#getConfigurationSteps()})
      * @param configuration the configuration for the given configuration step
      * @throws FlowUpdateException if unable to apply the configuration changes
      */

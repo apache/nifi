@@ -40,7 +40,7 @@ public class GenerateAndLog extends AbstractConnector {
     }
 
     @Override
-    public List<ConfigurationStep> getConfigurationSteps(final FlowContext flowContext) {
+    public List<ConfigurationStep> getConfigurationSteps() {
         return List.of();
     }
 

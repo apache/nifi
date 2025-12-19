@@ -17,6 +17,7 @@
 
 package org.apache.nifi.components.connector;
 
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -29,7 +30,6 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,6 +52,26 @@ public class DynamicAllowableValuesConnector extends AbstractConnector {
         .propertyGroups(List.of(FILE_PROPERTY_GROUP))
         .build();
 
+    static final ConnectorPropertyDescriptor FIRST_PRIMARY_COLOR = new ConnectorPropertyDescriptor.Builder()
+        .name("First Primary Color")
+        .description("The first primary color")
+        .allowableValuesFetchable(true)
+        .required(true)
+        .build();
+
+    static final ConnectorPropertyGroup PRIMARY_COLORS_PROPERTY_GROUP = new ConnectorPropertyGroup.Builder()
+        .name("Primary Colors")
+        .addProperty(FIRST_PRIMARY_COLOR)
+        .build();
+
+    static final ConfigurationStep COLORS_STEP = new ConfigurationStep.Builder()
+        .name("Colors")
+        .propertyGroups(List.of(PRIMARY_COLORS_PROPERTY_GROUP))
+        .dependsOn(FILE_STEP, FILE_PATH)
+        .build();
+
+    private static final List<ConfigurationStep> CONFIGURATION_STEPS = List.of(FILE_STEP, COLORS_STEP);
+
 
     @Override
     public VersionedExternalFlow getInitialFlow() {
@@ -59,48 +79,8 @@ public class DynamicAllowableValuesConnector extends AbstractConnector {
     }
 
     @Override
-    public List<ConfigurationStep> getConfigurationSteps(final FlowContext flowContext) {
-        final List<ConfigurationStep> steps = new ArrayList<>();
-        steps.add(FILE_STEP);
-
-        final ConnectorConfigurationContext configContext = flowContext.getConfigurationContext();
-
-        if (configContext.getProperty(FILE_STEP, FILE_PATH) != null) {
-            final Set<ProcessorFacade> processorsFacades = flowContext.getRootGroup().getProcessors();
-            if (processorsFacades.isEmpty()) {
-                return steps;
-            }
-
-            final ProcessorFacade processorFacade = processorsFacades.iterator().next();
-            try {
-                final List<String> fileValues = (List<String>) processorFacade.invokeConnectorMethod("getFileValues", Map.of());
-                steps.add(createColorConfigurationStep(fileValues));
-            } catch (final InvocationFailedException ignored) {
-                // If we can't get file values, don't add the step.
-            }
-        }
-
-        return steps;
-    }
-
-    private ConfigurationStep createColorConfigurationStep(final List<String> values) {
-        final ConnectorPropertyDescriptor FIRST_PRIMARY_COLOR = new ConnectorPropertyDescriptor.Builder()
-            .name("First Primary Color")
-            .description("The first primary color")
-            .defaultValue(values.getFirst())
-            .allowableValues(values.toArray(new String[0]))
-            .required(true)
-            .build();
-
-        final ConnectorPropertyGroup PRIMARY_COLORS_PROPERTY_GROUP = new ConnectorPropertyGroup.Builder()
-            .name("Primary Colors")
-            .addProperty(FIRST_PRIMARY_COLOR)
-            .build();
-
-        return new ConfigurationStep.Builder()
-            .name("Colors")
-            .propertyGroups(List.of(PRIMARY_COLORS_PROPERTY_GROUP))
-            .build();
+    public List<ConfigurationStep> getConfigurationSteps() {
+        return CONFIGURATION_STEPS;
     }
 
     @Override
@@ -120,6 +100,29 @@ public class DynamicAllowableValuesConnector extends AbstractConnector {
     @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
         return List.of();
+    }
+
+    @Override
+    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext flowContext) {
+        if ("Colors".equals(stepName) && "First Primary Color".equals(propertyName)) {
+            final Set<ProcessorFacade> processorFacades = flowContext.getRootGroup().getProcessors();
+            if (!processorFacades.isEmpty()) {
+                final ProcessorFacade processorFacade = processorFacades.iterator().next();
+
+                try {
+                    @SuppressWarnings("unchecked")
+                    final List<String> fileValues = (List<String>) processorFacade.invokeConnectorMethod("getFileValues", Map.of());
+
+                    return fileValues.stream()
+                        .map(AllowableValue::new)
+                        .toList();
+                } catch (final InvocationFailedException e) {
+                    throw new RuntimeException("Failed to fetch allowable values from connector.", e);
+                }
+            }
+        }
+
+        return super.fetchAllowableValues(stepName, propertyName, flowContext);
     }
 
 
