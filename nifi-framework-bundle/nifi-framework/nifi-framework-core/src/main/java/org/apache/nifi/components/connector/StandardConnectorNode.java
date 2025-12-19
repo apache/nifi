@@ -814,7 +814,7 @@ public class StandardConnectorNode implements ConnectorNode {
     @Override
     public List<ConfigurationStep> getConfigurationSteps() {
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
-            return getConnector().getConfigurationSteps(workingFlowContext);
+            return getConnector().getConfigurationSteps();
         }
     }
 
@@ -939,7 +939,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
 
     private void validatePropertyReferences(final List<ValidationResult> allResults) {
-        final List<ConfigurationStep> configurationSteps = getConnector().getConfigurationSteps(activeFlowContext);
+        final List<ConfigurationStep> configurationSteps = getConnector().getConfigurationSteps();
         final ConnectorConfiguration connectorConfiguration = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
 
         for (final ConfigurationStep step : configurationSteps) {

@@ -73,7 +73,7 @@ public class SleepingConnector implements Connector {
     }
 
     @Override
-    public List<ConfigurationStep> getConfigurationSteps(final FlowContext fLowContext) {
+    public List<ConfigurationStep> getConfigurationSteps() {
         return List.of();
     }
 

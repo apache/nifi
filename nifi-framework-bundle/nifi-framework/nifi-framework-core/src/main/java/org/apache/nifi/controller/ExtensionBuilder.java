@@ -552,7 +552,7 @@ public class ExtensionBuilder {
 
     private void initializeDefaultValues(final Connector connector, final FrameworkFlowContext flowContext) {
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), identifier)) {
-            final List<ConfigurationStep> configSteps = connector.getConfigurationSteps(flowContext);
+            final List<ConfigurationStep> configSteps = connector.getConfigurationSteps();
 
             for (final ConfigurationStep step : configSteps) {
                 final Map<String, ConnectorValueReference> defaultValues = new HashMap<>();
