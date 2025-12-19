@@ -1296,6 +1296,86 @@ public class TestMergeContent {
     }
 
     @Test
+    public void testFirstFlowFileAttributes() {
+        runner.setProperty(AttributeStrategyUtil.ATTRIBUTE_STRATEGY, AttributeStrategyUtil.ATTRIBUTE_STRATEGY_FIRST_FLOWFILE);
+        runner.setProperty(MergeContent.MAX_SIZE, "2 B");
+        runner.setProperty(MergeContent.MIN_SIZE, "2 B");
+
+        final Map<String, String> attr1 = Map.of(
+            "common", "1",
+            "unique-to-first", "value"
+        );
+
+        final Map<String, String> attr2 = Map.of(
+            "common", "2",
+            "unique-to-second", "value"
+        );
+
+        runner.enqueue(new byte[1], attr1);
+        runner.enqueue(new byte[1], attr2);
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).getFirst();
+
+        // All attributes should come from the first FlowFile
+        outFile.assertAttributeEquals("common", "1");
+        outFile.assertAttributeEquals("unique-to-first", "value");
+
+        // Attributes from the second FlowFiles should not be present
+        outFile.assertAttributeNotExists("unique-to-second");
+
+        // UUID should not be copied from the parent
+        final Set<String> uuids = new HashSet<>();
+        for (final MockFlowFile mff : runner.getFlowFilesForRelationship(MergeContent.REL_ORIGINAL)) {
+            uuids.add(mff.getAttribute(CoreAttributes.UUID.key()));
+        }
+        uuids.add(outFile.getAttribute(CoreAttributes.UUID.key()));
+
+        assertEquals(3, uuids.size());
+    }
+
+    @Test
+    public void testFirstAttributeOccurrence() {
+        runner.setProperty(AttributeStrategyUtil.ATTRIBUTE_STRATEGY, AttributeStrategyUtil.ATTRIBUTE_STRATEGY_FIRST_OCCURRENCE);
+        runner.setProperty(MergeContent.MAX_SIZE, "2 B");
+        runner.setProperty(MergeContent.MIN_SIZE, "2 B");
+
+        final Map<String, String> attr1 = Map.of(
+            "common", "1",
+            "unique-to-first", "first-value"
+        );
+
+        final Map<String, String> attr2 = Map.of(
+            "common", "2",
+            "unique-to-second", "second-value"
+        );
+
+        runner.enqueue(new byte[1], attr1);
+        runner.enqueue(new byte[1], attr2);
+        runner.run();
+
+        runner.assertTransferCount(MergeContent.REL_MERGED, 1);
+        final MockFlowFile outFile = runner.getFlowFilesForRelationship(MergeContent.REL_MERGED).getFirst();
+
+        // the common attribute should come from the first FlowFile
+        outFile.assertAttributeEquals("common", "1");
+
+        // All unique attributes should be present
+        outFile.assertAttributeEquals("unique-to-first", "first-value");
+        outFile.assertAttributeEquals("unique-to-second", "second-value");
+
+        // UUID should not be copied from the parent
+        final Set<String> uuids = new HashSet<>();
+        for (final MockFlowFile mff : runner.getFlowFilesForRelationship(MergeContent.REL_ORIGINAL)) {
+            uuids.add(mff.getAttribute(CoreAttributes.UUID.key()));
+        }
+        uuids.add(outFile.getAttribute(CoreAttributes.UUID.key()));
+
+        assertEquals(3, uuids.size());
+    }
+
+    @Test
     public void testCountAttribute() throws IOException {
         runner.setProperty(MergeContent.MAX_BIN_AGE, "1 sec");
         runner.setProperty(MergeContent.MERGE_FORMAT, MergeContent.MergeFormat.CONCAT);

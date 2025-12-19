@@ -29,6 +29,11 @@ public class AttributeStrategyUtil {
         "Any attribute that has the same value for all FlowFiles in a bin, or has no value for a FlowFile, will be kept. For example, if a bin consists of 3 FlowFiles "
             + "and 2 of them have a value of 'hello' for the 'greeting' attribute and the third FlowFile has no 'greeting' attribute then the outbound FlowFile will get "
             + "a 'greeting' attribute with the value 'hello'.");
+    public static final AllowableValue ATTRIBUTE_STRATEGY_FIRST_FLOWFILE = new AllowableValue("Keep First FlowFile Attributes", "Keep First FlowFile Attributes",
+        "Keep only the attributes from the first FlowFile in the bin.");
+    public static final AllowableValue ATTRIBUTE_STRATEGY_FIRST_OCCURRENCE = new AllowableValue("Keep First Attribute Occurrence", "Keep First Attribute Occurrence",
+        "For each attribute, keep the first occurrence across all FlowFiles in the bundle. If the first FlowFile has attribute 'A' and the second has attributes 'A' and 'B', "
+            + "the merged FlowFile will have 'A' from the first FlowFile and 'B' from the second.");
 
     public static final PropertyDescriptor ATTRIBUTE_STRATEGY = new PropertyDescriptor.Builder()
         .required(true)
@@ -36,8 +41,10 @@ public class AttributeStrategyUtil {
         .description("Determines which FlowFile attributes should be added to the bundle. If 'Keep All Unique Attributes' is selected, any "
             + "attribute on any FlowFile that gets bundled will be kept unless its value conflicts with the value from another FlowFile. "
             + "If 'Keep Only Common Attributes' is selected, only the attributes that exist on all FlowFiles in the bundle, with the same "
-            + "value, will be preserved.")
-        .allowableValues(ATTRIBUTE_STRATEGY_ALL_COMMON, ATTRIBUTE_STRATEGY_ALL_UNIQUE)
+            + "value, will be preserved. If 'Keep First FlowFile Attributes' is selected, only the attributes from the first FlowFile "
+            + "in the bundle will be used. If 'Keep First Attribute Occurrence' is selected, for each attribute the first occurrence "
+            + "across all FlowFiles will be kept.")
+        .allowableValues(ATTRIBUTE_STRATEGY_ALL_COMMON, ATTRIBUTE_STRATEGY_ALL_UNIQUE, ATTRIBUTE_STRATEGY_FIRST_FLOWFILE, ATTRIBUTE_STRATEGY_FIRST_OCCURRENCE)
         .defaultValue(ATTRIBUTE_STRATEGY_ALL_COMMON.getValue())
         .build();
 
@@ -49,6 +56,12 @@ public class AttributeStrategyUtil {
         }
         if (ATTRIBUTE_STRATEGY_ALL_COMMON.getValue().equals(strategyName)) {
             return new KeepCommonAttributeStrategy();
+        }
+        if (ATTRIBUTE_STRATEGY_FIRST_FLOWFILE.getValue().equals(strategyName)) {
+            return new KeepFirstFlowFileAttributeStrategy();
+        }
+        if (ATTRIBUTE_STRATEGY_FIRST_OCCURRENCE.getValue().equals(strategyName)) {
+            return new KeepFirstAttributeOccurrenceStrategy();
         }
 
         return null;
