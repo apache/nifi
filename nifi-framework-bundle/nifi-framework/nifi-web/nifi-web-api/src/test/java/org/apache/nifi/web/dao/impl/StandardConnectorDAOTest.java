@@ -33,6 +33,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Collections;
 import java.util.List;
@@ -41,11 +43,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class StandardConnectorDAOTest {
 
     private StandardConnectorDAO connectorDAO;
@@ -84,6 +88,13 @@ class StandardConnectorDAOTest {
         connectorDAO.setFlowController(flowController);
 
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
+        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
+
+        final MutableConnectorConfigurationContext configContext = mock(MutableConnectorConfigurationContext.class);
+        when(configContext.toConnectorConfiguration()).thenReturn(mock(ConnectorConfiguration.class));
+        final FrameworkFlowContext activeContext = mock(FrameworkFlowContext.class);
+        when(activeContext.getConfigurationContext()).thenReturn(configContext);
+        when(connectorNode.getActiveFlowContext()).thenReturn(activeContext);
     }
 
     @Test

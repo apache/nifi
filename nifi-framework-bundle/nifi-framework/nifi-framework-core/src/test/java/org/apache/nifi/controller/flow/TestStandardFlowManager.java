@@ -95,6 +95,7 @@ public class TestStandardFlowManager {
         when(bundle.getClassLoader()).thenReturn(NopConnector.class.getClassLoader());
 
         flowManager = new StandardFlowManager(nifiProperties, sslContext, flowController, flowFileEventRepository, parameterContextManager);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
     }
 
 
