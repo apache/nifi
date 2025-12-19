@@ -92,7 +92,7 @@ public class NopConnector implements Connector {
     }
 
     @Override
-    public List<ConfigurationStep> getConfigurationSteps(final FlowContext flowContext) {
+    public List<ConfigurationStep> getConfigurationSteps() {
         return List.of(new ConfigurationStep.Builder()
             .name("Test Group")
             .description("A test configuration step")
