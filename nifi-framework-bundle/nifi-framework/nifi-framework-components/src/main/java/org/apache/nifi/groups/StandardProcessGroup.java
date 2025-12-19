@@ -173,6 +173,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final AtomicReference<StandardVersionControlInformation> versionControlInfo = new AtomicReference<>();
     private static final SecureRandom randomGenerator = new SecureRandom();
+    private final String connectorId;
 
     private final ProcessScheduler scheduler;
     private final ControllerServiceProvider controllerServiceProvider;
@@ -231,7 +232,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager,
                                 final ReloadComponent reloadComponent, final NodeTypeProvider nodeTypeProvider,
                                 final NiFiProperties nifiProperties, final StatelessGroupNodeFactory statelessGroupNodeFactory,
-                                final AssetManager assetManager) {
+                                final AssetManager assetManager, final String connectorId) {
 
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
@@ -245,6 +246,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         this.reloadComponent = reloadComponent;
         this.nodeTypeProvider = nodeTypeProvider;
         this.assetManager = assetManager;
+        this.connectorId = connectorId;
 
         name = new AtomicReference<>();
         position = new AtomicReference<>(new Position(0D, 0D));
@@ -336,6 +338,11 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         this.name.set(name);
         setLoggingAttributes();
+    }
+
+    @Override
+    public Optional<String> getConnectorIdentifier() {
+        return Optional.ofNullable(connectorId);
     }
 
     @Override
