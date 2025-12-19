@@ -226,7 +226,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
     }
 
     @Override
-    public ProcessGroup createProcessGroup(final String id) {
+    public ProcessGroup createProcessGroup(final String id, final String connectorId) {
         final ProcessGroup created = new StandardProcessGroup(id, statelessEngine.getControllerServiceProvider(),
             statelessEngine.getProcessScheduler(),
             statelessEngine.getPropertyEncryptor(),
@@ -237,7 +237,8 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             new StatelessNodeTypeProvider(),
             null,
             group -> null,
-            statelessEngine.getAssetManager());
+            statelessEngine.getAssetManager(),
+            connectorId);
 
         onProcessGroupAdded(created);
         return created;

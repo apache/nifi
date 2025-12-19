@@ -130,7 +130,8 @@ class StandardProcessGroupTest {
                 nodeTypeProvider,
                 properties,
                 statelessGroupNodeFactory,
-                assetManager
+                assetManager,
+                null
         );
     }
 

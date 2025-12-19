@@ -128,6 +128,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Optional<String> getConnectorIdentifier() {
+        return Optional.empty();
+    }
+
+    @Override
     public void setPosition(final Position position) {
 
     }

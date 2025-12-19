@@ -1378,7 +1378,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                                          final Map<String, VersionedParameterContext> versionedParameterContexts,
                                          final Map<String, ParameterProviderReference> parameterProviderReferences, ProcessGroup topLevelGroup) throws ProcessorInstantiationException {
         final String id = componentIdGenerator.generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), destination.getIdentifier());
-        final ProcessGroup group = context.getFlowManager().createProcessGroup(id);
+        final String connectorId = destination.getConnectorIdentifier().orElse(null);
+        final ProcessGroup group = context.getFlowManager().createProcessGroup(id, connectorId);
         group.setVersionedComponentId(proposed.getIdentifier());
         group.setParent(destination);
         group.setName(proposed.getName());
@@ -1950,7 +1951,8 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             final ProcessGroup groupToUpdate;
             if (processGroup == null) {
                 final String groupId = synchronizationOptions.getComponentIdGenerator().generateUuid(proposed.getIdentifier(), proposed.getInstanceIdentifier(), parentGroup.getIdentifier());
-                final ProcessGroup group = context.getFlowManager().createProcessGroup(groupId);
+                final String connectorId = parentGroup.getConnectorIdentifier().orElse(null);
+                final ProcessGroup group = context.getFlowManager().createProcessGroup(groupId, connectorId);
                 group.setVersionedComponentId(proposed.getIdentifier());
                 group.setParent(parentGroup);
                 group.setName(proposed.getName());
