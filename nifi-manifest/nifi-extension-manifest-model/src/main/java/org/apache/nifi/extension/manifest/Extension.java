@@ -107,6 +107,11 @@ public class Extension {
     @XmlElement(name = "multiProcessorUseCase")
     private List<MultiProcessorUseCase> multiProcessorUseCases;
 
+    // Connector-specific fields
+    @XmlElementWrapper
+    @XmlElement(name = "configurationStep")
+    private List<ConfigurationStep> configurationSteps;
+
     @Schema(description = "The name of the extension")
     public String getName() {
         return name;
@@ -356,6 +361,15 @@ public class Extension {
 
     public void setMultiProcessorUseCases(final List<MultiProcessorUseCase> multiProcessorUseCases) {
         this.multiProcessorUseCases = multiProcessorUseCases;
+    }
+
+    @Schema(description = "The configuration steps for a Connector extension")
+    public List<ConfigurationStep> getConfigurationSteps() {
+        return configurationSteps;
+    }
+
+    public void setConfigurationSteps(final List<ConfigurationStep> configurationSteps) {
+        this.configurationSteps = configurationSteps;
     }
 
     @Override

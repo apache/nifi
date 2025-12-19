@@ -125,6 +125,19 @@
                                     }
                                 "></ng-container>
                         </mat-expansion-panel>
+                        <mat-expansion-panel [expanded]="connectorsExpanded">
+                            <mat-expansion-panel-header>
+                                <mat-panel-title>Connectors</mat-panel-title>
+                            </mat-expansion-panel-header>
+                            <ng-container
+                                *ngTemplateOutlet="
+                                    extensionLinks;
+                                    context: {
+                                        $implicit: filterExtensions((connectorTypes$ | async)!),
+                                        componentType: ComponentType.Connector
+                                    }
+                                "></ng-container>
+                        </mat-expansion-panel>
                     </mat-accordion>
                     <ng-template #extensionLinks let-extensionTypes let-componentType="componentType">
                         @if (extensionTypes.length === 0) {
