@@ -19,7 +19,6 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.DescribedValue;
-import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.processors.CreateDummyFlowFile;
 import org.apache.nifi.components.connector.processors.DuplicateFlowFile;
 import org.apache.nifi.components.connector.processors.LogFlowFileContents;
@@ -369,7 +368,7 @@ public class StandardConnectorNodeIT {
             SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
         assertNotNull(connectorNode);
 
-        assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
+        assertEquals(List.of("File", "Colors"), getConfigurationStepNames(connectorNode));
 
         final Path tempFile = Files.createTempFile("StandardConnectorNodeIT", ".txt");
         Files.writeString(tempFile, String.join("\n", "red", "blue", "yellow"));
@@ -381,16 +380,7 @@ public class StandardConnectorNodeIT {
         connectorNode.prepareForUpdate();
         assertEquals(List.of("File", "Colors"), getConfigurationStepNames(connectorNode));
 
-        final ConfigurationStep colorConfigurationStep = connectorNode.getConfigurationSteps().stream()
-            .filter(step -> step.getName().equals("Colors"))
-            .findFirst()
-            .orElseThrow();
-
-        assertNotNull(colorConfigurationStep);
-        assertEquals(1, colorConfigurationStep.getPropertyGroups().size());
-        final ConnectorPropertyGroup primaryColorsPropertyGroup = colorConfigurationStep.getPropertyGroups().getFirst();
-
-        final List<String> allowableValues = primaryColorsPropertyGroup.getProperties().getFirst().getAllowableValues().stream()
+        final List<String> allowableValues = connectorNode.fetchAllowableValues("Colors", "First Primary Color").stream()
             .map(DescribedValue::getValue)
             .toList();
         assertEquals(List.of("red", "blue", "yellow"), allowableValues);
@@ -402,7 +392,7 @@ public class StandardConnectorNodeIT {
             SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
         assertNotNull(connectorNode);
 
-        assertEquals(List.of("File"), getConfigurationStepNames(connectorNode));
+        assertEquals(List.of("File", "Colors"), getConfigurationStepNames(connectorNode));
 
         final ConnectorConfiguration configuration = createFileConfiguration("/non/existent/file");
         configure(connectorNode, configuration);
@@ -410,12 +400,17 @@ public class StandardConnectorNodeIT {
         final ValidationState validationState = connectorNode.performValidation();
         assertNotNull(validationState);
         assertEquals(ValidationStatus.INVALID, validationState.getStatus());
-        assertEquals(1, validationState.getValidationErrors().size());
+        assertEquals(2, validationState.getValidationErrors().size());
 
-        final ValidationResult result = validationState.getValidationErrors().iterator().next();
-        result.getExplanation().contains("/non/existent/file");
+        final boolean hasFileError = validationState.getValidationErrors().stream()
+            .anyMatch(result -> result.getInput() != null && result.getInput().contains("/non/existent/file"));
+        assertTrue(hasFileError);
 
-        final ConnectorConfiguration validConfig = createFileConfiguration(".");
+        final boolean hasColorError = validationState.getValidationErrors().stream()
+            .anyMatch(result -> result.getSubject() != null && result.getSubject().contains("First Primary Color"));
+        assertTrue(hasColorError);
+
+        final ConnectorConfiguration validConfig = createFileAndColorsConfiguration(".", "red");
         configure(connectorNode, validConfig);
 
         final ValidationState updatedValidationState = connectorNode.performValidation();
@@ -523,10 +518,19 @@ public class StandardConnectorNodeIT {
     }
 
     private ConnectorConfiguration createFileConfiguration(final String filename) {
-        // File configuration step
         final StepConfiguration fileStepConfig = new StepConfiguration(Map.of("File Path", new StringLiteralValue(filename)));
         final NamedStepConfiguration fileConfigurationStepConfiguration = new NamedStepConfiguration("File", fileStepConfig);
 
         return new ConnectorConfiguration(Set.of(fileConfigurationStepConfiguration));
+    }
+
+    private ConnectorConfiguration createFileAndColorsConfiguration(final String filename, final String color) {
+        final StepConfiguration fileStepConfig = new StepConfiguration(Map.of("File Path", new StringLiteralValue(filename)));
+        final NamedStepConfiguration fileConfigurationStepConfiguration = new NamedStepConfiguration("File", fileStepConfig);
+
+        final StepConfiguration colorsStepConfig = new StepConfiguration(Map.of("First Primary Color", new StringLiteralValue(color)));
+        final NamedStepConfiguration colorsConfigurationStepConfiguration = new NamedStepConfiguration("Colors", colorsStepConfig);
+
+        return new ConnectorConfiguration(Set.of(fileConfigurationStepConfiguration, colorsConfigurationStepConfiguration));
     }
 }

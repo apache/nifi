@@ -79,7 +79,7 @@ public class GhostConnector implements Connector {
     }
 
     @Override
-    public List<ConfigurationStep> getConfigurationSteps(final FlowContext workingContext) {
+    public List<ConfigurationStep> getConfigurationSteps() {
         return List.of();
     }
 
