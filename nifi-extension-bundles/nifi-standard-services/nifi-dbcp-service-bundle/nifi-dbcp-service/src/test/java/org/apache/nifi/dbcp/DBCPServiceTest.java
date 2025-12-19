@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -175,6 +176,17 @@ public class DBCPServiceTest {
         try (final Connection connection = service.getConnection()) {
             assertNotNull(connection, "Second Connection not found");
         }
+    }
+
+    @Test
+    public void testDeregisterDriver() throws SQLException {
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        final int serviceRunningNumberOfDrivers = Collections.list(DriverManager.getDrivers()).size();
+        runner.disableControllerService(service);
+        runner.removeControllerService(service);
+        final int expectedDriversAfterRemove = serviceRunningNumberOfDrivers - 1;
+        assertEquals(expectedDriversAfterRemove, Collections.list(DriverManager.getDrivers()).size(), "Driver should be deregistered on remove");
     }
 
     @Test
