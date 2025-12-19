@@ -126,6 +126,7 @@ public class StandardNarLoader implements NarLoader {
 
     @Override
     public synchronized void unload(final Collection<Bundle> bundles) {
+        LOGGER.debug("Starting unload of {} bundles", bundles.size());
         if (extensionUiLoader != null) {
             extensionUiLoader.unloadExtensionUis(bundles);
         }
@@ -139,8 +140,11 @@ public class StandardNarLoader implements NarLoader {
             LOGGER.info("Unloading bundle [{}]", bundleCoordinate);
         }
 
+        LOGGER.debug("Calling extensionManager.removeBundles for {} coordinates", bundleCoordinates.size());
         final Set<Bundle> removedBundles = extensionManager.removeBundles(bundleCoordinates);
+        LOGGER.debug("extensionManager.removeBundles completed, removed {} bundles", removedBundles.size());
         removedBundles.forEach(this::removeBundle);
+        LOGGER.debug("Completed unload of bundles");
     }
 
     private void removeBundle(final Bundle bundle) {
