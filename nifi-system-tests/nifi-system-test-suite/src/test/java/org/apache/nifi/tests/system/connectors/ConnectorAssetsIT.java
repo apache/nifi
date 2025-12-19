@@ -195,6 +195,8 @@ public class ConnectorAssetsIT extends NiFiSystemIT {
 
         assertFalse(assetStillPresent);
 
+        // Wait for Connector to stop before attempting to delete it.
+        getClientUtil().waitForConnectorStopped(connectorAfterApply.getId());
         connectorClient.deleteConnector(connectorAfterApply);
     }
 }

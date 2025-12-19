@@ -147,8 +147,10 @@ public class StandardConnectorRepository implements ConnectorRepository {
             // If the initial desired state was RUNNING, start the connector again. Otherwise, stop it.
             // We don't simply leave it be as the prepareForUpdate / update may have changed the state of some components.
             if (initialDesiredState == ConnectorState.RUNNING) {
+                logger.info("Connector {} has been successfully updated; starting Connector to resume initial state", connector);
                 connector.start(lifecycleExecutor);
             } else {
+                logger.info("Connector {} has been successfully updated; stopping Connector to resume initial state", connector);
                 connector.stop(lifecycleExecutor);
             }
 

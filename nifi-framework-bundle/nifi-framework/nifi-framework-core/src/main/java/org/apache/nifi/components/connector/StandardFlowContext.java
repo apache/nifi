@@ -27,6 +27,8 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 
+import java.util.Collections;
+
 public class StandardFlowContext implements FrameworkFlowContext {
     private final ProcessGroup managedProcessGroup;
     private final MutableConnectorConfigurationContext configurationContext;
@@ -83,7 +85,10 @@ public class StandardFlowContext implements FrameworkFlowContext {
             throw new FlowUpdateException("Flow is not in a state that allows the requested updated", e);
         }
 
-        managedProcessGroup.updateFlow(versionedExternalFlow, managedProcessGroup.getIdentifier(), false, true, true);
+        final VersionedExternalFlow withoutParameterContext = new VersionedExternalFlow();
+        withoutParameterContext.setFlowContents(versionedExternalFlow.getFlowContents());
+        withoutParameterContext.setParameterContexts(Collections.emptyMap());
+        managedProcessGroup.updateFlow(withoutParameterContext, managedProcessGroup.getIdentifier(), false, true, true);
 
         final ConnectorParameterLookup parameterLookup = new ConnectorParameterLookup(versionedExternalFlow.getParameterContexts().values(), assetManager);
         getParameterContext().updateParameters(parameterLookup.getParameterValues());
@@ -100,7 +105,6 @@ public class StandardFlowContext implements FrameworkFlowContext {
             }
         }
     }
-
 
     @Override
     public Bundle getBundle() {

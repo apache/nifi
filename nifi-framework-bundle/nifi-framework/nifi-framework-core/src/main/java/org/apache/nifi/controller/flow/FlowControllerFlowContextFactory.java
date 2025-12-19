@@ -29,9 +29,9 @@ import org.apache.nifi.components.connector.facades.standalone.StandaloneParamet
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
-import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
@@ -96,15 +96,21 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
             .build();
 
         final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(flowController.getExtensionManager(), flowMappingOptions);
-        final Map<String, VersionedParameterContext> parameterContexts = flowMapper.mapParameterContexts(sourceGroup, true, Map.of());
         final InstantiatedVersionedProcessGroup versionedGroup = flowMapper.mapProcessGroup(sourceGroup, flowController.getControllerServiceProvider(),
             flowController.getFlowManager(), true);
         final VersionedExternalFlow versionedExternalFlow = new VersionedExternalFlow();
         versionedExternalFlow.setFlowContents(versionedGroup);
         versionedExternalFlow.setExternalControllerServices(Map.of());
         versionedExternalFlow.setParameterProviders(Map.of());
-        versionedExternalFlow.setParameterContexts(parameterContexts);
+        versionedExternalFlow.setParameterContexts(Map.of());
 
         destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true);
+
+        final String duplicateContextId = UUID.nameUUIDFromBytes((destinationGroup.getIdentifier() + "-param-context").getBytes(StandardCharsets.UTF_8)).toString();
+        final ParameterContext sourceContext = sourceGroup.getParameterContext();
+        if (sourceContext != null) {
+            final ParameterContext duplicateParameterContext = flowController.getFlowManager().duplicateParameterContext(duplicateContextId, sourceContext);
+            destinationGroup.setParameterContext(duplicateParameterContext);
+        }
     }
 }
