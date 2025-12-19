@@ -124,7 +124,7 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
 
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
 
-        final Set<String> expectedRemoved = Set.of(AbstractListProcessor.OBSOLETE_DISTRIBUTED_CACHE_SERVICE);
+        final Set<String> expectedRemoved = Set.of("Distributed Cache Service");
         assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
