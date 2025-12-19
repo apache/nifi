@@ -29,7 +29,6 @@ import org.apache.nifi.components.connector.facades.standalone.StandaloneParamet
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
-import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterContext;
@@ -108,7 +107,10 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
         destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true);
 
         final String duplicateContextId = UUID.nameUUIDFromBytes((destinationGroup.getIdentifier() + "-param-context").getBytes(StandardCharsets.UTF_8)).toString();
-        final ParameterContext duplicateParameterContext = flowController.getFlowManager().duplicateParameterContext(duplicateContextId, sourceGroup.getParameterContext());
-        destinationGroup.setParameterContext(duplicateParameterContext);
+        final ParameterContext sourceContext = sourceGroup.getParameterContext();
+        if (sourceContext != null) {
+            final ParameterContext duplicateParameterContext = flowController.getFlowManager().duplicateParameterContext(duplicateContextId, sourceContext);
+            destinationGroup.setParameterContext(duplicateParameterContext);
+        }
     }
 }

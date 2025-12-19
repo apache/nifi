@@ -29,12 +29,14 @@ import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.PropertyType;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedParameter;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class NopConnector extends AbstractConnector {
 
@@ -81,8 +83,19 @@ public class NopConnector extends AbstractConnector {
         final VersionedProcessGroup group = new VersionedProcessGroup();
         group.setName("Nop Flow");
 
+        final VersionedParameter someText = new VersionedParameter();
+        someText.setName("SOME_TEXT");
+        someText.setValue("Lorem ipsum");
+        someText.setSensitive(false);
+        someText.setProvided(false);
+        someText.setReferencedAssets(List.of());
+
+        final VersionedParameterContext parameterContext = new VersionedParameterContext();
+        parameterContext.setName("Nop Parameter Context");
+        parameterContext.setParameters(Set.of(someText));
+
         final VersionedExternalFlow flow = new VersionedExternalFlow();
-        flow.setParameterContexts(Collections.emptyMap());
+        flow.setParameterContexts(Map.of(parameterContext.getName(), parameterContext));
         flow.setFlowContents(group);
         return flow;
     }
