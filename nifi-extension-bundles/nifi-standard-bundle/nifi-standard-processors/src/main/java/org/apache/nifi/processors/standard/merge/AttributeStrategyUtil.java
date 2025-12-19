@@ -29,6 +29,9 @@ public class AttributeStrategyUtil {
         "Any attribute that has the same value for all FlowFiles in a bin, or has no value for a FlowFile, will be kept. For example, if a bin consists of 3 FlowFiles "
             + "and 2 of them have a value of 'hello' for the 'greeting' attribute and the third FlowFile has no 'greeting' attribute then the outbound FlowFile will get "
             + "a 'greeting' attribute with the value 'hello'.");
+    public static final AllowableValue ATTRIBUTE_STRATEGY_KEEP_FIRST = new AllowableValue("Keep First Attributes", "Keep First Attributes",
+        "For each attribute the first occurrence across all FlowFiles in the bundle will be kept. For example, if the first FlowFile has attribute 'common' = '1'" +
+            " and the second has attributes 'common'='2' and 'unique'='value', the merged FlowFile will have the attributes 'common'='1' and 'unique'='value'.");
 
     public static final PropertyDescriptor ATTRIBUTE_STRATEGY = new PropertyDescriptor.Builder()
         .required(true)
@@ -36,8 +39,9 @@ public class AttributeStrategyUtil {
         .description("Determines which FlowFile attributes should be added to the bundle. If 'Keep All Unique Attributes' is selected, any "
             + "attribute on any FlowFile that gets bundled will be kept unless its value conflicts with the value from another FlowFile. "
             + "If 'Keep Only Common Attributes' is selected, only the attributes that exist on all FlowFiles in the bundle, with the same "
-            + "value, will be preserved.")
-        .allowableValues(ATTRIBUTE_STRATEGY_ALL_COMMON, ATTRIBUTE_STRATEGY_ALL_UNIQUE)
+            + "value, will be preserved. If 'Keep First Attributes' is selected, for each attribute the first occurrence across all " +
+            "FlowFiles will be kept.")
+        .allowableValues(ATTRIBUTE_STRATEGY_ALL_COMMON, ATTRIBUTE_STRATEGY_ALL_UNIQUE, ATTRIBUTE_STRATEGY_KEEP_FIRST)
         .defaultValue(ATTRIBUTE_STRATEGY_ALL_COMMON.getValue())
         .build();
 
@@ -49,6 +53,9 @@ public class AttributeStrategyUtil {
         }
         if (ATTRIBUTE_STRATEGY_ALL_COMMON.getValue().equals(strategyName)) {
             return new KeepCommonAttributeStrategy();
+        }
+        if (ATTRIBUTE_STRATEGY_KEEP_FIRST.getValue().equals(strategyName)) {
+            return new KeepFirstAttributeStrategy();
         }
 
         return null;
