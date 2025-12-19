@@ -758,9 +758,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final String paramContextId = UUID.nameUUIDFromBytes((id + "-parameter-context").getBytes(StandardCharsets.UTF_8)).toString();
         final String paramContextName = "Connector " + id + " Parameter Context";
+        final String parameterContextDescription = "Implicit Parameter Context for Connector " + id;
         final ParameterContext managedParameterContext = createParameterContext(paramContextId, paramContextName,
-            "Implicit Parameter Context for Connector " + id,
-            Collections.emptyMap(), Collections.emptyList(), null);
+            parameterContextDescription, Collections.emptyMap(), Collections.emptyList(), null, false);
         managedRootGroup.setParameterContext(managedParameterContext);
 
         final ConnectorRepository connectorRepository = flowController.getConnectorRepository();

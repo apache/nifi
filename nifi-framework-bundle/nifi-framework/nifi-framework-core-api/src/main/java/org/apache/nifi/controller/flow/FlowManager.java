@@ -360,19 +360,28 @@ public interface FlowManager extends ParameterProviderLookup {
      * <code>IllegalStateException</code> is thrown.  See {@link FlowManager#withParameterContextResolution(Runnable)}
      * for example usage.
      *
-     * @param id                The unique id
-     * @param name              The ParameterContext name
-     * @param description       The ParameterContext description
-     * @param parameters        The Parameters
-     * @param inheritedContextIds The identifiers of any Parameter Contexts that the newly created Parameter Context should inherit from. The order of the identifiers in the List determines the
+     * @param id the unique id
+     * @param name the ParameterContext name
+     * @param description the ParameterContext description
+     * @param parameters the Parameters
+     * @param inheritedContextIds the identifiers of any Parameter Contexts that the newly created Parameter Context should inherit from. The order of the identifiers in the List determines the
      * order in which parameters with conflicting names are resolved. I.e., the Parameter Context whose ID comes first in the List is preferred.
-     * @param parameterProviderConfiguration Optional configuration for a ParameterProvider
-     * @return The created ParameterContext
-     * @throws IllegalStateException If <code>parameterContexts</code> is not empty and this method is called without being wrapped
+     * @param parameterProviderConfiguration optional configuration for a ParameterProvider
+     * @return the created ParameterContext
+     * @throws IllegalStateException if <code>parameterContexts</code> is not empty and this method is called without being wrapped
      * by {@link FlowManager#withParameterContextResolution(Runnable)}
      */
     ParameterContext createParameterContext(String id, String name, String description, Map<String, Parameter> parameters,
                                             List<String> inheritedContextIds, ParameterProviderConfiguration parameterProviderConfiguration);
+
+    /**
+     * Creates a duplicate of the given ParameterContext with the provided id. This does not register the Parameter Context
+     * with the ParameterContextManager.
+     * @param id the id of the new ParameterContext
+     * @param source the ParameterContext to duplicate
+     * @return the duplicated ParameterContext
+     */
+    ParameterContext duplicateParameterContext(String id, ParameterContext source);
 
     /**
      * Performs the given ParameterContext-related action, and then resolves all inherited ParameterContext references.
