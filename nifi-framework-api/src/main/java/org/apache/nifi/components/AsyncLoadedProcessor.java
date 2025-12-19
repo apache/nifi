@@ -26,6 +26,20 @@ public interface AsyncLoadedProcessor extends Processor {
 
     LoadState getState();
 
+    /**
+     * Cancels the async loading process if it is still in progress.
+     * This is typically called when the component is being removed or the NAR
+     * containing the processor is being deleted while the processor is still initializing.
+     *
+     * <p>After cancellation, the processor should transition to the {@link LoadState#CANCELLED} state.</p>
+     *
+     * <p>The default implementation does nothing, allowing implementations that don't support
+     * cancellation to work without changes.</p>
+     */
+    default void cancelLoading() {
+        // Default implementation does nothing
+    }
+
     enum LoadState {
         INITIALIZING_ENVIRONMENT,
 
@@ -37,6 +51,13 @@ public interface AsyncLoadedProcessor extends Processor {
 
         LOADING_PROCESSOR_CODE_FAILED,
 
-        FINISHED_LOADING
+        FINISHED_LOADING,
+
+        /**
+         * Indicates that the processor initialization was cancelled before it could complete.
+         * This typically happens when the NAR containing the processor is deleted while
+         * the processor is still initializing.
+         */
+        CANCELLED
     }
 }

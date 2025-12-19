@@ -328,6 +328,12 @@ public class PythonProcess {
             return;
         }
 
+        // Check if we've been shutdown before starting venv creation
+        if (isShutdown()) {
+            logger.info("Not creating Python Virtual Environment because process is shutting down");
+            throw new IOException("Python process is shutting down, cannot create virtual environment");
+        }
+
         final File environmentCreationCompleteFile = new File(virtualEnvHome, "env-creation-complete.txt");
         if (environmentCreationCompleteFile.exists()) {
             logger.debug("Environment has already been created for {}; will not recreate", virtualEnvHome);
@@ -346,17 +352,33 @@ public class PythonProcess {
 
         final String command = String.join(" ", processBuilder.command());
         logger.debug("Creating Python Virtual Environment {} using command {}", virtualEnvHome, command);
-        final Process process = processBuilder.start();
+        final Process venvProcess = processBuilder.start();
 
-        final int result;
         try {
-            result = process.waitFor();
+            // Wait for the venv creation with periodic checks for shutdown
+            // This allows the venv creation to be interrupted when the process is being shut down
+            while (!venvProcess.waitFor(1, TimeUnit.SECONDS)) {
+                if (isShutdown()) {
+                    logger.info("Interrupting Python Virtual Environment creation due to shutdown");
+                    venvProcess.destroyForcibly();
+                    throw new IOException("Python process shutdown during virtual environment creation");
+                }
+            }
+
+            final int result = venvProcess.exitValue();
+            if (result != 0) {
+                throw new IOException("Failed to create Python Environment " + virtualEnvHome + ": process existed with code " + result);
+            }
         } catch (final InterruptedException e) {
-            throw new IOException("Interrupted while waiting for Python virtual environment to be created");
+            // If interrupted, destroy the venv creation process and propagate
+            venvProcess.destroyForcibly();
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for Python virtual environment to be created", e);
         }
 
-        if (result != 0) {
-            throw new IOException("Failed to create Python Environment " + virtualEnvHome + ": process existed with code " + result);
+        // Check shutdown again before proceeding
+        if (isShutdown()) {
+            throw new IOException("Python process shutdown after virtual environment creation");
         }
 
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
@@ -369,6 +391,12 @@ public class PythonProcess {
     }
 
     private void installDebugPy() throws IOException {
+        // Check if we've been shutdown before starting
+        if (isShutdown()) {
+            logger.info("Not installing DebugPy because process is shutting down");
+            return;
+        }
+
         final String pythonCommand = processConfig.getPythonCommand();
 
         final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, "-m", "pip", "install", "--no-cache-dir", "--upgrade", "debugpy", "--target",
@@ -377,17 +405,26 @@ public class PythonProcess {
 
         final String command = String.join(" ", processBuilder.command());
         logger.debug("Installing DebugPy to Virtual Env {} using command {}", virtualEnvHome, command);
-        final Process process = processBuilder.start();
+        final Process pipProcess = processBuilder.start();
 
-        final int result;
         try {
-            result = process.waitFor();
-        } catch (final InterruptedException e) {
-            throw new IOException("Interrupted while waiting for DebugPy to be installed");
-        }
+            // Wait for pip install with periodic checks for shutdown
+            while (!pipProcess.waitFor(1, TimeUnit.SECONDS)) {
+                if (isShutdown()) {
+                    logger.info("Interrupting DebugPy installation due to shutdown");
+                    pipProcess.destroyForcibly();
+                    return;
+                }
+            }
 
-        if (result != 0) {
-            throw new IOException("Failed to install DebugPy for Python Environment " + virtualEnvHome + ": process existed with code " + result);
+            final int result = pipProcess.exitValue();
+            if (result != 0) {
+                throw new IOException("Failed to install DebugPy for Python Environment " + virtualEnvHome + ": process existed with code " + result);
+            }
+        } catch (final InterruptedException e) {
+            pipProcess.destroyForcibly();
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for DebugPy to be installed", e);
         }
     }
 
@@ -442,9 +479,12 @@ public class PythonProcess {
     }
 
     public void discoverExtensions(final List<String> directories, final String workDirectory) {
+        logger.info("discoverExtensions called with {} directories", directories.size());
         extensionDirs = new ArrayList<>(directories);
         workDir = workDirectory;
+        logger.info("Calling controller.discoverExtensions");
         controller.discoverExtensions(directories, workDirectory);
+        logger.info("controller.discoverExtensions completed");
     }
 
     public PythonProcessorBridge createProcessor(final String identifier, final String type, final String version, final String workDirPath, final boolean prefersIsolation) {
@@ -527,6 +567,26 @@ public class PythonProcess {
 
     public int getProcessorCount() {
         return processorPrefersIsolation.size();
+    }
+
+    /**
+     * Returns true if this process is being started for the given component identifier.
+     * This is used to identify processes that are still in the startup phase (venv creation)
+     * and haven't yet created any processors.
+     *
+     * @param identifier the component identifier
+     * @return true if this process is starting for the given identifier
+     */
+    public boolean isStartingFor(final String identifier) {
+        return identifier != null && identifier.equals(componentId) && getProcessorCount() == 0;
+    }
+
+    /**
+     * Returns the component ID that this process was initially created for.
+     * @return the initial component ID
+     */
+    public String getInitialComponentId() {
+        return componentId;
     }
 
     public Map<String, Integer> getJavaObjectBindingCounts() {

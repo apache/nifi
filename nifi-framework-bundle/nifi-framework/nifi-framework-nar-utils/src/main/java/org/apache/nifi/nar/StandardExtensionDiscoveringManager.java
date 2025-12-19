@@ -725,17 +725,22 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
     @Override
     public synchronized Set<Bundle> removeBundles(final Collection<BundleCoordinate> bundleCoordinates) {
+        logger.info("removeBundles called for {} coordinates, acquiring lock", bundleCoordinates.size());
         final Set<Bundle> removedBundles = new LinkedHashSet<>();
         for (final BundleCoordinate bundleCoordinate : bundleCoordinates) {
+            logger.debug("Calling removeBundle for [{}]", bundleCoordinate);
             final Bundle removedBundle = removeBundle(bundleCoordinate);
             if (removedBundle != null) {
                 removedBundles.add(removedBundle);
             }
+            logger.debug("Completed removeBundle for [{}]", bundleCoordinate);
         }
+        logger.info("removeBundles completed, removed {} bundles", removedBundles.size());
         return removedBundles;
     }
 
     private Bundle removeBundle(final BundleCoordinate bundleCoordinate) {
+        logger.debug("removeBundle start for [{}]", bundleCoordinate);
         if (PythonBundle.isPythonCoordinate(bundleCoordinate)) {
             throw new IllegalStateException("Python bundle [%s] cannot be removed".formatted(bundleCoordinate));
         }
@@ -746,7 +751,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             return null;
         }
 
-        logger.debug("Removing bundle [{}]", bundleCoordinate);
+        logger.debug("Removing bundle [{}] - closing classloader", bundleCoordinate);
         final ClassLoader removedBundleClassLoader = removedBundle.getClassLoader();
         classLoaderBundleLookup.remove(removedBundleClassLoader);
 
@@ -758,10 +763,14 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             }
         }
 
+        logger.debug("Getting extension definitions for bundle [{}]", bundleCoordinate);
         final Set<ExtensionDefinition> extensionDefinitions = new HashSet<>();
         extensionDefinitions.addAll(Optional.ofNullable(bundleCoordinateClassesLookup.remove(bundleCoordinate)).orElse(Collections.emptySet()));
+        logger.debug("Calling getPythonExtensions for bundle [{}]", bundleCoordinate);
         extensionDefinitions.addAll(getPythonExtensions(bundleCoordinate));
+        logger.debug("Removing {} extension definitions for bundle [{}]", extensionDefinitions.size(), bundleCoordinate);
         extensionDefinitions.forEach(this::removeExtensionDefinition);
+        logger.debug("removeBundle completed for [{}]", bundleCoordinate);
 
         return removedBundle;
     }

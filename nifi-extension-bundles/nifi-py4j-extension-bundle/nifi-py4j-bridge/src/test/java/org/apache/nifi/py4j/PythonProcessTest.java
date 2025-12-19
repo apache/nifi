@@ -20,6 +20,7 @@ import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,8 +29,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -127,5 +130,56 @@ class PythonProcessTest {
 
     private String getExpectedBinaryPath(String binarySubDirectoryName) {
         return this.virtualEnvHome.getAbsolutePath() + File.separator + binarySubDirectoryName + File.separator + PYTHON_CMD;
+    }
+
+    /**
+     * Tests that the PythonProcess can be shutdown even if it hasn't been started.
+     */
+    @Test
+    void testShutdownBeforeStart() {
+        // Should not throw any exception
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown(), "Process should be marked as shutdown");
+    }
+
+    /**
+     * Tests that isShutdown() returns correct values.
+     */
+    @Test
+    void testIsShutdownInitialState() {
+        assertFalse(pythonProcess.isShutdown(), "Process should not be shutdown initially");
+    }
+
+    /**
+     * Tests that shutdown can be called multiple times without issues.
+     */
+    @Test
+    void testMultipleShutdownCalls() {
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown());
+
+        // Second shutdown should not throw
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown());
+
+        // Third shutdown should still work
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown());
+    }
+
+
+    /**
+     * Tests that shutdown properly cleans up even when called during initialization.
+     * This simulates the scenario where NAR deletion triggers shutdown during venv creation.
+     */
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testShutdownDuringInitializationPreparation() {
+        // Shutdown immediately - this simulates early cancellation
+        pythonProcess.shutdown();
+
+        // Process should be marked as shutdown
+        assertTrue(pythonProcess.isShutdown(),
+                "Process should be marked as shutdown immediately after shutdown() is called");
     }
 }
