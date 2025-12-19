@@ -298,19 +298,16 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     @Override
-    public ProcessGroup createProcessGroup(final String id) {
-        return createProcessGroup(id, true);
-    }
-
-    private ProcessGroup createProcessGroup(final String id, final boolean registerGroup) {
+    public ProcessGroup createProcessGroup(final String id, final String connectorId) {
         final StatelessGroupNodeFactory statelessGroupNodeFactory = new StandardStatelessGroupNodeFactory(flowController, sslContext, flowController.createKerberosConfig(nifiProperties));
 
         final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this,
             flowController.getReloadComponent(), flowController, nifiProperties, statelessGroupNodeFactory,
-            flowController.getAssetManager());
+            flowController.getAssetManager(), connectorId);
 
-        if (registerGroup) {
+        // We don't want to register the group if it's being created as part of a Connector
+        if (connectorId == null) {
             onProcessGroupAdded(group);
         }
 
@@ -768,7 +765,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         final StandardConnectorConfigurationContext activeConfigurationContext = new StandardConnectorConfigurationContext(
             flowController.getConnectorAssetManager(), flowController.getConnectorRepository().getSecretsManager());
 
-        final ProcessGroupFactory processGroupFactory = groupId -> createProcessGroup(groupId, false);
+        final ProcessGroupFactory processGroupFactory = groupId -> createProcessGroup(groupId, id);
         final FlowContextFactory flowContextFactory = new FlowControllerFlowContextFactory(flowController, managedRootGroup, activeConfigurationContext, processGroupFactory);
 
         final ConnectorNode connectorNode = new ExtensionBuilder()

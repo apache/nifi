@@ -139,6 +139,11 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void setName(String name);
 
     /**
+     * @return the ID of the Connector that is responsible for this Process Group, or an empty optional if no Connector is associated
+     */
+    Optional<String> getConnectorIdentifier();
+
+    /**
      * @return the user-set comments about this ProcessGroup, or
      * <code>null</code> if no comments have been set
      */

@@ -252,7 +252,11 @@ public interface FlowManager extends ParameterProviderLookup {
 
     Port createLocalOutputPort(String id, String name);
 
-    ProcessGroup createProcessGroup(String id);
+    default ProcessGroup createProcessGroup(String id) {
+        return createProcessGroup(id, null);
+    }
+
+    ProcessGroup createProcessGroup(String id, String connectorId);
 
 
 
