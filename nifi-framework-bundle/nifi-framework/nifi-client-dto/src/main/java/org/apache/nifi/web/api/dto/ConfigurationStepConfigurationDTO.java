@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * The configuration for a configuration step.
@@ -31,6 +32,7 @@ public class ConfigurationStepConfigurationDTO {
     private String configurationStepDescription;
     private boolean documented;
     private List<PropertyGroupConfigurationDTO> propertyGroupConfigurations;
+    private Set<ConfigurationStepDependencyDTO> dependencies;
 
     /**
      * @return the configuration step name
@@ -78,5 +80,17 @@ public class ConfigurationStepConfigurationDTO {
 
     public void setPropertyGroupConfigurations(final List<PropertyGroupConfigurationDTO> propertyGroupConfigurations) {
         this.propertyGroupConfigurations = propertyGroupConfigurations;
+    }
+
+    /**
+     * @return the dependencies that this configuration step has on other configuration steps' properties
+     */
+    @Schema(description = "The dependencies that this configuration step has on other configuration steps' properties.")
+    public Set<ConfigurationStepDependencyDTO> getDependencies() {
+        return dependencies;
+    }
+
+    public void setDependencies(final Set<ConfigurationStepDependencyDTO> dependencies) {
+        this.dependencies = dependencies;
     }
 }

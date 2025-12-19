@@ -74,6 +74,7 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConfigurationStep;
+import org.apache.nifi.components.connector.ConfigurationStepDependency;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
@@ -5331,6 +5332,21 @@ public final class DtoFactory {
                 .map(propertyGroup -> createPropertyGroupConfigurationDtoFromGroup(propertyGroup, stepConfig))
                 .collect(Collectors.toList());
         dto.setPropertyGroupConfigurations(propertyGroupDtos);
+
+        // Convert step dependencies
+        final Set<ConfigurationStepDependencyDTO> dependencyDtos = step.getDependencies().stream()
+                .map(this::createConfigurationStepDependencyDto)
+                .collect(Collectors.toSet());
+        dto.setDependencies(dependencyDtos);
+
+        return dto;
+    }
+
+    private ConfigurationStepDependencyDTO createConfigurationStepDependencyDto(final ConfigurationStepDependency dependency) {
+        final ConfigurationStepDependencyDTO dto = new ConfigurationStepDependencyDTO();
+        dto.setStepName(dependency.getStepName());
+        dto.setPropertyName(dependency.getPropertyName());
+        dto.setDependentValues(dependency.getDependentValues());
         return dto;
     }
 
