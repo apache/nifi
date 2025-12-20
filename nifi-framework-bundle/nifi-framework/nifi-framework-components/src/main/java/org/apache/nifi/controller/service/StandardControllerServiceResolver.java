@@ -161,7 +161,6 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
 
             // If the referenced Controller Service is available, there is nothing to resolve.
             if (availableControllerServiceIds.contains(propertyValue)) {
-                unresolvedServices.add(propertyValue);
                 continue;
             }
 
