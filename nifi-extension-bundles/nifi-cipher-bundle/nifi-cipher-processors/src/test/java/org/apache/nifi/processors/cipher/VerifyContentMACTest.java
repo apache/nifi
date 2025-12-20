@@ -18,6 +18,7 @@
 package org.apache.nifi.processors.cipher;
 
 import org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +39,7 @@ import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_ALGORITHM_A
 import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_CALCULATED_ATTRIBUTE;
 import static org.apache.nifi.processors.cipher.VerifyContentMAC.MAC_ENCODING_ATTRIBUTE;
 import static org.apache.nifi.processors.cipher.VerifyContentMAC.SUCCESS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class VerifyContentMACTest {
 
@@ -175,5 +177,19 @@ class VerifyContentMACTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(FAILURE);
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("mac-algorithm", VerifyContentMAC.MAC_ALGORITHM.getName()),
+                Map.entry("message-authentication-code-encoding", VerifyContentMAC.MAC_ENCODING.getName()),
+                Map.entry("message-authentication-code", VerifyContentMAC.MAC.getName()),
+                Map.entry("secret-key-encoding", VerifyContentMAC.SECRET_KEY_ENCODING.getName()),
+                Map.entry("secret-key", VerifyContentMAC.SECRET_KEY.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 }

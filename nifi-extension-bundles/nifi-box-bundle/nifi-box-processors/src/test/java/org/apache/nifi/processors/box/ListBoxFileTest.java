@@ -27,9 +27,12 @@ import com.box.sdk.BoxFolder;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
@@ -106,11 +109,23 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
     void testMigration() {
         TestRunner runner = TestRunners.newTestRunner(ListBoxFile.class);
         final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
-        // NOTE: Only ensuring migration of property defined outside of this class.
-        final Map<String, String> expectedRenamed =
-                Map.of(AbstractBoxProcessor.OLD_BOX_CLIENT_SERVICE_PROPERTY_NAME, AbstractBoxProcessor.BOX_CLIENT_SERVICE.getName());
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(AbstractBoxProcessor.OLD_BOX_CLIENT_SERVICE_PROPERTY_NAME, AbstractBoxProcessor.BOX_CLIENT_SERVICE.getName()),
+                Map.entry("box-folder-id", ListBoxFile.FOLDER_ID.getName()),
+                Map.entry("recursive-search", ListBoxFile.RECURSIVE_SEARCH.getName()),
+                Map.entry("min-age", ListBoxFile.MIN_AGE.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListBoxFile.TRACKING_STATE_CACHE.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListBoxFile.TRACKING_TIME_WINDOW.getName()),
+                Map.entry(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListBoxFile.INITIAL_LISTING_TARGET.getName()),
+                Map.entry("target-system-timestamp-precision", AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION.getName()),
+                Map.entry("listing-strategy", AbstractListProcessor.LISTING_STRATEGY.getName()),
+                Map.entry("record-writer", AbstractListProcessor.RECORD_WRITER.getName())
+        );
 
-        expectedRenamed.forEach((key, value) -> assertEquals(value, propertyMigrationResult.getPropertiesRenamed().get(key)));
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of("Distributed Cache Service");
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private void addJsonRecordWriterFactory() throws InitializationException {
