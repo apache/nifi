@@ -39,11 +39,14 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -235,6 +238,51 @@ public class StandardControllerServiceResolverTest {
         final String avroReaderSchemaRegistryIdAfterResolution = avroReader.getProperties().get("schema-registry");
         assertNotNull(avroReaderSchemaRegistryIdAfterResolution);
         assertEquals(avroReaderSchemaRegistryId, avroReaderSchemaRegistryIdAfterResolution);
+    }
+
+    @Test
+    public void testExternalControllerServiceResolvedFromMigratedProperty() throws IOException {
+        final String externalControllerServiceName = "Provided SSL Context Service";
+        final String externalControllerServicePropertyName = "ssl-context-service";
+        final RegisteredFlowSnapshot snapshot = loadSnapshot(BASE_SNAPSHOT_LOCATION + "/migrated-property/web-client-service-provider.json");
+        final FlowSnapshotContainer snapshotContainer = new FlowSnapshotContainer(snapshot);
+
+        final VersionedControllerService webClientServiceProvider = findServiceByName(snapshot.getFlowContents(), "StandardWebClientServiceProvider");
+        assertNotNull(webClientServiceProvider);
+
+        // Set the ControllerServiceAPI and Required Service API Map based on migrated Property Name
+        final ControllerServiceAPI controllerServiceApi = createServiceApi(
+                "org.apache.nifi.ssl.SSLContextService",
+                "org.apache.nifi",
+                "nifi-standard-services-api-nar",
+                "2.0.0"
+        );
+        final Map<String, ControllerServiceAPI> requiredServiceApis = Map.of(
+                "SSL Context Service", controllerServiceApi
+        );
+        when(controllerServiceApiLookup.getRequiredServiceApis(webClientServiceProvider.getType(), webClientServiceProvider.getBundle())).thenReturn(requiredServiceApis);
+
+        // Set Controller Service from Parent Process Group
+        final ControllerServiceNode controllerServiceNode = mock(ControllerServiceNode.class);
+        when(parentGroup.getControllerServices(true)).thenReturn(Set.of(controllerServiceNode));
+        when(controllerServiceNode.isAuthorized(any(Authorizer.class), any(RequestAction.class), any(NiFiUser.class))).thenReturn(true);
+
+        final String providedControllerServiceId = "00000000-0000-0000-0000-0000000000";
+        final VersionedControllerService versionedControllerService = new VersionedControllerService();
+        versionedControllerService.setIdentifier(providedControllerServiceId);
+        versionedControllerService.setName(externalControllerServiceName);
+        versionedControllerService.setControllerServiceApis(List.of(controllerServiceApi));
+
+        when(flowMapper.mapControllerService(controllerServiceNode, controllerServiceProvider, Set.of(), Map.of())).thenReturn(versionedControllerService);
+
+        // Resolve Inherited Controller Services and validate results
+        final Set<String> unresolved = serviceResolver.resolveInheritedControllerServices(snapshotContainer, parentGroup.getIdentifier(), nifiUser);
+
+        assertTrue(unresolved.isEmpty());
+        final Map<String, String> resolvedProperties = webClientServiceProvider.getProperties();
+        assertNotNull(resolvedProperties);
+        final String resolvedControllerServiceId = resolvedProperties.get(externalControllerServicePropertyName);
+        assertEquals(providedControllerServiceId, resolvedControllerServiceId);
     }
 
     private RegisteredFlowSnapshot loadSnapshot(final String snapshotFile) throws IOException {
