@@ -23,54 +23,51 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.util.Objects;
 
 public class VersionInfoRegistry extends AbstractMetricsRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(VersionInfoRegistry.class);
     private static final String DEFAULT_LABEL_STRING = "unknown";
 
     public VersionInfoRegistry() {
-        // Processor / Process Group metrics
-        nameToGaugeMap.put("NIFI_VERSION_INFO", Gauge.build()
-                .name("nifi_version_info")
-                .help("NiFi framework and environment version information.")
-                .labelNames("instance_id", "nifi_version", "java_version", "revision", "build_tag",
-                        "build_branch", "os_name", "os_version", "os_architecture", "java_vendor")
-                .register(registry));
+        nameToGaugeMap.put("NIFI_VERSION_INFO",Gauge.build()
+            .name("nifi_version_info")
+            .help("NiFi framework and environment version information.")
+            .labelNames(
+                "instance_id",
+                "framework_version",
+                "java_version",
+                "revision",
+                "build_tag",
+                "build_branch",
+                "os_name",
+                "os_version",
+                "os_architecture",
+                "java_vendor"
+            )
+            .register(registry)
+        );
     }
 
     @Override
     public CollectorRegistry getRegistry() {
         return registry;
     }
-    public static class VersionDetails {
-
-        public final String nifiVersion;
-        public final String revision;
-        public final String tag;
-        public final String buildBranch;
-        public final String javaVersion;
-        public final String javaVendor;
-        public final String osVersion;
-        public final String osName;
-        public final String osArchitecture;
-
-        public VersionDetails(String nifiVersion, String revision, String tag, String buildBranch,
-                              String javaVersion, String javaVendor, String osVersion,
-                              String osName, String osArchitecture) {
-            this.nifiVersion = nifiVersion;
-            this.revision = revision;
-            this.tag = tag;
-            this.buildBranch = buildBranch;
-            this.javaVersion = javaVersion;
-            this.javaVendor = javaVendor;
-            this.osVersion = osVersion;
-            this.osName = osName;
-            this.osArchitecture = osArchitecture;
-        }
-    }
+    
+    public record VersionDetails(
+            String frameworkVersion,
+            String revision,
+            String tag,
+            String buildBranch,
+            String javaVersion,
+            String javaVendor,
+            String osVersion,
+            String osName,
+            String osArchitecture
+    ) {}
 
     public VersionDetails getVersionDetails() {
-        String nifiVersion = DEFAULT_LABEL_STRING;
+        String frameworkVersion = DEFAULT_LABEL_STRING;
         String revision = DEFAULT_LABEL_STRING;
         String tag = DEFAULT_LABEL_STRING;
         String buildBranch = DEFAULT_LABEL_STRING;
@@ -87,7 +84,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
             final Bundle frameworkBundle = NarClassLoadersHolder.getInstance().getFrameworkBundle();
             if (frameworkBundle != null) {
                 final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
-                nifiVersion = frameworkDetails.getCoordinate().getVersion();
+                frameworkVersion = frameworkDetails.getCoordinate().getVersion();
                 revision = frameworkDetails.getBuildRevision();
                 tag = frameworkDetails.getBuildTag();
                 buildBranch = frameworkDetails.getBuildBranch();
@@ -95,7 +92,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
         } catch (Exception e) {
             LOGGER.debug("Could not retrieve NiFi bundle details for version info metric", e);
         }
-        return new VersionDetails(nifiVersion, revision, tag, buildBranch, javaVersion, javaVendor, osVersion, osName, osArchitecture);
+        return new VersionDetails(frameworkVersion, revision, tag, buildBranch, javaVersion, javaVendor, osVersion, osName, osArchitecture);
     }
 
 }
