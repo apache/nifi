@@ -1,6 +1,6 @@
 [
   {
-    "operation":"TestCustomJoltTransform",
+    "operation":"org.apache.nifi.processors.jolt.TestCustomJoltTransform",
     "spec" :
   [
     {

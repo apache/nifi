@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.box;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -73,7 +75,7 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
 
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_SUCCESS);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0);
         verify(mockBoxFile).download(any(OutputStream.class));
         assertProvenanceEvent(ProvenanceEventType.FETCH);
@@ -94,14 +96,14 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
 
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_SUCCESS);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         assertOutFlowFileAttributes(ff0);
         verify(mockBoxFile).download(any(OutputStream.class));
         assertProvenanceEvent(ProvenanceEventType.FETCH);
     }
 
     @Test
-    void testFileDownloadFailure()  {
+    void testFileDownloadFailure() {
         testRunner.setProperty(FetchBoxFile.FILE_ID, TEST_FILE_ID);
 
         doThrow(new RuntimeException("Download failed")).when(mockBoxFile).download(any(OutputStream.class));
@@ -114,8 +116,19 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
 
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_FAILURE, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_FAILURE);
-        final MockFlowFile ff0 = flowFiles.get(0);
+        final MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Download failed");
         assertNoProvenanceEvent();
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry(AbstractBoxProcessor.OLD_BOX_CLIENT_SERVICE_PROPERTY_NAME, AbstractBoxProcessor.BOX_CLIENT_SERVICE.getName()),
+                Map.entry("box-file-id", FetchBoxFile.FILE_ID.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 }

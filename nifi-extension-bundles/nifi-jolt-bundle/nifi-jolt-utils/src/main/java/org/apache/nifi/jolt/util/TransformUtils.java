@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.jolt.util;
 
+import io.joltcommunity.jolt.ContextualTransform;
+import io.joltcommunity.jolt.JoltTransform;
+import io.joltcommunity.jolt.Transform;
+
 import java.util.Collections;
 import java.util.Map;
 
-import com.bazaarvoice.jolt.ContextualTransform;
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.Transform;
 
 public class TransformUtils {
 

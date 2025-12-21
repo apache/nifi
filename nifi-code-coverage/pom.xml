@@ -93,7 +93,7 @@
                     <!--
                         Reactor Netty 1.3 includes HTTP/3 support requiring native QUIC libraries.
                         Exclude netty-codec-http3 to prevent HTTP/3 initialization.
-                        Keep netty-codec-classes-quic so Http3.isHttp3Available() can run and
+                        Explicitly add netty-codec-classes-quic below so Http3.isHttp3Available() can run and
                         properly detect that native QUIC support is unavailable.
                     -->
                     <exclusion>
@@ -101,6 +101,16 @@
                         <artifactId>netty-codec-http3</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <!--
+                Required for reactor-netty-http Http3.isHttp3Available() to detect
+                that native QUIC support is unavailable. This is a transitive dependency
+                of netty-codec-http3, which is excluded above, so it must be added explicitly.
+            -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-codec-classes-quic</artifactId>
+                <version>${netty.4.version}</version>
             </dependency>
             <!-- SSHD from Registry and other modules -->
             <dependency>

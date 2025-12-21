@@ -32,6 +32,10 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-cosmos</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-classes-quic</artifactId>
+        </dependency>
 
         <!-- azure-core does not bring jackson-dataformat-xml dependency from version 1.37.0 on -->
         <!-- but some libraries in the processor nar module depend on jackson-dataformat-xml -->

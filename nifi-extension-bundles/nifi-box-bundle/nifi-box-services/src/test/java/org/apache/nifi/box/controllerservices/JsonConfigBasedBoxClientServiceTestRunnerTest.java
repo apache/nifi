@@ -16,13 +16,18 @@
  */
 package org.apache.nifi.box.controllerservices;
 
-import org.apache.nifi.processor.Processor;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.mockito.Mockito.mock;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class JsonConfigBasedBoxClientServiceTestRunnerTest {
     private JsonConfigBasedBoxClientService testSubject;
@@ -31,10 +36,7 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
     @BeforeEach
     void setUp() throws Exception {
         testSubject = new JsonConfigBasedBoxClientService();
-
-        Processor dummyProcessor = mock(Processor.class);
-        testRunner = TestRunners.newTestRunner(dummyProcessor);
-
+        testRunner = TestRunners.newTestRunner(NoOpProcessor.class);
         testRunner.addControllerService(testSubject.getClass().getSimpleName(), testSubject);
     }
 
@@ -133,5 +135,30 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
         testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.CONNECT_TIMEOUT, "not_a_time_period");
         testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.READ_TIMEOUT, "1234");
         testRunner.assertNotValid(testSubject);
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> propertyValues = Map.of(
+                JsonConfigBasedBoxClientService.ACCOUNT_ID.getName(), "account_id",
+                JsonConfigBasedBoxClientService.CONNECT_TIMEOUT.getName(), "1 min",
+                JsonConfigBasedBoxClientService.READ_TIMEOUT.getName(), "1234"
+        );
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        final JsonConfigBasedBoxClientService jsonConfigBasedBoxClientService = new JsonConfigBasedBoxClientService();
+        jsonConfigBasedBoxClientService.migrateProperties(configuration);
+
+        Map<String, String> expected = Map.ofEntries(
+                Map.entry("box-account-id", JsonConfigBasedBoxClientService.ACCOUNT_ID.getName()),
+                Map.entry("app-config-file", JsonConfigBasedBoxClientService.APP_CONFIG_FILE.getName()),
+                Map.entry("app-config-json", JsonConfigBasedBoxClientService.APP_CONFIG_JSON.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE.getName())
+        );
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expected, propertiesRenamed);
     }
 }
