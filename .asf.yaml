@@ -17,6 +17,7 @@ github:
   description: "Apache NiFi"
   homepage: https://nifi.apache.org/
   labels:
+    - apache
     - nifi
     - java
     - hacktoberfest
@@ -26,8 +27,9 @@ github:
     projects: false
   enabled_merge_buttons:
     squash:  true
-    merge:   true
-    rebase:  true
+  protected_branches:
+    main:
+      required_signatures: true
   autolink_jira:
     - NIFI
 notifications:
