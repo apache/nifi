@@ -53,7 +53,7 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
     @Test
     public void testNullKey() {
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, null, null);
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, null, null, null);
 
         ValidationResult result = strategy.validateKeySpec(keySpec);
 
@@ -62,7 +62,7 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
     @Test
     public void testEmptyKey() {
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "", null);
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "", null, null);
 
         ValidationResult result = strategy.validateKeySpec(keySpec);
 
@@ -71,7 +71,7 @@ public class TestServerSideCEncryptionStrategyKeyValidation {
 
     @Test
     public void testNotBase64EncodedKey() {
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "NotBase64EncodedKey", null);
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, "NotBase64EncodedKey", null, null);
 
         ValidationResult result = strategy.validateKeySpec(keySpec);
 

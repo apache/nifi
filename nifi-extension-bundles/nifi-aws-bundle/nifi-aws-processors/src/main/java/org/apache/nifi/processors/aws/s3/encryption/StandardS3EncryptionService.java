@@ -39,6 +39,7 @@ import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
+import software.amazon.encryption.s3.CommitmentPolicy;
 import software.amazon.encryption.s3.S3EncryptionClient;
 
 import java.security.MessageDigest;
@@ -113,10 +114,23 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
             .dependsOn(ENCRYPTION_STRATEGY, SSE_C, CSE_C)
             .build();
 
+    public static final PropertyDescriptor COMMITMENT_POLICY = new PropertyDescriptor.Builder()
+            .name("Commitment Policy")
+            .description("The commitment policy for client-side encryption. Key commitment ensures that the data key used for encryption is " +
+                    "cryptographically bound to the ciphertext. This prevents certain types of attacks where an attacker could manipulate the ciphertext. " +
+                    "When migrating from older encryption (pre-4.0.0 S3 Encryption Client), use 'Require Encrypt Allow Decrypt' to encrypt new data with " +
+                    "key-committing algorithms while still being able to decrypt legacy data.")
+            .required(true)
+            .allowableValues(S3EncryptionCommitmentPolicy.class)
+            .defaultValue(S3EncryptionCommitmentPolicy.REQUIRE_ENCRYPT_REQUIRE_DECRYPT)
+            .dependsOn(ENCRYPTION_STRATEGY, CSE_KMS, CSE_C)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             ENCRYPTION_STRATEGY,
             KMS_KEY_ID,
-            KEY_MATERIAL
+            KEY_MATERIAL,
+            COMMITMENT_POLICY
     );
 
     private S3EncryptionKeySpec keySpec;
@@ -228,30 +242,48 @@ public class StandardS3EncryptionService extends AbstractControllerService imple
     }
 
     private S3EncryptionKeySpec createKeySpec(final PropertyContext context, final String encryptionStrategyName) {
+        final CommitmentPolicy commitmentPolicy = getCommitmentPolicy(context, encryptionStrategyName);
+
         switch (encryptionStrategyName) {
             case STRATEGY_NAME_NONE:
             case STRATEGY_NAME_SSE_S3:
-                return new S3EncryptionKeySpec(null, null, null);
+                return new S3EncryptionKeySpec(null, null, null, null);
             case STRATEGY_NAME_SSE_KMS:
+                final String sseKmsKeyId = context.getProperty(KMS_KEY_ID).evaluateAttributeExpressions().getValue();
+                return new S3EncryptionKeySpec(sseKmsKeyId, null, null, null);
             case STRATEGY_NAME_CSE_KMS:
-                final String kmsKeyId = context.getProperty(KMS_KEY_ID).evaluateAttributeExpressions().getValue();
-                return new S3EncryptionKeySpec(kmsKeyId, null, null);
+                final String cseKmsKeyId = context.getProperty(KMS_KEY_ID).evaluateAttributeExpressions().getValue();
+                return new S3EncryptionKeySpec(cseKmsKeyId, null, null, commitmentPolicy);
             case STRATEGY_NAME_SSE_C:
+                final String sseKeyMaterial = context.getProperty(KEY_MATERIAL).evaluateAttributeExpressions().getValue();
+                final String sseKeyMaterialMd5 = calculateMd5(sseKeyMaterial);
+                return new S3EncryptionKeySpec(null, sseKeyMaterial, sseKeyMaterialMd5, null);
             case STRATEGY_NAME_CSE_C:
-                final String keyMaterial = context.getProperty(KEY_MATERIAL).evaluateAttributeExpressions().getValue();
-                final String keyMaterialMd5;
-                try {
-                    keyMaterialMd5 = Base64.getEncoder().encodeToString(
-                            MessageDigest.getInstance("MD5").digest(
-                                    Base64.getDecoder().decode(keyMaterial)
-                            )
-                    );
-                } catch (NoSuchAlgorithmException e) {
-                    throw new ProcessException("Failed to calculate MD5 hash for Key Material", e);
-                }
-                return new S3EncryptionKeySpec(null, keyMaterial, keyMaterialMd5);
+                final String cseKeyMaterial = context.getProperty(KEY_MATERIAL).evaluateAttributeExpressions().getValue();
+                final String cseKeyMaterialMd5 = calculateMd5(cseKeyMaterial);
+                return new S3EncryptionKeySpec(null, cseKeyMaterial, cseKeyMaterialMd5, commitmentPolicy);
             default:
                 throw new IllegalArgumentException("Unknown encryption strategy: " + encryptionStrategyName);
+        }
+    }
+
+    private CommitmentPolicy getCommitmentPolicy(final PropertyContext context, final String encryptionStrategyName) {
+        if (STRATEGY_NAME_CSE_KMS.equals(encryptionStrategyName) || STRATEGY_NAME_CSE_C.equals(encryptionStrategyName)) {
+            final S3EncryptionCommitmentPolicy policy = context.getProperty(COMMITMENT_POLICY).asAllowableValue(S3EncryptionCommitmentPolicy.class);
+            return policy.getCommitmentPolicy();
+        }
+        return null;
+    }
+
+    private String calculateMd5(final String keyMaterial) {
+        try {
+            return Base64.getEncoder().encodeToString(
+                    MessageDigest.getInstance("MD5").digest(
+                            Base64.getDecoder().decode(keyMaterial)
+                    )
+            );
+        } catch (NoSuchAlgorithmException e) {
+            throw new ProcessException("Failed to calculate MD5 hash for Key Material", e);
         }
     }
 }
