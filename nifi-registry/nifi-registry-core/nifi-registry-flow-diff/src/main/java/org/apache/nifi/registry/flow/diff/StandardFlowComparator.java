@@ -562,10 +562,7 @@ public class StandardFlowComparator implements FlowComparator {
         // - both versions say the group IS under version control but disagree about the coordinates
         // OR
         // - explicitly requested comparison for embedded versioned groups
-        final boolean shouldCompareVersioned = flowCoordinateDifferences.stream()
-            .anyMatch(diff -> !diff.getFieldName().isPresent() || !diff.getFieldName().get().equals(FLOW_VERSION)) || flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP;
         final boolean bothGroupsVersioned = groupACoordinates != null && groupBCoordinates != null;
-        final boolean bothGroupsVersionedAndSame = bothGroupsVersioned && flowCoordinateDifferences.isEmpty();
 
         // When both groups are versioned with the SAME coordinates (same registry, bucket, flow, and version),
         // we should NOT compare their contents because the version being the same implies the contents are identical.
@@ -573,12 +570,13 @@ public class StandardFlowComparator implements FlowComparator {
         // which would incorrectly report components as added/removed even though the PG is up-to-date.
         // This also means that we will ignore any potential local modifications in a nested versioned process group.
         // In that case we expect the user to directly list changes on the nested versioned process group.
-        if (bothGroupsVersionedAndSame) {
+        if (bothGroupsVersioned && flowCoordinateDifferences.isEmpty()) {
             return;
         }
 
+        final boolean shouldCompareVersioned = flowCoordinateDifferences.stream()
+                .anyMatch(diff -> !diff.getFieldName().isPresent() || !diff.getFieldName().get().equals(FLOW_VERSION)) || flowComparatorVersionedStrategy == FlowComparatorVersionedStrategy.DEEP;
         final boolean compareGroupContents = !bothGroupsVersioned || shouldCompareVersioned || hasProcessGroupContents(groupA) || hasProcessGroupContents(groupB);
-
 
         if (compareGroupContents) {
             extractPGComponentsDifferences(groupA, groupB, differences);
