@@ -41,8 +41,9 @@ public class ClientSideCEncryptionStrategy implements S3EncryptionStrategy {
         final byte[] keyMaterial = Base64.decodeBase64(keySpec.material());
         final SecretKeySpec symmetricKey = new SecretKeySpec(keyMaterial, "AES");
 
-        return S3EncryptionClient.builder()
-                .aesKey(symmetricKey);
+        return S3EncryptionClient.builderV4()
+                .aesKey(symmetricKey)
+                .commitmentPolicy(keySpec.commitmentPolicy());
     }
 
     @Override
