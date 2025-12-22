@@ -155,7 +155,7 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     @Override
     public void setState(final Map<String, String> state, final String componentId) throws IOException {
         try {
-            final ConfigMap configMap = createConfigMapBuilder(state, componentId, Optional.empty()).build();
+            final ConfigMap configMap = createConfigMapBuilder(state, componentId, null).build();
             ConfigMap configMapResult = null;
 
             // Attempt to create or update, up to 3 times
@@ -171,12 +171,12 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
                     break;
                 } catch (final KubernetesClientException e) {
                     final int returnCode = e.getCode();
-                    if (returnCode == HttpURLConnection.HTTP_CONFLICT || returnCode >= 500) {
+                    if (returnCode == HttpURLConnection.HTTP_CONFLICT || returnCode >= HttpURLConnection.HTTP_INTERNAL_ERROR) {
                         // Conflict or Server-side error. We should retry, up to some number of attempts.
                         if (attempt == MAX_UPDATE_ATTEMPTS - 1) {
                             throw e;
                         }
-                        logger.warn("Failed to update state for Component ID [{}]. Attempt {} of {}.", componentId, attempt + 1, MAX_UPDATE_ATTEMPTS, e);
+                        logger.warn("Failed to update state for Component ID [{}] on attempt {} of {}", componentId, attempt + 1, MAX_UPDATE_ATTEMPTS, e);
                     } else {
                         // There's an issue with the request. Throw the Exception.
                         throw e;
@@ -238,17 +238,19 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
      */
     @Override
     public boolean replace(final StateMap currentState, final Map<String, String> state, final String componentId) throws IOException {
-        if (!(currentState instanceof StandardStateMap)) {
+        if (currentState instanceof StandardStateMap standardStateMap) {
+            return replace(standardStateMap, state, componentId);
+        } else {
             throw new IllegalStateException("Current state is not an instance of StandardStateMap");
         }
+    }
 
-        final Optional<ObjectMeta> existingMetadata = ((StandardStateMap) currentState).getConfigMapMetadata();
-        final ConfigMapBuilder configMapBuilder = createConfigMapBuilder(state, componentId, existingMetadata);
+    private boolean replace(final StandardStateMap currentState, final Map<String, String> state, final String componentId) throws IOException {
+        final Optional<ObjectMeta> existingMetadata = currentState.getConfigMapMetadata();
+        final ConfigMapBuilder configMapBuilder = createConfigMapBuilder(state, componentId, existingMetadata.orElse(null));
+
         final Optional<String> stateVersion = currentState.getStateVersion();
-        if (stateVersion.isPresent()) {
-            final String resourceVersion = stateVersion.get();
-            configMapBuilder.editOrNewMetadata().withResourceVersion(resourceVersion).endMetadata();
-        }
+        stateVersion.ifPresent(resourceVersion -> configMapBuilder.editOrNewMetadata().withResourceVersion(resourceVersion).endMetadata());
         final ConfigMap configMap = configMapBuilder.build();
 
         try {
@@ -382,24 +384,21 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         return kubernetesClient.configMaps().inNamespace(namespace).withName(name);
     }
 
-    private ConfigMapBuilder createConfigMapBuilder(final Map<String, String> state, final String componentId, final Optional<ObjectMeta> existingMetadata) {
+    private ConfigMapBuilder createConfigMapBuilder(final Map<String, String> state, final String componentId, final ObjectMeta existingMetadata) {
         final String name = getConfigMapName(componentId);
 
         final ConfigMapBuilder configMapBuilder;
-        if (existingMetadata.isPresent()) {
-            if (!namespace.equals(existingMetadata.get().getNamespace())) {
-                throw new IllegalArgumentException("Expected existing ConfigMap namespace [%s], but was [%s]".formatted(namespace, existingMetadata.get().getNamespace()));
-            }
-            if (!name.equals(existingMetadata.get().getName())) {
-                throw new IllegalArgumentException("Expected existing ConfigMap name [%s], but was [%s]".formatted(name, existingMetadata.get().getName()));
-            }
-            configMapBuilder = new ConfigMapBuilder().withMetadata(existingMetadata.get());
-        } else {
+        if (existingMetadata == null) {
             configMapBuilder = new ConfigMapBuilder()
                 .withNewMetadata()
                 .withNamespace(namespace)
                 .withName(name)
                 .endMetadata();
+        } else if (namespace.equals(existingMetadata.getNamespace()) && name.equals(existingMetadata.getName())) {
+            configMapBuilder = new ConfigMapBuilder().withMetadata(existingMetadata);
+        } else {
+            throw new IllegalArgumentException("ConfigMap metadata with namespace [%s] and name [%s], did not match expected namespace [%s] and name [%s]"
+                .formatted(existingMetadata.getNamespace(), existingMetadata.getName(), namespace, name));
         }
 
         final Map<String, String> encodedData = getEncodedMap(state);

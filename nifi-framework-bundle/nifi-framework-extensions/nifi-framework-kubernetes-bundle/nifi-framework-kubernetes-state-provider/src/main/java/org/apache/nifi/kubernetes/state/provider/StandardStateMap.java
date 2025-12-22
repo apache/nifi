@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.kubernetes.state.provider;
 
+import io.fabric8.kubernetes.api.model.ObjectMeta;
 import org.apache.nifi.components.state.StateMap;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-
-import io.fabric8.kubernetes.api.model.ObjectMeta;
 
 /**
  * Standard implementation of StateMap
