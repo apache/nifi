@@ -34,6 +34,7 @@
             </div>
             <div class="flex-1">
                 <local-changes-table
+                    [mode]="mode"
                     [differences]="localModifications.componentDifferences"
                     (goToChange)="goToChange.next($event)"></local-changes-table>
             </div>

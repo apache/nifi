@@ -865,6 +865,7 @@ export interface FlowUpdateRequestEntity {
 export interface Difference {
     differenceType: string;
     difference: string;
+    environmental?: boolean;
 }
 
 export interface ComponentDifference {

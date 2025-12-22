@@ -2814,7 +2814,7 @@ public final class DtoFactory {
            if (FlowDifferenceFilters.isBundleChange(difference)) {
                final ComponentDifferenceDTO componentDiff = createBundleDifference(difference);
                final Set<DifferenceDTO> differences = bundleDifferencesByComponent.computeIfAbsent(componentDiff, key -> new HashSet<>());
-               differences.add(createDifferenceDto(difference));
+               differences.add(createBundleDifferenceDto(difference));
            }
 
            // Ignore any environment-specific change
@@ -2859,6 +2859,37 @@ public final class DtoFactory {
        final DifferenceDTO dto = new DifferenceDTO();
        dto.setDifferenceType(difference.getDifferenceType().getDescription());
        dto.setDifference(difference.getDescription());
+       return dto;
+   }
+
+   /**
+    * Creates a DifferenceDTO for bundle changes, determining whether the change is environmental
+    * (due to NiFi upgrade where the original bundle version is not available) or user-initiated
+    * (user manually changed the bundle version when multiple versions are available).
+    */
+   DifferenceDTO createBundleDifferenceDto(final FlowDifference difference) {
+       final DifferenceDTO dto = createDifferenceDto(difference);
+
+       // Determine if this bundle change is environmental (forced by upgrade) or user-initiated
+       // A bundle change is environmental if the original bundle version from the registry
+       // is not available in this NiFi instance
+       final Object valueA = difference.getValueA();
+       if (valueA instanceof org.apache.nifi.flow.Bundle registryBundle) {
+           final BundleCoordinate registryCoordinate = new BundleCoordinate(
+                   registryBundle.getGroup(),
+                   registryBundle.getArtifact(),
+                   registryBundle.getVersion()
+           );
+
+           // Check if the registry bundle version is available in this NiFi instance
+           // If the exact bundle from the registry is not available, this is an environmental change
+           // caused by NiFi upgrade - the user cannot revert to a version that doesn't exist
+           dto.setEnvironmental(extensionManager.getBundle(registryCoordinate) == null);
+       } else {
+           // If we can't determine, assume environmental to be safe
+           dto.setEnvironmental(true);
+       }
+
        return dto;
    }
 
