@@ -295,7 +295,7 @@ export class CodemirrorNifiLanguageService {
         }
 
         // Extract the current token being typed
-        const match = textBefore.match(/[a-zA-Z0-9_-]*$/);
+        const match = textBefore.match(/[a-zA-Z0-9_.-]*$/);
         const prefix = match ? match[0] : '';
 
         // If no valid context detected, return null
