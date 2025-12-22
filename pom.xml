@@ -112,7 +112,7 @@
         <docker.jre.image.name>bellsoft/liberica-openjre-debian</docker.jre.image.name>
 
         <!-- Frontend tooling -->
-        <frontend.mvn.plugin.version>1.15.4</frontend.mvn.plugin.version>
+        <frontend.mvn.plugin.version>2.0.0</frontend.mvn.plugin.version>
         <node.version>v22.19.0</node.version>
 
         <!-- NiFi build -->
@@ -120,7 +120,7 @@
         <nifi.nar.maven.plugin.version>2.2.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.40.11</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.40.13</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>3.6.0</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.3</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
@@ -164,7 +164,7 @@
 
         <!-- Logging and observability -->
         <log4j2.version>2.25.3</log4j2.version>
-        <logback.version>1.5.22</logback.version>
+        <logback.version>1.5.23</logback.version>
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <prometheus.version>0.16.0</prometheus.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
@@ -713,7 +713,7 @@
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>
-                    <version>3.6.2</version>
+                    <version>3.6.3</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
