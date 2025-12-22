@@ -199,6 +199,29 @@ public class ConnectorAssetsIT extends NiFiSystemIT {
         getClientUtil().waitForConnectorStopped(connectorAfterApply.getId());
         connectorClient.deleteConnector(connectorAfterApply);
     }
+
+    @Test
+    public void testUploadAssetFilenameWithSpaces() throws NiFiClientException, IOException, InterruptedException {
+        // Create a Connector instance using the AssetConnector test extension
+        final ConnectorEntity connector = getClientUtil().createConnector("AssetConnector");
+        assertNotNull(connector);
+        assertNotNull(connector.getId());
+
+        final String connectorId = connector.getId();
+
+        // Upload an Asset to the Connector
+        final String assetName = "hello  world .txt";
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        final ConnectorClient connectorClient = getNifiClient().getConnectorClient();
+        final AssetEntity assetEntity = connectorClient.createAsset(connectorId, assetName, assetFile);
+
+        assertNotNull(assetEntity);
+        assertNotNull(assetEntity.getAsset());
+        assertNotNull(assetEntity.getAsset().getId());
+        assertEquals(assetName.replace(" ", "_"), assetEntity.getAsset().getName());
+
+        connectorClient.deleteConnector(connector);
+    }
 }
 
 

@@ -1517,8 +1517,9 @@ public class ConnectorResource extends ApplicationResource {
             throw new IllegalArgumentException("Asset contents must be specified.");
         }
 
-        final String sanitizedAssetName = FileUtils.getSanitizedFilename(assetName);
-        if (!assetName.equals(sanitizedAssetName)) {
+        final String spacesRemovedAssetName = assetName.replace(" ", "_");
+        final String sanitizedAssetName = FileUtils.getSanitizedFilename(spacesRemovedAssetName);
+        if (!spacesRemovedAssetName.equals(sanitizedAssetName)) {
             throw new IllegalArgumentException(FILENAME_HEADER + " header contains an invalid file name");
         }
 

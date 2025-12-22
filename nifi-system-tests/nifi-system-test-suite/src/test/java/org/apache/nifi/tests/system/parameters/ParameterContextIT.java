@@ -866,6 +866,26 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
+    public void testAssetReferenceWithSpacesInName() throws NiFiClientException, IOException {
+        // Create Parameter Context
+        final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testAssetReferenceWithSpacesInName", Map.of("name", "foo", "fileToIngest", ""));
+
+        // Set the Parameter Context on the root Process Group
+        setParameterContext("root", paramContext);
+
+        // Create a Processor and update it to reference a parameter
+        final ProcessorEntity ingest = getClientUtil().createProcessor("IngestFile");
+        getClientUtil().updateProcessorProperties(ingest, Map.of("Filename", "#{fileToIngest}", "Delete File", "false"));
+        getClientUtil().updateProcessorSchedulingPeriod(ingest, "10 mins");
+
+        // Create an asset
+        final String assetName = "this  name has spaces.txt";
+        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
+        final AssetEntity asset = createAsset(paramContext.getId(), assetName, assetFile);
+        assertAsset(asset, assetName.replace(" ", "_"));
+    }
+
+    @Test
     public void testAssetReferenceFromDifferentContext() throws NiFiClientException, IOException, InterruptedException {
         // Create first context
         final ParameterContextEntity paramContext1 = getClientUtil().createParameterContext("testAssetReferenceFirstContext",
@@ -1014,6 +1034,7 @@ public class ParameterContextIT extends NiFiSystemIT {
         final String assetName = "helloworld.txt";
         final File assetFile1 = new File("src/test/resources/sample-assets/helloworld.txt");
         final AssetEntity asset = createAsset(paramContext.getId(), assetName, assetFile1);
+        assertAsset(asset, assetName);
 
         // Update the parameter to reference the asset
         final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
@@ -1218,13 +1239,14 @@ public class ParameterContextIT extends NiFiSystemIT {
 
 
     protected AssetEntity createAsset(final String paramContextId, final File assetFile) throws NiFiClientException, IOException {
-        return createAsset(paramContextId, assetFile.getName(), assetFile);
+        final AssetEntity asset = createAsset(paramContextId, assetFile.getName(), assetFile);
+        assertAsset(asset, assetFile.getName());
+        return asset;
     }
 
     protected AssetEntity createAsset(final String paramContextId, final String assetName, final File assetFile) throws NiFiClientException, IOException {
         final AssetEntity asset = getNifiClient().getParamContextClient().createAsset(paramContextId, assetName, assetFile);
         logger.info("Created asset [{}] in parameter context [{}]", assetName, paramContextId);
-        assertAsset(asset, assetName);
         return asset;
     }
 
