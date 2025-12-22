@@ -78,6 +78,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.Secret;
@@ -7383,6 +7384,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         componentTypesEntity.setParameterProviderTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, ParameterProvider.class)));
         componentTypesEntity.setFlowRegistryClientTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, FlowRegistryClient.class)));
         componentTypesEntity.setFlowAnalysisRuleTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, FlowAnalysisRule.class)));
+        componentTypesEntity.setConnectorTypes(dtoFactory.fromDocumentedTypes(getTypes(extensionDefinitions, Connector.class)));
         return componentTypesEntity;
     }
 

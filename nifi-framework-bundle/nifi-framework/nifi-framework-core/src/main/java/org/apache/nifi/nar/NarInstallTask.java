@@ -20,6 +20,7 @@ package org.apache.nifi.nar;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
@@ -54,7 +55,8 @@ public class NarInstallTask implements Runnable {
             ReportingTask.class,
             FlowRegistryClient.class,
             FlowAnalysisRule.class,
-            ParameterProvider.class
+            ParameterProvider.class,
+            Connector.class
     );
 
     private final NarNode narNode;
