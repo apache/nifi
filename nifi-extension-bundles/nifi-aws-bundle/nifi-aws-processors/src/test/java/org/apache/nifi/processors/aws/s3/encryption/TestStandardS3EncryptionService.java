@@ -105,10 +105,11 @@ public class TestStandardS3EncryptionService {
     @Test
     public void testProperties() {
         List<PropertyDescriptor> properties = service.getSupportedPropertyDescriptors();
-        assertEquals(3, properties.size());
+        assertEquals(4, properties.size());
 
         assertEquals(properties.get(0).getName(), StandardS3EncryptionService.ENCRYPTION_STRATEGY.getName());
         assertEquals(properties.get(1).getName(), StandardS3EncryptionService.KMS_KEY_ID.getName());
         assertEquals(properties.get(2).getName(), StandardS3EncryptionService.KEY_MATERIAL.getName());
+        assertEquals(properties.get(3).getName(), StandardS3EncryptionService.COMMITMENT_POLICY.getName());
     }
 }

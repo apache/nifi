@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.processors.aws.s3.encryption;
 
+import software.amazon.encryption.s3.CommitmentPolicy;
+
 /**
  * Specifies key parameters used by different encryption strategies.
  *
  * @param kmsId the KMS ID of the key (used by SSE-KMS and CSE-KMS)
  * @param material the key in Base64 encoded form (used by SSE-C and CSE-C)
  * @param md5 the MD5 hash of the key in Base64 encoded form (used by SSE-C)
+ * @param commitmentPolicy the commitment policy for client-side encryption (used by CSE-KMS and CSE-C)
  */
-public record S3EncryptionKeySpec(String kmsId, String material, String md5) {
+public record S3EncryptionKeySpec(String kmsId, String material, String md5, CommitmentPolicy commitmentPolicy) {
 }
