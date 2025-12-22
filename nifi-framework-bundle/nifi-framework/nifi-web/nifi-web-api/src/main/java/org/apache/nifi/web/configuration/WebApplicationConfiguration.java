@@ -18,6 +18,7 @@ package org.apache.nifi.web.configuration;
 
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.audit.NiFiAuditor;
+import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.StandardAuthorizableLookup;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
@@ -35,7 +36,7 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.NiFiServiceFacadeLock;
 import org.apache.nifi.web.NiFiConnectorWebContext;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.StandardNiFiConnectorWebContext;
+import org.apache.nifi.web.connector.StandardNiFiConnectorWebContext;
 import org.apache.nifi.web.StandardNiFiContentAccess;
 import org.apache.nifi.web.StandardNiFiServiceFacade;
 import org.apache.nifi.web.StandardNiFiWebConfigurationContext;
@@ -109,6 +110,8 @@ public class WebApplicationConfiguration {
 
     private ConnectorDAO connectorDAO;
 
+    private AuthorizableLookup authorizableLookup;
+
     public WebApplicationConfiguration(
             final Authorizer authorizer,
             final AccessPolicyDAO accessPolicyDao,
@@ -153,6 +156,11 @@ public class WebApplicationConfiguration {
     @Autowired
     public void setConnectorDAO(final ConnectorDAO connectorDAO) {
         this.connectorDAO = connectorDAO;
+    }
+
+    @Autowired
+    public void setAuthorizableLookup(final AuthorizableLookup authorizableLookup) {
+        this.authorizableLookup = authorizableLookup;
     }
 
     @Bean
@@ -270,6 +278,8 @@ public class WebApplicationConfiguration {
     public NiFiConnectorWebContext nifiConnectorWebContext() {
         final StandardNiFiConnectorWebContext context = new StandardNiFiConnectorWebContext();
         context.setConnectorDAO(connectorDAO);
+        context.setAuthorizer(authorizer);
+        context.setAuthorizableLookup(authorizableLookup);
         return context;
     }
 
