@@ -5615,18 +5615,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                     + " but cannot find a Flow Registry with that identifier");
         }
 
-        VersionedProcessGroup registryGroup = versionControlInfo.getFlowSnapshot();
-        if (registryGroup == null) {
-            try {
-                final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(versionControlInfo.getBranch(), versionControlInfo.getBucketIdentifier(),
-                        versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion());
-                final FlowSnapshotContainer flowSnapshotContainer = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()),
-                        flowVersionLocation, true);
-                final RegisteredFlowSnapshot versionedFlowSnapshot = flowSnapshotContainer.getFlowSnapshot();
-                registryGroup = versionedFlowSnapshot.getFlowContents();
-            } catch (final IOException | FlowRegistryException e) {
-                throw new NiFiCoreException("Failed to retrieve flow with Flow Registry in order to calculate local differences due to " + e.getMessage(), e);
-            }
+        // Always fetch the flow from the registry to get the original bundle versions.
+        // The cached snapshot (versionControlInfo.getFlowSnapshot()) may have been mutated
+        // during import/revert operations by discoverCompatibleBundles(), which would cause
+        // bundle version differences to not be detected.
+        final VersionedProcessGroup registryGroup;
+        try {
+            final FlowVersionLocation flowVersionLocation = new FlowVersionLocation(versionControlInfo.getBranch(), versionControlInfo.getBucketIdentifier(),
+                    versionControlInfo.getFlowIdentifier(), versionControlInfo.getVersion());
+            final FlowSnapshotContainer flowSnapshotContainer = flowRegistry.getFlowContents(FlowRegistryClientContextFactory.getContextForUser(NiFiUserUtils.getNiFiUser()),
+                    flowVersionLocation, true);
+            final RegisteredFlowSnapshot versionedFlowSnapshot = flowSnapshotContainer.getFlowSnapshot();
+            registryGroup = versionedFlowSnapshot.getFlowContents();
+        } catch (final IOException | FlowRegistryException e) {
+            throw new NiFiCoreException("Failed to retrieve flow with Flow Registry in order to calculate local differences due to " + e.getMessage(), e);
         }
 
         final NiFiRegistryFlowMapper mapper = makeNiFiRegistryFlowMapper(controllerFacade.getExtensionManager());
