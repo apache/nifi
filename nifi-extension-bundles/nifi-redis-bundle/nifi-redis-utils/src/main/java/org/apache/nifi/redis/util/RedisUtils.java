@@ -27,6 +27,7 @@ import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.RedisType;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.StringUtils;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.PoolException;
@@ -43,7 +44,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
-import org.springframework.lang.Nullable;
 import redis.clients.jedis.ConnectionPoolConfig;
 
 import javax.net.ssl.SSLContext;

@@ -26,7 +26,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.integration.mail.AbstractMailReceiver;
+import org.springframework.integration.mail.inbound.AbstractMailReceiver;
 
 import jakarta.mail.Message;
 import jakarta.mail.MessagingException;

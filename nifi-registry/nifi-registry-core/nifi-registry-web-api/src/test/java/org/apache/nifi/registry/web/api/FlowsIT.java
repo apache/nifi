@@ -24,7 +24,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.springframework.test.annotation.IfProfileValue;
+import org.springframework.test.context.junit.jupiter.EnabledIf;
 import org.springframework.test.context.jdbc.Sql;
 
 import jakarta.ws.rs.WebApplicationException;
@@ -72,7 +72,7 @@ public class FlowsIT extends UnsecuredITBase {
     // NOTE: The tests that seed the DB directly from SQL end up with different results for the timestamp depending on
     // which DB is used, so for now these types of tests only run against H2.
     @Test
-    @IfProfileValue(name = "current.database.is.h2", value = "true")
+    @EnabledIf(expression = "#{T(org.apache.nifi.registry.db.DatabaseProfileValueSource).isDatabase('h2')}")
     public void testGetFlows() throws Exception {
 
         // Given: a few buckets and flows have been populated in the DB (see FlowsIT.sql)
@@ -365,7 +365,7 @@ public class FlowsIT extends UnsecuredITBase {
     // NOTE: The tests that seed the DB directly from SQL end up with different results for the timestamp depending on
     // which DB is used, so for now these types of tests only run against H2.
     @Test
-    @IfProfileValue(name = "current.database.is.h2", value = "true")
+    @EnabledIf(expression = "#{T(org.apache.nifi.registry.db.DatabaseProfileValueSource).isDatabase('h2')}")
     public void testGetFlowVersions() throws Exception {
 
         // Given: a bucket "1" with flow "1" with existing snapshots has been populated in the DB (see FlowsIT.sql)

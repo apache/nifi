@@ -34,7 +34,11 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
-import org.springframework.integration.mail.AbstractMailReceiver;
+import org.springframework.context.expression.BeanFactoryResolver;
+import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.integration.context.IntegrationContextUtils;
+import org.springframework.integration.mail.inbound.AbstractMailReceiver;
+import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 
 import jakarta.mail.Address;
 import jakarta.mail.Message;
@@ -320,8 +324,13 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
 
             this.messageReceiver.setMaxFetchSize(fetchSize);
             this.messageReceiver.setJavaMailProperties(this.buildJavaMailProperties(context));
-            // need to avoid spring warning messages
-            this.messageReceiver.setBeanFactory(new StaticListableBeanFactory());
+            // Spring Integration 7 expects an evaluation context bean; register a lightweight one for the receiver
+            final StaticListableBeanFactory beanFactory = new StaticListableBeanFactory();
+            final StandardEvaluationContext evaluationContext = new StandardEvaluationContext();
+            evaluationContext.setBeanResolver(new BeanFactoryResolver(beanFactory));
+            beanFactory.addBean(IntegrationContextUtils.INTEGRATION_EVALUATION_CONTEXT_BEAN_NAME, evaluationContext);
+            beanFactory.addBean(IntegrationContextUtils.TASK_SCHEDULER_BEAN_NAME, new ConcurrentTaskScheduler());
+            this.messageReceiver.setBeanFactory(beanFactory);
             this.messageReceiver.afterPropertiesSet();
 
             this.messageQueue = new ArrayBlockingQueue<>(fetchSize);

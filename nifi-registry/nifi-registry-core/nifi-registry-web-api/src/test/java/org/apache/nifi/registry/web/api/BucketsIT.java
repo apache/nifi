@@ -20,7 +20,7 @@ import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.springframework.test.annotation.IfProfileValue;
+import org.springframework.test.context.junit.jupiter.EnabledIf;
 import org.springframework.test.context.jdbc.Sql;
 
 import jakarta.ws.rs.client.Entity;
@@ -57,7 +57,7 @@ public class BucketsIT extends UnsecuredITBase {
     // NOTE: The tests that seed the DB directly from SQL end up with different results for the timestamp depending on
     // which DB is used, so for now these types of tests only run against H2.
     @Test
-    @IfProfileValue(name = "current.database.is.h2", value = "true")
+    @EnabledIf(expression = "#{T(org.apache.nifi.registry.db.DatabaseProfileValueSource).isDatabase('h2')}")
     @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = {"classpath:db/clearDB.sql", "classpath:db/BucketsIT.sql"})
     public void testGetBuckets() throws Exception {
 

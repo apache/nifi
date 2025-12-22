@@ -23,7 +23,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import org.apache.nifi.registry.client.NiFiRegistryClientConfig;
-import org.apache.nifi.registry.db.DatabaseProfileValueSource;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
@@ -32,7 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Bean;
-import org.springframework.test.annotation.ProfileValueSourceConfiguration;
+import org.springframework.test.context.TestPropertySource;
 
 import jakarta.annotation.PostConstruct;
 import javax.net.ssl.HostnameVerifier;
@@ -48,7 +47,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * A base class to simplify creating integration tests against an API application running with an embedded server and volatile DB.
  */
-@ProfileValueSourceConfiguration(DatabaseProfileValueSource.class)
+@TestPropertySource(properties = "server.servlet.context-path=/nifi-registry-api")
 public abstract class IntegrationTestBase {
 
     private static final String CONTEXT_PATH = "/nifi-registry-api";
@@ -65,11 +64,6 @@ public abstract class IntegrationTestBase {
         private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
         private final Lock readLock = lock.readLock();
         private NiFiRegistryProperties testProperties;
-
-        @Bean
-        public org.springframework.boot.web.server.WebServerFactoryCustomizer<org.springframework.boot.web.servlet.server.ConfigurableServletWebServerFactory> webServerFactoryCustomizer() {
-            return factory -> factory.setContextPath(CONTEXT_PATH);
-        }
 
         @Bean
         public NiFiRegistryProperties getNiFiRegistryProperties() {
