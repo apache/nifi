@@ -61,6 +61,11 @@ export const selectParameterProviderTypes = createSelector(
     (state: ExtensionTypesState) => state.parameterProviderTypes
 );
 
+export const selectConnectorTypes = createSelector(
+    selectExtensionTypesState,
+    (state: ExtensionTypesState) => state.connectorTypes
+);
+
 export const selectTypesToIdentifyComponentRestrictions = createSelector(
     selectExtensionTypesState,
     (state: ExtensionTypesState) => {
@@ -139,6 +144,7 @@ export const selectExtensionFromTypes = (extensionTypes: string[]) =>
             reportingTaskTypes: state.reportingTaskTypes.filter(typeFilter),
             registryClientTypes: state.registryClientTypes.filter(typeFilter),
             parameterProviderTypes: state.parameterProviderTypes.filter(typeFilter),
-            flowAnalysisRuleTypes: state.flowAnalysisRuleTypes.filter(typeFilter)
+            flowAnalysisRuleTypes: state.flowAnalysisRuleTypes.filter(typeFilter),
+            connectorTypes: state.connectorTypes.filter(typeFilter)
         } as LoadExtensionTypesForDocumentationResponse;
     });

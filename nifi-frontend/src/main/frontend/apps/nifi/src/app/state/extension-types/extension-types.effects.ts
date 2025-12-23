@@ -136,7 +136,8 @@ export class ExtensionTypesEffects {
                     this.extensionTypesService.getReportingTaskTypes(),
                     this.extensionTypesService.getRegistryClientTypes(),
                     this.extensionTypesService.getParameterProviderTypes(),
-                    this.extensionTypesService.getFlowAnalysisRuleTypes()
+                    this.extensionTypesService.getFlowAnalysisRuleTypes(),
+                    this.extensionTypesService.getConnectorTypes()
                 ]).pipe(
                     map(
                         ([
@@ -145,7 +146,8 @@ export class ExtensionTypesEffects {
                             reportingTaskTypes,
                             registryClientTypes,
                             parameterProviderTypes,
-                            flowAnalysisRuleTypes
+                            flowAnalysisRuleTypes,
+                            connectorTypes
                         ]) =>
                             ExtensionTypesActions.loadExtensionTypesForDocumentationSuccess({
                                 response: {
@@ -154,7 +156,8 @@ export class ExtensionTypesEffects {
                                     reportingTaskTypes: reportingTaskTypes.reportingTaskTypes,
                                     registryClientTypes: registryClientTypes.flowRegistryClientTypes,
                                     parameterProviderTypes: parameterProviderTypes.parameterProviderTypes,
-                                    flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes
+                                    flowAnalysisRuleTypes: flowAnalysisRuleTypes.flowAnalysisRuleTypes,
+                                    connectorTypes: connectorTypes.connectorTypes
                                 }
                             })
                     ),
