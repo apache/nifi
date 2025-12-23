@@ -16,22 +16,30 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
+import org.apache.nifi.processors.aws.ObsoleteAbstractAwsProcessorProperties;
 import org.apache.nifi.processors.aws.kinesis.KinesisProcessorUtils;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestPutKinesisStream {
     private TestRunner runner;
-    protected final static String CREDENTIALS_FILE = System.getProperty("user.home") + "/aws-credentials.properties";
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -42,7 +50,7 @@ public class TestPutKinesisStream {
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    public void tearDown() {
         runner = null;
     }
 
@@ -68,15 +76,41 @@ public class TestPutKinesisStream {
         runner.setProperty(PutKinesisStream.BATCH_SIZE, "1");
         runner.assertValid();
         byte[] bytes = new byte[(KinesisProcessorUtils.MAX_MESSAGE_SIZE + 1)];
-        for (int i = 0; i < bytes.length; i++) {
-            bytes[i] = 'a';
-        }
+        Arrays.fill(bytes, (byte) 'a');
         runner.enqueue(bytes);
         runner.run(1);
 
         runner.assertAllFlowFilesTransferred(PutKinesisStream.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(PutKinesisStream.REL_FAILURE);
 
-        assertNotNull(flowFiles.get(0).getAttribute(PutKinesisStream.AWS_KINESIS_ERROR_MESSAGE));
+        assertNotNull(flowFiles.getFirst().getAttribute(PutKinesisStream.AWS_KINESIS_ERROR_MESSAGE));
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("aws-region", REGION.getName()),
+                Map.entry(AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, AbstractAwsProcessor.PROXY_CONFIGURATION_SERVICE.getName()),
+                Map.entry("amazon-kinesis-stream-partition-key", PutKinesisStream.KINESIS_PARTITION_KEY.getName()),
+                Map.entry("message-batch-size", PutKinesisStream.BATCH_SIZE.getName()),
+                Map.entry("max-message-buffer-size", PutKinesisStream.MAX_MESSAGE_BUFFER_SIZE_MB.getName()),
+                Map.entry("kinesis-stream-name", PutKinesisStream.KINESIS_STREAM_NAME.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_ACCESS_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_SECRET_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_CREDENTIALS_FILE.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_HOST.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PORT.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_USERNAME.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PASSWORD.getValue());
+
+        assertEquals(expectedRemoved,
+                propertyMigrationResult.getPropertiesRemoved());
     }
 }

@@ -17,11 +17,14 @@
 package org.apache.nifi.processors.aws.credentials.provider.service;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.processors.aws.s3.FetchS3Object;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -30,9 +33,23 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sts.auth.StsAssumeRoleCredentialsProvider;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ACCESS_KEY_ID;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_EXTERNAL_ID;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_ENDPOINT;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.ASSUME_ROLE_STS_REGION;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.CREDENTIALS_FILE;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.MAX_SESSION_TIME;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.PROFILE_NAME;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.SECRET_KEY;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.USE_ANONYMOUS_CREDENTIALS;
+import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.USE_DEFAULT_CREDENTIALS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -390,6 +407,42 @@ public class AWSCredentialsProviderControllerServiceTest {
         assertNotNull(credentialsProvider);
         assertFalse(StsAssumeRoleCredentialsProvider.class.isAssignableFrom(credentialsProvider.getClass()),
                 "Derived AssumeRole should not be chained when OAuth2 (Web Identity) is configured");
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> propertyValues = Map.of(
+                AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME.getName(), "nifi-test"
+        );
+
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        final AWSCredentialsProviderControllerService awsCredentialsProviderControllerService = new AWSCredentialsProviderControllerService();
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("default-credentials", USE_DEFAULT_CREDENTIALS.getName()),
+                Map.entry("profile-name", PROFILE_NAME.getName()),
+                Map.entry("Access Key", ACCESS_KEY_ID.getName()),
+                Map.entry("Secret Key", SECRET_KEY.getName()),
+                Map.entry("anonymous-credentials", USE_ANONYMOUS_CREDENTIALS.getName()),
+                Map.entry("assume-role-sts-region", ASSUME_ROLE_STS_REGION.getName()),
+                Map.entry("assume-role-external-id", ASSUME_ROLE_EXTERNAL_ID.getName()),
+                Map.entry("assume-role-ssl-context-service", ASSUME_ROLE_SSL_CONTEXT_SERVICE.getName()),
+                Map.entry("assume-role-proxy-configuration-service", ASSUME_ROLE_PROXY_CONFIGURATION_SERVICE.getName()),
+                Map.entry("assume-role-sts-endpoint", ASSUME_ROLE_STS_ENDPOINT.getName()),
+                Map.entry("Session Time", MAX_SESSION_TIME.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        awsCredentialsProviderControllerService.migrateProperties(configuration);
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
+
+        final Set<String> expectedRemoved = new HashSet<>(Arrays.asList(null, "assume-role-proxy-host", "assume-role-proxy-port", "assume-role-sts-signer-override",
+                "Assume Role STS Signer Override", "custom-signer-class-name", "Custom Signer Class Name",
+                "custom-signer-module-location", "Custom Signer Module Location"));
+
+        assertEquals(expectedRemoved, result.getPropertiesRemoved());
     }
 
     private static final class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {
