@@ -770,11 +770,13 @@ public abstract class AbstractComponentNode implements ComponentNode {
     public synchronized boolean isReloadAdditionalResourcesNecessary() {
         // Components that don't have any PropertyDescriptors marked `dynamicallyModifiesClasspath`
         // won't have the fingerprint i.e. will be null, in such cases do nothing
-        if (additionalResourcesFingerprint == null) {
+        final Set<PropertyDescriptor> descriptors = this.getProperties().keySet();
+        final boolean dynamicallyModifiesClasspath = descriptors.stream()
+                .anyMatch(PropertyDescriptor::isDynamicClasspathModifier);
+        if (!dynamicallyModifiesClasspath) {
             return false;
         }
 
-        final Set<PropertyDescriptor> descriptors = this.getProperties().keySet();
         final Set<URL> additionalUrls = this.getAdditionalClasspathResources(descriptors);
 
         final String newFingerprint = ClassLoaderUtils.generateAdditionalUrlsFingerprint(additionalUrls, determineClasloaderIsolationKey());

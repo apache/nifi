@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.Resource;
@@ -38,6 +39,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -117,22 +119,23 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     private volatile String comment;
     private volatile ProcessGroup processGroup;
     private volatile LogLevel bulletinLevel = LogLevel.WARN;
+    private final VerifiableComponentFactory verifiableComponentFactory;
 
     private final AtomicBoolean active;
 
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
-                                         final ControllerServiceProvider serviceProvider, final ReloadComponent reloadComponent,
+                                         final ControllerServiceProvider serviceProvider, final ReloadComponent reloadComponent, final VerifiableComponentFactory verifiableComponentFactory,
                                          final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
 
         this(implementation, proxiedControllerService, invocationHandler, id, validationContextFactory, serviceProvider, implementation.getComponent().getClass().getSimpleName(),
-            implementation.getComponent().getClass().getCanonicalName(), reloadComponent, extensionManager, validationTrigger, false);
+            implementation.getComponent().getClass().getCanonicalName(), reloadComponent, verifiableComponentFactory, extensionManager, validationTrigger, false);
     }
 
     public StandardControllerServiceNode(final LoggableComponent<ControllerService> implementation, final LoggableComponent<ControllerService> proxiedControllerService,
                                          final ControllerServiceInvocationHandler invocationHandler, final String id, final ValidationContextFactory validationContextFactory,
                                          final ControllerServiceProvider serviceProvider, final String componentType, final String componentCanonicalClass,
-                                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager,
+                                         final ReloadComponent reloadComponent, final VerifiableComponentFactory verifiableComponentFactory, final ExtensionManager extensionManager,
                                          final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
 
         super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, reloadComponent, extensionManager, validationTrigger, isExtensionMissing);
@@ -140,6 +143,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
         stateTransition = new ServiceStateTransition(this);
+        this.verifiableComponentFactory = verifiableComponentFactory;
         this.comment = "";
     }
 
@@ -531,17 +535,26 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 // Check if the given configuration requires a different classloader than the current configuration
                 final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
 
-                if (classpathDifferent) {
+                if (classpathDifferent || isReloadAdditionalResourcesNecessary()) {
+                    LOG.debug("Classpath reload required. Create temporary InstanceClassLoader for verification");
                     // Create a classloader for the given configuration and use that to verify the component's configuration
                     final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
                     final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
 
                     final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
                     final String classLoaderIsolationKey = getClassLoaderIsolationKey(context);
-                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false,
+
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentClass().getName(), getIdentifier(), bundle, classpathUrls, false,
                                 classLoaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
-                        results.addAll(verifiable.verify(context, logger, variables));
+                        // Create a temp ControllerService for the initial verification.  Use the InstanceClassLoader to instantiate the Temp Controller Service
+                        // This ensures Class.forName(String) classloading uses the InstanceClassLoader since that classloader will include the updated additional classpath urls
+                        final VerifiableControllerService tempVerifiable = verifiableComponentFactory.createControllerService(this, detectedClassLoader);
+                        try {
+                            results.addAll(tempVerifiable.verify(context, logger, variables));
+                        } finally {
+                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, tempVerifiable, context);
+                        }
                     } finally {
                         Thread.currentThread().setContextClassLoader(currentClassLoader);
                     }
@@ -919,4 +932,5 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         return selectedDelay;
     }
+
 }
