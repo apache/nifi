@@ -28,6 +28,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
@@ -117,6 +118,7 @@ public class ExtensionBuilder {
     private String classloaderIsolationKey;
     private SSLContext systemSslContext;
     private PythonBridge pythonBridge;
+    private VerifiableComponentFactory verifiableComponentFactory;
 
     public ExtensionBuilder type(final String type) {
         this.type = type;
@@ -221,6 +223,11 @@ public class ExtensionBuilder {
         return this;
     }
 
+    public ExtensionBuilder verifiableComponentFactory(final VerifiableComponentFactory verifiableComponentFactory) {
+        this.verifiableComponentFactory = verifiableComponentFactory;
+        return this;
+    }
+
     public ProcessorNode buildProcessor() {
         if (identifier == null) {
             throw new IllegalStateException("Processor ID must be specified");
@@ -242,6 +249,9 @@ public class ExtensionBuilder {
         }
         if (reloadComponent == null) {
             throw new IllegalStateException("Reload Component must be specified");
+        }
+        if (verifiableComponentFactory == null) {
+            throw new IllegalStateException("Verifiable Component Factory must be specified");
         }
 
         boolean creationSuccessful = true;
@@ -434,6 +444,9 @@ public class ExtensionBuilder {
         if (reloadComponent == null) {
             throw new IllegalStateException("Reload Component must be specified");
         }
+        if (verifiableComponentFactory == null) {
+            throw new IllegalStateException("Verifiable Component Factory must be specified");
+        }
         if (stateManagerProvider == null) {
             throw new IllegalStateException("State Manager Provider must be specified");
         }
@@ -502,7 +515,7 @@ public class ExtensionBuilder {
         final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
 
         final ProcessorNode procNode = new StandardProcessorNode(processor, identifier, validationContextFactory, processScheduler, serviceProvider,
-                    componentType, type, reloadComponent, extensionManager, validationTrigger, extensionMissing);
+                    componentType, type, reloadComponent, verifiableComponentFactory, extensionManager, validationTrigger, extensionMissing);
 
         applyDefaultSettings(procNode);
         applyDefaultRunDuration(procNode);
@@ -683,7 +696,7 @@ public class ExtensionBuilder {
 
             final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                    identifier, validationContextFactory, serviceProvider, reloadComponent, extensionManager, validationTrigger);
+                    identifier, validationContextFactory, serviceProvider, reloadComponent, verifiableComponentFactory, extensionManager, validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
             // Set Controller Service Node in Logging Context to populate Process Group information
             loggingContext.setComponent(serviceNode);
@@ -770,7 +783,8 @@ public class ExtensionBuilder {
 
         final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider);
         return new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, identifier,
-                validationContextFactory, serviceProvider, componentType, type, reloadComponent, extensionManager, validationTrigger, true);
+                validationContextFactory, serviceProvider, componentType, type, reloadComponent, verifiableComponentFactory,
+                extensionManager, validationTrigger, true);
     }
 
     private LoggableComponent<Processor> createLoggableProcessor(final LoggingContext loggingContext) throws ProcessorInstantiationException {

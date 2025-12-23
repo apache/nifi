@@ -119,7 +119,6 @@ public class StandardReloadComponent implements ReloadComponent {
         flowController.getValidationTrigger().trigger(existingNode);
     }
 
-
     @Override
     public void reload(final ControllerServiceNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)
         throws ControllerServiceInstantiationException {
