@@ -37,6 +37,7 @@ export const initialExtensionsTypesState: ExtensionTypesState = {
     registryClientTypes: [],
     flowAnalysisRuleTypes: [],
     parameterProviderTypes: [],
+    connectorTypes: [],
     status: 'pending'
 };
 
@@ -56,6 +57,7 @@ export const extensionTypesReducer = createReducer(
             registryClientTypes: [],
             parameterProviderTypes: [],
             flowAnalysisRuleTypes: [],
+            connectorTypes: [],
             status: 'loading' as const
         })
     ),
@@ -92,6 +94,7 @@ export const extensionTypesReducer = createReducer(
         registryClientTypes: response.registryClientTypes,
         parameterProviderTypes: response.parameterProviderTypes,
         flowAnalysisRuleTypes: response.flowAnalysisRuleTypes,
+        connectorTypes: response.connectorTypes,
         status: 'success' as const
     })),
     on(extensionTypesApiError, (state) => ({

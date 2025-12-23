@@ -134,6 +134,10 @@ describe('FlowAnalysisRuleTable', () => {
                 canRead: true,
                 canWrite: true
             },
+            connectorsPermissions: {
+                canRead: true,
+                canWrite: true
+            },
             componentRestrictionPermissions: [],
             canVersionFlows: true,
             logoutSupported: true

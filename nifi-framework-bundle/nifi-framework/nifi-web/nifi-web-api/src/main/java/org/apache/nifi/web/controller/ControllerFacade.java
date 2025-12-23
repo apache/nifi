@@ -33,6 +33,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
+import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
@@ -677,6 +678,29 @@ public class ControllerFacade implements Authorizable {
     public FlowAnalysisRuleDefinition getFlowAnalysisRuleDefinition(String group, String artifact, String version, String type) {
         final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
         return componentManifest.getFlowAnalysisRules().stream().filter(flowAnalysisRuleDefinition -> type.equals(flowAnalysisRuleDefinition.getType())).findFirst().orElse(null);
+    }
+
+    public ConnectorDefinition getConnectorDefinition(final String group, final String artifact, final String version, final String type) {
+        final ComponentManifest componentManifest = getComponentManifest(group, artifact, version);
+        final List<ConnectorDefinition> connectorDefinitions = componentManifest.getConnectors();
+        if (connectorDefinitions == null) {
+            return null;
+        }
+        final ConnectorDefinition connectorDefinition = connectorDefinitions.stream()
+                .filter(definition -> group.equals(definition.getGroup())
+                        && artifact.equals(definition.getArtifact())
+                        && version.equals(definition.getVersion())
+                        && type.equals(definition.getType()))
+                .findFirst()
+                .orElse(null);
+
+        if (connectorDefinition != null && connectorDefinition.getConfigurationSteps() != null) {
+            final Map<String, File> stepDocumentation = runtimeManifestService.discoverStepDocumentation(group, artifact, version, type);
+            final Set<String> documentedSteps = stepDocumentation.keySet();
+            connectorDefinition.getConfigurationSteps().forEach(step -> step.setDocumented(documentedSteps.contains(step.getName())));
+        }
+
+        return connectorDefinition;
     }
 
     public String getAdditionalDetails(String group, String artifact, String version, String type) {

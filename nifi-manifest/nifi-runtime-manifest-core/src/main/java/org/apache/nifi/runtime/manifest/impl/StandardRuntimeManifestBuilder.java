@@ -20,6 +20,13 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.c2.protocol.component.api.BuildInfo;
 import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.ConfigurableComponentDefinition;
+import org.apache.nifi.c2.protocol.component.api.ConfigurationStep;
+import org.apache.nifi.c2.protocol.component.api.ConfigurationStepDependency;
+import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
+import org.apache.nifi.c2.protocol.component.api.ConnectorPropertyDependency;
+import org.apache.nifi.c2.protocol.component.api.ConnectorPropertyDescriptor;
+import org.apache.nifi.c2.protocol.component.api.ConnectorPropertyGroup;
+import org.apache.nifi.c2.protocol.component.api.ConnectorPropertyType;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.DefinedType;
 import org.apache.nifi.c2.protocol.component.api.ExtensionComponent;
@@ -63,6 +70,7 @@ import org.apache.nifi.extension.manifest.ResourceDefinition;
 import org.apache.nifi.extension.manifest.Restricted;
 import org.apache.nifi.extension.manifest.Stateful;
 import org.apache.nifi.extension.manifest.SystemResourceConsideration;
+import org.apache.nifi.extension.manifest.ConnectorProperty;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.runtime.manifest.ComponentManifestBuilder;
 import org.apache.nifi.runtime.manifest.ExtensionManifestContainer;
@@ -225,6 +233,9 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
                 break;
             case FLOW_REGISTRY_CLIENT:
                 addFlowRegistryClientDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
+                break;
+            case CONNECTOR:
+                addConnectorDefinition(extensionManifest, extension, additionalDetails, componentManifestBuilder);
                 break;
         }
     }
@@ -408,6 +419,121 @@ public class StandardRuntimeManifestBuilder implements RuntimeManifestBuilder {
         populateExtensionComponent(extensionManifest, extension, additionalDetails, flowRegistryClientDefinition);
         populateConfigurableComponent(extension, flowRegistryClientDefinition);
         componentManifestBuilder.addFlowRegistryClient(flowRegistryClientDefinition);
+    }
+
+    private void addConnectorDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
+                                        final ComponentManifestBuilder componentManifestBuilder) {
+        final ConnectorDefinition connectorDefinition = new ConnectorDefinition();
+        populateDefinedType(extensionManifest, extension, connectorDefinition);
+        populateExtensionComponent(extensionManifest, extension, additionalDetails, connectorDefinition);
+
+        // Populate configuration steps
+        final List<org.apache.nifi.extension.manifest.ConfigurationStep> manifestSteps = extension.getConfigurationSteps();
+        if (isNotEmpty(manifestSteps)) {
+            connectorDefinition.setConfigurationSteps(
+                    manifestSteps.stream()
+                            .map(this::getConfigurationStep)
+                            .collect(Collectors.toList())
+            );
+        }
+
+        componentManifestBuilder.addConnector(connectorDefinition);
+    }
+
+    private ConfigurationStep getConfigurationStep(final org.apache.nifi.extension.manifest.ConfigurationStep manifestStep) {
+        final ConfigurationStep step = new ConfigurationStep();
+        step.setName(manifestStep.getName());
+        step.setDescription(manifestStep.getDescription());
+
+        // Convert step dependencies
+        final List<org.apache.nifi.extension.manifest.ConfigurationStepDependency> manifestDeps = manifestStep.getStepDependencies();
+        if (isNotEmpty(manifestDeps)) {
+            step.setStepDependencies(
+                    manifestDeps.stream()
+                            .map(this::getConfigurationStepDependency)
+                            .collect(Collectors.toList())
+            );
+        }
+
+        // Convert property groups
+        final List<org.apache.nifi.extension.manifest.ConnectorPropertyGroup> manifestGroups = manifestStep.getPropertyGroups();
+        if (isNotEmpty(manifestGroups)) {
+            step.setPropertyGroups(
+                    manifestGroups.stream()
+                            .map(this::getConnectorPropertyGroup)
+                            .collect(Collectors.toList())
+            );
+        }
+
+        return step;
+    }
+
+    private ConfigurationStepDependency getConfigurationStepDependency(
+            final org.apache.nifi.extension.manifest.ConfigurationStepDependency manifestDep) {
+        final ConfigurationStepDependency dep = new ConfigurationStepDependency();
+        dep.setStepName(manifestDep.getStepName());
+        dep.setPropertyName(manifestDep.getPropertyName());
+        dep.setDependentValues(manifestDep.getDependentValues());
+        return dep;
+    }
+
+    private ConnectorPropertyGroup getConnectorPropertyGroup(
+            final org.apache.nifi.extension.manifest.ConnectorPropertyGroup manifestGroup) {
+        final ConnectorPropertyGroup group = new ConnectorPropertyGroup();
+        group.setName(manifestGroup.getName());
+        group.setDescription(manifestGroup.getDescription());
+
+        final List<ConnectorProperty> manifestProps = manifestGroup.getProperties();
+        if (isNotEmpty(manifestProps)) {
+            group.setProperties(
+                    manifestProps.stream()
+                            .map(this::getConnectorPropertyDescriptor)
+                            .collect(Collectors.toList())
+            );
+        }
+
+        return group;
+    }
+
+    private ConnectorPropertyDescriptor getConnectorPropertyDescriptor(final ConnectorProperty manifestProp) {
+        final ConnectorPropertyDescriptor prop = new ConnectorPropertyDescriptor();
+        prop.setName(manifestProp.getName());
+        prop.setDescription(manifestProp.getDescription());
+        prop.setDefaultValue(manifestProp.getDefaultValue());
+        prop.setRequired(manifestProp.isRequired());
+        prop.setAllowableValuesFetchable(manifestProp.isAllowableValuesFetchable());
+
+        // Convert property type
+        final org.apache.nifi.extension.manifest.ConnectorPropertyType manifestType = manifestProp.getPropertyType();
+        if (manifestType != null) {
+            prop.setPropertyType(ConnectorPropertyType.valueOf(manifestType.name()));
+        }
+
+        // Convert allowable values
+        final List<AllowableValue> manifestValues = manifestProp.getAllowableValues();
+        if (isNotEmpty(manifestValues)) {
+            prop.setAllowableValues(getPropertyAllowableValues(manifestValues));
+        }
+
+        // Convert property dependencies
+        final List<org.apache.nifi.extension.manifest.ConnectorPropertyDependency> manifestDeps = manifestProp.getDependencies();
+        if (isNotEmpty(manifestDeps)) {
+            prop.setDependencies(
+                    manifestDeps.stream()
+                            .map(this::getConnectorPropertyDependency)
+                            .collect(Collectors.toList())
+            );
+        }
+
+        return prop;
+    }
+
+    private ConnectorPropertyDependency getConnectorPropertyDependency(
+            final org.apache.nifi.extension.manifest.ConnectorPropertyDependency manifestDep) {
+        final ConnectorPropertyDependency dep = new ConnectorPropertyDependency();
+        dep.setPropertyName(manifestDep.getPropertyName());
+        dep.setDependentValues(manifestDep.getDependentValues());
+        return dep;
     }
 
     private void addFlowAnalysisRuleDefinition(final ExtensionManifest extensionManifest, final Extension extension, final String additionalDetails,
