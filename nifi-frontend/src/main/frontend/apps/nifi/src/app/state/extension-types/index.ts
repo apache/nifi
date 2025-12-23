@@ -50,6 +50,7 @@ export interface LoadExtensionTypesForDocumentationResponse {
     registryClientTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];
+    connectorTypes: DocumentedType[];
 }
 
 export interface ExtensionTypesState {
@@ -60,5 +61,6 @@ export interface ExtensionTypesState {
     registryClientTypes: DocumentedType[];
     flowAnalysisRuleTypes: DocumentedType[];
     parameterProviderTypes: DocumentedType[];
+    connectorTypes: DocumentedType[];
     status: ExtensionTypesLoadingStatus;
 }

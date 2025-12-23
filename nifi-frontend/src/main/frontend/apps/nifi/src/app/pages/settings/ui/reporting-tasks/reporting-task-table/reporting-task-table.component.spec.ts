@@ -138,6 +138,10 @@ describe('ReportingTaskTable', () => {
             controllerPermissions: {
                 canRead: true,
                 canWrite: true
+            },
+            connectorsPermissions: {
+                canRead: true,
+                canWrite: true
             }
         };
     }
