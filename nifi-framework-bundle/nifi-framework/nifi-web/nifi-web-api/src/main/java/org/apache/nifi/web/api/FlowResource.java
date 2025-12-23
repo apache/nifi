@@ -76,7 +76,9 @@ import org.apache.nifi.flow.VersionedReportingTaskSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.registry.flow.FlowVersionLocation;
+import org.apache.nifi.ui.extension.contentviewer.ContentTypeResolver;
 import org.apache.nifi.ui.extension.contentviewer.ContentViewer;
+import org.apache.nifi.ui.extension.contentviewer.SupportedMimeTypes;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -191,6 +193,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -373,25 +376,14 @@ public class FlowResource extends ApplicationResource {
 
         final List<ContentViewerDTO> dtos = new ArrayList<>();
         contentViewers.forEach((contentViewer) -> {
-            final String contextPath = contentViewer.getContextPath();
-            final BundleCoordinate bundleCoordinate = contentViewer.getBundle().getBundleDetails().getCoordinate();
-
-            final String displayName = StringUtils.substringBefore(contextPath.substring(1), "-" + bundleCoordinate.getVersion());
-
-            final ContentViewerDTO dto = new ContentViewerDTO();
-            dto.setDisplayName(displayName + " " + bundleCoordinate.getVersion());
-
-            final List<SupportedMimeTypesDTO> supportedMimeTypes = contentViewer.getSupportedMimeTypes().stream().map((supportedMimeType -> {
+            final List<SupportedMimeTypesDTO> supportedMimeTypesDTOs = contentViewer.getSupportedMimeTypes().stream().map((supportedMimeType -> {
                 final SupportedMimeTypesDTO mimeTypesDto = new SupportedMimeTypesDTO();
                 mimeTypesDto.setDisplayName(supportedMimeType.getDisplayName());
                 mimeTypesDto.setMimeTypes(supportedMimeType.getMimeTypes());
                 return mimeTypesDto;
             })).collect(Collectors.toList());
-            dto.setSupportedMimeTypes(supportedMimeTypes);
 
-            final URI contentViewerUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(contextPath).build();
-            dto.setUri(contentViewerUri.toString());
-
+            final ContentViewerDTO dto = createContentViewerDTO(contentViewer, supportedMimeTypesDTOs, httpServletRequest);
             dtos.add(dto);
         });
 
@@ -399,6 +391,97 @@ public class FlowResource extends ApplicationResource {
         entity.setContentViewers(dtos);
 
         return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Resolves a MIME type to the appropriate content viewer.
+     *
+     * @param mimeType the MIME type to resolve
+     * @return A contentViewerDTO for the matching viewer, or null if no match found.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("content-viewers/resolve")
+    @Operation(
+            summary = "Resolves a MIME type to the appropriate content viewer",
+            description = "Finds the content viewer that supports the given MIME type, using both exact matching and pattern-based matching for structured suffix types (e.g., application/fhir+xml).",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ContentViewerDTO.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "No content viewer found for the specified MIME type."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /flow")
+            }
+    )
+    public Response resolveContentViewer(
+            @Parameter(description = "The MIME type to resolve to a content viewer", required = true)
+            @QueryParam("mimeType") final String mimeType,
+            @Context final HttpServletRequest httpServletRequest) {
+
+        if (StringUtils.isBlank(mimeType)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("The mimeType query parameter is required")
+                    .build();
+        }
+
+        authorizeFlow();
+
+        @SuppressWarnings("unchecked")
+        final Collection<ContentViewer> contentViewers = (Collection<ContentViewer>) servletContext.getAttribute("content-viewers");
+
+        final Optional<ContentTypeResolver.ResolvedContentType> resolvedContentType = ContentTypeResolver.resolve(mimeType, contentViewers);
+
+        if (resolvedContentType.isEmpty()) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("No content viewer found for MIME type: " + mimeType)
+                    .build();
+        }
+
+        final ContentViewer contentViewer = resolvedContentType.get().getContentViewer();
+        final SupportedMimeTypes supportedMimeTypes = resolvedContentType.get().getSupportedMimeTypes();
+
+        final SupportedMimeTypesDTO mimeTypesDto = new SupportedMimeTypesDTO();
+        mimeTypesDto.setDisplayName(supportedMimeTypes.getDisplayName());
+        mimeTypesDto.setMimeTypes(supportedMimeTypes.getMimeTypes());
+
+        final ContentViewerDTO dto = createContentViewerDTO(contentViewer, List.of(mimeTypesDto), httpServletRequest);
+
+        return generateOkResponse(dto).build();
+    }
+
+    /**
+     * Creates a ContentViewerDTO from a ContentViewer.
+     *
+     * @param contentViewer the content viewer
+     * @param supportedMimeTypes the supported MIME types DTOs
+     * @param httpServletRequest the HTTP request for building URIs
+     * @return a populated ContentViewerDTO
+     */
+    private ContentViewerDTO createContentViewerDTO(
+            final ContentViewer contentViewer,
+            final List<SupportedMimeTypesDTO> supportedMimeTypes,
+            final HttpServletRequest httpServletRequest) {
+
+        final String contextPath = contentViewer.getContextPath();
+        final BundleCoordinate bundleCoordinate = contentViewer.getBundle().getBundleDetails().getCoordinate();
+
+        // Extract display name from context path by removing the leading "/" and the version suffix
+        // e.g., "/nifi-standard-content-viewer-2.8.0-SNAPSHOT" -> "nifi-standard-content-viewer"
+        final String viewerName = StringUtils.substringBefore(contextPath.substring(1), "-" + bundleCoordinate.getVersion());
+
+        final ContentViewerDTO dto = new ContentViewerDTO();
+        dto.setDisplayName(viewerName + " " + bundleCoordinate.getVersion());
+        dto.setSupportedMimeTypes(supportedMimeTypes);
+
+        final URI contentViewerUri = RequestUriBuilder.fromHttpServletRequest(httpServletRequest).path(contextPath).build();
+        dto.setUri(contentViewerUri.toString());
+
+        return dto;
     }
 
     /**

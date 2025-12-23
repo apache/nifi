@@ -29,9 +29,10 @@ import { navigateToBundledContentViewer, resetContent, setRef } from '../state/c
 import { MatSelectChange } from '@angular/material/select';
 import { loadAbout } from '../../../state/about/about.actions';
 import { selectAbout } from '../../../state/about/about.selectors';
-import { filter, map, switchMap, take } from 'rxjs';
+import { catchError, filter, map, of, switchMap, take } from 'rxjs';
 import { navigateToExternalViewer } from '../state/external-viewer/external-viewer.actions';
 import { snackBarError } from '../../../state/error/error.actions';
+import { ContentViewerService } from '../service/content-viewer.service';
 
 interface SupportedContentViewer {
     supportedMimeTypes: SupportedMimeTypes;
@@ -49,6 +50,7 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     private store = inject<Store<NiFiState>>(Store);
     private nifiCommon = inject(NiFiCommon);
     private formBuilder = inject(FormBuilder);
+    private contentViewerService = inject(ContentViewerService);
 
     viewerForm: FormGroup;
     viewAsOptions: SelectGroup[] = [];
@@ -224,22 +226,36 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     private handleDefaultSelection(): void {
         if (!this.viewerSelected) {
             if (this.mimeType) {
-                const compatibleViewerOption = this.getCompatibleViewer(this.mimeType);
-                if (compatibleViewerOption === null) {
-                    if (this.defaultSupportedMimeTypeId !== null) {
-                        this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
-                        this.loadContentViewer(this.defaultSupportedMimeTypeId);
-                    }
+                // Call backend API to resolve the MIME type to the appropriate content viewer
+                this.contentViewerService
+                    .resolveContentViewer(this.mimeType)
+                    .pipe(
+                        take(1),
+                        catchError(() => of(null))
+                    )
+                    .subscribe((resolvedViewer) => {
+                        if (resolvedViewer) {
+                            // Find the matching viewer in the local lookup by URI and displayName
+                            const compatibleViewerOption = this.findViewerByResolution(resolvedViewer);
+                            if (compatibleViewerOption !== null) {
+                                this.viewerForm.get('viewAs')?.setValue(String(compatibleViewerOption));
+                                this.loadContentViewer(compatibleViewerOption);
+                                return;
+                            }
+                        }
 
-                    this.store.dispatch(
-                        snackBarError({
-                            error: `No compatible content viewer found for mime type [${this.mimeType}]`
-                        })
-                    );
-                } else {
-                    this.viewerForm.get('viewAs')?.setValue(String(compatibleViewerOption));
-                    this.loadContentViewer(compatibleViewerOption);
-                }
+                        // Fallback to default hex viewer if no match found
+                        if (this.defaultSupportedMimeTypeId !== null) {
+                            this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
+                            this.loadContentViewer(this.defaultSupportedMimeTypeId);
+                        }
+
+                        this.store.dispatch(
+                            snackBarError({
+                                error: `No compatible content viewer found for mime type [${this.mimeType}]`
+                            })
+                        );
+                    });
             } else if (this.defaultSupportedMimeTypeId !== null) {
                 this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
                 this.loadContentViewer(this.defaultSupportedMimeTypeId);
@@ -247,22 +263,17 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
         }
     }
 
-    private getCompatibleViewer(mimeType: string): number | null {
-        for (const group of this.viewAsOptions) {
-            for (const option of group.options) {
-                const supportedMimeTypeId: number = Number(option.value);
-                if (Number.isInteger(supportedMimeTypeId)) {
-                    const supportedContentViewer = this.supportedContentViewerLookup.get(supportedMimeTypeId);
-                    if (supportedContentViewer) {
-                        const supportsMimeType = supportedContentViewer.supportedMimeTypes.mimeTypes.some(
-                            (supportedMimeType) => mimeType.startsWith(supportedMimeType)
-                        );
+    private findViewerByResolution(resolvedViewer: any): number | null {
+        const resolvedUri = resolvedViewer.uri;
+        const resolvedDisplayName = resolvedViewer.supportedMimeTypes?.[0]?.displayName;
 
-                        if (supportsMimeType) {
-                            return supportedMimeTypeId;
-                        }
-                    }
-                }
+        for (const [supportedMimeTypeId, supportedContentViewer] of this.supportedContentViewerLookup.entries()) {
+            // Match by URI and display name
+            if (
+                supportedContentViewer.contentViewer.uri === resolvedUri &&
+                supportedContentViewer.supportedMimeTypes.displayName === resolvedDisplayName
+            ) {
+                return supportedMimeTypeId;
             }
         }
 
