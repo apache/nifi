@@ -26,6 +26,7 @@ import { ParameterProviderDefinition } from '../ui/parameter-provider-definition
 import { FlowAnalysisRuleDefinition } from '../ui/flow-analysis-rule-definition/flow-analysis-rule-definition.component';
 import { Overview } from '../ui/overview/overview.component';
 import { FlowRegistryClientDefinition } from '../ui/flow-registry-client-definition/flow-registry-client-definition.component';
+import { ConnectorDefinitionComponent } from '../ui/connector-definition/connector-definition.component';
 
 const routes: Routes = [
     {
@@ -56,6 +57,10 @@ const routes: Routes = [
             {
                 path: `${ComponentType.FlowAnalysisRule}/:group/:artifact/:version/:type`,
                 component: FlowAnalysisRuleDefinition
+            },
+            {
+                path: `${ComponentType.Connector}/:group/:artifact/:version/:type`,
+                component: ConnectorDefinitionComponent
             },
             {
                 path: 'overview',

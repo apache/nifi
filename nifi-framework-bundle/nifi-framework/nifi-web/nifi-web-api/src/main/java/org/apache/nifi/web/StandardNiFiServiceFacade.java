@@ -52,6 +52,7 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
 import org.apache.nifi.c2.protocol.component.api.ControllerServiceDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowAnalysisRuleDefinition;
 import org.apache.nifi.c2.protocol.component.api.FlowRegistryClientDefinition;
@@ -4368,6 +4369,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
         }
         return flowAnalysisRuleDefinition;
+    }
+
+    @Override
+    public ConnectorDefinition getConnectorDefinition(final String group, final String artifact, final String version, final String type) {
+        final ConnectorDefinition connectorDefinition = controllerFacade.getConnectorDefinition(group, artifact, version, type);
+        if (connectorDefinition == null) {
+            throw new ResourceNotFoundException("Unable to find definition for [%s:%s:%s:%s]".formatted(group, artifact, version, type));
+        }
+        return connectorDefinition;
     }
 
     @Override

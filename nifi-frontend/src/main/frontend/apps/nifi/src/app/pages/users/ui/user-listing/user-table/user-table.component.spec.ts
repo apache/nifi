@@ -61,6 +61,10 @@ describe('UserTable', () => {
             canRead: true,
             canWrite: true
         },
+        connectorsPermissions: {
+            canRead: false,
+            canWrite: false
+        },
         restrictedComponentsPermissions: {
             canRead: false,
             canWrite: true

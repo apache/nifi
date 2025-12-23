@@ -416,9 +416,9 @@ public class StandardRuntimeManifestService implements RuntimeManifestService {
     private Map<String, File> discoverStepDocumentation(final BundleDetails bundleDetails, final String connectorType) {
         final Map<String, File> stepDocsMap = new LinkedHashMap<>();
 
-        final File stepDocsDir = new File(bundleDetails.getWorkingDirectory(), "META-INF/docs/step-documentation/" + connectorType);
+        final File stepDocsDir = new File(bundleDetails.getWorkingDirectory(), "META-INF/docs/steps/" + connectorType);
         if (!stepDocsDir.exists()) {
-            LOGGER.debug("No step-documentation directory found for [{}] under [{}]", connectorType, bundleDetails.getWorkingDirectory().getAbsolutePath());
+            LOGGER.debug("No steps directory found for [{}] under [{}]", connectorType, bundleDetails.getWorkingDirectory().getAbsolutePath());
             return stepDocsMap;
         }
 
