@@ -17,9 +17,15 @@
 
 import { createSelector } from '@ngrx/store';
 import { DocumentationState, selectDocumentationState } from '../index';
-import { connectorDefinitionFeatureKey } from './index';
+import { connectorDefinitionFeatureKey, StepDocumentationState } from './index';
 
 export const selectConnectorDefinitionState = createSelector(
     selectDocumentationState,
     (state: DocumentationState) => state[connectorDefinitionFeatureKey]
 );
+
+export const selectStepDocumentation = (stepName: string) =>
+    createSelector(
+        selectConnectorDefinitionState,
+        (state): StepDocumentationState | undefined => state.stepDocumentation[stepName]
+    );

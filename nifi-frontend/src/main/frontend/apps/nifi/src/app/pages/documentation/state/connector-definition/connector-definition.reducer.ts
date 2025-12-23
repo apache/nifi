@@ -21,13 +21,17 @@ import {
     connectorDefinitionApiError,
     loadConnectorDefinition,
     loadConnectorDefinitionSuccess,
-    resetConnectorDefinitionState
+    loadStepDocumentation,
+    loadStepDocumentationSuccess,
+    resetConnectorDefinitionState,
+    stepDocumentationApiError
 } from './connector-definition.actions';
 
 export const initialConnectorDefinitionState: ConnectorDefinitionState = {
     connectorDefinition: null,
     error: null,
-    status: 'pending'
+    status: 'pending',
+    stepDocumentation: {}
 };
 
 export const connectorDefinitionReducer = createReducer(
@@ -51,5 +55,38 @@ export const connectorDefinitionReducer = createReducer(
     })),
     on(resetConnectorDefinitionState, () => ({
         ...initialConnectorDefinitionState
+    })),
+    on(loadStepDocumentation, (state, { stepName }) => ({
+        ...state,
+        stepDocumentation: {
+            ...state.stepDocumentation,
+            [stepName]: {
+                documentation: null,
+                error: null,
+                status: 'loading' as const
+            }
+        }
+    })),
+    on(loadStepDocumentationSuccess, (state, { stepName, documentation }) => ({
+        ...state,
+        stepDocumentation: {
+            ...state.stepDocumentation,
+            [stepName]: {
+                documentation,
+                error: null,
+                status: 'success' as const
+            }
+        }
+    })),
+    on(stepDocumentationApiError, (state, { stepName, error }) => ({
+        ...state,
+        stepDocumentation: {
+            ...state.stepDocumentation,
+            [stepName]: {
+                documentation: null,
+                error,
+                status: 'error' as const
+            }
+        }
     }))
 );

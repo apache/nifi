@@ -39,3 +39,18 @@ export const connectorDefinitionApiError = createAction(
 export const resetConnectorDefinitionState = createAction(
     `${CONNECTOR_DEFINITION_PREFIX} Reset Connector Definition State`
 );
+
+export const loadStepDocumentation = createAction(
+    `${CONNECTOR_DEFINITION_PREFIX} Load Step Documentation`,
+    props<{ coordinates: DefinitionCoordinates; stepName: string }>()
+);
+
+export const loadStepDocumentationSuccess = createAction(
+    `${CONNECTOR_DEFINITION_PREFIX} Load Step Documentation Success`,
+    props<{ stepName: string; documentation: string }>()
+);
+
+export const stepDocumentationApiError = createAction(
+    `${CONNECTOR_DEFINITION_PREFIX} Load Step Documentation Error`,
+    props<{ stepName: string; error: string }>()
+);

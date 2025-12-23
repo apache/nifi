@@ -59,8 +59,15 @@ export interface ConnectorDefinition extends ExtensionComponent {
     configurationSteps?: ConfigurationStep[];
 }
 
+export interface StepDocumentationState {
+    documentation: string | null;
+    error: string | null;
+    status: 'pending' | 'loading' | 'success' | 'error';
+}
+
 export interface ConnectorDefinitionState {
     connectorDefinition: ConnectorDefinition | null;
     error: string | null;
     status: 'pending' | 'loading' | 'success' | 'error';
+    stepDocumentation: { [stepName: string]: StepDocumentationState };
 }

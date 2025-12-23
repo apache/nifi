@@ -52,4 +52,28 @@ export class ConnectorDefinitionEffects {
             )
         )
     );
+
+    loadStepDocumentation$ = createEffect(() =>
+        this.actions$.pipe(
+            ofType(ConnectorDefinitionActions.loadStepDocumentation),
+            switchMap((action) =>
+                from(this.documentationService.getStepDocumentation(action.coordinates, action.stepName)).pipe(
+                    map((response) =>
+                        ConnectorDefinitionActions.loadStepDocumentationSuccess({
+                            stepName: action.stepName,
+                            documentation: response.stepDocumentation
+                        })
+                    ),
+                    catchError((errorResponse: HttpErrorResponse) =>
+                        of(
+                            ConnectorDefinitionActions.stepDocumentationApiError({
+                                stepName: action.stepName,
+                                error: this.errorHelper.getErrorString(errorResponse)
+                            })
+                        )
+                    )
+                )
+            )
+        )
+    );
 }

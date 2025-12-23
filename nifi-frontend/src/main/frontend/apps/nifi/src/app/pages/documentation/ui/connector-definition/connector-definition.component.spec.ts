@@ -32,7 +32,8 @@ import { initialState as initialErrorState } from '../../../../state/error/error
 import { errorFeatureKey } from '../../../../state/error';
 import { initialState as initialCurrentUserState } from '../../../../state/current-user/current-user.reducer';
 import { currentUserFeatureKey } from '../../../../state/current-user';
-import { DocumentationService } from '../../service/documentation.service';
+import { ConnectorDefinition } from '../../state/connector-definition';
+import { loadStepDocumentation } from '../../state/connector-definition/connector-definition.actions';
 
 describe('ConnectorDefinitionComponent', () => {
     function createMockProperty(name: string, required: boolean, description: string): ConnectorPropertyDescriptor {
@@ -75,10 +76,7 @@ describe('ConnectorDefinitionComponent', () => {
 
         await TestBed.configureTestingModule({
             imports: [ConnectorDefinitionComponent],
-            providers: [
-                provideMockStore({ initialState }),
-                { provide: DocumentationService, useValue: {} }
-            ]
+            providers: [provideMockStore({ initialState })]
         }).compileComponents();
 
         const fixture = TestBed.createComponent(ConnectorDefinitionComponent);
@@ -108,7 +106,8 @@ describe('ConnectorDefinitionComponent', () => {
             const state: ConnectorDefinitionState = {
                 connectorDefinition: null,
                 error: null,
-                status: 'pending'
+                status: 'pending',
+                stepDocumentation: {}
             };
             expect(component.isInitialLoading(state)).toBe(true);
         });
@@ -129,7 +128,8 @@ describe('ConnectorDefinitionComponent', () => {
                     additionalDetails: false
                 },
                 error: null,
-                status: 'success'
+                status: 'success',
+                stepDocumentation: {}
             };
             expect(component.isInitialLoading(state)).toBe(false);
         });
@@ -139,7 +139,8 @@ describe('ConnectorDefinitionComponent', () => {
             const state: ConnectorDefinitionState = {
                 connectorDefinition: null,
                 error: 'Failed to load',
-                status: 'error'
+                status: 'error',
+                stepDocumentation: {}
             };
             expect(component.isInitialLoading(state)).toBe(false);
         });
@@ -230,19 +231,185 @@ describe('ConnectorDefinitionComponent', () => {
     });
 
     describe('Step documentation', () => {
-        it('should return false for isStepDocumentationLoading when step is not loading', async () => {
+        it('should return false for isStepDocumentationLoading when step is not in state', async () => {
             const { component } = await setup();
             expect(component.isStepDocumentationLoading('Some Step')).toBe(false);
         });
 
-        it('should return undefined for getStepDocumentation when step has no documentation', async () => {
+        it('should return true for isStepDocumentationLoading when step status is loading', async () => {
+            const { component } = await setup({
+                stepDocumentation: {
+                    'Some Step': { documentation: null, error: null, status: 'loading' }
+                }
+            });
+            expect(component.isStepDocumentationLoading('Some Step')).toBe(true);
+        });
+
+        it('should return undefined for getStepDocumentation when step is not in state', async () => {
             const { component } = await setup();
             expect(component.getStepDocumentation('Some Step')).toBeUndefined();
         });
 
-        it('should return undefined for getStepDocumentationError when step has no error', async () => {
+        it('should return documentation when step has loaded documentation', async () => {
+            const { component } = await setup({
+                stepDocumentation: {
+                    'Some Step': { documentation: '# Step Documentation', error: null, status: 'success' }
+                }
+            });
+            expect(component.getStepDocumentation('Some Step')).toBe('# Step Documentation');
+        });
+
+        it('should return undefined for getStepDocumentationError when step is not in state', async () => {
             const { component } = await setup();
             expect(component.getStepDocumentationError('Some Step')).toBeUndefined();
+        });
+
+        it('should return error when step has an error', async () => {
+            const { component } = await setup({
+                stepDocumentation: {
+                    'Some Step': { documentation: null, error: 'Failed to load', status: 'error' }
+                }
+            });
+            expect(component.getStepDocumentationError('Some Step')).toBe('Failed to load');
+        });
+    });
+
+    describe('onStepExpanded', () => {
+        function createMockConnectorDefinition(): ConnectorDefinition {
+            return {
+                group: 'org.apache.nifi',
+                artifact: 'nifi-test-nar',
+                version: '1.0.0',
+                type: 'org.apache.nifi.TestConnector',
+                typeDescription: 'Test Connector',
+                buildInfo: { revision: 'abc123', version: '1.0.0' },
+                additionalDetails: false
+            };
+        }
+
+        it('should call loadStepDocumentation when step is documented', async () => {
+            const { component, store } = await setup();
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            const connectorDefinition = createMockConnectorDefinition();
+            const step = createMockConfigurationStep('Documented Step', []);
+            step.documented = true;
+
+            component.onStepExpanded(connectorDefinition, step);
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                loadStepDocumentation({
+                    coordinates: {
+                        group: connectorDefinition.group,
+                        artifact: connectorDefinition.artifact,
+                        version: connectorDefinition.version,
+                        type: connectorDefinition.type
+                    },
+                    stepName: 'Documented Step'
+                })
+            );
+        });
+
+        it('should not call loadStepDocumentation when step is not documented', async () => {
+            const { component, store } = await setup();
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            dispatchSpy.mockClear();
+            const connectorDefinition = createMockConnectorDefinition();
+            const step = createMockConfigurationStep('Undocumented Step', []);
+            step.documented = false;
+
+            component.onStepExpanded(connectorDefinition, step);
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('loadStepDocumentation deduplication', () => {
+        function createMockConnectorDefinition(): ConnectorDefinition {
+            return {
+                group: 'org.apache.nifi',
+                artifact: 'nifi-test-nar',
+                version: '1.0.0',
+                type: 'org.apache.nifi.TestConnector',
+                typeDescription: 'Test Connector',
+                buildInfo: { revision: 'abc123', version: '1.0.0' },
+                additionalDetails: false
+            };
+        }
+
+        it('should not dispatch when step is already loading', async () => {
+            const { component, store } = await setup({
+                stepDocumentation: {
+                    'Loading Step': { documentation: null, error: null, status: 'loading' }
+                }
+            });
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            dispatchSpy.mockClear();
+            const connectorDefinition = createMockConnectorDefinition();
+
+            component.loadStepDocumentation(connectorDefinition, 'Loading Step');
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        });
+
+        it('should not dispatch when step already has documentation', async () => {
+            const { component, store } = await setup({
+                stepDocumentation: {
+                    'Loaded Step': { documentation: '# Docs', error: null, status: 'success' }
+                }
+            });
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            dispatchSpy.mockClear();
+            const connectorDefinition = createMockConnectorDefinition();
+
+            component.loadStepDocumentation(connectorDefinition, 'Loaded Step');
+
+            expect(dispatchSpy).not.toHaveBeenCalled();
+        });
+
+        it('should dispatch when step is not in state', async () => {
+            const { component, store } = await setup();
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            dispatchSpy.mockClear();
+            const connectorDefinition = createMockConnectorDefinition();
+
+            component.loadStepDocumentation(connectorDefinition, 'New Step');
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                loadStepDocumentation({
+                    coordinates: {
+                        group: connectorDefinition.group,
+                        artifact: connectorDefinition.artifact,
+                        version: connectorDefinition.version,
+                        type: connectorDefinition.type
+                    },
+                    stepName: 'New Step'
+                })
+            );
+        });
+
+        it('should dispatch when step had an error', async () => {
+            const { component, store } = await setup({
+                stepDocumentation: {
+                    'Error Step': { documentation: null, error: 'Failed', status: 'error' }
+                }
+            });
+            const dispatchSpy = jest.spyOn(store, 'dispatch');
+            dispatchSpy.mockClear();
+            const connectorDefinition = createMockConnectorDefinition();
+
+            component.loadStepDocumentation(connectorDefinition, 'Error Step');
+
+            expect(dispatchSpy).toHaveBeenCalledWith(
+                loadStepDocumentation({
+                    coordinates: {
+                        group: connectorDefinition.group,
+                        artifact: connectorDefinition.artifact,
+                        version: connectorDefinition.version,
+                        type: connectorDefinition.type
+                    },
+                    stepName: 'Error Step'
+                })
+            );
         });
     });
 });

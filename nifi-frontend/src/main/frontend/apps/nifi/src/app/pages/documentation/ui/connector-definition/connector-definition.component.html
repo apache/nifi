@@ -86,8 +86,14 @@
                                 </div>
                             </div>
                             <mat-accordion multi #stepsAccordion="matAccordion">
-                                @for (step of connectorDefinition.configurationSteps; track step.name) {
-                                    <mat-expansion-panel [expanded]="true">
+                                @for (
+                                    step of connectorDefinition.configurationSteps;
+                                    track step.name;
+                                    let first = $first
+                                ) {
+                                    <mat-expansion-panel
+                                        [expanded]="first"
+                                        (afterExpand)="onStepExpanded(connectorDefinition, step)">
                                         <mat-expansion-panel-header>
                                             <mat-panel-title>{{ step.name }}</mat-panel-title>
                                         </mat-expansion-panel-header>
@@ -96,8 +102,7 @@
                                                 <div class="tertiary-color">{{ step.description }}</div>
                                             }
                                             @if (step.documented) {
-                                                <mat-expansion-panel
-                                                    (opened)="loadStepDocumentation(connectorDefinition, step.name)">
+                                                <mat-expansion-panel [expanded]="true">
                                                     <mat-expansion-panel-header>
                                                         <mat-panel-title>Step Documentation</mat-panel-title>
                                                     </mat-expansion-panel-header>
@@ -105,7 +110,7 @@
                                                         @if (isStepDocumentationLoading(step.name)) {
                                                             <ngx-skeleton-loader count="3"></ngx-skeleton-loader>
                                                         } @else if (getStepDocumentationError(step.name); as error) {
-                                                            <div class="error-color">{{ error }}</div>
+                                                            <div>{{ error }}</div>
                                                         } @else if (getStepDocumentation(step.name); as documentation) {
                                                             <markdown [data]="documentation"></markdown>
                                                         }
@@ -114,7 +119,7 @@
                                             }
                                             @if (hasPropertyGroups(step.propertyGroups)) {
                                                 @for (group of step.propertyGroups; track group.name) {
-                                                    <div class="property-group flex flex-col gap-y-2">
+                                                    <div class="property-group flex flex-col gap-y-2 mb-4">
                                                         <div class="flex justify-between items-center">
                                                             <h4>{{ group.name }}</h4>
                                                         </div>

@@ -28,17 +28,18 @@ import {
     ConfigurationStep,
     ConnectorPropertyGroup,
     ConnectorPropertyDescriptor,
-    ConnectorDefinition
+    ConnectorDefinition,
+    StepDocumentationState
 } from '../../state/connector-definition';
 import {
     loadConnectorDefinition,
+    loadStepDocumentation,
     resetConnectorDefinitionState
 } from '../../state/connector-definition/connector-definition.actions';
 import { selectConnectorDefinitionState } from '../../state/connector-definition/connector-definition.selectors';
 import { MatAccordion, MatExpansionModule } from '@angular/material/expansion';
 import { MatButtonModule } from '@angular/material/button';
 import { SeeAlsoComponent } from '../common/see-also/see-also.component';
-import { DocumentationService } from '../../service/documentation.service';
 import { MarkdownComponent } from 'ngx-markdown';
 import { ConnectorPropertyDefinitionComponent } from '../common/connector-property-definition/connector-property-definition.component';
 
@@ -58,15 +59,10 @@ import { ConnectorPropertyDefinitionComponent } from '../common/connector-proper
 export class ConnectorDefinitionComponent implements OnDestroy {
     private store = inject<Store<NiFiState>>(Store);
     private nifiCommon = inject(NiFiCommon);
-    private documentationService = inject(DocumentationService);
 
     @ViewChild('stepsAccordion') stepsAccordion!: MatAccordion;
 
     connectorDefinitionState: ConnectorDefinitionState | null = null;
-
-    stepDocumentation: Map<string, string> = new Map();
-    stepDocumentationLoading: Map<string, boolean> = new Map();
-    stepDocumentationError: Map<string, string> = new Map();
 
     constructor() {
         this.store
@@ -80,10 +76,6 @@ export class ConnectorDefinitionComponent implements OnDestroy {
                 takeUntilDestroyed()
             )
             .subscribe((coordinates) => {
-                this.stepDocumentation.clear();
-                this.stepDocumentationLoading.clear();
-                this.stepDocumentationError.clear();
-
                 this.store.dispatch(
                     loadConnectorDefinition({
                         coordinates
@@ -95,10 +87,22 @@ export class ConnectorDefinitionComponent implements OnDestroy {
             .select(selectConnectorDefinitionState)
             .pipe(takeUntilDestroyed())
             .subscribe((connectorDefinitionState) => {
+                const previousState = this.connectorDefinitionState;
                 this.connectorDefinitionState = connectorDefinitionState;
 
                 if (connectorDefinitionState.status === 'loading') {
                     window.scrollTo({ top: 0, left: 0 });
+                }
+
+                if (
+                    previousState?.status !== 'success' &&
+                    connectorDefinitionState.status === 'success' &&
+                    connectorDefinitionState.connectorDefinition
+                ) {
+                    const firstStep = connectorDefinitionState.connectorDefinition.configurationSteps?.[0];
+                    if (firstStep?.documented) {
+                        this.loadStepDocumentation(connectorDefinitionState.connectorDefinition, firstStep.name);
+                    }
                 }
             });
     }
@@ -152,44 +156,46 @@ export class ConnectorDefinitionComponent implements OnDestroy {
         accordion.closeAll();
     }
 
+    onStepExpanded(connectorDefinition: ConnectorDefinition, step: ConfigurationStep): void {
+        if (step.documented) {
+            this.loadStepDocumentation(connectorDefinition, step.name);
+        }
+    }
+
     loadStepDocumentation(connectorDefinition: ConnectorDefinition, stepName: string): void {
-        if (this.stepDocumentation.has(stepName) || this.stepDocumentationLoading.get(stepName)) {
+        const stepState = this.getStepDocumentationState(stepName);
+        if (stepState && (stepState.status === 'loading' || stepState.status === 'success')) {
             return;
         }
 
-        this.stepDocumentationLoading.set(stepName, true);
-        this.documentationService
-            .getStepDocumentation(
-                {
+        this.store.dispatch(
+            loadStepDocumentation({
+                coordinates: {
                     group: connectorDefinition.group,
                     artifact: connectorDefinition.artifact,
                     version: connectorDefinition.version,
                     type: connectorDefinition.type
                 },
                 stepName
-            )
-            .subscribe({
-                next: (response) => {
-                    this.stepDocumentation.set(stepName, response.stepDocumentation);
-                    this.stepDocumentationLoading.set(stepName, false);
-                },
-                error: () => {
-                    this.stepDocumentationError.set(stepName, 'Unable to load step documentation');
-                    this.stepDocumentationLoading.set(stepName, false);
-                }
-            });
+            })
+        );
+    }
+
+    getStepDocumentationState(stepName: string): StepDocumentationState | undefined {
+        return this.connectorDefinitionState?.stepDocumentation[stepName];
     }
 
     isStepDocumentationLoading(stepName: string): boolean {
-        return this.stepDocumentationLoading.get(stepName) === true;
+        const state = this.getStepDocumentationState(stepName);
+        return state?.status === 'loading';
     }
 
     getStepDocumentation(stepName: string): string | undefined {
-        return this.stepDocumentation.get(stepName);
+        return this.getStepDocumentationState(stepName)?.documentation ?? undefined;
     }
 
     getStepDocumentationError(stepName: string): string | undefined {
-        return this.stepDocumentationError.get(stepName);
+        return this.getStepDocumentationState(stepName)?.error ?? undefined;
     }
 
     ngOnDestroy(): void {
