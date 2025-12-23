@@ -34,6 +34,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
@@ -122,7 +123,7 @@ class KafkaConnectionVerifier {
                     new ConfigVerificationResult.Builder()
                             .verificationStepName(ADDRESSES_STEP)
                             .outcome(SUCCESSFUL)
-                            .explanation("Addresses Validated [%d]".formatted(validatedAddresses.size()))
+                            .explanation("Addresses validated [%d]".formatted(validatedAddresses.size()))
                             .build()
             );
         } catch (final Exception e) {
@@ -140,7 +141,7 @@ class KafkaConnectionVerifier {
     }
 
     private List<InetSocketAddress> getConnectedAddresses(final ComponentLog verificationLogger, final List<ConfigVerificationResult> results, final List<InetSocketAddress> bootstrapAddresses) {
-        final List<InetSocketAddress> connectedAddresses = new ArrayList<>();
+        final List<InetSocketAddress> connectedAddresses = Collections.synchronizedList(new ArrayList<>());
 
         try (ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor()) {
             final List<Callable<ConfigVerificationResult>> socketConnectionTasks = getConnectionTasks(bootstrapAddresses, connectedAddresses);
