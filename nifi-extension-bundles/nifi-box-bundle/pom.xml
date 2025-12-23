@@ -39,13 +39,7 @@
             <dependency>
                 <groupId>com.box</groupId>
                 <artifactId>box-java-sdk</artifactId>
-                <version>4.16.4</version>
-            </dependency>
-            <!-- Override jose4j 0.9.4 from box-java-sdk 4.16.4 and review again when upgrading -->
-            <dependency>
-                <groupId>org.bitbucket.b_c</groupId>
-                <artifactId>jose4j</artifactId>
-                <version>0.9.6</version>
+                <version>5.3.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
