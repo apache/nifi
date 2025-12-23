@@ -23,14 +23,13 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.Objects;
 
 public class VersionInfoRegistry extends AbstractMetricsRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(VersionInfoRegistry.class);
     private static final String DEFAULT_LABEL_STRING = "unknown";
 
     public VersionInfoRegistry() {
-        nameToGaugeMap.put("NIFI_VERSION_INFO",Gauge.build()
+        nameToGaugeMap.put("NIFI_VERSION_INFO", Gauge.build()
             .name("nifi_version_info")
             .help("NiFi framework and environment version information.")
             .labelNames(
@@ -53,7 +52,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
     public CollectorRegistry getRegistry() {
         return registry;
     }
-    
+
     public record VersionDetails(
             String frameworkVersion,
             String revision,
@@ -64,7 +63,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
             String osVersion,
             String osName,
             String osArchitecture
-    ) {}
+    ) { }
 
     public VersionDetails getVersionDetails() {
         String frameworkVersion = DEFAULT_LABEL_STRING;
