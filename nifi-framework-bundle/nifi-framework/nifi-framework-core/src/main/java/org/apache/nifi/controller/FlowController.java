@@ -639,7 +639,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
 
         this.snippetManager = new SnippetManager();
-        this.reloadComponent = new StandardReloadComponent(this);
+        this.reloadComponent = new StandardReloadComponent(this, this.nifiProperties);
 
         final ProcessGroup rootGroup = flowManager.createProcessGroup(ComponentIdGenerator.generateId().toString());
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);

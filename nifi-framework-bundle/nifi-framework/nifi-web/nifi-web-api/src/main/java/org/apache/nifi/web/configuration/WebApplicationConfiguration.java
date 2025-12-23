@@ -237,7 +237,7 @@ public class WebApplicationConfiguration {
 
     @Bean
     public StandardReloadComponent reloadComponent() {
-        return new StandardReloadComponent(flowController);
+        return new StandardReloadComponent(flowController, properties);
     }
 
     @Bean
