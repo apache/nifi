@@ -29,12 +29,6 @@ export class ContentViewerService {
         return this.httpClient.get(`${ContentViewerService.API}/flow/content-viewers`);
     }
 
-    resolveContentViewer(mimeType: string): Observable<any> {
-        return this.httpClient.get(`${ContentViewerService.API}/flow/content-viewers/resolve`, {
-            params: { mimeType }
-        });
-    }
-
     getBlob(url: string, offset: number, length: number): Observable<any> {
         const headers = new HttpHeaders({
             Range: `bytes=${offset}-${length}`

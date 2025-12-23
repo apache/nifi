@@ -29,10 +29,9 @@ import { navigateToBundledContentViewer, resetContent, setRef } from '../state/c
 import { MatSelectChange } from '@angular/material/select';
 import { loadAbout } from '../../../state/about/about.actions';
 import { selectAbout } from '../../../state/about/about.selectors';
-import { catchError, filter, map, of, switchMap, take } from 'rxjs';
+import { filter, map, switchMap, take } from 'rxjs';
 import { navigateToExternalViewer } from '../state/external-viewer/external-viewer.actions';
 import { snackBarError } from '../../../state/error/error.actions';
-import { ContentViewerService } from '../service/content-viewer.service';
 
 interface SupportedContentViewer {
     supportedMimeTypes: SupportedMimeTypes;
@@ -50,7 +49,6 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     private store = inject<Store<NiFiState>>(Store);
     private nifiCommon = inject(NiFiCommon);
     private formBuilder = inject(FormBuilder);
-    private contentViewerService = inject(ContentViewerService);
 
     viewerForm: FormGroup;
     viewAsOptions: SelectGroup[] = [];
@@ -226,36 +224,22 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
     private handleDefaultSelection(): void {
         if (!this.viewerSelected) {
             if (this.mimeType) {
-                // Call backend API to resolve the MIME type to the appropriate content viewer
-                this.contentViewerService
-                    .resolveContentViewer(this.mimeType)
-                    .pipe(
-                        take(1),
-                        catchError(() => of(null))
-                    )
-                    .subscribe((resolvedViewer) => {
-                        if (resolvedViewer) {
-                            // Find the matching viewer in the local lookup by URI and displayName
-                            const compatibleViewerOption = this.findViewerByResolution(resolvedViewer);
-                            if (compatibleViewerOption !== null) {
-                                this.viewerForm.get('viewAs')?.setValue(String(compatibleViewerOption));
-                                this.loadContentViewer(compatibleViewerOption);
-                                return;
-                            }
-                        }
+                const compatibleViewerOption = this.getCompatibleViewer(this.mimeType);
+                if (compatibleViewerOption === null) {
+                    if (this.defaultSupportedMimeTypeId !== null) {
+                        this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
+                        this.loadContentViewer(this.defaultSupportedMimeTypeId);
+                    }
 
-                        // Fallback to default hex viewer if no match found
-                        if (this.defaultSupportedMimeTypeId !== null) {
-                            this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
-                            this.loadContentViewer(this.defaultSupportedMimeTypeId);
-                        }
-
-                        this.store.dispatch(
-                            snackBarError({
-                                error: `No compatible content viewer found for mime type [${this.mimeType}]`
-                            })
-                        );
-                    });
+                    this.store.dispatch(
+                        snackBarError({
+                            error: `No compatible content viewer found for mime type [${this.mimeType}]`
+                        })
+                    );
+                } else {
+                    this.viewerForm.get('viewAs')?.setValue(String(compatibleViewerOption));
+                    this.loadContentViewer(compatibleViewerOption);
+                }
             } else if (this.defaultSupportedMimeTypeId !== null) {
                 this.viewerForm.get('viewAs')?.setValue(String(this.defaultSupportedMimeTypeId));
                 this.loadContentViewer(this.defaultSupportedMimeTypeId);
@@ -263,21 +247,54 @@ export class ContentViewerComponent implements OnInit, OnDestroy {
         }
     }
 
-    private findViewerByResolution(resolvedViewer: any): number | null {
-        const resolvedUri = resolvedViewer.uri;
-        const resolvedDisplayName = resolvedViewer.supportedMimeTypes?.[0]?.displayName;
+    private getCompatibleViewer(mimeType: string): number | null {
+        for (const group of this.viewAsOptions) {
+            for (const option of group.options) {
+                const supportedMimeTypeId: number = Number(option.value);
+                if (Number.isInteger(supportedMimeTypeId)) {
+                    const supportedContentViewer = this.supportedContentViewerLookup.get(supportedMimeTypeId);
+                    if (supportedContentViewer) {
+                        const supportsMimeType = supportedContentViewer.supportedMimeTypes.mimeTypes.some(
+                            (supportedMimeType) => this.isMediaTypeCompatible(mimeType, supportedMimeType)
+                        );
 
-        for (const [supportedMimeTypeId, supportedContentViewer] of this.supportedContentViewerLookup.entries()) {
-            // Match by URI and display name
-            if (
-                supportedContentViewer.contentViewer.uri === resolvedUri &&
-                supportedContentViewer.supportedMimeTypes.displayName === resolvedDisplayName
-            ) {
-                return supportedMimeTypeId;
+                        if (supportsMimeType) {
+                            return supportedMimeTypeId;
+                        }
+                    }
+                }
             }
         }
 
         return null;
+    }
+
+    /**
+     * Checks if a MIME type is compatible with a supported media type pattern.
+     * Supports patterns like "application/*+xml" which match "application/fhir+xml".
+     */
+    private isMediaTypeCompatible(mimeType: string, supportedMimeType: string): boolean {
+        // Check for exact match or startsWith match
+        if (mimeType === supportedMimeType || mimeType.startsWith(supportedMimeType)) {
+            return true;
+        }
+
+        // Check for wildcard patterns like "application/*+xml"
+        if (supportedMimeType.includes('/*+')) {
+            // Parse pattern: "application/*+xml" -> type="application", suffix="+xml"
+            const patternMatch = supportedMimeType.match(/^([^/]+)\/\*(\+.+)$/);
+            if (patternMatch) {
+                const [, patternType, patternSuffix] = patternMatch;
+                // Parse mimeType: "application/fhir+xml" -> type="application", suffix="+xml"
+                const mimeMatch = mimeType.match(/^([^/]+)\/[^+]+(\+.+)$/);
+                if (mimeMatch) {
+                    const [, mimeTypeType, mimeTypeSuffix] = mimeMatch;
+                    return patternType === mimeTypeType && patternSuffix === mimeTypeSuffix;
+                }
+            }
+        }
+
+        return false;
     }
 
     viewAsChanged(event: MatSelectChange): void {

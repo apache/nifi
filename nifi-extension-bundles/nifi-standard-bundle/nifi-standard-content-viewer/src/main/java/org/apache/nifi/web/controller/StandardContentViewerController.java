@@ -84,10 +84,15 @@ public class StandardContentViewerController extends HttpServlet {
             return;
         }
 
-        // mimeTypeDisplayName is required and should be resolved by the frontend via the /flow/content-viewers/resolve API
-        final String displayName = request.getParameter("mimeTypeDisplayName");
+        // allow the user to drive the data type but fall back to the content type if necessary
+        String displayName = request.getParameter("mimeTypeDisplayName");
         if (displayName == null) {
-            response.sendError(HttpURLConnection.HTTP_BAD_REQUEST, "mimeTypeDisplayName parameter is required");
+            final String contentType = downloadableContent.getType();
+            displayName = getDisplayName(contentType);
+        }
+
+        if (displayName == null) {
+            response.sendError(HttpURLConnection.HTTP_BAD_REQUEST, "Unknown content type");
             return;
         }
 
@@ -179,5 +184,18 @@ public class StandardContentViewerController extends HttpServlet {
             logger.warn("Unable to format FlowFile content", t);
             response.sendError(HttpURLConnection.HTTP_INTERNAL_ERROR, "Unable to format FlowFile content");
         }
+    }
+
+    private String getDisplayName(final String contentType) {
+        return switch (contentType) {
+            case "application/json" -> "json";
+            case "application/xml", "text/xml" -> "xml";
+            case "application/avro-binary", "avro/binary", "application/avro+binary" -> "avro";
+            case "text/x-yaml", "text/yaml", "text/yml", "application/x-yaml", "application/x-yml", "application/yaml",
+                 "application/yml" -> "yaml";
+            case "text/plain" -> "text";
+            case "text/csv" -> "csv";
+            case null, default -> null;
+        };
     }
 }
