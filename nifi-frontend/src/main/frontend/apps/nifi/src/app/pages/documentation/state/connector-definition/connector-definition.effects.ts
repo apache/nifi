@@ -18,7 +18,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import * as ConnectorDefinitionActions from './connector-definition.actions';
-import { catchError, from, map, of, switchMap } from 'rxjs';
+import { catchError, from, map, mergeMap, of, switchMap } from 'rxjs';
 import { DocumentationService } from '../../service/documentation.service';
 import { ConnectorDefinition } from './index';
 import { ErrorHelper } from '../../../../service/error-helper.service';
@@ -56,7 +56,7 @@ export class ConnectorDefinitionEffects {
     loadStepDocumentation$ = createEffect(() =>
         this.actions$.pipe(
             ofType(ConnectorDefinitionActions.loadStepDocumentation),
-            switchMap((action) =>
+            mergeMap((action) =>
                 from(this.documentationService.getStepDocumentation(action.coordinates, action.stepName)).pipe(
                     map((response) =>
                         ConnectorDefinitionActions.loadStepDocumentationSuccess({
