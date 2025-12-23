@@ -198,7 +198,20 @@ export class StandardContentViewer {
                         this.error = null;
                         this.contentLoaded = true;
 
-                        this.contentFormGroup.get('value')?.setValue(content);
+                        // For XML, clean up formatting for display
+                        let processedContent = content;
+                        if (this.mimeTypeDisplayName === 'xml') {
+                            // Add newline after XML declaration if missing (<?xml ...?><root> -> <?xml ...?>\n<root>)
+                            processedContent = processedContent.replace(/\?></g, '?>\n<');
+
+                            // Remove blank lines that appear between tags (whitespace-only text nodes)
+                            // but preserve blank lines that are part of actual text content
+                            // Uses \r?\n to handle both Unix (LF) and Windows (CRLF) line endings
+                            // The capture group ($2) preserves indentation before the next tag
+                            processedContent = processedContent.replace(/>\s*\r?\n(\s*\r?\n)+(\s*)</g, '>\n$2<');
+                        }
+
+                        this.contentFormGroup.get('value')?.setValue(processedContent);
                     }
                 });
         }
