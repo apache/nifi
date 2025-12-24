@@ -21,6 +21,7 @@ import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.Resource;
@@ -531,17 +532,23 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 // Check if the given configuration requires a different classloader than the current configuration
                 final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
 
-                if (classpathDifferent) {
+                if (classpathDifferent || isReloadAdditionalResourcesNecessary()) {
+                    LOG.debug("Classpath reload required. Create temporary InstanceClassLoader for verification");
                     // Create a classloader for the given configuration and use that to verify the component's configuration
                     final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
                     final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
 
                     final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
                     final String classLoaderIsolationKey = getClassLoaderIsolationKey(context);
-                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false,
+
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentClass().getName(), getIdentifier(), bundle, classpathUrls, false,
                                 classLoaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
-                        results.addAll(verifiable.verify(context, logger, variables));
+                        // Create a temp ControllerService for the initial verification.  Use the InstanceClassLoader to instantiate the Temp Controller Service
+                        // This ensures Class.forName(String) classloading uses the InstanceClassLoader since that classloader will include the updated additional classpath urls
+                        final VerifiableControllerService tempVerifiable = (VerifiableControllerService) getReloadComponent().createTempControllerService(this, detectedClassLoader);
+                        results.addAll(tempVerifiable.verify(context, logger, variables));
+                        ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, tempVerifiable, context);
                     } finally {
                         Thread.currentThread().setContextClassLoader(currentClassLoader);
                     }

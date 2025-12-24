@@ -20,26 +20,32 @@ import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
+import org.apache.nifi.controller.exception.ProcessorInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.parameter.ParameterProviderInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.controller.service.StandardControllerServiceInitializationContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.nar.PythonBundle;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,9 +57,11 @@ public class StandardReloadComponent implements ReloadComponent {
     private static final Logger logger = LoggerFactory.getLogger(StandardReloadComponent.class);
 
     private final FlowController flowController;
+    private final NiFiProperties nifiProperties;
 
-    public StandardReloadComponent(final FlowController flowController) {
+    public StandardReloadComponent(final FlowController flowController, final NiFiProperties nifiProperties) {
         this.flowController = flowController;
+        this.nifiProperties = nifiProperties;
     }
 
 
@@ -119,6 +127,24 @@ public class StandardReloadComponent implements ReloadComponent {
         flowController.getValidationTrigger().trigger(existingNode);
     }
 
+    @Override
+    public Processor createTempProcessor(final ProcessorNode existingNode, final InstanceClassLoader instanceClassLoader)
+            throws ProcessorInstantiationException {
+        final Processor tempProcessor;
+        final String identifier = existingNode.getIdentifier();
+        try {
+            final Class<?> rawProcessorClass = Class.forName(existingNode.getProcessor().getClass().getName(), true, instanceClassLoader);
+            final Class<? extends Processor> processorClass = rawProcessorClass.asSubclass(Processor.class);
+            tempProcessor = processorClass.getDeclaredConstructor().newInstance();
+
+            final ProcessorInitializationContext tempInitializationContext = new StandardProcessorInitializationContext(identifier, existingNode.getLogger(),
+                    flowController.getControllerServiceProvider(), flowController, flowController.createKerberosConfig(nifiProperties));
+            tempProcessor.initialize(tempInitializationContext);
+        } catch (Exception e) {
+            throw new ProcessorInstantiationException("Could not instantiate Processor", e);
+        }
+        return tempProcessor;
+    }
 
     @Override
     public void reload(final ControllerServiceNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)
@@ -177,6 +203,26 @@ public class StandardReloadComponent implements ReloadComponent {
         logger.debug("Triggering async validation of {} due to controller service reload", existingNode);
         existingNode.resetValidationState();
         flowController.getValidationTrigger().triggerAsync(existingNode);
+    }
+
+    @Override
+    public ControllerService createTempControllerService(final ControllerServiceNode existingNode, final InstanceClassLoader instanceClassLoader) throws ControllerServiceInstantiationException {
+        final ControllerService tempControllerService;
+        final String identifier = existingNode.getIdentifier();
+        try {
+            final Class<?> rawControllorServiceClass = Class.forName(existingNode.getCanonicalClassName(), true, instanceClassLoader);
+            final Class<? extends ControllerService> controllerServiceClass = rawControllorServiceClass.asSubclass(ControllerService.class);
+            tempControllerService = controllerServiceClass.getDeclaredConstructor().newInstance();
+
+            final ControllerServiceInitializationContext tempInitializationContext = new StandardControllerServiceInitializationContext(identifier,
+                    existingNode.getLogger(),
+                    flowController.getControllerServiceProvider(), flowController.getStateManagerProvider().getStateManager(identifier),
+                    flowController.createKerberosConfig(nifiProperties), flowController);
+            tempControllerService.initialize(tempInitializationContext);
+        } catch (Exception e) {
+            throw new ControllerServiceInstantiationException("Could not instantiate Controller Service", e);
+        }
+        return tempControllerService;
     }
 
     @Override

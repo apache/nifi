@@ -22,6 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ParameterProviderNode;
@@ -36,15 +37,19 @@ import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiati
 import org.apache.nifi.controller.service.ControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.controller.service.StandardControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.SimpleProcessLogger;
 import org.apache.nifi.logging.StandardLoggingContext;
 import org.apache.nifi.processor.StandardProcessContext;
+import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.reporting.ReportingTask;
@@ -119,6 +124,25 @@ public class StatelessReloadComponent implements ReloadComponent {
     }
 
     @Override
+    public Processor createTempProcessor(final ProcessorNode existingNode, final InstanceClassLoader instanceClassLoader)
+            throws ProcessorInstantiationException {
+        final Processor tempProcessor;
+        final String identifier = existingNode.getIdentifier();
+        try {
+            final Class<?> rawProcessorClass = Class.forName(existingNode.getProcessor().getClass().getName(), true, instanceClassLoader);
+            final Class<? extends Processor> processorClass = rawProcessorClass.asSubclass(Processor.class);
+            tempProcessor = processorClass.getDeclaredConstructor().newInstance();
+
+            final ProcessorInitializationContext tempInitializationContext = new StandardProcessorInitializationContext(identifier, existingNode.getLogger(),
+                    statelessEngine.getControllerServiceProvider(), null, statelessEngine.getKerberosConfig());
+            tempProcessor.initialize(tempInitializationContext);
+        } catch (Exception e) {
+            throw new ProcessorInstantiationException("Could not instantiate Processor", e);
+        }
+        return tempProcessor;
+    }
+
+    @Override
     public void reload(final ControllerServiceNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)
         throws ControllerServiceInstantiationException {
 
@@ -172,6 +196,26 @@ public class StatelessReloadComponent implements ReloadComponent {
         existingNode.refreshProperties();
 
         logger.debug("Successfully reloaded {}", existingNode);
+    }
+
+    @Override
+    public ControllerService createTempControllerService(final ControllerServiceNode existingNode, InstanceClassLoader instanceClassLoader) throws ControllerServiceInstantiationException {
+        final ControllerService tempControllerService;
+        final String identifier = existingNode.getIdentifier();
+        try {
+            final Class<?> rawControllorServiceClass = Class.forName(existingNode.getCanonicalClassName(), true, instanceClassLoader);
+            final Class<? extends ControllerService> controllerServiceClass = rawControllorServiceClass.asSubclass(ControllerService.class);
+            tempControllerService = controllerServiceClass.getDeclaredConstructor().newInstance();
+
+            final ControllerServiceInitializationContext tempInitializationContext = new StandardControllerServiceInitializationContext(identifier,
+                    existingNode.getLogger(),
+                    statelessEngine.getControllerServiceProvider(), statelessEngine.getStateManagerProvider().getStateManager(identifier),
+                    statelessEngine.getKerberosConfig(), null);
+            tempControllerService.initialize(tempInitializationContext);
+        } catch (Exception e) {
+            throw new ControllerServiceInstantiationException("Could not instantiate Controller Service", e);
+        }
+        return tempControllerService;
     }
 
     @Override
