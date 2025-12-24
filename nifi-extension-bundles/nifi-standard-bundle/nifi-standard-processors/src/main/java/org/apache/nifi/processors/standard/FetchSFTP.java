@@ -108,6 +108,7 @@ public class FetchSFTP extends FetchFileTransfer {
             COMPLETION_STRATEGY,
             MOVE_DESTINATION_DIR,
             MOVE_CREATE_DIRECTORY,
+            MOVE_CONFLICT_RESOLUTION,
             DISABLE_DIRECTORY_LISTING,
             SFTPTransfer.CONNECTION_TIMEOUT,
             SFTPTransfer.DATA_TIMEOUT,
