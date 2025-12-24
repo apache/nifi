@@ -288,36 +288,80 @@ public class Kafka3ConnectionServiceBaseIT {
 
     @Test
     void testVerifySuccessful() {
-        final Map<PropertyDescriptor, String> properties = new LinkedHashMap<>();
-        properties.put(Kafka3ConnectionService.BOOTSTRAP_SERVERS, kafkaContainer.getBootstrapServers());
+        final String bootstrapServers = kafkaContainer.getBootstrapServers();
+        final Map<PropertyDescriptor, String> properties = Map.of(
+                Kafka3ConnectionService.BOOTSTRAP_SERVERS, bootstrapServers,
+                Kafka3ConnectionService.CLIENT_TIMEOUT, CLIENT_TIMEOUT
+        );
         final MockConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
 
-        final List<ConfigVerificationResult> results = service.verify(
-                configurationContext, runner.getLogger(), getAdminClientConfigProperties());
+        final List<ConfigVerificationResult> results = service.verify(configurationContext, runner.getLogger(), getAdminClientConfigProperties());
 
-        assertFalse(results.isEmpty());
-
-        final ConfigVerificationResult firstResult = results.iterator().next();
-        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, firstResult.getOutcome());
-        assertNotNull(firstResult.getExplanation());
+        assertEquals(4, results.size());
+        assertResultFound(results, KafkaConnectionVerifier.ADDRESSES_STEP, ConfigVerificationResult.Outcome.SUCCESSFUL);
+        assertResultFound(results, KafkaConnectionVerifier.NODE_CONNECTION_STEP, ConfigVerificationResult.Outcome.SUCCESSFUL, bootstrapServers);
+        assertResultFound(results, KafkaConnectionVerifier.CLUSTER_DESCRIPTION_STEP, ConfigVerificationResult.Outcome.SUCCESSFUL);
+        assertResultFound(results, KafkaConnectionVerifier.TOPIC_LISTING_STEP, ConfigVerificationResult.Outcome.SUCCESSFUL);
     }
 
     @Test
-    void testVerifyFailed() {
-        final Map<PropertyDescriptor, String> properties = new LinkedHashMap<>();
-        properties.put(Kafka3ConnectionService.BOOTSTRAP_SERVERS, UNREACHABLE_BOOTSTRAP_SERVERS);
-        properties.put(Kafka3ConnectionService.CLIENT_TIMEOUT, CLIENT_TIMEOUT);
+    void testVerifyAddressesFailed() {
+        final String bootstrapServers = "127.0.0.1:707070";
+        final Map<PropertyDescriptor, String> properties = Map.of(
+                Kafka3ConnectionService.BOOTSTRAP_SERVERS, bootstrapServers,
+                Kafka3ConnectionService.CLIENT_TIMEOUT, CLIENT_TIMEOUT
+        );
+        final MockConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
 
-        final MockConfigurationContext configurationContext = new MockConfigurationContext(
-                properties, null, null);
+        final List<ConfigVerificationResult> results = service.verify(configurationContext, runner.getLogger(), getAdminClientConfigProperties());
 
-        final List<ConfigVerificationResult> results = service.verify(
-                configurationContext, runner.getLogger(), getAdminClientConfigProperties());
+        assertEquals(2, results.size());
+        assertResultFound(results, KafkaConnectionVerifier.ADDRESSES_STEP, ConfigVerificationResult.Outcome.FAILED, bootstrapServers);
+        assertResultFound(results, KafkaConnectionVerifier.CONFIGURATION_STEP, ConfigVerificationResult.Outcome.FAILED);
+    }
 
-        assertFalse(results.isEmpty());
+    @Test
+    void testVerifyConnectionFailed() {
+        final Map<PropertyDescriptor, String> properties = Map.of(
+                Kafka3ConnectionService.BOOTSTRAP_SERVERS, UNREACHABLE_BOOTSTRAP_SERVERS,
+                Kafka3ConnectionService.CLIENT_TIMEOUT, CLIENT_TIMEOUT
+        );
+        final MockConfigurationContext configurationContext = new MockConfigurationContext(properties, null, null);
 
-        final ConfigVerificationResult firstResult = results.iterator().next();
-        assertEquals(ConfigVerificationResult.Outcome.FAILED, firstResult.getOutcome());
+        final List<ConfigVerificationResult> results = service.verify(configurationContext, runner.getLogger(), getAdminClientConfigProperties());
+
+        assertEquals(3, results.size());
+        assertResultFound(results, KafkaConnectionVerifier.ADDRESSES_STEP, ConfigVerificationResult.Outcome.SUCCESSFUL);
+        assertResultFound(results, KafkaConnectionVerifier.NODE_CONNECTION_STEP, ConfigVerificationResult.Outcome.FAILED, UNREACHABLE_BOOTSTRAP_SERVERS);
+        assertResultFound(results, KafkaConnectionVerifier.BROKER_CONNECTION_STEP, ConfigVerificationResult.Outcome.FAILED);
+    }
+
+    private void assertResultFound(
+            final List<ConfigVerificationResult> results,
+            final String verifiedStepName,
+            final ConfigVerificationResult.Outcome outcome
+    ) {
+        final Optional<ConfigVerificationResult> resultFound = results.stream()
+                .filter(result -> result.getVerificationStepName().contains(verifiedStepName))
+                .filter(result -> result.getOutcome().equals(outcome))
+                .findFirst();
+        assertTrue(resultFound.isPresent(), "Result Step [%s] with Outcome [%s] not found".formatted(verifiedStepName, outcome));
+    }
+
+    private void assertResultFound(
+            final List<ConfigVerificationResult> results,
+            final String verifiedStepName,
+            final ConfigVerificationResult.Outcome outcome,
+            final String bootstrapServers
+    ) {
+        final Optional<ConfigVerificationResult> bootstrapServerResultFound = results.stream()
+                .filter(result -> result.getExplanation().contains(bootstrapServers))
+                .filter(result -> result.getOutcome().equals(outcome))
+                .findFirst();
+        assertTrue(bootstrapServerResultFound.isPresent(), "Result Step not found referencing Bootstrap Servers [%s]".formatted(bootstrapServers));
+
+        final ConfigVerificationResult bootstrapServerResult = bootstrapServerResultFound.get();
+        assertEquals(verifiedStepName, bootstrapServerResult.getVerificationStepName());
     }
 
     @Test
