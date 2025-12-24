@@ -262,14 +262,21 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         }
 
         try {
-            return DriverManager.getDriver(url);
+            final Driver driver = DriverManager.getDriver(url);
+            // Ensure drivers that register themselves during class loading can be set as the registeredDriver.
+            // This ensures drivers that register themselves can be deregisterd when the componet is removed.
+            // These drivers should be loaded in the same InstanceClassloader that load this component
+            if (driver != registeredDriver
+                    && driver.getClass().getClassLoader().equals(getClass().getClassLoader())) {
+                DriverManager.deregisterDriver(registeredDriver);
+                registeredDriver = driver;
+            }
+            return driver;
         } catch (final SQLException e) {
             // In case the driver is not registered by the implementation, we explicitly try to register it.
             // deregister existing driver
             try {
-                if (registeredDriver != null) {
-                    DriverManager.deregisterDriver(registeredDriver);
-                }
+                DriverManager.deregisterDriver(registeredDriver);
                 registeredDriver = (Driver) clazz.getDeclaredConstructor().newInstance();
                 DriverManager.registerDriver(registeredDriver);
                 return DriverManager.getDriver(url);
