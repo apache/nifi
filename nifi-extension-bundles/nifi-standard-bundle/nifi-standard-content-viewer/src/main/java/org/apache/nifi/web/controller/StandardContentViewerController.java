@@ -112,8 +112,6 @@ public class StandardContentViewerController extends HttpServlet {
 
                     final StandardTransformProvider transformProvider = new StandardTransformProvider();
                     transformProvider.setIndent(true);
-                    transformProvider.setOmitXmlDeclaration(true);
-
                     transformProvider.transform(source, result);
                     break;
                 }
@@ -198,4 +196,5 @@ public class StandardContentViewerController extends HttpServlet {
             case null, default -> null;
         };
     }
+
 }
