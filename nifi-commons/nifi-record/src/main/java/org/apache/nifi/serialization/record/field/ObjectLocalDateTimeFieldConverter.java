@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 import java.time.temporal.TemporalQuery;
@@ -36,6 +37,11 @@ import java.util.Optional;
  */
 class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalDateTime> {
     private static final long YEAR_TEN_THOUSAND = 253_402_300_800_000L;
+    private static final long YEAR_TEN_THOUSAND_SECONDS = 253_402_300_800L;
+    private static final char PERIOD = '.';
+
+    private static final long MICROSECOND_MULTIPLIER = 1_000;
+    private static final long MILLISECOND_MULTIPLIER = 1_000_000;
 
     private static final TemporalQuery<LocalDateTime> LOCAL_DATE_TIME_TEMPORAL_QUERY = new LocalDateTimeQuery();
 
@@ -66,9 +72,10 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
                 return ofInstant(instant);
             }
             case final Number number -> {
-                // If value is a floating point number, we consider it as seconds since epoch plus a decimal part for fractions of a second.
+                // Handle floating point numbers with integral and fractional components
                 if (field instanceof Double || field instanceof Float) {
-                    return toLocalDateTime(number.doubleValue());
+                    final double floatingPointNumber = number.doubleValue();
+                    return convertDouble(floatingPointNumber);
                 }
 
                 return toLocalDateTime(number.longValue());
@@ -99,39 +106,67 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
 
     private LocalDateTime tryParseAsNumber(final String value, final String fieldName) {
         try {
-            // If decimal, treat as a double and convert to seconds and nanoseconds.
-            if (value.contains(".")) {
-                final double number = Double.parseDouble(value);
-                return toLocalDateTime(number);
+            final LocalDateTime localDateTime;
+
+            final int periodIndex = value.indexOf(PERIOD);
+            if (periodIndex >= 0) {
+                // Parse Double to support both decimal notation and exponent notation
+                final double floatingPointNumber = Double.parseDouble(value);
+                localDateTime = convertDouble(floatingPointNumber);
+            } else {
+                final long number = Long.parseLong(value);
+                localDateTime = toLocalDateTime(number);
             }
 
-            // attempt to parse as a long value
-            final long number = Long.parseLong(value);
-            return toLocalDateTime(number);
+            return localDateTime;
         } catch (final NumberFormatException e) {
             throw new FieldConversionException(LocalDateTime.class, value, fieldName, e);
         }
     }
 
-    private LocalDateTime toLocalDateTime(final double secondsSinceEpoch) {
-        // Determine the number of micros past the second by subtracting the number of seconds from the decimal value and multiplying by 1 million.
-        final double micros = 1_000_000 * (secondsSinceEpoch - (long) secondsSinceEpoch);
-        // Convert micros to nanos. Note that we perform this as a separate operation, rather than multiplying by 1_000,000,000 in order to avoid
-        // issues that occur with rounding at high precision.
-        final long nanos = (long) micros * 1000L;
+    private LocalDateTime convertDouble(final double number) {
+        // Cast to long for integral part of the number
+        final long integral = (long) number;
 
-        return toLocalDateTime((long) secondsSinceEpoch, nanos);
+        // Calculate fractional part of the number for subsequent precision evaluation
+        final double fractional = number - integral;
+
+        return convertIntegralFractional(integral, fractional);
     }
 
-    private LocalDateTime toLocalDateTime(final long epochSeconds, final long nanosPastSecond) {
-        final Instant instant = Instant.ofEpochSecond(epochSeconds).plusNanos(nanosPastSecond);
+    private LocalDateTime convertIntegralFractional(final long integral, final double fractional) {
+        final Instant epoch;
+        final long fractionalMultiplier;
+
+        if (integral > YEAR_TEN_THOUSAND_SECONDS) {
+            // Handle large numbers as milliseconds instead of seconds
+            epoch = Instant.ofEpochMilli(integral);
+
+            // Handle fractional part as number of microseconds
+            fractionalMultiplier = MICROSECOND_MULTIPLIER;
+        } else {
+            // Handle smaller numbers as seconds
+            epoch = Instant.ofEpochSecond(integral);
+
+            // Handle fractional part as number of milliseconds
+            fractionalMultiplier = MILLISECOND_MULTIPLIER;
+        }
+
+        // Calculate microseconds according to multiplier for expected precision
+        final double fractionalMicroseconds = fractional * fractionalMultiplier;
+        final long microseconds = Math.round(fractionalMicroseconds);
+        final Instant instant = epoch.plus(microseconds, ChronoUnit.MICROS);
+
         return ofInstant(instant);
     }
 
     private LocalDateTime toLocalDateTime(final long value) {
         if (value > YEAR_TEN_THOUSAND) {
-            // Value is too large. Assume microseconds instead of milliseconds.
-            final Instant microsInstant = Instant.ofEpochSecond(value / 1_000_000, (value % 1_000_000) * 1_000);
+            // Handle number as microseconds for large values
+            final long epochSecond = value / MILLISECOND_MULTIPLIER;
+            // Calculate nanoseconds from remainder
+            final long nanoAdjustment = (value % MILLISECOND_MULTIPLIER) * MICROSECOND_MULTIPLIER;
+            final Instant microsInstant = Instant.ofEpochSecond(epochSecond, nanoAdjustment);
             return ofInstant(microsInstant);
         }
 
