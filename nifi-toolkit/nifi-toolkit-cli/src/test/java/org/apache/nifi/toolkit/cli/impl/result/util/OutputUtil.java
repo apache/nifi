@@ -21,13 +21,16 @@ public class OutputUtil {
     }
 
     public static String getExpectedContent(String string) {
-        final boolean windows = System.getProperty("os.name").startsWith("Windows");
         String expectedContent = string;
 
-        if (windows) {
+        if (isWindows()) {
             expectedContent = expectedContent.replaceAll("\n", "\r\n");
         }
 
         return expectedContent;
+    }
+
+    public static boolean isWindows() {
+        return System.getProperty("os.name").startsWith("Windows");
     }
 }
