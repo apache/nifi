@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -50,11 +51,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class PutDatabaseRecordIT {
 
     private final long MILLIS_TIMESTAMP_LONG = 1707238288351L;
-    private final long MICROS_TIMESTAMP_LONG = 1707238288351567L;
     private final String MICROS_TIMESTAMP_FORMATTED = "2024-02-06 11:51:28.351567";
-    private final double MICROS_TIMESTAMP_DOUBLE = ((double) MICROS_TIMESTAMP_LONG) / 1000000D;
-    private final long NANOS_AFTER_SECOND = 351567000L;
-    private final Instant INSTANT_MICROS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG).plusNanos(NANOS_AFTER_SECOND).minusMillis(MILLIS_TIMESTAMP_LONG % 1000);
+
+    private final long EXTRA_NANO_SECONDS = 351000L; // Max precision PostgreSQL supports
+
+    private final BigDecimal MILLIS_TIMESTAMP = BigDecimal.valueOf(MILLIS_TIMESTAMP_LONG);
+    private final BigDecimal MILLIS_TIMESTAMP_FRACTIONAL = MILLIS_TIMESTAMP.add(BigDecimal.valueOf(EXTRA_NANO_SECONDS, 6));
+
+    private final Instant INSTANT_MILLIS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG);
+    private final Instant INSTANT_MICROS_PRECISION = Instant.ofEpochMilli(MILLIS_TIMESTAMP_LONG).plusNanos(EXTRA_NANO_SECONDS);
+
 
     private static final String SIMPLE_INPUT_RECORD = """
             {
@@ -205,31 +211,20 @@ public class PutDatabaseRecordIT {
     }
 
     @Test
-    public void testWithNumericTimestampUsingMicros() throws SQLException {
-        runner.enqueue(createJson(MICROS_TIMESTAMP_LONG));
+    public void testWithNumericTimestampFullMilliseconds() throws SQLException {
+        runner.enqueue(createJson(MILLIS_TIMESTAMP_LONG));
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
         final Map<String, Object> results = getResults();
         final Timestamp lastTransactionTime = (Timestamp) results.get("lasttransactiontime");
-        assertEquals(INSTANT_MICROS_PRECISION, lastTransactionTime.toInstant());
+        assertEquals(INSTANT_MILLIS_PRECISION, lastTransactionTime.toInstant());
     }
 
 
     @Test
-    public void testWithDecimalTimestampUsingMicros() throws SQLException {
-        runner.enqueue(createJson(Double.toString(MICROS_TIMESTAMP_DOUBLE)));
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
-
-        final Map<String, Object> results = getResults();
-        final Timestamp lastTransactionTime = (Timestamp) results.get("lasttransactiontime");
-        assertEquals(INSTANT_MICROS_PRECISION, lastTransactionTime.toInstant());
-    }
-
-    @Test
-    public void testWithDecimalTimestampUsingMicrosAsString() throws SQLException {
-        runner.enqueue(createJson(Double.toString(MICROS_TIMESTAMP_DOUBLE)));
+    public void testWithStringTimestampFractionalMilliseconds() throws SQLException {
+        runner.enqueue(createJson(MILLIS_TIMESTAMP_FRACTIONAL.toString()));
         runner.run();
         runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS, 1);
 
