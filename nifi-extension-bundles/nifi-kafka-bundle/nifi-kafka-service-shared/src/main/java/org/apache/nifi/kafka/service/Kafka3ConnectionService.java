@@ -256,7 +256,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
         return topicPatternFound
             .map(pattern -> new Subscription(groupId, pattern, autoOffsetReset))
-            .orElseGet(() -> new Subscription(groupId, pollingContext.getTopics(), autoOffsetReset));
+            .orElseGet(() -> new Subscription(groupId, pollingContext.getTopics(), pollingContext.getPartition(), autoOffsetReset));
     }
 
     @Override
