@@ -41,8 +41,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.io.TempDir;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -67,7 +65,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisabledOnOs(OS.WINDOWS)
 public class ExecuteGroovyScriptTest {
     private final static String DB_LOCATION = "target/db";
 
@@ -542,7 +539,7 @@ public class ExecuteGroovyScriptTest {
         resultFile.assertAttributeExists("a");
         resultFile.assertAttributeEquals("a", "A");
         System.setOut(originalOut);
-        assertEquals("onStop invoked successfully\n", outContent.toString());
+        assertEquals(getExpectedContent("onStop invoked successfully\n"), outContent.toString());
 
         // Inspect the output visually for onStop, no way to pass back values
     }
@@ -556,7 +553,7 @@ public class ExecuteGroovyScriptTest {
         System.setOut(new PrintStream(outContent));
         runner.run();
         System.setOut(originalOut);
-        assertEquals("onUnscheduled invoked successfully\n", outContent.toString());
+        assertEquals(getExpectedContent("onUnscheduled invoked successfully\n"), outContent.toString());
     }
 
     @Test
@@ -592,6 +589,17 @@ public class ExecuteGroovyScriptTest {
         Map<String, String> attrs = new HashMap<>();
         attrs.put(key, value);
         return attrs;
+    }
+
+    private static String getExpectedContent(String string) {
+        final boolean windows = System.getProperty("os.name").startsWith("Windows");
+        String expectedContent = string;
+
+        if (windows) {
+            expectedContent = expectedContent.replaceAll("\n", "\r\n");
+        }
+
+        return expectedContent;
     }
 
     private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
