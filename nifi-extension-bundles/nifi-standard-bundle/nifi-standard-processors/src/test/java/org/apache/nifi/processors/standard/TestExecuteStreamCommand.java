@@ -23,13 +23,12 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
+import org.apache.nifi.processors.standard.util.JsonUtil;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test only runs on *nix")
 public class TestExecuteStreamCommand {
 
     @Test
@@ -95,7 +93,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         byte[] byteArray = outputFlowFile.toByteArray();
         String result = new String(byteArray);
         assertTrue(Pattern.compile("Test was a success\r?\n").matcher(result).find());
@@ -107,7 +105,7 @@ public class TestExecuteStreamCommand {
         assertEquals(expected, attribute.substring(attribute.length() - expected.length()));
         outputFlowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
 
-        MockFlowFile originalFlowFile = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).get(0);
+        MockFlowFile originalFlowFile = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).getFirst();
         assertEquals(outputFlowFile.getAttribute("execution.status"), originalFlowFile.getAttribute("execution.status"));
         assertEquals(outputFlowFile.getAttribute("execution.command"), originalFlowFile.getAttribute("execution.command"));
         assertEquals(outputFlowFile.getAttribute("execution.command.args"), originalFlowFile.getAttribute("execution.command.args"));
@@ -140,7 +138,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         byte[] byteArray = outputFlowFile.toByteArray();
         String result = new String(byteArray);
         assertTrue(Pattern.compile("Test was a success\r?\n").matcher(result).find());
@@ -151,7 +149,7 @@ public class TestExecuteStreamCommand {
         String expected = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "ExecuteCommand" + File.separator + "TestSuccess.jar";
         assertEquals(expected, attribute.substring(attribute.length() - expected.length()));
 
-        MockFlowFile originalFlowFile = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).get(0);
+        MockFlowFile originalFlowFile = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP).getFirst();
         assertEquals(outputFlowFile.getAttribute("execution.status"), originalFlowFile.getAttribute("execution.status"));
         assertEquals(outputFlowFile.getAttribute("execution.command"), originalFlowFile.getAttribute("execution.command"));
         assertEquals(outputFlowFile.getAttribute("execution.command.args"), originalFlowFile.getAttribute("execution.command.args"));
@@ -173,7 +171,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         controller.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.get(0);
+        MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(0, flowFile.getSize());
         assertTrue(flowFile.getAttribute("execution.error").contains("Error: Unable to access jarfile"));
         assertTrue(flowFile.isPenalized());
@@ -206,7 +204,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         controller.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.get(0);
+        MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(0, flowFile.getSize());
         assertTrue(flowFile.getAttribute("execution.error").contains("Error: Unable to access jarfile"));
         assertTrue(flowFile.isPenalized());
@@ -234,7 +232,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        byte[] byteArray = flowFiles.getFirst().toByteArray();
         String result = new String(byteArray);
 
         assertTrue(Pattern.compile("nifi-standard-processors:ModifiedResult\r?\n").matcher(result).find());
@@ -274,7 +272,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        byte[] byteArray = flowFiles.getFirst().toByteArray();
         String result = new String(byteArray);
 
         assertTrue(Pattern.compile("nifi-standard-processors:ModifiedResult\r?\n").matcher(result).find());
@@ -295,10 +293,10 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.get(0);
+        MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(0, flowFile.getSize());
-        assertTrue(flowFile.getAttribute("execution.error").contains("ÄÖÜäöüß"));
-        assertTrue(flowFile.getAttribute("execution.error").contains("fffffffffffffffffffffffffffffff"));
+        assertTrue(flowFile.getAttribute("execution.error").matches("^\\W{7}f+$"),
+                "Attribute 'execution.error' did not match regular expression ^\\W{7}f+$. Full value of 'execution.error' attribute is %s".formatted(flowFile.getAttribute("execution.error")));
     }
 
     @Test
@@ -328,10 +326,10 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile flowFile = flowFiles.get(0);
+        MockFlowFile flowFile = flowFiles.getFirst();
         assertEquals(0, flowFile.getSize());
-        assertTrue(flowFile.getAttribute("execution.error").contains("ÄÖÜäöüß"));
-        assertTrue(flowFile.getAttribute("execution.error").contains("fffffffffffffffffffffffffffffff"));
+        assertTrue(flowFile.getAttribute("execution.error").matches("^\\W{7}f+$"),
+                "Attribute 'execution.error' did not match regular expression ^\\W{7}f+$. Full value of 'execution.error' attribute is %s".formatted(flowFile.getAttribute("execution.error")));
     }
 
     @Test
@@ -349,7 +347,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        byte[] byteArray = flowFiles.getFirst().toByteArray();
         String result = new String(byteArray);
 
         final String quotedSeparator = Pattern.quote(File.separator);
@@ -383,7 +381,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        byte[] byteArray = flowFiles.getFirst().toByteArray();
         String result = new String(byteArray);
 
         final String quotedSeparator = Pattern.quote(File.separator);
@@ -406,7 +404,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        byte[] byteArray = flowFiles.getFirst().toByteArray();
         String result = new String(byteArray);
         assertTrue(Pattern.compile("target:ModifiedResult\r?\n$").matcher(result).find(), "TestIngestAndUpdate.jar should not have received anything to modify");
     }
@@ -439,7 +437,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        byte[] byteArray = flowFiles.getFirst().toByteArray();
         String result = new String(byteArray);
         assertTrue(Pattern.compile("target:ModifiedResult\r?\n$").matcher(result).find(), "TestIngestAndUpdate.jar should not have received anything to modify");
     }
@@ -461,7 +459,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        byte[] byteArray = flowFiles.getFirst().toByteArray();
         String result = new String(byteArray);
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
         assertFalse(dynamicEnvironmentVariables.size() < 2, "Should contain at least two environment variables starting with NIFI");
@@ -498,7 +496,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        byte[] byteArray = flowFiles.get(0).toByteArray();
+        byte[] byteArray = flowFiles.getFirst().toByteArray();
         String result = new String(byteArray);
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
         assertFalse(dynamicEnvironmentVariables.size() < 2, "Should contain at least two environment variables starting with NIFI");
@@ -530,7 +528,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         outputFlowFile.assertContentEquals("");
         outputFlowFile.assertAttributeNotExists(CoreAttributes.MIME_TYPE.key());
         String ouput = outputFlowFile.getAttribute("executeStreamCommand.output");
@@ -579,7 +577,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         outputFlowFile.assertContentEquals("");
         String ouput = outputFlowFile.getAttribute("executeStreamCommand.output");
         assertTrue(ouput.startsWith("Hello"));
@@ -596,7 +594,7 @@ public class TestExecuteStreamCommand {
         Map<String, String> attrs = new HashMap<>();
 
         String json = FileUtils.readFileToString(dummy, StandardCharsets.UTF_8);
-        attrs.put("json.attribute", json);
+        attrs.put("json.attribute", JsonUtil.getExpectedContent(json));
         controller.enqueue("".getBytes(), attrs);
 
         controller.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
@@ -631,7 +629,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 1);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         String output = new String(outputFlowFile.toByteArray());
         ObjectMapper mapper = new ObjectMapper();
         JsonNode tree1 = mapper.readTree(json);
@@ -657,7 +655,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         String result = outputFlowFile.getAttribute("executeStreamCommand.output");
         outputFlowFile.assertContentEquals(dummy);
         assertTrue(Pattern.compile("Test was a success\r?\n").matcher(result).find());
@@ -697,7 +695,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         String result = outputFlowFile.getAttribute("executeStreamCommand.output");
         outputFlowFile.assertContentEquals(dummy);
         assertTrue(Pattern.compile("Test was a success\r?\n").matcher(result).find());
@@ -727,7 +725,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         outputFlowFile.assertContentEquals("small test".getBytes());
         String result = outputFlowFile.getAttribute("outputDest");
         assertTrue(Pattern.compile("Test was a").matcher(result).find());
@@ -769,7 +767,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.NONZERO_STATUS_RELATIONSHIP, 0);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         outputFlowFile.assertContentEquals("small test".getBytes());
         String result = outputFlowFile.getAttribute("outputDest");
         assertTrue(Pattern.compile("Test was a").matcher(result).find());
@@ -803,7 +801,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.get(0).getAttribute("outputDest");
+        String result = flowFiles.getFirst().getAttribute("outputDest");
 
         assertTrue(Pattern.compile("nifi-standard-processors:ModifiedResult\r?\n").matcher(result).find());
     }
@@ -842,7 +840,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.get(0).getAttribute("outputDest");
+        String result = flowFiles.getFirst().getAttribute("outputDest");
 
         assertTrue(Pattern.compile("nifi-standard-processors:ModifiedResult\r?\n").matcher(result).find());
     }
@@ -877,8 +875,8 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
 
-        flowFiles.get(0).assertAttributeEquals("execution.status", "0");
-        String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
+        flowFiles.getFirst().assertAttributeEquals("execution.status", "0");
+        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         assertTrue(Pattern.compile("a{256}").matcher(result).matches());
     }
 
@@ -928,8 +926,8 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP, 0);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
 
-        flowFiles.get(0).assertAttributeEquals("execution.status", "0");
-        String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
+        flowFiles.getFirst().assertAttributeEquals("execution.status", "0");
+        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         assertTrue(Pattern.compile("a{256}").matcher(result).matches());
     }
 
@@ -948,7 +946,7 @@ public class TestExecuteStreamCommand {
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.get(0).getAttribute("streamOutput");
+        String result = flowFiles.getFirst().getAttribute("streamOutput");
 
         final String quotedSeparator = Pattern.quote(File.separator);
         assertTrue(Pattern.compile(quotedSeparator + "nifi-standard-processors" + quotedSeparator + "target:ModifiedResult\r?\n").matcher(result).find());
@@ -981,7 +979,7 @@ public class TestExecuteStreamCommand {
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.get(0).getAttribute("streamOutput");
+        String result = flowFiles.getFirst().getAttribute("streamOutput");
 
         final String quotedSeparator = Pattern.quote(File.separator);
         assertTrue(Pattern.compile(quotedSeparator + "nifi-standard-processors" + quotedSeparator + "target:ModifiedResult\r?\n").matcher(result).find());
@@ -1003,7 +1001,7 @@ public class TestExecuteStreamCommand {
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
+        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         assertTrue(Pattern.compile("target:ModifiedResult\r?\n?").matcher(result).find(),
                 "TestIngestAndUpdate.jar should not have received anything to modify");
     }
@@ -1036,7 +1034,7 @@ public class TestExecuteStreamCommand {
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
+        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         assertTrue(Pattern.compile("target:ModifiedResult\r?\n?").matcher(result).find(),
                 "TestIngestAndUpdate.jar should not have received anything to modify");
     }
@@ -1058,7 +1056,7 @@ public class TestExecuteStreamCommand {
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
+        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
         assertFalse(dynamicEnvironmentVariables.size() < 2, "Should contain at least two environment variables starting with NIFI");
         assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"), "NIFI_TEST_1 environment variable is missing");
@@ -1094,7 +1092,7 @@ public class TestExecuteStreamCommand {
         controller.run(1);
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        String result = flowFiles.get(0).getAttribute("executeStreamCommand.output");
+        String result = flowFiles.getFirst().getAttribute("executeStreamCommand.output");
         Set<String> dynamicEnvironmentVariables = new HashSet<>(Arrays.asList(result.split("\r?\n")));
         assertFalse(dynamicEnvironmentVariables.size() < 2, "Should contain at least two environment variables starting with NIFI");
         assertTrue(dynamicEnvironmentVariables.contains("NIFI_TEST_1=testvalue1"), "NIFI_TEST_1 environment variable is missing");
@@ -1102,7 +1100,7 @@ public class TestExecuteStreamCommand {
     }
 
     @Test
-    public void testQuotedArguments() throws Exception {
+    public void testQuotedArguments() {
         List<String> args = ArgumentUtils.splitArgs("echo -n \"arg1 arg2 arg3\"", ' ');
         assertEquals(3, args.size());
         args = ArgumentUtils.splitArgs("echo;-n;\"arg1 arg2 arg3\"", ';');
@@ -1110,7 +1108,7 @@ public class TestExecuteStreamCommand {
     }
 
     @Test
-    public void testInvalidDelimiter() throws Exception {
+    public void testInvalidDelimiter() {
         final TestRunner controller = TestRunners.newTestRunner(ExecuteStreamCommand.class);
         controller.setProperty(ExecuteStreamCommand.EXECUTION_COMMAND, "echo");
         controller.assertValid();
@@ -1137,7 +1135,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         String result = outputFlowFile.getAttribute("executeStreamCommand.output");
         outputFlowFile.assertContentEquals(dummy);
         assertTrue(result.isEmpty()); // java -jar with bad path only prints to standard error not standard out
@@ -1178,7 +1176,7 @@ public class TestExecuteStreamCommand {
         controller.assertTransferCount(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP, 1);
 
         List<MockFlowFile> flowFiles = controller.getFlowFilesForRelationship(ExecuteStreamCommand.ORIGINAL_RELATIONSHIP);
-        MockFlowFile outputFlowFile = flowFiles.get(0);
+        MockFlowFile outputFlowFile = flowFiles.getFirst();
         String result = outputFlowFile.getAttribute("executeStreamCommand.output");
         outputFlowFile.assertContentEquals(dummy);
         assertTrue(result.isEmpty()); // java -jar with bad path only prints to standard error not standard out

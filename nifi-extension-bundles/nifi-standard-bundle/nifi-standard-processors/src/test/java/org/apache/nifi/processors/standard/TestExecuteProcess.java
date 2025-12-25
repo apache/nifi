@@ -29,8 +29,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -84,7 +82,6 @@ public class TestExecuteProcess {
         assertEquals("", twoArgOneWholeQuotedArgOneEmptyArg.get(3));
     }
 
-    @DisabledOnOs(OS.WINDOWS)
     @Test
     public void testEcho() {
         final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
