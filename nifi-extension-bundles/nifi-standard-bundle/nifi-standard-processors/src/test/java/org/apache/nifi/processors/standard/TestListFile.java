@@ -46,6 +46,7 @@ import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -598,6 +599,7 @@ public class TestListFile {
     @Test
     public void testFilterPathPattern() throws Exception {
         final long now = getTestModifiedTime();
+        final FileTime fileTime = FileTime.fromMillis(now);
 
         final File subdir1 = new File(TESTDIR + "/subdir1");
         assertTrue(subdir1.mkdirs());
@@ -607,19 +609,23 @@ public class TestListFile {
 
         final File file1 = new File(TESTDIR + "/file1.txt");
         assertTrue(file1.createNewFile());
-        assertTrue(file1.setLastModified(now));
+        Files.setLastModifiedTime(file1.toPath(), fileTime);
+        //assertTrue(file1.setLastModified(now));
 
         final File file2 = new File(TESTDIR + "/subdir1/file2.txt");
         assertTrue(file2.createNewFile());
-        assertTrue(file2.setLastModified(now));
+        Files.setLastModifiedTime(file2.toPath(), fileTime);
+        //assertTrue(file2.setLastModified(now));
 
         final File file3 = new File(TESTDIR + "/subdir1/subdir2/file3.txt");
         assertTrue(file3.createNewFile());
-        assertTrue(file3.setLastModified(now));
+        Files.setLastModifiedTime(file3.toPath(), fileTime);
+        //assertTrue(file3.setLastModified(now));
 
         final File file4 = new File(TESTDIR + "/subdir1/file4.txt");
         assertTrue(file4.createNewFile());
-        assertTrue(file4.setLastModified(now));
+        Files.setLastModifiedTime(file4.toPath(), fileTime);
+        //assertTrue(file4.setLastModified(now));
 
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
