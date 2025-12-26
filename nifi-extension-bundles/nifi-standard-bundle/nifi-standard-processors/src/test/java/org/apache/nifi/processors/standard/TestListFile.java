@@ -642,7 +642,7 @@ public class TestListFile {
         assertEquals(3, successFiles2.size());
 
         // filter path on pattern subdir2
-        runner.setProperty(ListFile.PATH_FILTER, ".*/subdir2");
+        runner.setProperty(ListFile.PATH_FILTER, ".*%ssubdir2".formatted(File.separator));
         runner.setProperty(ListFile.RECURSE, "true");
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 1 matches the filter.");
         runNext();
