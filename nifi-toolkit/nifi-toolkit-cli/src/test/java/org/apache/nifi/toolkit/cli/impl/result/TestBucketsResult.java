@@ -19,10 +19,9 @@ package org.apache.nifi.toolkit.cli.impl.result;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.registry.BucketsResult;
+import org.apache.nifi.toolkit.cli.impl.result.util.OutputUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,7 +33,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@DisabledOnOs(OS.WINDOWS)
 public class TestBucketsResult {
 
     private ByteArrayOutputStream outputStream;
@@ -65,15 +63,17 @@ public class TestBucketsResult {
         final BucketsResult result = new BucketsResult(ResultType.SIMPLE, buckets);
         result.write(printStream);
 
-        final String resultOut = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        final String resultOut = outputStream.toString(StandardCharsets.UTF_8);
 
-        final String expected = "\n" +
-                "#   Name       Id                                     Description        \n" +
-                "-   --------   ------------------------------------   ----------------   \n" +
-                "1   Bucket 1   ea752054-22c6-4fc0-b851-967d9a3837cb   This is bucket 1   \n" +
-                "2   Bucket 2   ddf5f289-7502-46df-9798-4b0457c1816b   (empty)            \n" +
-                "\n";
+        final String expected = """
 
-        assertEquals(expected, resultOut);
+                #   Name       Id                                     Description       \s
+                -   --------   ------------------------------------   ----------------  \s
+                1   Bucket 1   ea752054-22c6-4fc0-b851-967d9a3837cb   This is bucket 1  \s
+                2   Bucket 2   ddf5f289-7502-46df-9798-4b0457c1816b   (empty)           \s
+
+                """;
+
+        assertEquals(OutputUtil.getExpectedContent(expected), resultOut);
     }
 }
