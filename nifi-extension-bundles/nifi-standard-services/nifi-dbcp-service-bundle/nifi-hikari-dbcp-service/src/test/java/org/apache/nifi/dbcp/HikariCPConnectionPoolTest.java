@@ -25,10 +25,15 @@ import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
@@ -37,6 +42,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -49,7 +55,16 @@ public class HikariCPConnectionPoolTest {
 
     private static final String MAX_WAIT_TIME_VALUE = "5 s";
 
+    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
+
     private TestRunner runner;
+
+    @BeforeAll
+    public static void setDerbyLog() {
+        final File derbyLog = new File(getSystemTemporaryDirectory(), "derby.log");
+        derbyLog.deleteOnExit();
+        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
+    }
 
     @BeforeEach
     public void setup() {
@@ -166,6 +181,26 @@ public class HikariCPConnectionPoolTest {
         assertOutcomeSuccessful(results);
     }
 
+    @Test
+    public void testDeregisterDriver(@TempDir final Path tempDir) throws Exception {
+        final HikariCPConnectionPool service = new HikariCPConnectionPool();
+        runner.addControllerService(SERVICE_ID, service);
+        final String url = String.format("jdbc:derby:%s;create=true", tempDir.toFile());
+        runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, url);
+        runner.setProperty(service, HikariCPConnectionPool.DB_USER, String.class.getSimpleName());
+        runner.setProperty(service, HikariCPConnectionPool.DB_PASSWORD, String.class.getName());
+        runner.setProperty(service, HikariCPConnectionPool.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
+        runner.setProperty(service, HikariCPConnectionPool.MAX_TOTAL_CONNECTIONS, "2");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        final int serviceRunningNumberOfDrivers = Collections.list(DriverManager.getDrivers()).size();
+        runner.disableControllerService(service);
+        assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
+        runner.removeControllerService(service);
+        final int expectedDriversAfterRemove = serviceRunningNumberOfDrivers - 1;
+        assertEquals(expectedDriversAfterRemove, Collections.list(DriverManager.getDrivers()).size(), "Driver should be deregistered on remove");
+    }
+
     private void setDatabaseProperties(final HikariCPConnectionPool service) {
         runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, DB_DRIVERNAME_VALUE);
         runner.setProperty(service, HikariCPConnectionPool.DB_DRIVERNAME, MockDriver.class.getName());
@@ -187,5 +222,9 @@ public class HikariCPConnectionPoolTest {
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, secondResult.getOutcome(), secondResult.getExplanation());
 
         assertFalse(resultsFound.hasNext());
+    }
+
+    private static String getSystemTemporaryDirectory() {
+        return System.getProperty("java.io.tmpdir");
     }
 }
