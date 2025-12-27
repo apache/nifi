@@ -46,6 +46,7 @@ import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -66,7 +67,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test only runs on *nix")
 public class TestListFile {
 
     private static boolean isMillisecondSupported = false;
@@ -337,7 +337,7 @@ public class TestListFile {
         runner.assertAllFlowFilesTransferred(ListFile.REL_SUCCESS);
         final List<MockFlowFile> successFiles4 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles4.size());
-        assertEquals(file2.getName(), successFiles4.get(0).getAttribute("filename"));
+        assertEquals(file2.getName(), successFiles4.getFirst().getAttribute("filename"));
     }
 
     @Test
@@ -460,6 +460,7 @@ public class TestListFile {
         assertEquals(1, successFiles2.size());
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "java.io.File setReadable(false) does not work on Windows. See javadocs.")
     @Test
     public void testListWithUnreadableFiles() throws Exception {
         final File file1 = new File(TESTDIR + "/unreadable.txt");
@@ -482,6 +483,7 @@ public class TestListFile {
         assertEquals(1, successFiles.size());
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "java.io.File setReadable(false) does not work on Windows. See javadocs.")
     @Test
     public void testListWithinUnreadableDirectory() throws Exception {
         final File subdir = new File(TESTDIR + "/subdir");
@@ -511,12 +513,13 @@ public class TestListFile {
 
             final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
             assertEquals(1, successFiles.size());
-            assertEquals("secondReadable.txt", successFiles.get(0).getAttribute("filename"));
+            assertEquals("secondReadable.txt", successFiles.getFirst().getAttribute("filename"));
         } finally {
             subdir.setReadable(true);
         }
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "java.io.File setReadable(false) does not work on Windows. See javadocs.")
     @Test
     public void testListingNeedsSufficientPrivilegesAndFittingFilter() throws Exception {
         final File file = new File(TESTDIR + "/file.txt");
@@ -596,6 +599,7 @@ public class TestListFile {
     @Test
     public void testFilterPathPattern() throws Exception {
         final long now = getTestModifiedTime();
+        final FileTime fileTime = FileTime.fromMillis(now);
 
         final File subdir1 = new File(TESTDIR + "/subdir1");
         assertTrue(subdir1.mkdirs());
@@ -605,19 +609,23 @@ public class TestListFile {
 
         final File file1 = new File(TESTDIR + "/file1.txt");
         assertTrue(file1.createNewFile());
-        assertTrue(file1.setLastModified(now));
+        Files.setLastModifiedTime(file1.toPath(), fileTime);
+        //assertTrue(file1.setLastModified(now));
 
         final File file2 = new File(TESTDIR + "/subdir1/file2.txt");
         assertTrue(file2.createNewFile());
-        assertTrue(file2.setLastModified(now));
+        Files.setLastModifiedTime(file2.toPath(), fileTime);
+        //assertTrue(file2.setLastModified(now));
 
         final File file3 = new File(TESTDIR + "/subdir1/subdir2/file3.txt");
         assertTrue(file3.createNewFile());
-        assertTrue(file3.setLastModified(now));
+        Files.setLastModifiedTime(file3.toPath(), fileTime);
+        //assertTrue(file3.setLastModified(now));
 
         final File file4 = new File(TESTDIR + "/subdir1/file4.txt");
         assertTrue(file4.createNewFile());
-        assertTrue(file4.setLastModified(now));
+        Files.setLastModifiedTime(file4.toPath(), fileTime);
+        //assertTrue(file4.setLastModified(now));
 
         // check all files
         runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
@@ -640,7 +648,7 @@ public class TestListFile {
         assertEquals(3, successFiles2.size());
 
         // filter path on pattern subdir2
-        runner.setProperty(ListFile.PATH_FILTER, ".*/subdir2");
+        runner.setProperty(ListFile.PATH_FILTER, ".*%ssubdir2".formatted(File.separator));
         runner.setProperty(ListFile.RECURSE, "true");
         assertVerificationOutcome(Outcome.SUCCESSFUL, "Successfully listed .* Found 4 objects.  Of those, 1 matches the filter.");
         runNext();
@@ -767,6 +775,7 @@ public class TestListFile {
         runner.assertTransferCount(ListFile.REL_SUCCESS, 3);
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "username is not contained in file owner attribute")
     @Test
     public void testAttributesSet() throws Exception {
         // create temp file and time constant
@@ -799,7 +808,7 @@ public class TestListFile {
         final String time3Formatted = formatter.format(Instant.ofEpochMilli(time3rounded).atZone(ZoneId.systemDefault()));
 
         // check standard attributes
-        MockFlowFile mock1 = successFiles1.get(0);
+        MockFlowFile mock1 = successFiles1.getFirst();
         assertEquals(relativePathString, mock1.getAttribute(CoreAttributes.PATH.key()));
         assertEquals("file1.txt", mock1.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals(absolutePathString, mock1.getAttribute(CoreAttributes.ABSOLUTE_PATH.key()));
@@ -814,7 +823,9 @@ public class TestListFile {
         if (store.supportsFileAttributeView("owner")) {
             // look for username containment to handle Windows domains as well as Unix user names
             // org.junit.ComparisonFailure: expected:<[]username> but was:<[DOMAIN\]username>
-            assertTrue(mock1.getAttribute(ListFile.FILE_OWNER_ATTRIBUTE).contains(userName));
+            final String fileOwnerAttribute = mock1.getAttribute(ListFile.FILE_OWNER_ATTRIBUTE);
+            assertTrue(fileOwnerAttribute.contains(userName),
+                    "Expected %s to contain %s but it didn't.".formatted(fileOwnerAttribute, userName));
         }
         if (store.supportsFileAttributeView("posix")) {
             assertNotNull(mock1.getAttribute(ListFile.FILE_GROUP_ATTRIBUTE), "Group name should be set");
@@ -823,7 +834,7 @@ public class TestListFile {
     }
 
     @Test
-    public void testIsListingResetNecessary() throws Exception {
+    public void testIsListingResetNecessary() {
         assertTrue(processor.isListingResetNecessary(ListFile.DIRECTORY));
         assertTrue(processor.isListingResetNecessary(ListFile.RECURSE));
         assertTrue(processor.isListingResetNecessary(ListFile.FILE_FILTER));
@@ -905,10 +916,10 @@ public class TestListFile {
         time4millis = syncTime - age4millis;
         time5millis = syncTime - age5millis;
 
-        age0 = Long.toString(age0millis) + " millis";
-        age2 = Long.toString(age2millis) + " millis";
-        age4 = Long.toString(age4millis) + " millis";
-        age5 = Long.toString(age5millis) + " millis";
+        age0 = age0millis + " millis";
+        age2 = age2millis + " millis";
+        age4 = age4millis + " millis";
+        age5 = age5millis + " millis";
     }
 
     private void deleteDirectory(final File directory) {
@@ -929,7 +940,7 @@ public class TestListFile {
         final List<ConfigVerificationResult> results = processor.verify(runner.getProcessContext(), runner.getLogger(), Collections.emptyMap());
 
         assertEquals(1, results.size());
-        final ConfigVerificationResult result = results.get(0);
+        final ConfigVerificationResult result = results.getFirst();
         assertEquals(expectedOutcome, result.getOutcome());
         assertTrue(result.getExplanation().matches(expectedExplanationRegex),
                 String.format("Expected verification result to match pattern [%s].  Actual explanation was: %s", expectedExplanationRegex, result.getExplanation()));

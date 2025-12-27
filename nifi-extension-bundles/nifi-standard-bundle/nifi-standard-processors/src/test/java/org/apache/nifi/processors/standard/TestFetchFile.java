@@ -32,9 +32,9 @@ import java.nio.file.StandardOpenOption;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Test only runs on *nix")
 public class TestFetchFile {
 
     @BeforeEach
@@ -47,13 +47,16 @@ public class TestFetchFile {
 
         targetDir.setReadable(true);
 
-        for (final File file : targetDir.listFiles()) {
-            Files.delete(file.toPath());
+        final File[] filesToDelete = targetDir.listFiles();
+        if (filesToDelete != null) {
+            for (final File file : filesToDelete) {
+                Files.delete(file.toPath());
+            }
         }
     }
 
     @Test
-    public void notFound() throws IOException {
+    public void notFound() {
         final File sourceFile = new File("notFound");
 
         final TestRunner runner = TestRunners.newTestRunner(new FetchFile());
@@ -78,7 +81,7 @@ public class TestFetchFile {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).get(0).assertContentEquals(content);
+        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).getFirst().assertContentEquals(content);
 
         assertTrue(sourceFile.exists());
     }
@@ -96,7 +99,7 @@ public class TestFetchFile {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).get(0).assertContentEquals(content);
+        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).getFirst().assertContentEquals(content);
 
         assertFalse(sourceFile.exists());
     }
@@ -123,7 +126,7 @@ public class TestFetchFile {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).get(0).assertContentEquals(content);
+        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).getFirst().assertContentEquals(content);
 
         assertFalse(sourceFile.exists());
         assertTrue(destFile.exists());
@@ -153,12 +156,13 @@ public class TestFetchFile {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).get(0).assertContentEquals(content);
+        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).getFirst().assertContentEquals(content);
 
         assertFalse(sourceFile.exists());
         assertTrue(destFile.exists());
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "The method setWritable(false) in java.io.File does not make a directory read only on Windows.")
     @Test
     public void testMoveOnCompleteWithTargetExistsButNotWritable() throws IOException {
         final File sourceFile = new File("target/1.txt");
@@ -186,12 +190,13 @@ public class TestFetchFile {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_FAILURE, 1);
-        runner.getFlowFilesForRelationship(FetchFile.REL_FAILURE).get(0).assertContentEquals("");
+        runner.getFlowFilesForRelationship(FetchFile.REL_FAILURE).getFirst().assertContentEquals("");
 
         assertTrue(sourceFile.exists());
         assertFalse(destFile.exists());
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "The method setWritable(false) in java.io.File does not make a directory read only on Windows.")
     @Test
     public void testMoveOnCompleteWithParentOfTargetDirNotAccessible() throws IOException {
         final File sourceFile = new File("target/1.txt");
@@ -217,7 +222,7 @@ public class TestFetchFile {
             runner.enqueue(new byte[0]);
             runner.run();
             runner.assertAllFlowFilesTransferred(FetchFile.REL_FAILURE, 1);
-            runner.getFlowFilesForRelationship(FetchFile.REL_FAILURE).get(0).assertContentEquals("");
+            runner.getFlowFilesForRelationship(FetchFile.REL_FAILURE).getFirst().assertContentEquals("");
 
             assertTrue(sourceFile.exists());
         } finally {
@@ -247,7 +252,7 @@ public class TestFetchFile {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).get(0).assertContentEquals(content);
+        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).getFirst().assertContentEquals(content);
 
         final byte[] replacedContent = Files.readAllBytes(destFile.toPath());
         assertArrayEquals(content, replacedContent);
@@ -278,7 +283,7 @@ public class TestFetchFile {
         runner.enqueue(new byte[0]);
         runner.run();
         runner.assertAllFlowFilesTransferred(FetchFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).get(0).assertContentEquals(content);
+        runner.getFlowFilesForRelationship(FetchFile.REL_SUCCESS).getFirst().assertContentEquals(content);
 
         final byte[] replacedContent = Files.readAllBytes(destFile.toPath());
         assertArrayEquals(goodBye, replacedContent);
@@ -346,6 +351,8 @@ public class TestFetchFile {
         assertFalse(sourceFile.exists());
         assertTrue(destFile.exists());
 
-        assertEquals(2, destDir.list().length);
+        final String[] destDirContents = destDir.list();
+        assertNotNull(destDirContents);
+        assertEquals(2, destDirContents.length);
     }
 }

@@ -124,7 +124,7 @@ class StandardFileResourceServiceTest {
         assertThrows(ProcessException.class, () -> service.getFileResource(attributes));
     }
 
-    @DisabledOnOs(OS.WINDOWS)
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Windows isn't natively POSIX compliant")
     @Test
     void testNonReadableFile() throws IOException {
         final Path filePath = createTestFile("nonReadableFile");
