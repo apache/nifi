@@ -34,22 +34,6 @@
     <!-- Managed Dependency Versions for referenced modules required based on different parent bundle project -->
     <dependencyManagement>
         <dependencies>
-            <!-- Apache Derby referenced in Hive and tests -->
-            <dependency>
-                <groupId>org.apache.derby</groupId>
-                <artifactId>derbynet</artifactId>
-                <version>${derby.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.derby</groupId>
-                <artifactId>derbytools</artifactId>
-                <version>${derby.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.derby</groupId>
-                <artifactId>derbyclient</artifactId>
-                <version>${derby.version}</version>
-            </dependency>
             <!-- Apache Ant referenced in Groovy and Hive -->
             <dependency>
                 <groupId>org.apache.ant</groupId>

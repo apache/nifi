@@ -17,10 +17,9 @@
 package org.apache.nifi.dbcp;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -29,7 +28,6 @@ import java.sql.Statement;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.UUID;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.utils.DBCPProperties;
@@ -38,12 +36,9 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.opentest4j.AssertionFailedError;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -54,52 +49,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DBCPServiceTest {
     private static final String SERVICE_ID = DBCPConnectionPool.class.getName();
 
-    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
-
-    private static final String DERBY_SHUTDOWN_STATE = "XJ015";
-
     private static final String INVALID_CONNECTION_URL = "jdbc:h2";
+
+    private static final String DRIVER_CLASS = "org.hsqldb.jdbc.JDBCDriver";
+    private static final String CONNECTION_URL_FORMAT = "jdbc:hsqldb:file:%s";
 
     private TestRunner runner;
 
-    private File databaseDirectory;
-
     private DBCPConnectionPool service;
 
-    @BeforeAll
-    public static void setDerbyLog() {
-        final File derbyLog = new File(getSystemTemporaryDirectory(), "derby.log");
-        derbyLog.deleteOnExit();
-        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
-    }
-
-    @AfterAll
-    public static void clearDerbyLog() {
-        System.clearProperty(DERBY_LOG_PROPERTY);
-    }
-
     @BeforeEach
-    public void setService() throws InitializationException {
-        databaseDirectory = getEmptyDirectory();
-
+    public void setService(@TempDir final Path tempDir) throws InitializationException {
         service = new DBCPConnectionPool();
         runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, service);
 
-        final String url = String.format("jdbc:derby:%s;create=true", databaseDirectory);
+        final String url = CONNECTION_URL_FORMAT.formatted(tempDir);
         runner.setProperty(service, DBCPProperties.DATABASE_URL, url);
         runner.setProperty(service, DBCPProperties.DB_USER, String.class.getSimpleName());
         runner.setProperty(service, DBCPProperties.DB_PASSWORD, String.class.getName());
-        runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, "org.apache.derby.jdbc.EmbeddedDriver");
-    }
-
-    @AfterEach
-    public void shutdown() throws IOException {
-        if (databaseDirectory.exists()) {
-            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
-            assertEquals(DERBY_SHUTDOWN_STATE, exception.getSQLState());
-            FileUtils.deleteFile(databaseDirectory, true);
-        }
+        runner.setProperty(service, DBCPProperties.DB_DRIVERNAME, DRIVER_CLASS);
     }
 
     @Test
@@ -179,7 +148,7 @@ public class DBCPServiceTest {
     }
 
     @Test
-    public void testDeregisterDriver() throws SQLException {
+    public void testDeregisterDriver() {
         runner.enableControllerService(service);
         runner.assertValid(service);
         final int serviceRunningNumberOfDrivers = Collections.list(DriverManager.getDrivers()).size();
@@ -224,8 +193,8 @@ public class DBCPServiceTest {
     }
 
     @Test
-    public void testInvalidDriverDerby() throws URISyntaxException {
-        final URL driverURL = org.apache.derby.client.ClientAutoloadedDriver.class
+    public void testInvalidDriverClass() throws URISyntaxException, ClassNotFoundException {
+        final URL driverURL = Class.forName(DRIVER_CLASS)
                 .getProtectionDomain()
                 .getCodeSource()
                 .getLocation();
@@ -239,7 +208,7 @@ public class DBCPServiceTest {
         assertEquals(1, verificationResults.size());
 
         final ConfigVerificationResult result = verificationResults.stream().filter(r -> r.getVerificationStepName().equals("Configure Data Source")).findFirst().get();
-        assertTrue(result.getExplanation().contains("org.apache.derby.client.ClientAutoloadedDriver"));
+        assertTrue(result.getExplanation().contains(DRIVER_CLASS));
     }
 
     @Test
@@ -267,14 +236,5 @@ public class DBCPServiceTest {
         try (final Connection connection = service.getConnection()) {
             assertNotNull(connection);
         }
-    }
-
-    private File getEmptyDirectory() {
-        final String randomDirectory = String.format("%s-%s", getClass().getSimpleName(), UUID.randomUUID());
-        return Paths.get(getSystemTemporaryDirectory(), randomDirectory).toFile();
-    }
-
-    private static String getSystemTemporaryDirectory() {
-        return System.getProperty("java.io.tmpdir");
     }
 }

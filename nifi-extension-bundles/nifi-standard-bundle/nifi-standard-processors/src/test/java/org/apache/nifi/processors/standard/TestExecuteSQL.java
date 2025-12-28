@@ -524,7 +524,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         executeSql("insert into TEST_NULL_INT values(1,2,3)");
 
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "VALUES (1)");
         runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
         runner.enqueue("test".getBytes());
         runner.run();
@@ -556,9 +556,9 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         executeSql("insert into TEST_NULL_INT values(1,2,3)");
 
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "VALUES (1)");
         runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
-        runner.setProperty(ExecuteSQL.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+        runner.setProperty(ExecuteSQL.SQL_POST_QUERY, "VALUES (2)");
         runner.enqueue("test".getBytes());
         runner.run();
 

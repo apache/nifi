@@ -262,7 +262,8 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         }
 
         try {
-            return DriverManager.getDriver(url);
+            registeredDriver = DriverManager.getDriver(url);
+            return registeredDriver;
         } catch (final SQLException e) {
             // In case the driver is not registered by the implementation, we explicitly try to register it.
             // deregister existing driver

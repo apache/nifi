@@ -145,7 +145,7 @@
 
         <!-- Data access -->
         <commons.dbcp2.version>2.14.0</commons.dbcp2.version>
-        <derby.version>10.17.1.0</derby.version>
+        <hsqldb.version>2.7.4</hsqldb.version>
 
         <!-- Data formats and serialization -->
         <avro.version>1.12.1</avro.version>
@@ -590,6 +590,11 @@
                 <version>${caffeine.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.hsqldb</groupId>
+                <artifactId>hsqldb</artifactId>
+                <version>${hsqldb.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-dbcp2</artifactId>
                 <version>${commons.dbcp2.version}</version>
@@ -941,6 +946,8 @@
                                         <exclude>org.hamcrest:hamcrest</exclude>
                                         <!-- org.lz4:lz4-java is no longer maintained -->
                                         <exclude>org.lz4:lz4-java</exclude>
+                                        <!-- Apache Derby is retired as of 2025-10-10 -->
+                                        <exclude>org.apache.derby</exclude>
                                     </excludes>
                                 </bannedDependencies>
                             </rules>
