@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.DB_TYPE;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_ID;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_INDEX;
@@ -51,7 +50,6 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
     @BeforeEach
     public void setUp() throws Exception {
         runner = newTestRunner(GenerateTableFetch.class);
-        runner.setProperty(DB_TYPE, "Derby");
     }
 
     @AfterEach
@@ -101,7 +99,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID LIMIT 10000", query);
         flowFile.assertAttributeEquals(FRAGMENT_INDEX, "0");
         flowFile.assertAttributeEquals(FRAGMENT_COUNT, "1");
         assertResultsFound(query, 3);
@@ -132,13 +130,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         // Verify first flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID LIMIT 2", query);
         assertResultsFound(query, 2);
 
         // Verify second flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID LIMIT 2 OFFSET 2", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -148,7 +146,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 AND ID <= 6 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 AND ID <= 6 ORDER BY ID LIMIT 2", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -159,13 +157,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 4); // 7 records with partition size 2 means 4 generated FlowFiles
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
-        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name LIMIT 2", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
-        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name LIMIT 2 OFFSET 2", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(2);
-        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name OFFSET 4 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name LIMIT 2 OFFSET 4", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(3);
-        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name OFFSET 6 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT id, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name LIMIT 2 OFFSET 6", new String(flowFile.toByteArray()));
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
         assertEquals("id, name, scale, created_on", flowFile.getAttribute("generatetablefetch.columnNames"));
         assertEquals("name <= 'Mr. NiFi'", flowFile.getAttribute("generatetablefetch.whereClause"));
@@ -191,7 +189,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
@@ -212,7 +210,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
@@ -227,13 +225,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         // Verify first flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID > 2 AND ID <= 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID > 2 AND ID <= 5 ORDER BY ID LIMIT 2", query);
         assertResultsFound(query, 2);
 
         // Verify second flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID > 2 AND ID <= 5 ORDER BY ID OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID > 2 AND ID <= 5 ORDER BY ID LIMIT 2 OFFSET 2", query);
     }
 
     @Test
@@ -251,7 +249,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
@@ -271,13 +269,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         // Verify first flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID LIMIT 2", query);
         assertResultsFound(query, 2);
 
         // Verify second flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID LIMIT 2 OFFSET 2", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -287,7 +285,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 AND ID <= 6 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 AND ID <= 6 ORDER BY ID LIMIT 2", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -297,13 +295,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 4); // 7 records with partition size 2 means 4 generated FlowFiles
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name LIMIT 2", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name LIMIT 2 OFFSET 2", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(2);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name OFFSET 4 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name LIMIT 2 OFFSET 4", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(3);
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name OFFSET 6 ROWS FETCH NEXT 2 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE name <= 'Mr. NiFi' ORDER BY name LIMIT 2 OFFSET 6", new String(flowFile.toByteArray()));
 
         runner.clearTransferState();
     }
@@ -323,7 +321,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on <= '2010-01-01 00:00:00.0' ORDER BY created_on FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on <= '2010-01-01 00:00:00.0' ORDER BY created_on LIMIT 10000", query);
         assertResultsFound(query, 3);
         runner.clearTransferState();
 
@@ -346,14 +344,14 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on > '2010-01-01 00:00:00.0' AND "
-                + "created_on <= '2011-01-01 04:23:34.236' ORDER BY created_on FETCH NEXT 2 ROWS ONLY", query);
+                + "created_on <= '2011-01-01 04:23:34.236' ORDER BY created_on LIMIT 2", query);
         assertResultsFound(query, 2);
 
         // Verify second flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on > '2010-01-01 00:00:00.0' AND "
-                + "created_on <= '2011-01-01 04:23:34.236' ORDER BY created_on OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", query);
+                + "created_on <= '2011-01-01 04:23:34.236' ORDER BY created_on LIMIT 2 OFFSET 2", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -363,7 +361,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on > '2011-01-01 04:23:34.236' AND created_on <= '2012-01-01 03:23:34.234' ORDER BY created_on FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE created_on > '2011-01-01 04:23:34.236' AND created_on <= '2012-01-01 03:23:34.234' ORDER BY created_on LIMIT 2", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
     }
@@ -516,7 +514,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 0 AND id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 0 AND id <= 1 ORDER BY id LIMIT 10000", new String(flowFile.toByteArray()));
     }
 
     @Test
@@ -539,7 +537,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         // Note there is no WHERE clause here. Because we are using dynamic tables, the old state key/value is not retrieved
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id LIMIT 10000", new String(flowFile.toByteArray()));
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
         assertNull(flowFile.getAttribute("generatetablefetch.columnNames"));
         assertEquals("id <= 1", flowFile.getAttribute("generatetablefetch.whereClause"));
@@ -555,7 +553,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id LIMIT 10000", new String(flowFile.toByteArray()));
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
         assertNull(flowFile.getAttribute("generatetablefetch.columnNames"));
         assertEquals("id > 1 AND id <= 2", flowFile.getAttribute("generatetablefetch.whereClause"));
@@ -584,7 +582,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         // Note there is no WHERE clause here. Because we are using dynamic tables, the old state key/value is not retrieved
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id LIMIT 10000", new String(flowFile.toByteArray()));
 
         runner.clearTransferState();
         executeSql("insert into TEST_QUERY_DB_TABLE (id, bucket) VALUES (2, 0)");
@@ -594,7 +592,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id LIMIT 10000", new String(flowFile.toByteArray()));
     }
 
     @Test
@@ -620,7 +618,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         // Note there is no WHERE clause here. Because we are using dynamic tables (i.e. Expression Language,
         // even when not referring to flow file attributes), the old state key/value is not retrieved
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", new String(flowFile.toByteArray()));
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id LIMIT 10000", new String(flowFile.toByteArray()));
     }
 
     @Test
@@ -639,7 +637,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -660,13 +658,13 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         // Verify first flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID LIMIT 2", query);
         assertResultsFound(query, 2);
 
         // Verify second flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND ID <= 5 ORDER BY ID LIMIT 2 OFFSET 2", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
     }
@@ -688,7 +686,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -715,7 +713,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -744,7 +742,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 1 AND ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -772,7 +770,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID > 1 AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE2 WHERE ID > 1 AND ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -835,7 +833,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE (type = 'male' OR type IS NULL)"
-                + " AND ID <= 2 ORDER BY ID FETCH NEXT 10000 ROWS ONLY", query);
+                + " AND ID <= 2 ORDER BY ID LIMIT 10000", query);
         assertResultsFound(query, 2);
         runner.clearTransferState();
 
@@ -856,14 +854,14 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND (type = 'male' OR type IS NULL)"
-                + " AND ID <= 5 ORDER BY ID FETCH NEXT 1 ROWS ONLY", query);
+                + " AND ID <= 5 ORDER BY ID LIMIT 1", query);
         assertResultsFound(query, 1);
 
         // Verify second flow file's contents
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 2 AND (type = 'male' OR type IS NULL)"
-                + " AND ID <= 5 ORDER BY ID OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY", query);
+                + " AND ID <= 5 ORDER BY ID LIMIT 1 OFFSET 1", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -874,7 +872,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
         assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE ID > 5 AND (type = 'male' OR type IS NULL)"
-                + " AND ID <= 6 ORDER BY ID FETCH NEXT 1 ROWS ONLY", query);
+                + " AND ID <= 6 ORDER BY ID LIMIT 1", query);
         assertResultsFound(query, 1);
         runner.clearTransferState();
 
@@ -886,19 +884,19 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 5); // 5 records with partition size 1 means 5 generated FlowFiles
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         assertEquals("SELECT id, type, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE (type = 'male' OR type IS NULL)"
-                + " AND name <= 'Mr. NiFi' ORDER BY name FETCH NEXT 1 ROWS ONLY", new String(flowFile.toByteArray()));
+                + " AND name <= 'Mr. NiFi' ORDER BY name LIMIT 1", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         assertEquals("SELECT id, type, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE (type = 'male' OR type IS NULL)"
-                + " AND name <= 'Mr. NiFi' ORDER BY name OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY", new String(flowFile.toByteArray()));
+                + " AND name <= 'Mr. NiFi' ORDER BY name LIMIT 1 OFFSET 1", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(2);
         assertEquals("SELECT id, type, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE (type = 'male' OR type IS NULL)"
-                + " AND name <= 'Mr. NiFi' ORDER BY name OFFSET 2 ROWS FETCH NEXT 1 ROWS ONLY", new String(flowFile.toByteArray()));
+                + " AND name <= 'Mr. NiFi' ORDER BY name LIMIT 1 OFFSET 2", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(3);
         assertEquals("SELECT id, type, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE (type = 'male' OR type IS NULL)"
-                + " AND name <= 'Mr. NiFi' ORDER BY name OFFSET 3 ROWS FETCH NEXT 1 ROWS ONLY", new String(flowFile.toByteArray()));
+                + " AND name <= 'Mr. NiFi' ORDER BY name LIMIT 1 OFFSET 3", new String(flowFile.toByteArray()));
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(4);
         assertEquals("SELECT id, type, name, scale, created_on FROM TEST_QUERY_DB_TABLE WHERE (type = 'male' OR type IS NULL)"
-                + " AND name <= 'Mr. NiFi' ORDER BY name OFFSET 4 ROWS FETCH NEXT 1 ROWS ONLY", new String(flowFile.toByteArray()));
+                + " AND name <= 'Mr. NiFi' ORDER BY name LIMIT 1 OFFSET 4", new String(flowFile.toByteArray()));
 
         assertEquals("TEST_QUERY_DB_TABLE", flowFile.getAttribute("generatetablefetch.tableName"));
         assertEquals("id, type, name, scale, created_on", flowFile.getAttribute("generatetablefetch.columnNames"));
@@ -927,7 +925,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id <= 1 ORDER BY id LIMIT 10000", query);
         runner.clearTransferState();
 
         // Insert new records
@@ -941,7 +939,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id FETCH NEXT 10000 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE id > 1 AND id <= 2 ORDER BY id LIMIT 10000", query);
         runner.clearTransferState();
     }
 
@@ -1084,14 +1082,14 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 2);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).getFirst();
         String query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE 1=1 ORDER BY SCALE FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE 1=1 ORDER BY SCALE LIMIT 2", query);
         flowFile.assertAttributeEquals(FRAGMENT_INDEX, "0");
         flowFile.assertAttributeEquals(FRAGMENT_COUNT, "2");
         assertResultsFound(query, 2);
 
         flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(1);
         query = new String(flowFile.toByteArray());
-        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE 1=1 ORDER BY SCALE OFFSET 2 ROWS FETCH NEXT 2 ROWS ONLY", query);
+        assertEquals("SELECT * FROM TEST_QUERY_DB_TABLE WHERE 1=1 ORDER BY SCALE LIMIT 2 OFFSET 2", query);
         flowFile.assertAttributeEquals(FRAGMENT_INDEX, "1");
         flowFile.assertAttributeEquals(FRAGMENT_COUNT, "2");
         assertResultsFound(query, 1);
