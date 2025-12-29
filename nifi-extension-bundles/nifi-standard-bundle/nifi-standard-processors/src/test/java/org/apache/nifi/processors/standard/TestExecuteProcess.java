@@ -131,32 +131,6 @@ public class TestExecuteProcess {
         }
     }
 
-    // @Test
-    public void testBigBinaryInputData() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
-
-        String workingDirName = "/var/test";
-        String testFile = "eclipse-java-luna-SR2-win32.zip";
-
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
-        runner.setProperty(ExecuteProcess.COMMAND, "cmd");
-        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, " /c type " + testFile);
-        runner.setProperty(ExecuteProcess.WORKING_DIR, workingDirName);
-
-        File inFile = new File(workingDirName, testFile);
-
-        runner.run();
-
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
-        long totalFlowFilesSize = 0;
-        for (final MockFlowFile flowFile : flowFiles) {
-            totalFlowFilesSize += flowFile.getSize();
-        }
-
-        assertEquals(inFile.length(), totalFlowFilesSize);
-    }
-
     @Test
     public void testBigInputSplit() {
         System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
