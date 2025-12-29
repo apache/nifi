@@ -102,10 +102,10 @@ public class ProcessorDTO extends ComponentDTO {
     }
 
     /**
-     * @return The state of this processor. Possible states are 'RUNNING', 'STOPPED', and 'DISABLED'
+     * @return The state of this processor. Possible states are 'RUNNING', 'STOPPED', 'DISABLED', and 'RUN_ONCE'
      */
     @Schema(description = "The state of the processor",
-            allowableValues = {"RUNNING", "STOPPED", "DISABLED"}
+            allowableValues = {"RUNNING", "STOPPED", "DISABLED", "RUN_ONCE"}
     )
     public String getState() {
         return state;
