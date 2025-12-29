@@ -47,7 +47,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
@@ -95,6 +95,8 @@ public class OidcSecurityConfiguration {
 
     private final NiFiProperties properties;
 
+    private final TaskScheduler taskScheduler;
+
     private final StateManagerProvider stateManagerProvider;
 
     private final PropertyEncryptor propertyEncryptor;
@@ -118,6 +120,7 @@ public class OidcSecurityConfiguration {
     @Autowired
     public OidcSecurityConfiguration(
             final NiFiProperties properties,
+            final TaskScheduler taskScheduler,
             final StateManagerProvider stateManagerProvider,
             final PropertyEncryptor propertyEncryptor,
             final BearerTokenProvider bearerTokenProvider,
@@ -132,6 +135,7 @@ public class OidcSecurityConfiguration {
             final LogoutRequestManager logoutRequestManager
     ) {
         this.properties = Objects.requireNonNull(properties, "Properties required");
+        this.taskScheduler = Objects.requireNonNull(taskScheduler, "Task Scheduler required");
         this.stateManagerProvider = Objects.requireNonNull(stateManagerProvider, "State Manager Provider required");
         this.propertyEncryptor = Objects.requireNonNull(propertyEncryptor, "Property Encryptor required");
         this.bearerTokenProvider = Objects.requireNonNull(bearerTokenProvider, "Bearer Token Provider required");
@@ -313,20 +317,8 @@ public class OidcSecurityConfiguration {
     @Bean
     public AuthorizedClientExpirationCommand authorizedClientExpirationCommand() {
         final AuthorizedClientExpirationCommand command = new AuthorizedClientExpirationCommand(authorizedClientRepository(), tokenRevocationResponseClient());
-        oidcCommandScheduler().scheduleAtFixedRate(command, keyRotationPeriod);
+        taskScheduler.scheduleAtFixedRate(command, keyRotationPeriod);
         return command;
-    }
-
-    /**
-     * Command Scheduled for OpenID Connect operations
-     *
-     * @return Thread Pool Task Executor
-     */
-    @Bean
-    public ThreadPoolTaskScheduler oidcCommandScheduler() {
-        final ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setThreadNamePrefix(OidcSecurityConfiguration.class.getSimpleName());
-        return scheduler;
     }
 
     /**
