@@ -27,11 +27,13 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -52,6 +54,8 @@ import org.apache.nifi.security.krb.KerberosUser;
 import javax.security.auth.login.LoginException;
 
 import java.sql.Connection;
+import java.sql.Driver;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -213,6 +217,8 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
 
     private volatile HikariDataSource dataSource;
     private volatile KerberosUser kerberosUser;
+    // Hold an instance of the driver so we can properly de-register it.
+    private volatile Driver registeredDriver;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -423,6 +429,9 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             }
         }
 
+        // We load the driver here so we can keep a reference to it if it was loaded in the InstanceClassLoader.
+        // This allows us to deregister it to prevent a memory leak.
+        loadDriver(driverName, dburl);
         dataSource.setConnectionTimeout(maxWaitMillis);
         dataSource.setValidationTimeout(Math.max(maxWaitMillis, DEFAULT_MIN_VALIDATION_TIMEOUT));
         dataSource.setMaximumPoolSize(maxTotal);
@@ -491,6 +500,79 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
             if (dataSource != null) {
                 dataSource.close();
             }
+        }
+    }
+
+    protected void loadDriver(final String driverClassName, final String url) {
+        final Class<?> clazz;
+
+        try {
+            clazz = Class.forName(driverClassName);
+        } catch (final ClassNotFoundException e) {
+            // Enhanced error message with discovery
+            ResourceReferences driverResources = null;
+            try {
+                // Try to get driver resources from current context if available
+                if (getConfigurationContext() != null) {
+                    driverResources = getConfigurationContext().getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().asResources();
+                }
+            } catch (Exception ignored) {
+                // Context might not be available, continue without it
+            }
+
+            final List<String> availableDrivers = (driverResources != null && driverResources.getCount() != 0) ? DriverUtils.discoverDriverClasses(driverResources) : List.of();
+
+            StringBuilder errorMessage = new StringBuilder("JDBC driver class '%s' not found.".formatted(driverClassName));
+
+            if (!availableDrivers.isEmpty()) {
+                errorMessage.append(" Available driver classes found in resources: %s.".formatted(String.join(", ", availableDrivers)));
+            } else if (driverResources != null && driverResources.getCount() != 0) {
+                final List<ResourceReference> resourcesList = driverResources.asList();
+                if (resourcesList.stream().filter(r -> r.getResourceType() != ResourceType.URL).count() != 0) {
+                    errorMessage.append(" No JDBC driver classes found in the provided resources.");
+                }
+            } else if (driverResources == null) {
+                errorMessage.append(" The property 'Database Driver Location(s)' should be set.");
+            }
+
+            throw new IllegalStateException(errorMessage.toString(), e);
+        }
+
+        try {
+            final Driver driver = DriverManager.getDriver(url);
+            // Ensure drivers that register themselves during class loading can be set as the registeredDriver.
+            // This ensures drivers that register themselves can be deregisterd when the componet is removed.
+            // These drivers should be loaded in the same InstanceClassloader that load this component
+            if (driver != registeredDriver
+                    && driver.getClass().getClassLoader().equals(getClass().getClassLoader())) {
+                DriverManager.deregisterDriver(registeredDriver);
+                registeredDriver = driver;
+            }
+        } catch (final SQLException e) {
+            // In case the driver is not registered by the implementation, we explicitly try to register it.
+            try {
+                if (registeredDriver != null) {
+                    DriverManager.deregisterDriver(registeredDriver);
+                }
+                registeredDriver = (Driver) clazz.getDeclaredConstructor().newInstance();
+
+                DriverManager.registerDriver(registeredDriver);
+                DriverManager.getDriver(url);
+            } catch (final SQLException e2) {
+                throw new IllegalStateException("No suitable driver for the given Database Connection URL", e2);
+            } catch (final Exception e2) {
+                throw new IllegalStateException("Creating driver instance is failed", e2);
+            }
+        }
+    }
+
+    @OnRemoved
+    public void onRemove() {
+        try {
+            // We need to deregister the driver to allow the InstanceClassLoader to be garbage collected.
+            DriverManager.deregisterDriver(registeredDriver);
+        } catch (final SQLException e) {
+            getLogger().warn("Failed to deregister driver [{}]", registeredDriver, e);
         }
     }
 
