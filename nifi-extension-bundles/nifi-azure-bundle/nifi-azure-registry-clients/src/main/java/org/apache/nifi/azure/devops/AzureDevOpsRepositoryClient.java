@@ -340,7 +340,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
 
         final JsonNode response = executeGetAllowingNotFound(uri);
         if (response == null) {
-            logger.warn("Unable to get content SHA for [{}] from branch [{}] because content does not exist", resolvedPath, branch);
+            logger.debug("Unable to get content SHA for [{}] from branch [{}] because content does not exist", resolvedPath, branch);
             return Optional.empty();
         }
 
@@ -348,7 +348,7 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         if (values != null && values.size() > 0) {
             return Optional.ofNullable(values.get(0).get(JSON_FIELD_COMMIT_ID)).map(JsonNode::asText);
         } else {
-            logger.warn("Unable to get content SHA for [{}] from branch [{}] because no commits were found", resolvedPath, branch);
+            logger.debug("Unable to get content SHA for [{}] from branch [{}] because no commits were found", resolvedPath, branch);
             return Optional.empty();
         }
     }

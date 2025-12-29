@@ -392,7 +392,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
                 final GHContent ghContent = repository.getFileContent(resolvedPath, branchRef);
                 return Optional.of(ghContent.getSha());
             } catch (final FileNotFoundException e) {
-                logger.warn("Unable to get content SHA for [{}] from branch [{}] because content does not exist", resolvedPath, branch);
+                logger.debug("Unable to get content SHA for [{}] from branch [{}] because content does not exist", resolvedPath, branch);
                 return Optional.empty();
             }
         });
