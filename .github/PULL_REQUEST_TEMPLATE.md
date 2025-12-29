@@ -27,9 +27,7 @@ Please complete the following tracking steps prior to pull request creation.
 
 - [ ] Pull Request title starts with Apache NiFi Jira issue number, such as `NIFI-00000`
 - [ ] Pull Request commit message starts with Apache NiFi Jira issue number, as such `NIFI-00000`
-- [ ] Pull request contains
-      [commits signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits)
-      with a registered key indicating `Verified` status
+- [ ] Pull request contains [commits signed](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits) with a registered key indicating `Verified` status
 
 ### Pull Request Formatting
 
