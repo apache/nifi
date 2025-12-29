@@ -1351,6 +1351,13 @@ public class FlowResource extends ApplicationResource {
             clearBulletinsForGroupRequestEntity.setComponents(writableComponentIds);
         }
 
+        // If there are no components to clear bulletins for, return success with 0 bulletins cleared
+        if (clearBulletinsForGroupRequestEntity.getComponents().isEmpty()) {
+            final ClearBulletinsForGroupResultsEntity entity = new ClearBulletinsForGroupResultsEntity();
+            entity.setBulletinsCleared(0);
+            return generateOkResponse(entity).build();
+        }
+
         if (isReplicateRequest()) {
             return replicate(HttpMethod.POST, clearBulletinsForGroupRequestEntity);
         }
