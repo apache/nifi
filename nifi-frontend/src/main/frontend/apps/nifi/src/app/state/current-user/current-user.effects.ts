@@ -75,6 +75,10 @@ export class CurrentUserEffects {
             this.actions$.pipe(
                 ofType(UserActions.navigateToLogIn),
                 tap(() => {
+                    const currentUrl = window.location.hash.substring(1) || this.router.url;
+                    if (currentUrl && currentUrl !== '/login') {
+                        sessionStorage.setItem('returnUrl', currentUrl);
+                    }
                     this.router.navigate(['/login']);
                 })
             ),

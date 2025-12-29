@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import { CanMatchFn } from '@angular/router';
+import { CanMatchFn, Router } from '@angular/router';
 import { inject } from '@angular/core';
 import { AuthService } from '../auth.service';
 import { catchError, from, map, of, switchMap, take, tap } from 'rxjs';
@@ -35,6 +35,7 @@ export const authenticationGuard: CanMatchFn = () => {
     const userService: CurrentUserService = inject(CurrentUserService);
     const errorHelper: ErrorHelper = inject(ErrorHelper);
     const store: Store<CurrentUserState> = inject(Store<CurrentUserState>);
+    const router: Router = inject(Router);
 
     const getAuthenticationConfig = store.select(selectLoginConfiguration).pipe(
         take(1),
@@ -77,6 +78,13 @@ export const authenticationGuard: CanMatchFn = () => {
                             }),
                             map(() => true),
                             catchError((errorResponse: HttpErrorResponse) => {
+                                if (errorResponse.status === 401) {
+                                    const currentUrl = router.url;
+                                    if (currentUrl && currentUrl !== '/login') {
+                                        sessionStorage.setItem('returnUrl', currentUrl);
+                                    }
+                                }
+
                                 if (errorResponse.status !== 401 || authConfigResponse.loginSupported) {
                                     store.dispatch(errorHelper.fullScreenError(errorResponse));
                                 }

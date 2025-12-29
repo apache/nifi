@@ -59,7 +59,13 @@ export class AccessEffects {
             this.actions$.pipe(
                 ofType(AccessActions.loginSuccess),
                 tap(() => {
-                    this.router.navigate(['/']);
+                    const returnUrl = sessionStorage.getItem('returnUrl');
+                    if (returnUrl) {
+                        sessionStorage.removeItem('returnUrl');
+                        this.router.navigateByUrl(returnUrl);
+                    } else {
+                        this.router.navigate(['/']);
+                    }
                 })
             ),
         { dispatch: false }
