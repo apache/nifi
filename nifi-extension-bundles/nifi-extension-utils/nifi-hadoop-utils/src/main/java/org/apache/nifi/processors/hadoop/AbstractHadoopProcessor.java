@@ -523,7 +523,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         return accessDenied;
     }
 
-    static protected class ValidationResources {
+    protected static class ValidationResources {
         private final List<String> configLocations;
         private final Configuration configuration;
 

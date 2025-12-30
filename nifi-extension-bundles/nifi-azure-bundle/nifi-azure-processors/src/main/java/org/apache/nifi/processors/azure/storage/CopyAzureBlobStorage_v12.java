@@ -119,7 +119,7 @@ import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR
         @WritesAttribute(attribute = ATTR_NAME_ERROR_CODE, description = ATTR_DESCRIPTION_ERROR_CODE),
         @WritesAttribute(attribute = ATTR_NAME_IGNORED, description = ATTR_DESCRIPTION_IGNORED)})
 public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
-    private final static int GENERATE_SAS_EXPIRY_HOURS = 24;
+    private static final int GENERATE_SAS_EXPIRY_HOURS = 24;
 
     public static final PropertyDescriptor SOURCE_STORAGE_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
             .name("Source Storage Credentials")

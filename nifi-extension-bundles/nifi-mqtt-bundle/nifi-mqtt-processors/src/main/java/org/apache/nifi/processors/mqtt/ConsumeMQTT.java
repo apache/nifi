@@ -104,26 +104,26 @@ import static org.apache.nifi.processors.mqtt.common.MqttConstants.ALLOWABLE_VAL
         + "instance of this processor. A high value for this property could represent a lot of data being stored in memory.")
 public class ConsumeMQTT extends AbstractMQTTProcessor {
 
-    public final static String RECORD_COUNT_KEY = "record.count";
-    public final static String BROKER_ATTRIBUTE_KEY = "mqtt.broker";
-    public final static String TOPIC_ATTRIBUTE_KEY = "mqtt.topic";
-    public final static String TOPIC_SEGMENT_PREFIX = "mqtt.topic.segment.";
-    public final static String TOPIC_SEPARATOR = "/";
-    public final static String QOS_ATTRIBUTE_KEY = "mqtt.qos";
-    public final static String IS_DUPLICATE_ATTRIBUTE_KEY = "mqtt.isDuplicate";
-    public final static String IS_RETAINED_ATTRIBUTE_KEY = "mqtt.isRetained";
+    public static final String RECORD_COUNT_KEY = "record.count";
+    public static final String BROKER_ATTRIBUTE_KEY = "mqtt.broker";
+    public static final String TOPIC_ATTRIBUTE_KEY = "mqtt.topic";
+    public static final String TOPIC_SEGMENT_PREFIX = "mqtt.topic.segment.";
+    public static final String TOPIC_SEPARATOR = "/";
+    public static final String QOS_ATTRIBUTE_KEY = "mqtt.qos";
+    public static final String IS_DUPLICATE_ATTRIBUTE_KEY = "mqtt.isDuplicate";
+    public static final String IS_RETAINED_ATTRIBUTE_KEY = "mqtt.isRetained";
 
-    public final static String TOPIC_FIELD_KEY = "_topic";
-    public final static String TOPIC_SEGMENTS_FIELD_KEY = "_topicSegments";
-    public final static String QOS_FIELD_KEY = "_qos";
-    public final static String IS_DUPLICATE_FIELD_KEY = "_isDuplicate";
-    public final static String IS_RETAINED_FIELD_KEY = "_isRetained";
+    public static final String TOPIC_FIELD_KEY = "_topic";
+    public static final String TOPIC_SEGMENTS_FIELD_KEY = "_topicSegments";
+    public static final String QOS_FIELD_KEY = "_qos";
+    public static final String IS_DUPLICATE_FIELD_KEY = "_isDuplicate";
+    public static final String IS_RETAINED_FIELD_KEY = "_isRetained";
 
-    private final static String COUNTER_PARSE_FAILURES = "Parse Failures";
-    private final static String COUNTER_RECORDS_RECEIVED = "Records Received";
-    private final static String COUNTER_RECORDS_PROCESSED = "Records Processed";
+    private static final String COUNTER_PARSE_FAILURES = "Parse Failures";
+    private static final String COUNTER_RECORDS_RECEIVED = "Records Received";
+    private static final String COUNTER_RECORDS_PROCESSED = "Records Processed";
 
-    private final static int MAX_MESSAGES_PER_FLOW_FILE = 10000;
+    private static final int MAX_MESSAGES_PER_FLOW_FILE = 10000;
 
     public static final PropertyDescriptor PROP_GROUPID = new PropertyDescriptor.Builder()
             .name("Group ID")

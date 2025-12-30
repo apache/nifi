@@ -127,7 +127,7 @@ public class TestInferXmlSchema {
 
     private RecordSchema inferSchema(final String filename, final String contentFieldName, final boolean ignoreWrapper, final boolean parseXMLAttributes) throws IOException {
         final File file = new File(filename);
-        final RecordSourceFactory<XmlNode> xmlSourceFactory = (var, in) ->  new XmlRecordSource(in, contentFieldName, ignoreWrapper, parseXMLAttributes);
+        final RecordSourceFactory<XmlNode> xmlSourceFactory = (variables, in) ->  new XmlRecordSource(in, contentFieldName, ignoreWrapper, parseXMLAttributes);
         final SchemaInferenceEngine<XmlNode> schemaInference = new XmlSchemaInference(timeValueInference);
         final InferSchemaAccessStrategy<XmlNode> inferStrategy = new InferSchemaAccessStrategy<>(xmlSourceFactory, schemaInference, Mockito.mock(ComponentLog.class));
 

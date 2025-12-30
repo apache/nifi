@@ -147,7 +147,7 @@ public class ITNeo4JCypherExecutorNoSSL {
         assertEquals("1", attributes.get(GraphClientService.ROWS_RETURNED));
         assertEquals(1, result.size());
         assertEquals("abc", result.get(0).get("n.name"));
-        assertEquals(1l, result.get(0).get("n.age"));
+        assertEquals(1L, result.get(0).get("n.age"));
     }
 
     @Test

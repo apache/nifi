@@ -163,8 +163,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private long removedBytes = 0L; // size of all flowfiles removed in this session
     private long bytesRead = 0L;
     private long bytesWritten = 0L;
-    private int flowFilesIn = 0, flowFilesOut = 0;
-    private long contentSizeIn = 0L, contentSizeOut = 0L;
+    private int flowFilesIn = 0;
+    private int flowFilesOut = 0;
+    private long contentSizeIn = 0L;
+    private long contentSizeOut = 0L;
 
     private ResourceClaim currentReadClaim = null;
     private ByteCountingInputStream currentReadClaimStream = null;
@@ -3893,10 +3895,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         private long removedBytes = 0L; // size of all flowfiles removed in this session
         private long bytesRead = 0L;
         private long bytesWritten = 0L;
-        private int flowFilesIn = 0, flowFilesOut = 0;
-        private long contentSizeIn = 0L, contentSizeOut = 0L;
-        private int flowFilesReceived = 0, flowFilesSent = 0;
-        private long bytesReceived = 0L, bytesSent = 0L;
+        private int flowFilesIn = 0;
+        private int flowFilesOut = 0;
+        private long contentSizeIn = 0L;
+        private long contentSizeOut = 0L;
+        private int flowFilesReceived = 0;
+        private int flowFilesSent = 0;
+        private long bytesReceived = 0L;
+        private long bytesSent = 0L;
 
         private boolean initialized = false;
         private StateMap localState;

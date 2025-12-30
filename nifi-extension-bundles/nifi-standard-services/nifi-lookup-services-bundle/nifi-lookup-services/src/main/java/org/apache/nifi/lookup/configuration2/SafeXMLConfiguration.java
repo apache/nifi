@@ -55,7 +55,6 @@ public class SafeXMLConfiguration extends XMLConfiguration {
     private static final String XXE_ERROR_MESSAGE = "XML configuration file contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled.";
 
     public SafeXMLConfiguration() {
-        super();
     }
 
     public SafeXMLConfiguration(HierarchicalConfiguration<ImmutableNode> c) {

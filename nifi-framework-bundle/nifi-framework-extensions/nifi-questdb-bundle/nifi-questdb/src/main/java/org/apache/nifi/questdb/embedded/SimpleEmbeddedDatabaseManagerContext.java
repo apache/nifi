@@ -23,7 +23,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 final class SimpleEmbeddedDatabaseManagerContext implements EmbeddedDatabaseManagerContext {
-    final private Set<ManagedTableDefinition> tableDefinitions = new HashSet<>();
+    private final Set<ManagedTableDefinition> tableDefinitions = new HashSet<>();
 
     private String persistLocation;
     private String backupLocation;

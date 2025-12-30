@@ -71,9 +71,15 @@ public class MapDataType extends DataType {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof MapDataType)) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof MapDataType)) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         MapDataType that = (MapDataType) o;
         return valuesNullable == that.valuesNullable
                 && Objects.equals(getValueType(), that.getValueType());

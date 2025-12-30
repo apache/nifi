@@ -48,7 +48,8 @@ public class TestRecordSinkServiceLookup {
 
     private MockRecordSinkServiceLookup sinkLookup;
     private TestRunner runner;
-    private MockRecordSinkService sinkA, sinkB;
+    private MockRecordSinkService sinkA;
+    private MockRecordSinkService sinkB;
     private RecordSet recordSet;
 
     @BeforeEach

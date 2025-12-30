@@ -231,7 +231,8 @@ public class GeohashRecord extends AbstractProcessor {
 
     private RoutingStrategyExecutor routingStrategyExecutor;
     private static boolean isSplit;
-    private static Integer enrichedCount, unenrichedCount;
+    private static Integer enrichedCount;
+    private static Integer unenrichedCount;
 
     private final RecordPathCache cache = new RecordPathCache(100);
 

@@ -71,7 +71,7 @@ class TestInferJsonSchemaAccessStrategy {
         }
 
         final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                (var, content) -> new JsonRecordSource(content), timestampInference, Mockito.mock(ComponentLog.class)
+                (variables, content) -> new JsonRecordSource(content), timestampInference, Mockito.mock(ComponentLog.class)
         );
 
         for (int j = 0; j < 10; j++) {
@@ -105,7 +105,7 @@ class TestInferJsonSchemaAccessStrategy {
 
             for (int i = 0; i < 10_000; i++) {
                 try (final InputStream in = new ByteArrayInputStream(manyCopies)) {
-                    final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>((var, content) -> new JsonRecordSource(content),
+                    final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>((variables, content) -> new JsonRecordSource(content),
                             noTimestampInference, Mockito.mock(ComponentLog.class));
 
                     accessStrategy.getSchema(null, in, null);
@@ -241,7 +241,7 @@ class TestInferJsonSchemaAccessStrategy {
              final InputStream bufferedIn = new BufferedInputStream(in)) {
 
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (var, content) -> new JsonRecordSource(content, strategy, startingFieldName, new JsonParserFactory()),
+                    (variables, content) -> new JsonRecordSource(content, strategy, startingFieldName, new JsonParserFactory()),
                     timestampInference, Mockito.mock(ComponentLog.class)
             );
 

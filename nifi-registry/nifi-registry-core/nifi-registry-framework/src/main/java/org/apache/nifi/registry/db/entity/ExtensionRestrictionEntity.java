@@ -62,8 +62,12 @@ public class ExtensionRestrictionEntity {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExtensionRestrictionEntity that = (ExtensionRestrictionEntity) o;
         return Objects.equals(id, that.id)
                 && Objects.equals(extensionId, that.extensionId)

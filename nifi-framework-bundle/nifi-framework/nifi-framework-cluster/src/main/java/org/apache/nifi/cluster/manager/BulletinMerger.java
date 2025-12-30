@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 public final class BulletinMerger {
 
-    final static String ALL_NODES_MESSAGE = "All Nodes";
+    static final String ALL_NODES_MESSAGE = "All Nodes";
 
     private BulletinMerger() { }
 

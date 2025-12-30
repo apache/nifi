@@ -53,7 +53,7 @@ public final class NarClassLoaders {
     private static final Logger logger = LoggerFactory.getLogger(NarClassLoaders.class);
 
     @SuppressWarnings("PMD.UnusedPrivateField")
-    private final static class InitContext {
+    private static final class InitContext {
 
         private final File frameworkWorkingDir;
         private final File extensionWorkingDir;

@@ -132,12 +132,12 @@ public class PutMongoRecord extends AbstractMongoProcessor {
         .defaultValue(UpdateMethod.UPDATE_ONE)
         .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
     );
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             getCommonPropertyDescriptors().stream(),
             Stream.of(
                     RECORD_READER_FACTORY,

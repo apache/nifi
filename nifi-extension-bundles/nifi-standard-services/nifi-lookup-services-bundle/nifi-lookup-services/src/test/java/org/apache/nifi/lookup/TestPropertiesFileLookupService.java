@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPropertiesFileLookupService {
 
-    final static Optional<String> EMPTY_STRING = Optional.empty();
+    static final Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
     public void testPropertiesFileLookupService() throws InitializationException, LookupFailureException {

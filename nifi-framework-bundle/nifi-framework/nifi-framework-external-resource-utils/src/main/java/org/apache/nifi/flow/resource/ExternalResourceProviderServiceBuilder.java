@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 public final class ExternalResourceProviderServiceBuilder {
-    private final static Map<String, Supplier<ExternalResourceConflictResolutionStrategy>> STRATEGIES = new HashMap<>();
+    private static final Map<String, Supplier<ExternalResourceConflictResolutionStrategy>> STRATEGIES = new HashMap<>();
 
     static {
         STRATEGIES.put("REPLACE", ReplaceWithNewerResolutionStrategy::new);

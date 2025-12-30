@@ -60,8 +60,12 @@ public class DeviceInfo implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DeviceInfo that = (DeviceInfo) o;
         return Objects.equals(identifier, that.identifier) && Objects.equals(systemInfo, that.systemInfo) && Objects.equals(networkInfo, that.networkInfo);
     }

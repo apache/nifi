@@ -58,14 +58,24 @@ public class InstanceHealth implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         InstanceHealth that = (InstanceHealth) o;
 
-        if (getQueuedCount() != that.getQueuedCount()) return false;
-        if (Double.compare(that.getQueuedContentSize(), getQueuedContentSize()) != 0) return false;
-        if (isHasBulletins() != that.isHasBulletins()) return false;
+        if (getQueuedCount() != that.getQueuedCount()) {
+            return false;
+        }
+        if (Double.compare(that.getQueuedContentSize(), getQueuedContentSize()) != 0) {
+            return false;
+        }
+        if (isHasBulletins() != that.isHasBulletins()) {
+            return false;
+        }
         return activeThreads == that.activeThreads;
 
     }

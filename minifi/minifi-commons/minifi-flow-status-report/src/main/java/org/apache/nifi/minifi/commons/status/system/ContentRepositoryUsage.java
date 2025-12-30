@@ -67,15 +67,27 @@ public class ContentRepositoryUsage implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ContentRepositoryUsage that = (ContentRepositoryUsage) o;
 
-        if (getFreeSpace() != that.getFreeSpace()) return false;
-        if (getTotalSpace() != that.getTotalSpace()) return false;
-        if (getUsedSpace() != that.getUsedSpace()) return false;
-        if (getDiskUtilization() != that.getDiskUtilization()) return false;
+        if (getFreeSpace() != that.getFreeSpace()) {
+            return false;
+        }
+        if (getTotalSpace() != that.getTotalSpace()) {
+            return false;
+        }
+        if (getUsedSpace() != that.getUsedSpace()) {
+            return false;
+        }
+        if (getDiskUtilization() != that.getDiskUtilization()) {
+            return false;
+        }
         return getName() != null ? getName().equals(that.getName()) : that.getName() == null;
 
     }

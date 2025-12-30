@@ -125,15 +125,15 @@ public final class SNMPUtils {
                     final String snmpPropName = splits[1];
                     final String snmpPropValue = attributeEntry.getValue();
                     if (SNMPUtils.OID_PATTERN.matcher(snmpPropName).matches()) {
-                        final Optional<Variable> var;
+                        final Optional<Variable> snmpVar;
                         if (splits.length == 2) { // no SMI syntax defined
-                            var = Optional.of(new OctetString(snmpPropValue));
+                            snmpVar = Optional.of(new OctetString(snmpPropValue));
                         } else {
                             final int smiSyntax = Integer.parseInt(splits[2]);
-                            var = SNMPUtils.stringToVariable(snmpPropValue, smiSyntax);
+                            snmpVar = SNMPUtils.stringToVariable(snmpPropValue, smiSyntax);
                         }
-                        if (var.isPresent()) {
-                            final VariableBinding varBind = new VariableBinding(new OID(snmpPropName), var.get());
+                        if (snmpVar.isPresent()) {
+                            final VariableBinding varBind = new VariableBinding(new OID(snmpPropName), snmpVar.get());
                             pdu.add(varBind);
                             result = true;
                         }
@@ -187,23 +187,23 @@ public final class SNMPUtils {
     }
 
     private static Optional<Variable> stringToVariable(final String value, final int smiSyntax) {
-        Variable var = AbstractVariable.createFromSyntax(smiSyntax);
+        Variable variable = AbstractVariable.createFromSyntax(smiSyntax);
         try {
-            if (var instanceof AssignableFromString) {
-                ((AssignableFromString) var).setValue(value);
-            } else if (var instanceof AssignableFromInteger) {
-                ((AssignableFromInteger) var).setValue(Integer.parseInt(value));
-            } else if (var instanceof AssignableFromLong) {
-                ((AssignableFromLong) var).setValue(Long.parseLong(value));
+            if (variable instanceof AssignableFromString) {
+                ((AssignableFromString) variable).setValue(value);
+            } else if (variable instanceof AssignableFromInteger) {
+                ((AssignableFromInteger) variable).setValue(Integer.parseInt(value));
+            } else if (variable instanceof AssignableFromLong) {
+                ((AssignableFromLong) variable).setValue(Long.parseLong(value));
             } else {
-                logger.error("Unsupported conversion of [ {} ] to ", var.getSyntaxString());
-                var = null;
+                logger.error("Unsupported conversion of [ {} ] to ", variable.getSyntaxString());
+                variable = null;
             }
         } catch (IllegalArgumentException e) {
-            logger.error("Unsupported conversion of [ {} ] to ", var.getSyntaxString(), e);
-            var = null;
+            logger.error("Unsupported conversion of [ {} ] to ", variable.getSyntaxString(), e);
+            variable = null;
         }
-        return Optional.ofNullable(var);
+        return Optional.ofNullable(variable);
     }
 
     public static Optional<String> getErrorMessage(final String oid) {

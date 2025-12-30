@@ -82,8 +82,8 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 public class FetchGCSObjectTest extends AbstractGCSTest {
-    private final static String KEY = "test-key";
-    private final static Long GENERATION = 5L;
+    private static final String KEY = "test-key";
+    private static final Long GENERATION = 5L;
     private static final String CONTENT = "test-content";
 
     private static final Long SIZE = 100L;

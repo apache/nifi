@@ -69,7 +69,7 @@ public class ComponentRevision {
             return true;
         }
 
-        if ((obj instanceof ComponentRevision) == false) {
+        if (!(obj instanceof ComponentRevision)) {
             return false;
         }
 

@@ -23,7 +23,7 @@ import java.io.IOException;
 
 public abstract class AbstractWebSocketService extends AbstractControllerService implements WebSocketService {
 
-    final protected WebSocketMessageRouters routers = new WebSocketMessageRouters();
+    protected final WebSocketMessageRouters routers = new WebSocketMessageRouters();
 
     @Override
     public void registerProcessor(final String endpointId, final Processor processor) throws WebSocketConfigurationException {

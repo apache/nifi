@@ -50,7 +50,9 @@ public class TestStandardControllerServiceInvocationHandler {
 
     @AfterEach
     public void setOriginalClassLoaderBack() {
-        if (originalClassLoader != null) Thread.currentThread().setContextClassLoader(originalClassLoader);
+        if (originalClassLoader != null) {
+            Thread.currentThread().setContextClassLoader(originalClassLoader);
+        }
     }
 
     @Test

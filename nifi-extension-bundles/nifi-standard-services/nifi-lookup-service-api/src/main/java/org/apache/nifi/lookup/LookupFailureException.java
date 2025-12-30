@@ -20,7 +20,6 @@ package org.apache.nifi.lookup;
 public class LookupFailureException extends Exception {
 
     public LookupFailureException() {
-        super();
     }
 
     public LookupFailureException(final String message) {

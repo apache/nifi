@@ -107,9 +107,9 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     public static final String JMS_MESSAGETYPE = "jms.messagetype";
 
-    private final static String COUNTER_PARSE_FAILURES = "Parse Failures";
-    private final static String COUNTER_RECORDS_RECEIVED = "Records Received";
-    private final static String COUNTER_RECORDS_PROCESSED = "Records Processed";
+    private static final String COUNTER_PARSE_FAILURES = "Parse Failures";
+    private static final String COUNTER_RECORDS_RECEIVED = "Records Received";
+    private static final String COUNTER_RECORDS_PROCESSED = "Records Processed";
 
     static final AllowableValue AUTO_ACK = new AllowableValue(String.valueOf(Session.AUTO_ACKNOWLEDGE),
             "AUTO_ACKNOWLEDGE (" + Session.AUTO_ACKNOWLEDGE + ")",
@@ -219,7 +219,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .autoTerminateDefault(true) // to make sure flow are still valid after upgrades
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_PARSE_FAILURE
     );
@@ -234,7 +234,7 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             JMS_CF_PROPERTIES.stream()
     ).toList();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             Stream.of(
                     CF_SERVICE,
                     DESTINATION,

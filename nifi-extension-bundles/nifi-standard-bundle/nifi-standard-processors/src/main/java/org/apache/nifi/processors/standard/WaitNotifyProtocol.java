@@ -66,8 +66,8 @@ public class WaitNotifyProtocol {
          * Getter and Setter methods are needed to (de)serialize JSON even if it's not used from app code.
          */
 
-        transient private String identifier;
-        transient private AtomicCacheEntry<String, String, Object> cachedEntry;
+        private transient String identifier;
+        private transient AtomicCacheEntry<String, String, Object> cachedEntry;
         private Map<String, Long> counts = new HashMap<>();
         private Map<String, String> attributes = new HashMap<>();
         private long releasableCount = 0;

@@ -33,7 +33,6 @@ public class HttpServerCommunicationsSession extends HttpCommunicationsSession {
     private ResponseCode responseCode;
 
     public HttpServerCommunicationsSession(final InputStream inputStream, final OutputStream outputStream, final String transactionId, final String userDn) {
-        super();
         input.setInputStream(inputStream);
         output.setOutputStream(outputStream);
         this.transactionId = transactionId;

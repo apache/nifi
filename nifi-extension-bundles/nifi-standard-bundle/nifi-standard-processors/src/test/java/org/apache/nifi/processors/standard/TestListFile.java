@@ -82,8 +82,16 @@ public class TestListFile {
     // time#millis are absolute time references
     // age#filter are filter label strings for the filter properties
     private Long syncTime = getTestModifiedTime();
-    private Long time0millis, time1millis, time2millis, time3millis, time4millis, time5millis;
-    private String age0, age2, age4, age5;
+    private Long time0millis;
+    private Long time1millis;
+    private Long time2millis;
+    private Long time3millis;
+    private Long time4millis;
+    private Long time5millis;
+    private String age0;
+    private String age2;
+    private String age4;
+    private String age5;
 
     @RegisterExtension
     private final ListProcessorTestWatcher dumpState = new ListProcessorTestWatcher(

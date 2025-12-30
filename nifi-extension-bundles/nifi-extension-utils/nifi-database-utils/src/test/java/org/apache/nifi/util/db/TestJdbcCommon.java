@@ -438,7 +438,9 @@ public class TestJdbcCommon extends AbstractConnectionTest {
 
         final JdbcCommon.AvroConversionOptions.Builder optionsBuilder = JdbcCommon.AvroConversionOptions
                 .builder().convertNames(true).useLogicalTypes(true).defaultPrecision(defaultPrecision);
-        if (defaultScale > -1) optionsBuilder.defaultScale(defaultScale);
+        if (defaultScale > -1) {
+            optionsBuilder.defaultScale(defaultScale);
+        }
 
         final JdbcCommon.AvroConversionOptions options = optionsBuilder.build();
         JdbcCommon.convertToAvroStream(rs, baos, options, null);

@@ -164,7 +164,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             .description("Any FlowFile that is successfully received from the event hub will be transferred to this Relationship.")
             .build();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             NAMESPACE,
             EVENT_HUB_NAME,
             SERVICE_BUS_ENDPOINT,
@@ -180,7 +180,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             PROXY_CONFIGURATION_SERVICE
     );
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS
     );
 

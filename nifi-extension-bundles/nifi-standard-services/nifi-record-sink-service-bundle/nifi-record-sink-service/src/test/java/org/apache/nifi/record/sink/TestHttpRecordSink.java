@@ -68,7 +68,7 @@ public class TestHttpRecordSink {
     private MockWebServer mockWebServer;
     private HttpRecordSink httpRecordSink;
     private RecordSetWriterFactory writerFactory;
-    final private String OAUTH_ACCESS_TOKEN = "access_token";
+    private final String OAUTH_ACCESS_TOKEN = "access_token";
 
     private static RecordSchema schema;
     private static Record[] records;
@@ -273,7 +273,7 @@ public class TestHttpRecordSink {
 
             for (int personIndex = 0; personIndex < people.length; personIndex++) {
                 final int compareIndex = i * maxBatchSize + personIndex;
-                assertTrue(people[personIndex].equals(records[compareIndex]), "Mismatch - Expected: " + records[compareIndex].toMap().toString() +
+                assertTrue(people[personIndex].matchesRecord(records[compareIndex]), "Mismatch - Expected: " + records[compareIndex].toMap().toString() +
                         " Actual: {" + people[personIndex].toString() + "} order of fields can be ignored.");
             }
             String actualContentTypeHeader = recordedRequest.getHeaders().get(HttpHeader.CONTENT_TYPE.toString());
@@ -285,12 +285,12 @@ public class TestHttpRecordSink {
         }
     }
 
-    static public class Person {
+    public static class Person {
         public int id;
         public String name;
         public boolean active;
 
-        public boolean equals(Record record) {
+        public boolean matchesRecord(Record record) {
             return id == record.getAsInt(ID)
                     && name.equals(record.getAsString(NAME))
                     && active == record.getAsBoolean(ACTIVE);

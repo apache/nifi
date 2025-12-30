@@ -123,8 +123,8 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
                 .map(Arguments::of);
     }
 
-    private final static boolean ENABLED = true;
-    private final static boolean DISABLED = false;
+    private static final boolean ENABLED = true;
+    private static final boolean DISABLED = false;
 
     private static final String CONNECTION_FAILED = "Connection Failed";
 

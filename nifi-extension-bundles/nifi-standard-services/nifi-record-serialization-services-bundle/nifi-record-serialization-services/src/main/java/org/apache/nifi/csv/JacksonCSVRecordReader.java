@@ -52,7 +52,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
     private List<String> rawFieldNames = null;
     private boolean allowDuplicateHeaderNames;
 
-    private volatile static CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
+    private static volatile CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
                                   final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {

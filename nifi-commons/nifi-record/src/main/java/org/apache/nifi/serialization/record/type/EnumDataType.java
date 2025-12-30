@@ -43,9 +43,15 @@ public class EnumDataType extends DataType {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof EnumDataType)) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof EnumDataType)) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         EnumDataType that = (EnumDataType) o;
         return Objects.equals(getEnums(), that.getEnums());
     }

@@ -55,7 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class SmbDfsIT {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(SmbDfsIT.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmbDfsIT.class);
 
     private static final int DEFAULT_SMB_PORT = 445;
 

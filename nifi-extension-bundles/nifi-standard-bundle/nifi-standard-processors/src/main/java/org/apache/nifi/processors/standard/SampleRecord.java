@@ -364,7 +364,8 @@ public class SampleRecord extends AbstractProcessor {
             if (isRangeExpressionInvalid()) {
                 throw new IOException(rangeExpression + " is not a valid range expression");
             }
-            Integer startRange, endRange;
+            Integer startRange;
+            Integer endRange;
             if (StringUtils.isEmpty(rangeExpression)) {
                 startRange = 0;
                 endRange = Integer.MAX_VALUE;

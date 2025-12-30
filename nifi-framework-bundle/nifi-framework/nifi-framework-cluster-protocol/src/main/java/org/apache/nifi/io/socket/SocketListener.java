@@ -144,12 +144,12 @@ public abstract class SocketListener {
     }
 
     public boolean isRunning() {
-        return (executorService != null && executorService.isShutdown() == false);
+        return (executorService != null && !executorService.isShutdown());
     }
 
     public void stop() throws IOException {
 
-        if (isRunning() == false) {
+        if (!isRunning()) {
             return;
         }
 

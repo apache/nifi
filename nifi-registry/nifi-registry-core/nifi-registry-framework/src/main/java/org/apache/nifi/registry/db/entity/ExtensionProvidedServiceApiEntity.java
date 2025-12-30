@@ -82,8 +82,12 @@ public class ExtensionProvidedServiceApiEntity {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExtensionProvidedServiceApiEntity entity = (ExtensionProvidedServiceApiEntity) o;
         return Objects.equals(id, entity.id)
                 && Objects.equals(extensionId, entity.extensionId)

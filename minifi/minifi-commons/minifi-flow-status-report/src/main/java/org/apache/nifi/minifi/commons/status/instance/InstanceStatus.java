@@ -53,13 +53,21 @@ public class InstanceStatus implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         InstanceStatus that = (InstanceStatus) o;
 
-        if (getInstanceHealth() != null ? !getInstanceHealth().equals(that.getInstanceHealth()) : that.getInstanceHealth() != null) return false;
-        if (getBulletinList() != null ? !getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() != null) return false;
+        if (getInstanceHealth() != null ? !getInstanceHealth().equals(that.getInstanceHealth()) : that.getInstanceHealth() != null) {
+            return false;
+        }
+        if (getBulletinList() != null ? !getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() != null) {
+            return false;
+        }
         return getInstanceStats() != null ? getInstanceStats().equals(that.getInstanceStats()) : that.getInstanceStats() == null;
 
     }

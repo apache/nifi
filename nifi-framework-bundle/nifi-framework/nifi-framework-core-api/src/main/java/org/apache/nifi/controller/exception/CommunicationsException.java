@@ -23,7 +23,6 @@ public class CommunicationsException extends IOException {
     private static final long serialVersionUID = 142343242323423L;
 
     public CommunicationsException() {
-        super();
     }
 
     public CommunicationsException(final Throwable cause) {

@@ -20,7 +20,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class ByteBufferReader {
-    final private ByteBuffer buffer;
+    private final ByteBuffer buffer;
 
     public ByteBufferReader(byte[] byteArray) {
         this.buffer = ByteBuffer.wrap(byteArray);

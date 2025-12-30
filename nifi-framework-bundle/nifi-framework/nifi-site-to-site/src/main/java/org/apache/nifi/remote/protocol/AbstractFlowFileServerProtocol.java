@@ -203,7 +203,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
         handshakeCompleted = true;
     }
 
-    abstract protected HandshakeProperties doHandshake(final Peer peer) throws IOException, HandshakeException;
+    protected abstract HandshakeProperties doHandshake(final Peer peer) throws IOException, HandshakeException;
 
     @Override
     public int transferFlowFiles(final Peer peer, final ProcessContext context, final ProcessSession session, final FlowFileCodec codec) throws IOException, ProtocolException {

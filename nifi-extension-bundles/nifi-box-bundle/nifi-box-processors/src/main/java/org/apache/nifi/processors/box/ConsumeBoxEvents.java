@@ -72,7 +72,7 @@ import java.util.concurrent.atomic.AtomicLong;
         """, scopes = { Scope.CLUSTER })
 public class ConsumeBoxEvents extends AbstractBoxProcessor implements VerifiableProcessor {
 
-    private final static String POSITION_KEY = "position";
+    private static final String POSITION_KEY = "position";
 
     public static final PropertyDescriptor QUEUE_CAPACITY = new PropertyDescriptor.Builder()
             .name("Queue Capacity")

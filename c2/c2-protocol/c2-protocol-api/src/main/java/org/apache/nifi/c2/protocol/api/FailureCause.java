@@ -52,8 +52,12 @@ public class FailureCause {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         FailureCause that = (FailureCause) o;
         return Objects.equals(validationResults, that.validationResults) && Objects.equals(exceptionMessage, that.exceptionMessage) && Objects.equals(causedByMessages, that.causedByMessages);
     }

@@ -20,6 +20,7 @@
     <module name="FileTabCharacter">
         <property name="eachLine" value="true"/>
     </module>
+    <module name="NewlineAtEndOfFile"/>
     <module name="LineLength">
         <!-- needs extra, because Eclipse formatter
             ignores the ending left brace -->
@@ -87,6 +88,26 @@
             <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After"/>
         </module>
         <module name="SingleLineJavadoc"/>
+        <module name="UpperEll"/>
+        <module name="EqualsHashCode"/>
+        <module name="FallThrough"/>
+        <module name="StringLiteralEquality"/>
+        <module name="CovariantEquals"/>
+        <module name="DefaultComesLast"/>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="MissingOverride"/>
+        <module name="EmptyStatement"/>
+        <module name="PatternVariableName"/>
+        <module name="RecordComponentName"/>
+        <module name="IllegalIdentifierName"/>
+        <module name="UnnecessarySemicolonInTryWithResources"/>
+        <module name="UnnecessarySemicolonAfterTypeMemberDeclaration"/>
+        <module name="AvoidNoArgumentSuperConstructorCall"/>
+        <module name="NeedBraces"/>
+        <module name="ModifierOrder"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="OneStatementPerLine"/>
         <module name="Indentation">
             <property name="basicOffset" value="4"/>
             <property name="braceAdjustment" value="0"/>

@@ -42,7 +42,7 @@ public class DisallowComponentType extends AbstractFlowAnalysisRule {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             COMPONENT_TYPE
     );
 

@@ -73,7 +73,7 @@ public class DisableOnCloseInputStream extends InputStream {
 
     @Override
     public void mark(int readlimit) {
-        if (closed == false) {
+        if (!closed) {
             wrapped.mark(readlimit);
         }
     }

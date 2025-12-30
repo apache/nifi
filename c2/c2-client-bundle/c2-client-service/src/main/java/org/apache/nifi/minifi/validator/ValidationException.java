@@ -35,8 +35,12 @@ public class ValidationException extends IllegalStateException {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ValidationException that = (ValidationException) o;
         return Objects.equals(validationResults, that.validationResults);
     }

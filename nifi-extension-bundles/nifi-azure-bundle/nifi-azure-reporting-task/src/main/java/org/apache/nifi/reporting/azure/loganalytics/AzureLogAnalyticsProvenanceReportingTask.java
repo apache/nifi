@@ -199,8 +199,9 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
     }
 
     public void CreateConsumer(final ReportingContext context) {
-        if (consumer != null)
+        if (consumer != null) {
             return;
+        }
         consumer = new ProvenanceEventConsumer();
         consumer.setStartPositionValue(context.getProperty(START_POSITION).getValue());
         consumer.setBatchSize(context.getProperty(BATCH_SIZE).asInteger());
@@ -337,8 +338,9 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
                 stringBuilder.append(jo.toString());
                 stringBuilder.append(',');
             }
-            if (stringBuilder.charAt(stringBuilder.length() - 1) == ',')
+            if (stringBuilder.charAt(stringBuilder.length() - 1) == ',') {
                 stringBuilder.deleteCharAt(stringBuilder.length() - 1);
+            }
             stringBuilder.append(']');
             String str = stringBuilder.toString();
             if (!str.equals("[]")) {
@@ -425,7 +427,9 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
             case Boolean b -> builder.add(key, b);
             case Long l -> builder.add(key, l);
             case null -> {
-                if (allowNullValues) builder.add(key, JsonValue.NULL);
+                if (allowNullValues) {
+                    builder.add(key, JsonValue.NULL);
+                }
             }
             default -> builder.add(key, value.toString());
         }
@@ -436,7 +440,9 @@ public class AzureLogAnalyticsProvenanceReportingTask extends AbstractAzureLogAn
         if (values != null) {
             final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
             for (final Map.Entry<String, String> entry : values.entrySet()) {
-                if (entry.getKey() == null) continue;
+                if (entry.getKey() == null) {
+                    continue;
+                }
                 if (entry.getValue() == null) {
                     if (allowNullValues) {
                         mapBuilder.add(entry.getKey(), JsonValue.NULL);

@@ -169,7 +169,6 @@ public class TestSiteToSiteBulletinReportingTask {
     private static final class MockSiteToSiteBulletinReportingTask extends SiteToSiteBulletinReportingTask {
 
         public MockSiteToSiteBulletinReportingTask() throws IOException {
-            super();
         }
 
         final List<byte[]> dataSent = new ArrayList<>();

@@ -39,7 +39,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends AbstractGcpVisionProcessor {
+public abstract class AbstractGetGcpVisionAnnotateOperationStatus extends AbstractGcpVisionProcessor {
     public static final PropertyDescriptor OPERATION_KEY = new PropertyDescriptor.Builder()
             .name("GCP Operation Key")
             .description("The unique identifier of the Vision operation.")
@@ -115,5 +115,5 @@ abstract public class AbstractGetGcpVisionAnnotateOperationStatus extends Abstra
         config.renameProperty("operationKey", OPERATION_KEY.getName());
     }
 
-    abstract protected GeneratedMessageV3 deserializeResponse(ByteString responseValue) throws InvalidProtocolBufferException;
+    protected abstract GeneratedMessageV3 deserializeResponse(ByteString responseValue) throws InvalidProtocolBufferException;
 }

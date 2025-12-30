@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestVerification {
 
-    static public void assertDatatFlowMetrics(List<Metric> collectedMetrics) {
+    public static void assertDatatFlowMetrics(List<Metric> collectedMetrics) {
         assertTrue( collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.FLOW_FILES_RECEIVED) && o.getCategoryName().equals("DataFlow")));
         assertTrue( collectedMetrics.stream().anyMatch(
@@ -44,7 +44,7 @@ public class TestVerification {
             o -> o.getName().equals(MetricNames.ACTIVE_THREADS) && o.getCategoryName().equals("DataFlow")));
     }
 
-    static public void assertJVMMetrics(List<Metric> collectedMetrics) {
+    public static void assertJVMMetrics(List<Metric> collectedMetrics) {
         assertTrue( collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_HEAP_USED) && o.getCategoryName().equals("JvmMetrics")));
         assertTrue( collectedMetrics.stream().anyMatch(

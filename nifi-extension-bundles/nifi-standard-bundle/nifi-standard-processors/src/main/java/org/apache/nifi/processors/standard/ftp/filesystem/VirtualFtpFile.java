@@ -166,4 +166,11 @@ public class VirtualFtpFile implements FtpFile {
         return fileSystem.equals(other.fileSystem) && path.equals(other.path);
     }
 
+    @Override
+    public int hashCode() {
+        int result = path.hashCode();
+        result = 31 * result + fileSystem.hashCode();
+        return result;
+    }
+
 }

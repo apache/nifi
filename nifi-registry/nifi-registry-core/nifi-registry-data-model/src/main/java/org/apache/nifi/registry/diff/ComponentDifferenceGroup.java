@@ -80,8 +80,12 @@ public class ComponentDifferenceGroup {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ComponentDifferenceGroup that = (ComponentDifferenceGroup) o;
         return Objects.equals(componentId, that.componentId)
                 && Objects.equals(componentName, that.componentName)

@@ -677,7 +677,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
      * @throws XMLStreamException thrown if there was a problem writing to the
      * stream
      */
-    protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
+    protected static final void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
                                                    final String characters) throws XMLStreamException {
         writeSimpleElement(writer, elementName, characters, false);
     }
@@ -693,7 +693,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
      * @throws XMLStreamException thrown if there was a problem writing to the
      * stream.
      */
-    protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
+    protected static final void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
                                                    final String characters, boolean strong) throws XMLStreamException {
         writeSimpleElement(writer, elementName, characters, strong, null);
     }
@@ -711,7 +711,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
      * be written.
      * @throws XMLStreamException xse
      */
-    protected final static void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
+    protected static final void writeSimpleElement(final XMLStreamWriter writer, final String elementName,
                                                    final String characters, boolean strong, String id) throws XMLStreamException {
         writer.writeStartElement(elementName);
         if (id != null) {

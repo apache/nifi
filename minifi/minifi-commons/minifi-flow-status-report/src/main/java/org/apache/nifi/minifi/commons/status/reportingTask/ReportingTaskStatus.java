@@ -52,13 +52,21 @@ public class ReportingTaskStatus implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ReportingTaskStatus that = (ReportingTaskStatus) o;
 
-        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) return false;
-        if (getReportingTaskHealth() != null ? !getReportingTaskHealth().equals(that.getReportingTaskHealth()) : that.getReportingTaskHealth() != null) return false;
+        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
+            return false;
+        }
+        if (getReportingTaskHealth() != null ? !getReportingTaskHealth().equals(that.getReportingTaskHealth()) : that.getReportingTaskHealth() != null) {
+            return false;
+        }
         return getBulletinList() != null ? getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() == null;
 
     }

@@ -279,7 +279,8 @@ public class TestConvertRecord {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         try (final SnappyInputStream sis = new SnappyInputStream(new ByteArrayInputStream(flowFile.toByteArray())); final OutputStream out = baos) {
-            final byte[] buffer = new byte[8192]; int len;
+            final byte[] buffer = new byte[8192];
+            int len;
             while ((len = sis.read(buffer)) > 0) {
                 out.write(buffer, 0, len);
             }

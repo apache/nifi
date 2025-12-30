@@ -153,8 +153,12 @@ public class ExtensionMetadata extends LinkableEntity implements LinkableDocs, C
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ExtensionMetadata extension = (ExtensionMetadata) o;
         return Objects.equals(name, extension.name);
     }

@@ -1683,8 +1683,9 @@ public class TestPutSQL {
         byte[] bBinary = randomBytes(length);
         ByteBuffer bytes = ByteBuffer.wrap(bBinary);
         StringBuilder sbBytes = new StringBuilder();
-        for (int i = bytes.position(); i < bytes.limit(); i++)
+        for (int i = bytes.position(); i < bytes.limit(); i++) {
             sbBytes.append((char) bytes.get(i));
+        }
 
         return sbBytes.toString();
     }

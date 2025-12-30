@@ -62,7 +62,6 @@ public class RemoteProcessGroupDTO extends ComponentDTO {
     private RemoteProcessGroupContentsDTO contents;
 
     public RemoteProcessGroupDTO() {
-        super();
     }
 
     public RemoteProcessGroupDTO(final RemoteProcessGroupDTO toCopy) {

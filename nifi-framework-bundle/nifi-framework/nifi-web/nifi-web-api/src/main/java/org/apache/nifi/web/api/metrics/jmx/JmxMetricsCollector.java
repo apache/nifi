@@ -39,7 +39,7 @@ import java.util.Set;
 
 public class JmxMetricsCollector {
     private static final Logger LOGGER = LoggerFactory.getLogger(JmxMetricsCollector.class);
-    private final static String PATTERN_FOR_ALL_OBJECT_NAMES = "*:*";
+    private static final String PATTERN_FOR_ALL_OBJECT_NAMES = "*:*";
     private final JmxMetricsResultConverter resultConverter;
 
     public JmxMetricsCollector(final JmxMetricsResultConverter metricsResultConverter) {

@@ -81,7 +81,7 @@ public abstract class AbstractAwsMachineLearningJobStarter<
             SSL_CONTEXT_SERVICE,
             ENDPOINT_OVERRIDE);
 
-    private final static ObjectMapper MAPPER = JsonMapper.builder()
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
             .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true)
             .findAndAddModules()
             .build();
@@ -172,9 +172,9 @@ public abstract class AbstractAwsMachineLearningJobStarter<
         return payloadPropertyValue;
     }
 
-    abstract protected Res sendRequest(Req request, ProcessContext context, FlowFile flowFile) throws JsonProcessingException;
+    protected abstract Res sendRequest(Req request, ProcessContext context, FlowFile flowFile) throws JsonProcessingException;
 
-    abstract protected Class<? extends ReqB> getAwsRequestBuilderClass(ProcessContext context, FlowFile flowFile);
+    protected abstract Class<? extends ReqB> getAwsRequestBuilderClass(ProcessContext context, FlowFile flowFile);
 
-    abstract protected String getAwsTaskId(ProcessContext context, Res response, FlowFile flowFile);
+    protected abstract String getAwsTaskId(ProcessContext context, Res response, FlowFile flowFile);
 }

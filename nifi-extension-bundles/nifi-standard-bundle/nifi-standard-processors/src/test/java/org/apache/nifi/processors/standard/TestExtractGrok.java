@@ -31,8 +31,8 @@ import java.nio.file.Paths;
 public class TestExtractGrok {
 
     private TestRunner testRunner;
-    private final static Path GROK_LOG_INPUT = Paths.get("src/test/resources/TestExtractGrok/apache.log");
-    private final static Path GROK_TEXT_INPUT = Paths.get("src/test/resources/TestExtractGrok/simple_text.log");
+    private static final Path GROK_LOG_INPUT = Paths.get("src/test/resources/TestExtractGrok/apache.log");
+    private static final Path GROK_TEXT_INPUT = Paths.get("src/test/resources/TestExtractGrok/simple_text.log");
 
     @BeforeEach
     public void init() {

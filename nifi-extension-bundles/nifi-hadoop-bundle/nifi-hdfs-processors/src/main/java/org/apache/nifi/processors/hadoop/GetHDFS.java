@@ -503,12 +503,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
      */
     protected static class ProcessorConfiguration {
 
-        final private Pattern fileFilterPattern;
-        final private boolean ignoreDottedFiles;
-        final private boolean filterMatchBasenameOnly;
-        final private long minimumAge;
-        final private long maximumAge;
-        final private boolean recurseSubdirs;
+        private final Pattern fileFilterPattern;
+        private final boolean ignoreDottedFiles;
+        private final boolean filterMatchBasenameOnly;
+        private final long minimumAge;
+        private final long maximumAge;
+        private final boolean recurseSubdirs;
 
         ProcessorConfiguration(final ProcessContext context) {
             ignoreDottedFiles = context.getProperty(IGNORE_DOTTED_FILES).asBoolean();

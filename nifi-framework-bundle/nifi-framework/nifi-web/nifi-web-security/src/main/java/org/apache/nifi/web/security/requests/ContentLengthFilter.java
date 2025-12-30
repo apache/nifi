@@ -37,8 +37,8 @@ import org.slf4j.LoggerFactory;
 
 public class ContentLengthFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(ContentLengthFilter.class);
-    public final static String MAX_LENGTH_INIT_PARAM = "maxContentLength";
-    public final static int MAX_LENGTH_DEFAULT = 10_000_000;
+    public static final String MAX_LENGTH_INIT_PARAM = "maxContentLength";
+    public static final int MAX_LENGTH_DEFAULT = 10_000_000;
     private int maxContentLength;
 
     private static final List<String> BYPASS_URI_PREFIXES = Arrays.asList("/nifi-api/data-transfer", "/nifi-api/site-to-site");

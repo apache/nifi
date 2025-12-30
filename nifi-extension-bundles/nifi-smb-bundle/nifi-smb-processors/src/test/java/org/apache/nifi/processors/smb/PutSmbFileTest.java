@@ -72,12 +72,12 @@ public class PutSmbFileTest {
     private ServerList serverList;
     private ByteArrayOutputStream baOutputStream;
 
-    private final static String HOSTNAME = "smbhostname";
-    private final static String SHARE = "smbshare";
-    private final static String DIRECTORY = "smbdirectory\\subdir";
-    private final static String DOMAIN = "mydomain";
-    private final static String USERNAME = "myusername";
-    private final static String PASSWORD = "mypassword";
+    private static final String HOSTNAME = "smbhostname";
+    private static final String SHARE = "smbshare";
+    private static final String DIRECTORY = "smbdirectory\\subdir";
+    private static final String DOMAIN = "mydomain";
+    private static final String USERNAME = "myusername";
+    private static final String PASSWORD = "mypassword";
 
     private static final AtomicInteger FLOWFILE_ID_COUNTER = new AtomicInteger(0);
 

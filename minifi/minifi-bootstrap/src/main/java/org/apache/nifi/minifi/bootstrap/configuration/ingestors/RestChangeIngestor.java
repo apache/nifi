@@ -80,7 +80,7 @@ public class RestChangeIngestor implements ChangeIngestor {
     public static final String NEED_CLIENT_AUTH_KEY = RECEIVE_HTTP_BASE_KEY + ".need.client.auth";
     public static final String DIFFERENTIATOR_KEY = RECEIVE_HTTP_BASE_KEY + ".differentiator";
 
-    private final static Logger logger = LoggerFactory.getLogger(RestChangeIngestor.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestChangeIngestor.class);
 
     private static final BouncyCastleProvider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
 

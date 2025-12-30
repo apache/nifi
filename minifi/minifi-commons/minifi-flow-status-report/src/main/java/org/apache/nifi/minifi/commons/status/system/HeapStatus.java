@@ -112,20 +112,42 @@ public class HeapStatus implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         HeapStatus that = (HeapStatus) o;
 
-        if (getTotalHeap() != that.getTotalHeap()) return false;
-        if (getMaxHeap() != that.getMaxHeap()) return false;
-        if (getFreeHeap() != that.getFreeHeap()) return false;
-        if (getUsedHeap() != that.getUsedHeap()) return false;
-        if (getHeapUtilization() != that.getHeapUtilization()) return false;
-        if (getTotalNonHeap() != that.getTotalNonHeap()) return false;
-        if (getMaxNonHeap() != that.getMaxNonHeap()) return false;
-        if (getFreeNonHeap() != that.getFreeNonHeap()) return false;
-        if (getUsedNonHeap() != that.getUsedNonHeap()) return false;
+        if (getTotalHeap() != that.getTotalHeap()) {
+            return false;
+        }
+        if (getMaxHeap() != that.getMaxHeap()) {
+            return false;
+        }
+        if (getFreeHeap() != that.getFreeHeap()) {
+            return false;
+        }
+        if (getUsedHeap() != that.getUsedHeap()) {
+            return false;
+        }
+        if (getHeapUtilization() != that.getHeapUtilization()) {
+            return false;
+        }
+        if (getTotalNonHeap() != that.getTotalNonHeap()) {
+            return false;
+        }
+        if (getMaxNonHeap() != that.getMaxNonHeap()) {
+            return false;
+        }
+        if (getFreeNonHeap() != that.getFreeNonHeap()) {
+            return false;
+        }
+        if (getUsedNonHeap() != that.getUsedNonHeap()) {
+            return false;
+        }
         return getNonHeapUtilization() == that.getNonHeapUtilization();
 
     }

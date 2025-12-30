@@ -31,7 +31,6 @@ public class AttributesAndState implements Map<String, String> {
     private final Map<String, String> attributes;
 
     public AttributesAndState(Map<String, String> attributes, Map<String, String> state) {
-        super();
         stateMap = state;
         this.attributes = attributes;
     }

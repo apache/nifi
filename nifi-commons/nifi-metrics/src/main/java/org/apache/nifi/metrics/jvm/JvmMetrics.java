@@ -202,7 +202,8 @@ public interface JvmMetrics {
      * Per-GC statistics.
      */
     class GarbageCollectorStats {
-        private final long runs, timeMS;
+        private final long runs;
+        private final long timeMS;
 
         GarbageCollectorStats(long runs, long timeMS) {
             this.runs = runs;
@@ -235,7 +236,9 @@ public interface JvmMetrics {
      * buffers.
      */
     class BufferPoolStats {
-        private final long count, memoryUsed, totalCapacity;
+        private final long count;
+        private final long memoryUsed;
+        private final long totalCapacity;
 
         BufferPoolStats(long count, long memoryUsed, long totalCapacity) {
             this.count = count;

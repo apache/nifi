@@ -82,7 +82,7 @@ public class NiFiSystemKeyStoreProvider {
      *
      * @param keyStoreDirectory Directory where KeyStore and TrustStore should be stored
      */
-    public synchronized static SSLContext configureKeyStores(final File keyStoreDirectory) {
+    public static synchronized SSLContext configureKeyStores(final File keyStoreDirectory) {
         if (persistentKeyStorePath == null) {
             createKeyStores();
         }

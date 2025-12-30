@@ -169,7 +169,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             CONNECTION_TIMEOUT
     );
 
-    final static Set<Relationship> SHARED_RELATIONSHIPS = Set.of(
+    static final Set<Relationship> SHARED_RELATIONSHIPS = Set.of(
             REL_SUCCESS
     );
 

@@ -23,7 +23,6 @@ public class InvalidHL7Exception extends IOException {
     private static final long serialVersionUID = -5675416667224562441L;
 
     public InvalidHL7Exception() {
-        super();
     }
 
     public InvalidHL7Exception(String message, Throwable cause) {

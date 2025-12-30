@@ -191,7 +191,7 @@ class TestJsonSchemaInference {
              final InputStream bufferedIn = new BufferedInputStream(in)) {
 
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                (var, content) -> new JsonRecordSource(content),
+                (variables, content) -> new JsonRecordSource(content),
                 new JsonSchemaInference(timestampInference), Mockito.mock(ComponentLog.class));
 
             final RecordSchema schema = accessStrategy.getSchema(null, bufferedIn, null);

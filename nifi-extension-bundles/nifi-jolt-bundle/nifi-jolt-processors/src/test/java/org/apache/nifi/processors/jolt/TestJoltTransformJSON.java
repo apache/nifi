@@ -49,12 +49,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TestJoltTransformJSON {
-    final static Path JSON_INPUT = Paths.get("src/test/resources/TestJoltTransformJson/input.json");
-    final static Diffy DIFFY = new Diffy();
-    final static String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
-    final static String SHIFTR_SPEC_PATH = "src/test/resources/specs/shiftrSpec.json";
-    final static String SHIFTR_JSON_OUTPUT = "shiftrOutput.json";
-    final static String CHAINR_JSON_OUTPUT = "chainrOutput.json";
+    static final Path JSON_INPUT = Paths.get("src/test/resources/TestJoltTransformJson/input.json");
+    static final Diffy DIFFY = new Diffy();
+    static final String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
+    static final String SHIFTR_SPEC_PATH = "src/test/resources/specs/shiftrSpec.json";
+    static final String SHIFTR_JSON_OUTPUT = "shiftrOutput.json";
+    static final String CHAINR_JSON_OUTPUT = "chainrOutput.json";
     private static final String CUSTOM_CLASS_NAME = CustomTransformJarProvider.getCustomTransformClassName();
     private static final String JSON_SOURCE_ATTR_NAME = "jsonSourceAttr";
     private static String chainrSpecContents;

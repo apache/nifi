@@ -288,23 +288,23 @@ public class PutS3Object extends AbstractS3Processor {
             PROXY_CONFIGURATION_SERVICE
     );
 
-    final static String S3_BUCKET_KEY = "s3.bucket";
-    final static String S3_OBJECT_KEY = "s3.key";
-    final static String S3_CONTENT_TYPE = "s3.contenttype";
-    final static String S3_CONTENT_DISPOSITION = "s3.contentdisposition";
-    final static String S3_UPLOAD_ID_ATTR_KEY = "s3.uploadId";
-    final static String S3_VERSION_ATTR_KEY = "s3.version";
-    final static String S3_ETAG_ATTR_KEY = "s3.etag";
-    final static String S3_CACHE_CONTROL = "s3.cachecontrol";
-    final static String S3_EXPIRATION_TIME_ATTR_KEY = "s3.expirationTime";
-    final static String S3_EXPIRATION_TIME_RULE_ID_ATTR_KEY = "s3.expirationTimeRuleId";
-    final static String S3_STORAGECLASS_ATTR_KEY = "s3.storeClass";
-    final static String S3_USERMETA_ATTR_KEY = "s3.usermetadata";
-    final static String S3_API_METHOD_ATTR_KEY = "s3.apimethod";
-    final static String S3_API_METHOD_PUTOBJECT = "putobject";
-    final static String S3_API_METHOD_MULTIPARTUPLOAD = "multipartupload";
+    static final String S3_BUCKET_KEY = "s3.bucket";
+    static final String S3_OBJECT_KEY = "s3.key";
+    static final String S3_CONTENT_TYPE = "s3.contenttype";
+    static final String S3_CONTENT_DISPOSITION = "s3.contentdisposition";
+    static final String S3_UPLOAD_ID_ATTR_KEY = "s3.uploadId";
+    static final String S3_VERSION_ATTR_KEY = "s3.version";
+    static final String S3_ETAG_ATTR_KEY = "s3.etag";
+    static final String S3_CACHE_CONTROL = "s3.cachecontrol";
+    static final String S3_EXPIRATION_TIME_ATTR_KEY = "s3.expirationTime";
+    static final String S3_EXPIRATION_TIME_RULE_ID_ATTR_KEY = "s3.expirationTimeRuleId";
+    static final String S3_STORAGECLASS_ATTR_KEY = "s3.storeClass";
+    static final String S3_USERMETA_ATTR_KEY = "s3.usermetadata";
+    static final String S3_API_METHOD_ATTR_KEY = "s3.apimethod";
+    static final String S3_API_METHOD_PUTOBJECT = "putobject";
+    static final String S3_API_METHOD_MULTIPARTUPLOAD = "multipartupload";
 
-    final static String S3_PROCESS_UNSCHEDULED_MESSAGE = "Processor unscheduled, stopping upload";
+    static final String S3_PROCESS_UNSCHEDULED_MESSAGE = "Processor unscheduled, stopping upload";
 
     // maps AWS SDK v1 StorageClass to v2 StorageClass
     private static final Map<String, String> STORAGE_CLASS_MAPPING = Map.of(

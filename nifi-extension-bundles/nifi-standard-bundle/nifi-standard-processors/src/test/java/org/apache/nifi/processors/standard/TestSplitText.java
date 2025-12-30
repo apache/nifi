@@ -35,7 +35,7 @@ public class TestSplitText {
     final String originalFilename = "original.txt";
     final Path dataPath = Paths.get("src/test/resources/TestSplitText");
     final Path file = dataPath.resolve(originalFilename);
-    final static String TEST_INPUT_DATA = "HeaderLine1\nLine2SpacesAtEnd  \nLine3\nLine4\n\n\nLine8\nLine9\n\n\n13\n14\n15    EndofLine15\n16\n"
+    static final String TEST_INPUT_DATA = "HeaderLine1\nLine2SpacesAtEnd  \nLine3\nLine4\n\n\nLine8\nLine9\n\n\n13\n14\n15    EndofLine15\n16\n"
             + "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nLastLine\n";
 
     @Test

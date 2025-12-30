@@ -34,7 +34,7 @@ import java.util.Map;
 
 public class TestExtractRecordSchema {
 
-    final static Path NAME_AGE_SCHEMA_PATH = Paths.get("src/test/resources/TestExtractRecordSchema/name_age_schema.avsc");
+    static final Path NAME_AGE_SCHEMA_PATH = Paths.get("src/test/resources/TestExtractRecordSchema/name_age_schema.avsc");
 
     @Test
     public void testSuccessfulExtraction() throws Exception {

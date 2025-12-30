@@ -294,7 +294,7 @@ public final class DtoFactory {
     private static final Logger logger = LoggerFactory.getLogger(DtoFactory.class);
 
     @SuppressWarnings("rawtypes")
-    private final static Comparator<Class> CLASS_NAME_COMPARATOR = (class1, class2) -> Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
+    private static final Comparator<Class> CLASS_NAME_COMPARATOR = (class1, class2) -> Collator.getInstance(Locale.US).compare(class1.getSimpleName(), class2.getSimpleName());
     public static final String SENSITIVE_VALUE_MASK = "********";
 
     private BulletinRepository bulletinRepository;

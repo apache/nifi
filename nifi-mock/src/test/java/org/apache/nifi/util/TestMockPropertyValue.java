@@ -37,15 +37,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestMockPropertyValue {
 
-    private final static String FF_SCOPE_WITH_FF = "Test FlowFile scope and providing a flow file";
-    private final static String ENV_SCOPE_WITH_FF = "Test Env scope and providing a flow file";
-    private final static String NONE_SCOPE_WITH_FF = "Test None scope and providing a flow file";
-    private final static String FF_SCOPE_NO_FF = "Test FlowFile scope and no flow file";
-    private final static String ENV_SCOPE_NO_FF = "Test Env scope and no flow file";
-    private final static String NONE_SCOPE_NO_FF = "Test None scope and no flow file";
-    private final static String FF_SCOPE_WITH_MAP = "Test FlowFile scope and providing a Map";
-    private final static String ENV_SCOPE_WITH_MAP = "Test Env scope and providing a Map";
-    private final static String NONE_SCOPE_WITH_MAP = "Test None scope and providing a Map";
+    private static final String FF_SCOPE_WITH_FF = "Test FlowFile scope and providing a flow file";
+    private static final String ENV_SCOPE_WITH_FF = "Test Env scope and providing a flow file";
+    private static final String NONE_SCOPE_WITH_FF = "Test None scope and providing a flow file";
+    private static final String FF_SCOPE_NO_FF = "Test FlowFile scope and no flow file";
+    private static final String ENV_SCOPE_NO_FF = "Test Env scope and no flow file";
+    private static final String NONE_SCOPE_NO_FF = "Test None scope and no flow file";
+    private static final String FF_SCOPE_WITH_MAP = "Test FlowFile scope and providing a Map";
+    private static final String ENV_SCOPE_WITH_MAP = "Test Env scope and providing a Map";
+    private static final String NONE_SCOPE_WITH_MAP = "Test None scope and providing a Map";
 
     @Test
     public void testELScopeValidationProcessorWithInput() {

@@ -486,7 +486,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         }
     }
 
-    synchronized private void createHttpServerFromService(final ProcessContext context) throws Exception {
+    private synchronized void createHttpServerFromService(final ProcessContext context) throws Exception {
         if (initialized.get()) {
             return;
         }

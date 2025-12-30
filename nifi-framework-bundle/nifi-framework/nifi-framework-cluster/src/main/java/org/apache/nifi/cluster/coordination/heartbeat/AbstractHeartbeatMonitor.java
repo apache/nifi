@@ -62,7 +62,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     }
 
     @Override
-    public synchronized final void start() {
+    public final synchronized void start() {
         if (!stopped) {
             logger.info("Attempted to start Heartbeat Monitor but it is already started. Stopping heartbeat monitor and re-starting it.");
             stop();
@@ -88,7 +88,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
     }
 
     @Override
-    public synchronized final void stop() {
+    public final synchronized void stop() {
         if (stopped) {
             return;
         }
