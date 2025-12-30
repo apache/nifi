@@ -100,14 +100,14 @@ import static org.apache.nifi.smb.common.SmbUtils.buildSmbClient;
 @WritesAttributes({
         @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on the network share"),
         @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's network share name. For example, "
-                + "if the input is set to \\\\hostname\\share\\tmp, files picked up from \\tmp will have the path attribute set to tmp"),
+            + "if the input is set to \\\\hostname\\share\\tmp, files picked up from \\tmp will have the path attribute set to tmp"),
         @WritesAttribute(attribute = "file.creationTime", description = "The date and time that the file was created. May not work on all file systems"),
         @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the file was last modified. May not work on all "
-                + "file systems"),
+            + "file systems"),
         @WritesAttribute(attribute = "file.lastAccessTime", description = "The date and time that the file was last accessed. May not work on all "
-                + "file systems"),
+            + "file systems"),
         @WritesAttribute(attribute = "absolute.path", description = "The full path from where a file was picked up. This includes "
-                + "the hostname and the share name")})
+            + "the hostname and the share name")})
 public class GetSmbFile extends AbstractProcessor {
     public static final String SHARE_ACCESS_NONE = "none";
     public static final String SHARE_ACCESS_READ = "read";
@@ -123,7 +123,7 @@ public class GetSmbFile extends AbstractProcessor {
     public static final PropertyDescriptor SHARE = new PropertyDescriptor.Builder()
             .name("Share")
             .description("The network share to which files should be written. This is the \"first folder\"" +
-                "after the hostname: \\\\hostname\\[share]\\dir1\\dir2")
+            "after the hostname: \\\\hostname\\[share]\\dir1\\dir2")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -157,7 +157,7 @@ public class GetSmbFile extends AbstractProcessor {
     public static final PropertyDescriptor SHARE_ACCESS = new PropertyDescriptor.Builder()
             .name("Share Access Strategy")
             .description("Indicates which shared access are granted on the file during the read. " +
-                "None is the most restrictive, but the safest setting to prevent corruption.")
+            "None is the most restrictive, but the safest setting to prevent corruption.")
             .required(true)
             .defaultValue(SHARE_ACCESS_NONE)
             .allowableValues(SHARE_ACCESS_NONE, SHARE_ACCESS_READ, SHARE_ACCESS_READDELETE, SHARE_ACCESS_READWRITEDELETE)
@@ -172,9 +172,9 @@ public class GetSmbFile extends AbstractProcessor {
     public static final PropertyDescriptor KEEP_SOURCE_FILE = new PropertyDescriptor.Builder()
             .name("Keep Source File")
             .description("If true, the file is not deleted after it has been copied to the Content Repository; "
-                    + "this causes the file to be picked up continually and is useful for testing purposes.  "
-                    + "If not keeping original NiFi will need write permissions on the directory it is pulling "
-                    + "from otherwise it will ignore the file.")
+                + "this causes the file to be picked up continually and is useful for testing purposes.  "
+                + "If not keeping original NiFi will need write permissions on the directory it is pulling "
+                + "from otherwise it will ignore the file.")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -409,156 +409,156 @@ public class GetSmbFile extends AbstractProcessor {
         try (Connection connection = smbClient.connect(hostname);
             Session smbSession = connection.authenticate(ac);
             DiskShare share = (DiskShare) smbSession.connectShare(shareName)) {
-                String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
-                if (directory == null) {
-                    directory = "";
-                }
-                final boolean keepingSourceFile = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
-                final String filter = context.getProperty(FILE_FILTER).getValue();
+            String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
+            if (directory == null) {
+                directory = "";
+            }
+            final boolean keepingSourceFile = context.getProperty(KEEP_SOURCE_FILE).asBoolean();
+            final String filter = context.getProperty(FILE_FILTER).getValue();
 
-                if (fileQueue.size() < 100) {
-                    final long pollingMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
-                    if ((queueLastUpdated.get() < System.currentTimeMillis() - pollingMillis) && listingLock.tryLock()) {
+            if (fileQueue.size() < 100) {
+                final long pollingMillis = context.getProperty(POLLING_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
+                if ((queueLastUpdated.get() < System.currentTimeMillis() - pollingMillis) && listingLock.tryLock()) {
+                    try {
+                        final Set<String> listing = performListing(share, directory, filter, context.getProperty(RECURSE).asBoolean().booleanValue());
+
+                        queueLock.lock();
                         try {
-                            final Set<String> listing = performListing(share, directory, filter, context.getProperty(RECURSE).asBoolean().booleanValue());
+                            listing.removeAll(inProcess);
+                            if (!keepingSourceFile) {
+                                listing.removeAll(recentlyProcessed);
+                            }
 
-                            queueLock.lock();
-                            try {
-                                listing.removeAll(inProcess);
-                                if (!keepingSourceFile) {
-                                    listing.removeAll(recentlyProcessed);
-                                }
+                            fileQueue.clear();
+                            fileQueue.addAll(listing);
 
-                                fileQueue.clear();
-                                fileQueue.addAll(listing);
+                            queueLastUpdated.set(System.currentTimeMillis());
+                            recentlyProcessed.clear();
 
-                                queueLastUpdated.set(System.currentTimeMillis());
-                                recentlyProcessed.clear();
-
-                                if (listing.isEmpty()) {
-                                    context.yield();
-                                }
-                            } finally {
-                                queueLock.unlock();
+                            if (listing.isEmpty()) {
+                                context.yield();
                             }
                         } finally {
-                            listingLock.unlock();
+                            queueLock.unlock();
+                        }
+                    } finally {
+                        listingLock.unlock();
+                    }
+                }
+            }
+
+            final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+            final List<String> files = new ArrayList<>(batchSize);
+            queueLock.lock();
+            try {
+                fileQueue.drainTo(files, batchSize);
+                if (files.isEmpty()) {
+                    return;
+                } else {
+                    inProcess.addAll(files);
+                }
+            } finally {
+                queueLock.unlock();
+            }
+
+            final ListIterator<String> itr = files.listIterator();
+            FlowFile flowFile = null;
+
+            try {
+                while (itr.hasNext()) {
+                    final String file = itr.next();
+                    final String[] fileSplits = file.split("\\\\");
+                    final String filename = fileSplits[fileSplits.length - 1];
+                    final String filePath = String.join("\\", Arrays.copyOf(fileSplits, fileSplits.length - 1));
+                    final URI uri = new URI("smb", hostname, "/" + file.replace('\\', '/'), null);
+
+                    flowFile = session.create();
+                    final long importStart = System.nanoTime();
+
+                    try (File f = share.openFile(
+                            file,
+                            EnumSet.of(AccessMask.GENERIC_READ),
+                            EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
+                            sharedAccess,
+                            SMB2CreateDisposition.FILE_OPEN,
+                        EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY));
+                        InputStream is = f.getInputStream()) {
+
+                        flowFile = session.importFrom(is, flowFile);
+
+                        final long importNanos = System.nanoTime() - importStart;
+                        final long importMillis = TimeUnit.MILLISECONDS.convert(importNanos, TimeUnit.NANOSECONDS);
+                        final FileAllInformation fileInfo = f.getFileInformation();
+                        final FileBasicInformation fileBasicInfo = fileInfo.getBasicInformation();
+                        final long fileSize = fileInfo.getStandardInformation().getEndOfFile();
+
+                        final Map<String, String> attributes = new HashMap<>();
+                        attributes.put(CoreAttributes.FILENAME.key(), filename);
+                        attributes.put(CoreAttributes.PATH.key(), filePath);
+                        attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), "\\\\" + hostname + "\\" + shareName + "\\" + file);
+                        attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getCreationTime().toInstant().atZone(ZoneId.systemDefault())));
+                        attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastAccessTime().toInstant().atZone(ZoneId.systemDefault())));
+                        attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toInstant().atZone(ZoneId.systemDefault())));
+                        attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
+                        attributes.put(HOSTNAME.getName(), hostname);
+                        attributes.put(SHARE.getName(), shareName);
+
+                        flowFile = session.putAllAttributes(flowFile, attributes);
+                        session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
+
+                        session.transfer(flowFile, REL_SUCCESS);
+                    } catch (SMBApiException e) {
+                        // do not fail whole batch if a single file cannot be accessed
+                        if (e.getStatus() == NtStatus.STATUS_SHARING_VIOLATION) {
+                            logger.info("Could not acquire sharing access for file {}", file);
+                            if (flowFile != null) {
+                                session.remove(flowFile);
+                            }
+                            continue;
+                        } else {
+                            throw e;
+                        }
+                    }
+
+                    try {
+                        if (!keepingSourceFile) {
+                            share.rm(file);
+                        }
+                    } catch (SMBApiException e) {
+                        logger.error("Could not remove file {}", file);
+                    }
+
+                    if (!isScheduled()) {  // if processor stopped, put the rest of the files back on the queue.
+                        queueLock.lock();
+                        try {
+                            while (itr.hasNext()) {
+                                final String nextFile = itr.next();
+                                fileQueue.add(nextFile);
+                                inProcess.remove(nextFile);
+                            }
+                        } finally {
+                            queueLock.unlock();
                         }
                     }
                 }
 
-                final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
-                final List<String> files = new ArrayList<>(batchSize);
+                session.commitAsync();
+            } catch (final Exception e) {
+                logger.error("Failed to retrieve files due to {}", e);
+
+                // anything that we've not already processed needs to be put back on the queue
+                if (flowFile != null) {
+                    session.remove(flowFile);
+                }
+            } finally {
                 queueLock.lock();
                 try {
-                    fileQueue.drainTo(files, batchSize);
-                    if (files.isEmpty()) {
-                        return;
-                    } else {
-                        inProcess.addAll(files);
-                    }
+                    inProcess.removeAll(files);
+                    recentlyProcessed.addAll(files);
                 } finally {
                     queueLock.unlock();
                 }
-
-                final ListIterator<String> itr = files.listIterator();
-                FlowFile flowFile = null;
-
-                try {
-                    while (itr.hasNext()) {
-                        final String file = itr.next();
-                        final String[] fileSplits = file.split("\\\\");
-                        final String filename = fileSplits[fileSplits.length - 1];
-                        final String filePath = String.join("\\", Arrays.copyOf(fileSplits, fileSplits.length - 1));
-                        final URI uri = new URI("smb", hostname, "/" + file.replace('\\', '/'), null);
-
-                        flowFile = session.create();
-                        final long importStart = System.nanoTime();
-
-                        try (File f = share.openFile(
-                                file,
-                                EnumSet.of(AccessMask.GENERIC_READ),
-                                EnumSet.of(FileAttributes.FILE_ATTRIBUTE_NORMAL),
-                                sharedAccess,
-                                SMB2CreateDisposition.FILE_OPEN,
-                            EnumSet.of(SMB2CreateOptions.FILE_SEQUENTIAL_ONLY));
-                            InputStream is = f.getInputStream()) {
-
-                            flowFile = session.importFrom(is, flowFile);
-
-                            final long importNanos = System.nanoTime() - importStart;
-                            final long importMillis = TimeUnit.MILLISECONDS.convert(importNanos, TimeUnit.NANOSECONDS);
-                            final FileAllInformation fileInfo = f.getFileInformation();
-                            final FileBasicInformation fileBasicInfo = fileInfo.getBasicInformation();
-                            final long fileSize = fileInfo.getStandardInformation().getEndOfFile();
-
-                            final Map<String, String> attributes = new HashMap<>();
-                            attributes.put(CoreAttributes.FILENAME.key(), filename);
-                            attributes.put(CoreAttributes.PATH.key(), filePath);
-                            attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), "\\\\" + hostname + "\\" + shareName + "\\" + file);
-                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getCreationTime().toInstant().atZone(ZoneId.systemDefault())));
-                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastAccessTime().toInstant().atZone(ZoneId.systemDefault())));
-                            attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toInstant().atZone(ZoneId.systemDefault())));
-                            attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
-                            attributes.put(HOSTNAME.getName(), hostname);
-                            attributes.put(SHARE.getName(), shareName);
-
-                            flowFile = session.putAllAttributes(flowFile, attributes);
-                            session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
-
-                            session.transfer(flowFile, REL_SUCCESS);
-                        } catch (SMBApiException e) {
-                            // do not fail whole batch if a single file cannot be accessed
-                            if (e.getStatus() == NtStatus.STATUS_SHARING_VIOLATION) {
-                                logger.info("Could not acquire sharing access for file {}", file);
-                                if (flowFile != null) {
-                                    session.remove(flowFile);
-                                }
-                                continue;
-                            } else {
-                                throw e;
-                            }
-                        }
-
-                        try {
-                            if (!keepingSourceFile) {
-                                share.rm(file);
-                            }
-                        } catch (SMBApiException e) {
-                            logger.error("Could not remove file {}", file);
-                        }
-
-                        if (!isScheduled()) {  // if processor stopped, put the rest of the files back on the queue.
-                            queueLock.lock();
-                            try {
-                                while (itr.hasNext()) {
-                                    final String nextFile = itr.next();
-                                    fileQueue.add(nextFile);
-                                    inProcess.remove(nextFile);
-                                }
-                            } finally {
-                                queueLock.unlock();
-                            }
-                        }
-                    }
-
-                    session.commitAsync();
-                } catch (final Exception e) {
-                    logger.error("Failed to retrieve files due to {}", e);
-
-                    // anything that we've not already processed needs to be put back on the queue
-                    if (flowFile != null) {
-                        session.remove(flowFile);
-                    }
-                } finally {
-                    queueLock.lock();
-                    try {
-                        inProcess.removeAll(files);
-                        recentlyProcessed.addAll(files);
-                    } finally {
-                        queueLock.unlock();
-                    }
-                }
+            }
         } catch (Exception e) {
             logger.error("Could not establish smb connection", e);
             context.yield();

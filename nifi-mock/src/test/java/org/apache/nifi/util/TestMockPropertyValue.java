@@ -183,15 +183,15 @@ public class TestMockPropertyValue {
             final Map<String, String> map = Map.of("test", "test");
 
             switch (getTestCase()) {
-            case FF_SCOPE_WITH_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(ff);
-            case ENV_SCOPE_WITH_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(ff);
-            case NONE_SCOPE_WITH_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(ff);
-            case FF_SCOPE_NO_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions();
-            case ENV_SCOPE_NO_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions();
-            case NONE_SCOPE_NO_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions();
-            case FF_SCOPE_WITH_MAP -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(map);
-            case ENV_SCOPE_WITH_MAP -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(map);
-            case NONE_SCOPE_WITH_MAP -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(map);
+                case FF_SCOPE_WITH_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(ff);
+                case ENV_SCOPE_WITH_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(ff);
+                case NONE_SCOPE_WITH_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(ff);
+                case FF_SCOPE_NO_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions();
+                case ENV_SCOPE_NO_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions();
+                case NONE_SCOPE_NO_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions();
+                case FF_SCOPE_WITH_MAP -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(map);
+                case ENV_SCOPE_WITH_MAP -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(map);
+                case NONE_SCOPE_WITH_MAP -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(map);
             }
 
             if (ff != null) {
@@ -247,12 +247,12 @@ public class TestMockPropertyValue {
             final Map<String, String> map = Map.of("test", "test");
 
             switch (getTestCase()) {
-            case FF_SCOPE_NO_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions();
-            case ENV_SCOPE_NO_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions();
-            case NONE_SCOPE_NO_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions();
-            case FF_SCOPE_WITH_MAP -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(map);
-            case ENV_SCOPE_WITH_MAP -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(map);
-            case NONE_SCOPE_WITH_MAP -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(map);
+                case FF_SCOPE_NO_FF -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions();
+                case ENV_SCOPE_NO_FF -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions();
+                case NONE_SCOPE_NO_FF -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions();
+                case FF_SCOPE_WITH_MAP -> context.getProperty(PROP_FF_SCOPE).evaluateAttributeExpressions(map);
+                case ENV_SCOPE_WITH_MAP -> context.getProperty(PROP_ENV_SCOPE).evaluateAttributeExpressions(map);
+                case NONE_SCOPE_WITH_MAP -> context.getProperty(PROP_NONE_SCOPE).evaluateAttributeExpressions(map);
             }
         }
 

@@ -86,7 +86,7 @@ public class BundleVersion extends LinkableEntity {
             case NIFI_NAR -> filename + ".nar";
             case MINIFI_CPP ->
                 // TODO should CPP get a special extension
-                    filename;
+                filename;
         };
     }
 

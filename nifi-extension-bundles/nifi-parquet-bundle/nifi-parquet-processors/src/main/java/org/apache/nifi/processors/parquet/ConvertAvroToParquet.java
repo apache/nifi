@@ -70,7 +70,7 @@ import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 })
 @DeprecationNotice(reason = "ConvertAvroToParquet is no longer needed since there is the AvroReader which along with ParquetRecordSetWriter can be used in ConvertRecord to achieve the same thing.",
         classNames = {"org.apache.nifi.processors.standard.ConvertRecord",
-        "org.apache.nifi.avro.AvroReader", "org.apache.nifi.parquet.ParquetRecordSetWriter"})
+                "org.apache.nifi.avro.AvroReader", "org.apache.nifi.parquet.ParquetRecordSetWriter"})
 public class ConvertAvroToParquet extends AbstractProcessor {
 
     // Attributes

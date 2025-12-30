@@ -22,5 +22,4 @@
     </parent>
 
     <artifactId>nifi-database-test-utils</artifactId>
-
 </project>

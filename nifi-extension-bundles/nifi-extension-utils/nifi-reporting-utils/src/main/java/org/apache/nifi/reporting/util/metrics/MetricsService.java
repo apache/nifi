@@ -213,8 +213,8 @@ public class MetricsService {
                 .add(MetricFields.TIMESTAMP, currentTimeMillis);
 
         objectBuilder
-        .add(MetricNames.CORES, availableProcessors)
-        .add(MetricNames.LOAD1MN, systemLoad);
+            .add(MetricNames.CORES, availableProcessors)
+            .add(MetricNames.LOAD1MN, systemLoad);
 
         Map<String, Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
         for (String key : integerMetrics.keySet()) {

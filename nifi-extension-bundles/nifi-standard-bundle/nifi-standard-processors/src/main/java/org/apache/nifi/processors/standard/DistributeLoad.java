@@ -152,8 +152,8 @@ public class DistributeLoad extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-       if (doSetProps.getAndSet(false)) {
-           this.properties = List.of(NUM_RELATIONSHIPS, DISTRIBUTION_STRATEGY);
+        if (doSetProps.getAndSet(false)) {
+            this.properties = List.of(NUM_RELATIONSHIPS, DISTRIBUTION_STRATEGY);
         }
         return properties;
     }

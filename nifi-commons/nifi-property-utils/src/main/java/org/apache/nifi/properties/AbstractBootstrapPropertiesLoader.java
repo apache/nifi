@@ -60,7 +60,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
      */
     public BootstrapProperties loadBootstrapProperties(final String bootstrapPath) throws IOException {
         final Path bootstrapFilePath = getBootstrapFile(bootstrapPath).toPath();
-       return loadBootstrapProperties(bootstrapFilePath, getApplicationPrefix());
+        return loadBootstrapProperties(bootstrapFilePath, getApplicationPrefix());
     }
 
     /**

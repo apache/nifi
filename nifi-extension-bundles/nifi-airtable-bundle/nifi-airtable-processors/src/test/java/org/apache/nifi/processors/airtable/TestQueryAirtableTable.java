@@ -22,6 +22,7 @@ import mockwebserver3.MockWebServer;
 import okhttp3.HttpUrl;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -167,5 +169,25 @@ public class TestQueryAirtableTable {
             final List<MockFlowFile> results = runner.getFlowFilesForRelationship(QueryAirtableTable.REL_SUCCESS);
             assertTrue(results.isEmpty());
         }
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("api-key", QueryAirtableTable.PAT.getName()),
+                Map.entry("api-url", QueryAirtableTable.API_URL.getName()),
+                Map.entry("pat", QueryAirtableTable.PAT.getName()),
+                Map.entry("base-id", QueryAirtableTable.BASE_ID.getName()),
+                Map.entry("table-id", QueryAirtableTable.TABLE_ID.getName()),
+                Map.entry("fields", QueryAirtableTable.FIELDS.getName()),
+                Map.entry("custom-filter", QueryAirtableTable.CUSTOM_FILTER.getName()),
+                Map.entry("query-time-window-lag", QueryAirtableTable.QUERY_TIME_WINDOW_LAG.getName()),
+                Map.entry("web-client-service-provider", QueryAirtableTable.WEB_CLIENT_SERVICE_PROVIDER.getName()),
+                Map.entry("query-page-size", QueryAirtableTable.QUERY_PAGE_SIZE.getName()),
+                Map.entry("max-records-per-flowfile", QueryAirtableTable.MAX_RECORDS_PER_FLOWFILE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
     }
 }

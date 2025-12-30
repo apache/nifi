@@ -254,7 +254,7 @@ public abstract class AbstractS3IT {
         try {
             path = Paths.get(getClass().getResource(resourceName).toURI());
         } catch (URISyntaxException e) {
-           fail("Resource: " + resourceName + " does not exist" + e.getLocalizedMessage());
+            fail("Resource: " + resourceName + " does not exist" + e.getLocalizedMessage());
         }
 
         return path;

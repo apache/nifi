@@ -16,15 +16,11 @@
  */
 package org.apache.nifi.kafka.service;
 
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
-import org.apache.kafka.clients.admin.ListTopicsResult;
-import org.apache.kafka.clients.admin.TopicListing;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -63,8 +59,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -73,8 +67,6 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
-import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 import static org.apache.nifi.kafka.service.security.OAuthBearerLoginCallbackHandler.PROPERTY_KEY_NIFI_OAUTH_2_ACCESS_TOKEN_PROVIDER;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SASL_LOGIN_CALLBACK_HANDLER_CLASS;
 import static org.apache.nifi.kafka.shared.property.KafkaClientProperty.SSL_KEYSTORE_LOCATION;
@@ -176,9 +168,7 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             ACK_WAIT_TIME
     );
 
-    private static final Duration VERIFY_TIMEOUT = Duration.ofSeconds(2);
-    private static final String CONNECTION_STEP = "Kafka Broker Connection";
-    private static final String TOPIC_LISTING_STEP = "Kafka Topic Listing";
+    private static final KafkaConnectionVerifier kafkaConnectionVerifier = new KafkaConnectionVerifier();
 
     private volatile ServiceConfiguration serviceConfiguration;
     private volatile Properties producerProperties;
@@ -204,8 +194,8 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
         final SecurityProtocol securityProtocol = context.getProperty(SECURITY_PROTOCOL).asAllowableValue(SecurityProtocol.class);
         final String protocol = switch (securityProtocol) {
-        case SSL, SASL_SSL -> "kafkas";
-        case SASL_PLAINTEXT, PLAINTEXT -> "kafka";
+            case SSL, SASL_SSL -> "kafkas";
+            case SASL_PLAINTEXT, PLAINTEXT -> "kafka";
         };
 
         return String.format("%s://%s", protocol, firstBootstrapServer);
@@ -284,9 +274,9 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
             properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, producerConfiguration.getCompressionCodec());
         }
         final String partitionClass = producerConfiguration.getPartitionClass();
-        if (partitionClass != null && partitionClass.startsWith("org.apache.kafka")
         // Default Partitioner is removed in Kafka 4.0, and partitioner class should be
         // null by default - see KIP-794
+        if (partitionClass != null && partitionClass.startsWith("org.apache.kafka")
                 && !partitionClass.equals("org.apache.kafka.clients.producer.internals.DefaultPartitioner")) {
             properties.put(ProducerConfig.PARTITIONER_CLASS_CONFIG, partitionClass);
         }
@@ -303,37 +293,12 @@ public class Kafka3ConnectionService extends AbstractControllerService implement
 
     @Override
     public List<ConfigVerificationResult> verify(final ConfigurationContext configurationContext, final ComponentLog verificationLogger, final Map<String, String> variables) {
-        final List<ConfigVerificationResult> results = new ArrayList<>();
-
-        // Build Admin Client Properties based on configured values and defaults from Consumer Properties
+        // Build Client Properties based on configured values and defaults from Consumer Properties
         final Properties clientProperties = getClientProperties(configurationContext);
         final Properties consumerProperties = getConsumerProperties(configurationContext, clientProperties);
         consumerProperties.putAll(variables);
-        try (final Admin admin = Admin.create(consumerProperties)) {
-            final ListTopicsResult listTopicsResult = admin.listTopics();
 
-            final KafkaFuture<Collection<TopicListing>> requestedListings = listTopicsResult.listings();
-            final Collection<TopicListing> topicListings = requestedListings.get(VERIFY_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-            final String topicListingExplanation = String.format("Topics Found [%d]", topicListings.size());
-            results.add(
-                    new ConfigVerificationResult.Builder()
-                            .verificationStepName(TOPIC_LISTING_STEP)
-                            .outcome(SUCCESSFUL)
-                            .explanation(topicListingExplanation)
-                            .build()
-            );
-        } catch (final Exception e) {
-            verificationLogger.error("Kafka Broker verification failed", e);
-            results.add(
-                    new ConfigVerificationResult.Builder()
-                            .verificationStepName(CONNECTION_STEP)
-                            .outcome(FAILED)
-                            .explanation(e.getMessage())
-                            .build()
-            );
-        }
-
-        return results;
+        return kafkaConnectionVerifier.verify(verificationLogger, consumerProperties);
     }
 
     protected Properties getProducerProperties(final PropertyContext propertyContext, final Properties defaultProperties) {

@@ -204,7 +204,7 @@ public class AvroTypeUtil {
     }
 
     private static Schema buildAvroSchema(final DataType dataType, final String fieldName, String fieldNamePrefix, final boolean nullable) {
-       Schema schema = null;
+        Schema schema = null;
 
         switch (dataType.getFieldType()) {
             case ARRAY:

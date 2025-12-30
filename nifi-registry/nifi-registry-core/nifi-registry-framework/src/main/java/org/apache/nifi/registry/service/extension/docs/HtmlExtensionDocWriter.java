@@ -488,9 +488,9 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
                 } else {
                     text = switch (elScope) {
                         case FLOWFILE_ATTRIBUTES ->
-                                "Supports Expression Language: true (will be evaluated using flow file attributes and env/syst variables registry)";
+                            "Supports Expression Language: true (will be evaluated using flow file attributes and env/syst variables registry)";
                         case ENVIRONMENT ->
-                                "Supports Expression Language: true (will be evaluated using env/syst variables registry only)";
+                            "Supports Expression Language: true (will be evaluated using env/syst variables registry only)";
                         default -> "Supports Expression Language: false";
                     };
                 }

@@ -91,43 +91,43 @@ public class ExecuteProcess extends AbstractProcessor {
     final static String ATTRIBUTE_COMMAND_ARGS = "command.arguments";
 
     public static final PropertyDescriptor COMMAND = new PropertyDescriptor.Builder()
-    .name("Command")
-    .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
-    .required(true)
-    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build();
+            .name("Command")
+            .description("Specifies the command to be executed; if just the name of an executable is provided, it must be in the user's environment PATH.")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor COMMAND_ARGUMENTS = new PropertyDescriptor.Builder()
-    .name("Command Arguments")
-    .description("The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.")
-    .required(false)
-    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-    .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-    .build();
+            .name("Command Arguments")
+            .description("The arguments to supply to the executable delimited by white space. White space can be escaped by enclosing it in double-quotes.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
-    .name("Working Directory")
-    .description("The directory to use as the current working directory when executing the command")
-    .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-    .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
-    .required(false)
-    .build();
+            .name("Working Directory")
+            .description("The directory to use as the current working directory when executing the command")
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.createDirectoryExistsValidator(false, true))
+            .required(false)
+            .build();
 
     public static final PropertyDescriptor BATCH_DURATION = new PropertyDescriptor.Builder()
-    .name("Batch Duration")
-    .description("If the process is expected to be long-running and produce textual output, a batch duration can be specified so "
-            + "that the output will be captured for this amount of time and a FlowFile will then be sent out with the results "
-            + "and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results")
+            .name("Batch Duration")
+            .description("If the process is expected to be long-running and produce textual output, a batch duration can be specified so "
+                    + "that the output will be captured for this amount of time and a FlowFile will then be sent out with the results "
+                    + "and a new FlowFile will be started, rather than waiting for the process to finish before sending out the results")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor REDIRECT_ERROR_STREAM = new PropertyDescriptor.Builder()
-    .name("Redirect Error Stream")
-    .description("If true will redirect any error stream output of the process to the output stream. "
-            + "This is particularly helpful for processes which write extensively to the error stream or for troubleshooting.")
+            .name("Redirect Error Stream")
+            .description("If true will redirect any error stream output of the process to the output stream. "
+                    + "This is particularly helpful for processes which write extensively to the error stream or for troubleshooting.")
             .required(false)
             .allowableValues("true", "false")
             .defaultValue("false")
@@ -138,13 +138,13 @@ public class ExecuteProcess extends AbstractProcessor {
     private static final Validator characterValidator = new StandardValidators.StringLengthValidator(1, 1);
 
     static final PropertyDescriptor ARG_DELIMITER = new PropertyDescriptor.Builder()
-      .name("Argument Delimiter")
-      .description("Delimiter to use to separate arguments for a command [default: space]. Must be a single character.")
-      .addValidator(Validator.VALID)
-      .addValidator(characterValidator)
-      .required(true)
-      .defaultValue(" ")
-      .build();
+            .name("Argument Delimiter")
+            .description("Delimiter to use to separate arguments for a command [default: space]. Must be a single character.")
+            .addValidator(Validator.VALID)
+            .addValidator(characterValidator)
+            .required(true)
+            .defaultValue(" ")
+            .build();
 
     static final PropertyDescriptor MIME_TYPE = new PropertyDescriptor.Builder()
             .name("MIME Type")
@@ -164,9 +164,9 @@ public class ExecuteProcess extends AbstractProcessor {
     );
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-    .name("success")
-    .description("All created FlowFiles are routed to this relationship")
-    .build();
+            .name("success")
+            .description("All created FlowFiles are routed to this relationship")
+            .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
@@ -235,8 +235,8 @@ public class ExecuteProcess extends AbstractProcessor {
 
         final String command = context.getProperty(COMMAND).evaluateAttributeExpressions().getValue();
         final String arguments = context.getProperty(COMMAND_ARGUMENTS).isSet()
-          ? context.getProperty(COMMAND_ARGUMENTS).evaluateAttributeExpressions().getValue()
-          : null;
+            ? context.getProperty(COMMAND_ARGUMENTS).evaluateAttributeExpressions().getValue()
+            : null;
 
         final List<String> commandStrings = createCommandStrings(context, command, arguments);
         final String commandString = StringUtils.join(commandStrings, " ");

@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
  */
 class Util {
 
-     private static final Pattern CONTENT_DISPOSITION_PATTERN =
+    private static final Pattern CONTENT_DISPOSITION_PATTERN =
             Pattern.compile("^(.+);\\s*filename\\s*=\\s*\"([^\"]*)\"");
     /**
      * Parses the filename from a <a href="https://www.w3.org/Protocols/rfc2616/rfc2616-sec19.html#sec19.5.1">Content-Disposition</a>

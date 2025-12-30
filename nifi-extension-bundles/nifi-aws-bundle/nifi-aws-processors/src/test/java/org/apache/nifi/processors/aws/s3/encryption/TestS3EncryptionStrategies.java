@@ -24,6 +24,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.encryption.s3.S3EncryptionClient;
+import software.amazon.encryption.s3.CommitmentPolicy;
 
 import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createCustomerKeySpec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,7 +51,7 @@ public class TestS3EncryptionStrategies {
     public void testClientSideCEncryptionStrategy() {
         S3EncryptionStrategy strategy = new ClientSideCEncryptionStrategy();
 
-        S3EncryptionKeySpec keySpec = createCustomerKeySpec(256);
+        S3EncryptionKeySpec keySpec = createCustomerKeySpec(256, CommitmentPolicy.REQUIRE_ENCRYPT_REQUIRE_DECRYPT);
 
         // This shows that the strategy creates a client builder:
         S3EncryptionClient.Builder builder = strategy.createEncryptionClientBuilder(keySpec);
@@ -68,7 +69,7 @@ public class TestS3EncryptionStrategies {
         S3EncryptionStrategy strategy = new ClientSideKMSEncryptionStrategy();
 
         String keyId = "key-id";
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(keyId, null, null);
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(keyId, null, null, CommitmentPolicy.REQUIRE_ENCRYPT_REQUIRE_DECRYPT);
 
         // This shows that the strategy creates a client builder:
         S3EncryptionClient.Builder builder = strategy.createEncryptionClientBuilder(keySpec);
@@ -129,7 +130,7 @@ public class TestS3EncryptionStrategies {
         S3EncryptionStrategy strategy = new ServerSideKMSEncryptionStrategy();
 
         String keyId = "key-id";
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(keyId, null, null);
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(keyId, null, null, null);
 
         // This shows that the strategy sets the SSE KMS key id as expected:
         strategy.configurePutObjectRequest(putObjectRequestBuilder, keySpec);
@@ -159,7 +160,7 @@ public class TestS3EncryptionStrategies {
     public void testServerSideS3EncryptionStrategy() {
         S3EncryptionStrategy strategy = new ServerSideS3EncryptionStrategy();
 
-        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, null, null);
+        S3EncryptionKeySpec keySpec = new S3EncryptionKeySpec(null, null, null, null);
 
         // This shows that the strategy sets the SSE algorithm field as expected:
         strategy.configurePutObjectRequest(putObjectRequestBuilder, keySpec);

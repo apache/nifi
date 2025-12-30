@@ -180,7 +180,7 @@ public final class NarClassLoaders {
             for (final File unpackedNar : narWorkingDirContents) {
                 BundleDetails narDetail = null;
                 try {
-                     narDetail = getNarDetails(unpackedNar);
+                    narDetail = getNarDetails(unpackedNar);
                 } catch (IllegalStateException e) {
                     logger.warn("Unable to load NAR {} due to {}, skipping...", unpackedNar.getAbsolutePath(), e.getMessage());
                     continue;
@@ -574,7 +574,7 @@ public final class NarClassLoaders {
         }
 
         try {
-           return initContext.bundles.get(extensionWorkingDirectory.getCanonicalPath());
+            return initContext.bundles.get(extensionWorkingDirectory.getCanonicalPath());
         } catch (final IOException ioe) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Unable to get extension classloader for working directory '{}'", extensionWorkingDirectory);

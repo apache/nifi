@@ -36,9 +36,9 @@ import java.util.TimeZone;
         })
 public class NiFiRegistryTestApiApplication extends SpringBootServletInitializer {
 
-        // Since H2 uses the JVM's timezone, setting UTC here ensures that the JVM has a consistent timezone set
-        // before the H2 DB is created, regardless of platform (i.e. local build vs Travis)
-        static {
-                TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-        }
+    // Since H2 uses the JVM's timezone, setting UTC here ensures that the JVM has a consistent timezone set
+    // before the H2 DB is created, regardless of platform (i.e. local build vs Travis)
+    static {
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+    }
 }

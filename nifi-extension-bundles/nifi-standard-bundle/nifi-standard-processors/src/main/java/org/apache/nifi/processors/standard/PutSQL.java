@@ -910,7 +910,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             int errorCode = ((SQLException) exception).getErrorCode();
             String sqlState = ((SQLException) exception).getSQLState();
 
-            if (errorCode > 0) {
+            // Handle positive and negative error codes
+            if (errorCode != 0) {
                 attributes.put(ERROR_CODE_ATTR, valueOf(errorCode));
             }
 

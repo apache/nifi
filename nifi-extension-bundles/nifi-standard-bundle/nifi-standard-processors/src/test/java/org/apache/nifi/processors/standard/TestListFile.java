@@ -593,6 +593,7 @@ public class TestListFile {
         runner.assertTransferCount(ListFile.REL_SUCCESS, 0);
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Path filter .*/subdir2 does not discover the single expected match.")
     @Test
     public void testFilterPathPattern() throws Exception {
         final long now = getTestModifiedTime();

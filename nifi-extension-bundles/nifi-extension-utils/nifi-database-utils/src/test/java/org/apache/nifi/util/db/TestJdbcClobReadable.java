@@ -20,49 +20,21 @@ import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
-import org.apache.derby.jdbc.EmbeddedDriver;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class TestJdbcClobReadable {
-
-    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
-
-    @TempDir
-    private static File tempDir;
-
-    @BeforeAll
-    public static void setDerbyLog() {
-        final File derbyLog = new File(tempDir, "derby.log");
-        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
-    }
-
-    @AfterEach
-    public void cleanup() throws IOException {
-        if (folder != null && folder.exists()) {
-            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
-            assertEquals("XJ015", exception.getSQLState());
-            FileUtils.deleteFile(folder, true);
-        }
-    }
+class TestJdbcClobReadable extends AbstractConnectionTest {
 
     String createTable = "create table users ("
             + "  id int NOT NULL GENERATED ALWAYS AS IDENTITY, "
@@ -74,38 +46,25 @@ public class TestJdbcClobReadable {
     String dropTable = "drop table users";
 
     @Test
-    public void testClobWithChinese() throws SQLException, IOException, ClassNotFoundException {
+    void testClobWithChinese() throws SQLException, IOException {
         String chineseContent = "中国China";
         validateClob(chineseContent);
     }
 
     @Test
-    public void testClobWithJapanese() throws SQLException, IOException, ClassNotFoundException {
+    void testClobWithJapanese() throws SQLException, IOException {
         String japaneseContent = "にほんJapan";
         validateClob(japaneseContent);
     }
 
     @Test
-    public void testClobWithKorean() throws SQLException, IOException, ClassNotFoundException {
+    void testClobWithKorean() throws SQLException, IOException {
         String koreanContent = "にほんKorea";
         validateClob(koreanContent);
     }
 
-    // many test use Derby as database, so ensure driver is available
-    @Test
-    public void testDriverLoad() throws ClassNotFoundException, SQLException {
-        //Adding this because apparently the driver gets unloaded and unregistered
-        DriverManager.registerDriver(new EmbeddedDriver());
-        final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        assertNotNull(clazz);
-    }
-
-    private File folder;
-
-    private void validateClob(String someClob) throws SQLException, ClassNotFoundException, IOException {
-        File topLevelTempDir = new File(tempDir, String.valueOf(System.currentTimeMillis()));
-        folder = new File(topLevelTempDir, "db");
-        final Connection con = createConnection(folder.getAbsolutePath());
+    private void validateClob(String someClob) throws SQLException, IOException {
+        final Connection con = getConnection();
         final Statement st = con.createStatement();
 
         try {
@@ -142,11 +101,5 @@ public class TestJdbcClobReadable {
                 assertEquals(someClob, record.get("SOMECLOB").toString(), "Unreadable code for this Clob value.");
             }
         }
-    }
-
-    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
-        DriverManager.registerDriver(new EmbeddedDriver());
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        return DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
     }
 }

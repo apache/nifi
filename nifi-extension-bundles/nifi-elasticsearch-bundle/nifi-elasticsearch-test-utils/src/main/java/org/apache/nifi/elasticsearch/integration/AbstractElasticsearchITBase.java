@@ -70,7 +70,7 @@ public abstract class AbstractElasticsearchITBase {
             .withEnv("http.port", String.valueOf(PORT))
             .withExposedPorts(PORT)
             .withCreateContainerCmdModifier(cmd -> cmd.withHostConfig(
-                    new HostConfig().withPortBindings(new PortBinding(Ports.Binding.bindPort(PORT), new ExposedPort(PORT)))
+                new HostConfig().withPortBindings(new PortBinding(Ports.Binding.bindPort(PORT), new ExposedPort(PORT)))
             ));
     protected static final String CLIENT_SERVICE_NAME = "Client Service";
     protected static final String INDEX = "messages";
@@ -107,7 +107,7 @@ public abstract class AbstractElasticsearchITBase {
             type = "";
         }
         System.out.printf("%n%n%n%n%n%n%n%n%n%n%n%n%n%n%nTYPE: %s%nIMAGE: %s:%s%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n%n",
-                type, IMAGE.getRepository(), IMAGE.getVersionPart());
+            type, IMAGE.getRepository(), IMAGE.getVersionPart());
 
         setupTestData();
     }
@@ -200,11 +200,11 @@ public abstract class AbstractElasticsearchITBase {
 
     private record SetupAction(String verb, String path, String json) {
         @Override
-            public String toString() {
-                return "SetupAction{" +
-                        "verb='" + verb + '\'' +
-                        ", path='" + path + '\'' +
-                        '}';
-            }
+        public String toString() {
+            return "SetupAction{" +
+                    "verb='" + verb + '\'' +
+                    ", path='" + path + '\'' +
+                    '}';
         }
+    }
 }

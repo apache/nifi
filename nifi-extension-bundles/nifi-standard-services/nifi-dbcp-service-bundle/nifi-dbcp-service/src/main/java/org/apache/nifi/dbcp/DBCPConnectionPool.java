@@ -34,6 +34,7 @@ import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.RequiredPermission;
@@ -103,6 +104,9 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
      */
     protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
 
+    // Hold an instance of the registered driver so we can properly de-register it.
+    private volatile Driver registeredDriver;
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         DATABASE_URL,
         DB_DRIVERNAME,
@@ -135,7 +139,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         config.removeProperty("kerberos-credentials-service");
         DBCPProperties.OLD_DB_DRIVER_LOCATION_PROPERTY_NAMES.forEach(oldPropertyName ->
                 config.renameProperty(oldPropertyName, DB_DRIVER_LOCATION.getName())
-                );
+        );
         config.renameProperty(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName());
         config.renameProperty(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName());
         config.renameProperty(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName());
@@ -258,18 +262,33 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         }
 
         try {
-            return DriverManager.getDriver(url);
+            registeredDriver = DriverManager.getDriver(url);
+            return registeredDriver;
         } catch (final SQLException e) {
             // In case the driver is not registered by the implementation, we explicitly try to register it.
+            // deregister existing driver
             try {
-                final Driver driver = (Driver) clazz.getDeclaredConstructor().newInstance();
-                DriverManager.registerDriver(driver);
+                if (registeredDriver != null) {
+                    DriverManager.deregisterDriver(registeredDriver);
+                }
+                registeredDriver = (Driver) clazz.getDeclaredConstructor().newInstance();
+                DriverManager.registerDriver(registeredDriver);
                 return DriverManager.getDriver(url);
             } catch (final SQLException e2) {
                 throw new ProcessException("No suitable driver for the given Database Connection URL", e2);
             } catch (final Exception e2) {
                 throw new ProcessException("Creating driver instance is failed", e2);
             }
+        }
+    }
+
+    @OnRemoved
+    public void onRemove() {
+        try {
+            // We need to deregister the driver to allow the InstanceClassLoader to be garbage collected.
+            DriverManager.deregisterDriver(registeredDriver);
+        } catch (SQLException e) {
+            getLogger().warn("Driver could not be deregistered. This may cause a memory leak.", e);
         }
     }
 }

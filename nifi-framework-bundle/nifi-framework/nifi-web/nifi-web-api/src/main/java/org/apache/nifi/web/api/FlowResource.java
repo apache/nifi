@@ -412,15 +412,9 @@ public class FlowResource extends ApplicationResource {
     @Path("current-user")
     @Operation(
             summary = "Retrieves the user identity of the user making the request",
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CurrentUserEntity.class))),
-            security = {
-                    @SecurityRequirement(name = "Read - /flow")
-            }
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CurrentUserEntity.class)))
     )
     public Response getCurrentUser() {
-
-        authorizeFlow();
-
         final CurrentUserEntity entity;
         if (isReplicateRequest()) {
             try (Response replicatedResponse = replicate(HttpMethod.GET)) {
@@ -588,7 +582,7 @@ public class FlowResource extends ApplicationResource {
             )
             @DefaultValue("ALL_COMPONENTS")
             @QueryParam("flowMetricsReportingStrategy") final FlowMetricsReportingStrategy flowMetricsReportingStrategy
-            ) {
+    ) {
 
         authorizeFlow();
 

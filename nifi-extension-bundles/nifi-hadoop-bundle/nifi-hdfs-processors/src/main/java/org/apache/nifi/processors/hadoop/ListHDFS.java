@@ -186,7 +186,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-       return PROPERTY_DESCRIPTORS;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override

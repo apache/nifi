@@ -24,23 +24,23 @@ import org.apache.nifi.record.path.exception.RecordPathException;
 
 public class JsonPointerPropertyNameValidator implements Validator {
 
-        @Override
-        public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-            try {
-                JsonPointer.compile(subject);
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(true)
-                        .explanation("Valid JsonPointer")
-                        .build();
-            } catch (final RecordPathException e) {
-                return new ValidationResult.Builder()
-                        .input(input)
-                        .subject(subject)
-                        .valid(false)
-                        .explanation("Property Name is not a valid JsonPointer value: " + e.getMessage())
-                        .build();
-            }
+    @Override
+    public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+        try {
+            JsonPointer.compile(subject);
+            return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(true)
+                    .explanation("Valid JsonPointer")
+                    .build();
+        } catch (final RecordPathException e) {
+            return new ValidationResult.Builder()
+                    .input(input)
+                    .subject(subject)
+                    .valid(false)
+                    .explanation("Property Name is not a valid JsonPointer value: " + e.getMessage())
+                    .build();
         }
+    }
 }

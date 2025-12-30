@@ -65,6 +65,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,6 +91,8 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -500,6 +503,16 @@ public class TestFlowResource {
                 SECOND_SERVICE_ID
         );
         assertEquals(expectedServicesIds, serviceIds);
+    }
+
+    @Test
+    public void testGetCurrentUser() {
+        final Response response = resource.getCurrentUser();
+
+        assertNotNull(response);
+        assertEquals(HttpURLConnection.HTTP_OK, response.getStatus());
+
+        verify(serviceFacade, never()).authorizeAccess(any());
     }
 
     private void setUpGetVersionDifference() {

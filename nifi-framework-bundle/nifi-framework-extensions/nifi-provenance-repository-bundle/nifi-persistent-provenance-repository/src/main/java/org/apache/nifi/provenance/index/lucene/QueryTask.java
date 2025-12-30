@@ -128,7 +128,7 @@ public class QueryTask implements Runnable {
             final TopDocs topDocs;
             final StoredFields storedFields;
             try {
-               storedFields = indexReader.storedFields();
+                storedFields = indexReader.storedFields();
 
                 // Sort based on document id, descending. This gives us most recent events first.
                 final Sort sort = new Sort(new SortField(null, SortField.Type.DOC, true));

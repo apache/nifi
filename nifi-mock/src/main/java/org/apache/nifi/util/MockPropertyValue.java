@@ -230,8 +230,9 @@ public class MockPropertyValue implements PropertyValue {
         if (flowFile == null && expressionLanguageScope == ExpressionLanguageScope.FLOWFILE_ATTRIBUTES) {
             return evaluateAttributeExpressions(new HashMap<>());
         } else if (flowFile == null && expressionLanguageScope == ExpressionLanguageScope.ENVIRONMENT) {
-            return evaluateAttributeExpressions(); //Added this to get around a similar edge case where the a null flowfile is passed
-                                                    //and the scope is to the sys/env variable registry
+            // Added this to get around a similar edge case where a null flowfile is passed
+            // and the scope is to the sys/env variable registry
+            return evaluateAttributeExpressions();
         }
 
         return evaluateAttributeExpressions(flowFile, null, null);

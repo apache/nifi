@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.aws.s3.encryption;
 
 import org.apache.commons.codec.binary.Base64;
+import software.amazon.encryption.s3.CommitmentPolicy;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -34,10 +35,14 @@ final class S3EncryptionTestUtil {
     }
 
     static S3EncryptionKeySpec createCustomerKeySpec(int keySize) {
+        return createCustomerKeySpec(keySize, null);
+    }
+
+    static S3EncryptionKeySpec createCustomerKeySpec(int keySize, CommitmentPolicy commitmentPolicy) {
         byte[] keyMaterial = createRawKey(keySize);
         byte[] keyMaterialMd5 = md5(keyMaterial);
 
-        return new S3EncryptionKeySpec(null, base64Encode(keyMaterial), base64Encode(keyMaterialMd5));
+        return new S3EncryptionKeySpec(null, base64Encode(keyMaterial), base64Encode(keyMaterialMd5), commitmentPolicy);
     }
 
     private static byte[] createRawKey(int keySize) {

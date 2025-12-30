@@ -273,7 +273,7 @@ public class ModifyCompression extends AbstractProcessor {
             case LZMA -> new LzmaInputStream(parentInputStream, new Decoder());
             case XZ_LZMA2 -> new XZInputStream(parentInputStream);
             case BZIP2 -> // need this two-arg constructor to support concatenated streams
-                    new BZip2CompressorInputStream(parentInputStream, true);
+                new BZip2CompressorInputStream(parentInputStream, true);
             case GZIP -> GzipCompressorInputStream.builder().setInputStream(parentInputStream).setDecompressConcatenated(true).get();
             case DEFLATE -> new InflaterInputStream(parentInputStream);
             case SNAPPY -> new SnappyInputStream(parentInputStream);

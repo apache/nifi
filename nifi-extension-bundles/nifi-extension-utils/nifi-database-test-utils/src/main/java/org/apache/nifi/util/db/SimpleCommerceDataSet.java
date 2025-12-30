@@ -17,7 +17,6 @@
 package org.apache.nifi.util.db;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Random;
@@ -103,10 +102,4 @@ public class SimpleCommerceDataSet {
         }
         return new String(text);
     }
-
-    private Connection createConnection(String location) throws ClassNotFoundException, SQLException {
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        return DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
-    }
-
 }

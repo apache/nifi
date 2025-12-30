@@ -30,8 +30,9 @@ import software.amazon.encryption.s3.S3EncryptionClient;
 public class ClientSideKMSEncryptionStrategy implements S3EncryptionStrategy {
     @Override
     public S3EncryptionClient.Builder createEncryptionClientBuilder(S3EncryptionKeySpec keySpec) {
-        return S3EncryptionClient.builder()
-                .kmsKeyId(keySpec.kmsId());
+        return S3EncryptionClient.builderV4()
+                .kmsKeyId(keySpec.kmsId())
+                .commitmentPolicy(keySpec.commitmentPolicy());
     }
 
     @Override

@@ -379,27 +379,27 @@ public class TestAvroTypeUtil {
     * @throws IOException
     *             schema not found.
     */
-   @Test
-   public void testDefaultArrayValuesInRecordsCase2() throws IOException {
-       Schema avroSchema = new Schema.Parser().parse(getClass().getResourceAsStream("defaultArrayInRecords2.json"));
-       GenericRecordBuilder builder = new GenericRecordBuilder(avroSchema);
-       Record field1Record = new GenericRecordBuilder(avroSchema.getField("field1").schema()).build();
-       builder.set("field1", field1Record);
-       Record r = builder.build();
+    @Test
+    public void testDefaultArrayValuesInRecordsCase2() throws IOException {
+        Schema avroSchema = new Schema.Parser().parse(getClass().getResourceAsStream("defaultArrayInRecords2.json"));
+        GenericRecordBuilder builder = new GenericRecordBuilder(avroSchema);
+        Record field1Record = new GenericRecordBuilder(avroSchema.getField("field1").schema()).build();
+        builder.set("field1", field1Record);
+        Record r = builder.build();
 
-       @SuppressWarnings("unchecked")
-       GenericArray<Integer> values = (GenericArray<Integer>) ((GenericRecord) r.get("field1")).get("listOfInt");
-       assertArrayEquals(new Object[] {1, 2, 3}, values.toArray());
-       RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
-       RecordField field = record.getField("field1").get();
-       assertEquals(RecordFieldType.RECORD, field.getDataType().getFieldType());
-       RecordDataType data = (RecordDataType) field.getDataType();
-       RecordSchema childSchema = data.getChildSchema();
-       RecordField childField = childSchema.getField("listOfInt").get();
-       assertEquals(RecordFieldType.ARRAY, childField.getDataType().getFieldType());
-       assertInstanceOf(Object[].class, childField.getDefaultValue());
-       assertArrayEquals(new Object[] {1, 2, 3}, ((Object[]) childField.getDefaultValue()));
-   }
+        @SuppressWarnings("unchecked")
+        GenericArray<Integer> values = (GenericArray<Integer>) ((GenericRecord) r.get("field1")).get("listOfInt");
+        assertArrayEquals(new Object[] {1, 2, 3}, values.toArray());
+        RecordSchema record = AvroTypeUtil.createSchema(avroSchema);
+        RecordField field = record.getField("field1").get();
+        assertEquals(RecordFieldType.RECORD, field.getDataType().getFieldType());
+        RecordDataType data = (RecordDataType) field.getDataType();
+        RecordSchema childSchema = data.getChildSchema();
+        RecordField childField = childSchema.getField("listOfInt").get();
+        assertEquals(RecordFieldType.ARRAY, childField.getDataType().getFieldType());
+        assertInstanceOf(Object[].class, childField.getDefaultValue());
+        assertArrayEquals(new Object[] {1, 2, 3}, ((Object[]) childField.getDefaultValue()));
+    }
     @Test
     // Simple recursion is a record A composing itself (similar to a LinkedList Node
     // referencing 'next')
@@ -608,8 +608,8 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testConvertAvroRecordToMapWithFieldTypeOfFixedAndLogicalTypeDecimal() {
-       // Create a field schema like {"type":"fixed","name":"amount","size":16,"logicalType":"decimal","precision":18,"scale":8}
-       final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
+        // Create a field schema like {"type":"fixed","name":"amount","size":16,"logicalType":"decimal","precision":18,"scale":8}
+        final LogicalTypes.Decimal decimalType = LogicalTypes.decimal(18, 8);
         final Schema fieldSchema = Schema.createFixed("amount", null, null, 16);
         decimalType.addToSchema(fieldSchema);
 
@@ -1336,7 +1336,7 @@ public class TestAvroTypeUtil {
     }
 
     private Schema givenAvroSchemaContainingNumericMap() {
-       Map<String, Long> defaultLongMap = new HashMap<>();
+        Map<String, Long> defaultLongMap = new HashMap<>();
         final List<Field> avroFields = Arrays.asList(
                 new Field("id", Schema.create(Type.INT), "", 0),
                 new Field("numbers", Schema.createMap(Schema.create(Type.LONG)), "", defaultLongMap)

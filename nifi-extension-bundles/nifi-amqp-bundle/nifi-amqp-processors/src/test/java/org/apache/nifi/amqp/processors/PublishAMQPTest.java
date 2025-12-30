@@ -22,6 +22,7 @@ import com.rabbitmq.client.GetResponse;
 import org.apache.nifi.amqp.processors.PublishAMQP.InputHeaderSource;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -231,6 +233,24 @@ public class PublishAMQPTest {
         runner.setProperty(PublishAMQP.HEADERS_SOURCE, InputHeaderSource.FLOWFILE_ATTRIBUTES);
         runner.setProperty(PublishAMQP.HEADERS_PATTERN, "*");
         runner.assertNotValid();
+    }
+
+    @Test
+    void testMigration() {
+        final TestRunner runner = TestRunners.newTestRunner(PublishAMQP.class);
+        setConnectionProperties(runner);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("User Name", AbstractAMQPProcessor.USER.getName()),
+                Map.entry("ssl-context-service", AbstractAMQPProcessor.SSL_CONTEXT_SERVICE.getName()),
+                Map.entry("cert-authentication", AbstractAMQPProcessor.CLIENT_CERTIFICATE_AUTHENTICATION_ENABLED.getName()),
+                Map.entry("header.separator", PublishAMQP.HEADER_SEPARATOR.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of("ssl-client-auth");
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private void setConnectionProperties(TestRunner runner) {

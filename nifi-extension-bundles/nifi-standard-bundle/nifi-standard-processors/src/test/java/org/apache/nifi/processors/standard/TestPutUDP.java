@@ -158,10 +158,10 @@ public class TestPutUDP {
 
     private void assertMessagesReceived(final String[] sentMessages) throws Exception {
         // check each sent FlowFile was successfully sent and received.
-         for (String item : sentMessages) {
-             ByteArrayMessage packet = messages.take();
-             assertNotNull(packet);
-             assertArrayEquals(item.getBytes(), packet.getMessage());
+        for (String item : sentMessages) {
+            ByteArrayMessage packet = messages.take();
+            assertNotNull(packet);
+            assertArrayEquals(item.getBytes(), packet.getMessage());
         }
 
         runner.assertTransferCount(PutUDP.REL_SUCCESS, sentMessages.length);

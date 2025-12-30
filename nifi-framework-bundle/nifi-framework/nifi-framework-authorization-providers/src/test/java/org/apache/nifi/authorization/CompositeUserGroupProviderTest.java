@@ -147,7 +147,7 @@ public class CompositeUserGroupProviderTest extends CompositeUserGroupProviderTe
         assertTrue(exception.getMessage().contains(USER_1_IDENTITY));
 
         exception = assertThrows(IllegalStateException.class, () -> {
-           testConflictingUserGroupProvider(userGroupProvider);
+            testConflictingUserGroupProvider(userGroupProvider);
         });
         assertTrue(exception.getMessage().contains(USER_1_IDENTITY));
     }

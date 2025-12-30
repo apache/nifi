@@ -140,13 +140,13 @@ class TestEncodeContent {
     }
 
     private static Stream<Arguments> encodeHexArgs() {
-       return Stream.of(
-               Arguments.of("hello", "68656C6C6F"),
-               Arguments.of("foo", "666F6F"),
-               Arguments.of("你好", "E4BDA0E5A5BD"),
-               Arguments.of("Здравствуйте", "D097D0B4D180D0B0D0B2D181D182D0B2D183D0B9D182D0B5")
-       );
-   }
+        return Stream.of(
+                Arguments.of("hello", "68656C6C6F"),
+                Arguments.of("foo", "666F6F"),
+                Arguments.of("你好", "E4BDA0E5A5BD"),
+                Arguments.of("Здравствуйте", "D097D0B4D180D0B0D0B2D181D182D0B2D183D0B9D182D0B5")
+        );
+    }
 
     @ParameterizedTest
     @MethodSource("encodeBase32Args")
@@ -155,13 +155,13 @@ class TestEncodeContent {
     }
 
     private static Stream<Arguments> encodeBase32Args() {
-       return Stream.of(
-               Arguments.of("hello", "NBSWY3DP\n"),
-               Arguments.of("foo", "MZXW6===\n"),
-               Arguments.of("你好", "4S62BZNFXU======\n"),
-               Arguments.of("Здравствуйте", "2CL5BNGRQDILBUFS2GA5DAWQWLIYHUFZ2GBNBNI=\n")
-       );
-   }
+        return Stream.of(
+                Arguments.of("hello", "NBSWY3DP\n"),
+                Arguments.of("foo", "MZXW6===\n"),
+                Arguments.of("你好", "4S62BZNFXU======\n"),
+                Arguments.of("Здравствуйте", "2CL5BNGRQDILBUFS2GA5DAWQWLIYHUFZ2GBNBNI=\n")
+        );
+    }
 
     @ParameterizedTest
     @MethodSource("encodeBase64Args")
@@ -170,13 +170,13 @@ class TestEncodeContent {
     }
 
     private static Stream<Arguments> encodeBase64Args() {
-       return Stream.of(
-               Arguments.of("hello", "aGVsbG8=\n"),
-               Arguments.of("foo", "Zm9v\n"),
-               Arguments.of("你好", "5L2g5aW9\n"),
-               Arguments.of("Здравствуйте", "0JfQtNGA0LDQstGB0YLQstGD0LnRgtC1\n")
-       );
-   }
+        return Stream.of(
+                Arguments.of("hello", "aGVsbG8=\n"),
+                Arguments.of("foo", "Zm9v\n"),
+                Arguments.of("你好", "5L2g5aW9\n"),
+                Arguments.of("Здравствуйте", "0JfQtNGA0LDQstGB0YLQstGD0LnRgtC1\n")
+        );
+    }
 
     @Test
     void testBlankValueShouldNotFail() {

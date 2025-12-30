@@ -30,7 +30,7 @@ class BoxDateTest {
             "2025-01-01, 2025-01-01T00:00:00.000Z",
             "2025-02-25, 2025-02-25T00:00:00.000Z",
             "2025-11-10, 2025-11-10T00:00:00.000Z",
-            })
+    })
     void format(final LocalDate date, final String expected) {
         final BoxDate boxDate = BoxDate.of(date);
         final String formatted = boxDate.format();

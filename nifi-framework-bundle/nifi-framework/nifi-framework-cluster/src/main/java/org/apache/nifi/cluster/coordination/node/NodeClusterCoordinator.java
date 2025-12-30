@@ -1131,7 +1131,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     public ProtocolMessage handle(final ProtocolMessage protocolMessage, final Set<String> nodeIdentities) throws ProtocolException {
         return switch (protocolMessage.getType()) {
             case CONNECTION_REQUEST ->
-                    handleConnectionRequest((ConnectionRequestMessage) protocolMessage, nodeIdentities);
+                handleConnectionRequest((ConnectionRequestMessage) protocolMessage, nodeIdentities);
             case NODE_STATUS_CHANGE -> {
                 handleNodeStatusChange((NodeStatusChangeMessage) protocolMessage);
                 yield null;

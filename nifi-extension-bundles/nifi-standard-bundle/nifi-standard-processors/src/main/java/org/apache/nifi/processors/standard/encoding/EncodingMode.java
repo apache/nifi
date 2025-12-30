@@ -44,4 +44,4 @@ public enum EncodingMode implements DescribedValue {
     public String getDescription() {
         return description;
     }
- }
+}

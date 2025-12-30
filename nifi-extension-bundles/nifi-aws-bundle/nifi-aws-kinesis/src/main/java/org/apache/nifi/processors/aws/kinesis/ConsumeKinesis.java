@@ -448,9 +448,9 @@ public class ConsumeKinesis extends AbstractProcessor {
 
         switch (result) {
             case InitializationResult.Success ignored ->
-                    getLogger().info(
-                            "Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
-                            streamName, applicationName, workerId);
+                getLogger().info(
+                        "Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
+                        streamName, applicationName, workerId);
             case InitializationResult.Failure failure -> {
                 cleanUpState();
 
@@ -524,7 +524,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         final InitialPosition initialPosition = context.getProperty(INITIAL_STREAM_POSITION).asAllowableValue(InitialPosition.class);
         return switch (initialPosition) {
             case TRIM_HORIZON ->
-                    InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.TRIM_HORIZON);
+                InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.TRIM_HORIZON);
             case LATEST -> InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.LATEST);
             case AT_TIMESTAMP -> {
                 final String timestampValue = context.getProperty(STREAM_POSITION_TIMESTAMP).getValue();

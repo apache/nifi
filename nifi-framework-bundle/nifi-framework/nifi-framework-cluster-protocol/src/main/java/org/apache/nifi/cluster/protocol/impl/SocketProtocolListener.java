@@ -249,7 +249,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
 
         return switch (message.getType()) {
             case CONNECTION_REQUEST ->
-                    ((ConnectionRequestMessage) message).getConnectionRequest().getProposedNodeIdentifier();
+                ((ConnectionRequestMessage) message).getConnectionRequest().getProposedNodeIdentifier();
             case HEARTBEAT -> ((HeartbeatMessage) message).getHeartbeat().getNodeIdentifier();
             case OFFLOAD_REQUEST -> ((OffloadMessage) message).getNodeId();
             case DISCONNECTION_REQUEST -> ((DisconnectMessage) message).getNodeId();

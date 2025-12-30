@@ -68,7 +68,7 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
             case Date ignored -> RecordFieldType.DATE.getDataType();
 
             case BigDecimal bigDecimal ->
-                    RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
+                RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
 
             case List listField -> {
                 DataType mergedDataType = null;

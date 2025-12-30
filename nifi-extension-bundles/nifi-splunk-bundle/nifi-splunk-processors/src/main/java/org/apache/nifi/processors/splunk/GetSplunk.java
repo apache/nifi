@@ -354,8 +354,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
                 || descriptor.equals(TIME_RANGE_STRATEGY)
                 || descriptor.equals(EARLIEST_TIME)
                 || descriptor.equals(LATEST_TIME)
-                || descriptor.equals(HOSTNAME))
-                ) {
+                || descriptor.equals(HOSTNAME))) {
             getLogger().debug("A property that require resetting state was modified - {} oldValue {} newValue {}",
                     descriptor.getDisplayName(), oldValue, newValue);
             resetState = true;
@@ -395,7 +394,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
         try {
             context.getStateManager().clear(Scope.CLUSTER);
         } catch (IOException e) {
-           getLogger().error("Unable to clear processor state due to {}", e.getMessage(), e);
+            getLogger().error("Unable to clear processor state due to {}", e.getMessage(), e);
         }
     }
 
@@ -459,7 +458,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
                         earliestTime = dateTimeFormatter.format(previousLastDate.plusSeconds(1));
                         latestTime = dateTimeFormatter.format(currentTime);
                     } catch (DateTimeParseException e) {
-                       throw new ProcessException(e);
+                        throw new ProcessException(e);
                     }
                 }
 

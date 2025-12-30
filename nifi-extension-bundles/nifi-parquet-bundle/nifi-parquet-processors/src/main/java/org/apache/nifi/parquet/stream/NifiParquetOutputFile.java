@@ -25,30 +25,30 @@ import java.io.OutputStream;
 
 public class NifiParquetOutputFile implements OutputFile {
 
-      private OutputStream outputStream;
+    private OutputStream outputStream;
 
-      public NifiParquetOutputFile(OutputStream outputStream) {
+    public NifiParquetOutputFile(OutputStream outputStream) {
         this.outputStream = outputStream;
-      }
+    }
 
-      @Override
-      public PositionOutputStream create(long blockSizeHint) {
+    @Override
+    public PositionOutputStream create(long blockSizeHint) {
         return new NifiOutputStream(outputStream);
-      }
+    }
 
-      @Override
-      public PositionOutputStream createOrOverwrite(long blockSizeHint) {
+    @Override
+    public PositionOutputStream createOrOverwrite(long blockSizeHint) {
         return new NifiOutputStream(outputStream);
-      }
+    }
 
-      @Override
-      public boolean supportsBlockSize() {
+    @Override
+    public boolean supportsBlockSize() {
         return false;
-      }
+    }
 
-      @Override
-      public long defaultBlockSize() {
+    @Override
+    public long defaultBlockSize() {
         return 0;
-      }
+    }
 
 }

@@ -19,10 +19,9 @@ package org.apache.nifi.toolkit.cli.impl.result;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.registry.RegisteredFlowSnapshotMetadataResult;
+import org.apache.nifi.toolkit.cli.impl.result.util.OutputUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -36,7 +35,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisabledOnOs(OS.WINDOWS)
+
 public class TestRegisteredFlowSnapshotMetadataResult {
 
     private ByteArrayOutputStream outputStream;
@@ -71,16 +70,17 @@ public class TestRegisteredFlowSnapshotMetadataResult {
         final RegisteredFlowSnapshotMetadataResult result = new RegisteredFlowSnapshotMetadataResult(ResultType.SIMPLE, versions);
         result.write(printStream);
 
-        final String resultOut = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        final String resultOut = outputStream.toString(StandardCharsets.UTF_8);
 
         // can't get the time zone to line up on travis, so ignore this for now
-        final String expectedPattern = "^\\n" +
+        String expectedPattern = "^\\n" +
                 "Ver +Date + Author + Message +\\n" +
                 "-+ +-+ +-+ +-+ +\\n" +
                 //"1     Wed, Feb 14 2018 12:00 EST   user1    This is a long comment, longer than t...   \n" +
                 //"2     Wed, Feb 14 2018 12:30 EST   user2    This is v2                                 \n" +
                 "(.|\\n)+$";
 
+        expectedPattern = OutputUtil.isWindows() ? expectedPattern.replaceAll("\\\\n", "\\\\r\\\\n") : expectedPattern;
         assertTrue(resultOut.matches(expectedPattern));
     }
 }

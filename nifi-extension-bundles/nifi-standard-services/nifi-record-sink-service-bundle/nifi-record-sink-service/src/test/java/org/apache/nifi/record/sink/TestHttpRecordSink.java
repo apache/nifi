@@ -266,9 +266,9 @@ public class TestHttpRecordSink {
             Person[] people =
                     (maxBatchSize == 1)
                             ? new Person[] {
-                                    // For maxBatchSize 1, person is not in a Json array
-                                    mapper.readValue(requestBody, Person.class)
-                                  }
+                                // For maxBatchSize 1, person is not in a Json array
+                                mapper.readValue(requestBody, Person.class)
+                            }
                             : mapper.readValue(requestBody, Person[].class); // Otherwise the body is a json array
 
             for (int personIndex = 0; personIndex < people.length; personIndex++) {

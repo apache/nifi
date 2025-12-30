@@ -51,9 +51,9 @@ public class TestStandardHashiCorpVaultClientService {
             final PropertyValue propertiesFilesProperty = mock(PropertyValue.class);
             final ResourceReferences resources = mock(ResourceReferences.class);
             when(resources.asList()).thenReturn(Arrays.stream(properties.get(HashiCorpVaultClientService.VAULT_PROPERTIES_FILES)
-                    .split(","))
-                    .map(SimpleResourceReference::new)
-                    .collect(Collectors.toList()));
+                .split(","))
+                .map(SimpleResourceReference::new)
+                .collect(Collectors.toList()));
             when(propertiesFilesProperty.asResources()).thenReturn(resources);
             when(context.getProperty(HashiCorpVaultClientService.VAULT_PROPERTIES_FILES)).thenReturn(propertiesFilesProperty);
         }
@@ -62,7 +62,7 @@ public class TestStandardHashiCorpVaultClientService {
         when(sslContextServicePropertyValue.isSet()).thenReturn(false);
         when(context.getProperty(HashiCorpVaultClientService.SSL_CONTEXT_SERVICE)).thenReturn(sslContextServicePropertyValue);
         when(context.getAllProperties()).thenReturn(properties.entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey().getName(), Map.Entry::getValue)));
+            .collect(Collectors.toMap(e -> e.getKey().getName(), Map.Entry::getValue)));
         return context;
     }
 
@@ -100,33 +100,33 @@ public class TestStandardHashiCorpVaultClientService {
     private record SimpleResourceReference(String filename) implements ResourceReference {
 
         @Override
-            public File asFile() {
-                return null;
-            }
-
-            @Override
-            public URL asURL() {
-                return null;
-            }
-
-            @Override
-            public InputStream read() {
-                return null;
-            }
-
-            @Override
-            public boolean isAccessible() {
-                return false;
-            }
-
-            @Override
-            public String getLocation() {
-                return filename;
-            }
-
-            @Override
-            public ResourceType getResourceType() {
-                return null;
-            }
+        public File asFile() {
+            return null;
         }
+
+        @Override
+        public URL asURL() {
+            return null;
+        }
+
+        @Override
+        public InputStream read() {
+            return null;
+        }
+
+        @Override
+        public boolean isAccessible() {
+            return false;
+        }
+
+        @Override
+        public String getLocation() {
+            return filename;
+        }
+
+        @Override
+        public ResourceType getResourceType() {
+            return null;
+        }
+    }
 }

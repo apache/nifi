@@ -445,10 +445,10 @@ public class ListenSyslog extends AbstractSyslogProcessor implements ListenCompo
             final boolean writeDemarcator = (i > 0);
             final byte[] messageBytes = (event == null) ? rawSyslogEvent.getMessage() : event.getRawMessage();
             flowFile = session.append(flowFile, outputStream -> {
-               if (writeDemarcator) {
-                   outputStream.write(messageDemarcatorBytes);
-               }
-               outputStream.write(messageBytes);
+                if (writeDemarcator) {
+                    outputStream.write(messageDemarcatorBytes);
+                }
+                outputStream.write(messageBytes);
             });
 
             flowFilePerSender.put(sender, flowFile);

@@ -59,7 +59,7 @@ public class Files {
             return list == null ? Collections.emptyList() : Arrays.asList(list);
         }
         if (!f.exists()) {
-           logger.warn("path not found for {}", f);
+            logger.warn("path not found for {}", f);
         }
         return List.of(f);
     }

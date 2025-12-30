@@ -278,8 +278,8 @@ public class ZooKeeperClientConfig {
                 if (PORT_PATTERN.matcher(pairSplits[1]).matches()) {
                     cleanedEntries.add(pairSplits[0] + ":" + pairSplits[1]);
                 } else {
-                throw new IllegalStateException("The port specified in this pair must be 1 to 5 digits only but was '" +
-                        pair + "' in nifi.properties " + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property");
+                    throw new IllegalStateException("The port specified in this pair must be 1 to 5 digits only but was '" +
+                            pair + "' in nifi.properties " + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property");
                 }
             }
         }

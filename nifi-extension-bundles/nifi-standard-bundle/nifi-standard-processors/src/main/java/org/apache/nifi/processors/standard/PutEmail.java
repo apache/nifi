@@ -334,14 +334,14 @@ public class PutEmail extends AbstractProcessor {
      * Mapping of the mail properties to the NiFi PropertyDescriptors that will be evaluated at runtime
      */
     private static final Map<String, PropertyDescriptor> propertyToContext = Map.of(
-    "mail.smtp.host", SMTP_HOSTNAME,
-    "mail.smtp.port", SMTP_PORT,
-    "mail.smtp.socketFactory.port", SMTP_PORT,
-    "mail.smtp.socketFactory.class", SMTP_SOCKET_FACTORY,
-    "mail.smtp.auth", SMTP_AUTH,
-    "mail.smtp.starttls.enable", SMTP_TLS,
-    "mail.smtp.user", SMTP_USERNAME,
-    "mail.smtp.password", SMTP_PASSWORD
+        "mail.smtp.host", SMTP_HOSTNAME,
+        "mail.smtp.port", SMTP_PORT,
+        "mail.smtp.socketFactory.port", SMTP_PORT,
+        "mail.smtp.socketFactory.class", SMTP_SOCKET_FACTORY,
+        "mail.smtp.auth", SMTP_AUTH,
+        "mail.smtp.starttls.enable", SMTP_TLS,
+        "mail.smtp.user", SMTP_USERNAME,
+        "mail.smtp.password", SMTP_PASSWORD
     );
 
     @Override

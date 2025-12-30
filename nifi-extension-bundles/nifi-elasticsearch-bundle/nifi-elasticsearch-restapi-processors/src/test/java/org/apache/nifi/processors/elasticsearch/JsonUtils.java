@@ -60,9 +60,9 @@ public class JsonUtils {
     }
 
     static List<String> readListOfMapsAsIndividualJson(final String json) {
-            return readListOfMaps(json).stream()
-                    .map(JsonUtils::prettyPrint)
-                    .collect(Collectors.toList());
+        return readListOfMaps(json).stream()
+                .map(JsonUtils::prettyPrint)
+                .collect(Collectors.toList());
     }
 
     @SuppressWarnings("unchecked")

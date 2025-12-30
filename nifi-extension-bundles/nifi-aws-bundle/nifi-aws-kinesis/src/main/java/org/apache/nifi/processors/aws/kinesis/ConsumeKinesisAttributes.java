@@ -69,7 +69,7 @@ final class ConsumeKinesisAttributes {
         attributes.put(PARTITION_KEY, lastRecord.partitionKey());
 
         if (lastRecord.approximateArrivalTimestamp() != null) {
-           attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, String.valueOf(lastRecord.approximateArrivalTimestamp().toEpochMilli()));
+            attributes.put(APPROXIMATE_ARRIVAL_TIMESTAMP, String.valueOf(lastRecord.approximateArrivalTimestamp().toEpochMilli()));
         }
 
         return attributes;

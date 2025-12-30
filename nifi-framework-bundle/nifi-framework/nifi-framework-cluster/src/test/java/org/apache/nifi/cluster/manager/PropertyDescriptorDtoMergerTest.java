@@ -79,7 +79,7 @@ public class PropertyDescriptorDtoMergerTest {
     void testMergeWithOverlappingAllowableValues() {
         testMerge(
             createPropertyDescriptorDTO(v("value1"), v("value2"), v("value3")),
-           Map.of(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value1"), v("value2"), v("value3")),
+            Map.of(createNodeIdentifier("node1"), createPropertyDescriptorDTO(v("value1"), v("value2"), v("value3")),
                 createNodeIdentifier("node2"), createPropertyDescriptorDTO(v("value2"), v("value3", false))),
             createPropertyDescriptorDTO(v("value2"), v("value3", false))
         );

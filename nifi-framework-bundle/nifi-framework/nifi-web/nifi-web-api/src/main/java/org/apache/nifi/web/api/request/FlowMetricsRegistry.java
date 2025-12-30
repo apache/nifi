@@ -22,6 +22,7 @@ import org.apache.nifi.prometheusutil.ClusterMetricsRegistry;
 import org.apache.nifi.prometheusutil.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheusutil.JvmMetricsRegistry;
 import org.apache.nifi.prometheusutil.NiFiMetricsRegistry;
+import org.apache.nifi.prometheusutil.VersionInfoRegistry;
 
 /**
  * Flow Metrics Registries
@@ -35,7 +36,9 @@ public enum FlowMetricsRegistry {
 
     CONNECTION("CONNECTION", ConnectionAnalyticsMetricsRegistry.class),
 
-    CLUSTER("CLUSTER", ClusterMetricsRegistry.class);
+    CLUSTER("CLUSTER", ClusterMetricsRegistry.class),
+
+    VERSION_INFO("VERSION_INFO", VersionInfoRegistry.class);
 
     private final String registry;
 
