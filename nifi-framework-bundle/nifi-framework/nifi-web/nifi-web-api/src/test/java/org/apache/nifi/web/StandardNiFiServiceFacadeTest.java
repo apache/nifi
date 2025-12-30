@@ -1660,8 +1660,10 @@ public class StandardNiFiServiceFacadeTest {
         MockTestBulletinRepository bulletinRepository = new MockTestBulletinRepository();
         serviceFacade.setBulletinRepository(bulletinRepository);
 
-        assertThrows(IllegalArgumentException.class, () -> {
-            serviceFacade.clearBulletinsForComponents(processGroupId, fromTimestamp, emptyComponentIds);
-        });
+        ClearBulletinsForGroupResultsEntity result = serviceFacade.clearBulletinsForComponents(
+                processGroupId, fromTimestamp, emptyComponentIds);
+
+        assertNotNull(result);
+        assertEquals(0, result.getBulletinsCleared());
     }
 }
