@@ -40,8 +40,8 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
     private static final long YEAR_TEN_THOUSAND_SECONDS = 253_402_300_800L;
     private static final char PERIOD = '.';
 
-    private static final long MICROSECOND_MULTIPLIER = 1_000;
-    private static final long MILLISECOND_MULTIPLIER = 1_000_000;
+    private static final long MILLISECONDS_TO_MICROSECONDS = 1_000;
+    private static final long SECONDS_TO_MICROSECONDS = 1_000_000;
 
     private static final TemporalQuery<LocalDateTime> LOCAL_DATE_TIME_TEMPORAL_QUERY = new LocalDateTimeQuery();
 
@@ -124,17 +124,20 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
         }
     }
 
+    /**
+     * Convert double to LocalDateTime after evaluating integral and fractional components.
+     * Handles integral numbers greater than the year 10,000 in seconds as milliseconds, otherwise as seconds.
+     * Multiplies fractional number to microseconds based on size of integral number.
+     *
+     * @param number Number of milliseconds or seconds
+     * @return Local Date Time
+     */
     private LocalDateTime convertDouble(final double number) {
         // Cast to long for integral part of the number
         final long integral = (long) number;
 
         // Calculate fractional part of the number for subsequent precision evaluation
         final double fractional = number - integral;
-
-        return convertIntegralFractional(integral, fractional);
-    }
-
-    private LocalDateTime convertIntegralFractional(final long integral, final double fractional) {
         final Instant epoch;
         final long fractionalMultiplier;
 
@@ -142,14 +145,14 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
             // Handle large numbers as milliseconds instead of seconds
             epoch = Instant.ofEpochMilli(integral);
 
-            // Handle fractional part as number of microseconds
-            fractionalMultiplier = MICROSECOND_MULTIPLIER;
+            // Convert fractional part from milliseconds to microseconds
+            fractionalMultiplier = MILLISECONDS_TO_MICROSECONDS;
         } else {
             // Handle smaller numbers as seconds
             epoch = Instant.ofEpochSecond(integral);
 
-            // Handle fractional part as number of milliseconds
-            fractionalMultiplier = MILLISECOND_MULTIPLIER;
+            // Convert fractional part from seconds to microseconds
+            fractionalMultiplier = SECONDS_TO_MICROSECONDS;
         }
 
         // Calculate microseconds according to multiplier for expected precision
@@ -163,11 +166,11 @@ class ObjectLocalDateTimeFieldConverter implements FieldConverter<Object, LocalD
     private LocalDateTime toLocalDateTime(final long value) {
         if (value > YEAR_TEN_THOUSAND) {
             // Handle number as microseconds for large values
-            final long epochSecond = value / MILLISECOND_MULTIPLIER;
-            // Calculate nanoseconds from remainder
-            final long nanoAdjustment = (value % MILLISECOND_MULTIPLIER) * MICROSECOND_MULTIPLIER;
-            final Instant microsInstant = Instant.ofEpochSecond(epochSecond, nanoAdjustment);
-            return ofInstant(microsInstant);
+            final long epochSecond = value / SECONDS_TO_MICROSECONDS;
+            // Calculate microseconds from remainder
+            final long microseconds = value % SECONDS_TO_MICROSECONDS;
+            final Instant instant = Instant.ofEpochSecond(epochSecond).plus(microseconds, ChronoUnit.MICROS);
+            return ofInstant(instant);
         }
 
         final Instant instant = Instant.ofEpochMilli(value);
