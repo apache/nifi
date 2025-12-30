@@ -16,41 +16,34 @@
  */
 
 import { Injectable, inject } from '@angular/core';
-import { v4 as uuidv4 } from 'uuid';
-import { StorageService } from './storage.service';
+import { SessionStorageService } from '@nifi/shared';
 
 @Injectable({
     providedIn: 'root'
 })
-export class Client {
-    private storageService = inject(StorageService);
+export class StorageService {
+    private sessionStorageService = inject(SessionStorageService);
 
-    private clientId: string;
+    private static readonly RETURN_URL = 'returnUrl';
+    private static readonly CLIENT_ID = 'clientId';
 
-    constructor() {
-        let clientId = this.storageService.getClientId();
-
-        if (clientId === null) {
-            clientId = uuidv4();
-            this.storageService.setClientId(clientId);
-        }
-
-        this.clientId = clientId;
+    public setReturnUrl(url: string): void {
+        this.sessionStorageService.setItem(StorageService.RETURN_URL, url);
     }
 
-    public getClientId(): string {
-        return this.clientId;
+    public getReturnUrl(): string | null {
+        return this.sessionStorageService.getItem<string>(StorageService.RETURN_URL);
     }
 
-    /**
-     * Builds the revision fof the specified component
-     * @param d The component
-     * @returns The revision
-     */
-    public getRevision(d: any): any {
-        return {
-            clientId: this.clientId,
-            version: d.revision.version
-        };
+    public removeReturnUrl(): void {
+        this.sessionStorageService.removeItem(StorageService.RETURN_URL);
+    }
+
+    public getClientId(): string | null {
+        return this.sessionStorageService.getItem<string>(StorageService.CLIENT_ID);
+    }
+
+    public setClientId(clientId: string): void {
+        this.sessionStorageService.setItem(StorageService.CLIENT_ID, clientId);
     }
 }

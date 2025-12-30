@@ -29,6 +29,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Store } from '@ngrx/store';
 import { NiFiState } from '../../../../state';
 import { resetLoginFailure } from './access.actions';
+import { StorageService } from '../../../../service/storage.service';
 
 @Injectable()
 export class AccessEffects {
@@ -38,6 +39,7 @@ export class AccessEffects {
     private router = inject(Router);
     private dialog = inject(MatDialog);
     private errorHelper = inject(ErrorHelper);
+    private storageService = inject(StorageService);
 
     login$ = createEffect(() =>
         this.actions$.pipe(
@@ -59,9 +61,9 @@ export class AccessEffects {
             this.actions$.pipe(
                 ofType(AccessActions.loginSuccess),
                 tap(() => {
-                    const returnUrl = sessionStorage.getItem('returnUrl');
+                    const returnUrl = this.storageService.getReturnUrl();
                     if (returnUrl) {
-                        sessionStorage.removeItem('returnUrl');
+                        this.storageService.removeReturnUrl();
                         this.router.navigateByUrl(returnUrl);
                     } else {
                         this.router.navigate(['/']);
