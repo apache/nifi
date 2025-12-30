@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
@@ -413,6 +414,28 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .required(false)
             .build();
 
+    static final PropertyDescriptor SQL_PRE_QUERY = new PropertyDescriptor.Builder()
+            .name("SQL Pre-Query")
+            .description("A semicolon-delimited list of queries executed before the main SQL query is executed. " +
+                    "For example, set session properties before main query. " +
+                    "It's possible to include semicolons in the statements themselves by escaping them with a backslash ('\\;'). " +
+                    "Results/outputs from these queries will be suppressed if there are no errors.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor SQL_POST_QUERY = new PropertyDescriptor.Builder()
+            .name("SQL Post-Query")
+            .description("A semicolon-delimited list of queries executed after the main SQL query is executed. " +
+                    "Example like setting session properties after main query. " +
+                    "It's possible to include semicolons in the statements themselves by escaping them with a backslash ('\\;'). " +
+                    "Results/outputs from these queries will be suppressed if there are no errors.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .build();
+
     static final PropertyDescriptor DB_TYPE = DatabaseAdapterDescriptor.getDatabaseTypeDescriptor();
     static final PropertyDescriptor DATABASE_DIALECT_SERVICE = DatabaseAdapterDescriptor.getDatabaseDialectServiceDescriptor(DB_TYPE);
 
@@ -443,7 +466,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
             RollbackOnFailure.ROLLBACK_ON_FAILURE,
             TABLE_SCHEMA_CACHE_SIZE,
             MAX_BATCH_SIZE,
-            AUTO_COMMIT
+            AUTO_COMMIT,
+            SQL_PRE_QUERY,
+            SQL_POST_QUERY
     );
 
     private Cache<SchemaKey, TableSchema> schemaCache;
@@ -558,6 +583,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
 
+        List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(flowFile).getValue());
+        List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(flowFile).getValue());
+
         Connection connection = null;
         boolean originalAutoCommit = false;
         try {
@@ -573,7 +601,18 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 }
             }
 
+            Pair<String, SQLException> failure = executeConfigStatements(connection, preQueries);
+            if (failure != null) {
+                // In case of failure, assigning config query to "selectQuery" to follow current error handling
+                throw failure.getRight();
+            }
+
             putToDatabase(context, session, flowFile, connection);
+
+            failure = executeConfigStatements(connection, postQueries);
+            if (failure != null) {
+                throw failure.getRight();
+            }
 
             // If the connection's auto-commit setting is false, then manually commit the transaction
             if (!connection.getAutoCommit()) {
@@ -1627,6 +1666,42 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         return normalizedKeyColumnNames;
+    }
+
+    /*
+     * Extract list of queries from config property
+     */
+    private List<String> getQueries(final String value) {
+        if (value == null || value.isEmpty() || value.isBlank()) {
+            return null;
+        }
+        final List<String> queries = new ArrayList<>();
+        for (String query : value.split("(?<!\\\\);")) {
+            query = query.replaceAll("\\\\;", ";");
+            if (!query.isBlank()) {
+                queries.add(query.trim());
+            }
+        }
+        return queries;
+    }
+
+    /*
+     * Executes given queries using pre-defined connection.
+     * Returns null on success, or a query string if failed.
+     */
+    private Pair<String, SQLException> executeConfigStatements(final Connection con, final List<String> configQueries) {
+        if (configQueries == null || configQueries.isEmpty()) {
+            return null;
+        }
+
+        for (String confSQL : configQueries) {
+            try (final Statement st = con.createStatement()) {
+                st.execute(confSQL);
+            } catch (SQLException e) {
+                return Pair.of(confSQL, e);
+            }
+        }
+        return null;
     }
 
     private boolean isSupportsBatchUpdates(Connection connection) {
