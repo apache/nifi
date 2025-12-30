@@ -780,12 +780,12 @@ public class PutDatabaseRecord extends AbstractProcessor {
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String updateKeys = switch (configuredStatementType) {
             case UPDATE_TYPE, UPSERT_TYPE, SQL_TYPE, USE_ATTR_TYPE, USE_RECORD_PATH ->
-                    context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
+                context.getProperty(UPDATE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
             default -> null;
         };
         final String deleteKeys = switch (configuredStatementType) {
             case DELETE_TYPE, SQL_TYPE, USE_ATTR_TYPE, USE_RECORD_PATH ->
-                    context.getProperty(DELETE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
+                context.getProperty(DELETE_KEYS).evaluateAttributeExpressions(flowFile).getValue();
             default -> null;
         };
         final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();

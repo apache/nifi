@@ -48,9 +48,9 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.isDynamicRegion;
 
 @Tags({"aws", "rds", "iam", "jdbc", "password"})
 @CapabilityDescription("""
-Generates Amazon RDS IAM authentication tokens each time a JDBC connection is requested.
-The generated token replaces the database user password so that NiFi does not need to store long-lived credentials inside DBCP services.
-""")
+        Generates Amazon RDS IAM authentication tokens each time a JDBC connection is requested.
+        The generated token replaces the database user password so that NiFi does not need to store long-lived credentials inside DBCP services.
+        """)
 public class AwsRdsIamDatabasePasswordProvider extends AbstractControllerService implements DatabasePasswordProvider {
 
     static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()

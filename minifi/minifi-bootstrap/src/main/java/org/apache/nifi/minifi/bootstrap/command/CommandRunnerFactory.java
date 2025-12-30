@@ -78,10 +78,10 @@ public class CommandRunnerFactory {
     public CommandRunner getRunner(BootstrapCommand command) {
         CommandRunner commandRunner = switch (command) {
             case START, RUN ->
-                    new StartRunner(currentPortProvider, bootstrapFileProvider, periodicStatusReporterManager, miNiFiStdLogHandler, miNiFiParameters,
-                            bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider, configurationChangeListener);
+                new StartRunner(currentPortProvider, bootstrapFileProvider, periodicStatusReporterManager, miNiFiStdLogHandler, miNiFiParameters,
+                        bootstrapConfigFile, runMiNiFi, miNiFiExecCommandProvider, configurationChangeListener);
             case STOP ->
-                    new StopRunner(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, processUtils);
+                new StopRunner(bootstrapFileProvider, miNiFiParameters, miNiFiCommandSender, currentPortProvider, gracefulShutdownParameterProvider, processUtils);
             case STATUS -> new StatusRunner(miNiFiParameters, miNiFiStatusProvider);
             case RESTART -> new CompositeCommandRunner(getRestartServices());
             case DUMP -> new DumpRunner(miNiFiCommandSender, currentPortProvider);

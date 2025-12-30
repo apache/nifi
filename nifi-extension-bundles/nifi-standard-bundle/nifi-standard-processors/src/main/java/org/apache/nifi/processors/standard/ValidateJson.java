@@ -262,7 +262,7 @@ public class ValidateJson extends AbstractProcessor {
     public void onScheduled(final ProcessContext context) throws IOException {
         switch (getSchemaAccessStrategy(context)) {
             case SCHEMA_NAME_PROPERTY ->
-                    jsonSchemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(JsonSchemaRegistry.class);
+                jsonSchemaRegistry = context.getProperty(SCHEMA_REGISTRY).asControllerService(JsonSchemaRegistry.class);
             case SCHEMA_CONTENT_PROPERTY -> {
                 try (final InputStream inputStream = context.getProperty(SCHEMA_CONTENT).asResource().read()) {
                     final SchemaVersion schemaVersion = SchemaVersion.valueOf(context.getProperty(SCHEMA_VERSION).getValue());

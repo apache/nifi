@@ -40,8 +40,8 @@ import java.util.Set;
 @Tags({"test", "load", "duplicate"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Intended for load testing, this processor will create the configured number of copies of each incoming FlowFile. The original FlowFile as well as all "
-+ "generated copies are sent to the 'success' relationship. In addition, each FlowFile gets an attribute 'copy.index' set to the copy number, where the original FlowFile gets "
-+ "a value of zero, and all copies receive incremented integer values.")
+    + "generated copies are sent to the 'success' relationship. In addition, each FlowFile gets an attribute 'copy.index' set to the copy number, where the original FlowFile gets "
+    + "a value of zero, and all copies receive incremented integer values.")
 @WritesAttributes({
         @WritesAttribute(attribute = "copy.index", description = "A zero-based incrementing integer value based on which copy the FlowFile is.")
 })
@@ -50,22 +50,22 @@ public class DuplicateFlowFile extends AbstractProcessor {
     public static final String COPY_INDEX_ATTRIBUTE = "copy.index";
 
     static final PropertyDescriptor NUM_COPIES = new PropertyDescriptor.Builder()
-    .name("Number of Copies")
-    .description("Specifies how many copies of each incoming FlowFile will be made")
-    .required(true)
-    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-    .defaultValue("100")
-    .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-    .build();
+            .name("Number of Copies")
+            .description("Specifies how many copies of each incoming FlowFile will be made")
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .defaultValue("100")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
         NUM_COPIES
     );
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
-    .name("success")
-    .description("The original FlowFile and all copies will be sent to this relationship")
-    .build();
+            .name("success")
+            .description("The original FlowFile and all copies will be sent to this relationship")
+            .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
         REL_SUCCESS

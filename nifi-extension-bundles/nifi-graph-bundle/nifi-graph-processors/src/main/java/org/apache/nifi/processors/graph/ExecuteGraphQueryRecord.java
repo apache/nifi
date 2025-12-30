@@ -220,7 +220,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
                                     .getProperty(it.getName())
                                     .evaluateAttributeExpressions(finalInput)
                                     .getValue()))
-                );
+            );
 
         long delta;
         FlowFile failedRecords = session.create(input);

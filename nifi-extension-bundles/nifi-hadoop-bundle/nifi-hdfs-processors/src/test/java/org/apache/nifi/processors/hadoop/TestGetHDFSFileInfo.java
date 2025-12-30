@@ -512,8 +512,8 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.replication", "" + 3);
                 mff.assertAttributeEquals("hdfs.permissions", "rw-r--r--");
                 mff.assertAttributeNotExists("hdfs.status");
-              } else if (mff.getAttribute("hdfs.objectName").equals("regFile5")) {
-              matchCount++;
+            } else if (mff.getAttribute("hdfs.objectName").equals("regFile5")) {
+                matchCount++;
                 mff.assertAttributeEquals("hdfs.path", "/some/home/mydir");
                 mff.assertAttributeEquals("hdfs.type", "file");
                 mff.assertAttributeEquals("hdfs.owner", "owner");
@@ -526,7 +526,7 @@ public class TestGetHDFSFileInfo {
                 mff.assertAttributeEquals("hdfs.permissions", "rw-r--r--");
                 mff.assertAttributeNotExists("hdfs.status");
             } else {
-               runner.assertNotValid();
+                runner.assertNotValid();
             }
         }
         assertEquals(matchCount, 9);
@@ -630,7 +630,7 @@ public class TestGetHDFSFileInfo {
                 final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRecursiveGroupDirToAttributes-regDir2.json")));
                 mff.assertAttributeEquals("hdfs.full.tree", expected);
             } else {
-               runner.assertNotValid();
+                runner.assertNotValid();
             }
         }
         assertEquals(matchCount, 5);

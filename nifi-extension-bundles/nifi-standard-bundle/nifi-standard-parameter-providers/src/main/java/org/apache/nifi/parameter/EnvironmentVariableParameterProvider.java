@@ -156,7 +156,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
                             .provided(true)
                             .build());
                     }
-        });
+                });
         return Collections.singletonList(new ParameterGroup(parameterGroupName, parameters));
     }
 

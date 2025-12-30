@@ -212,10 +212,9 @@ public class SplitJson extends AbstractJsonPathProcessor {
             Object resultSegment = resultList.get(i);
             FlowFile split = processSession.create(original);
             split = processSession.write(split, (out) -> {
-                        String resultSegmentContent = getResultRepresentation(jsonPathConfiguration.jsonProvider(), resultSegment, nullDefaultValue);
-                        out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
-                    }
-            );
+                String resultSegmentContent = getResultRepresentation(jsonPathConfiguration.jsonProvider(), resultSegment, nullDefaultValue);
+                out.write(resultSegmentContent.getBytes(StandardCharsets.UTF_8));
+            });
             attributes.put(SEGMENT_ORIGINAL_FILENAME.key(), split.getAttribute(CoreAttributes.FILENAME.key()));
             attributes.put(FRAGMENT_INDEX.key(), Integer.toString(i));
             processSession.transfer(processSession.putAllAttributes(split, attributes), REL_SPLIT);

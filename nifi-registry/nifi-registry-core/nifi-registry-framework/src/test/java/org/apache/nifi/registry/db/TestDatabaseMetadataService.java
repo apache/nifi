@@ -266,7 +266,7 @@ public class TestDatabaseMetadataService extends DatabaseBaseTest {
 
     @Test
     public void testGetFlowByIdWithSnapshotCount() {
-       final FlowEntity flowEntity = metadataService.getFlowByIdWithSnapshotCounts("1");
+        final FlowEntity flowEntity = metadataService.getFlowByIdWithSnapshotCounts("1");
         assertNotNull(flowEntity);
         assertEquals(3, flowEntity.getSnapshotCount());
     }

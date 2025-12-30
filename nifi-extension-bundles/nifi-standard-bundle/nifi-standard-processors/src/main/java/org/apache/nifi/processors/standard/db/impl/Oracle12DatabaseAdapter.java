@@ -228,7 +228,7 @@ public class Oracle12DatabaseAdapter implements DatabaseAdapter {
             case Types.DOUBLE -> "DOUBLE PRECISION";
             case CHAR, LONGNVARCHAR, LONGVARCHAR, NCHAR, NVARCHAR, VARCHAR, CLOB, NCLOB, OTHER, SQLXML ->
                 // Must have a max length specified (the Oracle docs say 2000), and use VARCHAR2 instead of VARCHAR for consistent comparison semantics
-                    "VARCHAR2(2000)";
+                "VARCHAR2(2000)";
             default -> JDBCType.valueOf(sqlType).getName();
         };
     }

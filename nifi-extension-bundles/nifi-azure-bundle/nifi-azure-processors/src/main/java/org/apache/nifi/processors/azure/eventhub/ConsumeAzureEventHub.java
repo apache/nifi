@@ -920,11 +920,11 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor implem
         final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
         return switch (blobStorageAuthenticationStrategy) {
             case STORAGE_ACCOUNT_KEY ->
-                    String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY, storageAccountName, storageAccountKey, domainName);
+                String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY, storageAccountName, storageAccountKey, domainName);
             case SHARED_ACCESS_SIGNATURE ->
-                    String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN, storageAccountName, domainName, storageSasToken);
+                String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN, storageAccountName, domainName, storageSasToken);
             case OAUTH2 -> throw new IllegalArgumentException(String.format(
-                    "Blob Storage Authentication Strategy %s does not support connection string authentication", blobStorageAuthenticationStrategy));
+                "Blob Storage Authentication Strategy %s does not support connection string authentication", blobStorageAuthenticationStrategy));
         };
     }
 

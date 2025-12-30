@@ -215,7 +215,7 @@ public class ExceptionHandler<C> {
                                 case 0 -> "[]";
                                 case 1 -> flowFiles.getFirst();
                                 default ->
-                                        String.format("%d FlowFiles including %s", flowFiles.size(), flowFiles.get(0));
+                                    String.format("%d FlowFiles including %s", flowFiles.size(), flowFiles.get(0));
                             };
                         }
                         throw new ProcessException(String.format("Failed to process %s due to %s", inputs, e), e);

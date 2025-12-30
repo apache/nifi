@@ -33,9 +33,9 @@ import java.util.regex.Pattern;
 
 public class FlowAnalysisRuleEndpointMerger extends AbstractSingleEntityEndpoint<FlowAnalysisRuleEntity> implements EndpointResponseMerger {
     private static final Collection<Endpoint> SUPPORTED_ENDPOINTS = Arrays.asList(
-      new Endpoint("/nifi-api/controller/flow-analysis-rules", "POST"),
-      new Endpoint(Pattern.compile("/nifi-api/controller/flow-analysis-rules/[a-f0-9\\-]{36}"), "GET", "PUT", "DELETE"),
-      new Endpoint(Pattern.compile("/nifi-api/controller/flow-analysis-rules/[a-f0-9\\-]{36}/run-status"), "PUT")
+        new Endpoint("/nifi-api/controller/flow-analysis-rules", "POST"),
+        new Endpoint(Pattern.compile("/nifi-api/controller/flow-analysis-rules/[a-f0-9\\-]{36}"), "GET", "PUT", "DELETE"),
+        new Endpoint(Pattern.compile("/nifi-api/controller/flow-analysis-rules/[a-f0-9\\-]{36}/run-status"), "PUT")
     );
 
 

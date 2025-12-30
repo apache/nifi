@@ -79,17 +79,17 @@ public class GenerateAndCountCallbacks extends AbstractProcessor {
                 getLogger().info("Success callback called while Processor Running");
             }
         },
-        failureCause -> {
-            sleepUninterruptibly(Duration.ofSeconds(3));
+            failureCause -> {
+                sleepUninterruptibly(Duration.ofSeconds(3));
 
-            if (stopped) {
-                session.adjustCounter(STOPPED_AND_FAILURE, 1, true);
-                getLogger().error("Failure callback called after Processor Stopped; Failure cause: {}", failureCause.toString());
-            } else {
-                session.adjustCounter(RUNNING_AND_FAILURE, 1, true);
-                getLogger().warn("Failure callback called while Processor Running; Failure cause: {}", failureCause.toString());
-            }
-        });
+                if (stopped) {
+                    session.adjustCounter(STOPPED_AND_FAILURE, 1, true);
+                    getLogger().error("Failure callback called after Processor Stopped; Failure cause: {}", failureCause.toString());
+                } else {
+                    session.adjustCounter(RUNNING_AND_FAILURE, 1, true);
+                    getLogger().warn("Failure callback called while Processor Running; Failure cause: {}", failureCause.toString());
+                }
+            });
     }
 
     private void sleepUninterruptibly(final Duration duration) {

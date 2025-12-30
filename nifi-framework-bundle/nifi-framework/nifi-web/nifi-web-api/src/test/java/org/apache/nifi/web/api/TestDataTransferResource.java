@@ -183,7 +183,7 @@ public class TestDataTransferResource {
 
         final InputStream inputStream = null;
 
-       final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
+        final Response response = resource.createPortTransaction("input-ports", "port-id", req, context, uriInfo, inputStream);
 
         TransactionResultEntity resultEntity = (TransactionResultEntity) response.getEntity();
 

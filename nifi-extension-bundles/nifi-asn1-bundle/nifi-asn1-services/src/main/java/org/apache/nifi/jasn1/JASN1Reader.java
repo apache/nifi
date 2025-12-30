@@ -154,15 +154,15 @@ public class JASN1Reader extends AbstractConfigurableComponent implements Record
         .defaultValue(DEFAULT.getValue())
         .build();
 
-     static final PropertyDescriptor SCHEMA_PREPARATION_DIRECTORY = new PropertyDescriptor.Builder()
-        .name("Schema Preparation Directory")
-        .description("When the processor is configured to do additional preprocessing, new modified schema files will be created in this directory." +
-                " For more information about additional preprocessing please see description of the 'Do Additional Preprocessing' property or Additional Details - Additional Preprocessing.")
-        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-        .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
-        .dependsOn(SCHEMA_PREPARATION_STRATEGY, ADDITIONAL_PREPROCESSING)
-        .required(true)
-        .build();
+    static final PropertyDescriptor SCHEMA_PREPARATION_DIRECTORY = new PropertyDescriptor.Builder()
+            .name("Schema Preparation Directory")
+            .description("When the processor is configured to do additional preprocessing, new modified schema files will be created in this directory." +
+                    " For more information about additional preprocessing please see description of the 'Do Additional Preprocessing' property or Additional Details - Additional Preprocessing.")
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .addValidator(StandardValidators.createDirectoryExistsValidator(true, false))
+            .dependsOn(SCHEMA_PREPARATION_STRATEGY, ADDITIONAL_PREPROCESSING)
+            .required(true)
+            .build();
 
     private final List<PropertyDescriptor> propertyDescriptors = Arrays.asList(
         ROOT_MODEL_NAME,

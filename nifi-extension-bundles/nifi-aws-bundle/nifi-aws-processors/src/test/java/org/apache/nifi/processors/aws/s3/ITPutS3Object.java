@@ -441,7 +441,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(BUCKET_NAME, context.getProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions((FlowFile) null).toString());
         assertEquals(SAMPLE_FILE_RESOURCE_NAME, context.getProperty(PutS3Object.KEY).evaluateAttributeExpressions(Collections.emptyMap()).toString());
         assertEquals(TEST_PARTSIZE_LONG.longValue(),
-                context.getProperty(PutS3Object.MULTIPART_PART_SIZE).asDataSize(DataUnit.B).longValue());
+            context.getProperty(PutS3Object.MULTIPART_PART_SIZE).asDataSize(DataUnit.B).longValue());
     }
 
     @Test
@@ -699,7 +699,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(FILE1_NAME, ff1.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals(BUCKET_NAME, ff1.getAttribute(PutS3Object.S3_BUCKET_KEY));
         assertEquals(FILE1_NAME, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
-            assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
+        assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
         assertEquals(tempByteCount, ff1.getSize());
     }
 
@@ -720,9 +720,9 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
 
         final GetObjectTaggingRequest request = GetObjectTaggingRequest.builder()
-                .bucket(BUCKET_NAME)
-                .key("tag-test.txt")
-                .build();
+            .bucket(BUCKET_NAME)
+            .key("tag-test.txt")
+            .build();
         GetObjectTaggingResponse response = getClient().getObjectTagging(request);
         List<Tag> objectTags = response.tagSet();
 

@@ -201,7 +201,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
     static final AllowableValue DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY = new AllowableValue("Dynamic Property Arguments", "Dynamic Property Arguments",
             "Arguments to be supplied to the executable are taken from dynamic properties with pattern of 'command.argument.<commandIndex>'");
 
-   static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor WORKING_DIR = new PropertyDescriptor.Builder()
             .name("Working Directory")
             .description("The directory to use as the current working directory when executing the command")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
@@ -246,7 +246,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
                 return result;
             }).build();
 
-   static final PropertyDescriptor ARG_DELIMITER = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ARG_DELIMITER = new PropertyDescriptor.Builder()
             .name("Argument Delimiter")
             .description("Delimiter to use to separate arguments for a command [default: ;]. Must be a single character")
             .dependsOn(ARGUMENTS_STRATEGY, COMMAND_ARGUMENTS_PROPERTY_STRATEGY)

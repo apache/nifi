@@ -50,7 +50,7 @@ public class StandardAuthorizedClientConverter implements AuthorizedClientConver
     public StandardAuthorizedClientConverter(
             final PropertyEncryptor propertyEncryptor,
             final ClientRegistrationRepository clientRegistrationRepository
-            ) {
+    ) {
         this.propertyEncryptor = Objects.requireNonNull(propertyEncryptor, "Property Encryptor required");
         this.clientRegistrationRepository = Objects.requireNonNull(clientRegistrationRepository, "Client Registry Repository required");
     }

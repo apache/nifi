@@ -600,8 +600,8 @@ public class TestFileSystemRepository {
     @Test
     public void testSizeWithNoContent() {
         final ContentClaim claim =
-         new StandardContentClaim(new StandardResourceClaim(claimManager,
-                 "container1", "section 1", "1", false), 0L);
+            new StandardContentClaim(new StandardResourceClaim(claimManager,
+                    "container1", "section 1", "1", false), 0L);
 
         assertThrows(ContentNotFoundException.class, () -> repository.size(claim));
     }

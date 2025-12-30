@@ -2015,11 +2015,11 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
         recreateTable("""
-            CREATE TABLE ENUM_TEST (
-                id integer primary key,
-                suit varchar(8) not null
-            )
-        """);
+                CREATE TABLE ENUM_TEST (
+                    id integer primary key,
+                    suit varchar(8) not null
+                )
+                """);
 
         try (
                 Connection conn = dbcp.getConnection();
@@ -2027,12 +2027,12 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         ) {
             // Add constraint for Apache Derby
             stmt.execute("""
-                ALTER TABLE ENUM_TEST
-                ADD CONSTRAINT suit
-                CHECK (
-                    suit IN ('clubs', 'diamonds', 'hearts', 'spades')
-                )
-            """
+                    ALTER TABLE ENUM_TEST
+                    ADD CONSTRAINT suit
+                    CHECK (
+                        suit IN ('clubs', 'diamonds', 'hearts', 'spades')
+                    )
+                    """
             );
         }
 

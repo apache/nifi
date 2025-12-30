@@ -190,7 +190,7 @@ public class StandardRuleViolationsManager implements RuleViolationsManager {
                 violationMap -> violationMap
                     .entrySet()
                     .removeIf(keyAndViolation -> keyAndViolation.getValue().getRuleId().equals(ruleId))
-            );
+        );
     }
 
     @Override

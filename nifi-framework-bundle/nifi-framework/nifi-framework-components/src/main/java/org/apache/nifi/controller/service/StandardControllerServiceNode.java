@@ -580,7 +580,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
             case ENABLING ->
                 // If enabling and currently not valid, then we must trigger validation to occur. This allows the #enable method
                 // to continue running in the background and complete enabling when the service becomes valid.
-                    getValidationStatus() != ValidationStatus.VALID;
+                getValidationStatus() != ValidationStatus.VALID;
             default -> false;
         };
     }

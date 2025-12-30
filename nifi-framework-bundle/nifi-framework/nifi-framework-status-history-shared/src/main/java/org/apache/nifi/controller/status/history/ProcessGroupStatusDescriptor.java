@@ -43,7 +43,7 @@ public enum ProcessGroupStatusDescriptor {
         "Bytes Transferred (5 mins)",
         "The total number of bytes read from or written to Content Repository by Processors in this Process Group in the past 5 minutes",
         Formatter.DATA_SIZE,
-        s -> s.getBytesRead() + s.getBytesWritten()),
+            s -> s.getBytesRead() + s.getBytesWritten()),
 
     INPUT_BYTES("inputBytes",
         "Bytes In (5 mins)",
@@ -56,7 +56,7 @@ public enum ProcessGroupStatusDescriptor {
         "FlowFiles In (5 mins)",
         "The number of FlowFiles that have entered this Process Group via its Input Ports in the past 5 minutes",
         Formatter.COUNT,
-        s -> s.getInputCount().longValue()),
+            s -> s.getInputCount().longValue()),
 
     OUTPUT_BYTES(
         "outputBytes",
@@ -70,7 +70,7 @@ public enum ProcessGroupStatusDescriptor {
         "FlowFiles Out (5 mins)",
         "The number of FlowFiles that have exited this Process Group via its Output Ports in the past 5 minutes",
         Formatter.COUNT,
-        s -> s.getOutputCount().longValue()),
+            s -> s.getOutputCount().longValue()),
 
     QUEUED_BYTES(
         "queuedBytes",
@@ -84,7 +84,7 @@ public enum ProcessGroupStatusDescriptor {
         "Queued Count",
         "The number of FlowFiles queued in all Connections of this Process Group",
         Formatter.COUNT,
-        s -> s.getQueuedCount().longValue()),
+            s -> s.getQueuedCount().longValue()),
 
     TASK_MILLIS(
         "taskMillis",

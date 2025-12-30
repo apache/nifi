@@ -199,7 +199,7 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-       return putHdfsRecordProperties;
+        return putHdfsRecordProperties;
     }
 
     @Override

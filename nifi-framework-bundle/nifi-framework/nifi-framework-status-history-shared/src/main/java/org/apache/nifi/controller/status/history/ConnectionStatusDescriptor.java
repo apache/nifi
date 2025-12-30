@@ -33,7 +33,7 @@ public enum ConnectionStatusDescriptor {
         "FlowFiles In (5 mins)",
         "The number of FlowFiles that were transferred to this Connection in the past 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getInputCount())),
+            s -> Long.valueOf(s.getInputCount())),
 
     OUTPUT_BYTES(
         "outputBytes",
@@ -47,7 +47,7 @@ public enum ConnectionStatusDescriptor {
         "FlowFiles Out (5 mins)",
         "The number of FlowFiles that were pulled from this Connection in the past 5 minutes",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getOutputCount())),
+            s -> Long.valueOf(s.getOutputCount())),
 
     QUEUED_BYTES(
         "queuedBytes",
@@ -61,7 +61,7 @@ public enum ConnectionStatusDescriptor {
         "Queued Count",
         "The number of FlowFiles queued in this Connection",
         Formatter.COUNT,
-        s -> Long.valueOf(s.getQueuedCount())),
+            s -> Long.valueOf(s.getQueuedCount())),
 
     TOTAL_QUEUED_DURATION(
         "totalQueuedDuration",
@@ -82,7 +82,7 @@ public enum ConnectionStatusDescriptor {
         "Average Queued Duration (hr:min:sec)",
         "The average amount of time that each FlowFile currently in the Connection has been in the queue",
         Formatter.DURATION,
-        s -> s.getQueuedCount() == 0 ? 0L : s.getTotalQueuedDuration() / s.getQueuedCount());
+            s -> s.getQueuedCount() == 0 ? 0L : s.getTotalQueuedDuration() / s.getQueuedCount());
 
 
     private MetricDescriptor<ConnectionStatus> descriptor;

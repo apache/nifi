@@ -486,10 +486,9 @@ public class TestQuery {
         phoneBookAttributes.stream()
                 .filter(currentAttribute -> !currentAttribute.equals(updatedAttribute))
                 .forEach(currentAttribute -> {
-                            String expected = Query.evaluateExpressions(currentAttribute, originalAttributes, null, null, ParameterLookup.EMPTY);
-                            verifyEquals(currentAttribute, attributes, expected);
-                        }
-                );
+                    String expected = Query.evaluateExpressions(currentAttribute, originalAttributes, null, null, ParameterLookup.EMPTY);
+                    verifyEquals(currentAttribute, attributes, expected);
+                });
         if (!ADDRESS_BOOK_JSON_PATH_EMPTY.equals(updatedAttribute) ) {
             verifyEquals(updatedAttribute, attributes, updatedValue);
         }
@@ -525,7 +524,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathDeleteMissingPath() throws IOException {
-       verifyJsonPathExpressions(
+        verifyJsonPathExpressions(
             ADDRESS_BOOK_JSON_PATH_EMPTY,
             "",
             "${json:jsonPathDelete('$.missing-path')}",
@@ -603,7 +602,7 @@ public class TestQuery {
                 "",
                 "${json:jsonPathAdd('$.missing-path', 'Jimmy')}",
                 "");
-       verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
+        verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
     }
 
     @Test
@@ -2333,7 +2332,7 @@ public class TestQuery {
 
         attributes.put("string", "special ♣");
         verifyEquals("${string:escapeHtml4()}", attributes, "special &clubs;");
-      }
+    }
 
     @Test
     public void testUnescapeFunctions() {

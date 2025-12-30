@@ -80,8 +80,7 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
 
         if (secureUrl && (StringUtils.isBlank(truststore)
                 || StringUtils.isBlank(truststoreType)
-                || StringUtils.isBlank(truststorePasswd))
-                ) {
+                || StringUtils.isBlank(truststorePasswd))) {
             throw new MissingOptionException(CommandOption.TRUSTSTORE.getLongName() + ", " + CommandOption.TRUSTSTORE_TYPE.getLongName()
                     + ", and " + CommandOption.TRUSTSTORE_PASSWORD.getLongName() + " are required when using an https url");
         }

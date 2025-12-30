@@ -218,26 +218,26 @@ public class HL7Query {
 
         return switch (tree.getType()) {
             case EQUALS ->
-                    new EqualsEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+                new EqualsEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
             case NOT_EQUALS ->
-                    new NotEqualsEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+                new NotEqualsEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
             case GT ->
-                    new GreaterThanEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+                new GreaterThanEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
             case LT ->
-                    new LessThanEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+                new LessThanEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
             case GE ->
-                    new GreaterThanOrEqualEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+                new GreaterThanOrEqualEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
             case LE ->
-                    new LessThanOrEqualEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
+                new LessThanOrEqualEvaluator(buildReferenceEvaluator(tree.getChild(0)), buildReferenceEvaluator(tree.getChild(1)));
             case NOT -> new NotEvaluator(buildBooleanEvaluator(tree.getChild(0)));
             case AND ->
-                    new AndEvaluator(buildBooleanEvaluator(tree.getChild(0)), buildBooleanEvaluator(tree.getChild(1)));
+                new AndEvaluator(buildBooleanEvaluator(tree.getChild(0)), buildBooleanEvaluator(tree.getChild(1)));
             case OR ->
-                    new OrEvaluator(buildBooleanEvaluator(tree.getChild(0)), buildBooleanEvaluator(tree.getChild(1)));
+                new OrEvaluator(buildBooleanEvaluator(tree.getChild(0)), buildBooleanEvaluator(tree.getChild(1)));
             case IS_NULL -> new IsNullEvaluator(buildReferenceEvaluator(tree.getChild(0)));
             case NOT_NULL -> new NotNullEvaluator(buildReferenceEvaluator(tree.getChild(0)));
             default ->
-                    throw new HL7QueryParsingException("Cannot build boolean evaluator for '" + tree.getText() + "'");
+                throw new HL7QueryParsingException("Cannot build boolean evaluator for '" + tree.getText() + "'");
         };
     }
 

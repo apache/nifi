@@ -88,7 +88,7 @@ public class DefaultSyncResourceStrategyTest {
         final Path tempDir = Paths.get(System.getProperty("java.io.tmpdir"));
         try (DirectoryStream<Path> directoryStream = newDirectoryStream(tempDir, "[0-9a-f]*-[0-9a-f]*-[0-9a-f]*-[0-9a-f]*[0-9]*.tmp")) {
             for (Path tmpFile : directoryStream) {
-               Files.deleteIfExists(tmpFile);
+                Files.deleteIfExists(tmpFile);
             }
         } catch (Exception ignored) {
         }

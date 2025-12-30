@@ -248,8 +248,8 @@ public class JoltTransformRecord extends AbstractJoltTransform {
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
-       config.renameProperty("jolt-record-record-reader", RECORD_READER.getName());
-       config.renameProperty("jolt-record-record-writer", RECORD_WRITER.getName());
+        config.renameProperty("jolt-record-record-reader", RECORD_READER.getName());
+        config.renameProperty("jolt-record-record-writer", RECORD_WRITER.getName());
     }
 
     private List<Record> transform(final Record record, final JoltTransform transform) {

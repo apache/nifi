@@ -77,8 +77,8 @@ public class BucketResource extends ApplicationResource {
             extensions = {
                     @Extension(
                             name = "access-policy", properties = {
-                            @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/buckets")}
+                                    @ExtensionProperty(name = "action", value = "write"),
+                                    @ExtensionProperty(name = "resource", value = "/buckets")}
                     )
             }
     )
@@ -133,8 +133,8 @@ public class BucketResource extends ApplicationResource {
             extensions = {
                     @Extension(
                             name = "access-policy", properties = {
-                            @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                                    @ExtensionProperty(name = "action", value = "read"),
+                                    @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
                     )
             }
     )
@@ -164,8 +164,8 @@ public class BucketResource extends ApplicationResource {
             extensions = {
                     @Extension(
                             name = "access-policy", properties = {
-                            @ExtensionProperty(name = "action", value = "write"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                                    @ExtensionProperty(name = "action", value = "write"),
+                                    @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
                     )
             }
     )
@@ -210,8 +210,8 @@ public class BucketResource extends ApplicationResource {
             extensions = {
                     @Extension(
                             name = "access-policy", properties = {
-                            @ExtensionProperty(name = "action", value = "delete"),
-                            @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
+                                    @ExtensionProperty(name = "action", value = "delete"),
+                                    @ExtensionProperty(name = "resource", value = "/buckets/{bucketId}")}
                     )
             }
     )

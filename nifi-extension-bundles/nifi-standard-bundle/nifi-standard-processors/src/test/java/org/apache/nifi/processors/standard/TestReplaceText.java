@@ -1473,8 +1473,8 @@ public class TestReplaceText {
             + "2009,8-8-2008,10aug2008";
         final String expectedCsvOut =
             "2006,10-01-2004,2004/05/10\n"
-          + "2007,15-05-2006,2005/06/10\r\n"
-          + "2009,8-8-2008,2008/08/10";
+            + "2007,15-05-2006,2005/06/10\r\n"
+            + "2009,8-8-2008,2008/08/10";
 
         runner.enqueue(csvIn.getBytes());
 
@@ -1497,7 +1497,7 @@ public class TestReplaceText {
             + "3,2,1,https://321.jpg,other.email@mydomain.com";
         final String expectedCsvOut =
             "1,2,3,https://1.png,email@mydomain.com\n"
-          + "3,2,1,https://3.png,other.email@mydomain.com";
+            + "3,2,1,https://3.png,other.email@mydomain.com";
 
         runner.enqueue(csvIn.getBytes());
 

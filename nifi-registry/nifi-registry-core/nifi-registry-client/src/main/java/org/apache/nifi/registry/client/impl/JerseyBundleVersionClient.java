@@ -65,7 +65,7 @@ public class JerseyBundleVersionClient extends AbstractJerseyClient implements B
         return create(bucketId, bundleType, bundleContentStream, null);
     }
 
-        @Override
+    @Override
     public BundleVersion create(final String bucketId, final BundleType bundleType, final InputStream bundleContentStream, final String sha256)
             throws IOException, NiFiRegistryException {
 
@@ -212,7 +212,7 @@ public class JerseyBundleVersionClient extends AbstractJerseyClient implements B
                     .resolveTemplate("version", version);
 
             return getRequestBuilder(target).get(BundleVersion.class);
-         });
+        });
     }
 
     @Override

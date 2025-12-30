@@ -81,7 +81,7 @@ public abstract class PartitionedEventStore implements EventStore {
 
         for (final EventStorePartition partition : getPartitions()) {
             try {
-               partition.close();
+                partition.close();
             } catch (final IOException ioe) {
                 if (thrown == null) {
                     thrown = ioe;

@@ -160,7 +160,7 @@ public class ParseSyslog5424 extends AbstractProcessor {
         boolean includeBody = true;
 
         if (context.getProperty(INCLUDE_BODY_IN_ATTRIBUTES).isSet()) {
-           includeBody = context.getProperty(INCLUDE_BODY_IN_ATTRIBUTES).asBoolean();
+            includeBody = context.getProperty(INCLUDE_BODY_IN_ATTRIBUTES).asBoolean();
         }
 
         final byte[] buffer = new byte[(int) flowFile.getSize()];

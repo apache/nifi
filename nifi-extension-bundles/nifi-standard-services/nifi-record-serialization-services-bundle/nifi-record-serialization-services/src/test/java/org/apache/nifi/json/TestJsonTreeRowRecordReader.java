@@ -158,9 +158,9 @@ class TestJsonTreeRowRecordReader {
             for (int i = 0; i < iterations; i++) {
                 try (final InputStream in = new ByteArrayInputStream(data);
                     final JsonTreeRowRecordReader reader = createJsonTreeRowRecordReader(in, schema)) {
-                        while (reader.nextRecord() != null) {
-                            recordCount++;
-                        }
+                    while (reader.nextRecord() != null) {
+                        recordCount++;
+                    }
                 }
             }
             final long nanos = System.nanoTime() - start;

@@ -138,13 +138,13 @@ public class NiFiRegistryFlowMapper {
     }
 
     /**
-     * Map the given process group to a versioned process group without any use of an actual flow registry even if the
-     * group is currently versioned in a registry.
-     *
-     * @param group             the process group to map
-     * @param serviceProvider   the controller service provider to use for mapping
-     * @return a complete versioned process group without any registry related details
-     */
+    * Map the given process group to a versioned process group without any use of an actual flow registry even if the
+    * group is currently versioned in a registry.
+    *
+    * @param group             the process group to map
+    * @param serviceProvider   the controller service provider to use for mapping
+    * @return a complete versioned process group without any registry related details
+    */
     public InstantiatedVersionedProcessGroup mapNonVersionedProcessGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider) {
         versionedComponentIds.clear();
 
@@ -153,17 +153,17 @@ public class NiFiRegistryFlowMapper {
     }
 
     /**
-     * Map the given process group to a versioned process group using the provided registry client.
-     *
-     * @param group             the process group to map
-     * @param serviceProvider   the controller service provider to use for mapping
-     * @param flowManager    the registry client to use when retrieving versioning details
-     * @param mapDescendantVersionedFlows  true in order to include descendant flows in the mapped result
-     * @return a complete versioned process group with applicable registry related details
-     */
+    * Map the given process group to a versioned process group using the provided registry client.
+    *
+    * @param group             the process group to map
+    * @param serviceProvider   the controller service provider to use for mapping
+    * @param flowManager    the registry client to use when retrieving versioning details
+    * @param mapDescendantVersionedFlows  true in order to include descendant flows in the mapped result
+    * @return a complete versioned process group with applicable registry related details
+    */
     public InstantiatedVersionedProcessGroup mapProcessGroup(final ProcessGroup group, final ControllerServiceProvider serviceProvider,
-                                                             final FlowManager flowManager,
-                                                             final boolean mapDescendantVersionedFlows) {
+                                                            final FlowManager flowManager,
+                                                            final boolean mapDescendantVersionedFlows) {
         versionedComponentIds.clear();
 
         // apply registry versioning according to the lambda below
@@ -318,12 +318,12 @@ public class NiFiRegistryFlowMapper {
     }
 
     /**
-     * Generate a versioned component identifier based on the given component identifier. The result for a given
-     * component identifier is deterministic.
-     *
-     * @param componentId the component identifier to generate a versioned component identifier for
-     * @return a deterministic versioned component identifier
-     */
+    * Generate a versioned component identifier based on the given component identifier. The result for a given
+    * component identifier is deterministic.
+    *
+    * @param componentId the component identifier to generate a versioned component identifier for
+    * @return a deterministic versioned component identifier
+    */
     public static String generateVersionedComponentId(final String componentId) {
         return UUID.nameUUIDFromBytes(componentId.getBytes(StandardCharsets.UTF_8)).toString();
     }
@@ -894,7 +894,7 @@ public class NiFiRegistryFlowMapper {
     }
 
     private void mapParameterContext(final ParameterContext parameterContext, final Map<String, VersionedParameterContext> parameterContexts,
-                                     final Map<String, ParameterProviderReference> parameterProviderReferences) {
+                                    final Map<String, ParameterProviderReference> parameterProviderReferences) {
         if (parameterContexts.containsKey(parameterContext.getName())) {
             return;
         }
@@ -1017,8 +1017,8 @@ public class NiFiRegistryFlowMapper {
     }
 
     private org.apache.nifi.flow.ScheduledState mapScheduledState(final ScheduledState scheduledState) {
-         return scheduledState == ScheduledState.DISABLED
-                 ? org.apache.nifi.flow.ScheduledState.DISABLED
-                 : org.apache.nifi.flow.ScheduledState.ENABLED;
+        return scheduledState == ScheduledState.DISABLED
+                ? org.apache.nifi.flow.ScheduledState.DISABLED
+                : org.apache.nifi.flow.ScheduledState.ENABLED;
     }
 }

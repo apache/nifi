@@ -283,7 +283,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     private Map<String, Object> prepareAMQPHeaders(final FlowFile flowFile, final InputHeaderSource selectedHeaderSource, final Character headerSeparator, final Pattern pattern) {
         final Map<String, Object> headers = new HashMap<>();
         if (InputHeaderSource.FLOWFILE_ATTRIBUTES.equals(selectedHeaderSource)) {
-                headers.putAll(getMatchedAttributes(flowFile.getAttributes(), pattern));
+            headers.putAll(getMatchedAttributes(flowFile.getAttributes(), pattern));
         } else if (InputHeaderSource.AMQP_HEADERS_ATTRIBUTE.equals(selectedHeaderSource)) {
             readAmqpAttribute(flowFile, AMQP_HEADERS_ATTRIBUTE, value -> headers.putAll(validateAMQPHeaderProperty(value, headerSeparator)));
         }

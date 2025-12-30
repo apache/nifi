@@ -28,14 +28,11 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.exporter.common.TextFormat;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
-import org.apache.nifi.connectable.Port;
-import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessingPerformanceStatus;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
 import org.apache.nifi.prometheusutil.BulletinMetricsRegistry;
 import org.apache.nifi.prometheusutil.ClusterMetricsRegistry;
@@ -50,7 +47,6 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 import org.apache.nifi.web.api.dto.DifferenceDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
-import org.apache.nifi.web.api.entity.ClearBulletinsForGroupRequestEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.request.FlowMetricsProducer;
 import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
@@ -71,7 +67,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -95,7 +90,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -519,87 +513,6 @@ public class TestFlowResource {
         assertEquals(HttpURLConnection.HTTP_OK, response.getStatus());
 
         verify(serviceFacade, never()).authorizeAccess(any());
-    }
-
-    @Test
-    public void testClearBulletinsIncludesControllerServices() {
-        // This test verifies that when clearing bulletins for a process group,
-        // controller services are included in the components to clear
-
-        final ClearBulletinsForGroupRequestEntity entity = new ClearBulletinsForGroupRequestEntity();
-        entity.setId(PROCESS_GROUP_ID);
-        entity.setFromTimestamp(Instant.now());
-        // components is null, so clearBulletins will gather all authorized components
-
-        when(niFiProperties.isNode()).thenReturn(false);
-        resource.httpServletRequest = new MockHttpServletRequest();
-
-        // Capture the function passed to filterComponents (called 3 times)
-        final ArgumentCaptor<Function<ProcessGroup, Set<String>>> filterCaptor = ArgumentCaptor.captor();
-        when(serviceFacade.filterComponents(eq(PROCESS_GROUP_ID), filterCaptor.capture())).thenReturn(Set.of());
-
-        final Response response = resource.clearBulletins(PROCESS_GROUP_ID, entity);
-
-        assertNotNull(response);
-
-        // Get the third captured function (the one that gathers writable component IDs)
-        // First call: RPG IDs, Second call: Controller Service IDs, Third call: writable component IDs
-        final List<Function<ProcessGroup, Set<String>>> capturedFunctions = filterCaptor.getAllValues();
-        assertEquals(3, capturedFunctions.size(), "filterComponents should be called 3 times");
-
-        final Function<ProcessGroup, Set<String>> writableComponentsFunction = capturedFunctions.get(2);
-
-        // Create a mock process group with processors, ports, and controller services
-        final ProcessGroup processGroup = mock(ProcessGroup.class);
-
-        // Mock a processor with write permissions
-        final ProcessorNode processor = mock(ProcessorNode.class);
-        when(processor.getIdentifier()).thenReturn("processor-1");
-        when(processor.isAuthorized(any(), any(), any())).thenReturn(true);
-
-        // Mock an input port with write permissions
-        final Port inputPort = mock(Port.class);
-        when(inputPort.getIdentifier()).thenReturn("input-port-1");
-        when(inputPort.isAuthorized(any(), any(), any())).thenReturn(true);
-
-        // Mock an output port with write permissions
-        final Port outputPort = mock(Port.class);
-        when(outputPort.getIdentifier()).thenReturn("output-port-1");
-        when(outputPort.isAuthorized(any(), any(), any())).thenReturn(true);
-
-        // Mock a remote process group
-        final RemoteProcessGroup remoteProcessGroup = mock(RemoteProcessGroup.class);
-        when(remoteProcessGroup.getIdentifier()).thenReturn("rpg-1");
-        when(remoteProcessGroup.isAuthorized(any(), any(), any())).thenReturn(true);
-
-        // Mock a controller service with write permissions
-        final ControllerServiceNode controllerService = mock(ControllerServiceNode.class);
-        when(controllerService.getIdentifier()).thenReturn("controller-service-1");
-        when(controllerService.isAuthorized(any(), any(), any())).thenReturn(true);
-
-        // Mock another controller service without write permissions (should be excluded)
-        final ControllerServiceNode unauthorizedControllerService = mock(ControllerServiceNode.class);
-        lenient().when(unauthorizedControllerService.getIdentifier()).thenReturn("controller-service-2");
-        when(unauthorizedControllerService.isAuthorized(any(), any(), any())).thenReturn(false);
-
-        // Set up the process group to return all components
-        when(processGroup.findAllProcessors()).thenReturn(List.of(processor));
-        when(processGroup.findAllInputPorts()).thenReturn(List.of(inputPort));
-        when(processGroup.findAllOutputPorts()).thenReturn(List.of(outputPort));
-        when(processGroup.findAllRemoteProcessGroups()).thenReturn(List.of(remoteProcessGroup));
-        when(processGroup.findAllControllerServices()).thenReturn(Set.of(controllerService, unauthorizedControllerService));
-
-        // Apply the captured function to our mock process group
-        final Set<String> componentIds = writableComponentsFunction.apply(processGroup);
-
-        // Verify that all authorized components are included
-        assertTrue(componentIds.contains("processor-1"), "Processor should be included");
-        assertTrue(componentIds.contains("input-port-1"), "Input port should be included");
-        assertTrue(componentIds.contains("output-port-1"), "Output port should be included");
-        assertTrue(componentIds.contains("rpg-1"), "Remote process group should be included");
-        assertTrue(componentIds.contains("controller-service-1"), "Authorized controller service should be included");
-        assertFalse(componentIds.contains("controller-service-2"), "Unauthorized controller service should be excluded");
-        assertEquals(5, componentIds.size(), "Should have exactly 5 authorized components");
     }
 
     private void setUpGetVersionDifference() {

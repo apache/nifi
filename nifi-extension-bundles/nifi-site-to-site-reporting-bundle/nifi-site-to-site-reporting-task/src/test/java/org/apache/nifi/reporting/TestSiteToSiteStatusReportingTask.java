@@ -187,7 +187,7 @@ public class TestSiteToSiteStatusReportingTask {
         JsonValue destination = object.get("destinationName");
         assertEquals(destination, JsonValue.NULL);
 
-   }
+    }
 
     @Test
     public void testComponentNameFilter() throws IOException, InitializationException {
@@ -536,14 +536,14 @@ public class TestSiteToSiteStatusReportingTask {
                 final Transaction transaction = Mockito.mock(Transaction.class);
 
                 assertDoesNotThrow(() -> {
-                            Mockito.doAnswer((Answer<Object>) invocation -> {
-                                final byte[] data = invocation.getArgument(0, byte[].class);
-                                dataSent.add(data);
-                                return null;
-                            }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                    Mockito.doAnswer((Answer<Object>) invocation -> {
+                        final byte[] data = invocation.getArgument(0, byte[].class);
+                        dataSent.add(data);
+                        return null;
+                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                            when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-                        });
+                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                });
                 siteToSiteClient = client;
             }
         }

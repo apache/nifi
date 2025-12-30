@@ -84,7 +84,7 @@ public class PartialFunctions {
     public static <FCT> PartialFunctions.TransferFlowFiles<FCT> transferRoutedFlowFiles() {
         return (context, session, functionContext, result)
                 -> result.getRoutedFlowFiles().forEach(((relationship, routedFlowFiles)
-                -> session.transfer(routedFlowFiles, relationship)));
+                    -> session.transfer(routedFlowFiles, relationship)));
     }
 
     @FunctionalInterface

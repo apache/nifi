@@ -473,13 +473,13 @@ public abstract class TestWriteAvroResult {
                         fieldName + " not equal");
             } else if (recordValue instanceof Map) {
                 assertInstanceOf(Map.class, avroValue, fieldName + " should have been instanceof Map");
-               final Map<?, ?> avroMap = (Map<?, ?>) avroValue;
-               final Map<?, ?> recordMap = (Map<?, ?>) recordValue;
-               assertEquals(recordMap.size(), avroMap.size(),
-                       fieldName + " not equal");
-               for (Object s : avroMap.keySet()) {
-                  assertMatch((Record) recordMap.get(s.toString()), (GenericRecord) avroMap.get(s));
-               }
+                final Map<?, ?> avroMap = (Map<?, ?>) avroValue;
+                final Map<?, ?> recordMap = (Map<?, ?>) recordValue;
+                assertEquals(recordMap.size(), avroMap.size(),
+                        fieldName + " not equal");
+                for (Object s : avroMap.keySet()) {
+                    assertMatch((Record) recordMap.get(s.toString()), (GenericRecord) avroMap.get(s));
+                }
             } else if (recordValue instanceof Record) {
                 assertMatch((Record) recordValue, (GenericRecord) avroValue);
             } else {

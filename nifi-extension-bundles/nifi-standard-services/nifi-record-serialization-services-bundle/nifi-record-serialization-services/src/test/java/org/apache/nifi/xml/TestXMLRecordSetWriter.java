@@ -151,7 +151,7 @@ public class TestXMLRecordSetWriter {
                 "<name1>val1</name1><name2></name2></array_record></ROOT_NODE>";
         String actual = new String(runner.getContentAsByteArray(runner.getFlowFilesForRelationship(TestXMLRecordSetWriterProcessor.SUCCESS).get(0)));
         assertThat(expected, CompareMatcher.isSimilarTo(actual).ignoreWhitespace().withNodeMatcher(new DefaultNodeMatcher(ElementSelectors.byNameAndText)));
-   }
+    }
 
     @Test
     public void testNullSuppression() throws IOException, InitializationException {

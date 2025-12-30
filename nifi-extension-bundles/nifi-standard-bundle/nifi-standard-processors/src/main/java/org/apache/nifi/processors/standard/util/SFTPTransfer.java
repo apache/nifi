@@ -108,7 +108,7 @@ public class SFTPTransfer implements FileTransfer {
 
     private static String buildFullPath(String path, String filename) {
         if (path == null) {
-             return filename;
+            return filename;
         }
 
         if (path.endsWith("/")) {

@@ -238,7 +238,7 @@ public class GenerateFlowFile extends AbstractProcessor {
         }
 
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
-        FlowFile flowFile = session.create();
+            FlowFile flowFile = session.create();
             final byte[] writtenData = uniqueData ? generateData(context) : data;
             if (writtenData.length > 0) {
                 flowFile = session.write(flowFile, out -> out.write(writtenData));

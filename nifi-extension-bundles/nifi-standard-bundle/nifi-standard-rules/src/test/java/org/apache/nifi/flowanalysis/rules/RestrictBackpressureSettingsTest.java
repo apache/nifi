@@ -75,7 +75,7 @@ public class RestrictBackpressureSettingsTest extends AbstractFlowAnalaysisRuleT
         testAnalyzeProcessGroup(
                 "src/test/resources/RestrictBackpressureSettings/RestrictBackpressureSettings_noViolation.json",
                 List.of()
-            );
+        );
     }
 
     @Test
@@ -89,8 +89,8 @@ public class RestrictBackpressureSettingsTest extends AbstractFlowAnalaysisRuleT
                         "e26fd0d5-0192-1000-ee3d-f90141590475", // connection from funnel to funnel
                         "e27073f8-0192-1000-cf43-9c41e69eadd2", // connection from output port to funnel
                         "e270eaa4-0192-1000-0622-8f9af5319328" // connection from funnel to input port
-                    )
-            );
+                )
+        );
     }
 
 }
