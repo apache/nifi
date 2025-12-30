@@ -262,15 +262,23 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
         }
 
         try {
-            registeredDriver = DriverManager.getDriver(url);
-            return registeredDriver;
+            final Driver driver = DriverManager.getDriver(url);
+            // Ensure drivers that register themselves during class loading can be set as the registeredDriver.
+            // This ensures drivers that register themselves can be deregistered when the component is removed.
+            if (driver != registeredDriver) {
+                DriverManager.deregisterDriver(registeredDriver);
+
+                registeredDriver = driver;
+                if (!registeredDriver.getClass().getClassLoader().equals(getClass().getClassLoader())) {
+                    getLogger().warn("Registered Driver [{}] created in different ClassLoader: Driver will become unavailable when deregistered", registeredDriver);
+                }
+            }
+            return driver;
         } catch (final SQLException e) {
             // In case the driver is not registered by the implementation, we explicitly try to register it.
             // deregister existing driver
             try {
-                if (registeredDriver != null) {
-                    DriverManager.deregisterDriver(registeredDriver);
-                }
+                DriverManager.deregisterDriver(registeredDriver);
                 registeredDriver = (Driver) clazz.getDeclaredConstructor().newInstance();
                 DriverManager.registerDriver(registeredDriver);
                 return DriverManager.getDriver(url);
@@ -288,7 +296,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
             // We need to deregister the driver to allow the InstanceClassLoader to be garbage collected.
             DriverManager.deregisterDriver(registeredDriver);
         } catch (SQLException e) {
-            getLogger().warn("Driver could not be deregistered. This may cause a memory leak.", e);
+            getLogger().warn("Potential memory leak: Driver could not be deregistered [{}]", registeredDriver, e);
         }
     }
 }
