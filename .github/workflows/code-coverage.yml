@@ -147,5 +147,5 @@ jobs:
         if: github.repository_owner == 'apache' && steps.find-reports.outputs.reports != ''
         with:
           files: ${{ steps.find-reports.outputs.reports }}
-          flags: integrationtests,${{ matrix.name }}
+          flags: integration-tests-${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }}
