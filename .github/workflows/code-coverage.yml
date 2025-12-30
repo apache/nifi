@@ -29,15 +29,27 @@ env:
     -Xmx6g
     -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN
   DEVELOCITY_ACCESS_KEY: ${{ secrets.NIFI_DEVELOCITY_ACCESS_KEY }}
+  # Docker image versions for pre-pulling - keep in sync with test source files
+  # See: nifi-extension-bundles/nifi-aws-bundle/nifi-aws-processors/src/test/java/org/apache/nifi/processors/aws/util/LocalStackContainers.java
+  LOCALSTACK_IMAGE: localstack/localstack:4.12.0
+  # See: nifi-extension-bundles/nifi-kafka-bundle/nifi-kafka-3-integration/src/test/java/org/apache/nifi/kafka/processors/AbstractKafkaBaseIT.java
+  KAFKA_IMAGE: confluentinc/cp-kafka:7.8.0
+  # See: nifi-extension-bundles/nifi-redis-bundle/nifi-redis-extensions/src/test/java/org/apache/nifi/redis/state/ITRedisStateProvider.java
+  REDIS_IMAGE: redis:8.2.2-alpine
+  # See: nifi-extension-bundles/nifi-mongodb-bundle/nifi-mongodb-processors/src/test/java/org/apache/nifi/processors/mongodb/AbstractMongoIT.java
+  MONGODB_IMAGE: mongo:8
+  # See: nifi-extension-bundles/nifi-elasticsearch-bundle/nifi-elasticsearch-test-utils/src/main/java/org/apache/nifi/elasticsearch/integration/AbstractElasticsearchITBase.java
+  ELASTICSEARCH_IMAGE: docker.elastic.co/elasticsearch/elasticsearch:9.1.5
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  # Job 1: Unit tests and Python integration tests - produces the main coverage report
+  unit-tests:
     timeout-minutes: 120
     runs-on: ubuntu-24.04
-    name: Build
+    name: Unit Tests and Python ITs
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -62,9 +74,78 @@ jobs:
           -P report-code-coverage
           jacoco:prepare-agent
           verify
-      - name: Codecov
+      - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5
         if: github.repository_owner == 'apache'
         with:
           files: ./nifi-code-coverage/target/site/jacoco-aggregate/jacoco.xml
+          flags: unittests
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # Job 2: Integration tests for high-impact modules (runs in parallel with unit tests)
+  integration-tests:
+    timeout-minutes: 60
+    runs-on: ubuntu-24.04
+    name: Integration Tests - ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: AWS
+            modules: nifi-extension-bundles/nifi-aws-bundle
+            image_env: LOCALSTACK_IMAGE
+          - name: Kafka
+            modules: nifi-extension-bundles/nifi-kafka-bundle
+            image_env: KAFKA_IMAGE
+          - name: Standard
+            modules: nifi-extension-bundles/nifi-standard-bundle
+            image_env: ''
+          - name: Redis
+            modules: nifi-extension-bundles/nifi-redis-bundle
+            image_env: REDIS_IMAGE
+          - name: MongoDB
+            modules: nifi-extension-bundles/nifi-mongodb-bundle
+            image_env: MONGODB_IMAGE
+          - name: Elasticsearch
+            modules: nifi-extension-bundles/nifi-elasticsearch-bundle
+            image_env: ELASTICSEARCH_IMAGE
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: 21
+          cache: 'maven'
+      - name: Pre-pull Docker Images
+        if: matrix.image_env != ''
+        run: |
+          IMAGE="${{ env[matrix.image_env] }}"
+          echo "Pre-pulling Docker image: $IMAGE"
+          docker pull "$IMAGE"
+      - name: Maven Integration Tests with Coverage
+        env:
+          MAVEN_OPTS: >-
+            ${{ env.DEFAULT_MAVEN_OPTS }}
+          TESTCONTAINERS_REUSE_ENABLE: true
+        run: >
+          ./mvnw --fail-fast --no-snapshot-updates --no-transfer-progress --show-version
+          -pl ${{ matrix.modules }} -am
+          -P integration-tests
+          jacoco:prepare-agent
+          verify
+          jacoco:report
+      - name: Find Coverage Reports
+        id: find-reports
+        run: |
+          REPORTS=$(find . -path "*/target/site/jacoco/jacoco.xml" -type f | tr '\n' ',' | sed 's/,$//')
+          echo "reports=$REPORTS" >> $GITHUB_OUTPUT
+          echo "Found reports: $REPORTS"
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        if: github.repository_owner == 'apache' && steps.find-reports.outputs.reports != ''
+        with:
+          files: ${{ steps.find-reports.outputs.reports }}
+          flags: integrationtests,${{ matrix.name }}
           token: ${{ secrets.CODECOV_TOKEN }}
