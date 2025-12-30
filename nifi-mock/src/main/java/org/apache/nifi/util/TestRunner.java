@@ -1126,14 +1126,14 @@ public interface TestRunner {
      *
      * @param runSchedule Run schedule duration in milliseconds.
      */
-     void setRunSchedule(long runSchedule);
+    void setRunSchedule(long runSchedule);
 
     /**
      * Assert that provenance event was created with the specified event type.
      *
      * @param eventType Provenance event type
      */
-     void assertProvenanceEvent(ProvenanceEventType eventType);
+    void assertProvenanceEvent(ProvenanceEventType eventType);
 
     /**
      * Causes the TestRunner to call the Processor's {@link Processor#migrateProperties(PropertyConfiguration)} method. The effects that are

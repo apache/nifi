@@ -494,9 +494,9 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
         final Map<ParameterDescriptor, Parameter> currentParameters = parameterContext.getParameters();
         // Find parameters that were removed
         currentParameters.keySet().forEach(descriptor -> {
-                if (!fetchedParameterMap.containsKey(descriptor)) {
-                    parameterUpdateMap.put(descriptor.getName(), null);
-                }
+            if (!fetchedParameterMap.containsKey(descriptor)) {
+                parameterUpdateMap.put(descriptor.getName(), null);
+            }
         });
         // Add all changed and new parameters
         for (final Map.Entry<ParameterDescriptor, Parameter> entry : fetchedParameterMap.entrySet()) {
@@ -569,38 +569,38 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
                 .collect(Collectors.toMap(context -> context.getParameterProviderConfiguration().getParameterGroupName(), Function.identity()));
         final Collection<ParameterGroupConfiguration> parameterGroupConfigurations = new ArrayList<>();
         fetchedParameterGroups.forEach(parameterGroup -> {
-                final ParameterContext parameterContext = parameterContextMap.get(parameterGroup.getGroupName());
-                final Set<String> fetchedParameterNames = parameterGroup.getParameters().stream()
-                        .map(parameter -> parameter.getDescriptor().getName())
-                        .collect(Collectors.toSet());
-                final Map<String, ParameterSensitivity> parameterSensitivities = new HashMap<>();
-                final ParameterGroupConfiguration groupConfiguration;
-                final String parameterContextName;
-                final Boolean isSynchronized;
-                if (parameterContext != null) {
-                    isSynchronized = parameterContext.getParameterProviderConfiguration().isSynchronized();
-                    parameterContextName = parameterContext.getName();
-                    parameterContext.getParameters().forEach((descriptor, parameter) -> {
-                        // Don't add it at all if it was not fetched
-                        if (fetchedParameterNames.contains(descriptor.getName())) {
-                            final ParameterSensitivity sensitivity = descriptor.isSensitive() ? ParameterSensitivity.SENSITIVE : ParameterSensitivity.NON_SENSITIVE;
-                            parameterSensitivities.put(descriptor.getName(), sensitivity);
-                        }
-                    });
-                } else {
-                    parameterContextName = parameterGroup.getGroupName();
-                    isSynchronized = null;
-                }
-                parameterGroup.getParameters().forEach(parameter -> {
-                    final String parameterName = parameter.getDescriptor().getName();
-                    if (!parameterSensitivities.containsKey(parameterName)) {
-                        // Null means not configured yet.
-                        parameterSensitivities.put(parameterName, null);
+            final ParameterContext parameterContext = parameterContextMap.get(parameterGroup.getGroupName());
+            final Set<String> fetchedParameterNames = parameterGroup.getParameters().stream()
+                    .map(parameter -> parameter.getDescriptor().getName())
+                    .collect(Collectors.toSet());
+            final Map<String, ParameterSensitivity> parameterSensitivities = new HashMap<>();
+            final ParameterGroupConfiguration groupConfiguration;
+            final String parameterContextName;
+            final Boolean isSynchronized;
+            if (parameterContext != null) {
+                isSynchronized = parameterContext.getParameterProviderConfiguration().isSynchronized();
+                parameterContextName = parameterContext.getName();
+                parameterContext.getParameters().forEach((descriptor, parameter) -> {
+                    // Don't add it at all if it was not fetched
+                    if (fetchedParameterNames.contains(descriptor.getName())) {
+                        final ParameterSensitivity sensitivity = descriptor.isSensitive() ? ParameterSensitivity.SENSITIVE : ParameterSensitivity.NON_SENSITIVE;
+                        parameterSensitivities.put(descriptor.getName(), sensitivity);
                     }
                 });
+            } else {
+                parameterContextName = parameterGroup.getGroupName();
+                isSynchronized = null;
+            }
+            parameterGroup.getParameters().forEach(parameter -> {
+                final String parameterName = parameter.getDescriptor().getName();
+                if (!parameterSensitivities.containsKey(parameterName)) {
+                    // Null means not configured yet.
+                    parameterSensitivities.put(parameterName, null);
+                }
+            });
 
-                groupConfiguration = new ParameterGroupConfiguration(parameterGroup.getGroupName(), parameterContextName, parameterSensitivities, isSynchronized);
-                parameterGroupConfigurations.add(groupConfiguration);
+            groupConfiguration = new ParameterGroupConfiguration(parameterGroup.getGroupName(), parameterContextName, parameterSensitivities, isSynchronized);
+            parameterGroupConfigurations.add(groupConfiguration);
         });
         return parameterGroupConfigurations;
     }

@@ -136,7 +136,7 @@ public class WriteAheadProvenanceRepository implements ProvenanceRepository {
             }
         };
 
-       init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory, fileManager);
+        init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory, fileManager);
     }
 
     protected synchronized void init(RecordWriterFactory recordWriterFactory, RecordReaderFactory recordReaderFactory,

@@ -138,7 +138,7 @@ public class AttributeRollingWindowIT {
         runner.enqueue("2".getBytes(), attributes);
         runner.run(1);
         runner.assertAllFlowFilesTransferred(AttributeRollingWindow.REL_SUCCESS, 1);
-         flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).getFirst();
+        flowFile = runner.getFlowFilesForRelationship(AttributeRollingWindow.REL_SUCCESS).getFirst();
         runner.clearTransferState();
         flowFile.assertAttributeEquals(ROLLING_WINDOW_VALUE_KEY, "2.0");
         flowFile.assertAttributeEquals(ROLLING_WINDOW_COUNT_KEY, "2");

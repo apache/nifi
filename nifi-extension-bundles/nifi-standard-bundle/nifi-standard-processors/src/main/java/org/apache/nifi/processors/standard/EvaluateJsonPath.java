@@ -211,8 +211,8 @@ public class EvaluateJsonPath extends AbstractJsonPathProcessor {
                             public boolean isStale(String subject, String input) {
                                 return cachedJsonPathMap.get(input) == null;
                             }
-                })
-                .required(false).dynamic(true).build();
+                        })
+                        .required(false).dynamic(true).build();
     }
 
     @Override

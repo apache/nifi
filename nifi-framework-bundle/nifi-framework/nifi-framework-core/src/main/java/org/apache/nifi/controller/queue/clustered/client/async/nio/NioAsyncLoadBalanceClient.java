@@ -92,7 +92,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
 
     public NioAsyncLoadBalanceClient(final NodeIdentifier nodeIdentifier, final SSLContext sslContext, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess,
-                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter, final ClusterCoordinator clusterCoordinator) {
+                                    final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter, final ClusterCoordinator clusterCoordinator) {
         this.nodeIdentifier = nodeIdentifier;
         this.sslContext = sslContext;
         this.timeoutMillis = timeoutMillis;
@@ -301,13 +301,13 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     }
 
     /**
-     * If any FlowFiles have been transferred in an active session, fail the transaction. Otherwise, gather up to the Transaction Threshold's limits
-     * worth of FlowFiles and treat them as a failed transaction. In either case, terminate the session. This allows us to transfer FlowFiles from
-     * queue partitions where the partitioner indicates that the data should be rebalanced, but does so in a way that we don't immediately rebalance
-     * all FlowFiles. This is desirable in a case such as when we have a lot of data queued up in a connection and then a node temporarily disconnects.
-     * We don't want to then just push all data to other nodes. We'd rather push the data out to other nodes slowly while waiting for the disconnected
-     * node to reconnect. And if the node reconnects, we want to keep sending it data.
-     */
+    * If any FlowFiles have been transferred in an active session, fail the transaction. Otherwise, gather up to the Transaction Threshold's limits
+    * worth of FlowFiles and treat them as a failed transaction. In either case, terminate the session. This allows us to transfer FlowFiles from
+    * queue partitions where the partitioner indicates that the data should be rebalanced, but does so in a way that we don't immediately rebalance
+    * all FlowFiles. This is desirable in a case such as when we have a lot of data queued up in a connection and then a node temporarily disconnects.
+    * We don't want to then just push all data to other nodes. We'd rather push the data out to other nodes slowly while waiting for the disconnected
+    * node to reconnect. And if the node reconnects, we want to keep sending it data.
+    */
     @Override
     public void nodeDisconnected() {
         if (!loadBalanceSessionLock.tryLock()) {
@@ -427,7 +427,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     }
 
     private TransactionThreshold newTransactionThreshold() {
-         return new SimpleLimitThreshold(1000, 10_000_000L);
+        return new SimpleLimitThreshold(1000, 10_000_000L);
     }
 
     private synchronized boolean isConnectionEstablished() {

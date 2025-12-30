@@ -44,7 +44,7 @@ public class EventFactory {
     }
 
     public static Event bucketDeleted(final Bucket bucket) {
-            return bucketEvent(bucket, EventType.DELETE_BUCKET);
+        return bucketEvent(bucket, EventType.DELETE_BUCKET);
     }
 
     private static Event bucketEvent(final Bucket bucket, EventType eventType) {

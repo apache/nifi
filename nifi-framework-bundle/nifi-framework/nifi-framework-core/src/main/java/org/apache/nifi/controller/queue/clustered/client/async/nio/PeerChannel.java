@@ -132,7 +132,7 @@ public class PeerChannel implements Closeable {
         singleByteBuffer.clear();
         final int bytesRead = read(singleByteBuffer);
         if (bytesRead < 0) {
-             return OptionalInt.of(END_OF_FILE);
+            return OptionalInt.of(END_OF_FILE);
         } else if (bytesRead == EMPTY_BUFFER) {
             return OptionalInt.empty();
         }

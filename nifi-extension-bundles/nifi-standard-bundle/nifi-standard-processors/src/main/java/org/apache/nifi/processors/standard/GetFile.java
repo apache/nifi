@@ -74,9 +74,9 @@ import java.util.regex.Pattern;
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"local", "files", "filesystem", "ingest", "ingress", "get", "source", "input"})
 @CapabilityDescription("""
-    Reads files from a directory and streams them into the contents of new FlowFiles.
-    NiFi will ignore files it doesn't have at least read permissions for.
-""")
+        Reads files from a directory and streams them into the contents of new FlowFiles.
+        NiFi will ignore files it doesn't have at least read permissions for.
+        """)
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The filename is set to the name of the file on disk"),
     @WritesAttribute(attribute = "path", description = "The path is set to the relative path of the file's directory on disk. For example, "

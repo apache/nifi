@@ -54,28 +54,28 @@ import java.util.stream.IntStream;
 @Tags({"PCAP", "Splitter", "Network", "Packet", "Capture", "Wireshark", "TShark", "TcpDump", "WinDump", "sniffers"})
 @CapabilityDescription("Splits one pcap file into multiple pcap files based on a maximum size.")
 @WritesAttributes(
-        {
-                @WritesAttribute(
-                        attribute = SplitPCAP.ERROR_REASON_LABEL,
-                        description = "The reason the FlowFile was sent to the failure relationship."
-                ),
-                @WritesAttribute(
-                        attribute = "fragment.identifier",
-                        description = "All split PCAP FlowFiles produced from the same parent PCAP FlowFile will have the same randomly generated UUID added for this attribute"
-                ),
-                @WritesAttribute(
-                        attribute = "fragment.index",
-                        description = "A one-up number that indicates the ordering of the split PCAP FlowFiles that were created from a single parent PCAP FlowFile"
-                ),
-                @WritesAttribute(
-                        attribute = "fragment.count",
-                        description = "The number of split PCAP FlowFiles generated from the parent PCAP FlowFile"
-                ),
-                @WritesAttribute(
-                        attribute = "segment.original.filename",
-                        description = "The filename of the parent PCAP FlowFile"
-                )
-        }
+    {
+        @WritesAttribute(
+                attribute = SplitPCAP.ERROR_REASON_LABEL,
+                description = "The reason the FlowFile was sent to the failure relationship."
+        ),
+        @WritesAttribute(
+                attribute = "fragment.identifier",
+                description = "All split PCAP FlowFiles produced from the same parent PCAP FlowFile will have the same randomly generated UUID added for this attribute"
+        ),
+        @WritesAttribute(
+                attribute = "fragment.index",
+                description = "A one-up number that indicates the ordering of the split PCAP FlowFiles that were created from a single parent PCAP FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "fragment.count",
+                description = "The number of split PCAP FlowFiles generated from the parent PCAP FlowFile"
+        ),
+        @WritesAttribute(
+                attribute = "segment.original.filename",
+                description = "The filename of the parent PCAP FlowFile"
+        )
+    }
 )
 public class SplitPCAP extends AbstractProcessor {
 

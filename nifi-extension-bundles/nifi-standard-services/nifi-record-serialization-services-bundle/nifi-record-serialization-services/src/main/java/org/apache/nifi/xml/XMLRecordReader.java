@@ -540,7 +540,7 @@ public class XMLRecordReader implements RecordReader {
     private Object parseStringForType(String data, String fieldName, DataType dataType) {
         return switch (dataType.getFieldType()) {
             case BOOLEAN, BYTE, CHAR, CHOICE, DECIMAL, DOUBLE, FLOAT, INT, LONG, SHORT, STRING, DATE, TIME, TIMESTAMP ->
-                    DataTypeUtils.convertType(data, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
+                DataTypeUtils.convertType(data, dataType, Optional.ofNullable(dateFormat), Optional.ofNullable(timeFormat), Optional.ofNullable(timestampFormat), fieldName);
             default -> null;
         };
     }

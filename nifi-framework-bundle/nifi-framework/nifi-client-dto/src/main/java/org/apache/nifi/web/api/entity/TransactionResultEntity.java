@@ -43,7 +43,7 @@ public class TransactionResultEntity extends Entity {
         this.responseCode = responseCode;
     }
 
-   public int getFlowFileSent() {
+    public int getFlowFileSent() {
         return flowFileSent;
     }
 

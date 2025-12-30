@@ -715,31 +715,29 @@ class TestYamlTreeRowRecordReader {
         //  so we take the first one (INT, BOOLEAN) - as best effort - for both cases
         List<Object> expected = Arrays.asList(
             new MapRecord(expectedRecordChoiceSchema, Map.of("record", new Object[]{
-                        new MapRecord(expectedChildSchema1, Map.of(
-                                "integer", 11,
-                                "boolean", true,
-                                "extraString", "extraStringValue11"
-                        )),
-                        new MapRecord(expectedChildSchema1, Map.of(
-                                "integer", 12,
-                                "boolean", false,
-                                "extraString", "extraStringValue12"
-                        ))
-                })
-            ),
+                new MapRecord(expectedChildSchema1, Map.of(
+                        "integer", 11,
+                        "boolean", true,
+                        "extraString", "extraStringValue11"
+                )),
+                new MapRecord(expectedChildSchema1, Map.of(
+                        "integer", 12,
+                        "boolean", false,
+                        "extraString", "extraStringValue12"
+                ))
+            })),
             new MapRecord(expectedRecordChoiceSchema, Map.of("record", new Object[]{
-                        new MapRecord(expectedChildSchema1, Map.of(
-                                "integer", 21,
-                                "extraString", "extraStringValue21",
-                                "string", "stringValue21"
-                        )),
-                        new MapRecord(expectedChildSchema1, Map.of(
-                                "integer", 22,
-                                "extraString", "extraStringValue22",
-                                "string", "stringValue22"
-                        ))
-                })
-            )
+                new MapRecord(expectedChildSchema1, Map.of(
+                        "integer", 21,
+                        "extraString", "extraStringValue21",
+                        "string", "stringValue21"
+                )),
+                new MapRecord(expectedChildSchema1, Map.of(
+                        "integer", 22,
+                        "extraString", "extraStringValue22",
+                        "string", "stringValue22"
+                ))
+            }))
         );
 
         testReadRecords(yamlPath, schema, expected);

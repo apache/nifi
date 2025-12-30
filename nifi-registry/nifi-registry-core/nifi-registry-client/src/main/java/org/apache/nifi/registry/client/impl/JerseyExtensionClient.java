@@ -101,10 +101,10 @@ public class JerseyExtensionClient extends AbstractJerseyClient implements Exten
     @Override
     public List<TagCount> getTagCounts() throws IOException, NiFiRegistryException {
         return executeAction("Error retrieving tag counts", () -> {
-           final WebTarget target = extensionsTarget.path("tags");
+            final WebTarget target = extensionsTarget.path("tags");
 
-           final TagCount[] tagCounts = getRequestBuilder(target).get(TagCount[].class);
-           return tagCounts == null ? Collections.emptyList() : Arrays.asList(tagCounts);
+            final TagCount[] tagCounts = getRequestBuilder(target).get(TagCount[].class);
+            return tagCounts == null ? Collections.emptyList() : Arrays.asList(tagCounts);
         });
     }
 

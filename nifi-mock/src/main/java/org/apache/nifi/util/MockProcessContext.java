@@ -221,24 +221,24 @@ public class MockProcessContext extends MockControllerServiceLookup implements P
 
     private List<ValidatedPropertyDependency> validatedDependencies(final PropertyDescriptor descriptor) {
         return descriptor.getDependencies().stream().map(dependency -> {
-                    final PropertyDescriptor dependencyDescriptor =
-                            component.getPropertyDescriptor(dependency.getPropertyName());
-
-                    if (dependencyDescriptor == null) {
-                        return new ValidatedPropertyDependency(dependency, null);
-                    }
+            final PropertyDescriptor dependencyDescriptor =
                     component.getPropertyDescriptor(dependency.getPropertyName());
 
-                    if (!determineUnsatisfiedDependencies(dependencyDescriptor).isEmpty()) {
-                        return new ValidatedPropertyDependency(dependency, null);
-                    }
+            if (dependencyDescriptor == null) {
+                return new ValidatedPropertyDependency(dependency, null);
+            }
+            component.getPropertyDescriptor(dependency.getPropertyName());
 
-                    final String dependencyPropertyValue =
-                            properties.getOrDefault(dependencyDescriptor, dependencyDescriptor.getDefaultValue());
+            if (!determineUnsatisfiedDependencies(dependencyDescriptor).isEmpty()) {
+                return new ValidatedPropertyDependency(dependency, null);
+            }
 
-                    return new ValidatedPropertyDependency(dependency, dependencyPropertyValue);
-                }
-        ).toList();
+            final String dependencyPropertyValue =
+                    properties.getOrDefault(dependencyDescriptor, dependencyDescriptor.getDefaultValue());
+
+            return new ValidatedPropertyDependency(dependency, dependencyPropertyValue);
+        }
+                ).toList();
     }
 
     record ValidatedPropertyDependency(PropertyDependency dependency, String value) {

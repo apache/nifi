@@ -166,22 +166,22 @@ public class SplitRecord extends AbstractProcessor {
 
                             try (final OutputStream out = session.write(split);
                                 final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, split)) {
-                                    if (maxRecords == 1) {
-                                        final Record record = pushbackSet.next();
-                                        writeResult = writer.write(record);
-                                    } else {
-                                        final RecordSet limitedSet = pushbackSet.limit(maxRecords);
-                                        writeResult = writer.write(limitedSet);
-                                    }
+                                if (maxRecords == 1) {
+                                    final Record record = pushbackSet.next();
+                                    writeResult = writer.write(record);
+                                } else {
+                                    final RecordSet limitedSet = pushbackSet.limit(maxRecords);
+                                    writeResult = writer.write(limitedSet);
+                                }
 
-                                    attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                                    attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                                    attributes.put(FRAGMENT_INDEX, String.valueOf(fragmentIndex));
-                                    attributes.put(FRAGMENT_ID, fragmentId);
-                                    attributes.put(SEGMENT_ORIGINAL_FILENAME, original.getAttribute(CoreAttributes.FILENAME.key()));
-                                    attributes.putAll(writeResult.getAttributes());
+                                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                                attributes.put(FRAGMENT_INDEX, String.valueOf(fragmentIndex));
+                                attributes.put(FRAGMENT_ID, fragmentId);
+                                attributes.put(SEGMENT_ORIGINAL_FILENAME, original.getAttribute(CoreAttributes.FILENAME.key()));
+                                attributes.putAll(writeResult.getAttributes());
 
-                                    session.adjustCounter("Records Split", writeResult.getRecordCount(), false);
+                                session.adjustCounter("Records Split", writeResult.getRecordCount(), false);
                             }
 
                             split = session.putAllAttributes(split, attributes);

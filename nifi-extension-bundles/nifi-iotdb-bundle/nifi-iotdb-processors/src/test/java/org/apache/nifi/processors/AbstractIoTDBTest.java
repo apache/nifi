@@ -222,8 +222,8 @@ public class AbstractIoTDBTest {
 
         Map<String, Tablet> exceptedTablets = new HashMap<>();
         List<IMeasurementSchema> schemas = Arrays.asList(
-        new MeasurementSchema("s1", TSDataType.INT32, TSEncoding.RLE),
-        new MeasurementSchema("s2", TSDataType.DOUBLE, TSEncoding.PLAIN));
+            new MeasurementSchema("s1", TSDataType.INT32, TSEncoding.RLE),
+            new MeasurementSchema("s2", TSDataType.DOUBLE, TSEncoding.PLAIN));
         exceptedTablets.put("root.test_sg.test_d1", new Tablet("root.test_sg.test_d1", schemas, 1));
 
         assertEquals("root.test_sg.test_d1", tablets.keySet().toArray()[0]);

@@ -454,7 +454,7 @@ public class TestLuceneEventIndex {
         index.addEvent(event1, new StorageSummary(event1.getEventId(), "1.prov", "1", 1, 2L, 2L));
         index.addEvent(event2, new StorageSummary(event2.getEventId(), "1.prov", "1", 1, 2L, 2L));
 
-         // Create a query that searches for the event with the FlowFile UUID that is NOT equal to the first event's
+        // Create a query that searches for the event with the FlowFile UUID that is NOT equal to the first event's
         final Query query = new Query(UUID.randomUUID().toString());
         query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, event1.getFlowFileUuid(), Boolean.TRUE));
 

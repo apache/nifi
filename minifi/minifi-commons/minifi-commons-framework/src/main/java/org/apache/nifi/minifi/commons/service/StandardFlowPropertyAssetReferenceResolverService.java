@@ -49,7 +49,7 @@ public class StandardFlowPropertyAssetReferenceResolverService implements FlowPr
             component.getProperties().entrySet().stream()
                 .filter(e -> isAssetReference(e.getValue()))
                 .forEach(entry -> entry.setValue(getAssetAbsolutePathOrThrowIllegalStateException(entry.getValue())));
-       });
+        });
     }
 
     private boolean isAssetReference(String value) {

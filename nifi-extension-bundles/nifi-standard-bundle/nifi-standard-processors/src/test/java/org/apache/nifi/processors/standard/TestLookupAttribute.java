@@ -163,15 +163,15 @@ public class TestLookupAttribute {
     }
 
     private static class InvalidLookupService extends AbstractControllerService implements StringLookupService {
-      @Override
-      public Optional<String> lookup(Map<String, Object> coordinates) {
-          return Optional.empty();
-      }
+        @Override
+        public Optional<String> lookup(Map<String, Object> coordinates) {
+            return Optional.empty();
+        }
 
-      @Override
-      public Set<String> getRequiredKeys() {
-          return Set.of("key1", "key2");
-      }
+        @Override
+        public Set<String> getRequiredKeys() {
+            return Set.of("key1", "key2");
+        }
     }
 
     static class TestService extends AbstractControllerService implements StringLookupService {

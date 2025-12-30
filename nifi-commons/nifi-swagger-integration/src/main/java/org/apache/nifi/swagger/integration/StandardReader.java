@@ -60,7 +60,7 @@ public class StandardReader extends Reader {
             final JsonView jsonViewAnnotation,
             final ApiResponse[] classResponses,
             final AnnotatedMethod annotatedMethod
-            ) {
+    ) {
         final Operation operation = super.parseMethod(
                 resourceClass,
                 method,

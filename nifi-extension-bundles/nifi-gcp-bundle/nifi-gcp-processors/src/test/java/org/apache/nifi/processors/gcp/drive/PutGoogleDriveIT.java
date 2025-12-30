@@ -135,7 +135,7 @@ public class PutGoogleDriveIT extends AbstractGoogleDriveIT<PutGoogleDrive> {
 
 
     private void runWithFileContent() {
-       runWithFileContent(DEFAULT_FILE_CONTENT);
+        runWithFileContent(DEFAULT_FILE_CONTENT);
     }
 
     private void runWithFileContent(String content) {

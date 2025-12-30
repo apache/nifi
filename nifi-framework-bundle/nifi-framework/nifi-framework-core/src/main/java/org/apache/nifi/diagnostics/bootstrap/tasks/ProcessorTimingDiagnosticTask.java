@@ -41,8 +41,8 @@ public class ProcessorTimingDiagnosticTask implements DiagnosticTask {
     private final FlowManager flowManager;
 
     //                                                     | Proc ID    | Proc Name  | Proc Type  | Group Name | Proc Secs | CPU Secs  | %CPU used by Proc |
-    private static final String PROCESSOR_TIMING_FORMAT = "| %1$-36.36s | %2$-36.36s | %3$-36.36s | %4$-36.36s | %5$15.15s | %6$27.27s | %7$25.25s | " +
     //   Read Secs | Write Secs| Commit Sec | GC millis | MB Read    | MB Write   |
+    private static final String PROCESSOR_TIMING_FORMAT = "| %1$-36.36s | %2$-36.36s | %3$-36.36s | %4$-36.36s | %5$15.15s | %6$27.27s | %7$25.25s | " +
         "%8$16.16s | %9$16.16s | %10$20.20s | %11$13.13s | %12$11.11s | %13$11.11s |";
 
     public ProcessorTimingDiagnosticTask(final FlowFileEventRepository flowFileEventRepository, final FlowManager flowManager) {

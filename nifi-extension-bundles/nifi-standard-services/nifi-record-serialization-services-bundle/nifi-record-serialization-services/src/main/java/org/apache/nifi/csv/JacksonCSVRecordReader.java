@@ -120,10 +120,10 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                         final Set<String> deDupe = new HashSet<>(schema.getFieldCount());
                         for (final String name : rawFieldNames) {
                             if (!deDupe.add(name)) {
-                                    throw new IllegalArgumentException(String.format(
-                                            "The header contains a duplicate name: \"%s\" in %s. If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
-                                            name, rawFieldNames
-                                    ));
+                                throw new IllegalArgumentException(String.format(
+                                        "The header contains a duplicate name: \"%s\" in %s. If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
+                                        name, rawFieldNames
+                                ));
                             }
                         }
                     }

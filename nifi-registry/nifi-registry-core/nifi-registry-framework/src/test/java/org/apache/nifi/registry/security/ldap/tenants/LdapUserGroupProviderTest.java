@@ -286,7 +286,8 @@ public class LdapUserGroupProviderTest {
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
         assertEquals(5, groups.size());
-        assertEquals(1, groups.stream().filter(group -> "cn=admins,ou=groups,o=nifi".equals(group.getName())).count());
+        assertEquals(1, groups.stream().filter(group -> "cn=admins,ou=groups,o=nifi".equals(group.getName()))
+                .count());
     }
 
     @Test
@@ -335,7 +336,8 @@ public class LdapUserGroupProviderTest {
         assertFalse(admins.getUsers().isEmpty());
         assertEquals(1, admins.getUsers().stream().map(
                 userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                        user -> "cn=User 1,ou=users,o=nifi".equals(user.getIdentity())).count());
+                        user -> "cn=User 1,ou=users,o=nifi".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -351,9 +353,10 @@ public class LdapUserGroupProviderTest {
         final Group admins = groups.stream().filter(group -> "cn=admins,ou=groups,o=nifi".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);
         assertFalse(admins.getUsers().isEmpty());
-        assertEquals(1, admins.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity())).count());
+        assertEquals(1, admins.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -370,9 +373,10 @@ public class LdapUserGroupProviderTest {
         final Group admins = groups.stream().filter(group -> "admins".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);
         assertFalse(admins.getUsers().isEmpty());
-        assertEquals(1, admins.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "User 1".equals(user.getIdentity())).count());
+        assertEquals(1, admins.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "User 1".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -384,7 +388,8 @@ public class LdapUserGroupProviderTest {
 
         final Set<Group> groups = ldapUserGroupProvider.getGroups();
         assertEquals(1, groups.size());
-        assertEquals(1, groups.stream().filter(group -> "cn=admins,ou=groups,o=nifi".equals(group.getName())).count());
+        assertEquals(1, groups.stream().filter(group -> "cn=admins,ou=groups,o=nifi".equals(group.getName()))
+                .count());
     }
 
     @Test
@@ -415,16 +420,18 @@ public class LdapUserGroupProviderTest {
         final Group team1 = groups.stream().filter(group -> "team1".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team1);
         assertEquals(2, team1.getUsers().size());
-        assertEquals(2, team1.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user4".equals(user.getIdentity()) || "user5".equals(user.getIdentity())).count());
+        assertEquals(2, team1.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user4".equals(user.getIdentity()) || "user5".equals(user.getIdentity()))
+                .count());
 
         final Group team2 = groups.stream().filter(group -> "team2".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team2);
         assertEquals(2, team2.getUsers().size());
-        assertEquals(2, team2.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user6".equals(user.getIdentity()) || "user7".equals(user.getIdentity())).count());
+        assertEquals(2, team2.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user6".equals(user.getIdentity()) || "user7".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -443,30 +450,34 @@ public class LdapUserGroupProviderTest {
         final Group admins = groups.stream().filter(group -> "admins".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);
         assertEquals(2, admins.getUsers().size());
-        assertEquals(2, admins.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity()) || "user3".equals(user.getIdentity())).count());
+        assertEquals(2, admins.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()) || "user3".equals(user.getIdentity()))
+                .count());
 
         final Group readOnly = groups.stream().filter(group -> "read-only".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(readOnly);
         assertEquals(1, readOnly.getUsers().size());
-        assertEquals(1, readOnly.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user2".equals(user.getIdentity())).count());
+        assertEquals(1, readOnly.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user2".equals(user.getIdentity()))
+                .count());
 
         final Group team1 = groups.stream().filter(group -> "team1".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team1);
         assertEquals(1, team1.getUsers().size());
-        assertEquals(1, team1.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity())).count());
+        assertEquals(1, team1.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()))
+                .count());
 
         final Group team2 = groups.stream().filter(group -> "team2".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team2);
         assertEquals(1, team2.getUsers().size());
-        assertEquals(1, team2.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity())).count());
+        assertEquals(1, team2.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -486,30 +497,34 @@ public class LdapUserGroupProviderTest {
         final Group admins = groups.stream().filter(group -> "admins".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(admins);
         assertEquals(2, admins.getUsers().size());
-        assertEquals(2, admins.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity()) || "user3".equals(user.getIdentity())).count());
+        assertEquals(2, admins.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()) || "user3".equals(user.getIdentity()))
+                .count());
 
         final Group readOnly = groups.stream().filter(group -> "read-only".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(readOnly);
         assertEquals(1, readOnly.getUsers().size());
-        assertEquals(1, readOnly.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user2".equals(user.getIdentity())).count());
+        assertEquals(1, readOnly.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user2".equals(user.getIdentity()))
+                .count());
 
         final Group team1 = groups.stream().filter(group -> "team1".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team1);
         assertEquals(3, team1.getUsers().size());
-        assertEquals(3, team1.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity()) || "user4".equals(user.getIdentity()) || "user5".equals(user.getIdentity())).count());
+        assertEquals(3, team1.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()) || "user4".equals(user.getIdentity()) || "user5".equals(user.getIdentity()))
+                .count());
 
         final Group team2 = groups.stream().filter(group -> "team2".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team2);
         assertEquals(3, team2.getUsers().size());
-        assertEquals(3, team2.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity()) || "user6".equals(user.getIdentity()) || "user7".equals(user.getIdentity())).count());
+        assertEquals(3, team2.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()) || "user6".equals(user.getIdentity()) || "user7".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -616,9 +631,10 @@ public class LdapUserGroupProviderTest {
         final Group team3 = groups.stream().filter(group -> "team3".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team3);
         assertEquals(1, team3.getUsers().size());
-        assertEquals(1, team3.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user9".equals(user.getIdentity())).count());
+        assertEquals(1, team3.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user9".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -661,9 +677,10 @@ public class LdapUserGroupProviderTest {
         final Group team3 = groups.stream().filter(group -> "team3".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team3);
         assertEquals(1, team3.getUsers().size());
-        assertEquals(1, team3.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "User9".equals(user.getIdentity())).count());
+        assertEquals(1, team3.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "User9".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -683,12 +700,14 @@ public class LdapUserGroupProviderTest {
         final Group team4 = groups.stream().filter(group -> "team4".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team4);
         assertEquals(2, team4.getUsers().size());
-        assertEquals(1, team4.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity())).count());
-        assertEquals(1, team4.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user2".equals(user.getIdentity())).count());
+        assertEquals(1, team4.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()))
+                .count());
+        assertEquals(1, team4.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user2".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -707,9 +726,10 @@ public class LdapUserGroupProviderTest {
         final Group team4 = groups.stream().filter(group -> "team4".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team4);
         assertEquals(1, team4.getUsers().size());
-        assertEquals(1, team4.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user1".equals(user.getIdentity())).count());
+        assertEquals(1, team4.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user1".equals(user.getIdentity()))
+                .count());
     }
 
     @Test
@@ -729,16 +749,18 @@ public class LdapUserGroupProviderTest {
         final Group team1 = groups.stream().filter(group -> "team1".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team1);
         assertEquals(2, team1.getUsers().size());
-        assertEquals(2, team1.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user4".equals(user.getIdentity()) || "user5".equals(user.getIdentity())).count());
+        assertEquals(2, team1.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user4".equals(user.getIdentity()) || "user5".equals(user.getIdentity()))
+                .count());
 
         final Group team2 = groups.stream().filter(group -> "team2".equals(group.getName())).findFirst().orElse(null);
         assertNotNull(team2);
         assertEquals(3, team2.getUsers().size());
-        assertEquals(3, team2.getUsers().stream().map(
-                userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier)).filter(
-                user -> "user6".equals(user.getIdentity()) || "user7".equals(user.getIdentity()) || "user8".equals(user.getIdentity())).count());
+        assertEquals(3, team2.getUsers().stream()
+                .map(userIdentifier -> ldapUserGroupProvider.getUser(userIdentifier))
+                .filter(user -> "user6".equals(user.getIdentity()) || "user7".equals(user.getIdentity()) || "user8".equals(user.getIdentity()))
+                .count());
     }
 
     private AuthorizerConfigurationContext getBaseConfiguration(final String userSearchBase, final String groupSearchBase) {

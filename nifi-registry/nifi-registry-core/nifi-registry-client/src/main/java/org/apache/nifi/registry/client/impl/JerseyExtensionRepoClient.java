@@ -56,8 +56,8 @@ public class JerseyExtensionRepoClient extends AbstractJerseyClient implements E
     @Override
     public List<ExtensionRepoBucket> getBuckets() throws IOException, NiFiRegistryException {
         return executeAction("Error retrieving buckets for extension repo", () -> {
-           final ExtensionRepoBucket[] repoBuckets = getRequestBuilder(extensionRepoTarget).get(ExtensionRepoBucket[].class);
-           return  repoBuckets == null ? Collections.emptyList() : Arrays.asList(repoBuckets);
+            final ExtensionRepoBucket[] repoBuckets = getRequestBuilder(extensionRepoTarget).get(ExtensionRepoBucket[].class);
+            return  repoBuckets == null ? Collections.emptyList() : Arrays.asList(repoBuckets);
         });
     }
 

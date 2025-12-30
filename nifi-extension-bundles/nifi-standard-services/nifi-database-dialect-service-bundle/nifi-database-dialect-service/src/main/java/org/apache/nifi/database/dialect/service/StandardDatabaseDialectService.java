@@ -38,9 +38,9 @@ import java.util.OptionalLong;
 import java.util.Set;
 
 @CapabilityDescription("""
-    Database Dialect Service supporting ANSI SQL.
-    Supported Statement Types: ALTER, CREATE, SELECT
-"""
+        Database Dialect Service supporting ANSI SQL.
+        Supported Statement Types: ALTER, CREATE, SELECT
+        """
 )
 @Tags({ "Relational", "Database", "JDBC", "SQL" })
 public class StandardDatabaseDialectService extends AbstractControllerService implements DatabaseDialectService {

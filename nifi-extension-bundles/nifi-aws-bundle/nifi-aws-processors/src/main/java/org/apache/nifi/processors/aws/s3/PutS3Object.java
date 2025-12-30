@@ -535,7 +535,7 @@ public class PutS3Object extends AbstractS3Processor {
         final S3Client client;
 
         try {
-           client  = getClient(context, flowFile.getAttributes());
+            client  = getClient(context, flowFile.getAttributes());
         } catch (Exception e) {
             getLogger().error("Failed to initialize S3 client", e);
             flowFile = session.penalize(flowFile);
@@ -978,19 +978,19 @@ public class PutS3Object extends AbstractS3Processor {
         final Map<String, String> attributesMap = flowFile.getAttributes();
 
         attributesMap.entrySet().stream()
-        .filter(attribute -> attribute.getKey().startsWith(prefix))
-        .forEach(attribute -> {
-            String tagKey = attribute.getKey();
-            String tagValue = attribute.getValue();
+                .filter(attribute -> attribute.getKey().startsWith(prefix))
+                .forEach(attribute -> {
+                    String tagKey = attribute.getKey();
+                    String tagValue = attribute.getValue();
 
-            if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
-                tagKey = tagKey.replace(prefix, "");
-            }
-            objectTags.add(Tag.builder()
-                    .key(tagKey)
-                    .value(tagValue)
-                    .build());
-        });
+                    if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
+                        tagKey = tagKey.replace(prefix, "");
+                    }
+                    objectTags.add(Tag.builder()
+                            .key(tagKey)
+                            .value(tagValue)
+                            .build());
+                });
 
         return objectTags;
     }

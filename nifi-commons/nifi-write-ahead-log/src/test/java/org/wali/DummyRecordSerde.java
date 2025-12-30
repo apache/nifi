@@ -65,14 +65,14 @@ public class DummyRecordSerde implements SerDe<DummyRecord> {
             // fallthrough
             case CREATE:
             case UPDATE: {
-                    final Map<String, String> props = record.getProperties();
-                    out.writeInt(props.size());
-                    for (final Map.Entry<String, String> entry : props.entrySet()) {
-                        out.writeUTF(entry.getKey());
-                        out.writeUTF(entry.getValue());
-                    }
+                final Map<String, String> props = record.getProperties();
+                out.writeInt(props.size());
+                for (final Map.Entry<String, String> entry : props.entrySet()) {
+                    out.writeUTF(entry.getKey());
+                    out.writeUTF(entry.getValue());
                 }
                 break;
+            }
             case SWAP_OUT:
                 out.writeUTF(record.getSwapLocation());
                 break;

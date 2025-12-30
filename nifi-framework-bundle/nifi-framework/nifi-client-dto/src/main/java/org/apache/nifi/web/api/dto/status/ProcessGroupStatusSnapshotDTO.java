@@ -619,7 +619,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         if (portStatusSnapshots != null) {
             final List<PortStatusSnapshotEntity> portStatusSnapshotEntities = new ArrayList<>();
             for (final PortStatusSnapshotEntity portStatusSnapshotEntity : portStatusSnapshots) {
-               portStatusSnapshotEntities.add(portStatusSnapshotEntity.clone());
+                portStatusSnapshotEntities.add(portStatusSnapshotEntity.clone());
             }
             return portStatusSnapshotEntities;
         }

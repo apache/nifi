@@ -474,11 +474,11 @@ public class MergeContent extends BinFiles {
             case TAR -> new TarMerge();
             case ZIP -> new ZipMerge(context.getProperty(COMPRESSION_LEVEL).asInteger());
             case FLOWFILE_STREAM_V3 ->
-                    new FlowFileStreamMerger(new FlowFilePackagerV3(), StandardFlowFileMediaType.VERSION_3.getMediaType());
+                new FlowFileStreamMerger(new FlowFilePackagerV3(), StandardFlowFileMediaType.VERSION_3.getMediaType());
             case FLOWFILE_STREAM_V2 ->
-                    new FlowFileStreamMerger(new FlowFilePackagerV2(), StandardFlowFileMediaType.VERSION_2.getMediaType());
+                new FlowFileStreamMerger(new FlowFilePackagerV2(), StandardFlowFileMediaType.VERSION_2.getMediaType());
             case FLOWFILE_TAR_V1 ->
-                    new FlowFileStreamMerger(new FlowFilePackagerV1(), StandardFlowFileMediaType.VERSION_1.getMediaType());
+                new FlowFileStreamMerger(new FlowFilePackagerV1(), StandardFlowFileMediaType.VERSION_1.getMediaType());
             case CONCAT -> new BinaryConcatenationMerge();
             case AVRO -> new AvroMerge();
         };

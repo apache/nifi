@@ -576,7 +576,7 @@ public class HikariCPConnectionPool extends AbstractControllerService implements
         }
     }
 
-        @Override
+    @Override
     public String toString() {
         return String.format("%s[id=%s]", getClass().getSimpleName(), getIdentifier());
     }

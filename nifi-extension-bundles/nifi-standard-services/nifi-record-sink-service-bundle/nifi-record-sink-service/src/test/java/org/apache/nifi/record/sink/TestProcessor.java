@@ -35,11 +35,11 @@ public class TestProcessor extends AbstractProcessor {
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> propDescs = new ArrayList<>();
         propDescs.add(new PropertyDescriptor.Builder()
-        .name("RecordSinkService test processor")
-        .description("RecordSinkService test processor")
-        .identifiesControllerService(RecordSinkService.class)
-        .required(true)
-        .build());
+                .name("RecordSinkService test processor")
+                .description("RecordSinkService test processor")
+                .identifiesControllerService(RecordSinkService.class)
+                .required(true)
+                .build());
         return propDescs;
     }
 }

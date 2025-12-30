@@ -99,7 +99,7 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      */
     ControllerServiceState getState();
 
-     /**
+    /**
      * Enables this service, calling any method annotated with @OnEnabled and updating the state of the service
      *
      * @param scheduler implementation of {@link ScheduledExecutorService} used to initiate service enabling task as well as its retries

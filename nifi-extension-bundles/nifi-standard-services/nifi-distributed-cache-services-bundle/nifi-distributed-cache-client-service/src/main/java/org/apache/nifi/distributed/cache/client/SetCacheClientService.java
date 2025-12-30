@@ -86,7 +86,7 @@ public class SetCacheClientService extends AbstractControllerService implements 
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-       return PROPERTY_DESCRIPTORS;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled

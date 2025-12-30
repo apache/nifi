@@ -135,7 +135,7 @@ public class RunningComponentSetFilter implements ComponentSetFilter {
 
     @Override
     public boolean testFlowRegistryClient(final FlowRegistryClientNode flowRegistryClient) {
-       return false;
+        return false;
     }
 
     @Override

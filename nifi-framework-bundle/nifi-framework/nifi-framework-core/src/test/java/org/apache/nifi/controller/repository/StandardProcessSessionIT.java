@@ -1000,7 +1000,7 @@ public class StandardProcessSessionIT {
 
         // Force an IOException. This will decrement out claim count for the resource claim.
         assertThrows(ProcessException.class, () -> session.write(finalChild, out -> {
-                    throw new IOException(); }),
+            throw new IOException(); }),
                 "write() callback threw IOException but it was not wrapped in ProcessException");
 
         session.remove(child);

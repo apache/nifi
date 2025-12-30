@@ -1770,7 +1770,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 return;
             }
 
-           monitorAsyncTask(taskFuture, monitoringFuture, completionTimestampRef.get());
+            monitorAsyncTask(taskFuture, monitoringFuture, completionTimestampRef.get());
         };
 
         final Future<?> future = taskScheduler.scheduleWithFixedDelay(monitoringTask, 1, 10, TimeUnit.MILLISECONDS);

@@ -126,8 +126,8 @@ public class DatabaseTableSchemaRegistry extends AbstractControllerService imple
         try {
             try (final Connection conn = dbcpService.getConnection()) {
                 final DatabaseMetaData databaseMetaData = conn.getMetaData();
-                    return getRecordSchemaFromMetadata(databaseMetaData, tableName);
-                }
+                return getRecordSchemaFromMetadata(databaseMetaData, tableName);
+            }
         } catch (SQLException sqle) {
             throw new IOException("Error retrieving schema for table " + schemaName.get(), sqle);
         }

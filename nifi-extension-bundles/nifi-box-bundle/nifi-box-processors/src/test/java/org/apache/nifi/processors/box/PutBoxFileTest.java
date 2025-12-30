@@ -71,7 +71,7 @@ public class PutBoxFileTest extends AbstractBoxFileTest {
         final PutBoxFile testSubject = new PutBoxFile() {
             @Override
             BoxFolder getFolder(String folderId) {
-               return mockBoxFolders.get(folderId);
+                return mockBoxFolders.get(folderId);
             }
         };
 

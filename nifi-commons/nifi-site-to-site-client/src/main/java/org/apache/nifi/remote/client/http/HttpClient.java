@@ -104,7 +104,7 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
             apiClient.setCacheExpirationMillis(config.getCacheExpiration(TimeUnit.MILLISECONDS));
             apiClient.setLocalAddress(config.getLocalAddress());
 
-           return fetchRemotePeerStatuses(apiClient);
+            return fetchRemotePeerStatuses(apiClient);
         }
     }
 

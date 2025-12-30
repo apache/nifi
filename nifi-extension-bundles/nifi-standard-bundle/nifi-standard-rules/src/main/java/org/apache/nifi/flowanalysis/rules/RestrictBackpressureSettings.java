@@ -159,7 +159,7 @@ public class RestrictBackpressureSettings extends AbstractFlowAnalysisRule {
                                 context.getProperty(SIZE_MAX).getValue()));
                     }
                 }
-            );
+        );
 
         return FlowAnalysisRuleUtils.convertToGroupAnalysisResults(pg, violations);
     }

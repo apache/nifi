@@ -81,10 +81,10 @@ public final class FlowValidator {
             ASYNC_LOADING_COMPONENT_INIT_MAX_RETRIES,
             ASYNC_LOADING_COMPONENT_INIT_RETRY_PAUSE_DURATION_MS
         )
-        .ifPresent(components -> {
-            LOGGER.error("The following components are async loading components and are still initializing: {}", components);
-            throw new IllegalStateException("Maximum retry number exceeded while waiting for async loading components to be initialized");
-        });
+            .ifPresent(components -> {
+                LOGGER.error("The following components are async loading components and are still initializing: {}", components);
+                throw new IllegalStateException("Maximum retry number exceeded while waiting for async loading components to be initialized");
+            });
     }
 
     private static List<? extends ComponentNode> initializingAsyncLoadingComponents(List<? extends ComponentNode> componentNodes) {
@@ -102,9 +102,9 @@ public final class FlowValidator {
             CONTROLLER_SERVICE_ENABLEMENT_MAX_RETRIES,
             CONTROLLER_SERVICE_ENABLEMENT_RETRY_PAUSE_DURATION_MS
         )
-        .ifPresent(controllerServices -> {
-            LOGGER.error("The following controller services are still in ENABLING state: {}", controllerServices);
-        });
+            .ifPresent(controllerServices -> {
+                LOGGER.error("The following controller services are still in ENABLING state: {}", controllerServices);
+            });
     }
 
     private static List<? extends ComponentNode> controllerServicesInEnablingState(List<? extends ComponentNode> componentNodes) {
@@ -120,10 +120,10 @@ public final class FlowValidator {
             VALIDATION_MAX_RETRIES,
             VALIDATION_RETRY_PAUSE_DURATION_MS
         )
-        .ifPresent(components -> {
-            LOGGER.error("The following components are still in VALIDATING state: {}", components);
-            throw new IllegalStateException("Maximum retry number exceeded while waiting for components to be validated");
-        });
+            .ifPresent(components -> {
+                LOGGER.error("The following components are still in VALIDATING state: {}", components);
+                throw new IllegalStateException("Maximum retry number exceeded while waiting for components to be validated");
+            });
     }
 
     private static List<? extends ComponentNode> componentsInValidatingState(List<? extends ComponentNode> componentNodes) {

@@ -64,12 +64,12 @@ public class StartFlowOperationHandler implements C2OperationHandler {
 
         C2OperationState resultState = operationState(
                 operationState,
-                switch (operationState) {
-                    case NOT_APPLIED -> NOT_APPLIED_DETAILS;
-                    case FULLY_APPLIED -> FULLY_APPLIED_DETAILS;
-                    case PARTIALLY_APPLIED -> PARTIALLY_APPLIED_DETAILS;
-                    default -> UNEXPECTED_DETAILS;
-                }
+            switch (operationState) {
+                case NOT_APPLIED -> NOT_APPLIED_DETAILS;
+                case FULLY_APPLIED -> FULLY_APPLIED_DETAILS;
+                case PARTIALLY_APPLIED -> PARTIALLY_APPLIED_DETAILS;
+                default -> UNEXPECTED_DETAILS;
+            }
         );
 
         return operationAck(operationId, resultState);
