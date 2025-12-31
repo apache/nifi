@@ -26,6 +26,7 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.util.ReflectionUtils;
 
 /**
  * Initializes a Processor using a MockProcessorInitializationContext

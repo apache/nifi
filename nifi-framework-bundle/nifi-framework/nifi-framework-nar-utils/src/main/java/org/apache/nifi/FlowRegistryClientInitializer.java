@@ -19,7 +19,6 @@ package org.apache.nifi;
 import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.init.ConfigurableComponentInitializer;
-import org.apache.nifi.init.ReflectionUtils;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.mock.MockConfigurationContext;
 import org.apache.nifi.mock.MockFlowRegistryClientInitializationContext;
@@ -28,6 +27,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.ReflectionUtils;
 
 /**
  * Initializes a FlowRegistryClient using a MockFlowRegistryClientInitializationContext;

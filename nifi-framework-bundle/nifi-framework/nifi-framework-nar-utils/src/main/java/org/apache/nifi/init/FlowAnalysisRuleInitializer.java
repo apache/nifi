@@ -26,6 +26,7 @@ import org.apache.nifi.mock.MockFlowAnalysisRuleInitializationContext;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.ReflectionUtils;
 
 /**
  * Initializes a FlowAnalysisRule using a MockFlowAnalysisRuleInitializationContext;
