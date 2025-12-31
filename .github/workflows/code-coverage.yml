@@ -34,7 +34,6 @@ permissions:
   contents: read
 
 jobs:
-  # Job 1: Unit tests and Python integration tests - produces the main coverage report
   unit-tests:
     timeout-minutes: 120
     runs-on: ubuntu-24.04
@@ -68,15 +67,13 @@ jobs:
         if: github.repository_owner == 'apache'
         with:
           files: ./nifi-code-coverage/target/site/jacoco-aggregate/jacoco.xml
-          flags: unittests
+          flags: unit-tests
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  # Job 2: Integration tests - runs all container-based integration tests
-  # Uses the same approach as integration-tests.yml but with JaCoCo coverage
   integration-tests:
     timeout-minutes: 120
     runs-on: ubuntu-24.04
-    name: Integration Tests
+    name: Run Integration Tests
     env:
       # Skip assemblies and modules covered separately by the system-tests workflow
       # Skip unit tests (surefire), run integration tests (failsafe)
@@ -121,13 +118,6 @@ jobs:
           ./mvnw --fail-fast --no-snapshot-updates --no-transfer-progress --show-version
           ${{ env.MAVEN_BUILD_ARGUMENTS }}
           ${{ env.MAVEN_BUILD_EXCLUDE_PROJECTS }}
-      - name: Find Coverage Reports
-        id: find-reports
-        if: always()
-        run: |
-          REPORTS=$(find . -path "*/target/site/jacoco/jacoco.xml" -type f | tr '\n' ',' | sed 's/,$//')
-          echo "reports=$REPORTS" >> $GITHUB_OUTPUT
-          echo "Found $(echo "$REPORTS" | tr ',' '\n' | wc -l) coverage reports"
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5
         if: github.repository_owner == 'apache' && steps.find-reports.outputs.reports != ''
@@ -135,11 +125,3 @@ jobs:
           files: ${{ steps.find-reports.outputs.reports }}
           flags: integration-tests
           token: ${{ secrets.CODECOV_TOKEN }}
-      - name: Upload Troubleshooting Logs
-        if: failure() || cancelled()
-        uses: actions/upload-artifact@v5
-        with:
-          name: integration-tests-failsafe-logs
-          path: |
-            **/target/failsafe-reports/**/*.txt
-          retention-days: 7
