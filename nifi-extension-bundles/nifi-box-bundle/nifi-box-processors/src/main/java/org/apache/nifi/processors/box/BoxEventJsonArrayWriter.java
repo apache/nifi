@@ -16,86 +16,215 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxEvent;
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
+import com.box.sdkgen.schemas.event.Event;
+import com.box.sdkgen.schemas.eventsource.EventSource;
+import com.box.sdkgen.schemas.eventsourceresource.EventSourceResource;
+import com.box.sdkgen.schemas.file.File;
+import com.box.sdkgen.schemas.folder.Folder;
+import com.box.sdkgen.schemas.foldermini.FolderMini;
+import com.box.sdkgen.schemas.user.User;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.util.Objects;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.Map;
 
 /**
- * A class responsible for writing {@link BoxEvent} objects into a JSON array.
+ * A class responsible for writing {@link Event} objects into a JSON array.
  * Not thread-safe.
  */
 final class BoxEventJsonArrayWriter implements Closeable {
 
-    private final Writer writer;
+    private static final JsonFactory JSON_FACTORY = new JsonFactory();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private final JsonGenerator generator;
     private boolean hasBegun;
-    private boolean hasEntries;
     private boolean closed;
 
-    private BoxEventJsonArrayWriter(final Writer writer) {
-        this.writer = writer;
+    private BoxEventJsonArrayWriter(final JsonGenerator generator) {
+        this.generator = generator;
         this.hasBegun = false;
-        this.hasEntries = false;
         this.closed = false;
     }
 
     static BoxEventJsonArrayWriter create(final OutputStream outputStream) throws IOException {
-        final Writer writer = new OutputStreamWriter(outputStream, UTF_8);
-        return new BoxEventJsonArrayWriter(writer);
+        final JsonGenerator generator = JSON_FACTORY.createGenerator(outputStream);
+        return new BoxEventJsonArrayWriter(generator);
     }
 
-    void write(final BoxEvent event) throws IOException {
+    void write(final Event event) throws IOException {
         if (closed) {
             throw new IOException("The Writer is closed");
         }
 
         if (!hasBegun) {
-            beginArray();
+            generator.writeStartArray();
             hasBegun = true;
         }
 
-        if (hasEntries) {
-            writer.write(',');
+        writeEvent(event);
+    }
+
+    private void writeEvent(final Event event) throws IOException {
+        generator.writeStartObject();
+
+        // Map Event fields to JSON using camelCase to match the original NiFi Box processor format
+        writeStringField("createdAt", event.getCreatedAt() != null ? event.getCreatedAt().toString() : null);
+        writeStringField("recordedAt", event.getRecordedAt() != null ? event.getRecordedAt().toString() : null);
+        writeStringField("eventType", event.getEventType() != null ? event.getEventType().getValue() : null);
+        writeStringField("id", event.getEventId());
+        writeStringField("sessionID", event.getSessionId());
+        writeStringField("type", event.getType());
+
+        // Handle createdBy if present (camelCase for field name, but inner fields match Box API)
+        if (event.getCreatedBy() != null) {
+            generator.writeObjectFieldStart("createdBy");
+            writeStringField("id", event.getCreatedBy().getId());
+            writeStringField("type", event.getCreatedBy().getType() != null ? event.getCreatedBy().getType().getValue() : null);
+            writeStringField("name", event.getCreatedBy().getName());
+            writeStringField("login", event.getCreatedBy().getLogin());
+            generator.writeEndObject();
+        } else {
+            generator.writeNullField("createdBy");
         }
 
-        final JsonObject json = toRecord(event);
-        json.writeTo(writer);
+        // Handle source if present - use snake_case for inner fields to match Box API format
+        writeSource(event.getSource());
 
-        hasEntries = true;
+        // Handle additionalDetails if present - serialize as proper JSON object
+        writeAdditionalDetails(event.getAdditionalDetails());
+
+        generator.writeEndObject();
     }
 
-    private JsonObject toRecord(final BoxEvent event) {
-        final JsonObject json = Json.object();
+    private void writeSource(final EventSourceResource source) throws IOException {
+        if (source == null) {
+            generator.writeNullField("source");
+            return;
+        }
 
-        json.add("accessibleBy", event.getAccessibleBy() == null ? Json.NULL : Json.parse(event.getAccessibleBy().getJson()));
-        json.add("actionBy", event.getActionBy() == null ? Json.NULL : Json.parse(event.getActionBy().getJson()));
-        json.add("additionalDetails", Objects.requireNonNullElse(event.getAdditionalDetails(), Json.NULL));
-        json.add("createdAt", event.getCreatedAt() == null ? Json.NULL : Json.value(event.getCreatedAt().toString()));
-        json.add("createdBy", event.getCreatedBy() == null ? Json.NULL : Json.parse(event.getCreatedBy().getJson()));
-        json.add("eventType", event.getEventType() == null ? Json.NULL : Json.value(event.getEventType().name()));
-        json.add("id", Objects.requireNonNullElse(Json.value(event.getID()), Json.NULL));
-        json.add("ipAddress", Objects.requireNonNullElse(Json.value(event.getIPAddress()), Json.NULL));
-        json.add("sessionID", Objects.requireNonNullElse(Json.value(event.getSessionID()), Json.NULL));
-        json.add("source", Objects.requireNonNullElse(event.getSourceJSON(), Json.NULL));
-        json.add("typeName", Objects.requireNonNullElse(Json.value(event.getTypeName()), Json.NULL));
-
-        return json;
+        generator.writeObjectFieldStart("source");
+        try {
+            // EventSourceResource is a union type (OneOfSix) - check what kind of source we have
+            if (source.isFile()) {
+                // File source - contains file_id, file_name, and parent folder info
+                File file = source.getFile();
+                writeStringField("item_type", "file");
+                writeStringField("item_id", file.getId());
+                writeStringField("item_name", file.getName());
+                // Add file-specific fields for collaboration events
+                writeStringField("file_id", file.getId());
+                writeStringField("file_name", file.getName());
+                // Add parent folder info if available
+                FolderMini parent = file.getParent();
+                if (parent != null) {
+                    writeStringField("folder_id", parent.getId());
+                    writeStringField("folder_name", parent.getName());
+                }
+            } else if (source.isFolder()) {
+                // Folder source - contains folder_id, folder_name
+                Folder folder = source.getFolder();
+                writeStringField("item_type", "folder");
+                writeStringField("item_id", folder.getId());
+                writeStringField("item_name", folder.getName());
+                // Add folder-specific fields for collaboration events
+                writeStringField("folder_id", folder.getId());
+                writeStringField("folder_name", folder.getName());
+            } else if (source.isEventSource()) {
+                // Generic EventSource - has item_type, item_id, item_name
+                EventSource eventSource = source.getEventSource();
+                String itemType = eventSource.getItemType() != null ? eventSource.getItemType().getValue() : null;
+                writeStringField("item_type", itemType);
+                writeStringField("item_id", eventSource.getItemId());
+                writeStringField("item_name", eventSource.getItemName());
+                // For EventSource, also populate file/folder specific fields based on item_type
+                if ("file".equals(itemType)) {
+                    writeStringField("file_id", eventSource.getItemId());
+                    writeStringField("file_name", eventSource.getItemName());
+                } else if ("folder".equals(itemType)) {
+                    writeStringField("folder_id", eventSource.getItemId());
+                    writeStringField("folder_name", eventSource.getItemName());
+                }
+                // Add parent folder info if available
+                FolderMini parent = eventSource.getParent();
+                if (parent != null) {
+                    writeStringField("parent_id", parent.getId());
+                    writeStringField("parent_name", parent.getName());
+                }
+            } else if (source.isUser()) {
+                // User source
+                User user = source.getUser();
+                writeStringField("item_type", "user");
+                writeStringField("id", user.getId());
+                writeStringField("name", user.getName());
+                writeStringField("login", user.getLogin());
+            } else if (source.isMap()) {
+                // Generic map - write all entries
+                Map<String, Object> map = source.getMap();
+                for (Map.Entry<String, Object> entry : map.entrySet()) {
+                    Object value = entry.getValue();
+                    if (value != null) {
+                        generator.writeFieldName(entry.getKey());
+                        generator.writeObject(value);
+                    }
+                }
+            } else if (source.isAppItemEventSource()) {
+                // AppItemEventSource
+                writeStringField("item_type", "app_item");
+            } else {
+                writeStringField("item_type", "unknown");
+            }
+        } catch (Exception e) {
+            writeStringField("error", "Could not serialize source: " + e.getMessage());
+        }
+        generator.writeEndObject();
     }
 
-    private void beginArray() throws IOException {
-        writer.write('[');
+    private void writeAdditionalDetails(final Map<String, Object> additionalDetails) throws IOException {
+        if (additionalDetails == null) {
+            generator.writeNullField("additionalDetails");
+            return;
+        }
+
+        try {
+            // Write additionalDetails as a proper JSON object, not a string
+            generator.writeFieldName("additionalDetails");
+            generator.writeStartObject();
+            for (Map.Entry<String, Object> entry : additionalDetails.entrySet()) {
+                String key = entry.getKey();
+                Object value = entry.getValue();
+                if (value == null) {
+                    generator.writeNullField(key);
+                } else if (value instanceof String) {
+                    generator.writeStringField(key, (String) value);
+                } else if (value instanceof Number) {
+                    generator.writeNumberField(key, ((Number) value).doubleValue());
+                } else if (value instanceof Boolean) {
+                    generator.writeBooleanField(key, (Boolean) value);
+                } else if (value instanceof Map) {
+                    // Nested map - use ObjectMapper to serialize
+                    generator.writeFieldName(key);
+                    generator.writeRawValue(OBJECT_MAPPER.writeValueAsString(value));
+                } else {
+                    // For other types, convert to string
+                    generator.writeStringField(key, value.toString());
+                }
+            }
+            generator.writeEndObject();
+        } catch (Exception e) {
+            generator.writeNullField("additionalDetails");
+        }
     }
 
-    private void endArray() throws IOException {
-        writer.write(']');
+    private void writeStringField(final String fieldName, final String value) throws IOException {
+        if (value != null) {
+            generator.writeStringField(fieldName, value);
+        } else {
+            generator.writeNullField(fieldName);
+        }
     }
 
     @Override
@@ -107,10 +236,10 @@ final class BoxEventJsonArrayWriter implements Closeable {
         closed = true;
 
         if (!hasBegun) {
-            beginArray();
+            generator.writeStartArray();
         }
-        endArray();
+        generator.writeEndArray();
 
-        writer.close();
+        generator.close();
     }
 }

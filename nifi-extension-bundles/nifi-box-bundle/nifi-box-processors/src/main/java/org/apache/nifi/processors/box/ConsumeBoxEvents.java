@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxEvent;
-import com.box.sdk.EventListener;
-import com.box.sdk.EventStream;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.events.GetEventsQueryParams;
+import com.box.sdkgen.managers.events.GetEventsQueryParamsStreamTypeField;
+import com.box.sdkgen.schemas.event.Event;
+import com.box.sdkgen.schemas.events.Events;
+import com.box.sdkgen.schemas.events.EventsNextStreamPositionField;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -52,8 +54,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -73,6 +78,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class ConsumeBoxEvents extends AbstractBoxProcessor implements VerifiableProcessor {
 
     private static final String POSITION_KEY = "position";
+    private static final long POLL_INTERVAL_MS = 5000;
 
     public static final PropertyDescriptor QUEUE_CAPACITY = new PropertyDescriptor.Builder()
             .name("Queue Capacity")
@@ -98,10 +104,10 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
-    private volatile BoxAPIConnection boxAPIConnection;
-    private volatile EventStream eventStream;
-    protected volatile BlockingQueue<BoxEvent> events;
-    private volatile AtomicLong position = new AtomicLong(0);
+    private volatile BoxClient boxClient;
+    protected volatile BlockingQueue<Event> events;
+    private volatile AtomicReference<String> position = new AtomicReference<>("0");
+    private volatile ScheduledExecutorService pollingExecutor;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -116,15 +122,12 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
 
         try {
-            final String position = context.getStateManager().getState(Scope.CLUSTER).get(POSITION_KEY);
-            if (position == null) {
-                eventStream = new EventStream(boxAPIConnection);
-            } else {
-                // we resume from the last known position
-                eventStream = new EventStream(boxAPIConnection, Long.parseLong(position));
+            final String savedPosition = context.getStateManager().getState(Scope.CLUSTER).get(POSITION_KEY);
+            if (savedPosition != null) {
+                position.set(savedPosition);
             }
         } catch (Exception e) {
             throw new ProcessException("Could not retrieve last event position", e);
@@ -135,47 +138,71 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
             events = new LinkedBlockingQueue<>(queueCapacity);
         } else {
             // create new one with events from the old queue in case capacity has changed
-            final BlockingQueue<BoxEvent> newQueue = new LinkedBlockingQueue<>(queueCapacity);
+            final BlockingQueue<Event> newQueue = new LinkedBlockingQueue<>(queueCapacity);
             newQueue.addAll(events);
             events = newQueue;
         }
 
-        eventStream.addListener(new EventListener() {
+        // Start polling for events in a background thread
+        pollingExecutor = Executors.newSingleThreadScheduledExecutor();
+        pollingExecutor.scheduleWithFixedDelay(() -> {
+            try {
+                pollEvents(context);
+            } catch (Exception e) {
+                getLogger().warn("Error polling Box events", e);
+            }
+        }, 0, POLL_INTERVAL_MS, TimeUnit.MILLISECONDS);
+    }
 
-            @Override
-            public void onEvent(BoxEvent event) {
-                try {
-                    events.put(event);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException("Interrupted while trying to put the event into the queue", e);
+    private void pollEvents(final ProcessContext context) {
+        try {
+            final GetEventsQueryParams queryParams = new GetEventsQueryParams.Builder()
+                    .streamPosition(position.get())
+                    .streamType(GetEventsQueryParamsStreamTypeField.ALL)
+                    .build();
+
+            final Events eventResult = boxClient.getEvents().getEvents(queryParams);
+
+            if (eventResult.getEntries() != null) {
+                for (Event event : eventResult.getEntries()) {
+                    events.offer(event);
                 }
             }
 
-            @Override
-            public void onNextPosition(long pos) {
+            final String newPosition = extractStreamPosition(eventResult.getNextStreamPosition());
+            if (newPosition != null) {
+                position.set(newPosition);
                 try {
-                    context.getStateManager().setState(Map.of(POSITION_KEY, String.valueOf(pos)), Scope.CLUSTER);
-                    position.set(pos);
+                    context.getStateManager().setState(Map.of(POSITION_KEY, newPosition), Scope.CLUSTER);
                 } catch (IOException e) {
-                    getLogger().warn("Failed to save position {} in processor state", pos, e);
+                    getLogger().warn("Failed to save position {} in processor state", newPosition, e);
                 }
             }
+        } catch (Exception e) {
+            getLogger().warn("An error occurred while polling Box events. Last tracked position {}", position.get(), e);
+        }
+    }
 
-            @Override
-            public boolean onException(Throwable e) {
-                getLogger().warn("An error has been received from the stream. Last tracked position {}", position.get(), e);
-                return true;
-            }
-
-        });
-
-        eventStream.start();
+    /**
+     * Extracts the stream position value from EventsNextStreamPositionField.
+     * The field can contain either a String or Long value.
+     */
+    private String extractStreamPosition(final EventsNextStreamPositionField positionField) {
+        if (positionField == null) {
+            return null;
+        }
+        if (positionField.isString()) {
+            return positionField.getString();
+        } else if (positionField.isLongNumber()) {
+            return String.valueOf(positionField.getLongNumber());
+        }
+        return null;
     }
 
     @OnStopped
     public void stopped() {
-        if (eventStream != null && eventStream.isStarted()) {
-            eventStream.stop();
+        if (pollingExecutor != null && !pollingExecutor.isShutdown()) {
+            pollingExecutor.shutdownNow();
         }
     }
 
@@ -184,10 +211,16 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
         BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
 
         try {
-            boxAPIConnection.refresh();
+            // Try to get events to verify the connection
+            final GetEventsQueryParams queryParams = new GetEventsQueryParams.Builder()
+                    .limit(1L)
+                    .streamType(GetEventsQueryParamsStreamTypeField.ALL)
+                    .build();
+            boxClient.getEvents().getEvents(queryParams);
+
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Box API Connection")
                     .outcome(Outcome.SUCCESSFUL)
@@ -213,12 +246,12 @@ public class ConsumeBoxEvents extends AbstractBoxProcessor implements Verifiable
         }
 
         final FlowFile flowFile = session.create();
-        final List<BoxEvent> boxEvents = new ArrayList<>();
+        final List<Event> boxEvents = new ArrayList<>();
         final int recordCount = events.drainTo(boxEvents);
 
         try (final OutputStream out = session.write(flowFile);
              final BoxEventJsonArrayWriter writer = BoxEventJsonArrayWriter.create(out)) {
-            for (BoxEvent event : boxEvents) {
+            for (Event event : boxEvents) {
                 writer.write(event);
             }
         } catch (Exception e) {

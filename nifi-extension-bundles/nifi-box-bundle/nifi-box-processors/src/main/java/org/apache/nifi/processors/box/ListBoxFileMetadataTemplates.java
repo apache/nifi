@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.Metadata;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.schemas.metadata.Metadata;
+import com.box.sdkgen.schemas.metadatas.Metadatas;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -104,7 +103,7 @@ public class ListBoxFileMetadataTemplates extends AbstractBoxProcessor {
             FILE_ID
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -120,7 +119,7 @@ public class ListBoxFileMetadataTemplates extends AbstractBoxProcessor {
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -133,41 +132,31 @@ public class ListBoxFileMetadataTemplates extends AbstractBoxProcessor {
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
-            final BoxFile boxFile = getBoxFile(fileId);
+            final Metadatas metadatas = getFileMetadata(fileId);
 
             final List<Map<String, Object>> templatesList = new ArrayList<>();
-            final Iterable<Metadata> metadataList = boxFile.getAllMetadata();
-            final Iterator<Metadata> iterator = metadataList.iterator();
             final Set<String> templateNames = new LinkedHashSet<>();
 
-            if (!iterator.hasNext()) {
+            if (metadatas.getEntries() == null || metadatas.getEntries().isEmpty()) {
                 flowFile = session.putAttribute(flowFile, "box.file.id", fileId);
                 flowFile = session.putAttribute(flowFile, "box.metadata.templates.count", "0");
                 session.transfer(flowFile, REL_SUCCESS);
                 return;
             }
 
-            while (iterator.hasNext()) {
-                final Metadata metadata = iterator.next();
+            for (final Metadata metadata : metadatas.getEntries()) {
                 final Map<String, Object> templateFields = new HashMap<>();
+                final String templateName = metadata.getTemplate();
 
-                templateNames.add(metadata.getTemplateName());
+                if (templateName != null) {
+                    templateNames.add(templateName);
+                }
 
                 // Add standard metadata fields
-                templateFields.put("$id", metadata.getID());
-                templateFields.put("$type", metadata.getTypeName());
-                templateFields.put("$parent", "file_" + fileId); // match the Box API format
-                templateFields.put("$template", metadata.getTemplateName());
+                templateFields.put("$parent", metadata.getParent());
+                templateFields.put("$template", templateName);
                 templateFields.put("$scope", metadata.getScope());
-
-                // Add all dynamic fields from the metadata
-                for (final String fieldName : metadata.getPropertyPaths()) {
-                    if (metadata.getValue(fieldName) != null) {
-                        String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
-                        String fieldValue = metadata.getValue(fieldName).asString();
-                        templateFields.put(cleanFieldName, fieldValue);
-                    }
-                }
+                templateFields.put("$version", metadata.getVersion());
 
                 templatesList.add(templateFields);
             }
@@ -198,10 +187,11 @@ public class ListBoxFileMetadataTemplates extends AbstractBoxProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             }
 
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        } catch (final BoxAPIError e) {
+            final int statusCode = e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0;
+            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(statusCode));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            if (e.getResponseCode() == 404) {
+            if (statusCode == 404) {
                 getLogger().warn("Box file with ID {} was not found.", fileId);
                 session.transfer(flowFile, REL_NOT_FOUND);
             } else {
@@ -216,12 +206,12 @@ public class ListBoxFileMetadataTemplates extends AbstractBoxProcessor {
     }
 
     /**
-     * Returns a BoxFile object for the given file ID.
+     * Returns all metadata for a file.
      *
      * @param fileId The ID of the file.
-     * @return A BoxFile object for the given file ID.
+     * @return The metadata for the file.
      */
-    BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
+    Metadatas getFileMetadata(final String fileId) {
+        return boxClient.getFileMetadata().getFileMetadata(fileId);
     }
 }

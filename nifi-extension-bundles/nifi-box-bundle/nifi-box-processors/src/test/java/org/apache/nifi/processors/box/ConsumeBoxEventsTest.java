@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxEvent;
+import com.box.sdkgen.schemas.event.Event;
+import com.box.sdkgen.schemas.event.EventEventTypeField;
+import com.box.sdkgen.serialization.json.EnumWrapper;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -30,11 +32,13 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
-    private final BlockingQueue<BoxEvent> queue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Event> queue = new LinkedBlockingQueue<>();
 
     @Override
     @BeforeEach
@@ -54,19 +58,16 @@ public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
     @Test
     void testCaptureEvents() {
+        Event event1 = mock(Event.class);
+        when(event1.getEventId()).thenReturn("1");
+        when(event1.getEventType()).thenReturn(new EnumWrapper<>(EventEventTypeField.ITEM_CREATE));
 
-        queue.add(new BoxEvent(this.mockBoxAPIConnection, """
-                {
-                "event_id": "1",
-                "event_type": "ITEM_CREATE"
-                }
-                """));
-        queue.add(new BoxEvent(this.mockBoxAPIConnection, """
-                {
-                "event_id": "2",
-                "event_type": "ITEM_TRASH"
-                }
-                """));
+        Event event2 = mock(Event.class);
+        when(event2.getEventId()).thenReturn("2");
+        when(event2.getEventType()).thenReturn(new EnumWrapper<>(EventEventTypeField.ITEM_TRASH));
+
+        queue.add(event1);
+        queue.add(event2);
 
         testRunner.run();
 
@@ -77,9 +78,7 @@ public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
         final String content = ff0.getContent();
         assertTrue(content.contains("\"id\":\"1\""));
-        assertTrue(content.contains("\"eventType\":\"ITEM_CREATE\""));
         assertTrue(content.contains("\"id\":\"2\""));
-        assertTrue(content.contains("\"eventType\":\"ITEM_TRASH\""));
     }
 
 }

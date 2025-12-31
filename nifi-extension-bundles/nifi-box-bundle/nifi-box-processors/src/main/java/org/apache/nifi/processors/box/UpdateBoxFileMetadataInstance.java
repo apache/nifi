@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.Metadata;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.filemetadata.GetFileMetadataByIdScope;
+import com.box.sdkgen.managers.filemetadata.UpdateFileMetadataByIdRequestBody;
+import com.box.sdkgen.managers.filemetadata.UpdateFileMetadataByIdRequestBodyOpField;
+import com.box.sdkgen.managers.filemetadata.UpdateFileMetadataByIdScope;
+import com.box.sdkgen.schemas.metadatafull.MetadataFull;
+import com.box.sdkgen.schemas.metadatainstancevalue.MetadataInstanceValue;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -45,7 +49,9 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -135,7 +141,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
             REL_TEMPLATE_NOT_FOUND
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -151,7 +157,7 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -166,7 +172,6 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
 
         try {
-            final BoxFile boxFile = getBoxFile(fileId);
             final Map<String, Object> desiredState = readDesiredState(session, flowFile, recordReaderFactory);
 
             if (desiredState.isEmpty()) {
@@ -175,12 +180,12 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
                 return;
             }
 
-            final Metadata metadata = getMetadata(boxFile, templateKey);
-            updateMetadata(metadata, desiredState);
+            final MetadataFull currentMetadata = getMetadata(fileId, templateKey);
+            final List<UpdateFileMetadataByIdRequestBody> operations = buildUpdateOperations(currentMetadata, desiredState);
 
-            if (!metadata.getOperations().isEmpty()) {
-                getLogger().info("Updating {} metadata fields for file {}", metadata.getOperations().size(), fileId);
-                updateBoxFileMetadata(boxFile, metadata);
+            if (!operations.isEmpty()) {
+                getLogger().info("Updating {} metadata fields for file {}", operations.size(), fileId);
+                updateBoxFileMetadata(fileId, templateKey, operations);
             }
 
             final Map<String, String> attributes = Map.of(
@@ -191,11 +196,12 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
             session.getProvenanceReporter().modifyAttributes(flowFile, "%s%s/metadata/enterprise/%s".formatted(BoxFileUtils.BOX_URL, fileId, templateKey));
             session.transfer(flowFile, REL_SUCCESS);
 
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        } catch (final BoxAPIError e) {
+            final int statusCode = e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0;
+            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(statusCode));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            final String errorBody = e.getResponse();
-            if (errorBody != null && errorBody.toLowerCase().contains("specified metadata template not found")) {
+            final String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.toLowerCase().contains("specified metadata template not found")) {
                 getLogger().warn("Box metadata template with key {} was not found.", templateKey);
                 session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
             } else {
@@ -236,17 +242,26 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
         return desiredState;
     }
 
-    private void updateMetadata(final Metadata metadata,
-                                final Map<String, Object> desiredState) {
-        final List<String> currentKeys = metadata.getPropertyPaths();
+    private List<UpdateFileMetadataByIdRequestBody> buildUpdateOperations(final MetadataFull currentMetadata,
+                                                                          final Map<String, Object> desiredState) {
+        final List<UpdateFileMetadataByIdRequestBody> operations = new ArrayList<>();
+
+        // Get current field names from extra data
+        final Set<String> currentKeys = new HashSet<>();
+        final Map<String, Object> extraData = currentMetadata.getExtraData();
+        if (extraData != null) {
+            currentKeys.addAll(extraData.keySet());
+        }
 
         // Remove fields not in desired state
-        for (final String propertyPath : currentKeys) {
-            final String fieldName = propertyPath.substring(1); // Remove leading '/'
-
+        for (final String fieldName : currentKeys) {
             if (!desiredState.containsKey(fieldName)) {
-                metadata.remove(propertyPath);
+                final String path = "/" + fieldName;
                 getLogger().debug("Removing metadata field: {}", fieldName);
+                operations.add(new UpdateFileMetadataByIdRequestBody.Builder()
+                        .op(UpdateFileMetadataByIdRequestBodyOpField.REMOVE)
+                        .path(path)
+                        .build());
             }
         }
 
@@ -254,88 +269,89 @@ public class UpdateBoxFileMetadataInstance extends AbstractBoxProcessor {
         for (final Map.Entry<String, Object> entry : desiredState.entrySet()) {
             final String fieldName = entry.getKey();
             final Object value = entry.getValue();
-            final String propertyPath = "/" + fieldName;
+            final String path = "/" + fieldName;
+            final boolean exists = currentKeys.contains(fieldName);
 
-            updateField(metadata, propertyPath, value, currentKeys.contains(propertyPath));
+            final UpdateFileMetadataByIdRequestBody operation = buildFieldOperation(path, value, exists, extraData);
+            if (operation != null) {
+                operations.add(operation);
+            }
         }
+
+        return operations;
     }
 
-    private void updateField(final Metadata metadata,
-                             final String propertyPath,
-                             final Object value,
-                             final boolean exists) {
+    private UpdateFileMetadataByIdRequestBody buildFieldOperation(final String path,
+                                                                  final Object value,
+                                                                  final boolean exists,
+                                                                  final Map<String, Object> extraData) {
         if (value == null) {
-            throw new IllegalArgumentException("Null value found for property path: " + propertyPath);
+            throw new IllegalArgumentException("Null value found for property path: " + path);
         }
 
-        if (exists) {
-            final Object currentValue = metadata.getValue(propertyPath);
-
-            // Only update if values are different
+        // If exists, check if values are different
+        if (exists && extraData != null) {
+            final String fieldName = path.substring(1);
+            final Object currentValue = extraData.get(fieldName);
             if (Objects.equals(currentValue, value)) {
-                return;
-            }
-
-            // Update
-            switch (value) {
-                case Number n -> metadata.replace(propertyPath, n.doubleValue());
-                case List<?> l -> metadata.replace(propertyPath, convertListToStringList(l, propertyPath));
-                case LocalDate d -> metadata.replace(propertyPath, BoxDate.of(d).format());
-                default -> metadata.replace(propertyPath, value.toString());
-            }
-        } else {
-            // Add new field
-            switch (value) {
-                case Number n -> metadata.add(propertyPath, n.doubleValue());
-                case List<?> l -> metadata.add(propertyPath, convertListToStringList(l, propertyPath));
-                case LocalDate d -> metadata.add(propertyPath, BoxDate.of(d).format());
-                default -> metadata.add(propertyPath, value.toString());
+                return null; // No change needed
             }
         }
+
+        final MetadataInstanceValue metadataValue = convertToMetadataInstanceValue(value, path);
+
+        // Box API uses replace for both adding new fields and updating existing fields
+        return new UpdateFileMetadataByIdRequestBody.Builder()
+                .op(UpdateFileMetadataByIdRequestBodyOpField.REPLACE)
+                .path(path)
+                .value(metadataValue)
+                .build();
     }
 
-    private List<String> convertListToStringList(final List<?> list,
-                                                 final String fieldName) {
-        return list.stream()
-                .map(obj -> {
-                    if (obj == null) {
-                        throw new IllegalArgumentException("Null value found in list for field: " + fieldName);
-                    }
-                    return obj.toString();
-                })
-                .collect(Collectors.toList());
+    private MetadataInstanceValue convertToMetadataInstanceValue(final Object value, final String path) {
+        if (value instanceof Number n) {
+            if (value instanceof Double || value instanceof Float) {
+                return new MetadataInstanceValue(n.doubleValue());
+            } else {
+                return new MetadataInstanceValue(n.longValue());
+            }
+        } else if (value instanceof List<?> l) {
+            final List<String> stringList = l.stream()
+                    .map(obj -> {
+                        if (obj == null) {
+                            throw new IllegalArgumentException("Null value found in list for field: " + path);
+                        }
+                        return obj.toString();
+                    })
+                    .collect(Collectors.toList());
+            return new MetadataInstanceValue(stringList);
+        } else if (value instanceof LocalDate d) {
+            return new MetadataInstanceValue(BoxDate.of(d).format());
+        } else {
+            return new MetadataInstanceValue(value.toString());
+        }
     }
 
     /**
      * Retrieves the metadata for a Box file.
      * Visible for testing purposes.
      *
-     * @param boxFile     The Box file to retrieve metadata from.
+     * @param fileId      The ID of the file.
      * @param templateKey The key of the metadata template.
      * @return The metadata for the Box file.
      */
-    Metadata getMetadata(final BoxFile boxFile,
-                         final String templateKey) {
-        return boxFile.getMetadata(templateKey);
-    }
-
-    /**
-     * Returns a BoxFile object for the given file ID.
-     *
-     * @param fileId The ID of the file.
-     * @return A BoxFile object for the given file ID.
-     */
-    BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
+    MetadataFull getMetadata(final String fileId, final String templateKey) {
+        return boxClient.getFileMetadata().getFileMetadataById(fileId, GetFileMetadataByIdScope.ENTERPRISE, templateKey);
     }
 
     /**
      * Updates the metadata for a Box file.
      *
-     * @param boxFile  The Box file to update.
-     * @param metadata The metadata to update.
+     * @param fileId      The ID of the file.
+     * @param templateKey The key of the metadata template.
+     * @param operations  The list of update operations.
      */
-    void updateBoxFileMetadata(final BoxFile boxFile, final Metadata metadata) {
-        boxFile.updateMetadata(metadata);
+    void updateBoxFileMetadata(final String fileId, final String templateKey, final List<UpdateFileMetadataByIdRequestBody> operations) {
+        boxClient.getFileMetadata().updateFileMetadataById(fileId, UpdateFileMetadataByIdScope.ENTERPRISE, templateKey, operations);
     }
 }

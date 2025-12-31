@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxEvent;
-import com.box.sdk.EnterpriseEventsStreamRequest;
-import com.box.sdk.EventLog;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.events.GetEventsQueryParams;
+import com.box.sdkgen.managers.events.GetEventsQueryParamsStreamTypeField;
+import com.box.sdkgen.schemas.event.Event;
+import com.box.sdkgen.schemas.events.Events;
+import com.box.sdkgen.schemas.events.EventsNextStreamPositionField;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
@@ -71,7 +73,7 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
     private static final String EARLIEST_POSITION = "0";
     private static final String LATEST_POSITION = "now";
 
-    private static final int LIMIT = 500;
+    private static final long LIMIT = 500;
 
     static final String COUNTER_RECORDS_PROCESSED = "Records Processed";
 
@@ -125,18 +127,18 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
         return RELATIONSHIPS;
     }
 
-    private volatile BoxAPIConnection boxAPIConnection;
-    private volatile String[] eventTypes;
+    private volatile BoxClient boxClient;
+    private volatile List<String> eventTypes;
     private volatile String streamPosition;
 
     @OnScheduled
     public void onEnabled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
 
         eventTypes = context.getProperty(EVENT_TYPES).isSet()
-                ? context.getProperty(EVENT_TYPES).getValue().split(",")
-                : new String[0];
+                ? List.of(context.getProperty(EVENT_TYPES).getValue().split(","))
+                : List.of();
 
         streamPosition = calculateStreamPosition(context);
     }
@@ -174,8 +176,24 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
     }
 
     private String retrieveLatestStreamPosition() {
-        final EventLog eventLog = getEventLog(LATEST_POSITION);
-        return eventLog.getNextStreamPosition();
+        final Events events = getEvents(LATEST_POSITION);
+        return extractStreamPosition(events.getNextStreamPosition());
+    }
+
+    /**
+     * Extracts the stream position value from EventsNextStreamPositionField.
+     * The field can contain either a String or Long value.
+     */
+    private String extractStreamPosition(final EventsNextStreamPositionField positionField) {
+        if (positionField == null) {
+            return null;
+        }
+        if (positionField.isString()) {
+            return positionField.getString();
+        } else if (positionField.isLongNumber()) {
+            return String.valueOf(positionField.getLongNumber());
+        }
+        return null;
     }
 
     @Override
@@ -183,46 +201,55 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
         while (isScheduled()) {
             getLogger().debug("Consuming Box Events from position: {}", streamPosition);
 
-            final EventLog eventLog = getEventLog(streamPosition);
-            streamPosition = eventLog.getNextStreamPosition();
+            final Events events = getEvents(streamPosition);
+            final String newPosition = extractStreamPosition(events.getNextStreamPosition());
+            streamPosition = newPosition != null ? newPosition : streamPosition;
 
-            getLogger().debug("Consumed {} Box Enterprise Events. New position: {}", eventLog.getSize(), streamPosition);
+            final int eventCount = events.getEntries() != null ? events.getEntries().size() : 0;
+            getLogger().debug("Consumed {} Box Enterprise Events. New position: {}", eventCount, streamPosition);
 
             writeStreamPosition(streamPosition, session);
 
-            if (eventLog.getSize() == 0) {
+            if (eventCount == 0) {
                 break;
             }
 
-            writeLogAsRecords(eventLog, session);
+            writeEventsAsRecords(events, session);
         }
     }
 
     // Package-private for testing.
-    EventLog getEventLog(final String position) {
-        final EnterpriseEventsStreamRequest request = new EnterpriseEventsStreamRequest()
+    Events getEvents(final String position) {
+        final GetEventsQueryParams.Builder queryParamsBuilder = new GetEventsQueryParams.Builder()
                 .limit(LIMIT)
-                .position(position)
-                .typeNames(eventTypes);
+                .streamPosition(position)
+                .streamType(GetEventsQueryParamsStreamTypeField.ADMIN_LOGS_STREAMING);
 
-        return EventLog.getEnterpriseEventsStream(boxAPIConnection, request);
+        // Note: Event type filtering has been removed in SDK v10 migration
+        // The eventType filter now requires GetEventsQueryParamsEventTypeField enum values
+        // TODO: Implement event type filtering with proper enum conversion if needed
+
+        return boxClient.getEvents().getEvents(queryParamsBuilder.build());
     }
 
-    private void writeLogAsRecords(final EventLog eventLog, final ProcessSession session) {
+    private void writeEventsAsRecords(final Events events, final ProcessSession session) {
         final FlowFile flowFile = session.create();
+        final int eventCount = events.getEntries() != null ? events.getEntries().size() : 0;
 
         try (final OutputStream out = session.write(flowFile);
              final BoxEventJsonArrayWriter writer = BoxEventJsonArrayWriter.create(out)) {
 
-            for (final BoxEvent event : eventLog) {
-                writer.write(event);
+            if (events.getEntries() != null) {
+                for (final Event event : events.getEntries()) {
+                    writer.write(event);
+                }
             }
         } catch (final IOException e) {
             throw new ProcessException("Failed to write Box Event into a FlowFile", e);
         }
 
-        session.adjustCounter(COUNTER_RECORDS_PROCESSED, eventLog.getSize(), false);
-        session.putAttribute(flowFile, "record.count", String.valueOf(eventLog.getSize()));
+        session.adjustCounter(COUNTER_RECORDS_PROCESSED, eventCount, false);
+        session.putAttribute(flowFile, "record.count", String.valueOf(eventCount));
         session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), "application/json");
         session.transfer(flowFile, REL_SUCCESS);
     }

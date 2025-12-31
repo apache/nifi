@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.box.controllerservices;
 
-import com.box.sdk.BoxAPIConnection;
+import com.box.sdkgen.box.developertokenauth.BoxDeveloperTokenAuth;
+import com.box.sdkgen.client.BoxClient;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -51,7 +52,7 @@ public class DeveloperBoxClientService extends AbstractControllerService impleme
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(DEVELOPER_TOKEN);
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -63,7 +64,7 @@ public class DeveloperBoxClientService extends AbstractControllerService impleme
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
         try {
-            createBoxApiConnection(configurationContext);
+            createBoxClient(configurationContext);
             results.add(
                     new ConfigVerificationResult.Builder()
                             .verificationStepName("Authentication")
@@ -86,16 +87,17 @@ public class DeveloperBoxClientService extends AbstractControllerService impleme
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        boxAPIConnection = createBoxApiConnection(context);
+        boxClient = createBoxClient(context);
     }
 
     @Override
-    public BoxAPIConnection getBoxApiConnection() {
-        return boxAPIConnection;
+    public BoxClient getBoxClient() {
+        return boxClient;
     }
 
-    private BoxAPIConnection createBoxApiConnection(ConfigurationContext context) {
+    private BoxClient createBoxClient(ConfigurationContext context) {
         final String devToken = context.getProperty(DEVELOPER_TOKEN).evaluateAttributeExpressions().getValue();
-        return new BoxAPIConnection(devToken);
+        final BoxDeveloperTokenAuth auth = new BoxDeveloperTokenAuth(devToken);
+        return new BoxClient(auth);
     }
 }

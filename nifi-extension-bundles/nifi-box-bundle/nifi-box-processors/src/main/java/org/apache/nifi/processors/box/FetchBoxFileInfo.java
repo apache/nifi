@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIException;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxUser;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.files.GetFileByIdQueryParams;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.usermini.UserMini;
+import com.box.sdkgen.serialization.json.EnumWrapper;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -122,7 +123,7 @@ public class FetchBoxFileInfo extends AbstractBoxProcessor {
             FILE_ID
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -137,7 +138,7 @@ public class FetchBoxFileInfo extends AbstractBoxProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -148,45 +149,45 @@ public class FetchBoxFileInfo extends AbstractBoxProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
+        if (fileId == null || fileId.isEmpty()) {
+            getLogger().error("File ID is required but was not provided. Check that the File ID property is configured correctly.");
+            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, "File ID is required but was not provided");
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
         try {
             flowFile = fetchFileMetadata(fileId, session, flowFile);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (final BoxAPIResponseException e) {
+        } catch (final BoxAPIError e) {
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getResponseCode()));
-
-            if (e.getResponseCode() == 404) {
-                getLogger().warn("Box file with ID {} was not found.", fileId);
-                session.transfer(flowFile, REL_NOT_FOUND);
-            } else {
-                getLogger().error("Failed to retrieve Box file representation for file [{}]", fileId, e);
-                session.transfer(flowFile, REL_FAILURE);
+            if (e.getResponseInfo() != null) {
+                flowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getResponseInfo().getStatusCode()));
+                if (e.getResponseInfo().getStatusCode() == 404) {
+                    getLogger().warn("Box file with ID {} was not found.", fileId);
+                    session.transfer(flowFile, REL_NOT_FOUND);
+                    return;
+                }
             }
-        } catch (final BoxAPIException e) {
+            getLogger().error("Failed to retrieve Box file representation for file [{}]", fileId, e);
+            session.transfer(flowFile, REL_FAILURE);
+        } catch (final Exception e) {
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getResponseCode()));
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
 
-    /**
-     * Fetches the BoxFile instance for a given file ID. For testing purposes.
-     *
-     * @param fileId the ID of the file
-     * @return BoxFile instance
-     */
-    protected BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
-    }
-
     private FlowFile fetchFileMetadata(final String fileId,
                                        final ProcessSession session,
                                        final FlowFile flowFile) {
-        final BoxFile boxFile = getBoxFile(fileId);
-        final BoxFile.Info fileInfo = boxFile.getInfo("name", "description", "size", "created_at", "modified_at",
-                "owned_by", "parent", "etag", "sha1", "item_status", "sequence_id", "path_collection",
-                "content_created_at", "content_modified_at", "trashed_at", "purged_at", "shared_link");
+        final GetFileByIdQueryParams queryParams = new GetFileByIdQueryParams.Builder()
+                .fields(List.of("name", "description", "size", "created_at", "modified_at",
+                        "owned_by", "parent", "etag", "sha1", "item_status", "sequence_id", "path_collection",
+                        "content_created_at", "content_modified_at", "trashed_at", "purged_at", "shared_link"))
+                .build();
+
+        final FileFull fileInfo = boxClient.getFiles().getFileById(fileId, queryParams);
 
         final Map<String, String> attributes = new HashMap<>(BoxFileUtils.createAttributeMap(fileInfo));
 
@@ -196,26 +197,26 @@ public class FetchBoxFileInfo extends AbstractBoxProcessor {
         addAttributeIfNotNull(attributes, "box.content.created.at", fileInfo.getContentCreatedAt());
         addAttributeIfNotNull(attributes, "box.content.modified.at", fileInfo.getContentModifiedAt());
         addAttributeIfNotNull(attributes, "box.item.status", fileInfo.getItemStatus());
-        addAttributeIfNotNull(attributes, "box.sequence.id", fileInfo.getSequenceID());
+        addAttributeIfNotNull(attributes, "box.sequence.id", fileInfo.getSequenceId());
         addAttributeIfNotNull(attributes, "box.created.at", fileInfo.getCreatedAt());
         addAttributeIfNotNull(attributes, "box.trashed.at", fileInfo.getTrashedAt());
         addAttributeIfNotNull(attributes, "box.purged.at", fileInfo.getPurgedAt());
         addAttributeIfNotNull(attributes, "box.path.folder.ids", BoxFileUtils.getParentIds(fileInfo));
 
         // Handle special cases
-        final BoxUser.Info owner = fileInfo.getOwnedBy();
+        final UserMini owner = fileInfo.getOwnedBy();
         if (owner != null) {
             addAttributeIfNotNull(attributes, "box.owner", owner.getName());
-            addAttributeIfNotNull(attributes, "box.owner.id", owner.getID());
+            addAttributeIfNotNull(attributes, "box.owner.id", owner.getId());
             addAttributeIfNotNull(attributes, "box.owner.login", owner.getLogin());
         }
 
         if (fileInfo.getParent() != null) {
-            attributes.put("box.parent.folder.id", fileInfo.getParent().getID());
+            attributes.put("box.parent.folder.id", fileInfo.getParent().getId());
         }
 
-        if (fileInfo.getSharedLink() != null && fileInfo.getSharedLink().getURL() != null) {
-            attributes.put("box.shared.link", fileInfo.getSharedLink().getURL());
+        if (fileInfo.getSharedLink() != null && fileInfo.getSharedLink().getUrl() != null) {
+            attributes.put("box.shared.link", fileInfo.getSharedLink().getUrl());
         }
 
         return session.putAllAttributes(flowFile, attributes);
@@ -225,7 +226,14 @@ public class FetchBoxFileInfo extends AbstractBoxProcessor {
                                        final String key,
                                        final Object value) {
         if (value != null) {
-            attributes.put(key, String.valueOf(value));
+            final String stringValue;
+            if (value instanceof EnumWrapper<?> enumWrapper) {
+                // Extract the underlying enum value from EnumWrapper
+                stringValue = String.valueOf(enumWrapper.getValue());
+            } else {
+                stringValue = String.valueOf(value);
+            }
+            attributes.put(key, stringValue);
         }
     }
 }

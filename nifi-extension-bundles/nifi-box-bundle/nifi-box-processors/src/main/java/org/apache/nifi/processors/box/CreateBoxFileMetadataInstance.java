@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.Metadata;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.filemetadata.CreateFileMetadataByIdScope;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -47,6 +46,7 @@ import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -132,7 +132,7 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
             RECORD_READER
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -148,7 +148,7 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -165,12 +165,12 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
         try (final InputStream inputStream = session.read(flowFile);
              final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, inputStream, getLogger())) {
 
-            final Metadata metadata = new Metadata();
+            final Map<String, Object> metadataValues = new HashMap<>();
             final List<String> errors = new ArrayList<>();
 
             Record record = recordReader.nextRecord();
             if (record != null) {
-                processRecord(record, metadata, errors);
+                processRecord(record, metadataValues, errors);
             } else {
                 errors.add("No records found in input");
             }
@@ -181,20 +181,20 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
                 return;
             }
 
-            if (metadata.getOperations().isEmpty()) {
+            if (metadataValues.isEmpty()) {
                 flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, "No valid metadata key-value pairs found in the input");
                 session.transfer(flowFile, REL_FAILURE);
                 return;
             }
 
-            final BoxFile boxFile = getBoxFile(fileId);
-            boxFile.createMetadata(templateKey, metadata);
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+            createFileMetadata(fileId, templateKey, metadataValues);
+        } catch (final BoxAPIError e) {
+            final int statusCode = e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0;
+            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(statusCode));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            if (e.getResponseCode() == 404) {
-                final String errorBody = e.getResponse();
-                if (errorBody != null && errorBody.toLowerCase().contains("specified metadata template not found")) {
+            if (statusCode == 404) {
+                final String errorMessage = e.getMessage();
+                if (errorMessage != null && errorMessage.toLowerCase().contains("specified metadata template not found")) {
                     getLogger().warn("Box metadata template with key {} was not found.", templateKey);
                     session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
                 } else {
@@ -222,7 +222,7 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
         session.transfer(flowFile, REL_SUCCESS);
     }
 
-    private void processRecord(Record record, Metadata metadata, List<String> errors) {
+    private void processRecord(Record record, Map<String, Object> metadataValues, List<String> errors) {
         if (record == null) {
             errors.add("No record found in input");
             return;
@@ -236,33 +236,32 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
         }
 
         for (final RecordField field : fields) {
-            addValueToMetadata(metadata, record, field);
+            addValueToMetadata(metadataValues, record, field);
         }
     }
 
-    private void addValueToMetadata(final Metadata metadata, final Record record, final RecordField field) {
+    private void addValueToMetadata(final Map<String, Object> metadataValues, final Record record, final RecordField field) {
         if (record.getValue(field) == null) {
             return;
         }
 
         final RecordFieldType fieldType = field.getDataType().getFieldType();
         final String fieldName = field.getFieldName();
-        final String path = "/" + fieldName;
 
         if (isNumber(fieldType)) {
-            metadata.add(path, record.getAsDouble(fieldName));
+            metadataValues.put(fieldName, record.getAsDouble(fieldName));
         } else if (isDate(fieldType)) {
             final LocalDate date = record.getAsLocalDate(fieldName, null);
-            metadata.add(path, BoxDate.of(date).format());
+            metadataValues.put(fieldName, BoxDate.of(date).format());
         } else if (isArray(fieldType)) {
             final List<String> values = Arrays.stream(record.getAsArray(fieldName))
                     .filter(Objects::nonNull)
                     .map(Object::toString)
                     .toList();
 
-            metadata.add(path, values);
+            metadataValues.put(fieldName, values);
         } else {
-            metadata.add(path, record.getAsString(fieldName));
+            metadataValues.put(fieldName, record.getAsString(fieldName));
         }
     }
 
@@ -281,12 +280,13 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
     }
 
     /**
-     * Returns a BoxFile object for the given file ID.
+     * Creates metadata for a file.
      *
-     * @param fileId The ID of the file.
-     * @return A BoxFile object for the given file ID.
+     * @param fileId         The ID of the file.
+     * @param templateKey    The template key of the metadata.
+     * @param metadataValues The metadata key-value pairs.
      */
-    BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
+    void createFileMetadata(final String fileId, final String templateKey, final Map<String, Object> metadataValues) {
+        boxClient.getFileMetadata().createFileMetadataById(fileId, CreateFileMetadataByIdScope.ENTERPRISE, templateKey, metadataValues);
     }
 }

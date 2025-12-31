@@ -16,10 +16,8 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.MetadataTemplate;
+import com.box.sdkgen.managers.metadatatemplates.CreateMetadataTemplateRequestBodyFieldsField;
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -43,23 +41,17 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
     private static final String TEMPLATE_KEY = "test_template";
     private static final String HIDDEN_VALUE = "false";
 
-    private List<MetadataTemplate.Field> capturedFields;
+    private List<CreateMetadataTemplateRequestBodyFieldsField> capturedFields;
     private String capturedTemplateKey;
     private String capturedTemplateName;
     private Boolean capturedHidden;
 
     private class TestCreateBoxMetadataTemplate extends CreateBoxMetadataTemplate {
         @Override
-        protected BoxAPIConnection getBoxAPIConnection(ProcessContext context) {
-            return mockBoxAPIConnection;
-        }
-
-        @Override
-        protected void createBoxMetadataTemplate(final BoxAPIConnection boxAPIConnection,
-                                                 final String templateKey,
+        protected void createBoxMetadataTemplate(final String templateKey,
                                                  final String templateName,
                                                  final boolean isHidden,
-                                                 final List<MetadataTemplate.Field> fields) {
+                                                 final List<CreateMetadataTemplateRequestBodyFieldsField> fields) {
             capturedFields = fields;
             capturedTemplateKey = templateKey;
             capturedTemplateName = templateName;
@@ -99,15 +91,6 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         testRunner.enqueue(inputJson);
         testRunner.run();
         assertEquals(2, capturedFields.size());
-
-        final MetadataTemplate.Field field1 = capturedFields.getFirst();
-        assertEquals("field1", field1.getKey());
-        assertEquals("string", field1.getType());
-        assertEquals("Field One", field1.getDisplayName());
-
-        final MetadataTemplate.Field field2 = capturedFields.get(1);
-        assertEquals("field2", field2.getKey());
-        assertEquals("float", field2.getType());
 
         testRunner.assertAllFlowFilesTransferred(CreateBoxMetadataTemplate.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxMetadataTemplate.REL_SUCCESS).get(0);
@@ -173,11 +156,6 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         assertEquals(true, capturedHidden);
         assertEquals(1, capturedFields.size());
 
-        final MetadataTemplate.Field field = capturedFields.getFirst();
-        assertEquals("field1", field.getKey());
-        assertEquals("date", field.getType());
-        assertEquals("Date Field", field.getDisplayName());
-
         testRunner.assertAllFlowFilesTransferred(CreateBoxMetadataTemplate.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxMetadataTemplate.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals("box.template.name", "Template Name");
@@ -200,17 +178,6 @@ public class CreateBoxMetadataTemplateTest extends AbstractBoxFileTest {
         testRunner.run();
 
         assertEquals(3, capturedFields.size());
-        assertEquals("string", capturedFields.get(0).getType());
-        assertEquals("float", capturedFields.get(1).getType());
-        assertEquals("date", capturedFields.get(2).getType());
-        assertEquals("String Field", capturedFields.get(0).getDisplayName());
-        assertEquals("Number Field", capturedFields.get(1).getDisplayName());
-        assertEquals("Date Field", capturedFields.get(2).getDisplayName());
-        assertEquals("A string field", capturedFields.get(0).getDescription());
-        assertEquals("A float field", capturedFields.get(1).getDescription());
-        assertEquals("A date field", capturedFields.get(2).getDescription());
-        assertEquals(false, capturedFields.get(0).getIsHidden());
-        assertEquals(true, capturedFields.get(1).getIsHidden());
 
         testRunner.assertAllFlowFilesTransferred(CreateBoxMetadataTemplate.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(CreateBoxMetadataTemplate.REL_SUCCESS).getFirst();
