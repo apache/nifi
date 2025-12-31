@@ -23,7 +23,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.box.sdk.BoxFolder;
+import com.box.sdkgen.client.BoxClient;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -50,13 +50,7 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
     @Override
     @BeforeEach
     void setUp() throws Exception {
-
-        final ListBoxFile testSubject = new ListBoxFile() {
-            @Override
-            BoxFolder getFolder(String folderId) {
-                return mockBoxFolder;
-            }
-        };
+        final ListBoxFile testSubject = new ListBoxFile();
 
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
@@ -136,7 +130,7 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
     }
 
     @Override
-    public BoxFolder getMockBoxFolder() {
-        return mockBoxFolder;
+    public BoxClient getMockBoxClient() {
+        return mockBoxClient;
     }
 }

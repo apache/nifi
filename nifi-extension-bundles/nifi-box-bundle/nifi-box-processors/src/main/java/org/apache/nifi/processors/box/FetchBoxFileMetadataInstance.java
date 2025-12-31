@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.Metadata;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.filemetadata.GetFileMetadataByIdScope;
+import com.box.sdkgen.schemas.metadatafull.MetadataFull;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -126,7 +126,7 @@ public class FetchBoxFileMetadataInstance extends AbstractBoxProcessor {
             TEMPLATE_SCOPE
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -142,7 +142,7 @@ public class FetchBoxFileMetadataInstance extends AbstractBoxProcessor {
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -157,11 +157,13 @@ public class FetchBoxFileMetadataInstance extends AbstractBoxProcessor {
         final String templateScope = context.getProperty(TEMPLATE_SCOPE).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
-            final BoxFile boxFile = getBoxFile(fileId);
-            final Metadata metadata = boxFile.getMetadata(templateKey, templateScope);
+            final GetFileMetadataByIdScope scope = "global".equalsIgnoreCase(templateScope)
+                    ? GetFileMetadataByIdScope.GLOBAL
+                    : GetFileMetadataByIdScope.ENTERPRISE;
+            final MetadataFull metadata = getFileMetadata(fileId, scope, templateKey);
 
             final Map<String, Object> instanceFields = new HashMap<>();
-            processBoxMetadataInstance(fileId, metadata, instanceFields);
+            processBoxMetadataInstance(fileId, templateScope, templateKey, metadata, instanceFields);
 
             try {
                 try (final OutputStream out = session.write(flowFile);
@@ -186,12 +188,13 @@ public class FetchBoxFileMetadataInstance extends AbstractBoxProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             }
 
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        } catch (final BoxAPIError e) {
+            final int statusCode = e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0;
+            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(statusCode));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            if (e.getResponseCode() == 404) {
-                final String errorBody = e.getResponse();
-                if (errorBody != null && errorBody.toLowerCase().contains("instance_not_found")) {
+            if (statusCode == 404) {
+                final String errorMessage = e.getMessage();
+                if (errorMessage != null && errorMessage.toLowerCase().contains("instance_not_found")) {
                     getLogger().warn("Box metadata template with key {} and scope {} was not found.", templateKey, templateScope);
                     session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
                 } else {
@@ -212,12 +215,14 @@ public class FetchBoxFileMetadataInstance extends AbstractBoxProcessor {
     }
 
     /**
-     * Returns a BoxFile object for the given file ID.
+     * Retrieves metadata for a file.
      *
-     * @param fileId The ID of the file.
-     * @return A BoxFile object for the given file ID.
+     * @param fileId      The ID of the file.
+     * @param scope       The scope of the metadata.
+     * @param templateKey The template key of the metadata.
+     * @return The metadata for the file.
      */
-    BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
+    MetadataFull getFileMetadata(final String fileId, final GetFileMetadataByIdScope scope, final String templateKey) {
+        return boxClient.getFileMetadata().getFileMetadataById(fileId, scope, templateKey);
     }
 }
