@@ -483,7 +483,10 @@ public class SplitText extends AbstractProcessor {
      * be used later to create {@link FlowFile} representing the split.
      */
     private class SplitInfo {
-        final long startOffset, length, trimmedLength, lineCount;
+        final long startOffset;
+        final long length;
+        final long trimmedLength;
+        final long lineCount;
         OffsetInfo remaningOffsetInfo;
 
         SplitInfo(long startOffset, long length, long trimmedLength, long lineCount, OffsetInfo remaningOffsetInfo) {

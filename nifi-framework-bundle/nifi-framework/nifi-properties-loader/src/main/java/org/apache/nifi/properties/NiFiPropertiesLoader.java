@@ -200,7 +200,6 @@ public class NiFiPropertiesLoader {
         private final Set<String> duplicateKeys = new HashSet<>();  // duplicate key with different values
         private final Set<String> redundantKeys = new HashSet<>();  // duplicate key with same value
         public DuplicateDetectingProperties() {
-            super();
         }
 
         public Set<String> duplicateKeySet() {

@@ -52,13 +52,21 @@ public class ControllerServiceStatus implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ControllerServiceStatus that = (ControllerServiceStatus) o;
 
-        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) return false;
-        if (getControllerServiceHealth() != null ? !getControllerServiceHealth().equals(that.getControllerServiceHealth()) : that.getControllerServiceHealth() != null) return false;
+        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
+            return false;
+        }
+        if (getControllerServiceHealth() != null ? !getControllerServiceHealth().equals(that.getControllerServiceHealth()) : that.getControllerServiceHealth() != null) {
+            return false;
+        }
         return getBulletinList() != null ? getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() == null;
 
     }

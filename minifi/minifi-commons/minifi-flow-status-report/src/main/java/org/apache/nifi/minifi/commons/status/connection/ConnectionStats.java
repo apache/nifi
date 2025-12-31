@@ -57,14 +57,24 @@ public class ConnectionStats implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ConnectionStats that = (ConnectionStats) o;
 
-        if (getInputCount() != that.getInputCount()) return false;
-        if (getInputBytes() != that.getInputBytes()) return false;
-        if (getOutputCount() != that.getOutputCount()) return false;
+        if (getInputCount() != that.getInputCount()) {
+            return false;
+        }
+        if (getInputBytes() != that.getInputBytes()) {
+            return false;
+        }
+        if (getOutputCount() != that.getOutputCount()) {
+            return false;
+        }
         return getOutputBytes() == that.getOutputBytes();
 
     }

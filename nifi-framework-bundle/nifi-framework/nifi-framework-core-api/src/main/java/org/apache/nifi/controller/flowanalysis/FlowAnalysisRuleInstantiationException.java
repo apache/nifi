@@ -18,7 +18,7 @@ package org.apache.nifi.controller.flowanalysis;
 
 public class FlowAnalysisRuleInstantiationException extends Exception {
 
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 1L;
 
     public FlowAnalysisRuleInstantiationException(final String className, final Throwable t) {
         super(className, t);

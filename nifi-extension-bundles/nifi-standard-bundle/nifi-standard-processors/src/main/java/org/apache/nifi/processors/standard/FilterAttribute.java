@@ -71,7 +71,7 @@ public class FilterAttribute extends AbstractProcessor {
             .description("All successful FlowFiles are routed to this relationship")
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS);
 
     public static final PropertyDescriptor FILTER_MODE = new PropertyDescriptor.Builder()
             .name("Filter Mode")
@@ -109,14 +109,14 @@ public class FilterAttribute extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             FILTER_MODE,
             MATCHING_STRATEGY,
             ATTRIBUTE_ENUMERATION,
             ATTRIBUTE_PATTERN
     );
 
-    private final static String DELIMITER_VALUE = ",";
+    private static final String DELIMITER_VALUE = ",";
 
     private volatile Predicate<String> cachedMatchingPredicate;
 

@@ -779,8 +779,8 @@ public class ResultSetRecordSetTest {
     }
 
     private static class ArrayTestData {
-        final private String fieldName;
-        final private Object[] testArray;
+        private final String fieldName;
+        private final Object[] testArray;
 
         public ArrayTestData(String fieldName, Object[] testArray) {
             this.fieldName = fieldName;

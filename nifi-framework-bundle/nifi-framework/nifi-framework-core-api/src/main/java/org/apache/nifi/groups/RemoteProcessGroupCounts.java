@@ -18,7 +18,8 @@ package org.apache.nifi.groups;
 
 public class RemoteProcessGroupCounts {
 
-    private final int inputPortCount, outputPortCount;
+    private final int inputPortCount;
+    private final int outputPortCount;
 
     public RemoteProcessGroupCounts(int inputPortCount, int outputPortCount) {
         this.inputPortCount = inputPortCount;

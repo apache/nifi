@@ -1236,7 +1236,9 @@ class TestJsonTreeRowRecordReader {
                     StartingFieldStrategy.NESTED_FIELD, startingFieldName, SchemaApplicationStrategy.SELECTED_PART,
                     capturePredicate, false, null);
 
-            while (reader.nextRecord() != null);
+            while (reader.nextRecord() != null) {
+                // continue reading
+            }
             Map<String, String> capturedFields = reader.getCapturedFields();
 
             assertEquals(expectedCapturedFields, capturedFields);

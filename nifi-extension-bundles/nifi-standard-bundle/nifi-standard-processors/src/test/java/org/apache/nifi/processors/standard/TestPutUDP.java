@@ -43,17 +43,17 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 @Timeout(10)
 public class TestPutUDP {
 
-    private final static String UDP_SERVER_ADDRESS = "127.0.0.1";
-    private final static String SERVER_VARIABLE = "SERVER";
+    private static final String UDP_SERVER_ADDRESS = "127.0.0.1";
+    private static final String SERVER_VARIABLE = "SERVER";
     private static final String DELIMITER = "\n";
     private static final Charset CHARSET = StandardCharsets.UTF_8;
-    private final static int MAX_FRAME_LENGTH = 32800;
-    private final static int VALID_LARGE_FILE_SIZE = 32768;
-    private final static int INVALID_LARGE_FILE_SIZE = 1_000_000;
-    private final static char CONTENT_CHAR = 'x';
-    private final static int DATA_WAIT_PERIOD = 50;
-    private final static String[] EMPTY_FILE = {""};
-    private final static String[] VALID_FILES = {"FIRST", "SECOND", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\"};
+    private static final int MAX_FRAME_LENGTH = 32800;
+    private static final int VALID_LARGE_FILE_SIZE = 32768;
+    private static final int INVALID_LARGE_FILE_SIZE = 1_000_000;
+    private static final char CONTENT_CHAR = 'x';
+    private static final int DATA_WAIT_PERIOD = 50;
+    private static final String[] EMPTY_FILE = {""};
+    private static final String[] VALID_FILES = {"FIRST", "SECOND", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\"};
 
     private TestRunner runner;
     private int port;

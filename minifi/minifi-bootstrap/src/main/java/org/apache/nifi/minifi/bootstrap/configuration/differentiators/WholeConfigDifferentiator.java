@@ -29,7 +29,7 @@ public abstract class WholeConfigDifferentiator {
 
     public static final String WHOLE_CONFIG_KEY = "Whole Config";
 
-    private final static Logger logger = LoggerFactory.getLogger(WholeConfigDifferentiator.class);
+    private static final Logger logger = LoggerFactory.getLogger(WholeConfigDifferentiator.class);
 
     protected volatile ConfigurationFileHolder configurationFileHolder;
 

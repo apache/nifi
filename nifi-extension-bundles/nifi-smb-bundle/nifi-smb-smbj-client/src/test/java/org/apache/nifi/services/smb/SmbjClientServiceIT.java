@@ -60,8 +60,8 @@ import org.testcontainers.utility.DockerImageName;
 
 public class SmbjClientServiceIT {
 
-    private final static Logger sambaContainerLogger = LoggerFactory.getLogger("sambaContainer");
-    private final static Logger toxyProxyLogger = LoggerFactory.getLogger("toxiProxy");
+    private static final Logger sambaContainerLogger = LoggerFactory.getLogger("sambaContainer");
+    private static final Logger toxyProxyLogger = LoggerFactory.getLogger("toxiProxy");
 
     private final Network network = Network.newNetwork();
 

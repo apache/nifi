@@ -154,7 +154,7 @@ public class ExtractGrok extends AbstractProcessor {
         .defaultValue("false")
         .build();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             GROK_EXPRESSION,
             GROK_PATTERNS,
             DESTINATION,
@@ -174,7 +174,7 @@ public class ExtractGrok extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship when no provided Grok Expression matches the content of the FlowFile")
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_MATCH,
             REL_NO_MATCH
     );

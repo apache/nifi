@@ -87,8 +87,8 @@ import java.util.concurrent.locks.ReentrantLock;
 })
 public class ExecuteProcess extends AbstractProcessor {
 
-    final static String ATTRIBUTE_COMMAND = "command";
-    final static String ATTRIBUTE_COMMAND_ARGS = "command.arguments";
+    static final String ATTRIBUTE_COMMAND = "command";
+    static final String ATTRIBUTE_COMMAND_ARGS = "command.arguments";
 
     public static final PropertyDescriptor COMMAND = new PropertyDescriptor.Builder()
             .name("Command")

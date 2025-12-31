@@ -102,11 +102,11 @@ public class TestListenHTTP {
     private static final MediaType APPLICATION_OCTET_STREAM = MediaType.get("application/octet-stream");
     private static final String HTTP_BASE_PATH = "basePath";
 
-    private final static String PORT_VARIABLE = "HTTP_PORT";
-    private final static String HTTP_SERVER_PORT_EL = "${" + PORT_VARIABLE + "}";
+    private static final String PORT_VARIABLE = "HTTP_PORT";
+    private static final String HTTP_SERVER_PORT_EL = "${" + PORT_VARIABLE + "}";
 
-    private final static String BASEPATH_VARIABLE = "HTTP_BASEPATH";
-    private final static String HTTP_SERVER_BASEPATH_EL = "${" + BASEPATH_VARIABLE + "}";
+    private static final String BASEPATH_VARIABLE = "HTTP_BASEPATH";
+    private static final String HTTP_SERVER_BASEPATH_EL = "${" + BASEPATH_VARIABLE + "}";
     private static final String MULTIPART_ATTRIBUTE = "http.multipart.name";
 
     private static final String LOCALHOST = "localhost";

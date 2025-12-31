@@ -107,7 +107,7 @@ public class DeleteSFTP extends AbstractProcessor {
             .description("All FlowFiles, for which an existing file could not be deleted, are routed to this relationship")
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_FAILURE);
 
     public static final PropertyDescriptor REMOVAL_STRATEGY = new PropertyDescriptor.Builder()
             .name("Removal Strategy")
@@ -136,7 +136,7 @@ public class DeleteSFTP extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             REMOVAL_STRATEGY,
             DIRECTORY_PATH,
             FILENAME,

@@ -22,7 +22,7 @@ import java.util.Objects;
 
 public final class ResourceFactory {
 
-    private final static Resource BUCKETS_RESOURCE = new Resource() {
+    private static final Resource BUCKETS_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Bucket.getValue();
@@ -39,7 +39,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PROXY_RESOURCE = new Resource() {
+    private static final Resource PROXY_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Proxy.getValue();
@@ -56,7 +56,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource TENANTS_RESOURCE = new Resource() {
+    private static final Resource TENANTS_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Tenant.getValue();
@@ -73,7 +73,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource POLICIES_RESOURCE = new Resource() {
+    private static final Resource POLICIES_RESOURCE = new Resource() {
 
         @Override
         public String getIdentifier() {
@@ -91,7 +91,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource ACTUATOR_RESOURCE = new Resource() {
+    private static final Resource ACTUATOR_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Actuator.getValue();
@@ -108,7 +108,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource SWAGGER_RESOURCE = new Resource() {
+    private static final Resource SWAGGER_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Swagger.getValue();

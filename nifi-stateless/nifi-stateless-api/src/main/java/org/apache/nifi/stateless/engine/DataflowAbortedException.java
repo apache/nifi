@@ -21,7 +21,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 
 public class DataflowAbortedException extends ProcessException {
     public DataflowAbortedException() {
-        super();
     }
 
     public DataflowAbortedException(final String message) {

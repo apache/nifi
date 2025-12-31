@@ -75,13 +75,13 @@ import static org.mockito.Mockito.when;
  */
 public class ITPutS3Object extends AbstractS3IT {
 
-    final static String TEST_PARTSIZE_STRING = "50 mb";
-    final static Long   TEST_PARTSIZE_LONG = 50L * 1024L * 1024L;
+    static final String TEST_PARTSIZE_STRING = "50 mb";
+    static final Long   TEST_PARTSIZE_LONG = 50L * 1024L * 1024L;
 
-    final static Long S3_MINIMUM_PART_SIZE = 50L * 1024L * 1024L;
-    final static Long S3_MAXIMUM_OBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
+    static final Long S3_MINIMUM_PART_SIZE = 50L * 1024L * 1024L;
+    static final Long S3_MAXIMUM_OBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
 
-    final static Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32}(-[0-9]+)?");
+    static final Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32}(-[0-9]+)?");
 
     private static final Logger logger = LoggerFactory.getLogger(ITPutS3Object.class);
     private static String kmsKeyId = "";

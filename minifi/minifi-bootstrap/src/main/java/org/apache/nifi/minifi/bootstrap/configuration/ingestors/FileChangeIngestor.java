@@ -69,7 +69,7 @@ public class FileChangeIngestor implements Runnable, ChangeIngestor {
     static final String POLLING_PERIOD_INTERVAL_KEY = CONFIG_FILE_BASE_KEY + ".polling.period.seconds";
     static final int DEFAULT_POLLING_PERIOD_INTERVAL = 15;
 
-    private final static Logger logger = LoggerFactory.getLogger(FileChangeIngestor.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileChangeIngestor.class);
 
     private static final TimeUnit DEFAULT_POLLING_PERIOD_UNIT = SECONDS;
     private static final String DIFFERENTIATOR_KEY = CONFIG_FILE_BASE_KEY + ".differentiator";

@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUpdateAttribute {
 
-    final static private String TEST_CONTENT = "THIS IS TEST CONTENT";
+    private static final String TEST_CONTENT = "THIS IS TEST CONTENT";
 
     final UpdateAttribute processor = new UpdateAttribute();
     final TestRunner runner = TestRunners.newTestRunner(processor);

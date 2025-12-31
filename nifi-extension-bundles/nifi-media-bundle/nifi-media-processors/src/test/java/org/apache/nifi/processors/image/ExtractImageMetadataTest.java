@@ -35,11 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 
 public class ExtractImageMetadataTest {
-    private final static String BMP_HEADER = "BMP Header.";
-    private final static String JPEG_HEADER = "JPEG.";
-    private final static String GIF_HEADER = "GIF Header.";
-    private final static String GIF_CONTROL = "GIF Control.";
-    private final static String PNG_HEADER = "PNG-";
+    private static final String BMP_HEADER = "BMP Header.";
+    private static final String JPEG_HEADER = "JPEG.";
+    private static final String GIF_HEADER = "GIF Header.";
+    private static final String GIF_CONTROL = "GIF Control.";
+    private static final String PNG_HEADER = "PNG-";
 
     private TestRunner testRunner;
 

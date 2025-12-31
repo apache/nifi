@@ -180,7 +180,7 @@ public class ResourceAuthorizationFilter extends GenericFilterBean {
     public static class Builder {
 
         private AuthorizationService authorizationService;
-        final private Map<ResourceType, HttpMethodAuthorizationRules> resourceTypeAuthorizationRules;
+        private final Map<ResourceType, HttpMethodAuthorizationRules> resourceTypeAuthorizationRules;
 
         // create via ResourceAuthorizationFilter.builder()
         private Builder() {

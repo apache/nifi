@@ -61,37 +61,40 @@ public class SimpleCommerceDataSet {
         st.executeUpdate(createProducts);
         st.executeUpdate(createRelationships);
 
-        for (int i = 0; i < nrOfPersons; i++)
+        for (int i = 0; i < nrOfPersons; i++) {
             loadPersons(st, i);
+        }
 
-        for (int i = 0; i < nrOfProducts; i++)
+        for (int i = 0; i < nrOfProducts; i++) {
             loadProducts(st, i);
+        }
 
-        for (int i = 0; i < nrOfRels; i++)
+        for (int i = 0; i < nrOfRels; i++) {
             loadRelationships(st, i);
+        }
 
         st.close();
     }
 
     static Random rng = new Random(53495);
 
-    static private void loadPersons(Statement st, int nr) throws SQLException {
+    private static void loadPersons(Statement st, int nr) throws SQLException {
         st.executeUpdate("insert into persons values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
     }
 
-    static private void loadProducts(Statement st, int nr) throws SQLException {
+    private static void loadProducts(Statement st, int nr) throws SQLException {
         st.executeUpdate("insert into products values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
     }
 
-    static private void loadRelationships(Statement st, int nr) throws SQLException {
+    private static void loadRelationships(Statement st, int nr) throws SQLException {
         st.executeUpdate("insert into relationships values (" + nr + ", '" + createRandomName() + "', " + rng.nextInt(469946) + ")");
     }
 
-    static private String createRandomName() {
+    private static String createRandomName() {
         return createRandomString() + " " + createRandomString();
     }
 
-    static private String createRandomString() {
+    private static String createRandomString() {
 
         final int length = rng.nextInt(10);
         final String characters = "ABCDEFGHIJ";

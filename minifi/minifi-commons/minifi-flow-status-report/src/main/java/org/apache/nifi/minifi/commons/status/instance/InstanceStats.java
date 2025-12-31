@@ -93,18 +93,36 @@ public class InstanceStats implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         InstanceStats that = (InstanceStats) o;
 
-        if (getBytesRead() != that.getBytesRead()) return false;
-        if (getBytesWritten() != that.getBytesWritten()) return false;
-        if (getBytesSent() != that.getBytesSent()) return false;
-        if (getFlowfilesSent() != that.getFlowfilesSent()) return false;
-        if (getBytesTransferred() != that.getBytesTransferred()) return false;
-        if (getFlowfilesTransferred() != that.getFlowfilesTransferred()) return false;
-        if (getBytesReceived() != that.getBytesReceived()) return false;
+        if (getBytesRead() != that.getBytesRead()) {
+            return false;
+        }
+        if (getBytesWritten() != that.getBytesWritten()) {
+            return false;
+        }
+        if (getBytesSent() != that.getBytesSent()) {
+            return false;
+        }
+        if (getFlowfilesSent() != that.getFlowfilesSent()) {
+            return false;
+        }
+        if (getBytesTransferred() != that.getBytesTransferred()) {
+            return false;
+        }
+        if (getFlowfilesTransferred() != that.getFlowfilesTransferred()) {
+            return false;
+        }
+        if (getBytesReceived() != that.getBytesReceived()) {
+            return false;
+        }
         return getFlowfilesReceived() == that.getFlowfilesReceived();
 
     }

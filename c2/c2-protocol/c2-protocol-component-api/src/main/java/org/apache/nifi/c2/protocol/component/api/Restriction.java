@@ -45,8 +45,12 @@ public class Restriction {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         Restriction that = (Restriction) o;
         return Objects.equals(requiredPermission, that.requiredPermission) && Objects.equals(explanation, that.explanation);
     }

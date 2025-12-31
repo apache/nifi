@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 public class ReflectionUtils {
 
-    private final static Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
 
     /**
      * Invokes all methods on the given instance that have been annotated with

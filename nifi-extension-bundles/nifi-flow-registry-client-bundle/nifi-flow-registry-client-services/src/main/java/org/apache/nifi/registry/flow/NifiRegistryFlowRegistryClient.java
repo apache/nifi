@@ -43,7 +43,7 @@ import java.util.stream.Collectors;
 
 public class NifiRegistryFlowRegistryClient extends AbstractFlowRegistryClient {
 
-    public final static PropertyDescriptor PROPERTY_URL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PROPERTY_URL = new PropertyDescriptor.Builder()
             .name("url")
             .displayName("URL")
             .description("URL of the NiFi Registry")

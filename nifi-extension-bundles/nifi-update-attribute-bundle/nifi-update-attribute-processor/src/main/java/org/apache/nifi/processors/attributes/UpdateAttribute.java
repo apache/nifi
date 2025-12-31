@@ -152,13 +152,13 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
         .description("A failure to set the state after adding the attributes to the FlowFile will route the FlowFile here.").name("set state fail").build();
 
-    private final static Set<Relationship> STATELESS_RELATIONSHIP_SET = Set.of(
-        REL_SUCCESS
+    private static final Set<Relationship> STATELESS_RELATIONSHIP_SET = Set.of(
+            REL_SUCCESS
     );
 
-    private final static Set<Relationship> STATEFUL_RELATIONSHIP_SET = Set.of(
-        REL_SUCCESS,
-        REL_FAILED_SET_STATE
+    private static final Set<Relationship> STATEFUL_RELATIONSHIP_SET = Set.of(
+            REL_SUCCESS,
+            REL_FAILED_SET_STATE
     );
 
 

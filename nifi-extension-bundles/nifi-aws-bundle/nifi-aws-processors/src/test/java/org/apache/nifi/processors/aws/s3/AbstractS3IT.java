@@ -79,8 +79,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 public abstract class AbstractS3IT {
     private static final Logger logger = LoggerFactory.getLogger(AbstractS3IT.class);
 
-    protected final static String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";
-    protected final static String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis();
+    protected static final String SAMPLE_FILE_RESOURCE_NAME = "/hello.txt";
+    protected static final String BUCKET_NAME = "test-bucket-" + System.currentTimeMillis();
 
     private static S3Client client;
     private static KmsClient kmsClient;

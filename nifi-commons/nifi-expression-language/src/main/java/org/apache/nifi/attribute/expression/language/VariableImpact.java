@@ -20,7 +20,7 @@ package org.apache.nifi.attribute.expression.language;
 public interface VariableImpact {
     boolean isImpacted(String variableName);
 
-    VariableImpact NEVER_IMPACTED = var -> false;
+    VariableImpact NEVER_IMPACTED = variable -> false;
 
-    VariableImpact ALWAYS_IMPACTED = var -> true;
+    VariableImpact ALWAYS_IMPACTED = variable -> true;
 }

@@ -649,7 +649,6 @@ public class TestSiteToSiteProvenanceReportingTask {
     private static final class MockSiteToSiteProvenanceReportingTask extends SiteToSiteProvenanceReportingTask {
 
         public MockSiteToSiteProvenanceReportingTask() throws IOException {
-            super();
         }
 
         final List<byte[]> dataSent = new ArrayList<>();

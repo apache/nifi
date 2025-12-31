@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ReflectionUtils {
 
-    private final static Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
     private static Map<Class<?>, Map<Annotations, List<Method>>> annotationCache = new WeakHashMap<>();
 
     /**

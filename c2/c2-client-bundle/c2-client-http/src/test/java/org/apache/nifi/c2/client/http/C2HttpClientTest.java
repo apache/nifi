@@ -53,7 +53,7 @@ public class C2HttpClientTest {
     private static final String ACK_PATH = "c2/acknowledge";
     private static final int HTTP_STATUS_OK = 200;
     private static final int HTTP_STATUS_BAD_REQUEST = 400;
-    private static final long KEEP_ALIVE_DURATION = 5000l;
+    private static final long KEEP_ALIVE_DURATION = 5000L;
     private static final int MAX_IDLE_CONNECTIONS = 5;
 
     @Mock

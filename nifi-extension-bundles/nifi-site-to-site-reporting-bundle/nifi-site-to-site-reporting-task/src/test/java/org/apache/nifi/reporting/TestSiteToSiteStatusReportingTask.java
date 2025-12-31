@@ -410,19 +410,19 @@ public class TestSiteToSiteStatusReportingTask {
         pgStatus.setVersionedFlowState(VersionedFlowState.UP_TO_DATE);
         pgStatus.setActiveThreadCount(1);
         pgStatus.setBytesRead(2L);
-        pgStatus.setBytesReceived(3l);
-        pgStatus.setBytesSent(4l);
-        pgStatus.setBytesTransferred(5l);
-        pgStatus.setBytesWritten(6l);
+        pgStatus.setBytesReceived(3L);
+        pgStatus.setBytesSent(4L);
+        pgStatus.setBytesTransferred(5L);
+        pgStatus.setBytesWritten(6L);
         pgStatus.setConnectionStatus(cStatus);
         pgStatus.setFlowFilesReceived(7);
         pgStatus.setFlowFilesSent(8);
         pgStatus.setFlowFilesTransferred(9);
-        pgStatus.setInputContentSize(10l);
+        pgStatus.setInputContentSize(10L);
         pgStatus.setInputCount(11);
-        pgStatus.setOutputContentSize(12l);
+        pgStatus.setOutputContentSize(12L);
         pgStatus.setOutputCount(13);
-        pgStatus.setQueuedContentSize(14l);
+        pgStatus.setQueuedContentSize(14L);
         pgStatus.setQueuedCount(15);
         pgStatus.setTerminatedThreadCount(1);
 
@@ -434,13 +434,13 @@ public class TestSiteToSiteStatusReportingTask {
         pStatus.setId(id);
         pStatus.setName(namePrefix + "-" + UUID.randomUUID());
         pStatus.setActiveThreadCount(null);
-        pStatus.setBytesReceived(1l);
-        pStatus.setBytesSent(2l);
+        pStatus.setBytesReceived(1L);
+        pStatus.setBytesSent(2L);
         pStatus.setFlowFilesReceived(3);
         pStatus.setFlowFilesSent(4);
-        pStatus.setInputBytes(5l);
+        pStatus.setInputBytes(5L);
         pStatus.setInputCount(6);
-        pStatus.setOutputBytes(7l);
+        pStatus.setOutputBytes(7L);
         pStatus.setOutputCount(8);
         pStatus.setRunStatus(RunStatus.Stopped);
         pStatus.setTransmitting(false);
@@ -453,20 +453,20 @@ public class TestSiteToSiteStatusReportingTask {
         pStatus.setId(id);
         pStatus.setName(namePrefix + "-" + UUID.randomUUID());
         pStatus.setActiveThreadCount(0);
-        pStatus.setAverageLineageDuration(1l);
-        pStatus.setBytesRead(2l);
-        pStatus.setBytesReceived(3l);
-        pStatus.setBytesSent(4l);
-        pStatus.setBytesWritten(5l);
+        pStatus.setAverageLineageDuration(1L);
+        pStatus.setBytesRead(2L);
+        pStatus.setBytesReceived(3L);
+        pStatus.setBytesSent(4L);
+        pStatus.setBytesWritten(5L);
         pStatus.setFlowFilesReceived(6);
         pStatus.setFlowFilesRemoved(7);
         pStatus.setFlowFilesSent(8);
-        pStatus.setInputBytes(9l);
+        pStatus.setInputBytes(9L);
         pStatus.setInputCount(10);
         pStatus.setInvocations(11);
-        pStatus.setOutputBytes(12l);
+        pStatus.setOutputBytes(12L);
         pStatus.setOutputCount(13);
-        pStatus.setProcessingNanos(14l);
+        pStatus.setProcessingNanos(14L);
         pStatus.setType(null);
         pStatus.setTerminatedThreadCount(1);
         pStatus.setRunStatus(RunStatus.Running);
@@ -481,11 +481,11 @@ public class TestSiteToSiteStatusReportingTask {
         rpgStatus.setName(namePrefix + "-" + UUID.randomUUID());
         rpgStatus.setActiveRemotePortCount(0);
         rpgStatus.setActiveThreadCount(1);
-        rpgStatus.setAverageLineageDuration(2l);
+        rpgStatus.setAverageLineageDuration(2L);
         rpgStatus.setInactiveRemotePortCount(3);
-        rpgStatus.setReceivedContentSize(4l);
+        rpgStatus.setReceivedContentSize(4L);
         rpgStatus.setReceivedCount(5);
-        rpgStatus.setSentContentSize(6l);
+        rpgStatus.setSentContentSize(6L);
         rpgStatus.setSentCount(7);
         rpgStatus.setTargetUri(null);
         rpgStatus.setTransmissionStatus(TransmissionStatus.Transmitting);
@@ -498,14 +498,14 @@ public class TestSiteToSiteStatusReportingTask {
         cStatus.setId(id);
         cStatus.setName(namePrefix + "-" + UUID.randomUUID());
         cStatus.setBackPressureDataSizeThreshold("1 KB"); // sets backPressureBytesThreshold too
-        cStatus.setBackPressureObjectThreshold(1l);
-        cStatus.setInputBytes(2l);
+        cStatus.setBackPressureObjectThreshold(1L);
+        cStatus.setInputBytes(2L);
         cStatus.setInputCount(3);
-        cStatus.setMaxQueuedBytes(4l);
+        cStatus.setMaxQueuedBytes(4L);
         cStatus.setMaxQueuedCount(5);
         cStatus.setOutputBytes(6);
         cStatus.setOutputCount(7);
-        cStatus.setQueuedBytes(8l);
+        cStatus.setQueuedBytes(8L);
         cStatus.setQueuedCount(9);
         cStatus.setSourceId(id);
         cStatus.setSourceName("source");
@@ -524,7 +524,6 @@ public class TestSiteToSiteStatusReportingTask {
     private static final class MockSiteToSiteStatusReportingTask extends SiteToSiteStatusReportingTask {
 
         public MockSiteToSiteStatusReportingTask() throws IOException {
-            super();
         }
 
         final List<byte[]> dataSent = new ArrayList<>();

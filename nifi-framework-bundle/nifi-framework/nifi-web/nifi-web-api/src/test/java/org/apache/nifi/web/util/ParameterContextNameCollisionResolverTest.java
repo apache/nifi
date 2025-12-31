@@ -30,13 +30,13 @@ import java.util.Collections;
 import java.util.stream.Stream;
 
 class ParameterContextNameCollisionResolverTest {
-    private final static Collection<ParameterContextEntity> EMPTY_PARAMETER_CONTEXT_SOURCE = Collections.emptySet();
-    private final static Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_FIRST = Arrays.asList(getTestContext("test"));
-    private final static Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_SOME =
+    private static final Collection<ParameterContextEntity> EMPTY_PARAMETER_CONTEXT_SOURCE = Collections.emptySet();
+    private static final Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_FIRST = Arrays.asList(getTestContext("test"));
+    private static final Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_SOME =
             Arrays.asList(getTestContext("test"), getTestContext("test (1)"), getTestContext("test (2)"));
-    private final static Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_NON_CONTINUOUS =
+    private static final Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_NON_CONTINUOUS =
             Arrays.asList(getTestContext("test (3)"), getTestContext("test (9)"));
-    private final static Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_OTHER_LINEAGES =
+    private static final Collection<ParameterContextEntity> PARAMETER_CONTEXT_SOURCE_WITH_OTHER_LINEAGES =
             Arrays.asList(getTestContext("test"), getTestContext("test2 (3)"), getTestContext("other"));
 
     @ParameterizedTest(name = "\"{0}\" into \"{1}\"")

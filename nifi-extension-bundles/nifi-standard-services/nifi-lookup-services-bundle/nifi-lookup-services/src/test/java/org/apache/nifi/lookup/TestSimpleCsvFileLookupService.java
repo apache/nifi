@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSimpleCsvFileLookupService {
 
-    final static Optional<String> EMPTY_STRING = Optional.empty();
+    static final Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
     public void testSimpleCsvFileLookupService() throws InitializationException, LookupFailureException {

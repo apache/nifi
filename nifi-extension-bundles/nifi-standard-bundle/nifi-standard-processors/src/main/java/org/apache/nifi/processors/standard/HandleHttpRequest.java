@@ -669,8 +669,9 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
                     if (i == 0) {
                         // each one of multipart comes from a single request, thus registering only once per loop.
                         boolean requestRegistrationSuccess = registerRequest(context, session, container, flowFile);
-                        if (!requestRegistrationSuccess)
+                        if (!requestRegistrationSuccess) {
                             break;
+                        }
                     }
                     forwardFlowFile(session, start, request, flowFile);
                 }
@@ -698,8 +699,9 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
             final String contextIdentifier = UUID.randomUUID().toString();
             flowFile = saveRequestAttributes(context, session, request, flowFile, contextIdentifier);
             boolean requestRegistrationSuccess = registerRequest(context, session, container, flowFile);
-            if (requestRegistrationSuccess)
+            if (requestRegistrationSuccess) {
                 forwardFlowFile(session, start, request, flowFile);
+            }
         }
     }
 

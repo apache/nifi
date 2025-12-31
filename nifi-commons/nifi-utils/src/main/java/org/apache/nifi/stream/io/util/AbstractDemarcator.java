@@ -31,7 +31,7 @@ import org.apache.nifi.stream.io.exception.TokenTooLargeException;
  */
 abstract class AbstractDemarcator implements Closeable {
 
-    final static int INIT_BUFFER_SIZE = 8192;
+    static final int INIT_BUFFER_SIZE = 8192;
 
     private final InputStream is;
 

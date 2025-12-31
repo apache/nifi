@@ -60,7 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestJoltTransformRecord {
 
-    final static String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
+    static final String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
     private static final String CUSTOM_CLASS_NAME = CustomTransformJarProvider.getCustomTransformClassName();
     private static String chainrSpecContents;
     private static Path customTransformJar;

@@ -241,7 +241,7 @@ public class RouteText extends AbstractProcessor {
     private volatile Map<Relationship, PropertyValue> propertyMap = new HashMap<>();
     private volatile Pattern groupingRegex = null;
 
-    final static int PATTERNS_CACHE_MAXIMUM_ENTRIES = 1024;
+    static final int PATTERNS_CACHE_MAXIMUM_ENTRIES = 1024;
 
     /**
      * LRU cache for the compiled patterns. The size of the cache is determined by the value of
@@ -651,7 +651,9 @@ public class RouteText extends AbstractProcessor {
             Group other = (Group) obj;
             if (capturedValues == null) {
                 return other.capturedValues == null;
-            } else return capturedValues.equals(other.capturedValues);
+            } else {
+                return capturedValues.equals(other.capturedValues);
+            }
 
         }
     }

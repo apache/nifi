@@ -31,7 +31,6 @@ public class SocketCommunicationsSession extends AbstractCommunicationsSession {
     private int timeout = 30000;
 
     public SocketCommunicationsSession(final Socket socket) throws IOException {
-        super();
         this.socket = socket;
         request = new SocketInput(socket);
         response = new SocketOutput(socket);

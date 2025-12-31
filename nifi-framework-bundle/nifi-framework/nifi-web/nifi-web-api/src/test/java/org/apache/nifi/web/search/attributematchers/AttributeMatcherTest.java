@@ -25,12 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AttributeMatcherTest {
-    private final static String SEARCH_TERM = "lorem";
-    private final static String SUBJECT_PARTIAL = SEARCH_TERM;
-    private final static String SUBJECT_PARTIAL_UPPERCASE = SEARCH_TERM.toUpperCase();
-    private final static String SUBJECT_FULL = SUBJECT_PARTIAL + " ipsum";
-    private final static String LABEL = "label";
-    private final static String LABEL_2 = "label2";
+    private static final String SEARCH_TERM = "lorem";
+    private static final String SUBJECT_PARTIAL = SEARCH_TERM;
+    private static final String SUBJECT_PARTIAL_UPPERCASE = SEARCH_TERM.toUpperCase();
+    private static final String SUBJECT_FULL = SUBJECT_PARTIAL + " ipsum";
+    private static final String LABEL = "label";
+    private static final String LABEL_2 = "label2";
 
     @Test
     public void testWhenEqualsThenAdded() {

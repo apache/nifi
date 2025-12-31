@@ -27,7 +27,6 @@ public class TrackingLinkedBlockingQueue<E> extends LinkedBlockingQueue<E> {
     private final AtomicInteger largestSize = new AtomicInteger();
 
     public TrackingLinkedBlockingQueue() {
-        super();
     }
 
     public TrackingLinkedBlockingQueue(final int capacity) {

@@ -182,7 +182,7 @@ public class PublishJMS extends AbstractJMSProcessor<JMSPublisher> {
             COMMON_PROPERTY_DESCRIPTORS.stream()
     ).toList();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
     );

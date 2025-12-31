@@ -21,7 +21,6 @@ public class HL7QueryParsingException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     public HL7QueryParsingException() {
-        super();
     }
 
     public HL7QueryParsingException(final Throwable cause) {

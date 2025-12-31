@@ -293,7 +293,7 @@ public class GetFile extends AbstractProcessor {
                 }
 
                 //Verify that if we're not keeping original that we have write permissions on the directory the file is in
-                if (keepOriginal == false && !Files.isWritable(file.toPath().getParent())) {
+                if (!keepOriginal && !Files.isWritable(file.toPath().getParent())) {
                     return false;
                 }
                 return filePattern.matcher(file.getName()).matches();

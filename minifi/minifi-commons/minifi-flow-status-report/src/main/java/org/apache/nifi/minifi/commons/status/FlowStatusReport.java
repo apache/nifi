@@ -108,19 +108,36 @@ public class FlowStatusReport implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         FlowStatusReport that = (FlowStatusReport) o;
 
-        if (getControllerServiceStatusList() != null ? !getControllerServiceStatusList().equals(that.getControllerServiceStatusList()) : that.getControllerServiceStatusList() != null) return false;
-        if (getProcessorStatusList() != null ? !getProcessorStatusList().equals(that.getProcessorStatusList()) : that.getProcessorStatusList() != null) return false;
-        if (getConnectionStatusList() != null ? !getConnectionStatusList().equals(that.getConnectionStatusList()) : that.getConnectionStatusList() != null) return false;
-        if (getRemoteProcessGroupStatusList() != null ? !getRemoteProcessGroupStatusList().equals(that.getRemoteProcessGroupStatusList()) : that.getRemoteProcessGroupStatusList() != null)
+        if (getControllerServiceStatusList() != null ? !getControllerServiceStatusList().equals(that.getControllerServiceStatusList()) : that.getControllerServiceStatusList() != null) {
             return false;
-        if (getInstanceStatus() != null ? !getInstanceStatus().equals(that.getInstanceStatus()) : that.getInstanceStatus() != null) return false;
-        if (getSystemDiagnosticsStatus() != null ? !getSystemDiagnosticsStatus().equals(that.getSystemDiagnosticsStatus()) : that.getSystemDiagnosticsStatus() != null) return false;
-        if (getReportingTaskStatusList() != null ? !getReportingTaskStatusList().equals(that.getReportingTaskStatusList()) : that.getReportingTaskStatusList() != null) return false;
+        }
+        if (getProcessorStatusList() != null ? !getProcessorStatusList().equals(that.getProcessorStatusList()) : that.getProcessorStatusList() != null) {
+            return false;
+        }
+        if (getConnectionStatusList() != null ? !getConnectionStatusList().equals(that.getConnectionStatusList()) : that.getConnectionStatusList() != null) {
+            return false;
+        }
+        if (getRemoteProcessGroupStatusList() != null ? !getRemoteProcessGroupStatusList().equals(that.getRemoteProcessGroupStatusList()) : that.getRemoteProcessGroupStatusList() != null) {
+            return false;
+        }
+        if (getInstanceStatus() != null ? !getInstanceStatus().equals(that.getInstanceStatus()) : that.getInstanceStatus() != null) {
+            return false;
+        }
+        if (getSystemDiagnosticsStatus() != null ? !getSystemDiagnosticsStatus().equals(that.getSystemDiagnosticsStatus()) : that.getSystemDiagnosticsStatus() != null) {
+            return false;
+        }
+        if (getReportingTaskStatusList() != null ? !getReportingTaskStatusList().equals(that.getReportingTaskStatusList()) : that.getReportingTaskStatusList() != null) {
+            return false;
+        }
         return getErrorsGeneratingReport() != null ? getErrorsGeneratingReport().equals(that.getErrorsGeneratingReport()) : that.getErrorsGeneratingReport() == null;
 
     }

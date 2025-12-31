@@ -30,11 +30,9 @@ public class AgentManifest extends RuntimeManifest {
     private Set<SupportedOperation> supportedOperations;
 
     public AgentManifest() {
-        super();
     }
 
     public AgentManifest(RuntimeManifest manifest) {
-        super();
         setAgentType(manifest.getAgentType());
         setIdentifier(manifest.getIdentifier());
         setBundles(manifest.getBundles());

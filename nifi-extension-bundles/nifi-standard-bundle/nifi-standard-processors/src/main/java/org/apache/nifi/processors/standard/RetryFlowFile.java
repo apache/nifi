@@ -212,8 +212,9 @@ public class RetryFlowFile extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowfile = session.get();
-        if (null == flowfile)
+        if (null == flowfile) {
             return;
+        }
 
         String retryAttributeValue = flowfile.getAttribute(retryAttribute);
         Integer currentRetry;
@@ -274,22 +275,25 @@ public class RetryFlowFile extends AbstractProcessor {
         if (currentRetry > maximumRetries) {
             // Add dynamic properties
             for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
-                if (!descriptor.isDynamic())
+                if (!descriptor.isDynamic()) {
                     continue;
+                }
 
                 String value = context.getProperty(descriptor)
                         .evaluateAttributeExpressions(flowfile)
                         .getValue();
-                if (!StringUtils.isBlank(value))
+                if (!StringUtils.isBlank(value)) {
                     flowfile = session.putAttribute(flowfile, descriptor.getName(), value);
+                }
             }
 
             flowfile = session.removeAttribute(flowfile, retryAttribute);
             flowfile = session.removeAttribute(flowfile, lastRetriedBy);
             session.transfer(flowfile, RETRIES_EXCEEDED);
         } else {
-            if (penalizeRetried)
+            if (penalizeRetried) {
                 session.penalize(flowfile);
+            }
 
             // Update and transfer
             flowfile = session.putAttribute(flowfile, retryAttribute, String.valueOf(currentRetry));

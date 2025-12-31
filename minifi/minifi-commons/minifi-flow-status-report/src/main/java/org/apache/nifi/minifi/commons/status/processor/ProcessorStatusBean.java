@@ -54,14 +54,24 @@ public class ProcessorStatusBean extends AbstractStatusBean {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ProcessorStatusBean that = (ProcessorStatusBean) o;
 
-        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) return false;
-        if (getProcessorHealth() != null ? !getProcessorHealth().equals(that.getProcessorHealth()) : that.getProcessorHealth() != null) return false;
-        if (getProcessorStats() != null ? !getProcessorStats().equals(that.getProcessorStats()) : that.getProcessorStats() != null) return false;
+        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
+            return false;
+        }
+        if (getProcessorHealth() != null ? !getProcessorHealth().equals(that.getProcessorHealth()) : that.getProcessorHealth() != null) {
+            return false;
+        }
+        if (getProcessorStats() != null ? !getProcessorStats().equals(that.getProcessorStats()) : that.getProcessorStats() != null) {
+            return false;
+        }
         return getBulletinList() != null ? getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() == null;
 
     }

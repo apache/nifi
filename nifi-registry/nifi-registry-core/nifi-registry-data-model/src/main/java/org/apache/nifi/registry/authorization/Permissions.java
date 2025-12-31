@@ -99,13 +99,21 @@ public class Permissions {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         Permissions that = (Permissions) o;
 
-        if (canRead != that.canRead) return false;
-        if (canWrite != that.canWrite) return false;
+        if (canRead != that.canRead) {
+            return false;
+        }
+        if (canWrite != that.canWrite) {
+            return false;
+        }
         return canDelete == that.canDelete;
     }
 

@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
 
 public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
 
-    final static String QUERY_WITH_EL = "select "
+    static final String QUERY_WITH_EL = "select "
         + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
         + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
         + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
@@ -63,7 +63,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         + " from persons PER, products PRD, relationships REL"
         + " where PER.ID = ${person.id}";
 
-    final static String QUERY_WITHOUT_EL = "select "
+    static final String QUERY_WITHOUT_EL = "select "
         + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
         + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
         + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
@@ -71,7 +71,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         + " from persons PER, products PRD, relationships REL"
         + " where PER.ID = 10";
 
-    final static String QUERY_WITHOUT_EL_WITH_PARAMS = "select "
+    static final String QUERY_WITHOUT_EL_WITH_PARAMS = "select "
             + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
             + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
             + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"

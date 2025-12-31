@@ -87,14 +87,24 @@ public class AuthenticationResponse implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         AuthenticationResponse that = (AuthenticationResponse) o;
 
-        if (expiration != that.expiration) return false;
-        if (identity != null ? !identity.equals(that.identity) : that.identity != null) return false;
-        if (username != null ? !username.equals(that.username) : that.username != null) return false;
+        if (expiration != that.expiration) {
+            return false;
+        }
+        if (identity != null ? !identity.equals(that.identity) : that.identity != null) {
+            return false;
+        }
+        if (username != null ? !username.equals(that.username) : that.username != null) {
+            return false;
+        }
         return issuer != null ? issuer.equals(that.issuer) : that.issuer == null;
     }
 

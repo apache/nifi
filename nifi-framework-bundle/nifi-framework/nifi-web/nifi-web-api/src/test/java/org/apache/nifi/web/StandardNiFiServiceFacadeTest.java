@@ -614,7 +614,7 @@ public class StandardNiFiServiceFacadeTest {
 
         final ArgumentCaptor<VersionedComponentAdditions> additionsCaptor = ArgumentCaptor.forClass(VersionedComponentAdditions.class);
 
-        serviceFacade.pasteComponents(new Revision(0l, "", groupId), groupId, additions, seed);
+        serviceFacade.pasteComponents(new Revision(0L, "", groupId), groupId, additions, seed);
 
         verify(processGroupDAO).addVersionedComponents(eq(groupId), additionsCaptor.capture(), eq(seed));
         final VersionedComponentAdditions capturedAdditions = additionsCaptor.getValue();
@@ -1106,8 +1106,9 @@ public class StandardNiFiServiceFacadeTest {
         public List<Bulletin> findBulletinsForSource(String sourceId) {
             List<Bulletin> ans = new ArrayList<>();
             for (Bulletin b : bulletinList) {
-                if (sourceId.equals(b.getSourceId()))
+                if (sourceId.equals(b.getSourceId())) {
                     ans.add(b);
+                }
             }
             return ans;
         }
@@ -1116,8 +1117,9 @@ public class StandardNiFiServiceFacadeTest {
         public List<Bulletin> findBulletinsForGroupBySource(String groupId) {
             List<Bulletin> ans = new ArrayList<>();
             for (Bulletin b : bulletinList) {
-                if (b.getGroupId().equals(groupId))
+                if (b.getGroupId().equals(groupId)) {
                     ans.add(b);
+                }
             }
             return ans;
         }

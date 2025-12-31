@@ -88,17 +88,24 @@ public class ResourcePermissions {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ResourcePermissions that = (ResourcePermissions) o;
 
-        if (buckets != null ? !buckets.equals(that.buckets) : that.buckets != null)
+        if (buckets != null ? !buckets.equals(that.buckets) : that.buckets != null) {
             return false;
-        if (tenants != null ? !tenants.equals(that.tenants) : that.tenants != null)
+        }
+        if (tenants != null ? !tenants.equals(that.tenants) : that.tenants != null) {
             return false;
-        if (policies != null ? !policies.equals(that.policies) : that.policies != null)
+        }
+        if (policies != null ? !policies.equals(that.policies) : that.policies != null) {
             return false;
+        }
         return proxy != null ? proxy.equals(that.proxy) : that.proxy == null;
     }
 

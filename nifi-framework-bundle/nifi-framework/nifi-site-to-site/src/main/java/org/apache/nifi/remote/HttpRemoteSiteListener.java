@@ -48,7 +48,6 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     private ScheduledFuture<?> transactionMaintenanceTask;
 
     private HttpRemoteSiteListener(final NiFiProperties nifiProperties) {
-        super();
         taskExecutor = Executors.newScheduledThreadPool(1, r -> {
             final Thread thread = Executors.defaultThreadFactory().newThread(r);
             thread.setName("Http Site-to-Site Transaction Maintenance");

@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class HikariCPConnectionPoolTest {
-    private final static String SERVICE_ID = HikariCPConnectionPoolTest.class.getSimpleName();
+    private static final String SERVICE_ID = HikariCPConnectionPoolTest.class.getSimpleName();
 
     private static final String INVALID_CONNECTION_URL = "jdbc:h2";
 

@@ -505,4 +505,16 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     public int hashCode() {
         return identifier.hashCode();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof AbstractFlowFileQueue)) {
+            return false;
+        }
+        AbstractFlowFileQueue other = (AbstractFlowFileQueue) o;
+        return identifier.equals(other.identifier);
+    }
 }

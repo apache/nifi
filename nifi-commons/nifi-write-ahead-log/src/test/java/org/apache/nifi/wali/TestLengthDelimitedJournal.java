@@ -354,7 +354,8 @@ public class TestLengthDelimitedJournal {
 
     @Test
     public void testTruncatedJournalFile() throws IOException {
-        final DummyRecord firstRecord, secondRecord;
+        final DummyRecord firstRecord;
+        final DummyRecord secondRecord;
         try (final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, 0L)) {
             journal.writeHeader();
 
@@ -514,7 +515,8 @@ public class TestLengthDelimitedJournal {
         };
 
 
-        final DummyRecord firstRecord, secondRecord;
+        final DummyRecord firstRecord;
+        final DummyRecord secondRecord;
         try {
             journal.writeHeader();
 

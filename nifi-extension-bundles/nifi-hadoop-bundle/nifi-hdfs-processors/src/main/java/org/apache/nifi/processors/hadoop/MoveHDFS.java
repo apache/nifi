@@ -527,10 +527,10 @@ public class MoveHDFS extends AbstractHadoopProcessor {
 
     protected static class ProcessorConfiguration {
 
-        final private String conflictResolution;
-        final private String operation;
-        final private Pattern fileFilterPattern;
-        final private boolean ignoreDottedFiles;
+        private final String conflictResolution;
+        private final String operation;
+        private final Pattern fileFilterPattern;
+        private final boolean ignoreDottedFiles;
 
         ProcessorConfiguration(final ProcessContext context) {
             conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();

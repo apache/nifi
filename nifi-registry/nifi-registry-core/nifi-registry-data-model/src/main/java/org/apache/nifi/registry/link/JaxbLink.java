@@ -103,8 +103,12 @@ public class JaxbLink {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof JaxbLink)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof JaxbLink)) {
+            return false;
+        }
 
         JaxbLink jaxbLink = (JaxbLink) o;
 

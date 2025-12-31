@@ -33,14 +33,14 @@ public class TestRevision {
 
     @Test
     public void testNullComponentId() {
-        assertThrows(IllegalArgumentException.class, () -> new Revision(0l, "client-id", null));
+        assertThrows(IllegalArgumentException.class, () -> new Revision(0L, "client-id", null));
     }
 
     @Test
     public void testIncrementRevision() {
         final String clientId = "client-id";
         final String componentId = "component-id";
-        final Revision revision = new Revision(0l, clientId, componentId);
+        final Revision revision = new Revision(0L, clientId, componentId);
         final Revision updatedRevision = revision.incrementRevision(clientId);
         assertEquals(1, updatedRevision.getVersion().longValue());
         assertEquals(clientId, updatedRevision.getClientId());
@@ -52,7 +52,7 @@ public class TestRevision {
         final String clientId = "client-id";
         final String newClientId = "new-client-id";
         final String componentId = "component-id";
-        final Revision revision = new Revision(0l, clientId, componentId);
+        final Revision revision = new Revision(0L, clientId, componentId);
         final Revision updatedRevision = revision.incrementRevision(newClientId);
         assertEquals(1, updatedRevision.getVersion().longValue());
         assertEquals(newClientId, updatedRevision.getClientId());

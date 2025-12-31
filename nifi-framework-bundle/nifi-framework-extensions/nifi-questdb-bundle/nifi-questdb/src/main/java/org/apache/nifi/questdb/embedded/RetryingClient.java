@@ -91,7 +91,7 @@ final class RetryingClient implements Client {
         client.disconnect();
     }
 
-    private static abstract class RetryWhenConnected<R> implements RetryCallback<R, DatabaseException> {
+    private abstract static class RetryWhenConnected<R> implements RetryCallback<R, DatabaseException> {
         @Override
         public R doWithRetry(final RetryContext context) throws DatabaseException {
             try {

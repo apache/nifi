@@ -144,7 +144,7 @@ public class MonitorMemory extends AbstractReportingTask {
     private volatile long reportingIntervalMillis;
     private volatile boolean lastValueWasExceeded;
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();

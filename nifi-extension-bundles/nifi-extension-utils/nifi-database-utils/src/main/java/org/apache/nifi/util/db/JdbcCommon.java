@@ -128,7 +128,7 @@ public class JdbcCommon {
     public static final String MIME_TYPE_AVRO_BINARY = "application/avro-binary";
     public static final String MASKED_LOG_VALUE = "MASKED VALUE";
 
-    private final static Logger logger = LoggerFactory.getLogger(JdbcCommon.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcCommon.class);
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
@@ -477,8 +477,9 @@ public class JdbcCommon {
                     }
                 }
 
-                if (options.maxRows > 0 && nrOfRows == options.maxRows)
+                if (options.maxRows > 0 && nrOfRows == options.maxRows) {
                     break;
+                }
             }
 
             return nrOfRows;

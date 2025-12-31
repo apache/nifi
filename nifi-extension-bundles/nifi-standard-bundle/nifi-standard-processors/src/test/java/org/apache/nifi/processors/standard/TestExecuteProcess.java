@@ -186,7 +186,9 @@ public class TestExecuteProcess {
 
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
 
-        if (isCommandFailed(runner)) return;
+        if (isCommandFailed(runner)) {
+            return;
+        }
 
         // ExecuteProcess doesn't wait for finishing to drain error stream if it's configure NOT to redirect stream.
         // This causes test failure when draining the error stream didn't finish
@@ -223,7 +225,9 @@ public class TestExecuteProcess {
 
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
 
-        if (isCommandFailed(runner)) return;
+        if (isCommandFailed(runner)) {
+            return;
+        }
 
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
         assertEquals(0, warnMessages.size(), "If redirect error stream is true " +
@@ -246,7 +250,9 @@ public class TestExecuteProcess {
 
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
 
-        if (isCommandFailed(runner)) return;
+        if (isCommandFailed(runner)) {
+            return;
+        }
 
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
         assertEquals(0, warnMessages.size(), "If redirect error stream is true " +

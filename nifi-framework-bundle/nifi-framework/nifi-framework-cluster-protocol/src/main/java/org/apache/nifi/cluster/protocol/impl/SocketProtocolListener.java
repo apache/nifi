@@ -101,7 +101,7 @@ public class SocketProtocolListener extends SocketListener implements ProtocolLi
 
     @Override
     public void stop() throws IOException {
-        if (super.isRunning() == false) {
+        if (!super.isRunning()) {
             throw new IOException("Instance is already stopped.");
         }
 

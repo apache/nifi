@@ -45,7 +45,7 @@ import java.util.stream.Stream;
 
 class SmbjClientService implements SmbClientService {
 
-    private final static Logger LOGGER = LoggerFactory.getLogger(SmbjClientService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmbjClientService.class);
 
     private static final List<String> SPECIAL_DIRECTORIES = asList(".", "..");
     private static final long UNCATEGORIZED_ERROR = -1L;

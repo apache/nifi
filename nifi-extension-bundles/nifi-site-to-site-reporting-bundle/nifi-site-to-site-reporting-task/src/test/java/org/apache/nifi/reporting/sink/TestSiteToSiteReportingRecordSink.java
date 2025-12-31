@@ -143,7 +143,6 @@ public class TestSiteToSiteReportingRecordSink {
     private static final class MockSiteToSiteReportingRecordSink extends SiteToSiteReportingRecordSink {
 
         public MockSiteToSiteReportingRecordSink() throws IOException {
-            super();
         }
 
         final List<byte[]> dataSent = new ArrayList<>();

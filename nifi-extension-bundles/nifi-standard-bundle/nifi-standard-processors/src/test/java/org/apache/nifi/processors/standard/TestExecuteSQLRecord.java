@@ -70,7 +70,7 @@ import static org.mockito.Mockito.when;
 
 class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
 
-    final static String QUERY_WITHOUT_EL = """
+    static final String QUERY_WITHOUT_EL = """
             select
               PER.ID as PersonId, PER.NAME as PersonName,
               PER.CODE as PersonCode,

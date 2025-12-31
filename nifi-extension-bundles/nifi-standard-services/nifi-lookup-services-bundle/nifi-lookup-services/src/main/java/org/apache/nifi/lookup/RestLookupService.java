@@ -489,7 +489,11 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 .url(endpoint);
         switch (method) {
             case "delete":
-                if (body != null) request.delete(requestBody); else request.delete();
+                if (body != null) {
+                    request.delete(requestBody);
+                } else {
+                    request.delete();
+                }
                 break;
             case "get":
                 request.get();

@@ -156,7 +156,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
         setup();
     }
 
-    abstract public void setup();
+    public abstract void setup();
 
     /**
      * Reloads the script located at the given path

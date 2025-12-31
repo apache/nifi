@@ -189,7 +189,7 @@ public class MonitorActivity extends AbstractProcessor {
                     + "period of inactivity")
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_INACTIVE,
             REL_ACTIVITY_RESTORED

@@ -24,7 +24,6 @@ import java.io.IOException;
 public class RetryableIOException extends IOException {
 
     public RetryableIOException() {
-        super();
     }
 
     public RetryableIOException(String message) {

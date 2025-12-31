@@ -160,7 +160,7 @@ public class ModifyCompression extends AbstractProcessor {
 
     private static final Map<String, CompressionStrategy> compressionFormatMimeTypeMap;
 
-    private final static int STREAM_BUFFER_SIZE = 65536;
+    private static final int STREAM_BUFFER_SIZE = 65536;
 
     static {
         final Map<String, CompressionStrategy> mimeTypeMap = new HashMap<>();

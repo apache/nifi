@@ -1669,14 +1669,21 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             SchemaKey schemaKey = (SchemaKey) o;
 
-            if (catalog != null ? !catalog.equals(schemaKey.catalog) : schemaKey.catalog != null) return false;
-            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null)
+            if (catalog != null ? !catalog.equals(schemaKey.catalog) : schemaKey.catalog != null) {
                 return false;
+            }
+            if (schemaName != null ? !schemaName.equals(schemaKey.schemaName) : schemaKey.schemaName != null) {
+                return false;
+            }
             return tableName.equals(schemaKey.tableName);
         }
     }

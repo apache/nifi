@@ -37,7 +37,7 @@ public class ExtensionEntityRowMapper implements RowMapper<ExtensionEntity> {
         entity.setDisplayName(rs.getString("DISPLAY_NAME"));
         entity.setExtensionType(ExtensionType.valueOf(rs.getString("TYPE")));
         entity.setContent(rs.getString("CONTENT"));
-        entity.setHasAdditionalDetails(rs.getInt("HAS_ADDITIONAL_DETAILS") == 1 ? true : false);
+        entity.setHasAdditionalDetails(rs.getInt("HAS_ADDITIONAL_DETAILS") == 1);
 
         // fields from joined tables that we know will be there...
         entity.setBucketId(rs.getString("BUCKET_ID"));

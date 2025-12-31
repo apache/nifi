@@ -369,7 +369,7 @@ public class UnpackContent extends AbstractProcessor {
         config.renameProperty("allow-stored-entries-wdd", ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR.getName());
     }
 
-    private static abstract class Unpacker {
+    private abstract static class Unpacker {
         protected Pattern fileFilter = null;
 
         public Unpacker() { }

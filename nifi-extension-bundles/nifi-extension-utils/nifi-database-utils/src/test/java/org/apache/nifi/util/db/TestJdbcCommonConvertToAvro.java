@@ -46,8 +46,8 @@ import static org.mockito.Mockito.when;
 
 public class TestJdbcCommonConvertToAvro {
 
-    private final static boolean SIGNED = true;
-    private final static boolean UNSIGNED = false;
+    private static final boolean SIGNED = true;
+    private static final boolean UNSIGNED = false;
 
     private static int[] range(int start, int end) {
         return IntStream.rangeClosed(start, end).toArray();
@@ -98,7 +98,9 @@ public class TestJdbcCommonConvertToAvro {
             };
         }
         private String humanReadableSigned() {
-            if (signed) return "SIGNED";
+            if (signed) {
+                return "SIGNED";
+            }
             return "UNSIGNED";
         }
         @Override

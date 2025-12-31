@@ -27,7 +27,6 @@ class DuplicateDetectingProperties extends Properties {
     private final Set<String> redundantKeys = new HashSet<>();
 
     public DuplicateDetectingProperties() {
-        super();
     }
 
     public Set<String> duplicateKeySet() {

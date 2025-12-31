@@ -33,7 +33,7 @@ import java.util.List;
 
 public class ScriptRunnerFactory {
 
-    private final static ScriptRunnerFactory INSTANCE = new ScriptRunnerFactory();
+    private static final ScriptRunnerFactory INSTANCE = new ScriptRunnerFactory();
 
     private ScriptRunnerFactory() {
 

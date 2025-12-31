@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LimitingInputStreamTest {
 
-    private final static byte[] TEST_BUFFER = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    private static final byte[] TEST_BUFFER = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
 
     @Test
     public void testReadLimitNotReached() throws IOException {

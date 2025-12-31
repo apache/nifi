@@ -51,10 +51,10 @@ public class TestPutSplunk {
     private TestRunner runner;
     private BlockingQueue<ByteArrayMessage> messages;
     private EventServer eventServer;
-    private final static int DEFAULT_TEST_TIMEOUT_PERIOD = 10000;
-    private final static String OUTGOING_MESSAGE_DELIMITER = "\n";
+    private static final int DEFAULT_TEST_TIMEOUT_PERIOD = 10000;
+    private static final String OUTGOING_MESSAGE_DELIMITER = "\n";
     private static final Charset CHARSET = StandardCharsets.UTF_8;
-    private final static int VALID_LARGE_FILE_SIZE = 32768;
+    private static final int VALID_LARGE_FILE_SIZE = 32768;
     private static final String LOCALHOST = "localhost";
 
     @BeforeEach

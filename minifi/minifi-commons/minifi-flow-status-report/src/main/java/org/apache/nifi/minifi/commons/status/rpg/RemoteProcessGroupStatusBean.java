@@ -80,16 +80,30 @@ public class RemoteProcessGroupStatusBean implements Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         RemoteProcessGroupStatusBean that = (RemoteProcessGroupStatusBean) o;
 
-        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) return false;
-        if (getRemoteProcessGroupHealth() != null ? !getRemoteProcessGroupHealth().equals(that.getRemoteProcessGroupHealth()) : that.getRemoteProcessGroupHealth() != null) return false;
-        if (getBulletinList() != null ? !getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() != null) return false;
-        if (getInputPortStatusList() != null ? !getInputPortStatusList().equals(that.getInputPortStatusList()) : that.getInputPortStatusList() != null) return false;
-        if (getOutputPortStatusList() != null ? !getOutputPortStatusList().equals(that.getOutputPortStatusList()) : that.getOutputPortStatusList() != null) return false;
+        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
+            return false;
+        }
+        if (getRemoteProcessGroupHealth() != null ? !getRemoteProcessGroupHealth().equals(that.getRemoteProcessGroupHealth()) : that.getRemoteProcessGroupHealth() != null) {
+            return false;
+        }
+        if (getBulletinList() != null ? !getBulletinList().equals(that.getBulletinList()) : that.getBulletinList() != null) {
+            return false;
+        }
+        if (getInputPortStatusList() != null ? !getInputPortStatusList().equals(that.getInputPortStatusList()) : that.getInputPortStatusList() != null) {
+            return false;
+        }
+        if (getOutputPortStatusList() != null ? !getOutputPortStatusList().equals(that.getOutputPortStatusList()) : that.getOutputPortStatusList() != null) {
+            return false;
+        }
         return getRemoteProcessGroupStats() != null ? getRemoteProcessGroupStats().equals(that.getRemoteProcessGroupStats()) : that.getRemoteProcessGroupStats() == null;
 
     }

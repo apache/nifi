@@ -164,7 +164,8 @@ public class TextLineDemarcator extends AbstractDemarcator {
      *  </ul>
      **/
     public static class OffsetInfo {
-        private final long startOffset, length;
+        private final long startOffset;
+        private final long length;
         private final int crlfLength;
 
         private boolean startsWithMatch = true;
