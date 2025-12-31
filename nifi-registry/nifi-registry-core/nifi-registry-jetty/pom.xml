@@ -59,32 +59,32 @@
             <artifactId>jetty-server</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlet</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-servlet</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-webapp</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-webapp</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-servlets</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-servlets</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-annotations</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-annotations</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-glassfish-jstl</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-glassfish-jstl</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.ee10</groupId>
-            <artifactId>jetty-ee10-apache-jsp</artifactId>
+            <groupId>org.eclipse.jetty.ee11</groupId>
+            <artifactId>jetty-ee11-apache-jsp</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>org.mortbay.jasper</groupId>
@@ -101,11 +101,13 @@
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
             <artifactId>mortbay-apache-jsp</artifactId>
+            <version>11.0.10.1</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.mortbay.jasper</groupId>
             <artifactId>mortbay-apache-el</artifactId>
+            <version>11.0.10.1</version>
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
