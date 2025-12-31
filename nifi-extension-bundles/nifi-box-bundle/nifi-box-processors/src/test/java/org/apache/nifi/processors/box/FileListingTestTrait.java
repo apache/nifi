@@ -16,51 +16,33 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxFolder;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.folders.FoldersManager;
+import com.box.sdkgen.managers.folders.GetFolderItemsQueryParams;
+import com.box.sdkgen.schemas.file.FilePathCollectionField;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.foldermini.FolderMini;
+import com.box.sdkgen.schemas.items.Items;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.singletonList;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public interface FileListingTestTrait {
-    BoxFolder getMockBoxFolder();
 
-    default void mockFetchedFileList(
-        String id,
-        String filename,
-        Collection<String> pathParts,
-        Long size,
-        Long createdTime,
-        Long modifiedTime
-    ) {
-        doReturn(singletonList(createFileInfo(
-                                id,
-                                filename,
-                                pathParts,
-                                size,
-                                createdTime,
-                                modifiedTime
-                        )
-                )
-        ).when(getMockBoxFolder()).getChildren("id",
-            "name",
-            "item_status",
-            "size",
-            "created_at",
-            "modified_at",
-            "content_created_at",
-            "content_modified_at",
-            "path_collection");
-    }
+    BoxClient getMockBoxClient();
 
-    default BoxFile.Info createFileInfo(
+    default FileFull createFileInfo(
         String id,
         String name,
         Collection<String> pathParts,
@@ -68,23 +50,48 @@ public interface FileListingTestTrait {
         Long createdTime,
         Long modifiedTime
     ) {
-        BoxFile.Info fileInfo = mock(BoxFile.Info.class);
+        FileFull fileInfo = mock(FileFull.class);
 
-        List<BoxFolder.Info> pathCollection = pathParts.stream().map(pathPart -> {
-            BoxFolder.Info folderInfo = mock(BoxFolder.Info.class);
+        List<FolderMini> pathCollection = pathParts.stream().map(pathPart -> {
+            FolderMini folderInfo = mock(FolderMini.class);
             when(folderInfo.getName()).thenReturn(pathPart);
-            when(folderInfo.getID()).thenReturn("not0");
+            when(folderInfo.getId()).thenReturn("not0");
 
             return folderInfo;
         }).collect(Collectors.toList());
 
-        when(fileInfo.getID()).thenReturn(id);
+        FilePathCollectionField pathCollectionField = mock(FilePathCollectionField.class);
+        when(pathCollectionField.getEntries()).thenReturn(pathCollection);
+
+        when(fileInfo.getId()).thenReturn(id);
         when(fileInfo.getName()).thenReturn(name);
-        when(fileInfo.getPathCollection()).thenReturn(pathCollection);
+        when(fileInfo.getPathCollection()).thenReturn(pathCollectionField);
         when(fileInfo.getSize()).thenReturn(size);
-        when(fileInfo.getCreatedAt()).thenReturn(new Date(createdTime));
-        when(fileInfo.getModifiedAt()).thenReturn(new Date(modifiedTime));
+        when(fileInfo.getCreatedAt()).thenReturn(OffsetDateTime.ofInstant(Instant.ofEpochMilli(createdTime), ZoneOffset.UTC));
+        when(fileInfo.getModifiedAt()).thenReturn(OffsetDateTime.ofInstant(Instant.ofEpochMilli(modifiedTime), ZoneOffset.UTC));
 
         return fileInfo;
+    }
+
+    @SuppressWarnings("unchecked")
+    default void mockFetchedFileList(
+        String id,
+        String name,
+        Collection<String> pathParts,
+        Long size,
+        Long createdTime,
+        Long modifiedTime
+    ) {
+        FileFull fileInfo = createFileInfo(id, name, pathParts, size, createdTime, modifiedTime);
+        Items items = mock(Items.class);
+
+        // Use raw list to avoid generics issues with mockito
+        List entries = new ArrayList<>();
+        entries.add(fileInfo);
+        lenient().when(items.getEntries()).thenReturn(entries);
+
+        FoldersManager foldersManager = mock(FoldersManager.class);
+        lenient().when(foldersManager.getFolderItems(anyString(), any(GetFolderItemsQueryParams.class))).thenReturn(items);
+        lenient().when(getMockBoxClient().getFolders()).thenReturn(foldersManager);
     }
 }

@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIException;
-import com.box.sdk.BoxGroup;
-import com.box.sdk.BoxGroupMembership;
-import com.box.sdk.BoxUser;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.schemas.groupmembership.GroupMembership;
+import com.box.sdkgen.schemas.groupmemberships.GroupMemberships;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
@@ -40,10 +39,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 
 import static java.util.stream.Collectors.joining;
 import static org.apache.nifi.annotation.behavior.InputRequirement.Requirement.INPUT_REQUIRED;
@@ -112,12 +109,12 @@ public class GetBoxGroupMembers extends AbstractBoxProcessor {
         return RELATIONSHIPS;
     }
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -129,26 +126,27 @@ public class GetBoxGroupMembers extends AbstractBoxProcessor {
 
         final String groupId = context.getProperty(GROUP_ID).evaluateAttributeExpressions(flowFile).getValue();
         try {
-            final Collection<BoxGroupMembership.Info> memberships = retrieveGroupMemberships(groupId);
+            final GroupMemberships memberships = retrieveGroupMemberships(groupId);
 
-            final String userIDs = extractUserProperty(memberships, BoxUser.Info::getID);
-            final String userLogins = extractUserProperty(memberships, BoxUser.Info::getLogin);
+            final String userIDs = extractUserIds(memberships);
+            final String userLogins = extractUserLogins(memberships);
 
             session.putAttribute(flowFile, GROUP_USER_IDS, userIDs);
             session.putAttribute(flowFile, GROUP_USER_LOGINS, userLogins);
             session.transfer(flowFile, REL_SUCCESS);
 
-        } catch (final BoxAPIException e) {
+        } catch (final BoxAPIError e) {
             session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getResponseCode()));
-
-            if (e.getResponseCode() == 404) {
-                getLogger().warn("Box Group with ID {} was not found.", groupId);
-                session.transfer(flowFile, REL_NOT_FOUND);
-            } else {
-                getLogger().error("Failed to retrieve Box Group for ID: {}, file [{}]", groupId, flowFile, e);
-                session.transfer(flowFile, REL_FAILURE);
+            if (e.getResponseInfo() != null) {
+                session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getResponseInfo().getStatusCode()));
+                if (e.getResponseInfo().getStatusCode() == 404) {
+                    getLogger().warn("Box Group with ID {} was not found.", groupId);
+                    session.transfer(flowFile, REL_NOT_FOUND);
+                    return;
+                }
             }
+            getLogger().error("Failed to retrieve Box Group for ID: {}, file [{}]", groupId, flowFile, e);
+            session.transfer(flowFile, REL_FAILURE);
         } catch (final ProcessException e) {
             throw e;
         } catch (final RuntimeException e) {
@@ -157,15 +155,30 @@ public class GetBoxGroupMembers extends AbstractBoxProcessor {
         }
     }
 
-    private String extractUserProperty(final Collection<BoxGroupMembership.Info> memberships, final Function<BoxUser.Info, String> userPropertyExtractor) {
-        return memberships.stream()
-                .map(BoxGroupMembership.Info::getUser)
-                .map(userPropertyExtractor)
+    private String extractUserIds(final GroupMemberships memberships) {
+        if (memberships.getEntries() == null) {
+            return "";
+        }
+        return memberships.getEntries().stream()
+                .map(GroupMembership::getUser)
+                .filter(user -> user != null)
+                .map(user -> user.getId())
+                .collect(joining(","));
+    }
+
+    private String extractUserLogins(final GroupMemberships memberships) {
+        if (memberships.getEntries() == null) {
+            return "";
+        }
+        return memberships.getEntries().stream()
+                .map(GroupMembership::getUser)
+                .filter(user -> user != null && user.getLogin() != null)
+                .map(user -> user.getLogin())
                 .collect(joining(","));
     }
 
     // Package-private for testing.
-    Collection<BoxGroupMembership.Info> retrieveGroupMemberships(final String groupId) {
-        return new BoxGroup(boxAPIConnection, groupId).getMemberships();
+    GroupMemberships retrieveGroupMemberships(final String groupId) {
+        return boxClient.getMemberships().getGroupMemberships(groupId);
     }
 }
