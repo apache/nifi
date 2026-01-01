@@ -33,7 +33,7 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
             .name("nifi_version_info")
             .help("NiFi framework and environment version information.")
             .labelNames(
-                "instance_id",
+                "instance",
                 "framework_version",
                 "java_version",
                 "revision",
