@@ -26,9 +26,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
-import org.junit.jupiter.api.condition.OS;
 import org.opentest4j.AssertionFailedError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -162,7 +160,6 @@ public class AttributeRollingWindowIT {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     public void testVerifyCount() throws InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
@@ -215,7 +212,6 @@ public class AttributeRollingWindowIT {
     }
 
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     public void testVerifyVarianceAndStandardDeviation() throws InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
@@ -255,7 +251,6 @@ public class AttributeRollingWindowIT {
             matches = "true",
             disabledReason = "this test is too unstable in terms of timing on different size/types of testing envs")
     @Test
-    @DisabledOnOs(OS.WINDOWS)
     public void testMicroBatching() throws InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(AttributeRollingWindow.class);
 
