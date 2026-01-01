@@ -61,14 +61,11 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -124,7 +121,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StandardProcessSessionIT {
-    private static final Logger logger = LoggerFactory.getLogger(StandardProcessSessionIT.class);
     private static final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
 
     private StandardProcessSession session;
@@ -1696,31 +1692,6 @@ public class StandardProcessSessionIT {
         session.commit(); // if the content claim count is decremented to less than 0, an exception will be thrown.
 
         assertEquals(1L, contentRepo.getClaimsRemoved());
-    }
-
-    @Test
-    @Disabled
-    public void testManyFilesOpened() {
-
-        StandardProcessSession[] standardProcessSessions = new StandardProcessSession[100000];
-        for (int i = 0; i < 70000; i++) {
-            standardProcessSessions[i] = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
-
-            FlowFile flowFile = standardProcessSessions[i].create();
-            final byte[] buff = new byte["Hello".getBytes().length];
-
-            flowFile = standardProcessSessions[i].append(flowFile, out -> out.write("Hello".getBytes()));
-
-            try {
-                standardProcessSessions[i].read(flowFile, in -> StreamUtils.fillBuffer(in, buff));
-            } catch (Exception e) {
-                logger.error("Failed at file:{}", i);
-                throw e;
-            }
-            if (i % 1000 == 0) {
-                logger.info("i:{}", i);
-            }
-        }
     }
 
     @Test
