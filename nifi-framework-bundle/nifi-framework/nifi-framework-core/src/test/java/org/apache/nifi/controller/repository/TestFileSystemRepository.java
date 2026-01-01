@@ -21,7 +21,6 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaim;
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
-import org.apache.nifi.controller.repository.util.DiskUtils;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -33,6 +32,7 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,23 +68,29 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisabledOnOs(OS.WINDOWS)
 public class TestFileSystemRepository {
 
     public static final File helloWorldFile = new File("src/test/resources/hello.txt");
     private static final Logger logger = LoggerFactory.getLogger(TestFileSystemRepository.class);
 
+    @TempDir
+    private Path tempDir;
+
     private FileSystemRepository repository = null;
     private StandardResourceClaimManager claimManager = null;
-    private final File rootFile = new File("target/content_repository");
+    private Path rootFile;
+    private Path modifiedNifiPropertiesFile;
     private NiFiProperties nifiProperties;
 
     @BeforeEach
     public void setup() throws IOException {
-        nifiProperties = NiFiProperties.createBasicNiFiProperties(TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
-        if (rootFile.exists()) {
-            DiskUtils.deleteRecursively(rootFile);
-        }
+        final Path originalNifiPropertiesFile = Paths.get("src/test/resources/conf/nifi.properties");
+        final String originalNifiPropertiesContent = Files.readString(originalNifiPropertiesFile);
+        final String modifiedNifiPropertiesContent = originalNifiPropertiesContent.replaceAll("\\./target", tempDir.toString());
+        modifiedNifiPropertiesFile = tempDir.resolve(originalNifiPropertiesFile.getFileName());
+        Files.writeString(modifiedNifiPropertiesFile, modifiedNifiPropertiesContent);
+        rootFile = tempDir.resolve("content_repository");
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(modifiedNifiPropertiesFile.toString());
         repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
         repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
@@ -287,10 +293,10 @@ public class TestFileSystemRepository {
 
     @Test
     public void testContentNotFoundExceptionThrownIfResourceClaimTooShort() throws IOException {
-        final File contentFile = new File("target/content_repository/0/0.bin");
-        try (final OutputStream fos = new FileOutputStream(contentFile)) {
-            fos.write("Hello World".getBytes(StandardCharsets.UTF_8));
-        }
+        Path contentFileDir = rootFile.resolve("0");
+        Files.createDirectories(contentFileDir);
+        Path contentFile = contentFileDir.resolve("0.bin");
+        Files.writeString(contentFile, "Hello World");
 
         final ResourceClaim resourceClaim = new StandardResourceClaim(claimManager, "default", "0", "0.bin", false);
         final StandardContentClaim existingContentClaim = new StandardContentClaim(resourceClaim, 0);
@@ -324,21 +330,22 @@ public class TestFileSystemRepository {
         assertThrows(ContentNotFoundException.class, () -> repository.read(missingContentClaim));
     }
 
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "java.io.File setReadable(false) does not work on Windows. See javadocs.")
     @Test
     public void testBogusFile() throws IOException {
         repository.shutdown();
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TestFileSystemRepository.class.getResource("/conf/nifi.properties").getFile());
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, modifiedNifiPropertiesFile.toString());
 
-        File bogus = new File(rootFile, "bogus");
+        Path bogus = rootFile.resolve("bogus");
         try {
-            bogus.mkdir();
-            bogus.setReadable(false);
+            Files.createDirectories(bogus);
+            bogus.toFile().setReadable(false);
 
             repository = new FileSystemRepository(nifiProperties);
             repository.initialize(new StandardContentRepositoryContext(new StandardResourceClaimManager(), EventReporter.NO_OP));
         } finally {
-            bogus.setReadable(true);
-            assertTrue(bogus.delete());
+            bogus.toFile().setReadable(true);
+            Files.delete(bogus);
         }
     }
 
