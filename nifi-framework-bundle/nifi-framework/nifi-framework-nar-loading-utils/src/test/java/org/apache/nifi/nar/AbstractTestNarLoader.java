@@ -23,8 +23,8 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -36,9 +36,11 @@ import java.util.Collection;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class AbstractTestNarLoader {
+    @TempDir
+    Path tempDir;
+
     abstract String getWorkDir();
     abstract String getNarAutoloadDir();
     abstract String getPropertiesFile();
@@ -53,15 +55,16 @@ public abstract class AbstractTestNarLoader {
 
     @BeforeEach
     public void setup() throws IOException, ClassNotFoundException {
-        deleteDir(getWorkDir());
-        deleteDir(getNarAutoloadDir());
-
-        final File extensionsDir = new File(getNarAutoloadDir());
-        assertTrue(extensionsDir.mkdirs());
+        Files.createDirectories(tempDir.resolve(getWorkDir()));
+        Files.createDirectories(tempDir.resolve(getNarAutoloadDir()));
 
         // Create NiFiProperties
-        final String propertiesFile = getPropertiesFile();
-        properties = NiFiProperties.createBasicNiFiProperties(propertiesFile, Collections.emptyMap());
+        final Path originalPropertiesFile = Paths.get(getPropertiesFile());
+        final String originalPropertiesFileContent = Files.readString(originalPropertiesFile);
+        final String modifiedPropertiesFileContent = originalPropertiesFileContent.replaceAll("\\./target", tempDir.toString());
+        final Path newPropertiesFile = tempDir.resolve(originalPropertiesFile.getFileName());
+        Files.writeString(newPropertiesFile, modifiedPropertiesFileContent);
+        properties = NiFiProperties.createBasicNiFiProperties(newPropertiesFile.toString(), Collections.emptyMap());
 
         // Unpack NARs
         systemBundle = SystemBundle.create(properties);

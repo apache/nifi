@@ -25,10 +25,10 @@ import org.junit.jupiter.api.condition.OS;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,20 +40,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @EnabledOnOs({ OS.MAC })
 @DisabledIfSystemProperty(named = "os.arch", matches = "aarch64|arm64")
 public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
-    static final String WORK_DIR = "./target/work";
-    static final String NAR_AUTOLOAD_DIR = "./target/nars_with_native_lib";
+    static final String WORK_DIR = "work";
+    static final String NAR_AUTOLOAD_DIR = "nars_with_native_lib";
     static final String PROPERTIES_FILE = "./src/test/resources/conf/nifi.nar_with_native_lib.properties";
     static final String EXTENSIONS_DIR = "./src/test/resources/nars_with_native_lib";
 
     @Test
     public void testLoadSameLibraryFromBy2NarClassLoadersFromNar() throws Exception {
         final File extensionsDir = new File(EXTENSIONS_DIR);
-        final Path narAutoLoadDir = Paths.get(NAR_AUTOLOAD_DIR);
-        for (final File extensionFile : extensionsDir.listFiles()) {
+        final Path narAutoLoadDir = tempDir.resolve(NAR_AUTOLOAD_DIR);
+        final File[] extensions = extensionsDir.listFiles();
+        assertNotNull(extensions);
+        for (final File extensionFile : extensions) {
             Files.copy(extensionFile.toPath(), narAutoLoadDir.resolve(extensionFile.getName()), StandardCopyOption.REPLACE_EXISTING);
         }
 
-        final List<File> narFiles = Arrays.asList(narAutoLoadDir.toFile().listFiles());
+        final List<File> narFiles = Arrays.asList(Objects.requireNonNull(narAutoLoadDir.toFile().listFiles()));
         assertEquals(2, narFiles.size());
 
         final NarLoadResult narLoadResult = narLoader.load(narFiles);
@@ -89,12 +91,14 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
     @Test
     public void testLoadSameLibraryBy2InstanceClassLoadersFromNar() throws Exception {
         final File extensionsDir = new File(EXTENSIONS_DIR);
-        final Path narAutoLoadDir = Paths.get(NAR_AUTOLOAD_DIR);
-        for (final File extensionFile : extensionsDir.listFiles()) {
+        final Path narAutoLoadDir = tempDir.resolve(NAR_AUTOLOAD_DIR);
+        final File[] extensions = extensionsDir.listFiles();
+        assertNotNull(extensions);
+        for (final File extensionFile : extensions) {
             Files.copy(extensionFile.toPath(), narAutoLoadDir.resolve(extensionFile.getName()), StandardCopyOption.REPLACE_EXISTING);
         }
 
-        final List<File> narFiles = Arrays.asList(narAutoLoadDir.toFile().listFiles());
+        final List<File> narFiles = Arrays.asList(Objects.requireNonNull(narAutoLoadDir.toFile().listFiles()));
         assertEquals(2, narFiles.size());
 
         final NarLoadResult narLoadResult = narLoader.load(narFiles);
