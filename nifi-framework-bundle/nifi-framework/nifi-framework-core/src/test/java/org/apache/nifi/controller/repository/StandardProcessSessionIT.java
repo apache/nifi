@@ -66,8 +66,6 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -123,7 +121,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class StandardProcessSessionIT {
-    private static final Logger logger = LoggerFactory.getLogger(StandardProcessSessionIT.class);
     private static final Relationship FAKE_RELATIONSHIP = new Relationship.Builder().name("FAKE").build();
 
     private StandardProcessSession session;
