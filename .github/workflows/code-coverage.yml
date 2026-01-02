@@ -120,8 +120,8 @@ jobs:
           ${{ env.MAVEN_BUILD_EXCLUDE_PROJECTS }}
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v5
-        if: github.repository_owner == 'apache' && steps.find-reports.outputs.reports != ''
+        if: github.repository_owner == 'apache'
         with:
-          files: ${{ steps.find-reports.outputs.reports }}
+          directory: .
           flags: integration-tests
           token: ${{ secrets.CODECOV_TOKEN }}
