@@ -104,7 +104,7 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
             // add the chain as appropriate to each proxy
             NiFiUser proxy = null;
-            for (final ListIterator<String> chainIter = proxyChain.listIterator(proxyChain.size()); chainIter.hasPrevious(); ) {
+            for (final ListIterator<String> chainIter = proxyChain.listIterator(proxyChain.size()); chainIter.hasPrevious();) {
                 String identity = chainIter.previous();
 
                 // determine if the user is anonymous

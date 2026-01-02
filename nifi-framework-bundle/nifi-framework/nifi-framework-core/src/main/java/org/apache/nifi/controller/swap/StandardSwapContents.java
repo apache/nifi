@@ -25,7 +25,7 @@ import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapSummary;
 
 public class StandardSwapContents implements SwapContents {
-    public static final SwapContents EMPTY_SWAP_CONTENTS = new StandardSwapContents(StandardSwapSummary.EMPTY_SUMMARY, Collections.<FlowFileRecord> emptyList());
+    public static final SwapContents EMPTY_SWAP_CONTENTS = new StandardSwapContents(StandardSwapSummary.EMPTY_SUMMARY, Collections.<FlowFileRecord>emptyList());
 
     private final SwapSummary summary;
     private final List<FlowFileRecord> flowFiles;

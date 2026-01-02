@@ -86,7 +86,7 @@ public class HtmlExtensionDocWriter implements ExtensionDocWriter {
         xmlStreamWriter.writeStartElement("script");
         xmlStreamWriter.writeAttribute("type", "text/javascript");
         xmlStreamWriter.writeCharacters("window.onload = function(){if(self==top) { " +
-                "document.getElementById('nameHeader').style.display = \"inherit\"; } }" );
+                "document.getElementById('nameHeader').style.display = \"inherit\"; } }");
         xmlStreamWriter.writeEndElement();
     }
 

@@ -562,7 +562,7 @@ public class PutBigQueryIT {
 
             assertEquals("1992-01-01", janeFields.get(0).getStringValue());
             assertEquals("00:00:00", janeFields.get(1).getStringValue());
-            assertEquals( Instant.parse("1992-01-01T00:00:00Z").toEpochMilli(), (janeFields.get(2).getTimestampValue() / 1000));
+            assertEquals(Instant.parse("1992-01-01T00:00:00Z").toEpochMilli(), (janeFields.get(2).getTimestampValue() / 1000));
         }
     }
 }

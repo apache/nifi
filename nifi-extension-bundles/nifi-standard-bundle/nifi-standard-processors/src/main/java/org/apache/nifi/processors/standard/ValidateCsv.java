@@ -689,10 +689,10 @@ public class ValidateCsv extends AbstractProcessor {
         }
 
         public List<Object> read(boolean includeAllViolations, CellProcessor... processors) throws IOException {
-            if ( processors == null ) {
+            if (processors == null) {
                 throw new NullPointerException("Processors should not be null");
             }
-            if ( readRow() ) {
+            if (readRow()) {
                 executeProcessors(new ArrayList<>(getColumns().size()), processors, includeAllViolations);
                 return new ArrayList<>(getColumns());
             }

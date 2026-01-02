@@ -60,9 +60,9 @@ public class StandardTocReader implements TocReader {
             final int version = buffer[0];
             final int compressionFlag = buffer[1];
 
-            if ( compressionFlag == 0 ) {
+            if (compressionFlag == 0) {
                 compressed = false;
-            } else if ( compressionFlag == 1 ) {
+            } else if (compressionFlag == 1) {
                 compressed = true;
             } else {
                 throw new IOException("Table of Contents file " + file + " appears to be corrupt: could not read 'compression flag' from header; "
@@ -77,7 +77,7 @@ public class StandardTocReader implements TocReader {
             final int numBlocks = (buffer.length - 2) / blockInfoBytes;
             offsets = new long[numBlocks];
 
-            if ( version > 1 ) {
+            if (version > 1) {
                 firstEventIds = new long[numBlocks];
             } else {
                 firstEventIds = new long[0];
@@ -88,7 +88,7 @@ public class StandardTocReader implements TocReader {
                 offsets[i] = readLong(buffer, index);
                 index += 8;
 
-                if ( version > 1 ) {
+                if (version > 1) {
                     firstEventIds[i] = readLong(buffer, index);
                     index += 8;
                 }
@@ -119,7 +119,7 @@ public class StandardTocReader implements TocReader {
 
     @Override
     public long getBlockOffset(final int blockIndex) {
-        if ( blockIndex >= offsets.length ) {
+        if (blockIndex >= offsets.length) {
             return -1L;
         }
         return offsets[blockIndex];
@@ -136,7 +136,7 @@ public class StandardTocReader implements TocReader {
 
     @Override
     public long getLastBlockOffset() {
-        if ( offsets.length == 0 ) {
+        if (offsets.length == 0) {
             return 0L;
         }
         return offsets[offsets.length - 1];
@@ -149,7 +149,7 @@ public class StandardTocReader implements TocReader {
     @Override
     public int getBlockIndex(final long blockOffset) {
         for (int i = 0; i < offsets.length; i++) {
-            if ( offsets[i] > blockOffset ) {
+            if (offsets[i] > blockOffset) {
                 // if the offset is less than the offset of our first block,
                 // just return 0 to indicate the first block. Otherwise,
                 // return i-1 because i represents the first block whose offset is
@@ -168,12 +168,12 @@ public class StandardTocReader implements TocReader {
         // if we don't have event ID's stored in the TOC (which happens for version 1 of the TOC),
         // or if the event ID is less than the first Event ID in this TOC, then the Event ID
         // is unknown -- return null.
-        if ( firstEventIds.length == 0 || eventId < firstEventIds[0] ) {
+        if (firstEventIds.length == 0 || eventId < firstEventIds[0]) {
             return null;
         }
 
         for (int i = 1; i < firstEventIds.length; i++) {
-            if ( firstEventIds[i] > eventId ) {
+            if (firstEventIds[i] > eventId) {
                 return i - 1;
             }
         }

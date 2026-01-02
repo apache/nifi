@@ -150,7 +150,7 @@ public class HashService {
         if (value == null) {
             throw new IllegalArgumentException("The value cannot be null");
         }
-        /** See the note on {@link HashServiceTest#testHashValueShouldHandleUTF16BOMIssue()} */
+        // See the note on HashServiceTest#testHashValueShouldHandleUTF16BOMIssue()
         if (charset == StandardCharsets.UTF_16) {
             logger.warn("The charset provided was UTF-16, but Java will insert a Big Endian BOM in the decoded message before hashing, so switching to UTF-16BE");
             charset = StandardCharsets.UTF_16BE;

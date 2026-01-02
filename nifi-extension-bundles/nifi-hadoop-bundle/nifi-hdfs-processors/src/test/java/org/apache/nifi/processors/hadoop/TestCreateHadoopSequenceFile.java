@@ -75,7 +75,7 @@ public class TestCreateHadoopSequenceFile {
     @Test
     public void testSimpleCase() throws IOException {
         for (File inFile : inFiles) {
-            try (FileInputStream fin = new FileInputStream(inFile) ) {
+            try (FileInputStream fin = new FileInputStream(inFile)) {
                 controller.enqueue(fin);
             }
         }
@@ -159,7 +159,7 @@ public class TestCreateHadoopSequenceFile {
     public void testMergedFlowfilePackagedData() throws IOException {
         Map<String, String> attributes = new HashMap<>();
         attributes.put(CoreAttributes.MIME_TYPE.key(), StandardFlowFileMediaType.VERSION_3.getMediaType());
-        try ( final FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545479542069498.pkg")) {
+        try (final FileInputStream fin = new FileInputStream("src/test/resources/testdata/13545479542069498.pkg")) {
             controller.enqueue(fin, attributes);
 
             controller.run();

@@ -435,7 +435,7 @@ public class MonitorActivity extends AbstractProcessor {
      *
      * @return The node connected between the last trigger and the current one.
      */
-    private boolean isReconnectedToCluster( final boolean isConnectedToCluster) {
+    private boolean isReconnectedToCluster(final boolean isConnectedToCluster) {
         return !connectedWhenLastTriggered.get() && isConnectedToCluster;
     }
 

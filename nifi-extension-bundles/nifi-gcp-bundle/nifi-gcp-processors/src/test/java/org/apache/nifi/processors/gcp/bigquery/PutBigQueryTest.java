@@ -213,7 +213,7 @@ public class PutBigQueryTest {
         runner.enqueue(csvContentWithLines(csvLineCount));
         runner.run();
 
-        Integer expectedAppendCount = (int) Math.ceil( (double) csvLineCount / appendRecordCount);
+        Integer expectedAppendCount = (int) Math.ceil((double) csvLineCount / appendRecordCount);
         verify(streamWriter, times(expectedAppendCount)).append(protoRowsCaptor.capture(), offsetCaptor.capture());
         List<ProtoRows> allValues = protoRowsCaptor.getAllValues();
         List<Long> offsets = offsetCaptor.getAllValues();

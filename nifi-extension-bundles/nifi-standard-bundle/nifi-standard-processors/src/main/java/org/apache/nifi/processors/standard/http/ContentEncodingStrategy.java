@@ -24,7 +24,7 @@ import org.apache.nifi.components.DescribedValue;
 public enum ContentEncodingStrategy implements DescribedValue {
     DISABLED("Content encoding not applied during transmission"),
 
-    GZIP( "Gzip content encoding and HTTP Content-Encoding header applied during transmission");
+    GZIP("Gzip content encoding and HTTP Content-Encoding header applied during transmission");
 
     private final String description;
 

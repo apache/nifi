@@ -143,12 +143,12 @@ public class FlowFileUnpackagerV1 implements FlowFileUnpackager {
         }
 
         @Override
-        public int read(byte b[], int off, int len) throws IOException {
+        public int read(byte[] b, int off, int len) throws IOException {
             return stream.read(b, off, len);
         }
 
         @Override
-        public int read(byte b[]) throws IOException {
+        public int read(byte[] b) throws IOException {
             return stream.read(b);
         }
     }

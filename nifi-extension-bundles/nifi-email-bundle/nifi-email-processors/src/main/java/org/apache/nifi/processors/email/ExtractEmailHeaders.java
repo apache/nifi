@@ -74,7 +74,7 @@ import org.apache.nifi.processor.util.StandardValidators;
         @WritesAttribute(attribute = "email.headers.sent_date", description = "Date the message was sent"),
         @WritesAttribute(attribute = "email.headers.subject", description = "Subject of the message (if available)"),
         @WritesAttribute(attribute = "email.headers.to.*", description = "Each individual TO recipient (if available)"),
-        @WritesAttribute(attribute = "email.attachment_count", description = "Number of attachments of the message" )})
+        @WritesAttribute(attribute = "email.attachment_count", description = "Number of attachments of the message")})
 
 public class ExtractEmailHeaders extends AbstractProcessor {
     public static final String EMAIL_HEADER_BCC = "email.headers.bcc";

@@ -65,7 +65,7 @@ public abstract class AbstractComparisonEvaluator extends BooleanEvaluator {
             return false;
         }
 
-        /**
+        /*
          * both are collections, and compare(lhsValue, rhsValue) is false.
          * this would be the case, for instance, if we compared field 1 of one segment to
          * a field in another segment, and both fields had components.
@@ -74,7 +74,7 @@ public abstract class AbstractComparisonEvaluator extends BooleanEvaluator {
             return false;
         }
 
-        /**
+        /*
          * if one side is a collection but the other is not, check if any element in that
          * collection compares to the other element in a way that satisfies the condition.
          * this would happen, for instance, if we check Segment1.Field5 = 'X' and field 5 repeats

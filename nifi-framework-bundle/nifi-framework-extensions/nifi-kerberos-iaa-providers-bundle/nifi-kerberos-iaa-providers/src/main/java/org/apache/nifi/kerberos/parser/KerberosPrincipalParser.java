@@ -47,7 +47,7 @@ public class KerberosPrincipalParser {
         // find the last non-escaped occurrence of the realm delimiter
         for (int i = 0; i < principalLength; ++i) {
             currentChar = principal.charAt(i);
-            if (currentChar == '@' && previousChar != '\\' ) {
+            if (currentChar == '@' && previousChar != '\\') {
                 realmDelimiterIndex = i;
                 realmDelimiterFound = true;
             }

@@ -475,7 +475,7 @@ public class ProcessorAuditor extends NiFiAuditor {
         if (nl != null) {
             for (int i = 0; i < nl.getLength(); i++) {
                 Node n;
-                if (( n = nl.item(i)) != null) {
+                if ((n = nl.item(i)) != null) {
                     if (n.getNodeType() == Node.ELEMENT_NODE || n.getNodeType() == Node.TEXT_NODE) {
                         if (n.hasChildNodes()) {
                             if (n.getNodeType() == Node.ELEMENT_NODE) {

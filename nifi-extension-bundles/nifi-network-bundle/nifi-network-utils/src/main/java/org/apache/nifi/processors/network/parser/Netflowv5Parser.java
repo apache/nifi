@@ -33,14 +33,14 @@ public final class Netflowv5Parser {
     private static final int LONG_TYPE = 2;
     private static final int IPV4_TYPE = 3;
 
-    private static final String headerField[] = {"version", "count", "sys_uptime", "unix_secs", "unix_nsecs", "flow_sequence", "engine_type", "engine_id", "sampling_interval"};
-    private static final String recordField[] = {"srcaddr", "dstaddr", "nexthop", "input", "output", "dPkts", "dOctets", "first", "last", "srcport", "dstport", "pad1", "tcp_flags", "prot", "tos",
+    private static final String[] headerField = {"version", "count", "sys_uptime", "unix_secs", "unix_nsecs", "flow_sequence", "engine_type", "engine_id", "sampling_interval"};
+    private static final String[] recordField = {"srcaddr", "dstaddr", "nexthop", "input", "output", "dPkts", "dOctets", "first", "last", "srcport", "dstport", "pad1", "tcp_flags", "prot", "tos",
             "src_as", "dst_as", "src_mask", "dst_mask", "pad2"};
 
     private final int portNumber;
 
-    private Object headerData[];
-    private Object recordData[][];
+    private Object[] headerData;
+    private Object[][] recordData;
 
     public Netflowv5Parser(final OptionalInt portNumber) {
         this.portNumber = (portNumber.isPresent()) ? portNumber.getAsInt() : 0;

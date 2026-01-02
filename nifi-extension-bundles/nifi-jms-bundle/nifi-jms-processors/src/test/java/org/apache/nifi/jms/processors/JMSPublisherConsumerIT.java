@@ -283,7 +283,7 @@ public class JMSPublisherConsumerIT {
             flowFileAttributes.put(JmsHeaders.EXPIRATION, Long.toString(expiration));
             publisher.publish(destinationName, "hellomq-1".getBytes(), flowFileAttributes);
             receivedMessage = jmsTemplate.receive(destinationName);
-            /**
+            /*
              * https://github.com/spring-projects/spring-framework/issues/24144
              * Suggests we cannot rely on the value being specifically what was set
              * and on a per message level so instead checking experitation is set
@@ -387,7 +387,7 @@ public class JMSPublisherConsumerIT {
                         while (msgCounter.get() < totalMessageCount) {
                             consumer.consumeMessageSet(destinationName, null, false, false, null, null, "UTF-8", 5,
                                     responses -> {
-                                        responses.forEach( response -> {
+                                        responses.forEach(response -> {
                                             msgCounter.incrementAndGet();
                                             String body = new String(response.getMessageBody(), StandardCharsets.UTF_8);
                                             int msgNum = 0;

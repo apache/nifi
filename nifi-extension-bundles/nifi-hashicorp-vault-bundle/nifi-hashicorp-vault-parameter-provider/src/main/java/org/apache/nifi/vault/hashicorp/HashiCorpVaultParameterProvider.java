@@ -114,7 +114,7 @@ public class HashiCorpVaultParameterProvider extends AbstractParameterProvider i
         for (final String secretName : secretNames) {
             final Map<String, String> keyValues = vaultCommunicationService.readKeyValueSecretMap(kvPath, secretName, kvVersion);
             final List<Parameter> parameters = new ArrayList<>();
-            keyValues.forEach( (key, value) -> {
+            keyValues.forEach((key, value) -> {
                 parameters.add(new Parameter.Builder()
                         .name(key)
                         .value(value)

@@ -55,7 +55,7 @@ public class StandardTocWriter implements TocWriter {
      */
     public StandardTocWriter(final File file, final boolean compressionFlag, final boolean alwaysSync) throws IOException {
         final File tocDir = file.getParentFile();
-        if ( !tocDir.exists() ) {
+        if (!tocDir.exists()) {
             Files.createDirectories(tocDir.toPath());
         }
 
@@ -69,7 +69,7 @@ public class StandardTocWriter implements TocWriter {
         fos.write(header);
         fos.flush();
 
-        if ( alwaysSync ) {
+        if (alwaysSync) {
             sync();
         }
     }
@@ -84,7 +84,7 @@ public class StandardTocWriter implements TocWriter {
         index++;
         logger.debug("Adding block {} at offset {}", index, offset);
 
-        if ( alwaysSync ) {
+        if (alwaysSync) {
             sync();
         }
     }

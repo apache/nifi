@@ -136,7 +136,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
 
                     Schema avroSchema = dataFileReader.getSchema();
                     getLogger().debug(SchemaFormatter.format("json/pretty", avroSchema));
-                    ParquetWriter<GenericRecord> writer = createParquetWriter(context, flowFile, rawOut, avroSchema );
+                    ParquetWriter<GenericRecord> writer = createParquetWriter(context, flowFile, rawOut, avroSchema);
 
                     try {
                         int recordCount = 0;
@@ -165,7 +165,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
 
             Map<String, String> outAttributes = new HashMap<>();
             outAttributes.put(CoreAttributes.FILENAME.key(), newFilename.toString());
-            outAttributes.put(RECORD_COUNT_ATTRIBUTE, Integer.toString(totalRecordCount.get()) );
+            outAttributes.put(RECORD_COUNT_ATTRIBUTE, Integer.toString(totalRecordCount.get()));
 
             putFlowFile = session.putAllAttributes(putFlowFile, outAttributes);
             session.transfer(putFlowFile, SUCCESS);

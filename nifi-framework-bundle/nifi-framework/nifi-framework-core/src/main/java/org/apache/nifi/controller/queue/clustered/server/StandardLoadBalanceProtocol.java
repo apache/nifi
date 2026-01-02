@@ -454,7 +454,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
 
     private long readChecksum(final InputStream in) throws IOException {
         final byte[] buffer = getDataBuffer();
-        StreamUtils.read(in, buffer, 8 );
+        StreamUtils.read(in, buffer, 8);
         return ByteBuffer.wrap(buffer, 0, 8).getLong();
     }
 

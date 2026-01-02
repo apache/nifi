@@ -70,7 +70,7 @@ public class Bin {
         this.session = session;
         this.fileCountAttribute = fileCountAttribute;
 
-        if (this.fileCountAttribute != null ) {
+        if (this.fileCountAttribute != null) {
             // Merge Strategy = Defragment
             // FlowFiles will be merged based on fragment.* attributes
             this.minimumSizeBytes = 0;

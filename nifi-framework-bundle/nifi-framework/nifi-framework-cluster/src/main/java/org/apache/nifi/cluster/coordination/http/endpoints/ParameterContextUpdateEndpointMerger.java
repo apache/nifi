@@ -77,7 +77,7 @@ public class ParameterContextUpdateEndpointMerger extends AbstractSingleEntityEn
         }
 
         final Map<NodeIdentifier, ParameterContextDTO> contextDtoMap = new HashMap<>();
-        entityMap.forEach( (nodeId, entity) -> contextDtoMap.put(nodeId, entity.getRequest().getParameterContext()));
+        entityMap.forEach((nodeId, entity) -> contextDtoMap.put(nodeId, entity.getRequest().getParameterContext()));
 
         ParameterContextMerger.merge(clientUpdateRequestDto.getParameterContext(), contextDtoMap);
         clientUpdateRequestDto.setReferencingComponents(new HashSet<>(affectedComponentEntities.values()));

@@ -34,7 +34,7 @@ public class Metric {
     @SerializedName("Tags") private String tags;
 
 
-    public Metric(String instanceId, String processGroupId, String processGroupName ) {
+    public Metric(String instanceId, String processGroupId, String processGroupName) {
         this.computer = instanceId;
         this.processGroupName = processGroupName;
         this.processGroupId = processGroupId;

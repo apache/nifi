@@ -466,7 +466,7 @@ public final class NarUnpacker {
                 // But the MANIFEST.MF file is special. If it's not properly formed, it will prefer the ClassLoader from loading the JAR file, and we can't simply
                 // concatenate the files together. However, it's not required and generally contains information that we don't care about in this context. So we can
                 // simply ignore it.
-                if ((entryName.contains("META-INF/") && !entryName.contains("META-INF/MANIFEST.MF") ) && !jarEntry.isDirectory()) {
+                if ((entryName.contains("META-INF/") && !entryName.contains("META-INF/MANIFEST.MF")) && !jarEntry.isDirectory()) {
                     logger.debug("Found META-INF/services file {}", entryName);
 
                     // Because we're combining multiple jar files into one, we can run into situations where there may be conflicting filenames

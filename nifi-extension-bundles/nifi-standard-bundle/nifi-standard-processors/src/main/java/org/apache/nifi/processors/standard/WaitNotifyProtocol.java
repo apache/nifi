@@ -53,7 +53,7 @@ public class WaitNotifyProtocol {
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final Serializer<String> stringSerializer = (value, output) -> {
-        if (value != null ) {
+        if (value != null) {
             output.write(value.getBytes(StandardCharsets.UTF_8));
         }
     };

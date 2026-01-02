@@ -277,7 +277,7 @@ public class MockPropertyValue implements PropertyValue {
             validateExpressionScope(flowFile != null, additionalAttributes != null);
         }
 
-        if (additionalAttributes == null ) {
+        if (additionalAttributes == null) {
             additionalAttributes = new HashMap<>();
         }
         // we need a new map here because additionalAttributes can be an unmodifiable map when it's the FlowFile attributes

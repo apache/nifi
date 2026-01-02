@@ -196,7 +196,7 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
     protected List<FlowFile> processException(final ProcessSession session, List<FlowFile> flowFiles, Exception exception) {
         List<FlowFile> failedFlowFiles = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
-            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
+            flowFile = session.putAttribute(flowFile, DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage());
             failedFlowFiles.add(flowFile);
         }
         return failedFlowFiles;
@@ -220,13 +220,13 @@ public abstract class AbstractDynamoDBProcessor extends AbstractAwsSyncProcessor
         final List<FlowFile> failedFlowFiles = new ArrayList<>();
         for (FlowFile flowFile : flowFiles) {
             Map<String, String> attributes = new HashMap<>();
-            attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage() );
-            attributes.put(DYNAMODB_ERROR_CODE, exception.awsErrorDetails().errorCode() );
-            attributes.put(DYNAMODB_ERROR_MESSAGE, exception.awsErrorDetails().errorMessage() );
-            attributes.put(DYNAMODB_ERROR_SERVICE, exception.awsErrorDetails().serviceName() );
+            attributes.put(DYNAMODB_ERROR_EXCEPTION_MESSAGE, exception.getMessage());
+            attributes.put(DYNAMODB_ERROR_CODE, exception.awsErrorDetails().errorCode());
+            attributes.put(DYNAMODB_ERROR_MESSAGE, exception.awsErrorDetails().errorMessage());
+            attributes.put(DYNAMODB_ERROR_SERVICE, exception.awsErrorDetails().serviceName());
             attributes.put(DYNAMODB_ERROR_RETRYABLE, Boolean.toString(exception.retryable()));
-            attributes.put(DYNAMODB_ERROR_REQUEST_ID, exception.requestId() );
-            attributes.put(DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.statusCode()) );
+            attributes.put(DYNAMODB_ERROR_REQUEST_ID, exception.requestId());
+            attributes.put(DYNAMODB_ERROR_STATUS_CODE, Integer.toString(exception.statusCode()));
             flowFile = session.putAllAttributes(flowFile, attributes);
             failedFlowFiles.add(flowFile);
         }

@@ -131,7 +131,7 @@ public class TestWriteXMLResult {
     public void testSingleRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSingleRecord();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, null, "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -195,7 +195,7 @@ public class TestWriteXMLResult {
         final Record record = new MapRecord(schema, valueMap);
         final RecordSet rs = RecordSet.of(schema, record);
 
-        WriteXMLResult writer = new WriteXMLResult( rs.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(rs.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "RECORD", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(rs);
@@ -213,7 +213,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -229,7 +229,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecordWithNullValuesAlwaysSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -245,7 +245,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecordWithNullValuesNeverSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -261,7 +261,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecordWithNullValuesSuppressMissings() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -277,7 +277,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecordWithXMLDeclaration() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, false, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -293,7 +293,7 @@ public class TestWriteXMLResult {
     public void testSimpleRecordWithOutXMLDeclaration() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, false, true, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -309,7 +309,7 @@ public class TestWriteXMLResult {
     public void testEmptyRecordWithEmptySchema() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getEmptyRecordsWithEmptySchema();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -324,7 +324,7 @@ public class TestWriteXMLResult {
     public void testNestedRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecords();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -342,7 +342,7 @@ public class TestWriteXMLResult {
     public void testNestedRecordWithNullValuesAlwaysSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -358,7 +358,7 @@ public class TestWriteXMLResult {
     public void testNestedRecordWithNullValuesNeverSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -376,7 +376,7 @@ public class TestWriteXMLResult {
     public void testNestedRecordWithNullValuesSuppressMissings() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -396,7 +396,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -414,7 +414,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -434,7 +434,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getEmptyNestedRecordEmptyNestedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -452,7 +452,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getEmptyNestedRecordEmptyNestedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -470,7 +470,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getEmptyNestedRecordDefinedSchema();
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -488,7 +488,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -508,7 +508,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -528,7 +528,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -548,7 +548,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -566,7 +566,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -584,7 +584,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -602,7 +602,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -620,7 +620,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -640,7 +640,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_FOR_ELEMENTS, "ELEM", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -660,7 +660,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -680,7 +680,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -700,7 +700,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -718,7 +718,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -736,7 +736,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -756,7 +756,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -772,7 +772,7 @@ public class TestWriteXMLResult {
     public void testChoice() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithChoice();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -798,7 +798,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaSimpleRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecords();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -822,7 +822,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesAlwaysSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -846,7 +846,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesNeverSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -870,7 +870,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaSimpleRecordWithNullValuesSuppressMissings() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getSimpleRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, SUPPRESS_MISSING, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -894,7 +894,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaNestedRecord() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecords();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -920,7 +920,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaNestedRecordWithNullValuesAlwaysSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -946,7 +946,7 @@ public class TestWriteXMLResult {
     public void testWriteWithoutSchemaNestedRecordWithNullValuesNeverSuppress() throws IOException {
         OutputStream out = new ByteArrayOutputStream();
         RecordSet recordSet = getNestedRecordsWithNullValues();
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -974,7 +974,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1000,7 +1000,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getNestedRecordsWithOnlyNullValues();
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1028,7 +1028,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1056,7 +1056,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1084,7 +1084,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1112,7 +1112,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1138,7 +1138,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1164,7 +1164,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1190,7 +1190,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1216,7 +1216,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_AS_WRAPPER, "ARRAY", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1244,7 +1244,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleArray(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, USE_PROPERTY_FOR_ELEMENTS, "ELEM", "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1272,7 +1272,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.WITHOUT_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1300,7 +1300,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.write(recordSet);
@@ -1320,7 +1320,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.ONLY_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1346,7 +1346,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, ALWAYS_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1372,7 +1372,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.HAS_NULL);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();
@@ -1400,7 +1400,7 @@ public class TestWriteXMLResult {
 
         RecordSet recordSet = getRecordWithSimpleMap(TestWriteXMLResultUtils.NullValues.EMPTY);
 
-        WriteXMLResult writer = new WriteXMLResult( recordSet.getSchema(), new SchemaNameAsAttribute(),
+        WriteXMLResult writer = new WriteXMLResult(recordSet.getSchema(), new SchemaNameAsAttribute(),
                 out, true, false, NEVER_SUPPRESS, NO_WRAPPING, null, "ROOT", "PERSON", "UTF-8", DATE_FORMAT, TIME_FORMAT, TIMESTAMP_FORMAT);
 
         writer.onBeginRecordSet();

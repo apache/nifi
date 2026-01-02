@@ -154,21 +154,21 @@ public class PythonProcessorIT extends NiFiSystemIT {
         final List<String> firstRecordValues = Stream.of(firstRecordLine.split(","))
             .map(String::trim)
             .toList();
-        assertEquals("Jane Doe", firstRecordValues.get( headerIndices.get("name") ));
-        assertEquals("yellow", firstRecordValues.get( headerIndices.get("color") ));
-        assertEquals("3", firstRecordValues.get( headerIndices.get("age") ));
-        assertEquals("Ball", firstRecordValues.get( headerIndices.get("sport") ));
-        assertEquals("HELLO", firstRecordValues.get( headerIndices.get("greeting") ));
+        assertEquals("Jane Doe", firstRecordValues.get(headerIndices.get("name")));
+        assertEquals("yellow", firstRecordValues.get(headerIndices.get("color")));
+        assertEquals("3", firstRecordValues.get(headerIndices.get("age")));
+        assertEquals("Ball", firstRecordValues.get(headerIndices.get("sport")));
+        assertEquals("HELLO", firstRecordValues.get(headerIndices.get("greeting")));
 
         final String secondRecordLine = lines[2];
         final List<String> secondRecordValues = Stream.of(secondRecordLine.split(","))
             .map(String::trim)
             .toList();
-        assertEquals("Jake Doe", secondRecordValues.get( headerIndices.get("name") ));
-        assertEquals("yellow", secondRecordValues.get( headerIndices.get("color") ));
-        assertEquals("3", secondRecordValues.get( headerIndices.get("age") ));
-        assertEquals("Ball", secondRecordValues.get( headerIndices.get("sport") ));
-        assertEquals("HELLO", secondRecordValues.get( headerIndices.get("greeting") ));
+        assertEquals("Jake Doe", secondRecordValues.get(headerIndices.get("name")));
+        assertEquals("yellow", secondRecordValues.get(headerIndices.get("color")));
+        assertEquals("3", secondRecordValues.get(headerIndices.get("age")));
+        assertEquals("Ball", secondRecordValues.get(headerIndices.get("sport")));
+        assertEquals("HELLO", secondRecordValues.get(headerIndices.get("greeting")));
     }
 
     @Test
@@ -230,8 +230,8 @@ public class PythonProcessorIT extends NiFiSystemIT {
         final List<String> firstRecordValues = Stream.of(firstRecordLine.split(","))
             .map(String::trim)
             .toList();
-        assertEquals("Jane Doe", firstRecordValues.get( ff1HeaderIndices.get("name") ));
-        assertEquals("default", firstRecordValues.get( ff1HeaderIndices.get("group") ));
+        assertEquals("Jane Doe", firstRecordValues.get(ff1HeaderIndices.get("name")));
+        assertEquals("default", firstRecordValues.get(ff1HeaderIndices.get("group")));
 
         final String ff2Contents = getClientUtil().getFlowFileContentAsUtf8(outputConnection.getId(), 1);
         final String[] ff2Lines = ff2Contents.split("\n");
@@ -252,8 +252,8 @@ public class PythonProcessorIT extends NiFiSystemIT {
         final List<String> secondRecordValues = Stream.of(secondRecordLine.split(","))
             .map(String::trim)
             .toList();
-        assertEquals("Jake Doe", secondRecordValues.get( headerIndices.get("name") ));
-        assertEquals("other", secondRecordValues.get( headerIndices.get("group") ));
+        assertEquals("Jake Doe", secondRecordValues.get(headerIndices.get("name")));
+        assertEquals("other", secondRecordValues.get(headerIndices.get("group")));
     }
 
     @Test

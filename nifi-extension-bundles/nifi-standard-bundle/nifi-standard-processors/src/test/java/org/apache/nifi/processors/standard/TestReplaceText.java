@@ -44,7 +44,7 @@ public class TestReplaceText {
     public TestRunner getRunner() {
         TestRunner runner = TestRunners.newTestRunner(ReplaceText.class);
 
-        /**
+        /*
          * we have to disable validation of expression language because the scope of the evaluation
          * for the search value depends of another property (the evaluation mode). If not disabling
          * the validation, it'll throw an error about the eval

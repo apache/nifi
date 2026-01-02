@@ -2691,7 +2691,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             public synchronized void onStartLeading() {
                 LOG.info("This node has been elected Active {}", ClusterRoles.CLUSTER_COORDINATOR);
                 final String message = String.format("%s has been elected Active %s", participantId, ClusterRoles.CLUSTER_COORDINATOR);
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(ClusterRoles.CLUSTER_COORDINATOR, Severity.INFO.name(), message   ));
+                bulletinRepository.addBulletin(BulletinFactory.createBulletin(ClusterRoles.CLUSTER_COORDINATOR, Severity.INFO.name(), message));
 
                 // Purge any heartbeats that we already have. If we don't do this, we can have a scenario where we receive heartbeats
                 // from a node, and then another node becomes Cluster Coordinator. As a result, we stop receiving heartbeats. Now that
@@ -2824,13 +2824,13 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         final ProcessGroup rootGroup = flowManager.getRootGroup();
 
         for (final ProcessorNode procNode : rootGroup.findAllProcessors()) {
-            processScheduler.submitFrameworkTask(() -> processScheduler.notifyPrimaryNodeStateChange(procNode, nodeState) );
+            processScheduler.submitFrameworkTask(() -> processScheduler.notifyPrimaryNodeStateChange(procNode, nodeState));
         }
         for (final ControllerServiceNode serviceNode : flowManager.getAllControllerServices()) {
-            processScheduler.submitFrameworkTask(() -> processScheduler.notifyPrimaryNodeStateChange(serviceNode, nodeState) );
+            processScheduler.submitFrameworkTask(() -> processScheduler.notifyPrimaryNodeStateChange(serviceNode, nodeState));
         }
         for (final ReportingTaskNode reportingTaskNode : getAllReportingTasks()) {
-            processScheduler.submitFrameworkTask(() -> processScheduler.notifyPrimaryNodeStateChange(reportingTaskNode, nodeState) );
+            processScheduler.submitFrameworkTask(() -> processScheduler.notifyPrimaryNodeStateChange(reportingTaskNode, nodeState));
         }
 
         // update the heartbeat bean

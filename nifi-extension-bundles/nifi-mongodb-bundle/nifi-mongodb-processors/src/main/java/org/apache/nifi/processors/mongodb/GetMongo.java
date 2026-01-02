@@ -146,7 +146,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             }
             builder
                     .append(asJson)
-                    .append( (documents.size() > 1 && index + 1 < documents.size()) ? ", " : "" );
+                    .append((documents.size() > 1 && index + 1 < documents.size()) ? ", " : "");
         }
 
         return "[" + builder.toString() + "]";

@@ -61,7 +61,7 @@ public class TestJdbcCommonConvertToAvro {
 
         List<TestParams> params = new ArrayList<>();
 
-        typeWithPrecisionRange.forEach( (sqlType, precisions) -> {
+        typeWithPrecisionRange.forEach((sqlType, precisions) -> {
             for (int precision : precisions) {
                 params.add(new TestParams(sqlType, precision, SIGNED));
                 params.add(new TestParams(sqlType, precision, UNSIGNED));

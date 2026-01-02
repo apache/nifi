@@ -258,7 +258,7 @@ public class StandardFlowComparator implements FlowComparator {
         final Map<String, VersionedParameter> contextAParameters = parametersByName(contextA.getParameters());
         final Map<String, VersionedParameter> contextBParameters = parametersByName(contextB.getParameters());
 
-        for (final VersionedParameter parameterA : contextA.getParameters() ) {
+        for (final VersionedParameter parameterA : contextA.getParameters()) {
             final String name = parameterA.getName();
 
             final VersionedParameter parameterB = contextBParameters.get(parameterA.getName());

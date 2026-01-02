@@ -21,7 +21,7 @@ import org.apache.nifi.web.search.query.SearchQuery;
 
 import java.util.List;
 
-public class BundleMatcher <T extends ComponentNode> implements AttributeMatcher<T> {
+public class BundleMatcher<T extends ComponentNode> implements AttributeMatcher<T> {
     private static final String BUNDLE = "Bundle";
 
     @Override

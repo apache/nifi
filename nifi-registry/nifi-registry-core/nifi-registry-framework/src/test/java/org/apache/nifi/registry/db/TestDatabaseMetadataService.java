@@ -312,7 +312,7 @@ public class TestDatabaseMetadataService extends DatabaseBaseTest {
 
         metadataService.updateFlow(flow);
 
-        final FlowEntity updatedFlow = metadataService.getFlowById( "1");
+        final FlowEntity updatedFlow = metadataService.getFlowById("1");
         assertNotNull(flow);
         assertEquals(flow.getName(), updatedFlow.getName());
         assertEquals(flow.getDescription(), updatedFlow.getDescription());
@@ -322,7 +322,7 @@ public class TestDatabaseMetadataService extends DatabaseBaseTest {
 
     @Test
     public void testDeleteFlowWithSnapshots() {
-        final FlowEntity flow = metadataService.getFlowById( "1");
+        final FlowEntity flow = metadataService.getFlowById("1");
         assertNotNull(flow);
 
         metadataService.deleteFlow(flow);
@@ -335,7 +335,7 @@ public class TestDatabaseMetadataService extends DatabaseBaseTest {
 
     @Test
     public void testGetFlowSnapshot() {
-        final FlowSnapshotEntity entity = metadataService.getFlowSnapshot( "1", 1);
+        final FlowSnapshotEntity entity = metadataService.getFlowSnapshot("1", 1);
         assertNotNull(entity);
         assertEquals("1", entity.getFlowId());
         assertEquals(1, entity.getVersion().intValue());
@@ -343,7 +343,7 @@ public class TestDatabaseMetadataService extends DatabaseBaseTest {
 
     @Test
     public void testGetFlowSnapshotDoesNotExist() {
-        final FlowSnapshotEntity entity = metadataService.getFlowSnapshot( "DOES-NOT-EXIST", 1);
+        final FlowSnapshotEntity entity = metadataService.getFlowSnapshot("DOES-NOT-EXIST", 1);
         assertNull(entity);
     }
 
@@ -383,26 +383,26 @@ public class TestDatabaseMetadataService extends DatabaseBaseTest {
 
     @Test
     public void testGetFlowSnapshots() {
-        final List<FlowSnapshotEntity> flowSnapshots = metadataService.getSnapshots( "1");
+        final List<FlowSnapshotEntity> flowSnapshots = metadataService.getSnapshots("1");
         assertNotNull(flowSnapshots);
         assertEquals(3, flowSnapshots.size());
     }
 
     @Test
     public void testGetFlowSnapshotsNoneFound() {
-        final List<FlowSnapshotEntity> flowSnapshots = metadataService.getSnapshots( "2");
+        final List<FlowSnapshotEntity> flowSnapshots = metadataService.getSnapshots("2");
         assertNotNull(flowSnapshots);
         assertEquals(0, flowSnapshots.size());
     }
 
     @Test
     public void testDeleteFlowSnapshot() {
-        final FlowSnapshotEntity entity = metadataService.getFlowSnapshot( "1", 1);
+        final FlowSnapshotEntity entity = metadataService.getFlowSnapshot("1", 1);
         assertNotNull(entity);
 
         metadataService.deleteFlowSnapshot(entity);
 
-        final FlowSnapshotEntity deletedEntity = metadataService.getFlowSnapshot( "1", 1);
+        final FlowSnapshotEntity deletedEntity = metadataService.getFlowSnapshot("1", 1);
         assertNull(deletedEntity);
     }
 
