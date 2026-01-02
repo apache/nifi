@@ -112,7 +112,7 @@ public class InferenceSchemaStrategyTest {
         final String json = "{\"double\":1.0,\"integer\":1,\"long\":9223372036854775,\"boolean\":true,\"array\":[]}";
 
         // when
-        final RecordSchema result = testSubject.getSchema(  null, new ByteArrayInputStream(json.getBytes()), null);
+        final RecordSchema result = testSubject.getSchema(null, new ByteArrayInputStream(json.getBytes()), null);
 
         // then
         assertNotNull(result);

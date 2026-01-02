@@ -295,7 +295,7 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
     }
 
     @Override
-    protected void bulkInsert(List<Map<String, Object>> records ) throws CosmosException {
+    protected void bulkInsert(List<Map<String, Object>> records) throws CosmosException {
         this.mockBackend.addAll(records);
     }
 

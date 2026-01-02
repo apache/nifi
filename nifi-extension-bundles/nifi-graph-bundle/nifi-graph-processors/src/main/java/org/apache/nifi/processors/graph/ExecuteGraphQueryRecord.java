@@ -200,7 +200,7 @@ public class ExecuteGraphQueryRecord extends  AbstractGraphExecutor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile input = session.get();
-        if ( input == null ) {
+        if (input == null) {
             return;
         }
 

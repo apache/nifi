@@ -2967,7 +2967,7 @@ public class StandardProcessSessionIT {
     public void configureRetry(final Connectable connectable, final int retryCount, final BackoffMechanism backoffMechanism,
                                final String maxBackoffPeriod, final long penalizationPeriod) {
         Processor proc = mock(Processor.class);
-        when(((ProcessorNode) connectable).getProcessor()).thenReturn( proc);
+        when(((ProcessorNode) connectable).getProcessor()).thenReturn(proc);
         when((connectable).isRelationshipRetried(any())).thenReturn(true);
         when((connectable).getRetryCount()).thenReturn(retryCount);
         when((connectable).getBackoffMechanism()).thenReturn(backoffMechanism);

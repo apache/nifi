@@ -227,8 +227,8 @@ public class ParseNetflowv5 extends AbstractProcessor {
         final ObjectNode header = MAPPER.createObjectNode();
 
         // Process KVs of the Flow Header fields
-        String fieldname[] = getHeaderFields();
-        Object fieldvalue[] = parser.getHeaderData();
+        String[] fieldname = getHeaderFields();
+        Object[] fieldvalue = parser.getHeaderData();
         for (int i = 0; i < fieldname.length; i++) {
             header.set(fieldname[i], MAPPER.valueToTree(fieldvalue[i]));
         }

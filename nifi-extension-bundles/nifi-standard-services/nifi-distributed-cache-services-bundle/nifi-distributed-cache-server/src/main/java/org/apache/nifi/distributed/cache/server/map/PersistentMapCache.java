@@ -83,21 +83,21 @@ public class PersistentMapCache implements MapCache {
     }
 
     protected void putWriteAheadLog(ByteBuffer key, ByteBuffer value, MapPutResult putResult) throws IOException {
-        if ( putResult.isSuccessful() ) {
+        if (putResult.isSuccessful()) {
             // The put was successful.
             final MapWaliRecord record = new MapWaliRecord(UpdateType.CREATE, key, value);
             final List<MapWaliRecord> records = new ArrayList<>();
             records.add(record);
 
             final MapCacheRecord evicted = putResult.getEvicted();
-            if ( evicted != null ) {
+            if (evicted != null) {
                 records.add(new MapWaliRecord(UpdateType.DELETE, evicted.getKey(), evicted.getValue()));
             }
 
             wali.update(records, false);
 
             final long modCount = modifications.getAndIncrement();
-            if ( modCount > 0 && modCount % 100000 == 0 ) {
+            if (modCount > 0 && modCount % 100000 == 0) {
                 wali.checkpoint();
             }
         }

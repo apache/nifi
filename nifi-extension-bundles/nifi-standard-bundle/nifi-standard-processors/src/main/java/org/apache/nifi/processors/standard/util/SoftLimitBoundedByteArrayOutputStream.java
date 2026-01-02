@@ -53,7 +53,7 @@ public class SoftLimitBoundedByteArrayOutputStream extends OutputStream {
     }
 
     @Override
-    public void write(byte b[], int off, int len) throws IOException {
+    public void write(byte[] b, int off, int len) throws IOException {
         if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length)
                 || ((off + len) < 0)) {
             throw new IndexOutOfBoundsException();

@@ -153,30 +153,30 @@ class JMSPublisher extends JMSWorker {
     }
 
     public enum JmsPropertySetterEnum implements JmsPropertySetter {
-        BOOLEAN( (message, name, value) -> {
+        BOOLEAN((message, name, value) -> {
             message.setBooleanProperty(name, Boolean.parseBoolean(value));
-        } ),
-        BYTE( (message, name, value) -> {
+        }),
+        BYTE((message, name, value) -> {
             message.setByteProperty(name, Byte.parseByte(value));
-        } ),
-        SHORT( (message, name, value) -> {
+        }),
+        SHORT((message, name, value) -> {
             message.setShortProperty(name, Short.parseShort(value));
-        } ),
-        INTEGER( (message, name, value) -> {
+        }),
+        INTEGER((message, name, value) -> {
             message.setIntProperty(name, Integer.parseInt(value));
-        } ),
-        LONG( (message, name, value) -> {
+        }),
+        LONG((message, name, value) -> {
             message.setLongProperty(name, Long.parseLong(value));
-        } ),
-        FLOAT( (message, name, value) -> {
+        }),
+        FLOAT((message, name, value) -> {
             message.setFloatProperty(name, Float.parseFloat(value));
-        } ),
-        DOUBLE( (message, name, value) -> {
+        }),
+        DOUBLE((message, name, value) -> {
             message.setDoubleProperty(name, Double.parseDouble(value));
-        } ),
-        STRING( (message, name, value) -> {
+        }),
+        STRING((message, name, value) -> {
             message.setStringProperty(name, value);
-        } );
+        });
 
         private final JmsPropertySetter setter;
         JmsPropertySetterEnum(JmsPropertySetter setter) {

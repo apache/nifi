@@ -22,14 +22,14 @@ import org.apache.nifi.record.path.paths.RecordPathSegment;
 
 public class PadLeft extends Padding {
 
-    public PadLeft( final RecordPathSegment inputStringPath,
+    public PadLeft(final RecordPathSegment inputStringPath,
                     final RecordPathSegment desiredLengthPath,
                     final RecordPathSegment paddingStringPath,
                     final boolean absolute) {
         super("padLeft", null, inputStringPath, desiredLengthPath, paddingStringPath, absolute);
     }
 
-    public PadLeft( final RecordPathSegment inputStringPath,
+    public PadLeft(final RecordPathSegment inputStringPath,
                     final RecordPathSegment desiredLengthPath,
                     final boolean absolute) {
         super("padLeft", null, inputStringPath, desiredLengthPath, null, absolute);

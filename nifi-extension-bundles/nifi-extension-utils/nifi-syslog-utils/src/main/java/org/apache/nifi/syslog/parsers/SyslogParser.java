@@ -106,7 +106,7 @@ public class SyslogParser {
         if (buffer.position() != 0) {
             buffer.flip();
         }
-        byte bytes[] = new byte[buffer.limit()];
+        byte[] bytes = new byte[buffer.limit()];
         buffer.get(bytes, 0, buffer.limit());
         return parseEvent(bytes, sender);
     }

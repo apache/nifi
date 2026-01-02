@@ -274,7 +274,7 @@ public class TestTransformJSONResource extends JerseyTest {
                 .post(Entity.json(joltSpecificationDTO), String.class);
 
         Object transformedJson = JsonUtils.jsonToObject(responseString);
-        Object compareJson = JsonUtils.jsonToObject( "{\"qa\":2}}");
+        Object compareJson = JsonUtils.jsonToObject("{\"qa\":2}}");
         assertNotNull(transformedJson);
         assertTrue(diffy.diff(compareJson, transformedJson).isEmpty());
     }

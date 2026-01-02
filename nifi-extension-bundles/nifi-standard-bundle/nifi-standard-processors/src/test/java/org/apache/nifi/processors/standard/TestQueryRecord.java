@@ -935,7 +935,7 @@ public class TestQueryRecord {
         personFields.add(new RecordField("title", RecordFieldType.STRING.getDataType()));
         personFields.add(new RecordField("jobLevel", RecordFieldType.ENUM.getDataType()));
         personFields.add(new RecordField("height", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.DOUBLE.getDataType(), RecordFieldType.INT.getDataType())));
-        personFields.add(new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType( RecordFieldType.RECORD.getRecordDataType(addressSchema)) ));
+        personFields.add(new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(addressSchema))));
         final RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
         final Map<String, Object> workMap = new HashMap<>();

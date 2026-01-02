@@ -176,9 +176,7 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
         ));
 
         Function<Record, RecordSchema> expectedSchemaProvider = actualRecord -> {
-            /**
-             * Resolving lazy schema in actual by calling {@link RecordDataType#getChildSchema()}
-             */
+            // Resolving lazy schema in actual by calling RecordDataType#getChildSchema()
             ((RecordDataType) actualRecord.getSchema().getField("child").get().getDataType()).getChildSchema();
             ((RecordDataType) ((ArrayDataType) actualRecord.getSchema().getField("children").get().getDataType()).getElementType()).getChildSchema();
             ((RecordDataType) ((ArrayDataType) actualRecord.getSchema().getField("unordered").get().getDataType()).getElementType()).getChildSchema();
@@ -249,7 +247,7 @@ public class TestJASN1RecordReaderWithComplexTypes implements JASN1ReadRecordTes
         recursive.setName(new BerIA5String("name".getBytes()));
         recursive.setChildren(children);
 
-        /**
+        /*
          * Cannot resolve children schema, neither in expected nor in actual.
          * A resolved recursive schema MUST NOT go through an equals check, unless IDENTICAL to the compared one.
          * The resolution of the recursive schema results in a cyclic reference graph which in turn leads to

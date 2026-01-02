@@ -211,7 +211,7 @@ public class FileUtils {
     public static void deleteFilesInDir(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse, final boolean deleteEmptyDirectories) {
         // ensure the specified directory is actually a directory and that it exists
         if (null != directory && directory.isDirectory()) {
-            final File ingestFiles[] = directory.listFiles();
+            final File[] ingestFiles = directory.listFiles();
             for (File ingestFile : ingestFiles) {
                 boolean process = (filter == null) ? true : filter.accept(directory, ingestFile.getName());
                 if (ingestFile.isFile() && process) {

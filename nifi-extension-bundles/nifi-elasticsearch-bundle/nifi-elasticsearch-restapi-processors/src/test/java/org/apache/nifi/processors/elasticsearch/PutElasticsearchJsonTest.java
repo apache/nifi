@@ -471,7 +471,7 @@ public class PutElasticsearchJsonTest extends AbstractPutElasticsearchTest {
         assertTrue(errorResponses.contains("For input string: 213,456.9"));
         assertTrue(errorResponses.contains("For input string: unit test"));
 
-        assertEquals(4, runner.getProvenanceEvents().stream().filter( e ->
+        assertEquals(4, runner.getProvenanceEvents().stream().filter(e ->
                 ProvenanceEventType.SEND == e.getEventType() && "Elasticsearch _bulk operation error".equals(e.getDetails())).count());
         assertEquals(3,  runner.getProvenanceEvents().stream().filter(
                 e -> ProvenanceEventType.SEND == e.getEventType() && null == e.getDetails()).count());

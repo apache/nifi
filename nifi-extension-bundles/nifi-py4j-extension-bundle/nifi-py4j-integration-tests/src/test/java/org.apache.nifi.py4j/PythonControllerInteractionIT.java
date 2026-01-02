@@ -234,7 +234,7 @@ public class PythonControllerInteractionIT {
         runner.setProperty("Indentation", "");
         runner.assertNotValid();
 
-        runner.setProperty("Indentation", String.valueOf( ((long) Integer.MAX_VALUE) + 1 ));
+        runner.setProperty("Indentation", String.valueOf(((long) Integer.MAX_VALUE) + 1));
         runner.assertNotValid();
 
         runner.setProperty("Indentation", "4");

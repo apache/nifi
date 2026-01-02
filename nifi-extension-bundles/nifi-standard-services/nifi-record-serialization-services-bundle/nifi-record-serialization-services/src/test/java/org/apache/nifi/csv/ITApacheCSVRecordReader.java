@@ -83,7 +83,7 @@ public class ITApacheCSVRecordReader {
             sb.append(String.format("\"%s\",\"John Doe\",\"4750.89D\"\n", i));
         }
         // cause a parse problem
-        sb.append(String.format("\"%s\"dieParser,\"John Doe\",\"4750.89D\"\n", NUM_LINES ));
+        sb.append(String.format("\"%s\"dieParser,\"John Doe\",\"4750.89D\"\n", NUM_LINES));
         sb.append(String.format("\"%s\",\"John Doe\",\"4750.89D\"\n", NUM_LINES + 1));
         final RecordSchema schema = new SimpleRecordSchema(createStringFields(new String[] {"id", "name", "balance"}));
 

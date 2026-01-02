@@ -4141,7 +4141,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // getting the most recent results by ordering by timestamp desc above. this gets the
         // exact results we want but in reverse order
         final List<BulletinEntity> bulletinEntities = new ArrayList<>();
-        for (final ListIterator<Bulletin> bulletinIter = results.listIterator(results.size()); bulletinIter.hasPrevious(); ) {
+        for (final ListIterator<Bulletin> bulletinIter = results.listIterator(results.size()); bulletinIter.hasPrevious();) {
             final Bulletin bulletin = bulletinIter.previous();
             bulletinEntities.add(entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin, true), authorizeBulletin(bulletin)));
         }

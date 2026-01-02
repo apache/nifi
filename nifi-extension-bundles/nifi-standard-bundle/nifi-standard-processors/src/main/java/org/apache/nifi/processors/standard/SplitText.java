@@ -400,7 +400,7 @@ public class SplitText extends AbstractProcessor {
                 break;
             } else {
                 if (length + offsetInfo.getLength() > this.maxSplitSize) {
-                    throw new IllegalStateException( "Computing header resulted in header size being > MAX split size of " + this.maxSplitSize + ".");
+                    throw new IllegalStateException("Computing header resulted in header size being > MAX split size of " + this.maxSplitSize + ".");
                 } else {
                     length += offsetInfo.getLength();
                     actualLineCount++;

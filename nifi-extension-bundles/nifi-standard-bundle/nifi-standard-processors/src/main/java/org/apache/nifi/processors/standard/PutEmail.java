@@ -582,7 +582,7 @@ public class PutEmail extends AbstractProcessor {
             }
         }
 
-        if (oauth2AccessTokenProvider != null ) {
+        if (oauth2AccessTokenProvider != null) {
             String accessToken = oauth2AccessTokenProvider.getAccessDetails().getAccessToken();
 
             properties.setProperty("mail.smtp.password", accessToken);

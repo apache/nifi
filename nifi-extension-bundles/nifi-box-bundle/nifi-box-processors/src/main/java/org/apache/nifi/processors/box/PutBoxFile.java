@@ -276,7 +276,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
         return new BoxFolder(boxAPIConnection, folderId);
     }
 
-    private BoxFolder getOrCreateDirectParentFolder(ProcessContext context, FlowFile flowFile ) {
+    private BoxFolder getOrCreateDirectParentFolder(ProcessContext context, FlowFile flowFile) {
         final String subfolderPath = context.getProperty(SUBFOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
         BoxFolder parentFolder = getFolderById(folderId);

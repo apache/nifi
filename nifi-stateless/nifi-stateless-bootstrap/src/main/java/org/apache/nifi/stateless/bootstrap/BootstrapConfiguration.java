@@ -35,7 +35,7 @@ public class BootstrapConfiguration {
     private static final String DEFAULT_ENGINE_CONFIG_FILE = "./conf/stateless.properties";
     private static final String DEFAULT_FLOW_CONFIG_FILE = "./conf/env-flow-config.properties";
 
-    private static final Pattern PARAMETER_OVERRIDE_PATTERN = Pattern.compile( "(?<!\\\\):"  );
+    private static final Pattern PARAMETER_OVERRIDE_PATTERN = Pattern.compile("(?<!\\\\):");
     private static final String PARAMETER_OVERRIDE_FLAG = "-p";
     private static final String RUN_CONTINUOUS_SHORT_FLAG = "-c";
     private static final String RUN_CONTINUOUS_LONG_FLAG = "--continuous";

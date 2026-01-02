@@ -21,9 +21,9 @@ import java.util.Map;
 import org.apache.nifi.components.DescribedValue;
 
 public enum ConflictResolutionStrategy implements DescribedValue {
-    FAIL( "fail", "Handle file conflict as failure."),
+    FAIL("fail", "Handle file conflict as failure."),
     IGNORE("ignore", "Ignore conflict, do not change the original file."),
-    REPLACE( "replace", "Replace existing file in case of conflict.");
+    REPLACE("replace", "Replace existing file in case of conflict.");
 
     private static final Map<String, ConflictResolutionStrategy> ENUM_MAP = new HashMap<>();
 

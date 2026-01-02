@@ -290,7 +290,7 @@ public class PutSmbFile extends AbstractProcessor {
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
         final HostnameAndShareFlowFileFilter flowFileFilter = new HostnameAndShareFlowFileFilter(context, batchSize);
         final List<FlowFile> flowFiles = session.get(flowFileFilter);
-        if ( flowFiles.isEmpty() ) {
+        if (flowFiles.isEmpty()) {
             return;
         }
         final ComponentLog logger = getLogger();

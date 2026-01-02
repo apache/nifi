@@ -52,7 +52,7 @@ public class FlowFileStreamUnpackerSequenceFileWriter extends SequenceFileWriter
 
         private byte[] nextHeader = null;
         private boolean haveReadSomething = false;
-        private final byte readBuffer[] = new byte[8192];
+        private final byte[] readBuffer = new byte[8192];
 
         public boolean hasMoreData() {
             return nextHeader != null || !haveReadSomething;

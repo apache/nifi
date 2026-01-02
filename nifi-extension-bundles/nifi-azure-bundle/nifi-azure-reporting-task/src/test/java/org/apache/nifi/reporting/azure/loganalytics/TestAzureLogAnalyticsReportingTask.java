@@ -213,9 +213,9 @@ public class TestAzureLogAnalyticsReportingTask {
         ArgumentCaptor<String> captorAuthorization = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> captorXMsDate = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> captorTimeGeneratedField = ArgumentCaptor.forClass(String.class);
-        verify(postRequest, atLeast(1)).addHeader( eq("Authorization"), captorAuthorization.capture());
-        verify(postRequest, atLeast(1)).addHeader( eq("x-ms-date"), captorXMsDate.capture());
-        verify(postRequest, atLeast(1)).addHeader( eq("time-generated-field"), captorTimeGeneratedField.capture());
+        verify(postRequest, atLeast(1)).addHeader(eq("Authorization"), captorAuthorization.capture());
+        verify(postRequest, atLeast(1)).addHeader(eq("x-ms-date"), captorXMsDate.capture());
+        verify(postRequest, atLeast(1)).addHeader(eq("time-generated-field"), captorTimeGeneratedField.capture());
         assertTrue(captorAuthorization.getValue().contains("SharedKey"));
     }
 

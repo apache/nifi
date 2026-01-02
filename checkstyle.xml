@@ -117,5 +117,12 @@
             <property name="arrayInitIndent" value="8"/>
         </module>
         <module name="CommentsIndentation"/>
+        <module name="IllegalInstantiation"/>
+        <module name="ArrayTypeStyle"/>
+        <module name="InvalidJavadocPosition"/>
+        <module name="EmptyForIteratorPad"/>
+        <module name="GenericWhitespace"/>
+        <module name="ParenPad"/>
+        <module name="TypecastParenPad"/>
     </module>
 </module>

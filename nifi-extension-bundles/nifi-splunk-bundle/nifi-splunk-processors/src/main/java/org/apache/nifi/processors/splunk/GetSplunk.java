@@ -348,7 +348,7 @@ public class GetSplunk extends AbstractProcessor implements ClassloaderIsolation
 
     @Override
     public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        if ( ((oldValue != null && !oldValue.equals(newValue)))
+        if (((oldValue != null && !oldValue.equals(newValue)))
                 && (descriptor.equals(QUERY)
                 || descriptor.equals(TIME_FIELD_STRATEGY)
                 || descriptor.equals(TIME_RANGE_STRATEGY)

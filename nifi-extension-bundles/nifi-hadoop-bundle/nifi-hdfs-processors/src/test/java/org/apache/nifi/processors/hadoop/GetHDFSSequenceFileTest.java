@@ -62,7 +62,7 @@ public class GetHDFSSequenceFileTest {
     private void init() throws IOException {
         final MockProcessContext context = new MockProcessContext(getHDFSSequenceFile);
         ProcessorInitializationContext mockProcessorInitializationContext = mock(ProcessorInitializationContext.class);
-        when(mockProcessorInitializationContext.getLogger()).thenReturn(new MockComponentLog("GetHDFSSequenceFileTest", getHDFSSequenceFile ));
+        when(mockProcessorInitializationContext.getLogger()).thenReturn(new MockComponentLog("GetHDFSSequenceFileTest", getHDFSSequenceFile));
         getHDFSSequenceFile.initialize(mockProcessorInitializationContext);
         getHDFSSequenceFile.init(mockProcessorInitializationContext);
         getHDFSSequenceFile.onScheduled(context);

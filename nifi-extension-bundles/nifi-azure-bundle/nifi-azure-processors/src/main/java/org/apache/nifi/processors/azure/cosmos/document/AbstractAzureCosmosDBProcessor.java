@@ -217,7 +217,7 @@ public abstract class AbstractAzureCosmosDBProcessor extends AbstractProcessor {
         boolean collectionIsSet = context.getProperty(CONTAINER_ID).isSet();
         boolean partitionIsSet = context.getProperty(PARTITION_KEY).isSet();
 
-        if (connectionServiceIsSet && (uriIsSet || accessKeyIsSet) ) {
+        if (connectionServiceIsSet && (uriIsSet || accessKeyIsSet)) {
             // If connection Service is set, None of the Processor variables URI and accessKey
             // should be set.
             final String msg = String.format(

@@ -161,7 +161,7 @@ public class StandardStatelessGroupNode implements StatelessGroupNode {
         getProcessGroup().findAllInputPorts().forEach(Port::onSchedulingStart);
         getProcessGroup().findAllOutputPorts().forEach(Port::onSchedulingStart);
 
-        executor.submit(() -> initialize(executor, schedulingAgentCallback, lifecycleState) );
+        executor.submit(() -> initialize(executor, schedulingAgentCallback, lifecycleState));
     }
 
     private void initialize(final ScheduledExecutorService executor, final SchedulingAgentCallback schedulingAgentCallback, final LifecycleState lifecycleState) {

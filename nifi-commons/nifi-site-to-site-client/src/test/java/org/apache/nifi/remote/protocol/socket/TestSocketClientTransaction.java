@@ -121,7 +121,7 @@ public class TestSocketClientTransaction {
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
         Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
-        assertEquals( "3680976076", confirmResponse.getMessage(), "Checksum should be calculated at client");
+        assertEquals("3680976076", confirmResponse.getMessage(), "Checksum should be calculated at client");
         Response completeResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.TRANSACTION_FINISHED, completeResponse.getCode());
         assertEquals(-1, sentByClient.read());
@@ -185,7 +185,7 @@ public class TestSocketClientTransaction {
         assertEquals(RequestType.RECEIVE_FLOWFILES, RequestType.readRequestType(sentByClient));
         Response confirmResponse = Response.read(sentByClient);
         assertEquals(ResponseCode.CONFIRM_TRANSACTION, confirmResponse.getCode());
-        assertEquals( "2969091230", confirmResponse.getMessage(), "Checksum should be calculated at client");
+        assertEquals("2969091230", confirmResponse.getMessage(), "Checksum should be calculated at client");
         assertEquals(-1, sentByClient.read());
     }
 

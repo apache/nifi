@@ -218,7 +218,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
                     .withTrustStrategy(trustCustomCertificateSignedBy(new File(trustFile)));
         }
 
-        return GraphDatabase.driver( connectionUrl, AuthTokens.basic( username, password),
+        return GraphDatabase.driver(connectionUrl, AuthTokens.basic(username, password),
                 configBuilder.build());
     }
 
@@ -244,7 +244,7 @@ public class Neo4JCypherClientService extends AbstractControllerService implemen
     @OnDisabled
     public void close() {
         getLogger().info("Closing driver");
-        if ( neo4JDriver != null ) {
+        if (neo4JDriver != null) {
             neo4JDriver.close();
             neo4JDriver = null;
         }

@@ -156,7 +156,7 @@ public class PutKinesisFirehose extends AbstractAwsSyncProcessor<FirehoseClient,
 
                     // Separate out the successful and failed flow files
                     final List<PutRecordBatchResponseEntry> responseEntries = response.requestResponses();
-                    for (int i = 0; i < responseEntries.size(); i++ ) {
+                    for (int i = 0; i < responseEntries.size(); i++) {
 
                         final PutRecordBatchResponseEntry responseEntry = responseEntries.get(i);
                         FlowFile flowFile = hashFlowFiles.get(streamName).get(i);

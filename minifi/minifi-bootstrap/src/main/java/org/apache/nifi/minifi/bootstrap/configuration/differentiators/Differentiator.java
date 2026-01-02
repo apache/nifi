@@ -25,7 +25,7 @@ import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
  *
  * @param <T> the type of the config files
  */
-public interface Differentiator <T> {
+public interface Differentiator<T> {
 
     /**
      * Initialise the differentiator with the initial configuration

@@ -309,7 +309,7 @@ public class TestDataTypeUtils {
 
         Object result = DataTypeUtils.convertType(expected, RecordFieldType.ARRAY.getDataType(), "uuid_test");
         assertInstanceOf(Byte[].class, result);
-        assertEquals( 16, ((Byte[]) result).length);
+        assertEquals(16, ((Byte[]) result).length);
         Byte[] bytes = (Byte[]) result;
         for (int x = 0; x < bytes.length; x++) {
             byte current = bytes[x];
@@ -501,10 +501,10 @@ public class TestDataTypeUtils {
         assertNotNull(bytes);
         Byte[] b = (Byte[]) bytes;
         assertEquals((long) 72, (long) b[0], "Conversion from String to byte[] failed");  // H
-        assertEquals((long) 101, (long) b[1], "Conversion from String to byte[] failed" ); // e
-        assertEquals((long) 108, (long) b[2], "Conversion from String to byte[] failed" ); // l
-        assertEquals((long) 108, (long) b[3], "Conversion from String to byte[] failed" ); // l
-        assertEquals((long) 111, (long) b[4], "Conversion from String to byte[] failed" ); // o
+        assertEquals((long) 101, (long) b[1], "Conversion from String to byte[] failed"); // e
+        assertEquals((long) 108, (long) b[2], "Conversion from String to byte[] failed"); // l
+        assertEquals((long) 108, (long) b[3], "Conversion from String to byte[] failed"); // l
+        assertEquals((long) 111, (long) b[4], "Conversion from String to byte[] failed"); // o
     }
 
     @Test

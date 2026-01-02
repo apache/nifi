@@ -107,7 +107,7 @@ public class EventSubscribeXmlRenderingCallback implements WEvtApi.EVT_SUBSCRIBE
                 }
                 consumer.accept(string);
             } else {
-                logger.error( "{}{}.", EVT_RENDER_RETURNED_THE_FOLLOWING_ERROR_CODE, errorLookup.getLastError());
+                logger.error("{}{}.", EVT_RENDER_RETURNED_THE_FOLLOWING_ERROR_CODE, errorLookup.getLastError());
             }
         }
         // Ignored, see https://msdn.microsoft.com/en-us/library/windows/desktop/aa385577(v=vs.85).aspx

@@ -94,7 +94,7 @@ public class TestSyslog5424RecordReader {
             assertEquals(expectedRawMessage, record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
             assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
-            Map<String, Object> structured = (Map<String, Object >) record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
+            Map<String, Object> structured = (Map<String, Object>) record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
 
             assertTrue(structured.containsKey("exampleSDID@32473"));
             Map<String, Object> example1 = (Map<String, Object>) structured.get("exampleSDID@32473");

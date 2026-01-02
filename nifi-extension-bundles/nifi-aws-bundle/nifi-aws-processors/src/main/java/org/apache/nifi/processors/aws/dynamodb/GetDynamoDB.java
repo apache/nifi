@@ -77,8 +77,8 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "DynamoDB status code")
     })
 @ReadsAttributes({
-    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value" ),
-    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value" ),
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value"),
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value"),
     })
 public class GetDynamoDB extends AbstractDynamoDBProcessor {
     private static final PropertyDescriptor DOCUMENT_CHARSET = new PropertyDescriptor.Builder()
@@ -269,7 +269,7 @@ public class GetDynamoDB extends AbstractDynamoDBProcessor {
             // Handle any remaining items
             for (final ItemKeys key : keysToFlowFileMap.keySet()) {
                 FlowFile flowFile = keysToFlowFileMap.get(key);
-                flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_NOT_FOUND, DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE + key.toString() );
+                flowFile = session.putAttribute(flowFile, DYNAMODB_KEY_ERROR_NOT_FOUND, DYNAMODB_KEY_ERROR_NOT_FOUND_MESSAGE + key.toString());
                 session.transfer(flowFile, REL_NOT_FOUND);
                 keysToFlowFileMap.remove(key);
             }
