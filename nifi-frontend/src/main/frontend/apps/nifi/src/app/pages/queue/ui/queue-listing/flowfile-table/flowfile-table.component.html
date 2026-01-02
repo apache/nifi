@@ -60,7 +60,7 @@
                 <!-- File Name Column -->
                 <ng-container matColumnDef="fileName">
                     <th mat-header-cell *matHeaderCellDef>Filename</th>
-                    <td mat-cell *matCellDef="let item">
+                    <td mat-cell *matCellDef="let item" [title]="item.filename">
                         {{ item.filename }}
                     </td>
                 </ng-container>
