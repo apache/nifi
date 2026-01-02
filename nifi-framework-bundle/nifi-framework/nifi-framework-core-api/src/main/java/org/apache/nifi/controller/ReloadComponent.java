@@ -24,6 +24,8 @@ import org.apache.nifi.controller.parameter.ParameterProviderInstantiationExcept
 import org.apache.nifi.controller.flowrepository.FlowRepositoryClientInstantiationException;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.nar.InstanceClassLoader;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 
 import java.net.URL;
@@ -47,6 +49,17 @@ public interface ReloadComponent {
             throws ProcessorInstantiationException;
 
     /**
+     * Returns a temp instance with a new <code>InstanceClassLoader</code> based on the existing <code>ProcessorNode</code>
+     *
+     * @param existingNode the node being being updated
+     * @param instanceClassLoader the new classloader
+     * @return the temporary controller service
+     * @throws ProcessorInstantiationException if unable to create the temp instance
+     */
+    Processor createTempProcessor(ProcessorNode existingNode, InstanceClassLoader instanceClassLoader)
+            throws ProcessorInstantiationException;
+
+    /**
      * Changes the underlying ControllerService held by the node to an instance of the new type.
      *
      * @param existingNode the node being being updated
@@ -56,6 +69,17 @@ public interface ReloadComponent {
      * @throws ControllerServiceInstantiationException if unable to create an instance of the new type
      */
     void reload(ControllerServiceNode existingNode, String newType, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls)
+            throws ControllerServiceInstantiationException;
+
+    /**
+     * Returns a temp instance with a new <code>InstanceClassLoader</code> based on the existing <code>ControllerServiceNode</code>
+     *
+     * @param existingNode the node being being updated
+     * @param instanceClassLoader the new classloader
+     * @return the temporary controller service
+     * @throws ControllerServiceInstantiationException  if unable to create the temp instance
+     */
+    ControllerService createTempControllerService(ControllerServiceNode existingNode, InstanceClassLoader instanceClassLoader)
             throws ControllerServiceInstantiationException;
 
     /**
