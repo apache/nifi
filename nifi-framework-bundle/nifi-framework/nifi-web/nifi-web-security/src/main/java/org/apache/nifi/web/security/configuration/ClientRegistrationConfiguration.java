@@ -28,7 +28,7 @@ import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.http.converter.FormHttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
 import org.springframework.security.oauth2.client.registration.ClientRegistration;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
@@ -108,7 +108,7 @@ public class ClientRegistrationConfiguration {
                         new FormHttpMessageConverter(),
                         new OAuth2AccessTokenResponseHttpMessageConverter(),
                         new StringHttpMessageConverter(),
-                        new MappingJackson2HttpMessageConverter()
+                        new JacksonJsonHttpMessageConverter()
                 )
         );
         return restTemplate;
