@@ -59,6 +59,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -85,13 +87,29 @@ public class TestFileSystemRepository {
     @BeforeEach
     public void setup() throws IOException {
         final Path originalNifiPropertiesFile = Paths.get("src/test/resources/conf/nifi.properties");
-        final String originalNifiPropertiesContent = Files.readString(originalNifiPropertiesFile);
-        final String modifiedNifiPropertiesContent = originalNifiPropertiesContent.replaceAll("\\./target", tempDir.toString());
+        String modifiedNifiPropertiesContent;
+
+        try (Stream<String> lines = Files.lines(originalNifiPropertiesFile)) {
+            modifiedNifiPropertiesContent = lines.filter(line -> line.startsWith(NiFiProperties.REPOSITORY_CONTENT_PREFIX)
+                                 ||
+                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_ENABLED)
+                                 ||
+                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD)
+                                 ||
+                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE)
+                                 ||
+                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_BACK_PRESSURE_PERCENTAGE)
+                                 ||
+                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY))
+                                .map(line -> line.replaceFirst("\\./target", tempDir.toString()))
+                                .collect(Collectors.joining("\n"));
+        }
+
         modifiedNifiPropertiesFile = tempDir.resolve(originalNifiPropertiesFile.getFileName());
         Files.writeString(modifiedNifiPropertiesFile, modifiedNifiPropertiesContent);
-        rootFile = tempDir.resolve("content_repository");
         nifiProperties = NiFiProperties.createBasicNiFiProperties(modifiedNifiPropertiesFile.toString());
         repository = new FileSystemRepository(nifiProperties);
+        rootFile = tempDir.resolve("content_repository");
         claimManager = new StandardResourceClaimManager();
         repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         repository.purge();
@@ -293,9 +311,7 @@ public class TestFileSystemRepository {
 
     @Test
     public void testContentNotFoundExceptionThrownIfResourceClaimTooShort() throws IOException {
-        Path contentFileDir = rootFile.resolve("0");
-        Files.createDirectories(contentFileDir);
-        Path contentFile = contentFileDir.resolve("0.bin");
+        Path contentFile = Paths.get(rootFile.toString(), "0", "0.bin");
         Files.writeString(contentFile, "Hello World");
 
         final ResourceClaim resourceClaim = new StandardResourceClaim(claimManager, "default", "0", "0.bin", false);
@@ -639,6 +655,8 @@ public class TestFileSystemRepository {
         }
     }
 
+    @DisabledOnOs(value = OS.WINDOWS,
+            disabledReason = "java.nio.file.Files.deleteIfExists fails on Windows if the file is open and in use by the same Java Virtual Machine process or another external process")
     @Test
     public void testReadWithContentArchived() throws IOException {
         final ContentClaim claim = repository.create(true);
@@ -660,10 +678,8 @@ public class TestFileSystemRepository {
         }
     }
 
-    private boolean isWindowsEnvironment() {
-        return System.getProperty("os.name").toLowerCase().startsWith("windows");
-    }
-
+    @DisabledOnOs(value = OS.WINDOWS,
+            disabledReason = "java.nio.file.Files.deleteIfExists fails on Windows if the file is open and in use by the same Java Virtual Machine process or another external process")
     @Test
     public void testReadWithNoContentArchived() throws IOException {
         final ContentClaim claim = repository.create(true);
