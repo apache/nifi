@@ -61,8 +61,11 @@ public abstract class AbstractTestNarLoader {
         final Path originalPropertiesFile = Paths.get(getPropertiesFile());
         String modifiedPropertiesFileContent;
         try (Stream<String> lines = Files.lines(originalPropertiesFile)) {
-            modifiedPropertiesFileContent = lines.filter(line -> line.startsWith(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY) ||
-                            line.startsWith(NiFiProperties.NAR_WORKING_DIRECTORY) || line.startsWith(NiFiProperties.NAR_LIBRARY_DIRECTORY))
+            modifiedPropertiesFileContent = lines.filter(line -> line.startsWith(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY)
+                            ||
+                            line.startsWith(NiFiProperties.NAR_WORKING_DIRECTORY)
+                            ||
+                            line.startsWith(NiFiProperties.NAR_LIBRARY_DIRECTORY))
                     .map(line -> line.replaceFirst("\\./target", tempDir.toString()))
                     .collect(Collectors.joining("\n"));
         }
