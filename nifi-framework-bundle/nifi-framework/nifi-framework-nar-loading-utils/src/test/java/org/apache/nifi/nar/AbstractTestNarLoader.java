@@ -26,14 +26,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -60,8 +59,15 @@ public abstract class AbstractTestNarLoader {
 
         // Create NiFiProperties
         final Path originalPropertiesFile = Paths.get(getPropertiesFile());
-        final String originalPropertiesFileContent = Files.readString(originalPropertiesFile);
-        final String modifiedPropertiesFileContent = originalPropertiesFileContent.replaceAll("\\./target", tempDir.toString());
+        String modifiedPropertiesFileContent;
+        try (Stream<String> lines = Files.lines(originalPropertiesFile)) {
+            modifiedPropertiesFileContent = lines.filter(line -> line.startsWith(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY) ||
+                            line.startsWith(NiFiProperties.NAR_WORKING_DIRECTORY) || line.startsWith(NiFiProperties.NAR_LIBRARY_DIRECTORY))
+                    .map(line -> line.replaceFirst("\\./target", tempDir.toString()))
+                    .collect(Collectors.joining("\n"));
+        }
+
+        //final String modifiedPropertiesFileContent = originalPropertiesFileContent.replaceAll("\\./target", tempDir.toString());
         final Path newPropertiesFile = tempDir.resolve(originalPropertiesFile.getFileName());
         Files.writeString(newPropertiesFile, modifiedPropertiesFileContent);
         properties = NiFiProperties.createBasicNiFiProperties(newPropertiesFile.toString(), Collections.emptyMap());
@@ -106,24 +112,4 @@ public abstract class AbstractTestNarLoader {
                 NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
     }
 
-    private void deleteDir(String path) throws IOException {
-        Path directory = Paths.get(path);
-        if (!directory.toFile().exists()) {
-            return;
-        }
-
-        Files.walkFileTree(directory, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.delete(file);
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                Files.delete(dir);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-    }
 }
