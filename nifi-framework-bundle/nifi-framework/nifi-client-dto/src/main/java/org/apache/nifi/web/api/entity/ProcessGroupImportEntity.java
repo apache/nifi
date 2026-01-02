@@ -18,9 +18,8 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 
 /**
  * Entity for importing a process group that has been previously downloaded

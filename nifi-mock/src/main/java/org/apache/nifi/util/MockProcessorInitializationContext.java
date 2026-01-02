@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.util;
 
-import java.io.File;
-import java.util.Set;
-import java.util.UUID;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
+
+import java.io.File;
+import java.util.Set;
+import java.util.UUID;
 
 public class MockProcessorInitializationContext implements ProcessorInitializationContext, ControllerServiceLookup {
 

@@ -35,7 +35,6 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-
 @DisabledOnOs({ OS.WINDOWS })
 public class TestNarLoader extends AbstractTestNarLoader {
     static final String WORK_DIR = "./target/work";

@@ -17,11 +17,11 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.entity.AffectedComponentEntity;
-import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
-import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
-
 import jakarta.xml.bind.annotation.XmlType;
+import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.ParameterGroupConfigurationEntity;
+import org.apache.nifi.web.api.entity.ParameterProviderReferencingComponentEntity;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;

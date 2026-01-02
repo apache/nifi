@@ -25,7 +25,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-
 public class HostnameEvaluator extends StringEvaluator {
 
     private final StringQueryResult hostname;

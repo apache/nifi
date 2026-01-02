@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.jaxb;
 
-import java.util.Date;
-
 import org.apache.nifi.reporting.ComponentType;
+
+import java.util.Date;
 
 /**
  *

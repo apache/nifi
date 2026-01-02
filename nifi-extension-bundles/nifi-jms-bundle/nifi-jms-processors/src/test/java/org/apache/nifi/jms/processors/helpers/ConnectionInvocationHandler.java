@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.jms.processors.helpers;
 
+import jakarta.jms.Connection;
+import jakarta.jms.Session;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -23,12 +28,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import jakarta.jms.Connection;
-import jakarta.jms.Session;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Simple {@link Connection} proxy utility to detect opened and unclosed resources.

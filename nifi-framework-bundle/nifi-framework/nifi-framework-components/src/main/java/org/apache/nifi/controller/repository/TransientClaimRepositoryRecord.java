@@ -17,10 +17,10 @@
 
 package org.apache.nifi.controller.repository;
 
-import java.util.List;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+
+import java.util.List;
 
 /**
  * A simple RepositoryRecord that represents a Set of Content Claims that need to be cleaned up

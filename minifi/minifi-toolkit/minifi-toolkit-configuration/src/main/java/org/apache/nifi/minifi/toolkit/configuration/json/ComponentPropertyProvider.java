@@ -17,15 +17,6 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.json;
 
-import static java.util.Objects.nonNull;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Stream.concat;
-
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.nifi.flow.ConnectableComponentType;
@@ -33,6 +24,16 @@ import org.apache.nifi.minifi.toolkit.schema.ConfigSchema;
 import org.apache.nifi.minifi.toolkit.schema.ProcessGroupSchema;
 import org.apache.nifi.minifi.toolkit.schema.RemoteProcessGroupSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.BaseSchemaWithId;
+
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Stream;
+
+import static java.util.Objects.nonNull;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Stream.concat;
 
 /**
  * Helper class to support flow conversion from YAML to JSON format

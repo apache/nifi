@@ -18,6 +18,7 @@ package org.apache.nifi.action;
 
 import org.apache.nifi.action.component.details.ComponentDetails;
 import org.apache.nifi.action.details.ActionDetails;
+
 import java.util.Date;
 
 /**

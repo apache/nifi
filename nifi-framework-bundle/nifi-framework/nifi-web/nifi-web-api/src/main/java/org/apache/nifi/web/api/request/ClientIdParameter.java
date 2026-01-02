@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.web.api.request;
 
-import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.UUID;
 
 /**
  * Class for parsing handling client ids. If the client id is not specified, one will be generated.

@@ -22,11 +22,11 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslHandler;
 import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 /**
  * Client SSL Standard Channel Initializer supporting TLS with SSLContext configuration

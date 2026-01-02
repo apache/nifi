@@ -17,12 +17,12 @@
 
 package org.apache.nifi.controller.swap;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+
+import java.util.Collections;
+import java.util.List;
 
 public class StandardSwapSummary implements SwapSummary {
     public static final SwapSummary EMPTY_SUMMARY = new StandardSwapSummary(new QueueSize(0, 0L), null, Collections.<ResourceClaim> emptyList(), 0L, 0L);

@@ -17,15 +17,15 @@
 
 package org.apache.nifi.provenance.lucene;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.nifi.provenance.IndexConfiguration;
 import org.apache.nifi.provenance.expiration.ExpirationAction;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
 
 public class UpdateMinimumEventId implements ExpirationAction {
     private static final Logger logger = LoggerFactory.getLogger(UpdateMinimumEventId.class);

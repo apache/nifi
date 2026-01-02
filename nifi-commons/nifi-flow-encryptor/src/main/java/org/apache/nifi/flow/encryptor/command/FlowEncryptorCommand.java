@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.flow.encryptor.command;
 
+import org.apache.nifi.encrypt.PropertyEncryptionMethod;
+import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
+import org.apache.nifi.flow.encryptor.FlowEncryptor;
+import org.apache.nifi.flow.encryptor.JsonFlowEncryptor;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -33,11 +39,6 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import org.apache.nifi.encrypt.PropertyEncryptionMethod;
-import org.apache.nifi.encrypt.PropertyEncryptor;
-import org.apache.nifi.encrypt.PropertyEncryptorBuilder;
-import org.apache.nifi.flow.encryptor.FlowEncryptor;
-import org.apache.nifi.flow.encryptor.JsonFlowEncryptor;
 
 /**
  * Flow Encryptor Command capable of updating Sensitive Properties Key or Algorithm as well as Flow Configuration

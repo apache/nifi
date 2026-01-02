@@ -17,9 +17,9 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
-import java.util.Set;
-
 import org.apache.nifi.cluster.manager.NodeResponse;
+
+import java.util.Set;
 
 /**
  * A callback that can be registered to be called after an HTTP Request is replicated and all nodes'

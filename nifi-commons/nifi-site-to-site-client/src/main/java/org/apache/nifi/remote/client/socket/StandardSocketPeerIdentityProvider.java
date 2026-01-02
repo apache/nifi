@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.remote.client.socket;
 
+import org.apache.nifi.security.cert.StandardPrincipalFormatter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.Socket;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
@@ -23,10 +27,6 @@ import java.util.Optional;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
-
-import org.apache.nifi.security.cert.StandardPrincipalFormatter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Standard implementation attempts to read X.509 certificates from an SSLSocket

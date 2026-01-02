@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.encrypt;
 
-import javax.crypto.SecretKey;
 import java.util.Objects;
+import javax.crypto.SecretKey;
 
 /**
  * Property Encryptor Builder

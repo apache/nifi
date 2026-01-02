@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.script;
 
-
 import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;

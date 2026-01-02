@@ -43,7 +43,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.CollectionUtils;
 
-import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -51,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.sql.DataSource;
 
 /**
  * Implementation of {@link org.apache.nifi.registry.security.authorization.ConfigurableAccessPolicyProvider} backed by a relational database.

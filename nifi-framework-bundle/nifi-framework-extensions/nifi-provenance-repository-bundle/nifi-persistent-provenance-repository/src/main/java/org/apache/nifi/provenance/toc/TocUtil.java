@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.provenance.toc;
 
-import java.io.File;
-
 import org.apache.nifi.provenance.lucene.LuceneUtil;
+
+import java.io.File;
 
 public class TocUtil {
 

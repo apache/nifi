@@ -33,9 +33,9 @@ import org.apache.nifi.ssl.SSLContextProvider;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 
-import javax.net.ssl.SSLContext;
 import java.util.Collection;
 import java.util.List;
+import javax.net.ssl.SSLContext;
 
 @Tags({"redis", "cache"})
 @CapabilityDescription("A service that provides connections to Redis.")

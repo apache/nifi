@@ -20,10 +20,10 @@ package org.apache.nifi.registry.flow.diff;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
+import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedReportingTask;
-import org.apache.nifi.flow.VersionedParameterContext;
 
 import java.util.Collections;
 import java.util.HashSet;

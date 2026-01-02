@@ -17,19 +17,20 @@
 
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
+import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
+import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
+import org.apache.nifi.minifi.commons.api.MiNiFiCommandState;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
+import org.slf4j.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Optional;
-import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
-import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
-import org.apache.nifi.minifi.commons.api.MiNiFiCommandState;
-import org.apache.nifi.minifi.properties.BootstrapProperties;
-import org.slf4j.Logger;
+
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
 
 public class UpdatePropertiesService {
     private final RunMiNiFi runner;

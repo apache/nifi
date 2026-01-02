@@ -61,8 +61,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.StringUtils;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509TrustManager;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,6 +76,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
 
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 

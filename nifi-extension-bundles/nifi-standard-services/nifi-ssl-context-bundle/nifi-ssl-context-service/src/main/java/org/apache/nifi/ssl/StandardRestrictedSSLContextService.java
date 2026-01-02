@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.ssl;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -26,6 +24,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.TlsPlatform;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class is functionally the same as {@link StandardSSLContextService}, but it restricts the allowable

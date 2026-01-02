@@ -23,15 +23,15 @@ import clojure.lang.RT;
 import clojure.lang.Symbol;
 import clojure.lang.Var;
 
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.UUID;
 import javax.script.AbstractScriptEngine;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
-import java.io.Reader;
-import java.io.StringReader;
-import java.util.UUID;
 
 /**
  * A ScriptEngine implementation for the Clojure language

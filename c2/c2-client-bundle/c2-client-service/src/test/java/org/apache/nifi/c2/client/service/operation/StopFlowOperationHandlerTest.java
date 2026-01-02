@@ -17,7 +17,6 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import java.util.stream.Stream;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
@@ -29,6 +28,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.stream.Stream;
 
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.apache.nifi.c2.client.service.operation.StopFlowOperationHandler.FULLY_APPLIED_DETAILS;

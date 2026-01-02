@@ -17,6 +17,13 @@
 
 package org.apache.nifi.provenance.store.iterator;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.store.RecordReaderFactory;
+import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -27,13 +34,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.store.RecordReaderFactory;
-import org.apache.nifi.provenance.util.DirectoryUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SelectiveRecordReaderEventIterator implements EventIterator {
     private static final Logger logger = LoggerFactory.getLogger(SelectiveRecordReaderEventIterator.class);

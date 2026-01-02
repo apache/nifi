@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.smb;
 
-
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.msfscc.FileAttributes;
 import com.hierynomus.mssmb2.SMB2CreateDisposition;

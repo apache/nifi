@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cdc.event;
 
-
 import java.util.List;
 
 /**

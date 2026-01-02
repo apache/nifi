@@ -18,6 +18,7 @@ package org.apache.nifi.web.servlet.shared;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;

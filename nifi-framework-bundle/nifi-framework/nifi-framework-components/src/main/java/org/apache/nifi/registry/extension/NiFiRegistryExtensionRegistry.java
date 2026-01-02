@@ -22,7 +22,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
 import org.apache.nifi.security.proxied.entity.StandardProxiedEntityEncoder;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -34,6 +33,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 
 /**
  * NiFi Registry implementation of ExtensionRegistry.

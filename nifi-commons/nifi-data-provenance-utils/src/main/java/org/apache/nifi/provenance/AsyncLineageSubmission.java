@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
+import org.apache.nifi.provenance.lineage.LineageComputationType;
+
 import java.util.Collection;
 import java.util.Date;
 import java.util.UUID;
-
-import org.apache.nifi.provenance.lineage.ComputeLineageSubmission;
-import org.apache.nifi.provenance.lineage.LineageComputationType;
 
 /**
  *

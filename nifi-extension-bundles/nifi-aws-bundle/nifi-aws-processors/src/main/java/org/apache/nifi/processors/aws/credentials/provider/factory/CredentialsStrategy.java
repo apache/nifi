@@ -23,7 +23,6 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 import java.util.Collection;
 
-
 /**
  * Specifies a strategy for validating and creating AWS credentials from a list of properties configured on a
  * Processor, Controller Service, Reporting Service, or other component.  Supports both primary credentials like

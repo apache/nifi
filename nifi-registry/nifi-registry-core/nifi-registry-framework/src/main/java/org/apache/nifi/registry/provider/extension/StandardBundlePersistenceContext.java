@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.registry.provider.extension;
 
-import java.util.Objects;
-
 import org.apache.commons.lang3.Validate;
 import org.apache.nifi.registry.extension.BundlePersistenceContext;
 import org.apache.nifi.registry.extension.BundleVersionCoordinate;
+
+import java.util.Objects;
 
 public class StandardBundlePersistenceContext implements BundlePersistenceContext {
 

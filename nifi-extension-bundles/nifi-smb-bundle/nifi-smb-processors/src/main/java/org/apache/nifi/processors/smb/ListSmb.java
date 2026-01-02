@@ -16,42 +16,6 @@
  */
 package org.apache.nifi.processors.smb;
 
-import static java.time.ZoneOffset.UTC;
-import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.unmodifiableMap;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.nifi.components.state.Scope.CLUSTER;
-import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
-import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
-import static org.apache.nifi.services.smb.SmbListableEntity.ALLOCATION_SIZE;
-import static org.apache.nifi.services.smb.SmbListableEntity.CHANGE_TIME;
-import static org.apache.nifi.services.smb.SmbListableEntity.LAST_MODIFIED_TIME;
-import static org.apache.nifi.services.smb.SmbListableEntity.CREATION_TIME;
-import static org.apache.nifi.services.smb.SmbListableEntity.FILENAME;
-import static org.apache.nifi.services.smb.SmbListableEntity.LAST_ACCESS_TIME;
-import static org.apache.nifi.services.smb.SmbListableEntity.PATH;
-import static org.apache.nifi.services.smb.SmbListableEntity.SERVICE_LOCATION;
-import static org.apache.nifi.services.smb.SmbListableEntity.SHORT_NAME;
-import static org.apache.nifi.services.smb.SmbListableEntity.SIZE;
-
-import java.io.IOException;
-import java.net.URI;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -85,6 +49,43 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbListableEntity;
+
+import java.io.IOException;
+import java.net.URI;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
+import static java.time.ZoneOffset.UTC;
+import static java.time.format.DateTimeFormatter.ISO_DATE_TIME;
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.unmodifiableMap;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.nifi.components.state.Scope.CLUSTER;
+import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
+import static org.apache.nifi.processor.util.StandardValidators.NON_BLANK_VALIDATOR;
+import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
+import static org.apache.nifi.processor.util.StandardValidators.TIME_PERIOD_VALIDATOR;
+import static org.apache.nifi.services.smb.SmbListableEntity.ALLOCATION_SIZE;
+import static org.apache.nifi.services.smb.SmbListableEntity.CHANGE_TIME;
+import static org.apache.nifi.services.smb.SmbListableEntity.CREATION_TIME;
+import static org.apache.nifi.services.smb.SmbListableEntity.FILENAME;
+import static org.apache.nifi.services.smb.SmbListableEntity.LAST_ACCESS_TIME;
+import static org.apache.nifi.services.smb.SmbListableEntity.LAST_MODIFIED_TIME;
+import static org.apache.nifi.services.smb.SmbListableEntity.PATH;
+import static org.apache.nifi.services.smb.SmbListableEntity.SERVICE_LOCATION;
+import static org.apache.nifi.services.smb.SmbListableEntity.SHORT_NAME;
+import static org.apache.nifi.services.smb.SmbListableEntity.SIZE;
 
 @PrimaryNodeOnly
 @TriggerSerially

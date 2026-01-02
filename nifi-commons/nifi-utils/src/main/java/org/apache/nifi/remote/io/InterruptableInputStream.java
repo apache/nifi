@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.remote.io;
 
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
+
 import java.io.IOException;
 import java.io.InputStream;
-
-import org.apache.nifi.remote.exception.TransmissionDisabledException;
 
 public class InterruptableInputStream extends InputStream {
 

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.hl7.query.evaluator.logic;
 
-import java.util.Map;
-
 import org.apache.nifi.hl7.query.evaluator.BooleanEvaluator;
+
+import java.util.Map;
 
 public class OrEvaluator extends BooleanEvaluator {
 

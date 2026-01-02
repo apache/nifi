@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.connectable.Connectable;
+
+import java.util.concurrent.TimeUnit;
 
 public interface WorkerQueue {
 

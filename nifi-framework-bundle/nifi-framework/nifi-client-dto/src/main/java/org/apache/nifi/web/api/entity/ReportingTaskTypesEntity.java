@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import java.util.Set;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
+
+import java.util.Set;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a list of reporting task types.

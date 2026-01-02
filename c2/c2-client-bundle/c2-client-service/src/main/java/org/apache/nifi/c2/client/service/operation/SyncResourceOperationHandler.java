@@ -17,16 +17,7 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static java.util.Optional.ofNullable;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
-import static org.apache.nifi.c2.protocol.api.OperandType.RESOURCE;
-import static org.apache.nifi.c2.protocol.api.OperationType.SYNC;
-import static org.apache.nifi.c2.util.Preconditions.requires;
-
 import com.fasterxml.jackson.core.type.TypeReference;
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
@@ -39,6 +30,16 @@ import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
 import org.apache.nifi.c2.serializer.C2Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
+
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
+import static org.apache.nifi.c2.protocol.api.OperandType.RESOURCE;
+import static org.apache.nifi.c2.protocol.api.OperationType.SYNC;
+import static org.apache.nifi.c2.util.Preconditions.requires;
 
 public class SyncResourceOperationHandler implements C2OperationHandler {
 

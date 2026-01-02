@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.hl7.query.evaluator.message;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.hl7.model.HL7Message;
 import org.apache.nifi.hl7.model.HL7Segment;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 import org.apache.nifi.hl7.query.evaluator.StringEvaluator;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings("rawtypes")
 public class SegmentEvaluator implements Evaluator<List> {

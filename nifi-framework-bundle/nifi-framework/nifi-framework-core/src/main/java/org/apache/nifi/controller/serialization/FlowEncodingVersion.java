@@ -17,10 +17,10 @@
 
 package org.apache.nifi.controller.serialization;
 
+import org.w3c.dom.Element;
+
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.w3c.dom.Element;
 
 /**
  * Provides a mechanism for interpreting the version of the encoding scheme that was used to serialize

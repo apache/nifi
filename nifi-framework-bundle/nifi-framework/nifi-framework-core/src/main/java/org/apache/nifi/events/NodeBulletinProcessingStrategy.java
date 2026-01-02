@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.events;
 
+import org.apache.commons.collections4.queue.CircularFifoQueue;
+import org.apache.nifi.reporting.Bulletin;
+
 import java.util.HashSet;
 import java.util.Queue;
 import java.util.Set;
-
-import org.apache.commons.collections4.queue.CircularFifoQueue;
-import org.apache.nifi.reporting.Bulletin;
 
 /**
  *

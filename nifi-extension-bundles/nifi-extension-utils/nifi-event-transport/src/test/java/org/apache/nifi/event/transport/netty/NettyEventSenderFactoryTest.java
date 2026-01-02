@@ -25,8 +25,8 @@ import org.apache.nifi.event.transport.configuration.ShutdownTimeout;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.junit.jupiter.api.Test;
 
-import javax.net.ssl.SSLContext;
 import java.time.Duration;
+import javax.net.ssl.SSLContext;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

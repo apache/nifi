@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.reporting.sql;
 
-
 import org.apache.nifi.action.Action;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;

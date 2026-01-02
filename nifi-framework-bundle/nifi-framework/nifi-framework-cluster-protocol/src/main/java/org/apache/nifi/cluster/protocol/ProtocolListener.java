@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import org.apache.nifi.reporting.BulletinRepository;
+
 import java.io.IOException;
 import java.util.Collection;
-
-import org.apache.nifi.reporting.BulletinRepository;
 
 /**
  * Defines the interface for a listener to process protocol messages.

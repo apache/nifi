@@ -24,13 +24,13 @@ import org.apache.nifi.security.ssl.StandardX509ExtendedKeyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.X509ExtendedKeyManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.Objects;
+import javax.net.ssl.X509ExtendedKeyManager;
 
 /**
  * Framework implementation fo Key Manager Builder capable of reloading a Key Store when building a Key Manager

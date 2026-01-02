@@ -17,9 +17,10 @@
 
 package org.apache.nifi.processors.airtable.parse;
 
+import org.apache.nifi.flowfile.FlowFile;
+
 import java.util.List;
 import java.util.Optional;
-import org.apache.nifi.flowfile.FlowFile;
 
 public class AirtableRetrievePageResult {
 

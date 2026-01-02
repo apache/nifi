@@ -17,12 +17,12 @@
 
 package org.apache.nifi.controller.scheduling.processors;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FailOnScheduledProcessor extends AbstractProcessor {
 

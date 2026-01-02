@@ -23,12 +23,12 @@ import io.netty.handler.ssl.SslHandler;
 import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
 import org.apache.nifi.security.util.ClientAuth;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLParameters;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLParameters;
 
 /**
  * Server SslHandler Channel Initializer for configuring SslHandler with server parameters

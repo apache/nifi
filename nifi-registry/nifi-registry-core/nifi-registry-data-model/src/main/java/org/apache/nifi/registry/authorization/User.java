@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.authorization;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;

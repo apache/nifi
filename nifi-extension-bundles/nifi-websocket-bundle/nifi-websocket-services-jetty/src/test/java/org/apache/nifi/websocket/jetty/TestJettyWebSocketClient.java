@@ -28,7 +28,6 @@ import java.util.Collection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 public class TestJettyWebSocketClient {
 
     public static final String CUSTOM_AUTH = "Apikey 8743b52063cd84097a65d1633f5c74f5";

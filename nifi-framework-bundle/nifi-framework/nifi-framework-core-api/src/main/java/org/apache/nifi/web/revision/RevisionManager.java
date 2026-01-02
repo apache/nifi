@@ -20,7 +20,6 @@ package org.apache.nifi.web.revision;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.Revision;
 
-
 /**
  * <p>
  * A Revision Manager provides the ability to prevent clients of the Web API from

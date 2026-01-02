@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.mongodb;
 
-
 import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.ValidationResult;

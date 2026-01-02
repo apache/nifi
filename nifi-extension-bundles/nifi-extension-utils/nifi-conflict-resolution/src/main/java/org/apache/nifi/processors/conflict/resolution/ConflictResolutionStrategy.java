@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.processors.conflict.resolution;
 
+import org.apache.nifi.components.DescribedValue;
+
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.nifi.components.DescribedValue;
 
 public enum ConflictResolutionStrategy implements DescribedValue {
     FAIL( "fail", "Handle file conflict as failure."),

@@ -17,44 +17,6 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.json;
 
-import static java.lang.Boolean.TRUE;
-import static java.util.Map.entry;
-import static java.util.Optional.ofNullable;
-import static java.util.UUID.randomUUID;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_FLOW_MAX_CONCURRENT_THREADS;
-import static org.apache.nifi.util.NiFiProperties.ADMINISTRATIVE_YIELD_DURATION;
-import static org.apache.nifi.util.NiFiProperties.BORED_YIELD_DURATION;
-import static org.apache.nifi.util.NiFiProperties.COMPONENT_STATUS_SNAPSHOT_FREQUENCY;
-import static org.apache.nifi.util.NiFiProperties.CONTENT_ARCHIVE_ENABLED;
-import static org.apache.nifi.util.NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD;
-import static org.apache.nifi.util.NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE;
-import static org.apache.nifi.util.NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION;
-import static org.apache.nifi.util.NiFiProperties.FLOWFILE_REPOSITORY_ALWAYS_SYNC;
-import static org.apache.nifi.util.NiFiProperties.FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL;
-import static org.apache.nifi.util.NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION;
-import static org.apache.nifi.util.NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD;
-import static org.apache.nifi.util.NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE;
-import static org.apache.nifi.util.NiFiProperties.PROVENANCE_INDEX_SHARD_SIZE;
-import static org.apache.nifi.util.NiFiProperties.PROVENANCE_MAX_STORAGE_SIZE;
-import static org.apache.nifi.util.NiFiProperties.PROVENANCE_MAX_STORAGE_TIME;
-import static org.apache.nifi.util.NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS;
-import static org.apache.nifi.util.NiFiProperties.PROVENANCE_ROLLOVER_TIME;
-import static org.apache.nifi.util.NiFiProperties.QUEUE_SWAP_THRESHOLD;
-import static org.apache.nifi.util.NiFiProperties.WRITE_DELAY_INTERVAL;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
@@ -93,6 +55,45 @@ import org.apache.nifi.minifi.toolkit.schema.ReportingSchema;
 import org.apache.nifi.minifi.toolkit.schema.SwapSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.BaseSchemaWithIdAndName;
 import org.apache.nifi.scheduling.ExecutionNode;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.Stream;
+
+import static java.lang.Boolean.TRUE;
+import static java.util.Map.entry;
+import static java.util.Optional.ofNullable;
+import static java.util.UUID.randomUUID;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_FLOW_MAX_CONCURRENT_THREADS;
+import static org.apache.nifi.util.NiFiProperties.ADMINISTRATIVE_YIELD_DURATION;
+import static org.apache.nifi.util.NiFiProperties.BORED_YIELD_DURATION;
+import static org.apache.nifi.util.NiFiProperties.COMPONENT_STATUS_SNAPSHOT_FREQUENCY;
+import static org.apache.nifi.util.NiFiProperties.CONTENT_ARCHIVE_ENABLED;
+import static org.apache.nifi.util.NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD;
+import static org.apache.nifi.util.NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE;
+import static org.apache.nifi.util.NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION;
+import static org.apache.nifi.util.NiFiProperties.FLOWFILE_REPOSITORY_ALWAYS_SYNC;
+import static org.apache.nifi.util.NiFiProperties.FLOWFILE_REPOSITORY_CHECKPOINT_INTERVAL;
+import static org.apache.nifi.util.NiFiProperties.FLOWFILE_REPOSITORY_IMPLEMENTATION;
+import static org.apache.nifi.util.NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD;
+import static org.apache.nifi.util.NiFiProperties.MAX_APPENDABLE_CLAIM_SIZE;
+import static org.apache.nifi.util.NiFiProperties.PROVENANCE_INDEX_SHARD_SIZE;
+import static org.apache.nifi.util.NiFiProperties.PROVENANCE_MAX_STORAGE_SIZE;
+import static org.apache.nifi.util.NiFiProperties.PROVENANCE_MAX_STORAGE_TIME;
+import static org.apache.nifi.util.NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS;
+import static org.apache.nifi.util.NiFiProperties.PROVENANCE_ROLLOVER_TIME;
+import static org.apache.nifi.util.NiFiProperties.QUEUE_SWAP_THRESHOLD;
+import static org.apache.nifi.util.NiFiProperties.WRITE_DELAY_INTERVAL;
 
 public class ConfigSchemaToVersionedDataFlowTransformer {
 

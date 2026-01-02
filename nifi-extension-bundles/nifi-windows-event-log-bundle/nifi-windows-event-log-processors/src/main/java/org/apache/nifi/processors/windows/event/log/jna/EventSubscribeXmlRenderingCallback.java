@@ -22,9 +22,10 @@ import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.W32Errors;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinNT;
+import org.apache.nifi.logging.ComponentLog;
+
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
-import org.apache.nifi.logging.ComponentLog;
 
 /**
  * Callback that will render the XML representation of the event using native Windows API

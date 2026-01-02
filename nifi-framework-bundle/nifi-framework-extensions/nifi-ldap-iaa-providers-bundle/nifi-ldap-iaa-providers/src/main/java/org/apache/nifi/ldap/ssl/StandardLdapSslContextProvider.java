@@ -23,7 +23,6 @@ import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -32,6 +31,7 @@ import java.nio.file.Paths;
 import java.security.KeyStore;
 import java.util.Map;
 import java.util.Objects;
+import javax.net.ssl.SSLContext;
 
 /**
  * Standard implementation of LDAP SSLContext Provider supporting common properties

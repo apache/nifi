@@ -16,25 +16,25 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
+import org.apache.nifi.cluster.protocol.impl.testutils.DelayedProtocolHandler;
+import org.apache.nifi.cluster.protocol.impl.testutils.ReflexiveProtocolHandler;
 import org.apache.nifi.cluster.protocol.jaxb.JaxbProtocolContext;
 import org.apache.nifi.cluster.protocol.jaxb.message.JaxbProtocolUtils;
 import org.apache.nifi.cluster.protocol.message.PingMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
-import org.apache.nifi.cluster.protocol.impl.testutils.DelayedProtocolHandler;
-import org.apache.nifi.cluster.protocol.impl.testutils.ReflexiveProtocolHandler;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.apache.nifi.io.socket.SocketUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

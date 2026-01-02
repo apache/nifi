@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.server.filter;
 
+import jakarta.servlet.Filter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.FormatUtils;
@@ -25,7 +26,6 @@ import org.apache.nifi.web.server.log.RequestAuthenticationFilter;
 import org.eclipse.jetty.ee11.servlet.FilterHolder;
 import org.eclipse.jetty.ee11.servlets.DoSFilter;
 
-import jakarta.servlet.Filter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

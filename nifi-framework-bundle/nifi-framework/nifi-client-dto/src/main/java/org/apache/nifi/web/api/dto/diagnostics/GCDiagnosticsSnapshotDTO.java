@@ -17,11 +17,10 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import java.util.Date;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Date;
 
 @XmlType(name = "gcDiagnosticsSnapshot")
 public class GCDiagnosticsSnapshotDTO implements Cloneable {

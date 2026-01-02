@@ -17,11 +17,6 @@
 
 package org.apache.nifi.controller.swap;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -30,6 +25,11 @@ import org.apache.nifi.controller.repository.schema.ResourceClaimFieldMap;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SwapSummaryFieldMap implements Record {
     private final SwapSummary swapSummary;

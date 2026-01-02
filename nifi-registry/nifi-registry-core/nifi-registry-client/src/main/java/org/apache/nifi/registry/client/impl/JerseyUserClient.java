@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.registry.client.impl;
 
+import jakarta.ws.rs.client.WebTarget;
 import org.apache.nifi.registry.authorization.CurrentUser;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.client.UserClient;
 
-import jakarta.ws.rs.client.WebTarget;
 import java.io.IOException;
 
 public class JerseyUserClient extends AbstractJerseyClient implements UserClient {

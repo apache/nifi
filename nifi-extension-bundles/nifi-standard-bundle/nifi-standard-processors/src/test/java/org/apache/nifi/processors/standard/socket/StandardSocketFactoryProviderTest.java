@@ -21,8 +21,8 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.net.SocketFactory;
 import java.net.Proxy;
+import javax.net.SocketFactory;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

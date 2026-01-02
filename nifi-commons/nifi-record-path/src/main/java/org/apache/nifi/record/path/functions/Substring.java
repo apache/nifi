@@ -17,16 +17,16 @@
 
 package org.apache.nifi.record.path.functions;
 
-import java.util.Optional;
-import java.util.OptionalInt;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.stream.Stream;
 
 public class Substring extends RecordPathSegment {
     private final RecordPathSegment recordPath;

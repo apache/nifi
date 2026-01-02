@@ -17,9 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import java.io.File;
-import java.util.LinkedList;
-import java.util.List;
 import org.apache.nifi.minifi.bootstrap.BootstrapCommand;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
@@ -33,6 +30,10 @@ import org.apache.nifi.minifi.bootstrap.service.MiNiFiStatusProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler;
 import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
 import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
+
+import java.io.File;
+import java.util.LinkedList;
+import java.util.List;
 
 public class CommandRunnerFactory {
 

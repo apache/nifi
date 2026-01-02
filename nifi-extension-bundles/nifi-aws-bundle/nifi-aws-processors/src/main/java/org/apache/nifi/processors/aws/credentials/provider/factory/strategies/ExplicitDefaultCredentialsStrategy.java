@@ -21,7 +21,6 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 
-
 /**
  * Supports AWS Default Credentials.  Compared to ImplicitDefaultCredentialsStrategy, this strategy is designed to be
  * visible to the user, and depends on an affirmative selection from the user.

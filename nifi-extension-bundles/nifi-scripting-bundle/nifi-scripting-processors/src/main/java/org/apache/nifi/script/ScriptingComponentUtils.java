@@ -30,8 +30,6 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptEngineManager;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -40,6 +38,8 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.TreeSet;
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptEngineManager;
 
 /**
  * Utility methods and constants used by the scripting components.

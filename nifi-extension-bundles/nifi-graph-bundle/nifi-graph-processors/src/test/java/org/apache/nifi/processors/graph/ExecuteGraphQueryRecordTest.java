@@ -19,23 +19,23 @@ package org.apache.nifi.processors.graph;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import groovy.json.JsonOutput;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processors.graph.util.InMemoryGraphClient;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ArrayList;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;

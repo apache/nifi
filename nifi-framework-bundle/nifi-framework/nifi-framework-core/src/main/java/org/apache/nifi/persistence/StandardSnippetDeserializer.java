@@ -16,19 +16,19 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.InputStream;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.apache.nifi.xml.processing.stream.StandardXMLStreamReaderProvider;
 import org.apache.nifi.xml.processing.stream.XMLStreamReaderProvider;
+
+import java.io.InputStream;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
 
 public class StandardSnippetDeserializer {
 

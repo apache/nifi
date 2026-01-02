@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard.ftp;
 
-
 import org.apache.nifi.processors.standard.ftp.filesystem.DefaultVirtualFileSystem;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualFileSystem;
 import org.apache.nifi.processors.standard.ftp.filesystem.VirtualPath;

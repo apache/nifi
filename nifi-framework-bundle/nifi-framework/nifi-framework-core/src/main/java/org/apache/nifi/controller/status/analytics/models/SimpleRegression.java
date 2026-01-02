@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.controller.status.analytics.models;
 
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Stream;
-
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.regression.RegressionResults;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * <p>

@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.jms.processors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.jms.BytesMessage;
+import jakarta.jms.JMSException;
+import jakarta.jms.MapMessage;
+import jakarta.jms.MessageEOFException;
+import jakarta.jms.StreamMessage;
+import jakarta.jms.TextMessage;
+import org.apache.commons.io.IOUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -26,16 +35,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import jakarta.jms.BytesMessage;
-import jakarta.jms.JMSException;
-import jakarta.jms.MapMessage;
-import jakarta.jms.MessageEOFException;
-import jakarta.jms.StreamMessage;
-import jakarta.jms.TextMessage;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.IOUtils;
 
 /**
  *

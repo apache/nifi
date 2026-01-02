@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.registry.web.mapper;
 
-import org.apache.nifi.registry.serialization.jackson.ObjectMapperProvider;
-import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
-import org.springframework.stereotype.Component;
-
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.ext.Provider;
+import org.apache.nifi.registry.serialization.jackson.ObjectMapperProvider;
+import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
+import org.springframework.stereotype.Component;
 
 @Component
 @Provider

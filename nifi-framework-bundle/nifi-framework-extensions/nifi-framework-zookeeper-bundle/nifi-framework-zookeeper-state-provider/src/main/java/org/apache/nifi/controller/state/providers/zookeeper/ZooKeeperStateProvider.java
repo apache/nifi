@@ -18,7 +18,6 @@
 package org.apache.nifi.controller.state.providers.zookeeper;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -27,17 +26,18 @@ import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.components.state.annotation.StateProviderContext;
 import org.apache.nifi.components.state.exception.StateTooLargeException;
-import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
 import org.apache.nifi.framework.cluster.zookeeper.SecureClientZooKeeperFactory;
+import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.BadVersionException;
 import org.apache.zookeeper.KeeperException.Code;
-import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;

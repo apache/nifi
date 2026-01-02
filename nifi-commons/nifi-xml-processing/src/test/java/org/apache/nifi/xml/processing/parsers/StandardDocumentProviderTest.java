@@ -26,11 +26,10 @@ import org.w3c.dom.Document;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXParseException;
 
-import javax.xml.validation.Schema;
-import javax.xml.validation.ValidatorHandler;
-
 import java.io.IOException;
 import java.io.InputStream;
+import javax.xml.validation.Schema;
+import javax.xml.validation.ValidatorHandler;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

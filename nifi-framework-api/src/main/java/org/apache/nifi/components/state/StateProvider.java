@@ -17,12 +17,12 @@
 
 package org.apache.nifi.components.state;
 
+import org.apache.nifi.components.ConfigurableComponent;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-
-import org.apache.nifi.components.ConfigurableComponent;
 
 /**
  * <p>

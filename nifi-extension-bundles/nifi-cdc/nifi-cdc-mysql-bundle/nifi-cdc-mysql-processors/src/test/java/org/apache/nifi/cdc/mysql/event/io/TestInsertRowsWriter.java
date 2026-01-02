@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cdc.mysql.event.io;
 
-
 import org.junit.jupiter.api.Test;
 
 import java.sql.Types;

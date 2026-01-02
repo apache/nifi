@@ -22,12 +22,11 @@ import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntr
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.Response;
-
 import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
 import org.apache.nifi.cluster.coordination.http.replication.io.EntitySerializer;
-import org.apache.nifi.cluster.coordination.http.replication.io.ReplicatedResponse;
 import org.apache.nifi.cluster.coordination.http.replication.io.JsonEntitySerializer;
+import org.apache.nifi.cluster.coordination.http.replication.io.ReplicatedResponse;
 import org.apache.nifi.cluster.coordination.http.replication.io.XmlEntitySerializer;
 import org.apache.nifi.web.client.api.HttpEntityHeaders;
 import org.apache.nifi.web.client.api.HttpRequestBodySpec;

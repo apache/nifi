@@ -17,9 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.node;
 
-import java.net.InetSocketAddress;
-import java.util.Optional;
-
 import org.apache.nifi.cluster.exception.NoClusterCoordinatorException;
 import org.apache.nifi.cluster.protocol.AbstractNodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
@@ -29,6 +26,9 @@ import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.io.socket.SocketConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
+import java.util.Optional;
 
 public class LeaderElectionNodeProtocolSender extends AbstractNodeProtocolSender {
     private static final Logger logger = LoggerFactory.getLogger(LeaderElectionNodeProtocolSender.class);

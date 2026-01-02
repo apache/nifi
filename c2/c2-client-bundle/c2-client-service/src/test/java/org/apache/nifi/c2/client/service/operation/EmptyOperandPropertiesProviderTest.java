@@ -17,10 +17,11 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EmptyOperandPropertiesProviderTest {
 

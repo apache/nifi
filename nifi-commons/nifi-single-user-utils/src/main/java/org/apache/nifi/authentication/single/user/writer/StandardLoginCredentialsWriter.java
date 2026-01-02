@@ -20,6 +20,15 @@ import org.apache.nifi.authentication.single.user.SingleUserCredentials;
 import org.apache.nifi.xml.processing.stream.StandardXMLEventReaderProvider;
 import org.apache.nifi.xml.processing.stream.XMLEventReaderProvider;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.util.Iterator;
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventReader;
 import javax.xml.stream.XMLEventWriter;
@@ -31,15 +40,6 @@ import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 import javax.xml.transform.stream.StreamSource;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UncheckedIOException;
-import java.nio.file.Files;
-import java.util.Iterator;
 
 /**
  * Standard Login Credentials Writer updates Login Identity Providers Single User definition with Login Credentials

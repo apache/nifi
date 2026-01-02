@@ -35,8 +35,6 @@ import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -57,7 +55,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private static final Logger logger = LoggerFactory.getLogger(NioAsyncLoadBalanceClient.class);

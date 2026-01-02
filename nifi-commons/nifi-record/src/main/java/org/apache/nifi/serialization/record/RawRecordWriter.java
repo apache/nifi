@@ -17,9 +17,9 @@
 
 package org.apache.nifi.serialization.record;
 
-import java.io.IOException;
-
 import org.apache.nifi.serialization.WriteResult;
+
+import java.io.IOException;
 
 public interface RawRecordWriter {
     /**

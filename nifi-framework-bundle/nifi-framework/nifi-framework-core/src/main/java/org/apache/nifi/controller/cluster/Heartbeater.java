@@ -17,10 +17,10 @@
 
 package org.apache.nifi.controller.cluster;
 
+import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
+
 import java.io.Closeable;
 import java.io.IOException;
-
-import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 
 /**
  * <p>

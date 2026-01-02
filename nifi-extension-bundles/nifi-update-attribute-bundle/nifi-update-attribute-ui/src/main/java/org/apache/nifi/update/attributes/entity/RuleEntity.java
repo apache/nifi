@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.update.attributes.entity;
 
-import org.apache.nifi.update.attributes.dto.RuleDTO;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.update.attributes.dto.RuleDTO;
 
 /**
  *

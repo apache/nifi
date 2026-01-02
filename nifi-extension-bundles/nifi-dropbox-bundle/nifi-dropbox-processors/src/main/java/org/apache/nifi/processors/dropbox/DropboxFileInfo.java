@@ -16,18 +16,6 @@
  */
 package org.apache.nifi.processors.dropbox;
 
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import org.apache.nifi.processor.util.list.ListableEntity;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -35,6 +23,19 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
 
 public class DropboxFileInfo implements ListableEntity {
 

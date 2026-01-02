@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
@@ -32,6 +26,13 @@ import org.apache.nifi.reporting.BulletinFactory;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.Severity;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class MockReportingContext extends MockControllerServiceLookup implements ReportingContext, ControllerServiceLookup {
 

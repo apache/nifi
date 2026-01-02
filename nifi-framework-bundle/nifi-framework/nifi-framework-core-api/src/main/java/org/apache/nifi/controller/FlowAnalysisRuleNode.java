@@ -18,10 +18,10 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
-import org.apache.nifi.flowanalysis.FlowAnalysisRule;
-import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 

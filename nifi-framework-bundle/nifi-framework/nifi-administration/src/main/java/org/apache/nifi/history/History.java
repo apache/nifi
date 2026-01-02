@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.history;
 
+import org.apache.nifi.action.Action;
+
 import java.util.Collection;
 import java.util.Date;
-import org.apache.nifi.action.Action;
 
 /**
  * The result of running an action query.

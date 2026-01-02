@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.web.security.oidc.registration;
 
-import static com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod.CLIENT_SECRET_BASIC;
-import static com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod.CLIENT_SECRET_POST;
-import static com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod.NONE;
-
 import com.nimbusds.oauth2.sdk.ParseException;
 import com.nimbusds.openid.connect.sdk.op.OIDCProviderMetadata;
 import org.apache.nifi.util.NiFiProperties;
@@ -45,6 +41,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
+import static com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod.CLIENT_SECRET_BASIC;
+import static com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod.CLIENT_SECRET_POST;
+import static com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod.NONE;
 
 /**
  * Standard implementation of Client Registration Provider using Application Properties

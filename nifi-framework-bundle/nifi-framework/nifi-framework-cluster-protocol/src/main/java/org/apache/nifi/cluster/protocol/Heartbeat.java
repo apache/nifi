@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import java.util.Date;
-
 import jakarta.xml.bind.annotation.XmlTransient;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.jaxb.message.HeartbeatAdapter;
+
+import java.util.Date;
 
 /**
  * A heartbeat for indicating the status of a node to the cluster.

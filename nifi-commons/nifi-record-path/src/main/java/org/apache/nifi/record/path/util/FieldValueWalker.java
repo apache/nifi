@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.record.path.util;
 
+import org.apache.nifi.record.path.FieldValue;
+
 import java.util.Objects;
 import java.util.function.Consumer;
-
-import org.apache.nifi.record.path.FieldValue;
 
 /**
  * FieldValueWalker walks a FieldValue hierarchy from a given {@code FieldValue} to the root.

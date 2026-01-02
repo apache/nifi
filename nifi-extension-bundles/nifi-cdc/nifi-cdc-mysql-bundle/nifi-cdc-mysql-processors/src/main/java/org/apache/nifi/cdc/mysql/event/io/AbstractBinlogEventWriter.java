@@ -17,13 +17,13 @@
 package org.apache.nifi.cdc.mysql.event.io;
 
 import org.apache.nifi.cdc.event.EventInfo;
+import org.apache.nifi.cdc.event.io.AbstractEventWriter;
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy;
 import org.apache.nifi.cdc.mysql.event.BinlogEventInfo;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.cdc.event.io.AbstractEventWriter;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
 import org.apache.nifi.processor.exception.ProcessException;

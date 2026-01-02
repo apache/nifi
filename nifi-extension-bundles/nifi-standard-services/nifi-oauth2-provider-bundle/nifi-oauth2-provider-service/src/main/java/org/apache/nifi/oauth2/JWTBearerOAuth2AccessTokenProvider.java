@@ -59,8 +59,6 @@ import org.apache.nifi.web.client.api.HttpResponseEntity;
 import org.apache.nifi.web.client.api.WebClientService;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
-import javax.net.ssl.X509ExtendedKeyManager;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -86,6 +84,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.net.ssl.X509ExtendedKeyManager;
 
 @SupportsSensitiveDynamicProperties
 @Tags({ "oauth2", "provider", "authorization", "access token", "hjwt" })

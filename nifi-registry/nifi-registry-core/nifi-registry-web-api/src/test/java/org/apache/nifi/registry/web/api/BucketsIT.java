@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.springframework.test.context.junit.jupiter.EnabledIf;
 import org.springframework.test.context.jdbc.Sql;
-
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
+import org.springframework.test.context.junit.jupiter.EnabledIf;
 
 import java.util.UUID;
 

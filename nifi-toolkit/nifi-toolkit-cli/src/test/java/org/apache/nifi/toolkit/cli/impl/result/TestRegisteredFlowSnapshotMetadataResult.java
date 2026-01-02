@@ -35,7 +35,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 public class TestRegisteredFlowSnapshotMetadataResult {
 
     private ByteArrayOutputStream outputStream;

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import org.apache.commons.codec.binary.Base64;
+
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-
-import org.apache.commons.codec.binary.Base64;
 
 /**
  * An InputStream that throws an IOException if any byte is read that is not a valid Base64 character. Whitespace is considered valid.

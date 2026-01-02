@@ -17,11 +17,11 @@
 
 package org.apache.nifi.provenance.store;
 
-import java.util.Collections;
-import java.util.Map;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.serialization.StorageSummary;
+
+import java.util.Collections;
+import java.util.Map;
 
 public interface StorageResult {
     /**

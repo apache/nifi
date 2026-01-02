@@ -17,19 +17,18 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static java.nio.file.Files.copy;
-import static java.nio.file.Files.createTempDirectory;
-import static java.nio.file.Files.lines;
-import static java.nio.file.Files.walk;
-import static java.util.Optional.empty;
-import static java.util.Optional.ofNullable;
-import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
-import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
-import static org.apache.nifi.c2.protocol.api.OperationType.TRANSFER;
-import static org.apache.nifi.c2.util.Preconditions.requires;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipUtils;
+import org.apache.nifi.c2.client.api.C2Client;
+import org.apache.nifi.c2.protocol.api.C2Operation;
+import org.apache.nifi.c2.protocol.api.C2OperationAck;
+import org.apache.nifi.c2.protocol.api.C2OperationState;
+import org.apache.nifi.c2.protocol.api.OperandType;
+import org.apache.nifi.c2.protocol.api.OperationType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -47,18 +46,20 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
-import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.commons.compress.compressors.gzip.GzipUtils;
-import org.apache.nifi.c2.client.api.C2Client;
-import org.apache.nifi.c2.protocol.api.C2Operation;
-import org.apache.nifi.c2.protocol.api.C2OperationAck;
-import org.apache.nifi.c2.protocol.api.C2OperationState;
-import org.apache.nifi.c2.protocol.api.OperandType;
-import org.apache.nifi.c2.protocol.api.OperationType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.nio.file.Files.copy;
+import static java.nio.file.Files.createTempDirectory;
+import static java.nio.file.Files.lines;
+import static java.nio.file.Files.walk;
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
+import static org.apache.nifi.c2.protocol.api.OperandType.DEBUG;
+import static org.apache.nifi.c2.protocol.api.OperationType.TRANSFER;
+import static org.apache.nifi.c2.util.Preconditions.requires;
 
 public class TransferDebugOperationHandler implements C2OperationHandler {
 

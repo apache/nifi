@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.registry.authorization.User;
 import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.registry.event.EventFactory;
@@ -27,7 +28,6 @@ import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
 

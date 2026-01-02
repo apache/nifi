@@ -18,8 +18,6 @@
 package org.apache.nifi.registry.flow;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Map;
-import java.util.Objects;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.xml.bind.annotation.XmlRootElement;
@@ -29,6 +27,9 @@ import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
+
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>

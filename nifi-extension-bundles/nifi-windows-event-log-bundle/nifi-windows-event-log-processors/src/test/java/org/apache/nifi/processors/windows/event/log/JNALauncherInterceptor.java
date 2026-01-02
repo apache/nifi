@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.processors.windows.event.log;
 
+import com.sun.jna.Native;
+import com.sun.jna.platform.win32.Kernel32Util;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
+import org.junit.platform.launcher.LauncherInterceptor;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -27,13 +34,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
-
-import com.sun.jna.Native;
-import com.sun.jna.platform.win32.Kernel32Util;
-import javassist.ClassPool;
-import javassist.CtClass;
-import javassist.CtMethod;
-import org.junit.platform.launcher.LauncherInterceptor;
 
 import static org.junit.jupiter.api.Assertions.fail;
 

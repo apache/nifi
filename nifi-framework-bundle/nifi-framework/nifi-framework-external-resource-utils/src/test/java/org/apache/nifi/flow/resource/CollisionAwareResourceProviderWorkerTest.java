@@ -45,7 +45,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-
 @ExtendWith(MockitoExtension.class)
 public class CollisionAwareResourceProviderWorkerTest {
     private static final String PREFIX = "prefix";

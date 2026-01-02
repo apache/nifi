@@ -24,10 +24,10 @@ import com.exceptionfactory.socketbroker.configuration.StandardBrokerConfigurati
 import com.exceptionfactory.socketbroker.configuration.StandardUsernamePasswordAuthenticationCredentials;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
-import javax.net.SocketFactory;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.util.Objects;
+import javax.net.SocketFactory;
 
 /**
  * Standard implementation of Socket Factory Provider support authenticated or unauthenticated SOCKS or HTTP proxies

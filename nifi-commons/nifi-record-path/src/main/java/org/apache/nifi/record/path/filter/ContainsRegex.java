@@ -17,14 +17,14 @@
 
 package org.apache.nifi.record.path.filter;
 
-import java.util.Optional;
-import java.util.regex.Pattern;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.paths.LiteralValuePath;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import java.util.Optional;
+import java.util.regex.Pattern;
 
 public class ContainsRegex extends FunctionFilter {
 

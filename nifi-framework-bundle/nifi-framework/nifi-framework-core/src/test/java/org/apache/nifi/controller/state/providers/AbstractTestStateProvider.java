@@ -17,6 +17,10 @@
 
 package org.apache.nifi.controller.state.providers;
 
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.state.StateProvider;
+import org.junit.jupiter.api.Test;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,15 +28,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.components.state.StateProvider;
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 
 /**
  * <p>

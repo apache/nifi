@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.security.ssl;
 
-import javax.net.ssl.TrustManagerFactory;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import javax.net.ssl.TrustManagerFactory;
 
 /**
  * Standard implementation of Trust Manager Factory Builder

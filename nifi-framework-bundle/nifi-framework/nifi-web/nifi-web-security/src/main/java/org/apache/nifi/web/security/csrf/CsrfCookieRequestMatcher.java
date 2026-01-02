@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.security.csrf;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.util.WebUtils;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Request Matcher checks for the existence of a cookie with the configured name

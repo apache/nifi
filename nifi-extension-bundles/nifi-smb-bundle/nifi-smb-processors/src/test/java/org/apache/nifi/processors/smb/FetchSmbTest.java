@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.processors.smb;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.services.smb.SmbClientProviderService;
@@ -33,6 +27,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.apache.nifi.processors.smb.FetchSmb.ERROR_CODE_ATTRIBUTE;
 import static org.apache.nifi.processors.smb.FetchSmb.ERROR_MESSAGE_ATTRIBUTE;

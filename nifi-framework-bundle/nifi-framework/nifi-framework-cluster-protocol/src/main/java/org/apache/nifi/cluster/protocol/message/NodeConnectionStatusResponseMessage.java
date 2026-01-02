@@ -18,7 +18,6 @@
 package org.apache.nifi.cluster.protocol.message;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
-
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 
 @XmlRootElement(name = "nodeIdentifierResponseMessage")

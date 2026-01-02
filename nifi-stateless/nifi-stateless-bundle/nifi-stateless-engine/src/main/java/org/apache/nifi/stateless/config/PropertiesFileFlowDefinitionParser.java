@@ -42,7 +42,6 @@ import org.apache.nifi.web.client.ssl.TlsContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -67,6 +66,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 
 public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionParser {
     private static final Logger logger = LoggerFactory.getLogger(PropertiesFileFlowDefinitionParser.class);

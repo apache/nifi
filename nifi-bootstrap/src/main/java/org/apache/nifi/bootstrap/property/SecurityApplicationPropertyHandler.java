@@ -19,7 +19,6 @@ package org.apache.nifi.bootstrap.property;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.slf4j.Logger;
 
-import javax.security.auth.x500.X500Principal;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -55,6 +54,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.security.auth.x500.X500Principal;
 
 /**
  * Standard implementation for application security generates Key Pair and Certificate when not configured

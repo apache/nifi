@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.util.search.ahocorasick;
 
+import org.apache.nifi.util.search.Search;
+import org.apache.nifi.util.search.SearchTerm;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
-
-import org.apache.nifi.util.search.Search;
-import org.apache.nifi.util.search.SearchTerm;
 
 public class AhoCorasick<T> implements Search<T> {
 

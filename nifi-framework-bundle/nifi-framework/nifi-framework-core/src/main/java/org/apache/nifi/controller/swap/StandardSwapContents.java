@@ -17,12 +17,12 @@
 
 package org.apache.nifi.controller.swap;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapSummary;
+
+import java.util.Collections;
+import java.util.List;
 
 public class StandardSwapContents implements SwapContents {
     public static final SwapContents EMPTY_SWAP_CONTENTS = new StandardSwapContents(StandardSwapSummary.EMPTY_SUMMARY, Collections.<FlowFileRecord> emptyList());

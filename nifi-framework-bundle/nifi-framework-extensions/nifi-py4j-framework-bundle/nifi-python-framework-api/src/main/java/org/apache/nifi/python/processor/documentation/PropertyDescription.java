@@ -17,8 +17,9 @@
 
 package org.apache.nifi.python.processor.documentation;
 
-import java.util.List;
 import org.apache.nifi.python.PythonObjectProxy;
+
+import java.util.List;
 
 public interface PropertyDescription extends PythonObjectProxy {
     String getName();

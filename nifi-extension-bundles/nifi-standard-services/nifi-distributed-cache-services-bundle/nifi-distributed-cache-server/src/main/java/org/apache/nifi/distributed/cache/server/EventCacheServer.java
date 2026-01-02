@@ -24,9 +24,9 @@ import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.security.util.ClientAuth;
 
-import javax.net.ssl.SSLContext;
 import java.net.InetAddress;
 import java.util.Objects;
+import javax.net.ssl.SSLContext;
 
 /**
  * Abstract Event Cache Server with standard lifecycle methods

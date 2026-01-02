@@ -20,6 +20,7 @@ import org.apache.nifi.web.security.logout.StandardLogoutFilter;
 import org.apache.nifi.web.security.saml2.SamlUrlPath;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+
 /**
  * SAML 2 Logout Filter completes application Logout Requests
  */

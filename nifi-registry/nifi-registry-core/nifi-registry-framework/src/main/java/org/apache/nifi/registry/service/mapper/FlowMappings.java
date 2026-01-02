@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.registry.service.mapper;
 
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.db.entity.BucketEntity;
 import org.apache.nifi.registry.db.entity.BucketItemEntityType;
 import org.apache.nifi.registry.db.entity.FlowEntity;
 import org.apache.nifi.registry.db.entity.FlowSnapshotEntity;
 import org.apache.nifi.registry.diff.ComponentDifference;
 import org.apache.nifi.registry.diff.ComponentDifferenceGroup;
-import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.flow.diff.FlowDifference;

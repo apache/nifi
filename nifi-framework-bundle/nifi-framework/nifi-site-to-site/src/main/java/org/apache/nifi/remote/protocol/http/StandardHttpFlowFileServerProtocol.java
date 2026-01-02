@@ -33,6 +33,7 @@ import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.RequestType;
 import org.apache.nifi.remote.protocol.Response;
 import org.apache.nifi.remote.protocol.ResponseCode;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayInputStream;
@@ -41,7 +42,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Optional;
-import org.apache.nifi.util.NiFiProperties;
 
 public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerProtocol implements HttpFlowFileServerProtocol {
 

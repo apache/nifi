@@ -38,11 +38,6 @@ import org.apache.nifi.web.client.proxy.ProxyContext;
 import org.apache.nifi.web.client.redirect.RedirectHandling;
 import org.apache.nifi.web.client.ssl.TlsContext;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509ExtendedKeyManager;
-import javax.net.ssl.X509KeyManager;
-import javax.net.ssl.X509TrustManager;
-
 import java.net.Proxy;
 import java.net.http.HttpClient.Version;
 import java.time.Duration;
@@ -50,6 +45,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.X509TrustManager;
 
 import static org.apache.nifi.proxy.ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE;
 

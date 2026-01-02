@@ -17,17 +17,6 @@
 
 package org.apache.nifi.minifi;
 
-import static java.util.Optional.ofNullable;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.minifi.validator.FlowValidator.validate;
-import static org.apache.nifi.nar.NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
-import static org.apache.nifi.nar.NarUnpackMode.UNPACK_TO_UBER_JAR;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.List;
-import java.util.Optional;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.headless.HeadlessNiFiServer;
@@ -50,6 +39,17 @@ import org.apache.nifi.nar.StandardNarLoader;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.List;
+import java.util.Optional;
+
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.minifi.validator.FlowValidator.validate;
+import static org.apache.nifi.nar.NarUnpackMode.UNPACK_INDIVIDUAL_JARS;
+import static org.apache.nifi.nar.NarUnpackMode.UNPACK_TO_UBER_JAR;
 
 public class StandardMiNiFiServer extends HeadlessNiFiServer implements MiNiFiServer {
 

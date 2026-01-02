@@ -16,20 +16,19 @@
  */
 package org.apache.nifi.hl7.hapi;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.nifi.hl7.model.HL7Message;
-import org.apache.nifi.hl7.model.HL7Segment;
-
 import ca.uhn.hl7v2.HL7Exception;
 import ca.uhn.hl7v2.model.Group;
 import ca.uhn.hl7v2.model.Message;
 import ca.uhn.hl7v2.model.Segment;
 import ca.uhn.hl7v2.model.Structure;
+import org.apache.nifi.hl7.model.HL7Message;
+import org.apache.nifi.hl7.model.HL7Segment;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class HapiMessage implements HL7Message {
 

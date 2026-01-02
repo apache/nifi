@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.minifi.bootstrap;
 
-
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

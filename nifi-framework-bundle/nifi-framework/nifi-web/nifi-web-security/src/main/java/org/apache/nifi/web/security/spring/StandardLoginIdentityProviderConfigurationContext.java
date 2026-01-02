@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.web.security.spring;
 
+import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
+
 import java.util.Collections;
 import java.util.Map;
-import org.apache.nifi.authentication.LoginIdentityProviderConfigurationContext;
 
 /**
  *

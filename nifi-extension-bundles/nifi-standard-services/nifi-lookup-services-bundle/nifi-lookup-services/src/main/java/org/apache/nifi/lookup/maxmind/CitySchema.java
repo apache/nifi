@@ -17,14 +17,14 @@
 
 package org.apache.nifi.lookup.maxmind;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class CitySchema {
     static final RecordField SUBDIVISION_NAME = new RecordField("name", RecordFieldType.STRING.getDataType());

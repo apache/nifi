@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.client.ssl;
 
+import java.util.Optional;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
-import java.util.Optional;
 
 /**
  * TLS Context provides components necessary for TLS communication

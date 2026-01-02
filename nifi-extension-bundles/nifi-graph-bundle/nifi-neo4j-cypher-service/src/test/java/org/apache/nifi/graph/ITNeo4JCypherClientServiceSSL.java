@@ -28,8 +28,6 @@ import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.neo4j.Neo4jContainer;
 import org.testcontainers.utility.DockerImageName;
 
-import javax.security.auth.x500.X500Principal;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -49,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import javax.security.auth.x500.X500Principal;
 
 import static org.apache.nifi.graph.Neo4JCypherClientService.CONNECTION_URL;
 import static org.apache.nifi.graph.Neo4JCypherClientService.PASSWORD;

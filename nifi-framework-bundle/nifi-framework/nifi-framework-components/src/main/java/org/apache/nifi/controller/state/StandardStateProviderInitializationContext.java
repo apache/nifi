@@ -17,17 +17,16 @@
 
 package org.apache.nifi.controller.state;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.net.ssl.SSLContext;
 
 public class StandardStateProviderInitializationContext implements StateProviderInitializationContext {
     private final String id;

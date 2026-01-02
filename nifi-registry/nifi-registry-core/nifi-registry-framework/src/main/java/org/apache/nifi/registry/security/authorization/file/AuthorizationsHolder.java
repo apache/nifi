@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.registry.security.authorization.file;
 
-
-import org.apache.nifi.registry.security.authorization.file.generated.Authorizations;
-import org.apache.nifi.registry.security.authorization.file.generated.Policies;
 import org.apache.nifi.registry.security.authorization.AccessPolicy;
 import org.apache.nifi.registry.security.authorization.RequestAction;
+import org.apache.nifi.registry.security.authorization.file.generated.Authorizations;
+import org.apache.nifi.registry.security.authorization.file.generated.Policies;
 import org.apache.nifi.registry.security.authorization.util.AccessPolicyProviderUtils;
 
 import java.util.Collections;

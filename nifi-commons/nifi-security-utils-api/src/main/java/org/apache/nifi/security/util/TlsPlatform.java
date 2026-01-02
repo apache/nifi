@@ -16,12 +16,7 @@
  */
 package org.apache.nifi.security.util;
 
-import static java.util.Collections.unmodifiableSet;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
 import java.security.NoSuchAlgorithmException;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -31,6 +26,10 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
+
+import static java.util.Collections.unmodifiableSet;
 
 /**
  * Transport Layer Security Platform provides runtime protocol configuration information

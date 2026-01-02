@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceReporter;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -23,9 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.ProvenanceReporter;
 
 public class SharedSessionState {
 

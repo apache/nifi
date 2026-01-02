@@ -52,10 +52,6 @@ import software.amazon.awssdk.http.TlsTrustManagersProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.retries.DefaultRetryStrategy;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509ExtendedKeyManager;
-import javax.net.ssl.X509TrustManager;
 import java.net.Proxy;
 import java.net.URI;
 import java.time.Duration;
@@ -65,6 +61,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509TrustManager;
 
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.apache.nifi.processors.aws.region.RegionUtil.getRegion;

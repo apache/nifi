@@ -17,12 +17,12 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.io;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.io.OutputStream;
 
 public class JsonEntitySerializer implements EntitySerializer {
     private final ObjectMapper jsonCodec;

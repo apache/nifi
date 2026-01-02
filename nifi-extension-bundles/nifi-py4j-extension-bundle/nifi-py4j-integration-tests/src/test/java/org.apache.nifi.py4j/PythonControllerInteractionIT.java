@@ -18,7 +18,6 @@
 package org.apache.nifi.py4j;
 
 import org.apache.commons.codec.digest.DigestUtils;
-
 import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.AsyncLoadedProcessor.LoadState;
 import org.apache.nifi.components.state.Scope;

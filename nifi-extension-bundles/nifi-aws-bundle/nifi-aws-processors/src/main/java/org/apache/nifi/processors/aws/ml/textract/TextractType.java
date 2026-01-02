@@ -17,12 +17,12 @@
 
 package org.apache.nifi.processors.aws.ml.textract;
 
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.toSet;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
+
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toSet;
 
 public enum TextractType {
     DOCUMENT_ANALYSIS("Document Analysis"),

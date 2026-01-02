@@ -16,20 +16,13 @@
  */
 package org.apache.nifi.hl7.query;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.CharStream;
 import org.antlr.runtime.CommonTokenStream;
 import org.antlr.runtime.tree.Tree;
 import org.apache.nifi.hl7.model.HL7Message;
+import org.apache.nifi.hl7.query.antlr.HL7QueryLexer;
+import org.apache.nifi.hl7.query.antlr.HL7QueryParser;
 import org.apache.nifi.hl7.query.evaluator.BooleanEvaluator;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 import org.apache.nifi.hl7.query.evaluator.IntegerEvaluator;
@@ -54,8 +47,15 @@ import org.apache.nifi.hl7.query.exception.HL7QueryParsingException;
 import org.apache.nifi.hl7.query.result.MissedResult;
 import org.apache.nifi.hl7.query.result.StandardQueryResult;
 
-import org.apache.nifi.hl7.query.antlr.HL7QueryLexer;
-import org.apache.nifi.hl7.query.antlr.HL7QueryParser;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static org.apache.nifi.hl7.query.antlr.HL7QueryParser.AND;
 import static org.apache.nifi.hl7.query.antlr.HL7QueryParser.DECLARE;
 import static org.apache.nifi.hl7.query.antlr.HL7QueryParser.DOT;
