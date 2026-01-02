@@ -67,7 +67,6 @@ public abstract class AbstractTestNarLoader {
                     .collect(Collectors.joining("\n"));
         }
 
-        //final String modifiedPropertiesFileContent = originalPropertiesFileContent.replaceAll("\\./target", tempDir.toString());
         final Path newPropertiesFile = tempDir.resolve(originalPropertiesFile.getFileName());
         Files.writeString(newPropertiesFile, modifiedPropertiesFileContent);
         properties = NiFiProperties.createBasicNiFiProperties(newPropertiesFile.toString(), Collections.emptyMap());
