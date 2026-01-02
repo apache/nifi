@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxFolder;
-import com.box.sdk.BoxItem;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.folders.GetFolderItemsQueryParams;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.foldermini.FolderMini;
+import com.box.sdkgen.schemas.items.Items;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -53,6 +54,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -149,7 +151,7 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
             new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType(), false)
     ));
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -165,7 +167,7 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -183,7 +185,7 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
         try {
             final long startNanos = System.nanoTime();
             long createdAtMax = Instant.now().toEpochMilli() - minAge;
-            final List<BoxFile.Info> fileInfos = new ArrayList<>();
+            final List<FileFull> fileInfos = new ArrayList<>();
 
             listFolder(fileInfos, folderId, recursive, createdAtMax);
 
@@ -204,13 +206,20 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
 
                     writer.beginRecordSet();
 
-                    for (final BoxFile.Info fileInfo : fileInfos) {
+                    for (final FileFull fileInfo : fileInfos) {
+                        final String parentPath = fileInfo.getPathCollection() != null
+                                ? BoxFileUtils.getParentPath(fileInfo.getPathCollection().getEntries())
+                                : "/";
+                        final OffsetDateTime modifiedAt = fileInfo.getModifiedAt();
+
                         final Map<String, Object> values = Map.of(
-                                "id", fileInfo.getID(),
+                                "id", fileInfo.getId(),
                                 "filename", fileInfo.getName(),
-                                "path", BoxFileUtils.getParentPath(fileInfo),
+                                "path", parentPath,
                                 "size", fileInfo.getSize(),
-                                "timestamp", new Timestamp(fileInfo.getModifiedAt().getTime())
+                                "timestamp", modifiedAt != null
+                                        ? new Timestamp(modifiedAt.toInstant().toEpochMilli())
+                                        : new Timestamp(System.currentTimeMillis())
                         );
 
                         final Record record = new MapRecord(RECORD_SCHEMA, values);
@@ -237,55 +246,48 @@ public class ListBoxFileInfo extends AbstractBoxProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             }
 
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
-            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            if (e.getResponseCode() == 404) {
-                getLogger().warn("Box folder with ID {} was not found.", folderId);
-                session.transfer(flowFile, REL_NOT_FOUND);
-            } else {
-                getLogger().error("Couldn't fetch files from folder with id [{}]", folderId, e);
-                flowFile = session.penalize(flowFile);
-                session.transfer(flowFile, REL_FAILURE);
+        } catch (final BoxAPIError e) {
+            if (e.getResponseInfo() != null) {
+                flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseInfo().getStatusCode()));
+                if (e.getResponseInfo().getStatusCode() == 404) {
+                    getLogger().warn("Box folder with ID {} was not found.", folderId);
+                    flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+                    session.transfer(flowFile, REL_NOT_FOUND);
+                    return;
+                }
             }
+            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
+            getLogger().error("Couldn't fetch files from folder with id [{}]", folderId, e);
+            flowFile = session.penalize(flowFile);
+            session.transfer(flowFile, REL_FAILURE);
         }
     }
 
-    private void listFolder(final List<BoxFile.Info> fileInfos,
+    private void listFolder(final List<FileFull> fileInfos,
                             final String folderId,
                             final Boolean recursive,
                             final long createdAtMax) {
-        final BoxFolder folder = getFolder(folderId);
-        for (final BoxItem.Info itemInfo : folder.getChildren(
-                "id",
-                "name",
-                "item_status",
-                "size",
-                "created_at",
-                "modified_at",
-                "content_created_at",
-                "content_modified_at",
-                "path_collection"
-        )) {
-            if (itemInfo instanceof BoxFile.Info fileInfo) {
-                long createdAt = itemInfo.getCreatedAt().getTime();
+        final GetFolderItemsQueryParams queryParams = new GetFolderItemsQueryParams.Builder()
+                .fields(List.of("id", "name", "item_status", "size", "created_at", "modified_at",
+                        "content_created_at", "content_modified_at", "path_collection"))
+                .build();
 
-                if (createdAt <= createdAtMax) {
-                    fileInfos.add(fileInfo);
+        final Items items = boxClient.getFolders().getFolderItems(folderId, queryParams);
+
+        if (items.getEntries() != null) {
+            for (Object itemObj : items.getEntries()) {
+                if (itemObj instanceof FileFull fileInfo) {
+                    OffsetDateTime createdAt = fileInfo.getCreatedAt();
+                    if (createdAt != null) {
+                        long createdAtMillis = createdAt.toInstant().toEpochMilli();
+                        if (createdAtMillis <= createdAtMax) {
+                            fileInfos.add(fileInfo);
+                        }
+                    }
+                } else if (recursive && itemObj instanceof FolderMini subFolderInfo) {
+                    listFolder(fileInfos, subFolderInfo.getId(), recursive, createdAtMax);
                 }
-            } else if (recursive && itemInfo instanceof BoxFolder.Info subFolderInfo) {
-                listFolder(fileInfos, subFolderInfo.getID(), recursive, createdAtMax);
             }
         }
-    }
-
-    /**
-     * Returns a BoxFolder object for the given folder ID.
-     *
-     * @param folderId The ID of the folder.
-     * @return A BoxFolder object for the given folder ID.
-     */
-    BoxFolder getFolder(final String folderId) {
-        return new BoxFolder(boxAPIConnection, folderId);
     }
 }

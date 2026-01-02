@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIException;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.Metadata;
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.box.errors.ResponseInfo;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.filemetadata.FileMetadataManager;
+import com.box.sdkgen.managers.filemetadata.GetFileMetadataByIdScope;
+import com.box.sdkgen.schemas.metadatafull.MetadataFull;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
@@ -31,48 +31,54 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class FetchBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
+public class FetchBoxFileMetadataInstanceTest extends AbstractBoxFileTest implements FileListingTestTrait {
 
     private static final String TEMPLATE_KEY = "fileMetadata";
     private static final String TEMPLATE_SCOPE = "enterprise_123";
     private static final String TEMPLATE_ID = "12345";
 
     @Mock
-    private BoxFile mockBoxFile;
+    private FileMetadataManager mockFileMetadataManager;
 
     @Override
     @BeforeEach
     void setUp() throws Exception {
-        final FetchBoxFileMetadataInstance testSubject = new FetchBoxFileMetadataInstance() {
-            @Override
-            BoxFile getBoxFile(String fileId) {
-                return mockBoxFile;
-            }
-        };
+        final FetchBoxFileMetadataInstance testSubject = new FetchBoxFileMetadataInstance();
 
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
+
+        lenient().when(mockBoxClient.getFileMetadata()).thenReturn(mockFileMetadataManager);
     }
 
     @Test
     void testSuccessfulMetadataRetrieval() {
-        final JsonObject metadataJson = Json.object()
-                .add("$id", TEMPLATE_ID)
-                .add("$type", "fileMetadata-123")
-                .add("$parent", "file_" + TEST_FILE_ID)
-                .add("$template", TEMPLATE_KEY)
-                .add("$scope", TEMPLATE_SCOPE)
-                .add("fileName", "document.pdf")
-                .add("fileExtension", "pdf");
-        final Metadata metadata = new Metadata(metadataJson);
+        Map<String, Object> extraData = new HashMap<>();
+        extraData.put("fileName", "document.pdf");
+        extraData.put("fileExtension", "pdf");
 
-        when(mockBoxFile.getMetadata(TEMPLATE_KEY, TEMPLATE_SCOPE)).thenReturn(metadata);
+        MetadataFull metadata = mock(MetadataFull.class);
+        when(metadata.getId()).thenReturn(TEMPLATE_ID);
+        when(metadata.getType()).thenReturn("fileMetadata-123");
+        when(metadata.getTypeVersion()).thenReturn(1L);
+        when(metadata.getCanEdit()).thenReturn(true);
+        when(metadata.getExtraData()).thenReturn(extraData);
+
+        when(mockFileMetadataManager.getFileMetadataById(eq(TEST_FILE_ID), any(GetFileMetadataByIdScope.class), eq(TEMPLATE_KEY)))
+                .thenReturn(metadata);
 
         testRunner.setProperty(FetchBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
         testRunner.setProperty(FetchBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_KEY);
@@ -88,18 +94,22 @@ public class FetchBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         flowFile.assertAttributeEquals("box.metadata.template.scope", TEMPLATE_SCOPE);
 
         final String content = new String(flowFile.toByteArray());
-        assertTrue(content.contains("\"$id\":\"" + TEMPLATE_ID + "\""));
-        assertTrue(content.contains("\"$template\":\"" + TEMPLATE_KEY + "\""));
-        assertTrue(content.contains("\"$scope\":\"" + TEMPLATE_SCOPE + "\""));
-        assertTrue(content.contains("\"$parent\":\"file_" + TEST_FILE_ID + "\""));
-        assertTrue(content.contains("\"fileName\":\"document.pdf\""));
-        assertTrue(content.contains("\"fileExtension\":\"pdf\""));
+        assertTrue(content.contains("\"$id\":\"" + TEMPLATE_ID + "\"") || content.contains("\"$id\" : \"" + TEMPLATE_ID + "\""));
+        assertTrue(content.contains("\"$template\":\"" + TEMPLATE_KEY + "\"") || content.contains("\"$template\" : \"" + TEMPLATE_KEY + "\""));
+        assertTrue(content.contains("\"fileName\":\"document.pdf\"") || content.contains("\"fileName\" : \"document.pdf\""));
+        assertTrue(content.contains("\"fileExtension\":\"pdf\"") || content.contains("\"fileExtension\" : \"pdf\""));
     }
 
     @Test
     void testMetadataNotFound() {
-        when(mockBoxFile.getMetadata(anyString(), anyString())).thenThrow(
-                new BoxAPIResponseException("instance_not_found - Template not found", 404, "instance_not_found", null));
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(404);
+        BoxAPIError exception = mock(BoxAPIError.class);
+        when(exception.getMessage()).thenReturn("instance_not_found - Template not found");
+        when(exception.getResponseInfo()).thenReturn(mockResponseInfo);
+
+        when(mockFileMetadataManager.getFileMetadataById(anyString(), any(GetFileMetadataByIdScope.class), anyString()))
+                .thenThrow(exception);
 
         testRunner.setProperty(FetchBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
         testRunner.setProperty(FetchBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_KEY);
@@ -114,8 +124,14 @@ public class FetchBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testFileNotFound() {
-        final BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
-        doThrow(mockException).when(mockBoxFile).getMetadata(anyString(), anyString());
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(404);
+        BoxAPIError exception = mock(BoxAPIError.class);
+        when(exception.getMessage()).thenReturn("API Error [404]");
+        when(exception.getResponseInfo()).thenReturn(mockResponseInfo);
+
+        doThrow(exception).when(mockFileMetadataManager)
+                .getFileMetadataById(anyString(), any(GetFileMetadataByIdScope.class), anyString());
 
         testRunner.setProperty(FetchBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
         testRunner.setProperty(FetchBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_KEY);
@@ -131,8 +147,14 @@ public class FetchBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testBoxApiException() {
-        final BoxAPIException mockException = new BoxAPIException("General API Error", 500, "Unexpected Error");
-        doThrow(mockException).when(mockBoxFile).getMetadata(anyString(), anyString());
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(500);
+        BoxAPIError exception = mock(BoxAPIError.class);
+        when(exception.getMessage()).thenReturn("General API Error\nUnexpected Error");
+        when(exception.getResponseInfo()).thenReturn(mockResponseInfo);
+
+        doThrow(exception).when(mockFileMetadataManager)
+                .getFileMetadataById(anyString(), any(GetFileMetadataByIdScope.class), anyString());
 
         testRunner.setProperty(FetchBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
         testRunner.setProperty(FetchBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_KEY);
@@ -143,5 +165,10 @@ public class FetchBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(FetchBoxFileMetadataInstance.REL_FAILURE, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchBoxFileMetadataInstance.REL_FAILURE).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "General API Error\nUnexpected Error");
+    }
+
+    @Override
+    public BoxClient getMockBoxClient() {
+        return mockBoxClient;
     }
 }

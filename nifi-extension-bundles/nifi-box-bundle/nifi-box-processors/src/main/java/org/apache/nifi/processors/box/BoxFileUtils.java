@@ -16,46 +16,75 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxFolder;
-import com.box.sdk.BoxItem;
+import com.box.sdkgen.schemas.file.File;
+import com.box.sdkgen.schemas.folder.Folder;
+import com.box.sdkgen.schemas.foldermini.FolderMini;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static java.lang.String.valueOf;
-import static java.util.stream.Collectors.joining;
 
 public final class BoxFileUtils {
 
     public static final String BOX_URL = "https://app.box.com/file/";
 
-    public static String getParentIds(final BoxItem.Info info) {
-        return info.getPathCollection().stream()
-                .map(BoxItem.Info::getID)
-                .collect(joining(","));
-    }
-    public static String getParentPath(BoxItem.Info info) {
-        return "/" + info.getPathCollection().stream()
-                .filter(pathItemInfo -> !pathItemInfo.getID().equals("0"))
-                .map(BoxItem.Info::getName)
-                .collect(joining("/"));
+    public static String getParentIds(final File fileInfo) {
+        if (fileInfo.getPathCollection() == null || fileInfo.getPathCollection().getEntries() == null) {
+            return "";
+        }
+        return fileInfo.getPathCollection().getEntries().stream()
+                .map(FolderMini::getId)
+                .collect(Collectors.joining(","));
     }
 
-    public static String getFolderPath(BoxFolder.Info folderInfo) {
-        final String parentFolderPath = getParentPath(folderInfo);
+    public static String getParentPath(final File fileInfo) {
+        if (fileInfo.getPathCollection() == null || fileInfo.getPathCollection().getEntries() == null) {
+            return "/";
+        }
+        return "/" + fileInfo.getPathCollection().getEntries().stream()
+                .filter(pathItem -> !pathItem.getId().equals("0"))
+                .map(FolderMini::getName)
+                .collect(Collectors.joining("/"));
+    }
+
+    public static String getParentPath(final List<FolderMini> pathCollection) {
+        if (pathCollection == null) {
+            return "/";
+        }
+        return "/" + pathCollection.stream()
+                .filter(pathItem -> !pathItem.getId().equals("0"))
+                .map(FolderMini::getName)
+                .collect(Collectors.joining("/"));
+    }
+
+    public static String getFolderPath(final Folder folderInfo) {
+        final String parentFolderPath = getParentPathForFolder(folderInfo);
         return "/".equals(parentFolderPath) ? parentFolderPath + folderInfo.getName() : parentFolderPath + "/" + folderInfo.getName();
     }
 
-    public static Map<String, String> createAttributeMap(BoxFile.Info fileInfo) {
+    private static String getParentPathForFolder(final Folder folderInfo) {
+        if (folderInfo.getPathCollection() == null || folderInfo.getPathCollection().getEntries() == null) {
+            return "/";
+        }
+        return "/" + folderInfo.getPathCollection().getEntries().stream()
+                .filter(pathItem -> !pathItem.getId().equals("0"))
+                .map(FolderMini::getName)
+                .collect(Collectors.joining("/"));
+    }
+
+    public static Map<String, String> createAttributeMap(final File fileInfo) {
         final Map<String, String> attributes = new LinkedHashMap<>();
-        attributes.put(BoxFileAttributes.ID, fileInfo.getID());
+        attributes.put(BoxFileAttributes.ID, fileInfo.getId());
         attributes.put(CoreAttributes.FILENAME.key(), fileInfo.getName());
         attributes.put(CoreAttributes.PATH.key(), getParentPath(fileInfo));
-        attributes.put(BoxFileAttributes.TIMESTAMP, valueOf(fileInfo.getModifiedAt()));
+        if (fileInfo.getModifiedAt() != null) {
+            attributes.put(BoxFileAttributes.TIMESTAMP, valueOf(fileInfo.getModifiedAt()));
+        }
         attributes.put(BoxFileAttributes.SIZE, valueOf(fileInfo.getSize()));
         return attributes;
     }
-
 }

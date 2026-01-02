@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BoxMetadataJsonArrayWriterTest {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private ByteArrayOutputStream out;
     private BoxMetadataJsonArrayWriter writer;
 
@@ -48,7 +48,8 @@ class BoxMetadataJsonArrayWriterTest {
     void writeNoMetadata() throws IOException {
         writer.close();
 
-        assertEquals(Json.array(), actualJson());
+        ArrayNode resultArray = (ArrayNode) OBJECT_MAPPER.readTree(out.toString());
+        assertEquals(0, resultArray.size());
     }
 
     @Test
@@ -65,17 +66,17 @@ class BoxMetadataJsonArrayWriterTest {
         writer.write(metadata);
         writer.close();
 
-        JsonArray resultArray = actualJson().asArray();
+        ArrayNode resultArray = (ArrayNode) OBJECT_MAPPER.readTree(out.toString());
         assertEquals(1, resultArray.size());
 
-        JsonObject resultObject = resultArray.get(0).asObject();
-        assertEquals("test-metadata-id-1", resultObject.get("$id").asString());
-        assertEquals("test-metadata-type", resultObject.get("$type").asString());
-        assertEquals("enterprise", resultObject.get("$scope").asString());
-        assertEquals("testTemplate", resultObject.get("$template").asString());
-        assertEquals("file_12345", resultObject.get("$parent").asString());
-        assertEquals("value1", resultObject.get("testField1").asString());
-        assertEquals("value2", resultObject.get("testField2").asString());
+        JsonNode resultObject = resultArray.get(0);
+        assertEquals("test-metadata-id-1", resultObject.get("$id").asText());
+        assertEquals("test-metadata-type", resultObject.get("$type").asText());
+        assertEquals("enterprise", resultObject.get("$scope").asText());
+        assertEquals("testTemplate", resultObject.get("$template").asText());
+        assertEquals("file_12345", resultObject.get("$parent").asText());
+        assertEquals("value1", resultObject.get("testField1").asText());
+        assertEquals("value2", resultObject.get("testField2").asText());
     }
 
     @Test
@@ -102,36 +103,31 @@ class BoxMetadataJsonArrayWriterTest {
         writer.write(metadata2);
         writer.close();
 
-        JsonArray resultArray = actualJson().asArray();
+        ArrayNode resultArray = (ArrayNode) OBJECT_MAPPER.readTree(out.toString());
         assertEquals(2, resultArray.size());
 
         Set<String> foundIds = new HashSet<>();
-        for (JsonValue value : resultArray) {
-            JsonObject obj = value.asObject();
-            String id = obj.get("$id").asString();
+        for (JsonNode node : resultArray) {
+            String id = node.get("$id").asText();
             foundIds.add(id);
             if (id.equals("test-metadata-id-1")) {
-                assertEquals("test-type-1", obj.get("$type").asString());
-                assertEquals("enterprise", obj.get("$scope").asString());
-                assertEquals("testTemplate1", obj.get("$template").asString());
-                assertEquals("file_12345", obj.get("$parent").asString());
-                assertEquals("value1", obj.get("field1").asString());
-                assertEquals("value2", obj.get("field2").asString());
+                assertEquals("test-type-1", node.get("$type").asText());
+                assertEquals("enterprise", node.get("$scope").asText());
+                assertEquals("testTemplate1", node.get("$template").asText());
+                assertEquals("file_12345", node.get("$parent").asText());
+                assertEquals("value1", node.get("field1").asText());
+                assertEquals("value2", node.get("field2").asText());
             } else if (id.equals("test-metadata-id-2")) {
-                assertEquals("test-type-2", obj.get("$type").asString());
-                assertEquals("global", obj.get("$scope").asString());
-                assertEquals("testTemplate2", obj.get("$template").asString());
-                assertEquals("file_12345", obj.get("$parent").asString());
-                assertEquals("value3", obj.get("field3").asString());
-                assertEquals("value4", obj.get("field4").asString());
+                assertEquals("test-type-2", node.get("$type").asText());
+                assertEquals("global", node.get("$scope").asText());
+                assertEquals("testTemplate2", node.get("$template").asText());
+                assertEquals("file_12345", node.get("$parent").asText());
+                assertEquals("value3", node.get("field3").asText());
+                assertEquals("value4", node.get("field4").asText());
             }
         }
         assertEquals(2, foundIds.size());
         assertTrue(foundIds.contains("test-metadata-id-1"));
         assertTrue(foundIds.contains("test-metadata-id-2"));
-    }
-
-    private JsonValue actualJson() {
-        return Json.parse(out.toString());
     }
 }
