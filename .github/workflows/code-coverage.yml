@@ -75,14 +75,12 @@ jobs:
     runs-on: ubuntu-24.04
     name: Run Integration Tests
     env:
-      # Skip assemblies and modules covered separately by the system-tests workflow
-      # Skip unit tests (surefire), run integration tests (failsafe)
       MAVEN_BUILD_ARGUMENTS: >-
         verify
         -P skip-unit-tests
         -P integration-tests
+        -P report-code-coverage
         jacoco:prepare-agent
-        jacoco:report
       MAVEN_BUILD_EXCLUDE_PROJECTS: >-
         -pl -:minifi-assembly
         -pl -:nifi-assembly
@@ -122,6 +120,6 @@ jobs:
         uses: codecov/codecov-action@v5
         if: github.repository_owner == 'apache'
         with:
-          directory: .
+          files: ./nifi-code-coverage/target/site/jacoco-aggregate/jacoco.xml
           flags: integration-tests
           token: ${{ secrets.CODECOV_TOKEN }}
