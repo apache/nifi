@@ -1586,6 +1586,13 @@
                                 <goals>
                                     <goal>report-aggregate</goal>
                                 </goals>
+                                <configuration>
+                                    <!-- Include both unit test and integration test coverage files -->
+                                    <dataFileIncludes>
+                                        <include>**/jacoco.exec</include>
+                                        <include>**/jacoco-it.exec</include>
+                                    </dataFileIncludes>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
