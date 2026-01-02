@@ -17,12 +17,12 @@
 
 package org.apache.nifi.processors.standard.merge;
 
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 
 public class KeepCommonAttributeStrategy implements AttributeStrategy {
 

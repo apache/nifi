@@ -40,14 +40,14 @@ import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
 import org.apache.nifi.event.transport.netty.channel.ssl.ServerSslHandlerChannelInitializer;
 import org.apache.nifi.security.util.ClientAuth;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
 import java.net.InetAddress;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 
 /**
  * Netty Event Server Factory

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.oidc.client.web;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.client.web.DefaultOAuth2AuthorizationRequestResolver;
@@ -24,7 +25,6 @@ import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequest
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Objects;
 

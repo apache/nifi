@@ -17,6 +17,10 @@
 
 package org.apache.nifi.provenance.lucene;
 
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.nifi.provenance.index.EventIndexWriter;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -24,10 +28,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.nifi.provenance.index.EventIndexWriter;
 
 public class LuceneEventIndexWriter implements EventIndexWriter {
     private final IndexWriter indexWriter;

@@ -17,11 +17,11 @@
 
 package org.apache.nifi.controller.repository.io;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 public class TaskTerminationInputStream extends InputStream {
     private final TaskTermination taskTermination;

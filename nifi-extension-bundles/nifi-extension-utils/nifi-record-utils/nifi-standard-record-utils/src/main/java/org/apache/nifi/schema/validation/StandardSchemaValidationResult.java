@@ -17,13 +17,13 @@
 
 package org.apache.nifi.schema.validation;
 
+import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
+import org.apache.nifi.serialization.record.validation.ValidationError;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
-import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
-import org.apache.nifi.serialization.record.validation.ValidationError;
 
 public class StandardSchemaValidationResult implements SchemaValidationResult {
 

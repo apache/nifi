@@ -17,10 +17,8 @@
 
 package org.apache.nifi.minifi.c2.command;
 
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
+import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
+import org.apache.nifi.util.NiFiProperties;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,8 +27,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
-import org.apache.nifi.util.NiFiProperties;
+
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 public class TransferDebugCommandHelper {
 

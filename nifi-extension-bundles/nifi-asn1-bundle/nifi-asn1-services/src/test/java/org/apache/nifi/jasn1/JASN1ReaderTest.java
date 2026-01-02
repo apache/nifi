@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.jasn1;
 
-import java.io.FileNotFoundException;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
@@ -38,6 +31,14 @@ import org.junit.jupiter.api.condition.OS;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+
+import java.io.FileNotFoundException;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
 import static org.apache.nifi.jasn1.JASN1Reader.ASN_FILES;
 import static org.junit.jupiter.api.Assertions.assertEquals;

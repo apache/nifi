@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.api;
 
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
@@ -27,7 +28,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import jakarta.ws.rs.core.Response;
 import java.util.Collections;
 import java.util.UUID;
 

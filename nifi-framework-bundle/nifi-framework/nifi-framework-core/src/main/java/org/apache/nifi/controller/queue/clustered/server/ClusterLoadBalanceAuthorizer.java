@@ -26,12 +26,12 @@ import org.apache.nifi.security.cert.StandardPeerIdentityProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.security.cert.Certificate;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 
 public class ClusterLoadBalanceAuthorizer implements LoadBalanceAuthorizer {
     private static final Logger logger = LoggerFactory.getLogger(ClusterLoadBalanceAuthorizer.class);

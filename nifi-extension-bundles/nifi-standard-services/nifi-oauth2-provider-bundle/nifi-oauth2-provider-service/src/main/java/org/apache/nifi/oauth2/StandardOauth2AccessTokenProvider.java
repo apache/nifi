@@ -53,9 +53,6 @@ import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextProvider;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.X509TrustManager;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.Proxy;
@@ -67,6 +64,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
 
 @SupportsSensitiveDynamicProperties
 @Tags({"oauth2", "provider", "authorization", "access token", "http"})

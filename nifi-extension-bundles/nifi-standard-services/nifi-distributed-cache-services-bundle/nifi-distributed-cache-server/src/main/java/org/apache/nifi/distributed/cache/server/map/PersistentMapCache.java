@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.distributed.cache.server.map;
 
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wali.SerDe;
+import org.wali.SerDeFactory;
+import org.wali.UpdateType;
+import org.wali.WriteAheadRepository;
+
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
@@ -29,15 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.wali.SerDe;
-import org.wali.SerDeFactory;
-import org.wali.UpdateType;
-import org.wali.WriteAheadRepository;
 
 public class PersistentMapCache implements MapCache {
 

@@ -19,7 +19,6 @@ package org.apache.nifi.reporting.sql;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.serialization.record.ResultSetRecordSet;
 
-
 public interface MetricsQueryService {
     QueryResult query(final ReportingContext context, final String sql) throws Exception;
 

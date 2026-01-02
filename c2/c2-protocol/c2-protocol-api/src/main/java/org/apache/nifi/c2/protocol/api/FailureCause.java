@@ -17,9 +17,10 @@
 
 package org.apache.nifi.c2.protocol.api;
 
+import org.apache.nifi.components.ValidationResult;
+
 import java.util.List;
 import java.util.Objects;
-import org.apache.nifi.components.ValidationResult;
 
 public class FailureCause {
     private List<ValidationResult> validationResults;

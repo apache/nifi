@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.processors.parquet;
 
-import java.io.IOException;
-import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.hadoop.conf.Configuration;
@@ -48,6 +46,9 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.util.HadoopOutputFile;
+
+import java.io.IOException;
+import java.util.List;
 
 import static org.apache.nifi.parquet.utils.ParquetUtils.applyCommonConfig;
 import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;

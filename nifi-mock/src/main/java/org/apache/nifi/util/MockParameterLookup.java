@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
-
 public class MockParameterLookup implements ParameterLookup {
     private final Map<String, String> parameters;
     private final AtomicLong version = new AtomicLong(1);

@@ -53,7 +53,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-
 public class SwappablePriorityQueue {
     private static final Logger logger = LoggerFactory.getLogger(SwappablePriorityQueue.class);
     private static final int SWAP_RECORD_POLL_SIZE = 10_000;

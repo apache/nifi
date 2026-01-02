@@ -17,8 +17,8 @@
 package org.apache.nifi.processors.pgp;
 
 import org.apache.nifi.pgp.service.api.PGPPrivateKeyService;
-import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.pgp.util.PGPOperationUtils;
+import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.processors.pgp.attributes.DecryptionStrategy;
 import org.apache.nifi.processors.pgp.exception.PGPDecryptionException;
 import org.apache.nifi.processors.pgp.exception.PGPProcessException;

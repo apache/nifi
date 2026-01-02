@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.distributed.cache.server.map;
 
+import org.apache.nifi.distributed.cache.server.CacheRecord;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-
-import org.apache.nifi.distributed.cache.server.CacheRecord;
 
 public class MapCacheRecord extends CacheRecord {
 

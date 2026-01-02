@@ -17,10 +17,6 @@
 
 package org.apache.nifi.provenance.schema;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
@@ -28,6 +24,10 @@ import org.apache.nifi.repository.schema.FieldMapRecord;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class EventRecord implements Record {
     private final RecordSchema schema;

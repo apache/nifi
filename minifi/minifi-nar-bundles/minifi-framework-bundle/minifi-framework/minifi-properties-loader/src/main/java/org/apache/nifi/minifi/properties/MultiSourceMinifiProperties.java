@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.minifi.properties;
 
+import org.apache.nifi.minifi.commons.utils.PropertyUtil;
+import org.apache.nifi.util.NiFiProperties;
+
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.nifi.minifi.commons.utils.PropertyUtil;
-import org.apache.nifi.util.NiFiProperties;
 
 /**
  * Extends NiFi properties functionality with System and Environment property override possibility. The property resolution also works with

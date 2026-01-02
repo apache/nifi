@@ -16,6 +16,23 @@
  */
 package org.apache.nifi.processors.smb;
 
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processors.smb.util.InitialListingStrategy;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.services.smb.SmbClientProviderService;
+import org.apache.nifi.services.smb.SmbjClientProviderService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import static java.util.Arrays.asList;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.BY_TIMESTAMPS;
@@ -35,23 +52,6 @@ import static org.apache.nifi.services.smb.SmbjClientProviderService.PORT;
 import static org.apache.nifi.services.smb.SmbjClientProviderService.SHARE;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.smb.util.InitialListingStrategy;
-import org.apache.nifi.serialization.record.MockRecordWriter;
-import org.apache.nifi.services.smb.SmbClientProviderService;
-import org.apache.nifi.services.smb.SmbjClientProviderService;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 public class ListSmbIT extends SambaTestContainers {
 

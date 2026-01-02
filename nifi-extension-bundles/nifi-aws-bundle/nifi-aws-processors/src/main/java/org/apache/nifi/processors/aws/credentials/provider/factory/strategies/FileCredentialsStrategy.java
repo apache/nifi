@@ -24,7 +24,6 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
 import java.io.File;
 
-
 /**
  * Supports AWS credentials stored in a file.  The file format should be a Java properties file like the following:
  *

@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.reporting.util.metrics.api;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import jakarta.json.JsonArrayBuilder;
 import jakarta.json.JsonBuilderFactory;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonObjectBuilder;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Builds the overall JsonObject for the Metrics.

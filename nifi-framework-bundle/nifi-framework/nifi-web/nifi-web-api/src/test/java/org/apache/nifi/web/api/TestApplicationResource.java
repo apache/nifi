@@ -17,6 +17,8 @@
 package org.apache.nifi.web.api;
 
 import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.UriInfo;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder;
@@ -28,8 +30,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;

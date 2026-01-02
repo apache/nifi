@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.gcp.storage;
 
-
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;

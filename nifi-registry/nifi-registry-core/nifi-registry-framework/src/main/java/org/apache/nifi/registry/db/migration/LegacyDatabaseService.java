@@ -18,8 +18,8 @@ package org.apache.nifi.registry.db.migration;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.util.List;
+import javax.sql.DataSource;
 
 /**
  * Service used to load data from original database used in the 0.1.0 release.

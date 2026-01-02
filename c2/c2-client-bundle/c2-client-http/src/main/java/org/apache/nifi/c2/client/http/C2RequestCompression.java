@@ -17,14 +17,15 @@
 
 package org.apache.nifi.c2.client.http;
 
-import java.io.IOException;
-import java.util.stream.Stream;
 import okhttp3.MediaType;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okio.BufferedSink;
 import okio.GzipSink;
 import okio.Okio;
+
+import java.io.IOException;
+import java.util.stream.Stream;
 
 public enum C2RequestCompression {
     NONE("none") {

@@ -16,17 +16,6 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.security.cert.Certificate;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocket;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
@@ -53,6 +42,18 @@ import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.util.StopWatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.security.cert.Certificate;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
 
 /**
  * Implements a listener for protocol messages sent over unicast socket.

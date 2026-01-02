@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.hazelcast.services.cacheclient;
 
-
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;

@@ -16,8 +16,8 @@
  */
 package org.apache.nifi;
 
-import org.apache.nifi.runtime.StandardUncaughtExceptionHandler;
 import org.apache.nifi.runtime.Application;
+import org.apache.nifi.runtime.StandardUncaughtExceptionHandler;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 
 /**

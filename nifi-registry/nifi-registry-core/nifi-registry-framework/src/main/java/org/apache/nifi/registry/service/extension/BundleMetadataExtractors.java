@@ -17,9 +17,9 @@
 package org.apache.nifi.registry.service.extension;
 
 import org.apache.nifi.registry.bundle.extract.BundleExtractor;
-import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.registry.bundle.extract.minificpp.MiNiFiCppBundleExtractor;
 import org.apache.nifi.registry.bundle.extract.nar.NarBundleExtractor;
+import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

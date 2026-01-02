@@ -17,16 +17,16 @@
 
 package org.apache.nifi.controller.state;
 
+import org.apache.nifi.components.state.StateMap;
+import org.wali.SerDe;
+import org.wali.UpdateType;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import org.apache.nifi.components.state.StateMap;
-import org.wali.SerDe;
-import org.wali.UpdateType;
 
 public class StateMapSerDe implements SerDe<StateMapUpdate> {
     private static final long EMPTY_VERSION = -1;

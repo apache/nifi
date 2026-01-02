@@ -37,12 +37,12 @@ import org.springframework.security.oauth2.core.http.converter.OAuth2AccessToken
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestTemplate;
 
-import javax.net.ssl.SSLContext;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 
 /**
  * OpenID Connect Client Registration configuration with supporting components

@@ -24,10 +24,10 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.janusgraph.core.JanusGraphFactory;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
 import java.util.HashMap;
 import java.util.Map;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
 
 /**
  * This is an in memory implementation of the GraphClientService using JanusGraph. It should in no way be confused for a

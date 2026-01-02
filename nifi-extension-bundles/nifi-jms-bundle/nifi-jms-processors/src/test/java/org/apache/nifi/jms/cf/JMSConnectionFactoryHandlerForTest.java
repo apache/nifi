@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.jms.cf;
 
+import jakarta.jms.ConnectionFactory;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 
-import jakarta.jms.ConnectionFactory;
 import java.util.HashMap;
 import java.util.Map;
 

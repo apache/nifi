@@ -17,11 +17,11 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.List;
 
 /**

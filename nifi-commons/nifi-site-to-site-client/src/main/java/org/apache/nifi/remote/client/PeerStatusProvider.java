@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.remote.client;
 
-import java.io.IOException;
-import java.util.Set;
 import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+
+import java.io.IOException;
+import java.util.Set;
 
 /**
  * This interface defines methods used from {@link PeerSelector}.

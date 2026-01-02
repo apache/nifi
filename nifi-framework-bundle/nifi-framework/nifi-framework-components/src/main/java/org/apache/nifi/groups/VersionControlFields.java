@@ -17,9 +17,9 @@
 
 package org.apache.nifi.groups;
 
-import java.util.Set;
-
 import org.apache.nifi.registry.flow.diff.FlowDifference;
+
+import java.util.Set;
 
 public class VersionControlFields {
     private volatile boolean locallyModified;

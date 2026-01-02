@@ -22,7 +22,6 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
-
 /**
  * Supports AWS credentials defined by an Access Key and Secret Key pair.
  *

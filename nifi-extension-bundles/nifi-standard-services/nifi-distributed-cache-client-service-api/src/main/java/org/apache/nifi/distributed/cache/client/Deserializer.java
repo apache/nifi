@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
-import java.io.IOException;
-
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
+
+import java.io.IOException;
 
 /**
  * Provides an interface for deserializing an array of bytes into an Object

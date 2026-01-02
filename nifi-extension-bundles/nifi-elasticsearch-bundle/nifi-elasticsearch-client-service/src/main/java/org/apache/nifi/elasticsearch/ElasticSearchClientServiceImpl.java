@@ -65,7 +65,6 @@ import org.elasticsearch.client.sniff.ElasticsearchNodesSniffer;
 import org.elasticsearch.client.sniff.SniffOnFailureListener;
 import org.elasticsearch.client.sniff.Sniffer;
 
-import javax.net.ssl.SSLContext;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -87,6 +86,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 
 @Tags({"elasticsearch", "elasticsearch6", "elasticsearch7", "elasticsearch8", "client"})
 @CapabilityDescription("A controller service for accessing an Elasticsearch client, using the Elasticsearch (low-level) REST Client.")

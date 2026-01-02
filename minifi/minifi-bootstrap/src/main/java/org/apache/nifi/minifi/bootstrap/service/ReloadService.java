@@ -17,15 +17,16 @@
 
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
+import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
+import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
+import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
-import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
-import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
-import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
+
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
 
 public class ReloadService {
     private final BootstrapFileProvider bootstrapFileProvider;

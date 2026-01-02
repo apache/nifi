@@ -27,11 +27,11 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.couchbase.CouchbaseClient;
+import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
+import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
 import org.apache.nifi.services.couchbase.utils.DocumentType;
-import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
-import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.stream.io.StreamUtils;
 
 import java.util.HashMap;

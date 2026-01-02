@@ -17,12 +17,13 @@
 package org.apache.nifi.registry.bucket;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Objects;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.link.LinkableEntity;
+
+import java.util.Objects;
 
 public abstract class BucketItem extends LinkableEntity {
 

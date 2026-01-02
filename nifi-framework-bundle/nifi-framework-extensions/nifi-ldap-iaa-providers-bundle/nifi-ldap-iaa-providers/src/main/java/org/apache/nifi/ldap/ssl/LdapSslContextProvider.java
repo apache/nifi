@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.ldap.ssl;
 
-import javax.net.ssl.SSLContext;
 import java.util.Map;
+import javax.net.ssl.SSLContext;
 
 /**
  * Abstraction for creating an SSLContext from LDAP configuration properties

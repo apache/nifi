@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.revision;
 
-import java.util.Comparator;
-
 import org.apache.nifi.web.Revision;
+
+import java.util.Comparator;
 
 public class RevisionComparator implements Comparator<Revision> {
 

@@ -17,19 +17,7 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.json;
 
-import static java.lang.System.lineSeparator;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toMap;
-import static org.apache.commons.io.IOUtils.write;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Properties;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigMain;
 import org.apache.nifi.minifi.toolkit.configuration.ConfigTransformException;
@@ -42,7 +30,18 @@ import org.apache.nifi.minifi.toolkit.schema.exception.SchemaInstantiatonExcepti
 import org.apache.nifi.minifi.toolkit.schema.exception.SchemaLoaderException;
 import org.apache.nifi.minifi.toolkit.schema.serialization.SchemaLoader;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+
+import static java.lang.System.lineSeparator;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
+import static org.apache.commons.io.IOUtils.write;
 
 public class TransformYamlCommandFactory {
 

@@ -16,16 +16,13 @@
  */
 package org.apache.nifi.processors.iceberg;
 
-import org.apache.iceberg.Schema;
-import org.apache.iceberg.types.Types;
-import org.apache.nifi.services.iceberg.IcebergCatalog;
-import org.apache.nifi.services.iceberg.IcebergRowWriter;
-import org.apache.nifi.services.iceberg.IcebergWriter;
 import org.apache.iceberg.AppendFiles;
 import org.apache.iceberg.DataFile;
+import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.TableIdentifier;
+import org.apache.iceberg.types.Types;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReader;
@@ -36,6 +33,9 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.services.iceberg.IcebergCatalog;
+import org.apache.nifi.services.iceberg.IcebergRowWriter;
+import org.apache.nifi.services.iceberg.IcebergWriter;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;

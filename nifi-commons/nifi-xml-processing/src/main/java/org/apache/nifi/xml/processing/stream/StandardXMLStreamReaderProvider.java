@@ -18,11 +18,11 @@ package org.apache.nifi.xml.processing.stream;
 
 import org.apache.nifi.xml.processing.ProcessingException;
 
+import java.util.Objects;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.stream.StreamSource;
-import java.util.Objects;
 
 /**
  * Standard implementation of XMLStreamReader provider with secure processing enabled

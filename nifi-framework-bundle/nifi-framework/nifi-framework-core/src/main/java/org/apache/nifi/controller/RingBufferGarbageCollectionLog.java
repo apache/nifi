@@ -21,9 +21,6 @@ import com.sun.management.GcInfo;
 import org.apache.nifi.util.RingBuffer;
 import org.apache.nifi.util.Tuple;
 
-import javax.management.Notification;
-import javax.management.NotificationListener;
-import javax.management.openmbean.CompositeData;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
@@ -31,6 +28,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import javax.management.Notification;
+import javax.management.NotificationListener;
+import javax.management.openmbean.CompositeData;
 
 public class RingBufferGarbageCollectionLog implements GarbageCollectionLog, NotificationListener {
     private final RingBuffer<GarbageCollectionEvent> events;

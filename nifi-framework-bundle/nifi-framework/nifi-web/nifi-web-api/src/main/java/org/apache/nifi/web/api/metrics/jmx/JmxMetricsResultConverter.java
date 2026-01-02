@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.metrics.jmx;
 
-import javax.management.openmbean.CompositeData;
-import javax.management.openmbean.TabularData;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import javax.management.openmbean.CompositeData;
+import javax.management.openmbean.TabularData;
 
 public class JmxMetricsResultConverter {
     private static final String COMPOSITE_DATA_KEY = "CompositeData%s";

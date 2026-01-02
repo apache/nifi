@@ -55,9 +55,9 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.slack.util.SlackResponseUtil;
 import org.apache.nifi.processors.slack.util.ChannelMapper;
 import org.apache.nifi.processors.slack.util.RateLimit;
+import org.apache.nifi.processors.slack.util.SlackResponseUtil;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FormatUtils;
 

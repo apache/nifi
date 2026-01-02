@@ -65,7 +65,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-
 @Tags({"graph", "gremlin"})
 @CapabilityDescription("This service interacts with a tinkerpop-compliant graph service, providing both script submission and bytecode submission capabilities. " +
         "Script submission is the default, with the script command being sent to the gremlin server as text. This should only be used for simple interactions with a tinkerpop-compliant server " +

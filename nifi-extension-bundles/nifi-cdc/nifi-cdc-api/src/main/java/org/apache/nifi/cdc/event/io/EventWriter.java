@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.cdc.event.io;
 
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.cdc.event.EventInfo;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 
 /**

@@ -31,7 +31,6 @@ import static org.apache.nifi.processors.shopify.util.IncrementalTimers.EXCLUSIV
 import static org.apache.nifi.processors.shopify.util.IncrementalTimers.LAST_EXECUTION_TIME_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
 class TestIncrementalTimers {
 
     private static final Long INC_DELAY_MS = 3000L;

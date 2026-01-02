@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.dto.remote;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.xml.bind.annotation.XmlType;
 
 /**

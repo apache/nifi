@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.jr.ob.JSON;
 import com.maxmind.geoip2.model.CityResponse;
+
 import java.util.Collections;
 
 public class GeoEnrichTestUtils {

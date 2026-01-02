@@ -17,9 +17,9 @@
 
 package org.apache.nifi.c2.client.http.url;
 
-import static org.apache.commons.lang3.StringUtils.isNoneBlank;
-
 import org.apache.nifi.c2.client.C2ClientConfig;
+
+import static org.apache.commons.lang3.StringUtils.isNoneBlank;
 
 public class C2UrlProviderFactory {
 

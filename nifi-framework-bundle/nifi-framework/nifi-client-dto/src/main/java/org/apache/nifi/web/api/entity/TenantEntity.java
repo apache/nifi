@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import org.apache.nifi.web.api.dto.TenantDTO;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.TenantDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a TenantDTO.

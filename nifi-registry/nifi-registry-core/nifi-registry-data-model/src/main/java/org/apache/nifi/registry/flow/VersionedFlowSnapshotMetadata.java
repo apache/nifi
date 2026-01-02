@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.registry.flow;
 
-
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Objects;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.apache.nifi.registry.link.LinkableEntity;
+
+import java.util.Objects;
 
 /**
  * The metadata information about a VersionedFlowSnapshot. This class implements Comparable in order

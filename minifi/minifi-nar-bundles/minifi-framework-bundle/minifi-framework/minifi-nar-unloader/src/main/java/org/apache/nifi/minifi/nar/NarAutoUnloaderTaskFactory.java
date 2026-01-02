@@ -17,7 +17,10 @@
 
 package org.apache.nifi.minifi.nar;
 
-import static java.util.Objects.requireNonNull;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarLoader;
+import org.apache.nifi.util.FileUtils;
+import org.apache.nifi.util.NiFiProperties;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,10 +28,8 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchService;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.NarLoader;
-import org.apache.nifi.util.FileUtils;
-import org.apache.nifi.util.NiFiProperties;
+
+import static java.util.Objects.requireNonNull;
 
 public class NarAutoUnloaderTaskFactory {
 

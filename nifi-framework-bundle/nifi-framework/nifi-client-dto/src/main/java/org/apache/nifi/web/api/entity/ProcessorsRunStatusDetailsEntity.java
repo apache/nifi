@@ -18,6 +18,7 @@
 package org.apache.nifi.web.api.entity;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
+
 import java.util.List;
 
 @XmlRootElement(name = "processorsRunStatusDetails")

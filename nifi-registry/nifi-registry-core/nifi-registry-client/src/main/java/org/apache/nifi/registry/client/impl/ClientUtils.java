@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.registry.client.impl;
 
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 
-import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;

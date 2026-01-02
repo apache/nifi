@@ -17,9 +17,8 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import jakarta.xml.bind.annotation.XmlType;
-
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "jvmControllerDiagnosticsSnapshot")
 public class JVMControllerDiagnosticsSnapshotDTO implements Cloneable {

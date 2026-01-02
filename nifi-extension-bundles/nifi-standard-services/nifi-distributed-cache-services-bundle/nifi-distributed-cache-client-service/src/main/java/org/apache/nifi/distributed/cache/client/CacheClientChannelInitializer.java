@@ -26,10 +26,10 @@ import org.apache.nifi.event.transport.netty.CloseContextIdleStateHandler;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiatorFactory;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 
 /**
  * Bootstrap a new netty connection.  This performs the socket handshake used by the nifi distributed set /

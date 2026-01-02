@@ -17,14 +17,14 @@
 
 package org.apache.nifi.provenance.schema;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.nifi.repository.schema.FieldType;
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.Repetition;
 import org.apache.nifi.repository.schema.SimpleRecordField;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class EventIdFirstHeaderSchema {
 

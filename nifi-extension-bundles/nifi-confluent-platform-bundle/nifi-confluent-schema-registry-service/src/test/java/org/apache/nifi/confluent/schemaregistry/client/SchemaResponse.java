@@ -18,7 +18,6 @@ package org.apache.nifi.confluent.schemaregistry.client;
 
 import java.util.List;
 
-
 record SchemaResponse(String schema,
                       String schemaType,
                       List<SchemaReference> references) {

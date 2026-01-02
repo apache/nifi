@@ -17,6 +17,9 @@
 
 package org.apache.nifi.web.standard.api.processor;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.CacheControl;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.HttpServletConfigurationRequestContext;
 import org.apache.nifi.web.HttpServletRequestContext;
@@ -25,11 +28,6 @@ import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
 import org.apache.nifi.web.NiFiWebRequestContext;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.UiExtensionType;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.CacheControl;
-import jakarta.ws.rs.core.Response;
-
 
 class ProcessorWebUtils {
 

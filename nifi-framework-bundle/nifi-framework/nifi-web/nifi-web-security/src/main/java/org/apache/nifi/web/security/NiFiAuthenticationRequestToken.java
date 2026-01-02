@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.security;
 
-import java.util.Collections;
-
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+
+import java.util.Collections;
 
 /**
  * Base class for authentication request tokens in NiFI.

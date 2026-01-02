@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.distributed.cache.server.set;
 
-import java.nio.ByteBuffer;
-
 import org.apache.nifi.distributed.cache.server.CacheRecord;
+
+import java.nio.ByteBuffer;
 
 public class SetCacheRecord extends CacheRecord {
 

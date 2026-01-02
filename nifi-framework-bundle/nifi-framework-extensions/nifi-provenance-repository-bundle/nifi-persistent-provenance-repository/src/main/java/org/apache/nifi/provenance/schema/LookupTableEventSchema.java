@@ -17,6 +17,13 @@
 
 package org.apache.nifi.provenance.schema;
 
+import org.apache.nifi.repository.schema.RecordField;
+import org.apache.nifi.repository.schema.RecordSchema;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.ALTERNATE_IDENTIFIER;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.CHILD_UUIDS;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.COMPONENT_ID;
@@ -41,12 +48,6 @@ import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.SOU
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.TRANSIT_URI;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.UNCHANGED_VALUE;
 import static org.apache.nifi.provenance.schema.LookupTableEventRecordFields.UPDATED_ATTRIBUTES;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import org.apache.nifi.repository.schema.RecordField;
-import org.apache.nifi.repository.schema.RecordSchema;
 
 public class LookupTableEventSchema {
     public static final RecordSchema EVENT_SCHEMA = buildSchemaV1(false);

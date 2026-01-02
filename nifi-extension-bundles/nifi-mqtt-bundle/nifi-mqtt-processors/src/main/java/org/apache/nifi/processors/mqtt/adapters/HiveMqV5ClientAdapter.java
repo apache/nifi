@@ -37,8 +37,6 @@ import org.apache.nifi.security.ssl.StandardTrustManagerFactoryBuilder;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,6 +46,8 @@ import java.security.KeyStore;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.SSL;
 import static org.apache.nifi.processors.mqtt.common.MqttProtocolScheme.WS;

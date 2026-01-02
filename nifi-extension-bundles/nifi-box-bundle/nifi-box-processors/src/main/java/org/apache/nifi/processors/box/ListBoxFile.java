@@ -16,26 +16,10 @@
  */
 package org.apache.nifi.processors.box;
 
-import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
-
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxFile;
 import com.box.sdk.BoxFolder;
 import com.box.sdk.BoxItem;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -60,6 +44,23 @@ import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+
+import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
 
 @PrimaryNodeOnly
 @TriggerSerially

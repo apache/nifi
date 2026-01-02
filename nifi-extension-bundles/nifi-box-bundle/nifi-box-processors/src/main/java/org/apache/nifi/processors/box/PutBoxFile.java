@@ -77,7 +77,6 @@ import static org.apache.nifi.processors.box.BoxFileUtils.BOX_URL;
 import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
 import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 
-
 @SeeAlso({ListBoxFile.class, FetchBoxFile.class})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "put"})

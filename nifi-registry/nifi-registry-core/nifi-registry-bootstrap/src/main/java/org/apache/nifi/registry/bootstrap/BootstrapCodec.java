@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.bootstrap;
 
+import org.apache.nifi.registry.bootstrap.exception.InvalidCommandException;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -24,8 +26,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.Arrays;
-
-import org.apache.nifi.registry.bootstrap.exception.InvalidCommandException;
 
 public class BootstrapCodec {
 

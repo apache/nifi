@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.web.security.x509;
 
-import java.security.cert.X509Certificate;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.security.cert.X509Certificate;
 
 /**
  * Extracts client certificates from Http requests.

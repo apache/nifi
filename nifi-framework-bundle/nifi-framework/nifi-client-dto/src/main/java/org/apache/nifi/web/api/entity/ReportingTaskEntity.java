@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
-
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
 import org.apache.nifi.web.api.dto.status.ReportingTaskStatusDTO;
-
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to a reporting task.

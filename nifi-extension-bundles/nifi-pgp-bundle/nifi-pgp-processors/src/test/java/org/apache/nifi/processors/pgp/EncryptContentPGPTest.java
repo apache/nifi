@@ -16,19 +16,18 @@
  */
 package org.apache.nifi.processors.pgp;
 
+import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.pgp.service.api.PGPPublicKeyService;
 import org.apache.nifi.pgp.util.PGPOperationUtils;
+import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.processors.pgp.attributes.DecryptionStrategy;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
 import org.apache.nifi.processors.pgp.attributes.SymmetricKeyAlgorithm;
-import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
-
 import org.bouncycastle.bcpg.ArmoredInputStream;
 import org.bouncycastle.openpgp.PGPCompressedData;
 import org.bouncycastle.openpgp.PGPEncryptedData;
@@ -50,7 +49,6 @@ import org.bouncycastle.openpgp.operator.bc.BcPBEDataDecryptorFactory;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDigestCalculatorProvider;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyDataDecryptorFactory;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

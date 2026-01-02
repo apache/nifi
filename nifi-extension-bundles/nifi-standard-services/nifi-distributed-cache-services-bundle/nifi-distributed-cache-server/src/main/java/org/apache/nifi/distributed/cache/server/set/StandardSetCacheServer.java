@@ -32,11 +32,11 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 
-import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
+import javax.net.ssl.SSLContext;
 
 /**
  * Standard Set Cache Server implementation based on Netty

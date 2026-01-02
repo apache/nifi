@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.registry.provider;
 
-import java.util.List;
-
 import org.apache.nifi.registry.extension.BundlePersistenceProvider;
 import org.apache.nifi.registry.flow.FlowPersistenceProvider;
 import org.apache.nifi.registry.hook.EventHookProvider;
+
+import java.util.List;
 
 /**
  * A factory for obtaining the configured providers.

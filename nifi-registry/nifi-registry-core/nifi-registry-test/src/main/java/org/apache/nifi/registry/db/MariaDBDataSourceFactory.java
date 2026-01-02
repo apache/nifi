@@ -22,9 +22,8 @@ import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
 import org.testcontainers.mariadb.MariaDBContainer;
 
-import javax.sql.DataSource;
-
 import java.sql.SQLException;
+import javax.sql.DataSource;
 
 public abstract class MariaDBDataSourceFactory extends TestDataSourceFactory {
 

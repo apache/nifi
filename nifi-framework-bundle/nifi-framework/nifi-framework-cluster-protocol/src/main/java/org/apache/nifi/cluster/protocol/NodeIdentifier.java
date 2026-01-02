@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.util.NiFiProperties;
-
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.util.NiFiProperties;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;

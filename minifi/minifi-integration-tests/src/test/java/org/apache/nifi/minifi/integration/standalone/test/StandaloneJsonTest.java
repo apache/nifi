@@ -17,20 +17,20 @@
 
 package org.apache.nifi.minifi.integration.standalone.test;
 
-
 import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.HealthChecks;
+import org.apache.nifi.minifi.integration.util.LogUtil;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.stream.Stream;
-import org.apache.nifi.minifi.integration.util.LogUtil;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 public class StandaloneJsonTest {
 

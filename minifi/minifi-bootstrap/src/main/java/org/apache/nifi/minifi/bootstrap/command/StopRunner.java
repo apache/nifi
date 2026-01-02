@@ -17,22 +17,23 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
-import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
-import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
-import static org.apache.nifi.minifi.bootstrap.Status.OK;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Optional;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
 import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
 import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
 import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
+import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 public class StopRunner implements CommandRunner {
     protected static final String SHUTDOWN_CMD = "SHUTDOWN";

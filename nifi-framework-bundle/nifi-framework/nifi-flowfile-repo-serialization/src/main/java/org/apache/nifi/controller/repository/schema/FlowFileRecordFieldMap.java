@@ -17,8 +17,6 @@
 
 package org.apache.nifi.controller.repository.schema;
 
-import java.util.Map;
-
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -26,6 +24,8 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
+
+import java.util.Map;
 
 public class FlowFileRecordFieldMap implements Record {
     private final FlowFileRecord flowFile;

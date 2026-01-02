@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.dto.util;
 
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
+
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
-
-import jakarta.xml.bind.annotation.adapters.XmlAdapter;
 
 /**
  * XmlAdapter for (un)marshalling a date/time.

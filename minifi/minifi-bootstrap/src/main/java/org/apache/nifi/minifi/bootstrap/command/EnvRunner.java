@@ -17,15 +17,16 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
+import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
+
+import java.io.IOException;
+
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
 import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
 import static org.apache.nifi.minifi.bootstrap.Status.OK;
-
-import java.io.IOException;
-import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
-import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
 
 public class EnvRunner implements CommandRunner {
     protected static final String ENV_CMD = "ENV";

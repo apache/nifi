@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.minifi;
 
-
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusRequestException;

@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.processors.network.pcap;
 
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Collections;
-import java.util.Map;
-
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 class TestSplitPCAP {
 

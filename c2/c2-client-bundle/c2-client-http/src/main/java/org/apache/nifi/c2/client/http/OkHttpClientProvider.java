@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.c2.client.http;
 
-import java.io.FileInputStream;
-import java.security.KeyStore;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 import okhttp3.logging.HttpLoggingInterceptor;
@@ -32,6 +26,13 @@ import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.FileInputStream;
+import java.security.KeyStore;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 
 public class OkHttpClientProvider {
 

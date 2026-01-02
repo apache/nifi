@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.registry.NiFiRegistryTestApiApplication;
 import org.apache.nifi.registry.authorization.ResourcePermissions;
 import org.apache.nifi.registry.authorization.Tenant;
@@ -30,9 +33,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

@@ -17,11 +17,11 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.Status.OK;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 /**
  * Composite runner which can execute multiple commands in a sequential order.

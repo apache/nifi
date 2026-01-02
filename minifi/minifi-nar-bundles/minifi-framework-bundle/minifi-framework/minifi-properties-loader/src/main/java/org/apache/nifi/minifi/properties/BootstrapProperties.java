@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.minifi.properties;
 
-import static org.apache.nifi.minifi.commons.utils.PropertyUtil.resolvePropertyValue;
+import org.apache.nifi.properties.ApplicationProperties;
 
 import java.util.Collections;
 import java.util.Map;
@@ -24,7 +24,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.nifi.properties.ApplicationProperties;
+
+import static org.apache.nifi.minifi.commons.utils.PropertyUtil.resolvePropertyValue;
 
 /**
  * Extends Properties functionality with System and Environment property override possibility. The property resolution also works with

@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.io.socket;
 
+import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.util.TlsPlatform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -25,10 +30,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
-import org.apache.nifi.security.util.TlsException;
-import org.apache.nifi.security.util.TlsPlatform;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class SocketUtils {
 

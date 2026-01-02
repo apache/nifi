@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.encrypt;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.HexFormat;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 
 /**
  * Cipher Property Encryptor provides hexadecimal encoding and decoding around cipher operations

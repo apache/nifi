@@ -39,6 +39,7 @@ import org.apache.nifi.remote.RemoteGroupPort;
 
 import java.util.HashMap;
 import java.util.Map;
+
 public class RunningComponentSetFilter implements ComponentSetFilter {
     private final Map<String, VersionedControllerService> controllerServices = new HashMap<>();
     private final Map<String, VersionedProcessor> processors = new HashMap<>();

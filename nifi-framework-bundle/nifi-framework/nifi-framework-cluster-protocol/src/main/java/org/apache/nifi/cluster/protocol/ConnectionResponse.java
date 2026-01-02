@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.cluster.protocol;
 
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.jaxb.message.ConnectionResponseAdapter;
 
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

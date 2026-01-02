@@ -108,7 +108,6 @@ import static org.apache.nifi.processors.transfer.ResourceTransferProperties.FIL
 import static org.apache.nifi.processors.transfer.ResourceTransferProperties.RESOURCE_TRANSFER_SOURCE;
 import static org.apache.nifi.processors.transfer.ResourceTransferUtils.getFileResource;
 
-
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"google", "google cloud", "gcs", "archive", "put"})
 @CapabilityDescription("Writes the contents of a FlowFile as an object in a Google Cloud Storage.")

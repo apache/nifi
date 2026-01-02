@@ -21,12 +21,11 @@ import org.apache.nifi.xml.processing.ResourceProvider;
 import org.junit.jupiter.api.Test;
 import org.xml.sax.SAXException;
 
+import java.io.IOException;
+import java.io.InputStream;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-
-import java.io.IOException;
-import java.io.InputStream;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;

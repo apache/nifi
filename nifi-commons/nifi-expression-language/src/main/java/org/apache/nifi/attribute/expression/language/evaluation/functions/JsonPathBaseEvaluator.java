@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.InvalidJsonException;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import com.jayway.jsonpath.spi.json.JsonProvider;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
@@ -27,12 +29,9 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.InvalidJsonException;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.json.JsonProvider;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * Abstract base JsonPath class with utility methods

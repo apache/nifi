@@ -17,10 +17,10 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.apache.nifi.c2.protocol.api.OperandType;
+import org.apache.nifi.c2.protocol.api.OperationType;
+import org.apache.nifi.c2.protocol.api.SupportedOperation;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,10 +28,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import org.apache.nifi.c2.protocol.api.OperandType;
-import org.apache.nifi.c2.protocol.api.OperationType;
-import org.apache.nifi.c2.protocol.api.SupportedOperation;
-import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class SupportedOperationsProviderTest {
 

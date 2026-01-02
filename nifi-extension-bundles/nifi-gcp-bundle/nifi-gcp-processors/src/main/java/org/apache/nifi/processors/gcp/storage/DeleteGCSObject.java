@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.BUCKET_ATTR;
 import static org.apache.nifi.processors.gcp.storage.StorageAttributes.KEY_DESC;
 
-
 @SupportsBatching
 @Tags({"google cloud", "gcs", "google", "storage", "delete"})
 @CapabilityDescription("Deletes objects from a Google Cloud Bucket. " +

@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.provenance.serialization;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Optional;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.toc.TocReader;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Optional;
 
 public interface RecordReader extends Closeable {
 

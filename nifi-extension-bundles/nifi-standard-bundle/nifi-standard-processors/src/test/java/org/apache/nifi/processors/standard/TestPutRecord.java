@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;

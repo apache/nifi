@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.web.api;
 
-
+import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.NiFiRegistryTestApiApplication;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,8 +34,6 @@ import org.springframework.security.kerberos.authentication.KerberosTicketValida
 import org.springframework.security.kerberos.authentication.KerberosTicketValidator;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import jakarta.ws.rs.core.Response;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

@@ -17,9 +17,10 @@
 
 package org.apache.nifi.minifi.validator;
 
+import org.apache.nifi.components.ValidationResult;
+
 import java.util.List;
 import java.util.Objects;
-import org.apache.nifi.components.ValidationResult;
 
 public class ValidationException extends IllegalStateException {
     private List<ValidationResult> validationResults;

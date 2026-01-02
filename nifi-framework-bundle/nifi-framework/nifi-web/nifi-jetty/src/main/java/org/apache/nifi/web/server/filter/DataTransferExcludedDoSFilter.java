@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.server.filter;
 
-import org.eclipse.jetty.ee11.servlets.DoSFilter;
-
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.ee11.servlets.DoSFilter;
+
 import java.io.IOException;
 
 /**

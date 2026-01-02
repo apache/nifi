@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.registry.bundle.extract.minificpp;
 
-import org.apache.nifi.registry.bundle.model.BundleDetails;
 import org.apache.nifi.registry.bundle.extract.BundleExtractor;
+import org.apache.nifi.registry.bundle.model.BundleDetails;
 
 import java.io.IOException;
 import java.io.InputStream;

@@ -18,8 +18,8 @@ package org.apache.nifi.registry.flow;
 
 import org.apache.nifi.logging.ComponentLog;
 
-import javax.net.ssl.SSLContext;
 import java.util.Optional;
+import javax.net.ssl.SSLContext;
 
 public class StandardFlowRegistryClientInitializationContext implements FlowRegistryClientInitializationContext {
 

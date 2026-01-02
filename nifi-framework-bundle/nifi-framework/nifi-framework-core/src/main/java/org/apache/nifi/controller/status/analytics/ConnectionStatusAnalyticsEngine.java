@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import java.util.Map;
-
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.util.Tuple;
+
+import java.util.Map;
 
 /**
  * <p>

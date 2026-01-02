@@ -21,8 +21,8 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
-import org.apache.nifi.util.Tuple;
 import org.apache.nifi.util.Triple;
+import org.apache.nifi.util.Tuple;
 
 import java.util.EnumSet;
 import java.util.Optional;

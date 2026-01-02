@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.remote.client;
 
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.remote.SiteToSiteEventReporter;
+import org.apache.nifi.remote.protocol.DataPacket;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.remote.protocol.http.HttpProxy;
+
 import java.io.File;
 import java.io.Serializable;
 import java.net.InetAddress;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.net.ssl.SSLContext;
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.remote.SiteToSiteEventReporter;
-import org.apache.nifi.remote.protocol.DataPacket;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
-import org.apache.nifi.remote.protocol.http.HttpProxy;
 
 public interface SiteToSiteClientConfig extends Serializable {
 

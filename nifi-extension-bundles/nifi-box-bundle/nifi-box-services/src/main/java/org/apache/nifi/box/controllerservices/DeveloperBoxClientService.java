@@ -36,7 +36,6 @@ import java.util.Map;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 
-
 @CapabilityDescription("Provides Box client objects through which Box API calls can be used. This using a developer token and is for testing only.")
 @Tags({"box", "client", "provider"})
 public class DeveloperBoxClientService extends AbstractControllerService implements BoxClientService, VerifiableControllerService {

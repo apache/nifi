@@ -17,12 +17,12 @@
 
 package org.apache.nifi.controller.swap;
 
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.repository.FlowFileRecord;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
-
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.FlowFileRecord;
 
 public interface SwapSerializer {
 

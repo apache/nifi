@@ -22,14 +22,14 @@ import org.apache.nifi.script.impl.ClojureScriptRunner;
 import org.apache.nifi.script.impl.GenericScriptRunner;
 import org.apache.nifi.script.impl.GroovyScriptRunner;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptException;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptException;
 
 public class ScriptRunnerFactory {
 

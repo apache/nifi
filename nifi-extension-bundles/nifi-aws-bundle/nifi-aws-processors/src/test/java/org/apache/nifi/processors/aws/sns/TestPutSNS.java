@@ -39,7 +39,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 public class TestPutSNS {
 
     private TestRunner runner = null;

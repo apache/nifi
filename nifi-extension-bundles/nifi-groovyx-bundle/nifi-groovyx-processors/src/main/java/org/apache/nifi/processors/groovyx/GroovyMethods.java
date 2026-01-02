@@ -18,12 +18,10 @@ package org.apache.nifi.processors.groovyx;
 
 import groovy.lang.DelegatingMetaClass;
 import groovy.lang.GroovySystem;
-
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.groovyx.flow.ProcessSessionWrap;
 import org.apache.nifi.processors.groovyx.flow.SessionFile;
-
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.flowfile.FlowFile;
 
 import java.util.Collection;
 import java.util.List;

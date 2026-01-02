@@ -17,12 +17,12 @@
 
 package org.apache.nifi.minifi.bootstrap;
 
-import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.toSet;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
+
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toSet;
 
 public enum SensitiveProperty {
     SECRET_KEY("secret.key"),

@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.services.iceberg.parquet.io;
 
-import org.apache.nifi.services.iceberg.IcebergRowWriter;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.TaskWriter;
+import org.apache.nifi.services.iceberg.IcebergRowWriter;
 
 import java.io.IOException;
 import java.util.Objects;

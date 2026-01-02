@@ -17,13 +17,13 @@
 
 package org.apache.nifi.serialization;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public abstract class DateTimeTextRecordSetWriter extends SchemaRegistryRecordSetWriter {
 

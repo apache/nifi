@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.vault.hashicorp.config;
 
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

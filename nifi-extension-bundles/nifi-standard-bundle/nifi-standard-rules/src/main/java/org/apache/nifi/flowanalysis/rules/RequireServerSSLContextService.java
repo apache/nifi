@@ -30,7 +30,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-
 @Tags({"component", "processor", "controller service", "type", "ssl", "tls", "listen"})
 @CapabilityDescription("Produces rule violations for each component (i.e. processors or controller services) having a property "
         + "identifying an SSLContextService that is not set.")

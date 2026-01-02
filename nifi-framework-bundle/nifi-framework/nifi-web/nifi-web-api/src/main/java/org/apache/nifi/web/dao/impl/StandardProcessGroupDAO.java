@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import jakarta.ws.rs.WebApplicationException;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
@@ -53,8 +54,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupRecursivity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jakarta.ws.rs.WebApplicationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 

@@ -17,6 +17,12 @@
 
 package org.apache.nifi.reporting;
 
+import jakarta.json.Json;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonArrayBuilder;
+import jakarta.json.JsonBuilderFactory;
+import jakarta.json.JsonObject;
+import jakarta.json.JsonObjectBuilder;
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
@@ -32,12 +38,6 @@ import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
-import jakarta.json.Json;
-import jakarta.json.JsonArray;
-import jakarta.json.JsonArrayBuilder;
-import jakarta.json.JsonBuilderFactory;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonObjectBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;

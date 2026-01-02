@@ -17,9 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.entity.ParameterEntity;
-
 import jakarta.xml.bind.annotation.XmlType;
+import org.apache.nifi.web.api.entity.ParameterEntity;
 
 @XmlType(name = "parameterStatus")
 public class ParameterStatusDTO {

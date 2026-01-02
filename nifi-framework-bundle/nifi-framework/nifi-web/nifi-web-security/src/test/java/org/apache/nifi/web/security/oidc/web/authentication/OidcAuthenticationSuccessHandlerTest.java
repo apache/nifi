@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.security.oidc.web.authentication;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.Cookie;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
@@ -38,8 +40,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;

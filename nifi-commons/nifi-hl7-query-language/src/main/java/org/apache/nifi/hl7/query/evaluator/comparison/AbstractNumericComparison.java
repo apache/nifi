@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.hl7.query.evaluator.comparison;
 
-import java.util.regex.Pattern;
-
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
+
+import java.util.regex.Pattern;
 
 public abstract class AbstractNumericComparison extends AbstractComparisonEvaluator {
 

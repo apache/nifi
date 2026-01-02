@@ -27,7 +27,6 @@ import java.util.Map;
 
 import static org.apache.nifi.util.db.JdbcCommon.ResultSetRowCallback;
 
-
 /**
  * The SqlWriter interface provides a standard way for processors such as ExecuteSQL, ExecuteSQLRecord, QueryDatabaseTable, and QueryDatabaseTableRecord
  * to write SQL result sets out to a flow file in whichever manner is appropriate. For example, ExecuteSQL writes the result set as Avro but ExecuteSQLRecord

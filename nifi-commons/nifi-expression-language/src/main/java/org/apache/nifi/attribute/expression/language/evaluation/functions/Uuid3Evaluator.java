@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
@@ -24,7 +25,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResul
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
-import org.apache.commons.lang3.ArrayUtils;
 
 public class Uuid3Evaluator extends StringEvaluator {
 

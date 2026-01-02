@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.hl7.io;
 
-import java.io.IOException;
-
 import org.apache.nifi.hl7.model.HL7Message;
+
+import java.io.IOException;
 
 public interface HL7Reader {
 

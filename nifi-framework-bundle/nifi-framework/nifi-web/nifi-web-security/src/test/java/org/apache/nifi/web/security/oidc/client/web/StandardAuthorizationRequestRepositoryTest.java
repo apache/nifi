@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.oidc.client.web;
 
+import jakarta.servlet.http.Cookie;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +29,6 @@ import org.springframework.cache.Cache;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
-
-import jakarta.servlet.http.Cookie;
 
 import java.util.UUID;
 

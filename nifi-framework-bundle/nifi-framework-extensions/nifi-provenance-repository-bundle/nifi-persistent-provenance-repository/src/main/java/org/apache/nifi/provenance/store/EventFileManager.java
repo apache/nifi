@@ -17,15 +17,15 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.nifi.provenance.lucene.LuceneUtil;
+import org.apache.nifi.util.Tuple;
+
 import java.io.File;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
-
-import org.apache.nifi.provenance.lucene.LuceneUtil;
-import org.apache.nifi.util.Tuple;
 
 /**
  * The EventFileManager is responsible for maintaining locks on Event Files so that we can ensure that no thread deletes

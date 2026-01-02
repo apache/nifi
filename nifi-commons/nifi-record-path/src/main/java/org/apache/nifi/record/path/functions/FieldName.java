@@ -17,12 +17,12 @@
 
 package org.apache.nifi.record.path.functions;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
+
+import java.util.stream.Stream;
 
 public class FieldName extends RecordPathSegment {
     private final RecordPathSegment recordPath;

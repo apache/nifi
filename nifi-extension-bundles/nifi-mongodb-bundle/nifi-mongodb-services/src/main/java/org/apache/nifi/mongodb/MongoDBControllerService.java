@@ -39,12 +39,11 @@ import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.bson.Document;
 
-import javax.net.ssl.SSLContext;
-
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 
 @Tags({"mongo", "mongodb", "service"})
 @CapabilityDescription(

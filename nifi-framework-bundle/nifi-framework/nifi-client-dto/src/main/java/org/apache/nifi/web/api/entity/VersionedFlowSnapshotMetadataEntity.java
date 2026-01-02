@@ -18,9 +18,8 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
 
 @XmlRootElement(name = "versionedFlowSnapshotMetadataEntity")
 public class VersionedFlowSnapshotMetadataEntity extends Entity {

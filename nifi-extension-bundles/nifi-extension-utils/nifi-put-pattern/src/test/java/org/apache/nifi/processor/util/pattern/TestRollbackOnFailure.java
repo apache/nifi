@@ -27,8 +27,8 @@ import java.util.List;
 
 import static org.apache.nifi.processor.util.pattern.TestExceptionHandler.createArrayInputErrorHandler;
 import static org.apache.nifi.processor.util.pattern.TestExceptionHandler.exceptionMapping;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class TestRollbackOnFailure {

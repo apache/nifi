@@ -17,10 +17,6 @@
 
 package org.apache.nifi.minifi.nar;
 
-import java.io.File;
-import java.util.Set;
-import java.util.stream.Stream;
-
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.nar.ExtensionManager;
@@ -34,11 +30,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.File;
+import java.util.Set;
+import java.util.stream.Stream;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-
 
 @ExtendWith(MockitoExtension.class)
 public class NarAutoUnloadServiceTest {

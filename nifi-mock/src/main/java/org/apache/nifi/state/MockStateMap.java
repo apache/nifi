@@ -17,11 +17,12 @@
 
 package org.apache.nifi.state;
 
+import org.apache.nifi.components.state.StateMap;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.nifi.components.state.StateMap;
 
 public class MockStateMap implements StateMap {
     private final Map<String, String> stateValues;

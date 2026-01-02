@@ -17,12 +17,12 @@
 
 package org.apache.nifi.provenance.store.iterator;
 
-import java.io.IOException;
-import java.util.Optional;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.authorization.EventAuthorizer;
 import org.apache.nifi.provenance.authorization.EventTransformer;
+
+import java.io.IOException;
+import java.util.Optional;
 
 public class AuthorizingEventIterator implements EventIterator {
     private final EventIterator iterator;

@@ -17,11 +17,11 @@
 
 package org.apache.nifi.schema.validation;
 
-import java.util.Objects;
-import java.util.Optional;
-
 import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
+
+import java.util.Objects;
+import java.util.Optional;
 
 public class StandardValidationError implements ValidationError {
     private final Optional<String> fieldName;

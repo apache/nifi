@@ -19,7 +19,6 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 
-
 public class PadLeftEvaluator extends PaddingEvaluator {
 
     public PadLeftEvaluator(Evaluator<String> subject, Evaluator<Long> desiredLength, Evaluator<String> pad) {

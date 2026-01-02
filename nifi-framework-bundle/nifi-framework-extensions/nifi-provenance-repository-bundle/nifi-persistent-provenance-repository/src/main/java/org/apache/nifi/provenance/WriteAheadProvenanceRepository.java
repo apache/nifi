@@ -59,7 +59,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 /**
  * <p>
  * A Provenance Repository that is made up of two distinct concepts: An {@link EventStore Event Store} that is responsible

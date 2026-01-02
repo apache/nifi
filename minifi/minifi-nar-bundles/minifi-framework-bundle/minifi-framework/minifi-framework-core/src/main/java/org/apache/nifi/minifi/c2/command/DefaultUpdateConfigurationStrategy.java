@@ -17,29 +17,6 @@
 
 package org.apache.nifi.minifi.c2.command;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptySet;
-import static java.util.UUID.randomUUID;
-import static java.util.function.Predicate.not;
-import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
-import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.persist;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.removeIfExists;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.revert;
-import static org.apache.nifi.minifi.commons.utils.RetryUtil.retry;
-import static org.apache.nifi.minifi.validator.FlowValidator.validate;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.c2.client.service.operation.UpdateConfigurationStrategy;
 import org.apache.nifi.components.ValidationResult;
@@ -59,6 +36,30 @@ import org.apache.nifi.minifi.validator.ValidationException;
 import org.apache.nifi.services.FlowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptySet;
+import static java.util.UUID.randomUUID;
+import static java.util.function.Predicate.not;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.persist;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.removeIfExists;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.revert;
+import static org.apache.nifi.minifi.commons.utils.RetryUtil.retry;
+import static org.apache.nifi.minifi.validator.FlowValidator.validate;
 
 public class DefaultUpdateConfigurationStrategy implements UpdateConfigurationStrategy {
 

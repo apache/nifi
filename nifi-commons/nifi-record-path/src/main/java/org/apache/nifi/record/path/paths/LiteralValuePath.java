@@ -17,11 +17,11 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
+
+import java.util.stream.Stream;
 
 public class LiteralValuePath extends RecordPathSegment {
     private final FieldValue fieldValue;

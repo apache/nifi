@@ -16,24 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import static java.lang.String.valueOf;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
-
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxAPIResponseException;
 import com.box.sdk.BoxFile;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -55,6 +40,21 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import static java.lang.String.valueOf;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.PATH_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP_DESC;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "fetch"})

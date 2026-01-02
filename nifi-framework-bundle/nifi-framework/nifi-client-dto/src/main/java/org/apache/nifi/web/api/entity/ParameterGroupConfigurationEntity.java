@@ -17,9 +17,9 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
 import org.apache.nifi.parameter.ParameterSensitivity;
 
-import jakarta.xml.bind.annotation.XmlType;
 import java.util.Map;
 
 /**

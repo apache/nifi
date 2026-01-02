@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.filter;
 
-import java.io.IOException;
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -27,6 +26,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.web.firewall.RequestRejectedException;
+
+import java.io.IOException;
 
 /**
  * A filter to catch exceptions that aren't handled by the Jetty error-page.

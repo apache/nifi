@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.processors.script.engine;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineFactory;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
 
 /**
  * A ScriptEngineFactory implementation for the Clojure language

@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.jms.processors;
 
-import java.nio.channels.Channel;
-
 import jakarta.jms.Connection;
-
 import org.apache.nifi.logging.ComponentLog;
 import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 
+import java.nio.channels.Channel;
 
 /**
  * Base class for implementing publishing and consuming JMS workers.

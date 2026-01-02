@@ -17,16 +17,6 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static java.util.Optional.ofNullable;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
-import static org.apache.nifi.c2.protocol.api.OperandType.PROPERTIES;
-import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
-
-import java.util.Map;
-import java.util.function.Function;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
@@ -34,6 +24,17 @@ import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
+import static org.apache.nifi.c2.protocol.api.OperandType.PROPERTIES;
+import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 
 public class UpdatePropertiesOperationHandler implements C2OperationHandler {
 

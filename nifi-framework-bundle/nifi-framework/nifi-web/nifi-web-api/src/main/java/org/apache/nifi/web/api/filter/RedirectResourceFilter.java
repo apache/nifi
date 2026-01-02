@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.web.api.filter;
 
-
-import org.apache.nifi.web.api.SiteToSiteResource;
-
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.PreMatching;
 import jakarta.ws.rs.core.UriBuilder;
 import jakarta.ws.rs.core.UriInfo;
+import org.apache.nifi.web.api.SiteToSiteResource;
+
 import java.io.IOException;
 import java.net.URI;
 

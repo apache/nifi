@@ -17,10 +17,11 @@
 
 package org.apache.nifi.c2.client.http.url;
 
-import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
 
 public class LegacyC2UrlProvider implements C2UrlProvider {
 

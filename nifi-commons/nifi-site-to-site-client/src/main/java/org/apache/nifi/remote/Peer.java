@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.remote.protocol.CommunicationsSession;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.nifi.remote.protocol.CommunicationsSession;
 
 public class Peer implements Communicant {
 

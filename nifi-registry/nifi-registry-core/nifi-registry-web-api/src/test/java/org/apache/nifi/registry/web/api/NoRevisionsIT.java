@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.MediaType;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.junit.jupiter.api.Test;
-
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.MediaType;
 
 import java.util.UUID;
 

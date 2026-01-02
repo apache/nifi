@@ -34,7 +34,6 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 public class ControllerServiceTestContext {
 
     private final ConfigurationContext configurationContext = mock(ConfigurationContext.class);

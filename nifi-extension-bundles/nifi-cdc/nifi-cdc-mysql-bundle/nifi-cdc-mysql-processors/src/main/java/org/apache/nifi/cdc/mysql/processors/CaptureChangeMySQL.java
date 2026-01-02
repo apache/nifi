@@ -90,7 +90,6 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
@@ -115,6 +114,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 
 import static com.github.shyiko.mysql.binlog.event.EventType.DELETE_ROWS;
 import static com.github.shyiko.mysql.binlog.event.EventType.EXT_DELETE_ROWS;
@@ -128,7 +128,6 @@ import static com.github.shyiko.mysql.binlog.event.EventType.XID;
 import static org.apache.nifi.cdc.event.io.EventWriter.CDC_EVENT_TYPE_ATTRIBUTE;
 import static org.apache.nifi.cdc.event.io.EventWriter.SEQUENCE_ID_KEY;
 import static org.apache.nifi.cdc.event.io.FlowFileEventWriteStrategy.MAX_EVENTS_PER_FLOWFILE;
-
 
 /**
  * A processor to retrieve Change Data Capture (CDC) events and send them as flow files.

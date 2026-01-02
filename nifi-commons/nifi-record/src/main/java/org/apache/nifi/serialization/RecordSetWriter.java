@@ -17,10 +17,10 @@
 
 package org.apache.nifi.serialization;
 
+import org.apache.nifi.serialization.record.RecordSet;
+
 import java.io.IOException;
 import java.io.OutputStream;
-
-import org.apache.nifi.serialization.record.RecordSet;
 
 /**
  * <p>

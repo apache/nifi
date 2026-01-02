@@ -17,12 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RESPONDING;
-import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
-import static org.apache.nifi.minifi.bootstrap.Status.OK;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
-
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
 import org.apache.nifi.minifi.bootstrap.service.MiNiFiStatusProvider;
@@ -32,6 +26,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RESPONDING;
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StatusRunnerTest {

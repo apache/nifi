@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.extension.manifest.parser.jaxb;
 
-import org.apache.nifi.extension.manifest.ExtensionManifest;
-import org.apache.nifi.extension.manifest.parser.ExtensionManifestException;
-import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
-
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Unmarshaller;
-import javax.xml.transform.stream.StreamSource;
+import org.apache.nifi.extension.manifest.ExtensionManifest;
+import org.apache.nifi.extension.manifest.parser.ExtensionManifestException;
+import org.apache.nifi.extension.manifest.parser.ExtensionManifestParser;
+
 import java.io.InputStream;
+import javax.xml.transform.stream.StreamSource;
 
 public class JAXBExtensionManifestParser implements ExtensionManifestParser {
 

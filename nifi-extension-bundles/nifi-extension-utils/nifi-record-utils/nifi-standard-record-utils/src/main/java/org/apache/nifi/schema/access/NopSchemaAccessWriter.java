@@ -17,14 +17,14 @@
 
 package org.apache.nifi.schema.access;
 
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.serialization.record.RecordSchema;
 
 public class NopSchemaAccessWriter implements SchemaAccessWriter {
 

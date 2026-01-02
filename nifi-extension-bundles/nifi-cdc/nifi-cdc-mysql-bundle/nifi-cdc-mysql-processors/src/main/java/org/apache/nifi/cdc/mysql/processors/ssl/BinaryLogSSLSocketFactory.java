@@ -18,10 +18,10 @@ package org.apache.nifi.cdc.mysql.processors.ssl;
 
 import com.github.shyiko.mysql.binlog.network.SSLSocketFactory;
 
-import javax.net.ssl.SSLSocket;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketException;
+import javax.net.ssl.SSLSocket;
 
 /**
  * Binary Log SSLSocketFactory wrapping standard Java SSLSocketFactory

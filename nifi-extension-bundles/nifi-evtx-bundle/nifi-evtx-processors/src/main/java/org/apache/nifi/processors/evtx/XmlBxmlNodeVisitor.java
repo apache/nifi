@@ -32,11 +32,11 @@ import org.apache.nifi.processors.evtx.parser.bxml.ValueNode;
 import org.apache.nifi.processors.evtx.parser.bxml.value.BXmlTypeNode;
 import org.apache.nifi.processors.evtx.parser.bxml.value.VariantTypeNode;
 
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
 
 /**
  * Visitor that writes an event to the XMLStreamWriter

@@ -17,11 +17,6 @@
 
 package org.apache.nifi.provenance;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.apache.nifi.provenance.schema.EventRecord;
 import org.apache.nifi.provenance.serialization.CompressableRecordReader;
 import org.apache.nifi.provenance.toc.TocReader;
@@ -32,6 +27,10 @@ import org.apache.nifi.repository.schema.SchemaRecordReader;
 import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class ByteArraySchemaRecordReader extends CompressableRecordReader {
     private RecordSchema schema; // effectively final

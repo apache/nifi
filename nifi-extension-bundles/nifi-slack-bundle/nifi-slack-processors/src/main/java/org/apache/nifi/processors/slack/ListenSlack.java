@@ -78,7 +78,6 @@ import java.util.concurrent.TransferQueue;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-
 @PrimaryNodeOnly
 @DefaultSettings(yieldDuration = "250 millis")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)

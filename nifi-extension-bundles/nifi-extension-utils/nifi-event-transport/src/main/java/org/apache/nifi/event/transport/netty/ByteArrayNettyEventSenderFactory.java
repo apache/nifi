@@ -21,6 +21,7 @@ import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.logging.ComponentLog;
+
 import java.util.ArrayList;
 import java.util.List;
 

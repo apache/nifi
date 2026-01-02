@@ -51,8 +51,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-import javax.net.ssl.SSLContext;
-import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
@@ -72,6 +70,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import javax.net.ssl.SSLContext;
+import javax.security.auth.x500.X500Principal;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;

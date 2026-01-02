@@ -19,8 +19,8 @@ package org.apache.nifi.mock;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryClientInitializationContext;
 
-import javax.net.ssl.SSLContext;
 import java.util.Optional;
+import javax.net.ssl.SSLContext;
 
 public class MockFlowRegistryClientInitializationContext implements FlowRegistryClientInitializationContext {
     @Override

@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import jakarta.annotation.Nullable;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.Route;
-
-import jakarta.annotation.Nullable;
 
 public class ProxyAuthenticator implements Authenticator {
 

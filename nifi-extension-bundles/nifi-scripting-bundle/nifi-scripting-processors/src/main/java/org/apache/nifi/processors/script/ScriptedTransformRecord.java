@@ -44,8 +44,6 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import javax.script.ScriptEngine;
-import javax.script.ScriptException;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,6 +51,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.script.ScriptEngine;
+import javax.script.ScriptException;
 
 @SupportsBatching
 @SideEffectFree

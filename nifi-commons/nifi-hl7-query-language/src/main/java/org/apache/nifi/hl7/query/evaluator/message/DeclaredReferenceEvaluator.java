@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.hl7.query.evaluator.message;
 
-import java.util.Map;
-
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 import org.apache.nifi.hl7.query.evaluator.StringEvaluator;
+
+import java.util.Map;
 
 public class DeclaredReferenceEvaluator implements Evaluator<Object> {
 

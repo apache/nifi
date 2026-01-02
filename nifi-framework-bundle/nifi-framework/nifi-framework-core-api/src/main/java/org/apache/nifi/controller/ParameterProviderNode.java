@@ -21,8 +21,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroup;
-import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterGroupConfiguration;
+import org.apache.nifi.parameter.ParameterProvider;
 
 import java.util.Collection;
 import java.util.List;

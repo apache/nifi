@@ -50,7 +50,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-
 @Tags({"service", "aws", "s3", "encryption", "encrypt", "decryption", "decrypt", "key"})
 @CapabilityDescription("Adds configurable encryption to S3 Put and S3 Fetch operations.")
 public class StandardS3EncryptionService extends AbstractControllerService implements AmazonS3EncryptionService {

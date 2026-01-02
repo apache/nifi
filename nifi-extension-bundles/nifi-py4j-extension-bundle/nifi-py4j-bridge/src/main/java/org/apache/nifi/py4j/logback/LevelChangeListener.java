@@ -20,8 +20,8 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.LoggerContextListener;
-import org.apache.nifi.py4j.logging.LogLevelChangeListener;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.py4j.logging.LogLevelChangeListener;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.LoggerFactory;
 

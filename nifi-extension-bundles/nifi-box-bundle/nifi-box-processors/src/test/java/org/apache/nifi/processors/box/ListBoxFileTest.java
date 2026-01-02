@@ -16,19 +16,7 @@
  */
 package org.apache.nifi.processors.box;
 
-import static java.lang.String.valueOf;
-import static java.util.Collections.singletonList;
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import com.box.sdk.BoxFolder;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
@@ -43,6 +31,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static java.lang.String.valueOf;
+import static java.util.Collections.singletonList;
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(MockitoExtension.class)
 public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingTestTrait {

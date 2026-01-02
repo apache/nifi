@@ -23,14 +23,13 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
-import software.amazon.encryption.s3.S3EncryptionClient;
 import software.amazon.encryption.s3.CommitmentPolicy;
+import software.amazon.encryption.s3.S3EncryptionClient;
 
 import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.createCustomerKeySpec;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-
 
 public class TestS3EncryptionStrategies {
 

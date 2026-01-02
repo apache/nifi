@@ -19,6 +19,7 @@ package org.apache.nifi.xml.processing.transform;
 import org.apache.nifi.xml.processing.ProcessingAttribute;
 import org.apache.nifi.xml.processing.ProcessingException;
 
+import java.util.Objects;
 import javax.xml.XMLConstants;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
@@ -27,7 +28,6 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
-import java.util.Objects;
 
 /**
  * Standard implementation of Transform Provider with secure processing enabled

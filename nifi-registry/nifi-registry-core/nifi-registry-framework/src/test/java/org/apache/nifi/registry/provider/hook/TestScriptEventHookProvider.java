@@ -25,10 +25,9 @@ import org.apache.nifi.registry.provider.StandardProviderFactory;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import javax.sql.DataSource;
-
 import java.net.URL;
 import java.util.Properties;
+import javax.sql.DataSource;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;

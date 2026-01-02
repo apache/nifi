@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.jms.cf;
 
+import jakarta.jms.Connection;
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.ExceptionListener;
+import jakarta.jms.JMSSecurityException;
+import jakarta.jms.Session;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -25,11 +30,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.logging.ComponentLog;
 
-import jakarta.jms.Connection;
-import jakarta.jms.ConnectionFactory;
-import jakarta.jms.ExceptionListener;
-import jakarta.jms.JMSSecurityException;
-import jakarta.jms.Session;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

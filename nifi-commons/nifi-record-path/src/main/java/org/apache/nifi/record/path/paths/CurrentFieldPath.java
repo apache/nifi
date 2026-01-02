@@ -17,10 +17,10 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+
+import java.util.stream.Stream;
 
 public class CurrentFieldPath extends RecordPathSegment {
 

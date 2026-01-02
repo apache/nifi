@@ -23,12 +23,12 @@ import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.msk.auth.iam.IAMLoginModule;
 import software.amazon.msk.auth.iam.internals.AWSCredentialsCallback;
 
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.UnsupportedCallbackException;
-import javax.security.auth.login.AppConfigurationEntry;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.UnsupportedCallbackException;
+import javax.security.auth.login.AppConfigurationEntry;
 
 /**
  * Callback handler that supplies AWS credentials sourced from NiFi configuration for AWS MSK IAM authentication.

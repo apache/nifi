@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.csv;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.io.input.BOMInputStream;
+import org.apache.nifi.context.PropertyContext;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.schema.inference.RecordSource;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,13 +32,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-import org.apache.commons.io.input.BOMInputStream;
-import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.schema.inference.RecordSource;
 
 public class CSVRecordSource implements RecordSource<CSVRecordAndFieldNames> {
     private final Iterator<CSVRecord> csvRecordIterator;

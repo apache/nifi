@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.registry.authorization;
 
-
 import io.swagger.v3.oas.annotations.media.Schema;
+import org.apache.nifi.registry.revision.entity.RevisableEntity;
+import org.apache.nifi.registry.revision.entity.RevisionInfo;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import org.apache.nifi.registry.revision.entity.RevisableEntity;
-import org.apache.nifi.registry.revision.entity.RevisionInfo;
 
 /**
  * A tenant of this NiFi Registry

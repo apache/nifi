@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
-
 /**
  * <p>
  * NiFiPythonGateway is a custom extension of the Py4J Gateway class.

@@ -57,7 +57,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "event", "windows"})
 @TriggerSerially

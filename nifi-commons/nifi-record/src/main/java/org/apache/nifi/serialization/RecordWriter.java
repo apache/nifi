@@ -17,10 +17,10 @@
 
 package org.apache.nifi.serialization;
 
+import org.apache.nifi.serialization.record.Record;
+
 import java.io.Closeable;
 import java.io.IOException;
-
-import org.apache.nifi.serialization.record.Record;
 
 public interface RecordWriter extends Closeable {
     /**

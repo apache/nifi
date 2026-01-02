@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.util;
 
-import java.security.SecureRandom;
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.security.SecureRandom;
+import java.util.UUID;
 
 /**
  * IMPORTANT: This component is not part of public API!

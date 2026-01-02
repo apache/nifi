@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.distributed.cache.server.set;
 
+import org.apache.nifi.distributed.cache.server.EvictionPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -23,11 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-
-import org.apache.nifi.distributed.cache.server.EvictionPolicy;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SimpleSetCache implements SetCache {
 

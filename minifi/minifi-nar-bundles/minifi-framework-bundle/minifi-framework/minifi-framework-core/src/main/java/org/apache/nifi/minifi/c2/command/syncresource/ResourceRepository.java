@@ -17,11 +17,12 @@
 
 package org.apache.nifi.minifi.c2.command.syncresource;
 
+import org.apache.nifi.c2.protocol.api.ResourceItem;
+import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
+
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
-import org.apache.nifi.c2.protocol.api.ResourceItem;
 
 public interface ResourceRepository {
 

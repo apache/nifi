@@ -17,15 +17,15 @@
 
 package org.apache.nifi.provenance.lucene;
 
-import java.io.Closeable;
-import java.io.File;
-
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.apache.nifi.provenance.index.EventIndexSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.io.File;
 
 public class LuceneEventIndexSearcher implements EventIndexSearcher {
     private static final Logger logger = LoggerFactory.getLogger(LuceneEventIndexSearcher.class);

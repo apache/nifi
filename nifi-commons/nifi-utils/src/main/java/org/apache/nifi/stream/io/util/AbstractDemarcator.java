@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.stream.io.util;
 
+import org.apache.nifi.stream.io.exception.TokenTooLargeException;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.BufferOverflowException;
-
-import org.apache.nifi.stream.io.exception.TokenTooLargeException;
 
 /**
  * Base class for implementing streaming demarcators.

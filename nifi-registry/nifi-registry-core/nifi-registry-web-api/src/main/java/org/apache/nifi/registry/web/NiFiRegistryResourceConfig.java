@@ -16,19 +16,21 @@
  */
 package org.apache.nifi.registry.web;
 
+import jakarta.servlet.ServletContext;
+import jakarta.ws.rs.core.Context;
 import org.apache.nifi.registry.web.api.AccessPolicyResource;
 import org.apache.nifi.registry.web.api.AccessResource;
 import org.apache.nifi.registry.web.api.BucketBundleResource;
 import org.apache.nifi.registry.web.api.BucketFlowResource;
 import org.apache.nifi.registry.web.api.BucketResource;
+import org.apache.nifi.registry.web.api.BundleResource;
 import org.apache.nifi.registry.web.api.ConfigResource;
 import org.apache.nifi.registry.web.api.ExtensionRepoResource;
-import org.apache.nifi.registry.web.api.BundleResource;
 import org.apache.nifi.registry.web.api.ExtensionResource;
 import org.apache.nifi.registry.web.api.FlowResource;
 import org.apache.nifi.registry.web.api.ItemResource;
-import org.apache.nifi.registry.web.api.TenantResource;
 import org.apache.nifi.registry.web.api.RegistryAboutResource;
+import org.apache.nifi.registry.web.api.TenantResource;
 import org.glassfish.jersey.media.multipart.MultiPartFeature;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.ServerProperties;
@@ -37,9 +39,6 @@ import org.glassfish.jersey.servlet.ServletProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
-
-import jakarta.servlet.ServletContext;
-import jakarta.ws.rs.core.Context;
 
 /**
  * This is the main Jersey configuration for the application.

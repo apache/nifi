@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.saml2.service.web;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.web.security.saml2.registration.Saml2RegistrationProperty;
 import org.apache.nifi.web.servlet.shared.RequestUriBuilder;
 import org.slf4j.Logger;
@@ -26,7 +27,6 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.events;
 
-import java.io.Serializable;
-
 import org.apache.nifi.reporting.Severity;
+
+import java.io.Serializable;
 
 /**
  * Implementations MUST be thread-safe

@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.websocket;
 
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.flowfile.FlowFile;
@@ -29,6 +28,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.websocket.BinaryMessageConsumer;
 import org.apache.nifi.websocket.ConnectedListener;
 import org.apache.nifi.websocket.TextMessageConsumer;

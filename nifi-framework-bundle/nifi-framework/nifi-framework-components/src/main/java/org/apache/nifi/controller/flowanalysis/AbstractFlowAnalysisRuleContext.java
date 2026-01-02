@@ -27,9 +27,9 @@ import org.apache.nifi.components.resource.StandardResourceContext;
 import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
 import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleContext;
+import org.apache.nifi.parameter.ParameterLookup;
 
 import java.util.Collections;
 import java.util.HashMap;

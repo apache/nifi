@@ -19,7 +19,6 @@ package org.apache.nifi.cdc.mysql.event;
 import org.apache.nifi.cdc.event.TableEventInfo;
 import org.apache.nifi.cdc.event.TableInfo;
 
-
 /**
  * An event class corresponding to Data Definition Language (DDL) events, such as schema changes (add/drop column, add/drop table, etc.) and others (truncate table, e.g.)
  */

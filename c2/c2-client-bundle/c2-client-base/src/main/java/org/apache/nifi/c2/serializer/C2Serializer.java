@@ -18,6 +18,7 @@
 package org.apache.nifi.c2.serializer;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import java.util.Optional;
 
 /**

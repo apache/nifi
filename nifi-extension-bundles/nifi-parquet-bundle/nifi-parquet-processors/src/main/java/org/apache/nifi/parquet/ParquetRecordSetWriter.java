@@ -16,21 +16,8 @@
  */
 package org.apache.nifi.parquet;
 
-import static java.util.stream.Collectors.toMap;
-import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
 import org.apache.avro.Schema;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -51,6 +38,20 @@ import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SchemaRegistryRecordSetWriter;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+
+import static java.util.stream.Collectors.toMap;
+import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 
 @Tags({"parquet", "result", "set", "writer", "serializer", "record", "recordset", "row"})
 @CapabilityDescription("Writes the contents of a RecordSet in Parquet format.")

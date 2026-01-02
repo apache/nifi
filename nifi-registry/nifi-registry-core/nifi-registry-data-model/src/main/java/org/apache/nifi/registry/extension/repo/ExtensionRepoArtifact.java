@@ -17,9 +17,9 @@
 package org.apache.nifi.registry.extension.repo;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.registry.link.LinkableEntity;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
 import java.util.Comparator;
 import java.util.Objects;
 

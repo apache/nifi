@@ -17,13 +17,14 @@
 
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.util.Set;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
 
 public class NonPurgeableContentRepository implements ContentRepository {
     private final ContentRepository delegate;

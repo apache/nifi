@@ -49,7 +49,6 @@ import org.apache.nifi.processors.opentelemetry.server.HttpServerFactory;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextProvider;
 
-import javax.net.ssl.SSLContext;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.UnknownHostException;
@@ -59,6 +58,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import javax.net.ssl.SSLContext;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @DefaultSchedule(period = "25 ms")

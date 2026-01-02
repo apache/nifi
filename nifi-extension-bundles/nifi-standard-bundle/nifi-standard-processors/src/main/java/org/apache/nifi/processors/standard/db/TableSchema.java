@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 public class TableSchema {
     private final List<String> requiredColumnNames;
     private final Set<String> primaryKeyColumnNames;

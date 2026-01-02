@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.hl7.query.evaluator.comparison;
 
-import java.util.Map;
-
 import org.apache.nifi.hl7.query.evaluator.BooleanEvaluator;
+
+import java.util.Map;
 
 public class NotEvaluator extends BooleanEvaluator {
 

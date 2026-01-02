@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.security.ssl;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.X509ExtendedKeyManager;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.X509ExtendedKeyManager;
 
 /**
  * Standard implementation of X.509 Key Manager Builder

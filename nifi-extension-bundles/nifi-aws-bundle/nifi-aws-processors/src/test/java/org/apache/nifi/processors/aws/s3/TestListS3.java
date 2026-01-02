@@ -75,7 +75,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
 public class TestListS3 {
 
     private static final long TEST_TIMESTAMP = 1234567890;

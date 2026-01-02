@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.groovyx.util;
 
 import org.apache.nifi.logging.ComponentLog;
+
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;

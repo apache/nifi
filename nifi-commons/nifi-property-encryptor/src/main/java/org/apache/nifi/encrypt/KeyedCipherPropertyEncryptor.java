@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.encrypt;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.GCMParameterSpec;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Objects;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 
 /**
  * Property Encryptor implementation using AES-GCM

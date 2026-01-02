@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
+import org.apache.nifi.distributed.cache.client.exception.SerializationException;
+
 import java.io.IOException;
 import java.io.OutputStream;
-
-import org.apache.nifi.distributed.cache.client.exception.SerializationException;
 
 /**
  * Provides a mechanism by which a value can be serialized to a stream of bytes

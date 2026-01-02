@@ -18,6 +18,11 @@ package org.apache.nifi.web.standard.api.transformjson;
 
 import io.joltcommunity.jolt.Diffy;
 import io.joltcommunity.jolt.JsonUtils;
+import jakarta.servlet.ServletContext;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.core.Application;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import org.apache.nifi.web.ComponentDetails;
 import org.apache.nifi.web.NiFiWebConfigurationContext;
 import org.apache.nifi.web.NiFiWebRequestContext;
@@ -33,11 +38,6 @@ import org.glassfish.jersey.test.spi.TestContainerFactory;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import jakarta.servlet.ServletContext;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.core.Application;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-
 
 public class TestTransformJSONResource extends JerseyTest {
 

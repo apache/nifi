@@ -16,23 +16,24 @@
  */
 package org.apache.nifi.c2.client.service.operation;
 
-import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
-import static org.apache.nifi.c2.protocol.api.OperandType.MANIFEST;
-import static org.apache.nifi.c2.protocol.api.OperationType.DESCRIBE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationAck;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
+import static org.apache.nifi.c2.protocol.api.OperandType.MANIFEST;
+import static org.apache.nifi.c2.protocol.api.OperationType.DESCRIBE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class C2OperationHandlerProviderTest {
 

@@ -21,8 +21,8 @@ import org.apache.nifi.controller.status.history.CounterMetricDescriptor;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
 import org.apache.nifi.controller.status.history.StandardStatusSnapshot;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
-import org.apache.nifi.questdb.QueryRowContext;
 import org.apache.nifi.questdb.QueryResultProcessor;
+import org.apache.nifi.questdb.QueryRowContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

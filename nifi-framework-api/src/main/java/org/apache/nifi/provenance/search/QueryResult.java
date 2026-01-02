@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.provenance.search;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.provenance.ProvenanceEventRecord;
 
 public interface QueryResult {
 

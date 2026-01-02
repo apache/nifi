@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.authorization.resource;
 
-import java.util.Map;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -25,6 +24,8 @@ import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.web.ResourceNotFoundException;
+
+import java.util.Map;
 
 /**
  * Authorizable for authorizing access to data. Data based authorizable requires authorization for the entire DN chain.

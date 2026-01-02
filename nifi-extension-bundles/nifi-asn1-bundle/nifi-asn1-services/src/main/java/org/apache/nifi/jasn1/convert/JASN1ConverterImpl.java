@@ -29,8 +29,8 @@ import org.apache.nifi.jasn1.convert.converters.BerOctetStringConverter;
 import org.apache.nifi.jasn1.convert.converters.BerRealConverter;
 import org.apache.nifi.jasn1.convert.converters.BerRecordConverter;
 import org.apache.nifi.jasn1.convert.converters.BerStringConverter;
-import org.apache.nifi.jasn1.convert.converters.TbcdStringConverter;
 import org.apache.nifi.jasn1.convert.converters.BerTimeOfDayConverter;
+import org.apache.nifi.jasn1.convert.converters.TbcdStringConverter;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordSchema;
 

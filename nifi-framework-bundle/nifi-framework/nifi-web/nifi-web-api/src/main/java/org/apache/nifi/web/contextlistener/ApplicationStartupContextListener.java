@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.contextlistener;
 
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.repository.RepositoryPurgeException;
 import org.apache.nifi.services.FlowService;
@@ -27,8 +29,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
-import jakarta.servlet.ServletContextEvent;
-import jakarta.servlet.ServletContextListener;
 import java.io.IOException;
 
 /**

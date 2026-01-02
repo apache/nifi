@@ -16,20 +16,20 @@
  */
 package org.apache.nifi.registry.extension;
 
+import jakarta.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.registry.flow.FlowPersistenceProvider;
 import org.apache.nifi.registry.hook.EventHookProvider;
+import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.security.authentication.IdentityProvider;
 import org.apache.nifi.registry.security.authorization.AccessPolicyProvider;
 import org.apache.nifi.registry.security.authorization.Authorizer;
 import org.apache.nifi.registry.security.authorization.UserGroupProvider;
-import org.apache.nifi.registry.flow.FlowPersistenceProvider;
-import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import jakarta.annotation.PostConstruct;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;

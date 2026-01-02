@@ -17,10 +17,10 @@
 
 package org.apache.nifi.provenance.index;
 
+import org.apache.lucene.search.IndexSearcher;
+
 import java.io.Closeable;
 import java.io.File;
-
-import org.apache.lucene.search.IndexSearcher;
 
 public interface EventIndexSearcher extends Closeable {
     IndexSearcher getIndexSearcher();

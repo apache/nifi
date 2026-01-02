@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.registry.util;
 
+import org.slf4j.Logger;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
@@ -31,7 +33,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-import org.slf4j.Logger;
 
 /**
  * A utility class containing a few useful static methods to do typical IO

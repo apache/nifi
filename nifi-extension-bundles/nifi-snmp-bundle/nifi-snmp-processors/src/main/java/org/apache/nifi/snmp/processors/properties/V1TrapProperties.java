@@ -24,7 +24,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import static org.apache.nifi.snmp.processors.properties.BasicProperties.SNMP_V1;
 import static org.apache.nifi.snmp.processors.properties.BasicProperties.SNMP_VERSION;
 
-
 public class V1TrapProperties {
 
     private V1TrapProperties() {

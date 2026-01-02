@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.security.krb;
 
-import javax.security.auth.login.AppConfigurationEntry;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import javax.security.auth.login.AppConfigurationEntry;
 
 /**
  * A keytab-based user that can login/logout and perform actions as the given user.

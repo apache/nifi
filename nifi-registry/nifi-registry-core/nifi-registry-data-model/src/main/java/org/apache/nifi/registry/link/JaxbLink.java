@@ -17,9 +17,9 @@
 package org.apache.nifi.registry.link;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.xml.bind.annotation.XmlAnyAttribute;
 import jakarta.xml.bind.annotation.XmlAttribute;
+
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;

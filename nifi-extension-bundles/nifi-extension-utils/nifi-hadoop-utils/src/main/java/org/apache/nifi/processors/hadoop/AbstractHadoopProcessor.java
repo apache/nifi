@@ -48,7 +48,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.ietf.jgss.GSSException;
 
-import javax.net.SocketFactory;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -63,6 +62,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import javax.net.SocketFactory;
 
 /**
  * This is a base class that is helpful when building processors interacting with HDFS.

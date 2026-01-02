@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.update.attributes.dto;
 
+import jakarta.xml.bind.annotation.XmlType;
+
 import java.text.Collator;
 import java.util.Locale;
-
-import jakarta.xml.bind.annotation.XmlType;
 
 /**
  *

@@ -30,7 +30,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-
 /**
  * Provides integration level testing with actual AWS S3 resources for {@link TagS3Object} and requires additional
  * configuration and resources to work.

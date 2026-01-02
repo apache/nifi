@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.security.cert;
 
-import javax.security.auth.x500.X500Principal;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 import java.util.Objects;
+import javax.security.auth.x500.X500Principal;
 
 /**
  * Standard Principal Formatter implementation returns Subject and Issuer formatted according to RFC 1779 following the convention of getSubjectDN and getIssuerDN methods

@@ -42,7 +42,6 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-
 public class GCPCredentialsServiceTest {
     @Test
     public void testToString() throws Exception {

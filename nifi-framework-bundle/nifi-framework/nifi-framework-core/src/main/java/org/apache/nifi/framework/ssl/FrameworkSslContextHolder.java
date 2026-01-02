@@ -19,10 +19,10 @@ package org.apache.nifi.framework.ssl;
 import org.apache.nifi.security.ssl.KeyManagerBuilder;
 import org.apache.nifi.security.ssl.TrustManagerBuilder;
 
+import java.util.Objects;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509ExtendedTrustManager;
-import java.util.Objects;
 
 /**
  * Holder class for sharing SSLContext components loaded in Jetty Server with Spring Application Context objects

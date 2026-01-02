@@ -17,9 +17,8 @@
 package org.apache.nifi.web.api.dto.status;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.NodeDTO;
-
 import jakarta.xml.bind.annotation.XmlType;
+import org.apache.nifi.web.api.dto.NodeDTO;
 
 /**
  * DTO for serializing the port status for a particular node.

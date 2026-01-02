@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.standard.http;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.security.cert.CertificateAttributeReader;
 import org.apache.nifi.security.cert.PrincipalFormatter;
 import org.apache.nifi.security.cert.StandardCertificateAttributeReader;
 import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.apache.nifi.security.cert.SubjectAlternativeName;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.LinkedHashMap;

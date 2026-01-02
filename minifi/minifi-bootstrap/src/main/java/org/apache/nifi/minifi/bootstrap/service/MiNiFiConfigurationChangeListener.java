@@ -17,22 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static java.nio.ByteBuffer.wrap;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.commons.io.IOUtils.toByteArray;
-import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
-import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.persist;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.removeIfExists;
-import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.revert;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.file.Path;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
@@ -43,6 +27,23 @@ import org.apache.nifi.minifi.commons.service.FlowEnrichService;
 import org.apache.nifi.minifi.commons.service.FlowSerDeService;
 import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.slf4j.Logger;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.file.Path;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static java.nio.ByteBuffer.wrap;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.io.IOUtils.toByteArray;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.BACKUP_EXTENSION;
+import static org.apache.nifi.minifi.commons.api.MiNiFiConstants.RAW_EXTENSION;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.backup;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.persist;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.removeIfExists;
+import static org.apache.nifi.minifi.commons.util.FlowUpdateUtils.revert;
 
 public class MiNiFiConfigurationChangeListener implements ConfigurationChangeListener {
 

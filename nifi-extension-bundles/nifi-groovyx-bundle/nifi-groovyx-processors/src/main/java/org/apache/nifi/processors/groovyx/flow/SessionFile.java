@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.processors.groovyx.flow;
 
-import java.io.InputStream;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Collection;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
-import org.apache.nifi.processor.io.InputStreamCallback;
+
+import java.io.InputStream;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * The Flow file implementation that contains reference to the session.

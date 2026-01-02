@@ -21,6 +21,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;

@@ -23,13 +23,13 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.security.krb.KerberosLoginException;
 import org.apache.nifi.security.krb.KerberosUser;
 
-import javax.security.auth.Subject;
-import javax.security.auth.kerberos.KerberosPrincipal;
 import java.io.IOException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.security.auth.Subject;
+import javax.security.auth.kerberos.KerberosPrincipal;
 
 /**
  * Provides synchronized access to UserGroupInformation to avoid multiple processors/services from

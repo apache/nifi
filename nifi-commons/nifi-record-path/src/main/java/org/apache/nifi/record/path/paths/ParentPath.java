@@ -17,12 +17,11 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.util.Filters;
 
+import java.util.stream.Stream;
 
 public class ParentPath extends RecordPathSegment {
 

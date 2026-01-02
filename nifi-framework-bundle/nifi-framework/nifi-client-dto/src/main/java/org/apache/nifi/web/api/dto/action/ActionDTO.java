@@ -17,12 +17,12 @@
 package org.apache.nifi.web.api.dto.action;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.web.api.dto.action.component.details.ComponentDetailsDTO;
 import org.apache.nifi.web.api.dto.action.details.ActionDetailsDTO;
 import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
 
-import jakarta.xml.bind.annotation.XmlType;
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.Date;
 
 /**

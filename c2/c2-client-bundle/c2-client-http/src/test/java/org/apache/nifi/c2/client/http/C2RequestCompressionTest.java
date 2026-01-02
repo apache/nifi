@@ -17,16 +17,6 @@
 
 package org.apache.nifi.c2.client.http;
 
-import static org.apache.nifi.c2.client.http.C2HttpClient.MEDIA_TYPE_APPLICATION_JSON;
-import static org.apache.nifi.c2.client.http.C2RequestCompression.CONTENT_ENCODING_HEADER;
-import static org.apache.nifi.c2.client.http.C2RequestCompression.GZIP;
-import static org.apache.nifi.c2.client.http.C2RequestCompression.GZIP_ENCODING;
-import static org.apache.nifi.c2.client.http.C2RequestCompression.NONE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.IOException;
-import java.util.stream.Stream;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okio.Buffer;
@@ -36,6 +26,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.io.IOException;
+import java.util.stream.Stream;
+
+import static org.apache.nifi.c2.client.http.C2HttpClient.MEDIA_TYPE_APPLICATION_JSON;
+import static org.apache.nifi.c2.client.http.C2RequestCompression.CONTENT_ENCODING_HEADER;
+import static org.apache.nifi.c2.client.http.C2RequestCompression.GZIP;
+import static org.apache.nifi.c2.client.http.C2RequestCompression.GZIP_ENCODING;
+import static org.apache.nifi.c2.client.http.C2RequestCompression.NONE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class C2RequestCompressionTest {
 

@@ -17,10 +17,10 @@
 
 package org.apache.nifi.controller.repository;
 
-import java.util.List;
-
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
+
+import java.util.List;
 
 /**
  * <p>

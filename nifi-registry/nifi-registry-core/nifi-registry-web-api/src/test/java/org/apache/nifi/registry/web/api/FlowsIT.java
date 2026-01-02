@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.BucketItemType;
 import org.apache.nifi.registry.flow.VersionedFlow;
@@ -24,14 +29,9 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 import org.junit.jupiter.api.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
-import org.springframework.test.context.junit.jupiter.EnabledIf;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.junit.jupiter.EnabledIf;
 
-import jakarta.ws.rs.WebApplicationException;
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import java.io.File;
 
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertBucketsEqual;

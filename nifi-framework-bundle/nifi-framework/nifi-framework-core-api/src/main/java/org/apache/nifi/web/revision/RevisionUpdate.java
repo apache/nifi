@@ -17,10 +17,10 @@
 
 package org.apache.nifi.web.revision;
 
-import java.util.Set;
-
 import org.apache.nifi.web.FlowModification;
 import org.apache.nifi.web.Revision;
+
+import java.util.Set;
 
 /**
  * A packaging of a Component's DTO and the corresponding Revision for that component

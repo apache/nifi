@@ -18,7 +18,6 @@
  */
 package org.apache.nifi.processors.parquet;
 
-
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaFormatter;
 import org.apache.avro.file.DataFileStream;

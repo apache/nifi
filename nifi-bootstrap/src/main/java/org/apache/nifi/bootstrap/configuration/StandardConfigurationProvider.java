@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.bootstrap.configuration;
 
-import static java.util.function.Predicate.not;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
@@ -31,6 +29,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+
+import static java.util.function.Predicate.not;
 
 /**
  * Standard implementation of Configuration Provider based on NIFI_HOME environment variable base directory

@@ -16,21 +16,19 @@
  */
 package org.apache.nifi.processors.groovyx.flow;
 
-import org.apache.nifi.flowfile.FlowFile;
-
-import groovy.lang.Writable;
 import groovy.lang.Closure;
-import groovy.lang.MetaClass;
 import groovy.lang.GroovyObject;
+import groovy.lang.MetaClass;
+import groovy.lang.Writable;
+import org.apache.nifi.flowfile.FlowFile;
 import org.codehaus.groovy.runtime.InvokerHelper;
-
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.UnsupportedCharsetException;

@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard.util;
 
 import java.io.IOException;
 import java.nio.file.Files;
-
 import java.nio.file.Path;
 
 public class JsonUtil {

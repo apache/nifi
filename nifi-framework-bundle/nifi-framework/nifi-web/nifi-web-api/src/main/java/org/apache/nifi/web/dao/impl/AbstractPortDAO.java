@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import org.apache.nifi.connectable.Port;
 import org.apache.nifi.components.PortFunction;
+import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ScheduledState;

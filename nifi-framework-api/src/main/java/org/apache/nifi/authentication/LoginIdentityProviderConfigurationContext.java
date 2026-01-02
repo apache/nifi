@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.authentication;
 
-import java.util.Map;
 import org.apache.nifi.configuration.NonComponentConfigurationContext;
+
+import java.util.Map;
 
 /**
  *

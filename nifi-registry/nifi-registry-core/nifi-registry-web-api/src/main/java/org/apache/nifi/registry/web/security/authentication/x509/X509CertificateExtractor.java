@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.registry.web.security.authentication.x509;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.security.cert.X509Certificate;
 
 /**

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.services.dropbox;
 
-import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -28,6 +27,8 @@ import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.List;
 
 @CapabilityDescription("Defines credentials for Dropbox processors.")
 @Tags({"dropbox", "credentials", "provider"})

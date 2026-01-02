@@ -17,10 +17,6 @@
 
 package org.apache.nifi.framework.cluster.leader.zookeeper;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.curator.framework.api.ACLProvider;
@@ -29,6 +25,10 @@ import org.apache.nifi.framework.cluster.zookeeper.ZooKeeperClientConfig;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class CuratorACLProviderFactory {
 

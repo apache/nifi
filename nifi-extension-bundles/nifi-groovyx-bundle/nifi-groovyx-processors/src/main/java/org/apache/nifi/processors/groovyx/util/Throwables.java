@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.processors.groovyx.util;
 
-import java.lang.reflect.InvocationTargetException;
-import java.io.StringWriter;
 import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Class with helper to return simplified human readable error message with one main `at` code position.

@@ -45,8 +45,6 @@ import software.amazon.awssdk.services.sts.model.AssumeRoleWithWebIdentityReques
 import software.amazon.awssdk.services.sts.model.AssumeRoleWithWebIdentityResponse;
 import software.amazon.awssdk.services.sts.model.Credentials;
 
-import javax.net.ssl.SSLContext;
-
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -58,6 +56,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 
 @Tags({"AWS", "MSK", "streaming", "kafka"})
 @CapabilityDescription("Provides and manages connections to AWS MSK Kafka Brokers for producer or consumer operations.")

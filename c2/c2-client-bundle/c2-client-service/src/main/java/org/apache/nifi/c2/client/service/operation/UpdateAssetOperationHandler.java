@@ -17,6 +17,20 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
+import org.apache.nifi.c2.client.api.C2Client;
+import org.apache.nifi.c2.protocol.api.C2Operation;
+import org.apache.nifi.c2.protocol.api.C2OperationAck;
+import org.apache.nifi.c2.protocol.api.C2OperationState;
+import org.apache.nifi.c2.protocol.api.OperandType;
+import org.apache.nifi.c2.protocol.api.OperationType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
+
 import static java.lang.Boolean.FALSE;
 import static java.util.Optional.ofNullable;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -26,19 +40,6 @@ import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO
 import static org.apache.nifi.c2.protocol.api.OperandType.ASSET;
 import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 import static org.apache.nifi.c2.util.Preconditions.requires;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.BiPredicate;
-import org.apache.nifi.c2.client.api.C2Client;
-import org.apache.nifi.c2.protocol.api.C2Operation;
-import org.apache.nifi.c2.protocol.api.C2OperationAck;
-import org.apache.nifi.c2.protocol.api.C2OperationState;
-import org.apache.nifi.c2.protocol.api.OperandType;
-import org.apache.nifi.c2.protocol.api.OperationType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class UpdateAssetOperationHandler implements C2OperationHandler {
 

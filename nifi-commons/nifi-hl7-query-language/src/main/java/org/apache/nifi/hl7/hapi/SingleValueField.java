@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.hl7.hapi;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.hl7.model.HL7Component;
 import org.apache.nifi.hl7.model.HL7Field;
+
+import java.util.Collections;
+import java.util.List;
 
 public class SingleValueField implements HL7Field {
 

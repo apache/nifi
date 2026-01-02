@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.hl7.query.result;
 
+import org.apache.nifi.hl7.query.ResultHit;
+
 import java.util.Collections;
 import java.util.Map;
-
-import org.apache.nifi.hl7.query.ResultHit;
 
 public class StandardResultHit implements ResultHit {
 

@@ -17,14 +17,14 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.Optional;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
+
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public class WildcardChildPath extends RecordPathSegment {
 

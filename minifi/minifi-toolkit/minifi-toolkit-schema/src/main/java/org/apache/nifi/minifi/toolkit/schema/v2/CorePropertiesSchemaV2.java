@@ -17,13 +17,14 @@
 
 package org.apache.nifi.minifi.toolkit.schema.v2;
 
-import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.CORE_PROPS_KEY;
-import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.MAX_CONCURRENT_THREADS_KEY;
-import java.util.Map;
-
 import org.apache.nifi.minifi.toolkit.schema.CorePropertiesSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.BaseSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.ConvertableSchema;
+
+import java.util.Map;
+
+import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.CORE_PROPS_KEY;
+import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.MAX_CONCURRENT_THREADS_KEY;
 
 public class CorePropertiesSchemaV2 extends BaseSchema implements ConvertableSchema<CorePropertiesSchema> {
 

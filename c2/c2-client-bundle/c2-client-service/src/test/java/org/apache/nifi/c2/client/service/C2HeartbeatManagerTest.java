@@ -17,20 +17,6 @@
 
 package org.apache.nifi.c2.client.service;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.ofNullable;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
-
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
@@ -41,6 +27,20 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
+
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class C2HeartbeatManagerTest {

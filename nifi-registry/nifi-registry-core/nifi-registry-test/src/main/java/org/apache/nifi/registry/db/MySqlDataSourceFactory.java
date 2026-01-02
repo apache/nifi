@@ -22,10 +22,9 @@ import org.testcontainers.delegate.DatabaseDelegate;
 import org.testcontainers.jdbc.JdbcDatabaseDelegate;
 import org.testcontainers.mysql.MySQLContainer;
 
+import java.sql.SQLException;
 import javax.script.ScriptException;
 import javax.sql.DataSource;
-
-import java.sql.SQLException;
 
 public abstract class MySqlDataSourceFactory extends TestDataSourceFactory {
 

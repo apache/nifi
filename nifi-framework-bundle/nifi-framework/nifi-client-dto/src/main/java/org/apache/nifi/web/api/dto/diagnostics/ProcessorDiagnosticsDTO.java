@@ -18,10 +18,10 @@
 package org.apache.nifi.web.api.dto.diagnostics;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 
-import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 import java.util.Set;
 

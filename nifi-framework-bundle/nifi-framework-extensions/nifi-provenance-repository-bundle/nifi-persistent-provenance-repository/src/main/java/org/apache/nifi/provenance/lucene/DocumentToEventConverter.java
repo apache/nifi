@@ -17,12 +17,12 @@
 
 package org.apache.nifi.provenance.lucene;
 
-import java.io.IOException;
-import java.util.Set;
-
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.TopDocs;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+
+import java.io.IOException;
+import java.util.Set;
 
 public interface DocumentToEventConverter {
 

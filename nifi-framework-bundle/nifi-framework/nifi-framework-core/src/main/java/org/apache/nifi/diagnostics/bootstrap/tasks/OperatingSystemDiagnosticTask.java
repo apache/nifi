@@ -19,15 +19,12 @@ package org.apache.nifi.diagnostics.bootstrap.tasks;
 import org.apache.nifi.diagnostics.DiagnosticTask;
 import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
-import org.apache.nifi.diagnostics.bootstrap.shell.command.GetPhysicalCpuCoresCommand;
 import org.apache.nifi.diagnostics.bootstrap.shell.command.GetDiskLayoutCommand;
+import org.apache.nifi.diagnostics.bootstrap.shell.command.GetPhysicalCpuCoresCommand;
 import org.apache.nifi.diagnostics.bootstrap.shell.command.GetTotalPhysicalRamCommand;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.MBeanAttributeInfo;
-import javax.management.MBeanInfo;
-import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.text.NumberFormat;
@@ -40,6 +37,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import javax.management.MBeanAttributeInfo;
+import javax.management.MBeanInfo;
+import javax.management.ObjectName;
 
 public class OperatingSystemDiagnosticTask implements DiagnosticTask {
     private static final Logger logger = LoggerFactory.getLogger(OperatingSystemDiagnosticTask.class);

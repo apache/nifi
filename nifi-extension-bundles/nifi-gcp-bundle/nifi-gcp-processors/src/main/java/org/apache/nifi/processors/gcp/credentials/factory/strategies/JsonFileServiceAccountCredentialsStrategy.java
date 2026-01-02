@@ -26,7 +26,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 
-
 /**
  * Supports service account credentials in a JSON file.
  *

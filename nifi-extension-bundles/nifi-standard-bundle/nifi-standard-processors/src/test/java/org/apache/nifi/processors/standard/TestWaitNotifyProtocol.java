@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
@@ -36,7 +37,6 @@ import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.apache.nifi.processors.standard.WaitNotifyProtocol.CONSUMED_COUNT_NAME;
 import static org.apache.nifi.processors.standard.WaitNotifyProtocol.DEFAULT_COUNT_NAME;

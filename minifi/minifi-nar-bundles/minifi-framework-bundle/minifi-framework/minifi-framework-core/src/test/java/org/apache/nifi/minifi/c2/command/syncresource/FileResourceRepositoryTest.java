@@ -17,6 +17,25 @@
 
 package org.apache.nifi.minifi.c2.command.syncresource;
 
+import org.apache.nifi.c2.protocol.api.ResourceItem;
+import org.apache.nifi.c2.protocol.api.ResourceType;
+import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
+import org.apache.nifi.c2.serializer.C2JacksonSerializer;
+import org.apache.nifi.c2.serializer.C2Serializer;
+import org.apache.nifi.minifi.c2.command.syncresource.FileResourceRepository.ResourceRepositoryDescriptor;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+
 import static java.nio.file.Files.createDirectories;
 import static java.nio.file.Files.exists;
 import static java.nio.file.Files.readString;
@@ -42,24 +61,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Optional;
-import org.apache.nifi.c2.protocol.api.ResourceItem;
-import org.apache.nifi.c2.protocol.api.ResourceType;
-import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
-import org.apache.nifi.c2.serializer.C2JacksonSerializer;
-import org.apache.nifi.c2.serializer.C2Serializer;
-import org.apache.nifi.minifi.c2.command.syncresource.FileResourceRepository.ResourceRepositoryDescriptor;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class FileResourceRepositoryTest {

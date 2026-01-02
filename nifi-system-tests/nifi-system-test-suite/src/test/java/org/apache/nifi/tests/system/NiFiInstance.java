@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.tests.system;
 
-import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import javax.net.ssl.SSLContext;
 
 public interface NiFiInstance {
 

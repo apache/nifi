@@ -16,19 +16,19 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
-import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
-import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FILE_NAME;
-import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FOLDER_ID;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.util.MockFlowFile;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.MockFlowFile;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
+import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FILE_NAME;
+import static org.apache.nifi.processors.gcp.drive.PutGoogleDrive.FOLDER_ID;
 
 /**
  * See Javadoc {@link AbstractGoogleDriveIT} for instructions how to run this test.

@@ -17,8 +17,8 @@
 package org.apache.nifi.distributed.cache.server.set;
 
 import org.apache.commons.lang3.SerializationException;
-import org.apache.nifi.distributed.cache.client.SetCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.distributed.cache.client.SetCacheClientService;
 import org.apache.nifi.distributed.cache.server.SetCacheServer;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;

@@ -36,7 +36,6 @@ import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCre
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.USE_ANONYMOUS_CREDENTIALS;
 import static org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService.USE_DEFAULT_CREDENTIALS;
 
-
 /**
  * Mock Processor implementation used to test CredentialsProviderFactory.
  */

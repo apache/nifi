@@ -17,17 +17,18 @@
 
 package org.apache.nifi.minifi.commons.service;
 
-import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
 public class StandardFlowSerDeService implements FlowSerDeService {
 

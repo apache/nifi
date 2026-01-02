@@ -21,9 +21,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.net.ssl.SSLContext;
-import java.util.Enumeration;
 import java.security.KeyStore;
+import java.util.Enumeration;
+import javax.net.ssl.SSLContext;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.when;

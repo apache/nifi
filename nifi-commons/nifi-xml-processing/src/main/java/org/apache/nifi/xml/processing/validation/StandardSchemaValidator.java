@@ -19,13 +19,12 @@ package org.apache.nifi.xml.processing.validation;
 import org.apache.nifi.xml.processing.ProcessingException;
 import org.xml.sax.SAXException;
 
+import java.io.IOException;
+import java.util.Objects;
 import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 import javax.xml.validation.Validator;
-
-import java.io.IOException;
-import java.util.Objects;
 
 /**
  * Standard implementation of XML Schema Validator with secure processing enabled

@@ -17,9 +17,6 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.Map;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.MapEntryFieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
@@ -28,6 +25,9 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.MapDataType;
+
+import java.util.Map;
+import java.util.stream.Stream;
 
 public class SingularMapKeyPath extends RecordPathSegment {
     private final String mapKey;

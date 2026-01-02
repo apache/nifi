@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.smb;
 
-import static java.util.Arrays.fill;
-import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.DOMAIN;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.HOSTNAME;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.PASSWORD;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.PORT;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.SHARE;
-import static org.apache.nifi.services.smb.SmbjClientProviderService.USERNAME;
-
 import org.apache.nifi.services.smb.SmbjClientProviderService;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +27,15 @@ import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
+
+import static java.util.Arrays.fill;
+import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.DOMAIN;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.HOSTNAME;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.PASSWORD;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.PORT;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.SHARE;
+import static org.apache.nifi.services.smb.SmbjClientProviderService.USERNAME;
 
 public class SambaTestContainers {
 

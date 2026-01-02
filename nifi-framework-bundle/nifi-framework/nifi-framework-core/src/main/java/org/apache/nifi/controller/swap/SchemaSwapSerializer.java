@@ -17,14 +17,6 @@
 
 package org.apache.nifi.controller.swap;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
@@ -42,6 +34,14 @@ import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.Repetition;
 import org.apache.nifi.repository.schema.SchemaRecordWriter;
 import org.apache.nifi.repository.schema.SimpleRecordField;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SchemaSwapSerializer implements SwapSerializer {
     static final String SERIALIZATION_NAME = "Schema Swap Serialization";

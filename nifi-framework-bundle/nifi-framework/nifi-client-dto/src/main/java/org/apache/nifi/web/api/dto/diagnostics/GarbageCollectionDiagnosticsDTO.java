@@ -17,12 +17,11 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @XmlType(name = "garbageCollectionDiagnostics")
 public class GarbageCollectionDiagnosticsDTO implements Cloneable {

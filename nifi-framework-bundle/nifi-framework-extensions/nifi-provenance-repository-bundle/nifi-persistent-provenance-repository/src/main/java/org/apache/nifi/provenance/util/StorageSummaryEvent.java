@@ -17,11 +17,12 @@
 
 package org.apache.nifi.provenance.util;
 
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.serialization.StorageSummary;
+
+import java.util.List;
+import java.util.Map;
 
 public class StorageSummaryEvent implements ProvenanceEventRecord {
     private final ProvenanceEventRecord event;

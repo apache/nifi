@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.web.security.saml2.web.authentication.logout;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Standard SAML 2 Single Logout Handler for tracking Logout Requests with Spring Saml2LogoutRequestFilter

@@ -20,8 +20,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.h2.jdbcx.JdbcConnectionPool;
 
-import javax.sql.DataSource;
 import java.io.File;
+import javax.sql.DataSource;
 
 /**
  * NOTE: This DataSource factory was used in the original 0.1.0 release and remains to migrate data from the old database.

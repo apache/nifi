@@ -17,17 +17,6 @@
 
 package org.apache.nifi.processors.parquet;
 
-import static org.apache.nifi.processors.parquet.CalculateParquetOffsets.PROP_ZERO_CONTENT_OUTPUT;
-import static org.apache.nifi.processors.parquet.CalculateParquetOffsets.REL_SUCCESS;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.parquet.ParquetTestUtils;
 import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.util.MockFlowFile;
@@ -39,6 +28,18 @@ import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.util.Map;
+
+import static org.apache.nifi.processors.parquet.CalculateParquetOffsets.PROP_ZERO_CONTENT_OUTPUT;
+import static org.apache.nifi.processors.parquet.CalculateParquetOffsets.REL_SUCCESS;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DisabledOnJre(value = { JRE.JAVA_25 }, disabledReason = "java.security.auth.Subject.getSubject() is not supported")
 @DisabledOnOs({ OS.WINDOWS })

@@ -17,12 +17,12 @@
 
 package org.apache.nifi.cluster.coordination.http.endpoints;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.Entity;
+
+import java.util.Map;
+import java.util.Set;
 
 public abstract class AbstractNodeStatusEndpoint<EntityType extends Entity, DtoType> extends AbstractSingleDTOEndpoint<EntityType, DtoType> {
 

@@ -17,10 +17,6 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.Map;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.ArrayIndexFieldValue;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.MapEntryFieldValue;
@@ -31,6 +27,10 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
+
+import java.util.Map;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class WildcardIndexPath extends RecordPathSegment {
 

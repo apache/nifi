@@ -17,11 +17,16 @@
 
 package org.apache.nifi.minifi.bootstrap;
 
-import static org.apache.nifi.bootstrap.CommandResult.FAILURE;
-import static org.apache.nifi.bootstrap.CommandResult.SUCCESS;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.bootstrap.BootstrapCommunicator;
+import org.apache.nifi.bootstrap.CommandResult;
+import org.apache.nifi.minifi.MiNiFiServer;
+import org.apache.nifi.minifi.commons.status.FlowStatusReport;
+import org.apache.nifi.minifi.status.StatusRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -41,13 +46,9 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
-import org.apache.nifi.bootstrap.BootstrapCommunicator;
-import org.apache.nifi.bootstrap.CommandResult;
-import org.apache.nifi.minifi.MiNiFiServer;
-import org.apache.nifi.minifi.commons.status.FlowStatusReport;
-import org.apache.nifi.minifi.status.StatusRequestException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.apache.nifi.bootstrap.CommandResult.FAILURE;
+import static org.apache.nifi.bootstrap.CommandResult.SUCCESS;
 
 public class BootstrapListener implements BootstrapCommunicator {
 

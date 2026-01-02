@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.logging;
 
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.slf4j.LoggerFactory;
 
 import static java.util.Objects.requireNonNull;
 

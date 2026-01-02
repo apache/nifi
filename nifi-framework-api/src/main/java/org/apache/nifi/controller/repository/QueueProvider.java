@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.util.Collection;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
+
+import java.util.Collection;
 
 /**
  * Provides a collection of <code>FlowFileQueue</code>s that represents all

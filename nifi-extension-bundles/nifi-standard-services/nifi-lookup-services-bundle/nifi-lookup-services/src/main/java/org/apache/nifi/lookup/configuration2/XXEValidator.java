@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.lookup.configuration2;
 
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,11 +29,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /* This validator is a quick method to block XML files being used which contain external entity ("!ENTITY") declarations.
  */

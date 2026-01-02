@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard.ftp;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.Proxy;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Map;
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
-import javax.net.SocketFactory;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
@@ -37,6 +28,16 @@ import org.apache.nifi.processors.standard.socket.StandardSocketFactoryProvider;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.Proxy;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import javax.net.SocketFactory;
 
 import static org.apache.nifi.processors.standard.util.FTPTransfer.BUFFER_SIZE;
 import static org.apache.nifi.processors.standard.util.FTPTransfer.CONNECTION_MODE;

@@ -18,11 +18,11 @@ package org.apache.nifi.flow.resource;
 
 import org.apache.nifi.util.NiFiProperties;
 
-import javax.net.ssl.SSLContext;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import javax.net.ssl.SSLContext;
 
 public final class PropertyBasedExternalResourceProviderInitializationContext implements ExternalResourceProviderInitializationContext {
     private static Set<String> GUARDED_PROPERTIES = Set.of("implementation");

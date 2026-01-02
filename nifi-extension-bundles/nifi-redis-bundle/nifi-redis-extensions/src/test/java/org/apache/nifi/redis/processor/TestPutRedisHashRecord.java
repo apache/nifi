@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.redis.processor;
 
-
 import org.apache.nifi.redis.service.RedisConnectionPoolService;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;

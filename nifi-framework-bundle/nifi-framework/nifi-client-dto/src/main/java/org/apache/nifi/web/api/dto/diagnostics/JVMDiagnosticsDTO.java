@@ -17,11 +17,10 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import java.util.List;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.List;
 
 @XmlType(name = "jvmDiagnostics")
 public class JVMDiagnosticsDTO {

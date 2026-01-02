@@ -16,14 +16,12 @@
  */
 package org.apache.nifi.controller;
 
+import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.Revision;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import jakarta.xml.bind.annotation.XmlRootElement;
-
-import org.apache.nifi.web.Revision;
-
 
 /**
  * Represents a data flow snippet.

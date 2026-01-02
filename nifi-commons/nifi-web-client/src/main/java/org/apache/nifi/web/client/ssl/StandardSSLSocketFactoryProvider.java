@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.client.ssl;
 
+import java.util.Objects;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
-import java.util.Objects;
 
 /**
  * Standard implementation of SSLSocketFactory Provider

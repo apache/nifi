@@ -17,12 +17,12 @@
 
 package org.apache.nifi.lookup.maxmind;
 
-import java.util.Arrays;
-
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.util.Arrays;
 
 public class ContainerSchema {
 

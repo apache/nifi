@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.Security;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -27,6 +23,10 @@ import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 
 public class HashEvaluator extends StringEvaluator {
     private static final String SUPPORTED_ALGORITHMS = String.join(", ", Security.getAlgorithms("MessageDigest"));

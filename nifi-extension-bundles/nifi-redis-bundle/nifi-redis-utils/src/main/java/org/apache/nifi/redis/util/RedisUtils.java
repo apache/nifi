@@ -46,13 +46,12 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import org.springframework.data.redis.stream.StreamMessageListenerContainer;
 import redis.clients.jedis.ConnectionPoolConfig;
 
-import javax.net.ssl.SSLContext;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 
 public class RedisUtils {
 

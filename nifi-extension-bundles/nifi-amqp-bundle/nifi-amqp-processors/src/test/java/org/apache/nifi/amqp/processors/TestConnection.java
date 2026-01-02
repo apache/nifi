@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.List;
-import java.util.Map;
-
 import com.rabbitmq.client.BlockedCallback;
 import com.rabbitmq.client.BlockedListener;
 import com.rabbitmq.client.Channel;
@@ -29,6 +24,11 @@ import com.rabbitmq.client.ExceptionHandler;
 import com.rabbitmq.client.ShutdownListener;
 import com.rabbitmq.client.ShutdownSignalException;
 import com.rabbitmq.client.UnblockedCallback;
+
+import java.io.IOException;
+import java.net.InetAddress;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of {@link Connection} to be used for testing. Will return the

@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.configuration;
 
-import java.util.Map;
 import org.apache.nifi.controller.ConfigurationContext;
+
+import java.util.Map;
 
 /**
  * Shared interface for various feature-specific configuration contexts which allows common code to

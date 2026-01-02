@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.registry.db.entity;
 
-import org.apache.nifi.registry.extension.bundle.BundleType;
 import org.apache.nifi.extension.manifest.ExtensionType;
+import org.apache.nifi.registry.extension.bundle.BundleType;
 
 import java.util.Set;
 

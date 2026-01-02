@@ -17,8 +17,8 @@
 
 package org.apache.nifi.minifi.toolkit.configuration;
 
-import static org.apache.nifi.minifi.toolkit.configuration.json.TransformYamlCommandFactory.TRANSFORM_YML;
-import static org.apache.nifi.minifi.toolkit.configuration.json.TransformNifiCommandFactory.TRANSFORM_NIFI;
+import org.apache.nifi.minifi.toolkit.configuration.json.TransformNifiCommandFactory;
+import org.apache.nifi.minifi.toolkit.configuration.json.TransformYamlCommandFactory;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
 
-import org.apache.nifi.minifi.toolkit.configuration.json.TransformNifiCommandFactory;
-import org.apache.nifi.minifi.toolkit.configuration.json.TransformYamlCommandFactory;
+import static org.apache.nifi.minifi.toolkit.configuration.json.TransformNifiCommandFactory.TRANSFORM_NIFI;
+import static org.apache.nifi.minifi.toolkit.configuration.json.TransformYamlCommandFactory.TRANSFORM_YML;
 
 public class ConfigMain {
     public static final int ERR_INVALID_ARGS = 1;

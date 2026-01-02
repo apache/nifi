@@ -64,7 +64,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-
 /**
  * Attempts to detect the MIME Type of a FlowFile by examining its contents. If the MIME Type is determined, it is added
  * to an attribute with the name mime.type. In addition, mime.extension is set if a common file extension is known.

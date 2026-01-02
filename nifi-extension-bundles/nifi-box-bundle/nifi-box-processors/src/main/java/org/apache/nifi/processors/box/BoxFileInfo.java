@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.processors.box;
 
-import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
-import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
-import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
-
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.util.list.ListableEntity;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -33,6 +29,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.apache.nifi.processors.box.BoxFileAttributes.ID;
+import static org.apache.nifi.processors.box.BoxFileAttributes.SIZE;
+import static org.apache.nifi.processors.box.BoxFileAttributes.TIMESTAMP;
 
 public class BoxFileInfo implements ListableEntity {
 

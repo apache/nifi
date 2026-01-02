@@ -17,6 +17,20 @@
 
 package org.apache.nifi.minifi.c2;
 
+import org.apache.nifi.bootstrap.BootstrapCommunicator;
+import org.apache.nifi.bootstrap.CommandResult;
+import org.apache.nifi.c2.protocol.api.C2Operation;
+import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.function.BiConsumer;
+
 import static java.lang.Thread.sleep;
 import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
 import static org.apache.nifi.bootstrap.CommandResult.FAILURE;
@@ -28,19 +42,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.function.BiConsumer;
-import org.apache.nifi.bootstrap.BootstrapCommunicator;
-import org.apache.nifi.bootstrap.CommandResult;
-import org.apache.nifi.c2.protocol.api.C2Operation;
-import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class BootstrapC2OperationRestartHandlerTest {

@@ -17,8 +17,8 @@
 package org.apache.nifi.processors.mqtt.adapters;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttClient;
+import org.apache.nifi.processors.mqtt.common.MqttClientProperties;
 import org.apache.nifi.processors.mqtt.common.MqttException;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessage;
 import org.apache.nifi.processors.mqtt.common.ReceivedMqttMessageHandler;

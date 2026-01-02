@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.reporting.s2s;
 
-import java.net.Proxy;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -38,6 +35,10 @@ import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.ClusterUrlParser;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.ssl.SSLContextProvider;
+
+import java.net.Proxy;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 
 public class SiteToSiteUtils {
 

@@ -21,8 +21,8 @@ import org.apache.nifi.kerberos.KerberosUserService;
 import org.apache.nifi.kerberos.SelfContainedKerberosUserService;
 import org.apache.nifi.security.krb.KerberosUser;
 
-import javax.security.auth.login.AppConfigurationEntry;
 import java.util.Map;
+import javax.security.auth.login.AppConfigurationEntry;
 
 import static org.apache.nifi.kafka.shared.component.KafkaClientComponent.SELF_CONTAINED_KERBEROS_USER_SERVICE;
 

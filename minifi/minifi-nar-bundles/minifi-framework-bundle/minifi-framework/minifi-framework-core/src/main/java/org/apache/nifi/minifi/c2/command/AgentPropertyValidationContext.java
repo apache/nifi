@@ -17,15 +17,16 @@
 
 package org.apache.nifi.minifi.c2.command;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.function.Function;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+
+import java.util.Collection;
+import java.util.Map;
+import java.util.function.Function;
 
 public class AgentPropertyValidationContext implements ValidationContext {
 

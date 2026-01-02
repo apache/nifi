@@ -17,12 +17,12 @@
 
 package org.apache.nifi.cluster.manager;
 
-import java.util.Map;
-
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
+
+import java.util.Map;
 
 public class VersionControlInformationEntityMerger {
 

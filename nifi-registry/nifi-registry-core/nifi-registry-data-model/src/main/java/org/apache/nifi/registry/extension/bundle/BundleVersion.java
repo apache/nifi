@@ -17,13 +17,14 @@
 package org.apache.nifi.registry.extension.bundle;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Set;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlTransient;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.link.LinkableEntity;
+
+import java.util.Set;
 
 @XmlRootElement
 public class BundleVersion extends LinkableEntity {

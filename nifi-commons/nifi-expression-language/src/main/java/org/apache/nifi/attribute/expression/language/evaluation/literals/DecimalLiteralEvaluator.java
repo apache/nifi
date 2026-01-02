@@ -22,7 +22,6 @@ import org.apache.nifi.attribute.expression.language.evaluation.DecimalQueryResu
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 
-
 public class DecimalLiteralEvaluator extends DecimalEvaluator {
 
     private final double literal;

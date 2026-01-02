@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.ldap.tenants;
 
-
 import org.apache.nifi.authorization.Group;
 import org.apache.nifi.authorization.User;
 

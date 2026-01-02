@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.controller.queue.QueueSize;
+
 import java.util.Collection;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.apache.nifi.controller.queue.QueueSize;
-
 
 public class MockFlowFileQueue {
 

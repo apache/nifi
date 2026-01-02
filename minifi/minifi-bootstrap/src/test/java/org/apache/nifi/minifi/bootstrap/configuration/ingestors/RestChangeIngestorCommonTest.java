@@ -17,9 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collections;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -32,6 +29,10 @@ import org.apache.nifi.minifi.bootstrap.configuration.differentiators.Differenti
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;

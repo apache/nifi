@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
-
 import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
 import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
+
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
 
 public class MiNiFiStatusProvider {
 

@@ -17,19 +17,19 @@
 
 package org.apache.nifi.c2.client.service;
 
-import static java.util.Optional.ofNullable;
-import static java.util.function.Predicate.not;
-
-import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
-
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
 import org.apache.nifi.c2.protocol.api.C2Heartbeat;
 import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
+
+import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
 
 public class C2HeartbeatManager implements Runnable {
 

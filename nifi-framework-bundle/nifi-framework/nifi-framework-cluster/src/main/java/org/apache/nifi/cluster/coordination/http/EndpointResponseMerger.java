@@ -17,10 +17,10 @@
 
 package org.apache.nifi.cluster.coordination.http;
 
+import org.apache.nifi.cluster.manager.NodeResponse;
+
 import java.net.URI;
 import java.util.Set;
-
-import org.apache.nifi.cluster.manager.NodeResponse;
 
 /**
  * <p>

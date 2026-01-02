@@ -17,10 +17,10 @@
 
 package org.apache.nifi.controller.queue.clustered;
 
+import org.apache.nifi.controller.repository.FlowFileRecord;
+
 import java.io.IOException;
 import java.io.InputStream;
-
-import org.apache.nifi.controller.repository.FlowFileRecord;
 
 public interface FlowFileContentAccess {
 

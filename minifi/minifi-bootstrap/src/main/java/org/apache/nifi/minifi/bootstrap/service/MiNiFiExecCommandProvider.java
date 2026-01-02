@@ -17,11 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static java.lang.String.join;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.joining;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
-import static org.apache.nifi.util.NiFiProperties.PROPERTIES_FILE_PATH;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +25,12 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.apache.nifi.minifi.properties.BootstrapProperties;
+
+import static java.lang.String.join;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.joining;
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CONF_DIR_KEY;
+import static org.apache.nifi.util.NiFiProperties.PROPERTIES_FILE_PATH;
 
 public class MiNiFiExecCommandProvider {
 

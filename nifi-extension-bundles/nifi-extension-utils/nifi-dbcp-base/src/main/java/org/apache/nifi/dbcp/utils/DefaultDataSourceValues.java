@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.dbcp.utils;
 
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.nifi.util.FormatUtils;
+
+import java.util.concurrent.TimeUnit;
 
 public enum DefaultDataSourceValues {
 

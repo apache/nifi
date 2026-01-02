@@ -17,13 +17,13 @@
 
 package org.apache.nifi.controller.swap;
 
-import java.io.DataInputStream;
-import java.io.IOException;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.SwapContents;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+
+import java.io.DataInputStream;
+import java.io.IOException;
 
 public interface SwapDeserializer {
 

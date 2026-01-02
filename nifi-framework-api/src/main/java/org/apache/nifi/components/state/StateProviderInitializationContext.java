@@ -17,14 +17,13 @@
 
 package org.apache.nifi.components.state;
 
-import java.util.Map;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.logging.ComponentLog;
+
+import java.util.Map;
+import javax.net.ssl.SSLContext;
 
 /**
  * This interface defines an initialization context that is passed to a {@link StateProvider} when it

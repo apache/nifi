@@ -63,7 +63,6 @@ import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.util.resource.PathResourceFactory;
 import org.eclipse.jetty.util.resource.Resource;
 
-import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.file.Path;
@@ -77,6 +76,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
+import javax.net.ssl.SSLContext;
 
 @Tags({"WebSocket", "Jetty", "server"})
 @CapabilityDescription("Implementation of WebSocketServerService." +

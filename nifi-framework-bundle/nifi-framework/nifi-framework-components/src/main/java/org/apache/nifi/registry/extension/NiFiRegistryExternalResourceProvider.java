@@ -24,13 +24,13 @@ import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 
 public class NiFiRegistryExternalResourceProvider implements ExternalResourceProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(NiFiRegistryExternalResourceProvider.class);

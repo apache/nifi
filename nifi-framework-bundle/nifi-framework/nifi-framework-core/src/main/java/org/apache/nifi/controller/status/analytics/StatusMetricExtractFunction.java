@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.controller.status.history.StatusHistory;
 import org.apache.nifi.util.Tuple;
+
+import java.util.stream.Stream;
 
 public interface StatusMetricExtractFunction {
 

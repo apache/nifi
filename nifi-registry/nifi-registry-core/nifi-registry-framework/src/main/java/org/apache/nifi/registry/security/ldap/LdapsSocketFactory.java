@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.registry.security.ldap;
 
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * SSLSocketFactory used when connecting to a Directory Server over LDAPS.

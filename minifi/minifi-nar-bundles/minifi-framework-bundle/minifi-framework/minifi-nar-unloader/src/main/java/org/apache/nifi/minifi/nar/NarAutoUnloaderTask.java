@@ -17,16 +17,17 @@
 
 package org.apache.nifi.minifi.nar;
 
-import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
-import static java.util.Objects.requireNonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.util.Objects.requireNonNull;
 
 public class NarAutoUnloaderTask implements Runnable {
 

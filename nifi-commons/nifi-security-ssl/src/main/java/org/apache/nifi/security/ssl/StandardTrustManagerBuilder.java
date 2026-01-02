@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.security.ssl;
 
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509ExtendedTrustManager;
 import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
  * Standard implementation of X.509 Trust Manager Builder

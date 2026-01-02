@@ -16,16 +16,8 @@
  */
 package org.apache.nifi.processors.dropbox;
 
-import static java.util.stream.Collectors.toSet;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Set;
 import org.apache.nifi.dropbox.credentials.service.DropboxCredentialService;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -34,6 +26,15 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
+
+import java.util.Collections;
+import java.util.Date;
+import java.util.Set;
+
+import static java.util.stream.Collectors.toSet;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 public class AbstractDropboxTest {
     public static final String TEST_FOLDER = "/testFolder";

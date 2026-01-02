@@ -18,9 +18,9 @@
 package org.apache.nifi.registry.serialization.jackson;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
 import jakarta.xml.bind.annotation.XmlType;
+
 import java.util.Map;
 
 @XmlRootElement

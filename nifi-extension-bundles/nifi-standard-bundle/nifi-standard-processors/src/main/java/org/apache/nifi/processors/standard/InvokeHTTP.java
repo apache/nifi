@@ -20,6 +20,7 @@ import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
+import jakarta.annotation.Nullable;
 import okhttp3.Cache;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
@@ -87,11 +88,6 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.stream.io.StreamUtils;
 
-import jakarta.annotation.Nullable;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -123,6 +119,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 

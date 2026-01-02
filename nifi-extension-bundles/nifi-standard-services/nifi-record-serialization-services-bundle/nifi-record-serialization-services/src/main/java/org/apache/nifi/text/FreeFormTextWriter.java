@@ -17,6 +17,13 @@
 
 package org.apache.nifi.text;
 
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.serialization.AbstractRecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -26,13 +33,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.serialization.AbstractRecordSetWriter;
-import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordSchema;
 
 public class FreeFormTextWriter extends AbstractRecordSetWriter implements RecordSetWriter {
     private static final byte NEW_LINE = (byte) '\n';

@@ -20,8 +20,8 @@ import io.netty.channel.ChannelHandler;
 import io.netty.handler.codec.string.LineEncoder;
 import io.netty.handler.codec.string.LineSeparator;
 import io.netty.handler.codec.string.StringEncoder;
-import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.configuration.LineEnding;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
 import org.apache.nifi.logging.ComponentLog;
 

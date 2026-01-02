@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.controller.service.mock;
 
-import java.util.List;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ControllerService;
+
+import java.util.List;
 
 public class ServiceC extends AbstractControllerService {
 

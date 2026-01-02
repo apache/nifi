@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.web.api.dto.status;
 
-import jakarta.xml.bind.annotation.XmlType;
-
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
 
 /**
  * DTO for serializing the statistics of a connection.

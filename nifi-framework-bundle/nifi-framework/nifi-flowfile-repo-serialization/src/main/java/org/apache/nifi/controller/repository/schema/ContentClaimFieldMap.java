@@ -17,8 +17,6 @@
 
 package org.apache.nifi.controller.repository.schema;
 
-import java.util.List;
-
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
@@ -26,6 +24,8 @@ import org.apache.nifi.controller.repository.claim.StandardContentClaim;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
+
+import java.util.List;
 
 public class ContentClaimFieldMap implements Record {
     private final ContentClaim contentClaim;

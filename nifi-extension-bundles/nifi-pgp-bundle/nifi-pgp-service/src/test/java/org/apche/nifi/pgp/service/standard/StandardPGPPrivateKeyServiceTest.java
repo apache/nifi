@@ -18,14 +18,12 @@ package org.apche.nifi.pgp.service.standard;
 
 import org.apache.nifi.pgp.service.standard.StandardPGPPrivateKeyService;
 import org.apache.nifi.pgp.util.PGPFileUtils;
+import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
-
 import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
-
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;

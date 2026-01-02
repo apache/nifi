@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.redis.state;
 
+import org.apache.nifi.components.state.StateMap;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
-import org.apache.nifi.components.state.StateMap;
 
 /**
  * A StateMap implementation for RedisStateProvider.

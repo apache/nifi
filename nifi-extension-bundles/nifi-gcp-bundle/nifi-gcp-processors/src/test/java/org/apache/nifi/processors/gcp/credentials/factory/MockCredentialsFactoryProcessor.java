@@ -34,7 +34,6 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 public class MockCredentialsFactoryProcessor extends AbstractGCPProcessor {
     public final List<PropertyDescriptor> properties = Arrays.asList(
             AUTHENTICATION_STRATEGY,

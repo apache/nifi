@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.nifi.provenance.search.Query;
+import org.apache.nifi.provenance.search.QueryResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -28,11 +33,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.search.QueryResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StandardQueryResult implements QueryResult, ProgressiveResult {
     private static final Logger logger = LoggerFactory.getLogger(StandardQueryResult.class);

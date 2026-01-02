@@ -18,11 +18,10 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-
-import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "processorRunStatusDetails")
 public class ProcessorRunStatusDetailsEntity extends Entity {

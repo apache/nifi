@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.security.oidc.client.web;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
@@ -51,8 +53,6 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;

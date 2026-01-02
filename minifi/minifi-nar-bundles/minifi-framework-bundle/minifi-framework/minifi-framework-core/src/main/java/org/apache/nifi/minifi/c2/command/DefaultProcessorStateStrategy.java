@@ -17,14 +17,14 @@
 
 package org.apache.nifi.minifi.c2.command;
 
-import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.c2.client.service.operation.ProcessorStateStrategy;
+import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import java.util.function.BiConsumer;
 
+import java.util.function.BiConsumer;
 
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;

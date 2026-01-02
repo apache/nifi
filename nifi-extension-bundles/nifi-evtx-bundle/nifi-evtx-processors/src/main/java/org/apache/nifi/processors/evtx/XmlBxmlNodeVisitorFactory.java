@@ -19,8 +19,8 @@ package org.apache.nifi.processors.evtx;
 
 import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
 
-import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
+import javax.xml.stream.XMLStreamWriter;
 
 public interface XmlBxmlNodeVisitorFactory {
     XmlBxmlNodeVisitor create(XMLStreamWriter xmlStreamWriter, RootNode rootNode) throws IOException;

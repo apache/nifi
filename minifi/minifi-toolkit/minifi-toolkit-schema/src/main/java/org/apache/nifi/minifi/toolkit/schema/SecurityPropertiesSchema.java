@@ -17,14 +17,14 @@
 
 package org.apache.nifi.minifi.toolkit.schema;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
 import org.apache.nifi.minifi.toolkit.schema.common.BaseSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.StringUtil;
 import org.apache.nifi.minifi.toolkit.schema.common.WritableSchema;
-
-import java.util.Map;
 import org.apache.nifi.security.util.KeystoreType;
+
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.SECURITY_PROPS_KEY;
 import static org.apache.nifi.minifi.toolkit.schema.common.CommonPropertyKeys.SENSITIVE_PROPS_KEY;

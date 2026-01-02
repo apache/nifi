@@ -17,21 +17,6 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.FLOW_ID;
-import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.protocol.api.C2Operation;
@@ -43,6 +28,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.FLOW_ID;
+import static org.apache.nifi.c2.client.service.operation.UpdateConfigurationOperationHandler.LOCATION;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class UpdateConfigurationOperationHandlerTest {

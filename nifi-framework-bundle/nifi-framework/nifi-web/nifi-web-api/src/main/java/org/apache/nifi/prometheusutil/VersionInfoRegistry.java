@@ -18,9 +18,9 @@
 package org.apache.nifi.prometheusutil;
 
 import io.prometheus.client.Gauge;
-import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

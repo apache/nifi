@@ -16,22 +16,22 @@
  */
 package org.apache.nifi.registry.serialization.jaxb;
 
-import org.apache.nifi.registry.serialization.SerializationException;
-import org.apache.nifi.registry.serialization.VersionedSerializer;
-
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
 import jakarta.xml.bind.Unmarshaller;
 import jakarta.xml.bind.annotation.XmlRootElement;
-import javax.xml.namespace.QName;
-import javax.xml.transform.stream.StreamSource;
+import org.apache.nifi.registry.serialization.SerializationException;
+import org.apache.nifi.registry.serialization.VersionedSerializer;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import javax.xml.namespace.QName;
+import javax.xml.transform.stream.StreamSource;
 
 /**
  * A Serializer that uses JAXB for serializing/deserializing.

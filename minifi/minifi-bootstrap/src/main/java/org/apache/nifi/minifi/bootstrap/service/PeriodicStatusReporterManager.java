@@ -17,14 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_COMPONENTS;
-
-import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
 import org.apache.nifi.minifi.bootstrap.QueryableStatusAggregator;
@@ -33,6 +25,15 @@ import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.properties.BootstrapProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.NIFI_MINIFI_STATUS_REPORTER_COMPONENTS;
 
 public class PeriodicStatusReporterManager implements QueryableStatusAggregator {
     private static final Logger LOGGER = LoggerFactory.getLogger(PeriodicStatusReporterManager.class);

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.security.jwt.resolver;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.Strings;
 import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.security.http.SecurityHeader;
@@ -23,9 +25,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.web.util.WebUtils;
-
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Bearer Token Resolver prefers the HTTP Authorization Header and then evaluates the Authorization Cookie when found

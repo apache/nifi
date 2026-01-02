@@ -16,16 +16,8 @@
  */
 package org.apache.nifi.processors.box;
 
-import static java.util.Collections.singletonList;
-import static org.apache.nifi.util.EqualsWrapper.wrapList;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.doReturn;
-
 import com.box.sdk.BoxAPIConnection;
 import com.box.sdk.BoxFolder;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
 import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.processor.ProcessContext;
@@ -36,6 +28,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+
+import static java.util.Collections.singletonList;
+import static org.apache.nifi.util.EqualsWrapper.wrapList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doReturn;
 
 @ExtendWith(MockitoExtension.class)
 public class ListBoxFileListingTest implements FileListingTestTrait {

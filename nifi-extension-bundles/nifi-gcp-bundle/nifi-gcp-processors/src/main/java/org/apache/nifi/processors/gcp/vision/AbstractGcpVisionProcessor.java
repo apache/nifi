@@ -17,15 +17,10 @@
 
 package org.apache.nifi.processors.gcp.vision;
 
-import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
-
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import com.google.cloud.vision.v1.ImageAnnotatorSettings;
-
-import java.util.List;
-import java.util.Set;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
@@ -35,6 +30,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.gcp.util.GoogleUtils;
+
+import java.util.List;
+import java.util.Set;
+
+import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
 
 public abstract class AbstractGcpVisionProcessor extends AbstractProcessor  {
     public static final String GCP_OPERATION_KEY = "operationKey";

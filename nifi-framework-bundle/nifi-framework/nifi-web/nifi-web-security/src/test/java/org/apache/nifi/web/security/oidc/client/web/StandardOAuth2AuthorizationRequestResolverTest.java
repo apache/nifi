@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.oidc.client.web;
 
+import jakarta.servlet.ServletContext;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +29,6 @@ import org.springframework.security.oauth2.client.registration.ClientRegistratio
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
-
-import jakarta.servlet.ServletContext;
 import org.springframework.security.oauth2.core.endpoint.PkceParameterNames;
 
 import java.net.URI;

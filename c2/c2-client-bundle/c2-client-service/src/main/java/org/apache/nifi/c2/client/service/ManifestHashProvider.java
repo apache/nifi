@@ -17,6 +17,11 @@
 
 package org.apache.nifi.c2.client.service;
 
+import org.apache.nifi.c2.protocol.api.SupportedOperation;
+import org.apache.nifi.c2.protocol.component.api.Bundle;
+import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
+import org.apache.nifi.c2.protocol.component.api.DefinedType;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -30,11 +35,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.apache.nifi.c2.protocol.api.SupportedOperation;
-import org.apache.nifi.c2.protocol.component.api.Bundle;
-import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
-import org.apache.nifi.c2.protocol.component.api.DefinedType;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;

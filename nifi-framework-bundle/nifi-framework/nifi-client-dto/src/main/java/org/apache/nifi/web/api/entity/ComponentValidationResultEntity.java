@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.web.api.entity;
 
-import org.apache.nifi.web.api.dto.ComponentValidationResultDTO;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.ComponentValidationResultDTO;
 
 @XmlRootElement(name = "componentValidationResultEntity")
 public class ComponentValidationResultEntity extends ComponentEntity implements Permissible<ComponentValidationResultDTO> {

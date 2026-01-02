@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api.entity;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
-
 import org.apache.nifi.web.api.dto.ReadablePermission;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
 

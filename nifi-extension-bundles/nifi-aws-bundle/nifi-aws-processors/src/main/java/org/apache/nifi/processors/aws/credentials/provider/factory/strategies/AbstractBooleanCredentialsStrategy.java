@@ -26,7 +26,6 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialsSt
 import java.util.Collection;
 import java.util.Collections;
 
-
 /**
  * Partial implementation of CredentialsStrategy to provide support for credential strategies specified by
  * a single boolean property.

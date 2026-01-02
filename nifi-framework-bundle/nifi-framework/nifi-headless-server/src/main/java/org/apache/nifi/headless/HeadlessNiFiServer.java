@@ -66,11 +66,11 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
 import java.io.BufferedWriter;
 import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.Set;
+import javax.net.ssl.SSLContext;
 
 public class HeadlessNiFiServer implements NiFiServer {
 

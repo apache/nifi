@@ -16,19 +16,8 @@
  */
 package org.apache.nifi.processors.gcp.drive;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.google.api.client.http.HttpTransport;
 import com.google.api.services.drive.Drive;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.User;
 import org.apache.nifi.flowfile.FlowFile;
@@ -43,6 +32,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class FetchGoogleDriveTest extends AbstractGoogleDriveTest {

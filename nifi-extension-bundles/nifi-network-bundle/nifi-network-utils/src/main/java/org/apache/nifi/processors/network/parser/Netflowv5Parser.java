@@ -15,10 +15,11 @@
 package org.apache.nifi.processors.network.parser;
 
 import java.util.OptionalInt;
-import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toShort;
+
+import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toIPV4;
 import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toInt;
 import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toLong;
-import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toIPV4;
+import static org.apache.nifi.processors.network.parser.util.ConversionUtil.toShort;
 
 /**
  * Networkv5 is Cisco data export format which contains one header and one or more flow records. This Parser parses the netflowv5 format. More information: @see

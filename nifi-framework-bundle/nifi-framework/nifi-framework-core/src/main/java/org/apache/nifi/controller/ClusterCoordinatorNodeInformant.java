@@ -17,15 +17,15 @@
 
 package org.apache.nifi.controller;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformant;
 import org.apache.nifi.remote.cluster.NodeInformation;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class ClusterCoordinatorNodeInformant implements NodeInformant {
     private final ClusterCoordinator clusterCoordinator;

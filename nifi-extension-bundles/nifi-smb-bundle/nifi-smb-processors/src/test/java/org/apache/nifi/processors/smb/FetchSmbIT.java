@@ -16,6 +16,17 @@
  */
 package org.apache.nifi.processors.smb;
 
+import org.apache.nifi.processors.smb.util.CompletionStrategy;
+import org.apache.nifi.services.smb.SmbjClientProviderService;
+import org.apache.nifi.util.TestRunner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.apache.nifi.processors.smb.FetchSmb.COMPLETION_STRATEGY;
 import static org.apache.nifi.processors.smb.FetchSmb.CREATE_DESTINATION_DIRECTORY;
 import static org.apache.nifi.processors.smb.FetchSmb.DESTINATION_DIRECTORY;
@@ -26,17 +37,6 @@ import static org.apache.nifi.util.TestRunners.newTestRunner;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.nifi.processors.smb.util.CompletionStrategy;
-import org.apache.nifi.services.smb.SmbjClientProviderService;
-import org.apache.nifi.util.TestRunner;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 class FetchSmbIT extends SambaTestContainers {
 

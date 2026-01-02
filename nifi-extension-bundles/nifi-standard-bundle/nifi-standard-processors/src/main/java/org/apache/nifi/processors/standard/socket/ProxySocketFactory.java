@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.processors.standard.socket;
 
-import javax.net.SocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.Socket;
 import java.util.Objects;
+import javax.net.SocketFactory;
 
 /**
  * Proxy Socket Factory implementation creates Sockets using the configured Proxy

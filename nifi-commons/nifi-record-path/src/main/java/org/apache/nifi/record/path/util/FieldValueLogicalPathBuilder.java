@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.record.path.util;
 
+import org.apache.nifi.record.path.ArrayIndexFieldValue;
+import org.apache.nifi.record.path.FieldValue;
+import org.apache.nifi.record.path.MapEntryFieldValue;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
-import org.apache.nifi.record.path.ArrayIndexFieldValue;
-import org.apache.nifi.record.path.FieldValue;
-import org.apache.nifi.record.path.MapEntryFieldValue;
 
 public class FieldValueLogicalPathBuilder {
 

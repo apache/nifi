@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.security.cert;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
 import java.security.cert.Certificate;
 import java.util.Set;
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 /**
  * Abstraction for deriving Peer Identity information from certificates

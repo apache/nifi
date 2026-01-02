@@ -19,8 +19,8 @@ package org.apache.nifi.web.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.AccessMode;
-
 import jakarta.xml.bind.annotation.XmlType;
+
 import java.util.List;
 import java.util.Map;
 

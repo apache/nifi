@@ -16,35 +16,11 @@
  */
 package org.apache.nifi.processors.dropbox;
 
-import static java.lang.String.format;
-import static java.util.stream.Collectors.toList;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
-
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.DbxUserListFolderBuilder;
 import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.ListFolderResult;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
@@ -71,6 +47,31 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+
+import static java.lang.String.format;
+import static java.util.stream.Collectors.toList;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
 
 @PrimaryNodeOnly
 @TriggerSerially

@@ -16,17 +16,12 @@
  */
 package org.apache.nifi.services.iceberg.parquet;
 
-import org.apache.iceberg.TableProperties;
-import org.apache.nifi.services.iceberg.IcebergRowWriter;
-import org.apache.nifi.services.iceberg.IcebergWriter;
-import org.apache.nifi.services.iceberg.parquet.io.ParquetFileAppenderFactory;
-import org.apache.nifi.services.iceberg.parquet.io.ParquetIcebergRowWriter;
-import org.apache.nifi.services.iceberg.parquet.io.ParquetPartitionedWriter;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.MetricsConfig;
 import org.apache.iceberg.PartitionSpec;
 import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
+import org.apache.iceberg.TableProperties;
 import org.apache.iceberg.data.Record;
 import org.apache.iceberg.io.FileAppenderFactory;
 import org.apache.iceberg.io.FileIO;
@@ -36,6 +31,11 @@ import org.apache.iceberg.io.UnpartitionedWriter;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.services.iceberg.IcebergRowWriter;
+import org.apache.nifi.services.iceberg.IcebergWriter;
+import org.apache.nifi.services.iceberg.parquet.io.ParquetFileAppenderFactory;
+import org.apache.nifi.services.iceberg.parquet.io.ParquetIcebergRowWriter;
+import org.apache.nifi.services.iceberg.parquet.io.ParquetPartitionedWriter;
 
 import java.util.Objects;
 

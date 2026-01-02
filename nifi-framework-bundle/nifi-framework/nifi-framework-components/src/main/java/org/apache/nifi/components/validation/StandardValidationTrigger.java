@@ -17,12 +17,12 @@
 
 package org.apache.nifi.components.validation;
 
-import java.util.concurrent.ExecutorService;
-import java.util.function.BooleanSupplier;
-
 import org.apache.nifi.controller.ComponentNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ExecutorService;
+import java.util.function.BooleanSupplier;
 
 public class StandardValidationTrigger implements ValidationTrigger {
     private static final Logger logger = LoggerFactory.getLogger(StandardValidationTrigger.class);

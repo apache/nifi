@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.util.List;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+
+import java.util.List;
 
 /**
  * Represents an abstraction of a FlowFile that can be used to track changing

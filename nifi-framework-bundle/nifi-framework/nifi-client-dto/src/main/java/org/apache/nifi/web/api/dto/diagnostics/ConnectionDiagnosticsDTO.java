@@ -17,9 +17,9 @@
 package org.apache.nifi.web.api.dto.diagnostics;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
-import jakarta.xml.bind.annotation.XmlType;
 import java.util.List;
 
 @XmlType(name = "connectionDiagnostics")

@@ -29,7 +29,6 @@ import org.apache.nifi.service.lookup.AbstractSingleAttributeBasedControllerServ
 import java.io.IOException;
 import java.util.Map;
 
-
 @Tags({"record", "sink", "lookup"})
 @CapabilityDescription("Provides a RecordSinkService that can be used to dynamically select another RecordSinkService. This service " +
         "requires an attribute named 'record.sink.name' to be passed in when asking for a connection, and will throw an exception " +

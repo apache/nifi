@@ -17,13 +17,13 @@
 
 package org.apache.nifi.schema.access;
 
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.serialization.record.RecordSchema;
 
 public class InheritSchemaFromRecord implements SchemaAccessStrategy {
 

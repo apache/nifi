@@ -17,11 +17,11 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A response that is provided when an HTTP Request is made that must be federated to nodes in the cluster

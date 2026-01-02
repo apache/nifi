@@ -29,12 +29,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.flyway.autoconfigure.FlywayConfigurationCustomizer;
 import org.springframework.context.annotation.Configuration;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import javax.sql.DataSource;
 
 @Configuration
 public class CustomFlywayConfiguration implements FlywayConfigurationCustomizer {

@@ -18,10 +18,10 @@ package org.apache.nifi.ssl;
 
 import org.apache.nifi.controller.ControllerService;
 
+import java.util.Optional;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509TrustManager;
-import java.util.Optional;
 
 /**
  * Controller Service abstraction for creating instances of javax.net.ssl.SSLContext without access to supporting configuration properties

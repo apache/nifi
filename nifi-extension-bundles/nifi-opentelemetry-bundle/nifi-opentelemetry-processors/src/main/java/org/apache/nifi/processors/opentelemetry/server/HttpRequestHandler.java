@@ -35,9 +35,9 @@ import org.apache.nifi.processors.opentelemetry.encoding.StandardResponseBodyWri
 import org.apache.nifi.processors.opentelemetry.io.RequestContentListener;
 import org.apache.nifi.processors.opentelemetry.protocol.GrpcHeader;
 import org.apache.nifi.processors.opentelemetry.protocol.GrpcStatusCode;
+import org.apache.nifi.processors.opentelemetry.protocol.ServiceRequestDescription;
 import org.apache.nifi.processors.opentelemetry.protocol.ServiceResponse;
 import org.apache.nifi.processors.opentelemetry.protocol.ServiceResponseStatus;
-import org.apache.nifi.processors.opentelemetry.protocol.ServiceRequestDescription;
 import org.apache.nifi.processors.opentelemetry.protocol.StandardServiceRequestDescription;
 import org.apache.nifi.processors.opentelemetry.protocol.TelemetryContentEncoding;
 import org.apache.nifi.processors.opentelemetry.protocol.TelemetryContentType;

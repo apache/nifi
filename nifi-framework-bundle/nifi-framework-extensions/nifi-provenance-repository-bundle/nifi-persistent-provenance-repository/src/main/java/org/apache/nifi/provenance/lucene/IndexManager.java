@@ -17,12 +17,12 @@
 
 package org.apache.nifi.provenance.lucene;
 
+import org.apache.nifi.provenance.index.EventIndexSearcher;
+import org.apache.nifi.provenance.index.EventIndexWriter;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
-
-import org.apache.nifi.provenance.index.EventIndexSearcher;
-import org.apache.nifi.provenance.index.EventIndexWriter;
 
 public interface IndexManager extends Closeable {
     EventIndexSearcher borrowIndexSearcher(File indexDir) throws IOException;

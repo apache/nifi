@@ -22,8 +22,8 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.BearerTokenError;
 import org.springframework.security.oauth2.server.resource.BearerTokenErrors;
 
-import static org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.success;
 import static org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.failure;
+import static org.springframework.security.oauth2.core.OAuth2TokenValidatorResult.success;
 
 /**
  * JSON Web Token Validator checks the JWT Identifier against a Revocation Service

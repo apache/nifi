@@ -17,12 +17,12 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.nifi.provenance.serialization.RecordReader;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collection;
-
-import org.apache.nifi.provenance.serialization.RecordReader;
 
 public interface RecordReaderFactory {
     RecordReader newRecordReader(File file, Collection<Path> provenanceLogFiles, int maxAttributeChars) throws IOException;

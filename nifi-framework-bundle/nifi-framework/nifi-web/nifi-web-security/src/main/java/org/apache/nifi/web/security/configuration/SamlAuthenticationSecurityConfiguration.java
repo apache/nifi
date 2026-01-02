@@ -27,17 +27,17 @@ import org.apache.nifi.web.security.NiFiWebAuthenticationDetails;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.saml2.SamlUrlPath;
-import org.apache.nifi.web.security.saml2.service.authentication.ResponseAuthenticationConverter;
 import org.apache.nifi.web.security.saml2.registration.Saml2RegistrationProperty;
+import org.apache.nifi.web.security.saml2.registration.StandardRelyingPartyRegistrationRepository;
+import org.apache.nifi.web.security.saml2.service.authentication.ResponseAuthenticationConverter;
 import org.apache.nifi.web.security.saml2.service.web.StandardRelyingPartyRegistrationResolver;
 import org.apache.nifi.web.security.saml2.service.web.StandardSaml2AuthenticationRequestRepository;
 import org.apache.nifi.web.security.saml2.web.authentication.Saml2AuthenticationSuccessHandler;
-import org.apache.nifi.web.security.saml2.registration.StandardRelyingPartyRegistrationRepository;
 import org.apache.nifi.web.security.saml2.web.authentication.identity.AttributeNameIdentityConverter;
 import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2LocalLogoutFilter;
+import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2LogoutSuccessHandler;
 import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2SingleLogoutFilter;
 import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2SingleLogoutHandler;
-import org.apache.nifi.web.security.saml2.web.authentication.logout.Saml2LogoutSuccessHandler;
 import org.apache.nifi.web.security.saml2.web.authentication.logout.StandardSaml2LogoutRequestRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.caffeine.CaffeineCache;
@@ -56,14 +56,14 @@ import org.springframework.security.saml2.provider.service.metadata.Saml2Metadat
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml5AuthenticationRequestResolver;
-import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
-import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationRequestRepository;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationTokenConverter;
 import org.springframework.security.saml2.provider.service.web.Saml2MetadataFilter;
+import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
+import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml5AuthenticationRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2AuthenticationRequestResolver;
+import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml5LogoutRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.OpenSaml5LogoutResponseResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
@@ -75,11 +75,11 @@ import org.springframework.security.saml2.provider.service.web.authentication.lo
 import org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 
-import javax.net.ssl.X509ExtendedKeyManager;
-import javax.net.ssl.X509ExtendedTrustManager;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.X509ExtendedKeyManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
  * SAML Configuration for Authentication Security

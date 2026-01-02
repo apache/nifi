@@ -17,11 +17,11 @@
 
 package org.apache.nifi.amqp.processors;
 
+import com.rabbitmq.client.Connection;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
-
-import com.rabbitmq.client.Connection;
 
 public class AMQPResource<T extends AMQPWorker> implements Closeable {
     private final Connection connection;

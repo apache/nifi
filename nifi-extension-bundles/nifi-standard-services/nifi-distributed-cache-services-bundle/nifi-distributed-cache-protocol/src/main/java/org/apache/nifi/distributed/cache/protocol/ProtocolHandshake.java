@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.distributed.cache.protocol;
 
+import org.apache.nifi.distributed.cache.protocol.exception.HandshakeException;
+import org.apache.nifi.remote.VersionNegotiator;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
-import org.apache.nifi.distributed.cache.protocol.exception.HandshakeException;
-import org.apache.nifi.remote.VersionNegotiator;
 
 public class ProtocolHandshake {
 

@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.registry.security.authorization.file;
 
-
+import org.apache.nifi.registry.security.authorization.Group;
+import org.apache.nifi.registry.security.authorization.User;
 import org.apache.nifi.registry.security.authorization.file.tenants.generated.Groups;
 import org.apache.nifi.registry.security.authorization.file.tenants.generated.Tenants;
 import org.apache.nifi.registry.security.authorization.file.tenants.generated.Users;
-import org.apache.nifi.registry.security.authorization.Group;
-import org.apache.nifi.registry.security.authorization.User;
 import org.apache.nifi.registry.security.authorization.util.UserGroupProviderUtils;
 
 import java.util.Collections;

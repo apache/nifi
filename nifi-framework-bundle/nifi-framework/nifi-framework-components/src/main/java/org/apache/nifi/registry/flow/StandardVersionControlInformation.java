@@ -17,10 +17,10 @@
 
 package org.apache.nifi.registry.flow;
 
-import java.util.Objects;
-
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
+
+import java.util.Objects;
 
 public class StandardVersionControlInformation implements VersionControlInformation {
 

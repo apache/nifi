@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.web.security.csrf;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
@@ -29,9 +32,6 @@ import org.springframework.security.web.csrf.DefaultCsrfToken;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.WebUtils;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.net.URI;
 import java.time.Duration;
 import java.util.UUID;

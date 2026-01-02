@@ -18,6 +18,7 @@ package org.apache.nifi.web.security.cookie;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.net.URI;
 import java.util.Optional;
 

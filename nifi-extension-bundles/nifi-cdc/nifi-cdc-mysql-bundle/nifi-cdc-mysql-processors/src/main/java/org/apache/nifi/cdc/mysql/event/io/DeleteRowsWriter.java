@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.cdc.mysql.event.io;
 
-import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.cdc.event.ColumnDefinition;
+import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.DeleteRowsEventInfo;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 
 import java.io.IOException;

@@ -29,8 +29,8 @@ import org.apache.nifi.event.transport.netty.channel.pool.InitializingChannelPoo
 import org.apache.nifi.remote.VersionNegotiatorFactory;
 import org.apache.nifi.ssl.SSLContextProvider;
 
-import javax.net.ssl.SSLContext;
 import java.time.Duration;
+import javax.net.ssl.SSLContext;
 
 /**
  * Factory for construction of new {@link ChannelPool}, used by distributed cache clients to invoke service methods.

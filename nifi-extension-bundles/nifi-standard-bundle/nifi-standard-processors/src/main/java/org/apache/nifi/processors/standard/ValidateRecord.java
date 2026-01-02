@@ -17,7 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Parser;
 import org.apache.nifi.annotation.behavior.InputRequirement;

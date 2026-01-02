@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.util;
 
+import org.slf4j.Logger;
+
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import org.slf4j.Logger;
 
 /**
  * A utility class containing a few useful static methods to do typical IO

@@ -17,12 +17,12 @@
 
 package org.apache.nifi.controller.scheduling;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LongEnablingService extends AbstractControllerService {
 

@@ -17,14 +17,14 @@
 
 package org.apache.nifi.record.path.functions;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.record.path.util.RecordPathUtils;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import java.util.stream.Stream;
 
 public class SubstringAfter extends RecordPathSegment {
 

@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
-import org.apache.nifi.logging.ComponentLog;
-
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
+import org.apache.nifi.logging.ComponentLog;
+
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Base class for implementing publishing and consuming AMQP workers.

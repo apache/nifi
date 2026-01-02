@@ -17,20 +17,6 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.ofNullable;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
-import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
-import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
-
-import java.net.URI;
-import java.util.Map;
-import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.FlowIdHolder;
 import org.apache.nifi.c2.protocol.api.C2Operation;
@@ -40,6 +26,21 @@ import org.apache.nifi.c2.protocol.api.OperandType;
 import org.apache.nifi.c2.protocol.api.OperationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
+import static org.apache.nifi.c2.protocol.api.OperandType.CONFIGURATION;
+import static org.apache.nifi.c2.protocol.api.OperationType.UPDATE;
 
 public class UpdateConfigurationOperationHandler implements C2OperationHandler {
 

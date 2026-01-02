@@ -17,10 +17,10 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import java.io.File;
-
 import org.apache.lucene.document.Document;
 import org.apache.nifi.provenance.serialization.StorageSummary;
+
+import java.io.File;
 
 public class IndexableDocument {
     private final Document document;

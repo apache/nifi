@@ -18,7 +18,6 @@ package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
-
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 
 /**

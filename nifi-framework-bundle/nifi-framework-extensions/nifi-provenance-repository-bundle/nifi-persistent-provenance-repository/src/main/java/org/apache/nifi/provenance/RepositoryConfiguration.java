@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.provenance.search.SearchableField;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,12 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.provenance.search.SearchableField;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RepositoryConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(RepositoryConfiguration.class);

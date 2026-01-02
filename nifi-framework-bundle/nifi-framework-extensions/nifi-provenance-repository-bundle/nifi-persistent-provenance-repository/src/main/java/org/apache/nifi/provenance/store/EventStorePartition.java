@@ -17,15 +17,15 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.authorization.EventAuthorizer;
+import org.apache.nifi.provenance.store.iterator.EventIterator;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.authorization.EventAuthorizer;
-import org.apache.nifi.provenance.store.iterator.EventIterator;
 
 public interface EventStorePartition extends Closeable {
     /**

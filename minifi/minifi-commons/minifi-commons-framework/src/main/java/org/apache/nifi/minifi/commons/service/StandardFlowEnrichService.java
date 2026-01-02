@@ -17,30 +17,6 @@
 
 package org.apache.nifi.minifi.commons.service;
 
-import static java.lang.Boolean.FALSE;
-import static java.lang.Boolean.parseBoolean;
-import static java.util.Map.entry;
-import static java.util.Objects.isNull;
-import static java.util.Optional.empty;
-import static java.util.Optional.ofNullable;
-import static java.util.UUID.randomUUID;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
-import static java.util.stream.Collectors.toSet;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.nifi.flow.ScheduledState.ENABLED;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.flow.Bundle;
@@ -62,6 +38,31 @@ import org.apache.nifi.minifi.commons.api.MiNiFiProperties;
 import org.apache.nifi.properties.ReadableProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.parseBoolean;
+import static java.util.Map.entry;
+import static java.util.Objects.isNull;
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static java.util.UUID.randomUUID;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.nifi.flow.ScheduledState.ENABLED;
 
 public class StandardFlowEnrichService implements FlowEnrichService {
 
