@@ -57,12 +57,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class PutCouchbaseTest {
-
-    private static final String SERVICE_ID = "couchbaseConnectionService";
-    private static final String TEST_DOCUMENT_ID = "test-document-id";
-    private static final String TEST_SERVICE_LOCATION = "couchbase://test-location";
-    private static final long TEST_CAS = 1L;
+public class PutCouchbaseTest extends AbstractCouchbaseProcessorTest {
 
     private TestRunner runner;
 
@@ -76,18 +71,15 @@ public class PutCouchbaseTest {
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.upsertDocument(anyString(), any())).thenReturn(new CouchbaseUpsertResult(TEST_CAS));
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
-        when(service.getServiceLocation()).thenReturn(TEST_SERVICE_LOCATION);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
         final MockFlowFile flowFile = new MockFlowFile(0);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("flowfile_document_id", TEST_DOCUMENT_ID);
         flowFile.putAttributes(attributes);
 
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
         runner.setProperty(DOCUMENT_ID, "${flowfile_document_id}");
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
         runner.setValidateExpressionUsage(false);
@@ -120,12 +112,10 @@ public class PutCouchbaseTest {
         when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.FAILURE);
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
         runner.setProperty(DOCUMENT_ID, TEST_DOCUMENT_ID);
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
         runner.enqueue(new byte[0]);
@@ -143,12 +133,10 @@ public class PutCouchbaseTest {
         when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.RETRY);
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
         runner.setProperty(DOCUMENT_ID, TEST_DOCUMENT_ID);
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
         runner.enqueue(new byte[0]);
@@ -166,12 +154,10 @@ public class PutCouchbaseTest {
         when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.ROLLBACK);
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
         runner.setProperty(DOCUMENT_ID, TEST_DOCUMENT_ID);
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
         runner.enqueue(new byte[0]);
@@ -189,12 +175,10 @@ public class PutCouchbaseTest {
         when(client.getExceptionCategory(any())).thenReturn(ExceptionCategory.FAILURE);
         when(client.upsertDocument(anyString(), any())).thenThrow(new CouchbaseException("", new TestCouchbaseException("Test exception")));
 
-        final CouchbaseConnectionService service = mock(CouchbaseConnectionService.class);
-        when(service.getIdentifier()).thenReturn(SERVICE_ID);
-        when(service.getClient(any())).thenReturn(client);
+        final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
+        runner.addControllerService(SERVICE_ID, connectionService);
+        runner.enableControllerService(connectionService);
         runner.setProperty(DOCUMENT_ID, TEST_DOCUMENT_ID);
         runner.setProperty(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
         runner.enqueue(new byte[0]);
