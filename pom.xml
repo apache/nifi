@@ -1140,6 +1140,31 @@
             </build>
         </profile>
         <profile>
+            <!--
+            Enables JaCoCo coverage collection for integration tests.
+            This profile is inherited by all modules and sets up the JaCoCo agent
+            for Failsafe integration tests, writing to jacoco-it.exec files.
+            The nifi-code-coverage module also defines this profile for report aggregation.
+            -->
+            <id>report-code-coverage</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>prepare-agent-integration</id>
+                                <goals>
+                                    <goal>prepare-agent-integration</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>contrib-check</id>
             <build>
                 <plugins>

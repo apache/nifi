@@ -80,7 +80,6 @@ jobs:
         -P skip-unit-tests
         -P integration-tests
         -P report-code-coverage
-        jacoco:prepare-agent-integration
       MAVEN_BUILD_EXCLUDE_PROJECTS: >-
         -pl -:minifi-assembly
         -pl -:nifi-assembly
