@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.annotation.Annotation;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.WeakHashMap;
@@ -36,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ReflectionUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
-    private static Map<Class<?>, Map<Annotations, List<Method>>> annotationCache = new WeakHashMap<>();
+    private static Map<Class<?>, Map<Annotations, List<WeakReference<Method>>>> annotationCache = new WeakHashMap<>();
 
     /**
      * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
@@ -167,11 +169,14 @@ public class ReflectionUtils {
         final Annotations annotations = new Annotations(annotationClasses);
 
         synchronized (annotationCache) {
-            final Map<Annotations, List<Method>> innerMap = annotationCache.get(clazz);
+            final Map<Annotations, List<WeakReference<Method>>> innerMap = annotationCache.get(clazz);
             if (innerMap != null) {
-                final List<Method> methods = innerMap.get(annotations);
-                if (methods != null) {
-                    return methods;
+                final List<WeakReference<Method>> weakRefMethods = innerMap.get(annotations);
+                if (weakRefMethods != null) {
+                    final List<Method> methods = weakRefMethods.stream().map(weakRef -> weakRef.get()).filter(Objects::nonNull).toList();
+                    if (methods != null) {
+                        return methods;
+                    }
                 }
             }
         }
@@ -181,8 +186,12 @@ public class ReflectionUtils {
 
         // Store the discovered methods in our cache so that they are available next time.
         synchronized (annotationCache) {
-            final Map<Annotations, List<Method>> innerMap = annotationCache.computeIfAbsent(clazz, key -> new ConcurrentHashMap<>());
-            innerMap.putIfAbsent(annotations, methods);
+            final Map<Annotations, List<WeakReference<Method>>> innerMap = annotationCache.computeIfAbsent(clazz, key -> new ConcurrentHashMap<>());
+            if (innerMap != null) {
+                // Values in a WeakHashMap are strong references.  We need to wrap them with a WeakReference to ensure they can be garbage collected.
+                final List<WeakReference<Method>> weakMethods = methods.stream().map(method -> new WeakReference<>(method)).toList();
+                innerMap.putIfAbsent(annotations, weakMethods);
+            }
         }
 
         return methods;
