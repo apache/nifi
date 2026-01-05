@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -459,7 +460,7 @@ public class TestUnpackContent {
 
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
-        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0).assertAttributeEquals(FRAGMENT_COUNT, "2");
+        runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).getFirst().assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
@@ -494,7 +495,7 @@ public class TestUnpackContent {
 
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, 2);
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
-        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).get(0);
+        final MockFlowFile originalFlowFile = runner.getFlowFilesForRelationship(UnpackContent.REL_ORIGINAL).getFirst();
         originalFlowFile.assertAttributeExists(FRAGMENT_ID);
         originalFlowFile.assertAttributeEquals(FRAGMENT_COUNT, "2");
         runner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
@@ -576,6 +577,16 @@ public class TestUnpackContent {
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, numThreads * 2);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "allow-stored-entries-wdd", UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private void runZipEncryptionMethod(final EncryptionMethod encryptionMethod) throws IOException {
         runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT);
         runner.setProperty(UnpackContent.ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR, "false");
@@ -592,7 +603,7 @@ public class TestUnpackContent {
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
         runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
 
-        final MockFlowFile unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).iterator().next();
+        final MockFlowFile unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).getFirst();
         unpacked.assertAttributeEquals(UnpackContent.FILE_ENCRYPTION_METHOD_ATTRIBUTE, encryptionMethod.toString());
         unpacked.assertAttributeEquals(UnpackContent.FRAGMENT_INDEX, FIRST_FRAGMENT_INDEX);
 

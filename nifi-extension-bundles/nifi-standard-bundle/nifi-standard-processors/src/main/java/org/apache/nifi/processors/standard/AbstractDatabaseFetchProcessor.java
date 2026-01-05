@@ -362,37 +362,37 @@ public abstract class AbstractDatabaseFetchProcessor extends AbstractSessionFact
             case INTEGER:
             case SMALLINT:
             case TINYINT:
-                Integer colIntValue = resultSet.getInt(columnIndex);
+                int colIntValue = resultSet.getInt(columnIndex);
                 Integer maxIntValue = null;
                 if (maxValueString != null) {
                     maxIntValue = Integer.valueOf(maxValueString);
                 }
                 if (maxIntValue == null || colIntValue > maxIntValue) {
-                    return colIntValue.toString();
+                    return Integer.toString(colIntValue);
                 }
                 break;
 
             case BIGINT:
-                Long colLongValue = resultSet.getLong(columnIndex);
+                long colLongValue = resultSet.getLong(columnIndex);
                 Long maxLongValue = null;
                 if (maxValueString != null) {
                     maxLongValue = Long.valueOf(maxValueString);
                 }
                 if (maxLongValue == null || colLongValue > maxLongValue) {
-                    return colLongValue.toString();
+                    return Long.toString(colLongValue);
                 }
                 break;
 
             case FLOAT:
             case REAL:
             case DOUBLE:
-                Double colDoubleValue = resultSet.getDouble(columnIndex);
+                double colDoubleValue = resultSet.getDouble(columnIndex);
                 Double maxDoubleValue = null;
                 if (maxValueString != null) {
                     maxDoubleValue = Double.valueOf(maxValueString);
                 }
                 if (maxDoubleValue == null || colDoubleValue > maxDoubleValue) {
-                    return colDoubleValue.toString();
+                    return Double.toString(colDoubleValue);
                 }
                 break;
 

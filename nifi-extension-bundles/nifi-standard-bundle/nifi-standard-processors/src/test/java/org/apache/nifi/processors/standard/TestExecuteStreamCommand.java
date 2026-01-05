@@ -23,6 +23,7 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -570,7 +571,7 @@ public class TestExecuteStreamCommand {
     }
 
     @Test
-    public void testArgumentsWithQuotesFromAttributeDynamicProperties() throws Exception {
+    public void testArgumentsWithQuotesFromAttributeDynamicProperties() {
         Map<String, String> attrs = new HashMap<>();
         String exStr = "Hello World with quotes";
         attrs.put("str.attribute", exStr);
@@ -1148,6 +1149,15 @@ public class TestExecuteStreamCommand {
         String attribute = outputFlowFile.getAttribute("execution.command.args");
         String expected = "src" + File.separator + "test" + File.separator + "resources" + File.separator + "ExecuteCommand" + File.separator + "noSuchFile.jar";
         assertEquals(expected, attribute.substring(attribute.length() - expected.length()));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed =
+                Map.of("argumentsStrategy", ExecuteStreamCommand.ARGUMENTS_STRATEGY.getName());
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private static boolean isWindows() {

@@ -33,7 +33,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -2263,6 +2265,37 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         firstFlowFile.assertAttributeExists(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR);
         final String recordError = firstFlowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR);
         assertTrue(recordError.contains(PutDatabaseRecord.PRE_PROCESSING_SQL.getName()), "Pre-Processing SQL not found in [%s]".formatted(recordError));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        runner = TestRunners.newTestRunner(PutDatabaseRecord.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("put-db-record-record-reader", PutDatabaseRecord.RECORD_READER_FACTORY.getName()),
+                Map.entry("db-type", PutDatabaseRecord.DB_TYPE.getName()),
+                Map.entry("put-db-record-statement-type", PutDatabaseRecord.STATEMENT_TYPE.getName()),
+                Map.entry("put-db-record-dcbp-service", PutDatabaseRecord.DBCP_SERVICE.getName()),
+                Map.entry("put-db-record-catalog-name", PutDatabaseRecord.CATALOG_NAME.getName()),
+                Map.entry("put-db-record-schema-name", PutDatabaseRecord.SCHEMA_NAME.getName()),
+                Map.entry("put-db-record-table-name", PutDatabaseRecord.TABLE_NAME.getName()),
+                Map.entry("put-db-record-binary-format", PutDatabaseRecord.BINARY_STRING_FORMAT.getName()),
+                Map.entry("put-db-record-translate-field-names", PutDatabaseRecord.TRANSLATE_FIELD_NAMES.getName()),
+                Map.entry("put-db-record-unmatched-field-behavior", PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR.getName()),
+                Map.entry("put-db-record-unmatched-column-behavior", PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR.getName()),
+                Map.entry("put-db-record-update-keys", PutDatabaseRecord.UPDATE_KEYS.getName()),
+                Map.entry("put-db-record-field-containing-sql", PutDatabaseRecord.FIELD_CONTAINING_SQL.getName()),
+                Map.entry("put-db-record-allow-multiple-statements", PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS.getName()),
+                Map.entry("put-db-record-quoted-identifiers", PutDatabaseRecord.QUOTE_IDENTIFIERS.getName()),
+                Map.entry("put-db-record-quoted-table-identifiers", PutDatabaseRecord.QUOTE_TABLE_IDENTIFIER.getName()),
+                Map.entry("put-db-record-query-timeout", PutDatabaseRecord.QUERY_TIMEOUT.getName()),
+                Map.entry("table-schema-cache-size", PutDatabaseRecord.TABLE_SCHEMA_CACHE_SIZE.getName()),
+                Map.entry("put-db-record-max-batch-size", PutDatabaseRecord.MAX_BATCH_SIZE.getName()),
+                Map.entry("database-session-autocommit", PutDatabaseRecord.AUTO_COMMIT.getName()),
+                Map.entry(RollbackOnFailure.OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME, RollbackOnFailure.ROLLBACK_ON_FAILURE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void recreateTable() throws ProcessException {

@@ -20,22 +20,32 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLogAttribute {
 
+    private LogAttribute logAttribute;
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        logAttribute = new LogAttribute();
+        runner = TestRunners.newTestRunner(logAttribute);
+    }
+
     @Test
     public void testLogPropertyCSVNoIgnore() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -57,8 +67,6 @@ public class TestLogAttribute {
 
     @Test
     public void testLogPropertyRegexNoIgnore() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -80,8 +88,6 @@ public class TestLogAttribute {
 
     @Test
     public void testLogPropertyWithCSVAndRegexNoIgnore() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -105,8 +111,6 @@ public class TestLogAttribute {
 
     @Test
     public void testLogPropertyWithIgnoreCSV() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -128,8 +132,6 @@ public class TestLogAttribute {
 
     @Test
     public void testLogPropertyWithIgnoreRegex() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -151,8 +153,6 @@ public class TestLogAttribute {
 
     @Test
     public void testLogPropertyWithIgnoreCSVAndRegex() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -176,8 +176,6 @@ public class TestLogAttribute {
 
     @Test
     public void testLogPropertyCSVWithIgnoreRegex() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -201,8 +199,6 @@ public class TestLogAttribute {
 
     @Test
     public void testLogPropertyCSVWithIgnoreCSV() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -226,8 +222,6 @@ public class TestLogAttribute {
 
     @Test
     public void testLogPropertyRegexWithIgnoreRegex() {
-        final LogAttribute logAttribute = new LogAttribute();
-        final TestRunner runner = TestRunners.newTestRunner(logAttribute);
         final ProcessContext context = runner.getProcessContext();
         final ProcessSession session = runner.getProcessSessionFactory().createSession();
         final MockComponentLog LOG = runner.getLogger();
@@ -246,5 +240,18 @@ public class TestLogAttribute {
         assertFalse(logMessage.contains("foobaz-value"));
         assertTrue(logMessage.contains("foo-value"));
         assertFalse(logMessage.contains("bar-value"));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("attributes-to-log-regex", LogAttribute.ATTRIBUTES_TO_LOG_REGEX.getName()),
+                Map.entry("attributes-to-ignore-regex", LogAttribute.ATTRIBUTES_TO_IGNORE_REGEX.getName()),
+                Map.entry("character-set", LogAttribute.CHARSET.getName()),
+                Map.entry("Log prefix", LogAttribute.LOG_PREFIX.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

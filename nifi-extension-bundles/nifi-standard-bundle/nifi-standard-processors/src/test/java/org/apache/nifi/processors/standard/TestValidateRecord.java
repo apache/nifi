@@ -42,6 +42,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -986,6 +987,29 @@ public class TestValidateRecord {
         invalidFlowFile.assertAttributeExists("valDetails");
         invalidFlowFile.assertAttributeEquals("valDetails", "Records in this FlowFile were invalid for the following reasons: ; "
                 + "The following 1 fields had values whose type did not match the schema: [/id]");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("record-reader", ValidateRecord.RECORD_READER.getName()),
+                Map.entry("record-writer", ValidateRecord.RECORD_WRITER.getName()),
+                Map.entry("invalid-record-writer", ValidateRecord.INVALID_RECORD_WRITER.getName()),
+                Map.entry("allow-extra-fields", ValidateRecord.ALLOW_EXTRA_FIELDS.getName()),
+                Map.entry("strict-type-checking", ValidateRecord.STRICT_TYPE_CHECKING.getName()),
+                Map.entry("coerce-types", ValidateRecord.COERCE_TYPES.getName()),
+                Map.entry("validation-details-attribute-name", ValidateRecord.VALIDATION_DETAILS_ATTRIBUTE_NAME.getName()),
+                Map.entry("maximum-validation-details-length", ValidateRecord.MAX_VALIDATION_DETAILS_LENGTH.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SCHEMA_REGISTRY.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SCHEMA_NAME.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME, SCHEMA_BRANCH_NAME.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_VERSION_PROPERTY_NAME, SCHEMA_VERSION.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_TEXT_PROPERTY_NAME, SCHEMA_TEXT.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, ValidateRecord.SCHEMA_ACCESS_STRATEGY.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private String getSystemZoneOffsetId(final LocalDateTime inputLocalDateTime) {

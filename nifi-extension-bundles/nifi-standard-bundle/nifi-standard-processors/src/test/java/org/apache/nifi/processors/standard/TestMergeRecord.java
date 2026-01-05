@@ -26,6 +26,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,7 +74,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 1);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).getFirst();
         mff.assertAttributeEquals("record.count", "2");
         mff.assertContentEquals("header\nJohn,35\nJane,34\n");
 
@@ -91,7 +92,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).getFirst();
         mff.assertAttributeEquals("record.count", "2");
         mff.assertContentEquals("header\nJohn,35\nJane,34\n");
 
@@ -120,7 +121,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).getFirst();
         mff.assertAttributeEquals("record.count", "2");
         mff.assertContentEquals("header\nJohn\nJane\n");
 
@@ -371,7 +372,7 @@ public class TestMergeRecord {
 
         final StringBuilder sb = new StringBuilder("Name, Age\n");
         for (int i = 0; i < 100; i++) {
-            sb.append("Person " + i + ", " + i + "\n");
+            sb.append("Person ").append(i).append(", ").append(i).append("\n");
         }
         runner.enqueue(sb.toString());
 
@@ -404,7 +405,7 @@ public class TestMergeRecord {
 
         final StringBuilder sb = new StringBuilder("Name, Age\n");
         for (int i = 0; i < 100; i++) {
-            sb.append("Person " + i + ", " + i + "\n");
+            sb.append("Person ").append(i).append(", ").append(i).append("\n");
         }
         runner.enqueue(sb.toString());
 
@@ -433,7 +434,7 @@ public class TestMergeRecord {
 
         assertEquals(4, runner.getQueueSize().getObjectCount());
 
-        runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).stream().forEach(ff -> ff.assertAttributeEquals("record.count", "10"));
+        runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).forEach(ff -> ff.assertAttributeEquals("record.count", "10"));
     }
 
     @Test
@@ -577,7 +578,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 3);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).getFirst();
         mff.assertAttributeEquals("record.count", "3");
         mff.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
         runner.clearTransferState();
@@ -596,7 +597,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 5);
 
-        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).getFirst();
         mff1.assertAttributeEquals("record.count", "3");
         mff1.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
 
@@ -658,4 +659,22 @@ public class TestMergeRecord {
         runner.removeProperty("max_records");
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("record-reader", MergeRecord.RECORD_READER.getName()),
+                Map.entry("record-writer", MergeRecord.RECORD_WRITER.getName()),
+                Map.entry("merge-strategy", MergeRecord.MERGE_STRATEGY.getName()),
+                Map.entry("correlation-attribute-name", MergeRecord.CORRELATION_ATTRIBUTE_NAME.getName()),
+                Map.entry("min-bin-size", MergeRecord.MIN_SIZE.getName()),
+                Map.entry("max-bin-size", MergeRecord.MAX_SIZE.getName()),
+                Map.entry("min-records", MergeRecord.MIN_RECORDS.getName()),
+                Map.entry("max-records", MergeRecord.MAX_RECORDS.getName()),
+                Map.entry("max.bin.count", MergeRecord.MAX_BIN_COUNT.getName()),
+                Map.entry("max-bin-age", MergeRecord.MAX_BIN_AGE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 }

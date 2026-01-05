@@ -971,9 +971,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                 }
                                 if (targetDataType != null) {
                                     if (sqlType == Types.BLOB || sqlType == Types.BINARY || sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
-                                        if (currentValue instanceof Object[]) {
+                                        if (currentValue instanceof Object[] src) {
                                             // Convert Object[Byte] arrays to byte[]
-                                            Object[] src = (Object[]) currentValue;
                                             if (src.length > 0) {
                                                 if (!(src[0] instanceof Byte)) {
                                                     throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY/VARBINARY/LONGVARBINARY");

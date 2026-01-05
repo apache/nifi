@@ -31,6 +31,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,7 +47,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -85,7 +85,7 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         final String output = flowFile.getContent();
         for (String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
@@ -114,7 +114,7 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         final String output = flowFile.getContent();
         for (String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
@@ -143,7 +143,7 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         // null values should cause all fields to be empty in the output
         // create a string of commas whose number equals the number of fields in the datatypeFunctionMap (size - 1 copies)
         flowFile.assertContentEquals(String.join("", Collections.nCopies(FakerUtils.getDatatypeFunctionMap().size() - 1, ",")) + "\n");
@@ -153,7 +153,7 @@ public class TestGenerateRecord {
     @Test
     public void testFieldsReturnValue() throws Exception {
 
-        List<Field> fieldTypeFields = Arrays.stream(GenerateRecord.class.getFields()).filter((field) -> field.getName().startsWith("FT_")).collect(Collectors.toList());
+        List<Field> fieldTypeFields = Arrays.stream(GenerateRecord.class.getFields()).filter((field) -> field.getName().startsWith("FT_")).toList();
         for (Field field : fieldTypeFields) {
             testRunner.setProperty(field.getName().toLowerCase(Locale.ROOT), ((AllowableValue) field.get(processor)).getValue());
         }
@@ -190,7 +190,7 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         final String output = flowFile.getContent();
         for (String line : output.split(System.lineSeparator())) {
             // A null value would not be output so a comma would be the last character on the line
@@ -214,7 +214,7 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
 
         final AvroReader avroReader = new AvroReader();
         testRunner.addControllerService("avroReader", avroReader);
@@ -222,7 +222,7 @@ public class TestGenerateRecord {
         final byte[] validFlowFileBytes = flowFile.toByteArray();
         try (
                 final ByteArrayInputStream resultContentStream = new ByteArrayInputStream(validFlowFileBytes);
-                final RecordReader recordReader = avroReader.createRecordReader(flowFile.getAttributes(), resultContentStream, validFlowFileBytes.length, testRunner.getLogger());
+                final RecordReader recordReader = avroReader.createRecordReader(flowFile.getAttributes(), resultContentStream, validFlowFileBytes.length, testRunner.getLogger())
         ) {
             // Check correct schema
             final RecordSchema resultSchema = recordReader.getSchema();
@@ -283,8 +283,22 @@ public class TestGenerateRecord {
 
         testRunner.run();
         testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
-        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).getFirst();
         // null values should cause all fields to be empty in the output (2 top-level record fields in this case
         flowFile.assertContentEquals(",\n");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "record-writer", GenerateRecord.RECORD_WRITER.getName(),
+                "number-of-records", GenerateRecord.NUM_RECORDS.getName(),
+                "nullable-fields", GenerateRecord.NULLABLE_FIELDS.getName(),
+                "null-percentage", GenerateRecord.NULL_PERCENTAGE.getName(),
+                "schema-text", GenerateRecord.SCHEMA_TEXT.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }
