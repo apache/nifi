@@ -311,8 +311,11 @@ public class TestFileSystemRepository {
 
     @Test
     public void testContentNotFoundExceptionThrownIfResourceClaimTooShort() throws IOException {
-        final Path contentFile = Paths.get(rootFile.toString(), "0", "0.bin");
-        Files.createDirectories(contentFile.getParent());
+        final Path contentDirectory = rootFile.resolve("0");
+        Files.createDirectories(contentDirectory);
+        final Path archiveDirectory = contentDirectory.resolve("archive");
+        Files.createDirectories(archiveDirectory);
+        final Path contentFile = contentDirectory.resolve("0.bin");
         Files.writeString(contentFile, "Hello World", StandardOpenOption.CREATE_NEW);
 
         final ResourceClaim resourceClaim = new StandardResourceClaim(claimManager, "default", "0", "0.bin", false);
