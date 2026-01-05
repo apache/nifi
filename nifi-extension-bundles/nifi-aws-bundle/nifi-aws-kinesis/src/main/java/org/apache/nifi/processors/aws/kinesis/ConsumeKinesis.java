@@ -649,7 +649,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     private void checkInitializationResult(final InitializationResult initializationResult) {
         switch (initializationResult) {
             case InitializationResult.Success ignored -> {
-                boolean wasInitialized = initialized.getAndSet(true);
+                final boolean wasInitialized = initialized.getAndSet(true);
                 if (!wasInitialized) {
                     getLogger().info(
                             "Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
@@ -663,7 +663,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                         .map(err -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName), err))
                         // This branch is active only when a scheduler was shutdown, but no initialization error was provided.
                         // This behavior isn't typical and wasn't observed.
-                        .orElseGet(() -> new ProcessException(( "Initialization failed for stream [%s]").formatted(streamName)));
+                        .orElseGet(() -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName)));
 
                 throw ex;
             }
