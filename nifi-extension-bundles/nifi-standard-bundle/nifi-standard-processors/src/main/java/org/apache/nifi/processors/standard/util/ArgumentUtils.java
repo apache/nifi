@@ -22,8 +22,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class ArgumentUtils {
-    private final static char QUOTE = '"';
-    private final static List<Character> DELIMITING_CHARACTERS = new ArrayList<>(3);
+    private static final char QUOTE = '"';
+    private static final List<Character> DELIMITING_CHARACTERS = new ArrayList<>(3);
 
     static {
         DELIMITING_CHARACTERS.add('\t');

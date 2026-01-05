@@ -19,7 +19,6 @@ package org.apache.nifi.util.db;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -34,7 +33,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -51,7 +49,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.IntStream;
@@ -66,11 +63,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.util.Utf8;
 import org.apache.commons.io.input.ReaderInputStream;
-import org.apache.derby.jdbc.EmbeddedDriver;
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -92,81 +84,48 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestJdbcCommon {
+public class TestJdbcCommon extends AbstractConnectionTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TestJdbcCommon.class);
-    static final String createTable = "create table restaurants(id integer, name varchar(20), city varchar(50))";
-
-    /**
-     * Setting up Connection is expensive operation.
-     * So let's do this only once and reuse Connection in each test.
-     */
-    static protected Connection con;
-
-    private File tempFile;
-
-    @BeforeAll
-    public static void beforeAll() throws ClassNotFoundException {
-        final File derbyLog = new File(System.getProperty("java.io.tmpdir"), "derby.log");
-        derbyLog.deleteOnExit();
-        System.setProperty(DERBY_LOG_PROPERTY, derbyLog.getAbsolutePath());
-        Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-    }
-
-    @AfterAll
-    public static void clearDerbyLog() {
-        System.clearProperty(DERBY_LOG_PROPERTY);
-    }
+    static final String createTable = "create table if not exists restaurants(id integer, name varchar(20), city varchar(50))";
 
     @BeforeEach
     public void setup() throws ClassNotFoundException, SQLException, IOException {
-        DriverManager.registerDriver(new EmbeddedDriver());
-        tempFile = new File(System.getProperty("java.io.tmpdir"), (this.getClass().getSimpleName() + "-" + UUID.randomUUID()));
-        String location = tempFile.getAbsolutePath();
-        con = DriverManager.getConnection("jdbc:derby:" + location + ";create=true");
-        try (final Statement stmt = con.createStatement()) {
-            stmt.executeUpdate(createTable);
+        try (
+                Connection connection = getConnection();
+                Statement statement = connection.createStatement()
+        ) {
+            statement.executeUpdate(createTable);
         }
     }
-
-    @AfterEach
-    public void cleanup() throws IOException {
-        if (tempFile.exists()) {
-            final SQLException exception = assertThrows(SQLException.class, () -> DriverManager.getConnection("jdbc:derby:;shutdown=true"));
-            assertEquals("XJ015", exception.getSQLState());
-            FileUtils.deleteFile(tempFile, true);
-        }
-    }
-
-    private static final String DERBY_LOG_PROPERTY = "derby.stream.error.file";
 
     @Test
     public void testCreateSchema() throws SQLException {
-        final Statement st = con.createStatement();
-        st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
-        st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
-        st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
+        try (
+                Connection connection = getConnection();
+                Statement st = connection.createStatement()
+        ) {
+            st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
+            st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
+            st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
 
-        final ResultSet resultSet = st.executeQuery("select * from restaurants");
+            final ResultSet resultSet = st.executeQuery("select * from restaurants");
 
-        final Schema schema = JdbcCommon.createSchema(resultSet);
-        assertNotNull(schema);
+            final Schema schema = JdbcCommon.createSchema(resultSet);
+            assertNotNull(schema);
 
-        // records name, should be result set first column table name
-        // Notice! sql select may join data from different tables, other columns
-        // may have different table names
-        assertEquals("RESTAURANTS", schema.getName());
-        assertNotNull(schema.getField("ID"));
-        assertNotNull(schema.getField("NAME"));
-        assertNotNull(schema.getField("CITY"));
-
-        st.close();
-//        con.close();
+            // records name, should be result set first column table name
+            // Notice! sql select may join data from different tables, other columns
+            // may have different table names
+            assertEquals("RESTAURANTS", schema.getName());
+            assertNotNull(schema.getField("ID"));
+            assertNotNull(schema.getField("NAME"));
+            assertNotNull(schema.getField("CITY"));
+        }
     }
 
     @Test
     public void testCreateSchemaNoColumns() throws SQLException {
-
         final ResultSet resultSet = mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
@@ -185,7 +144,6 @@ public class TestJdbcCommon {
 
     @Test
     public void testCreateSchemaNoTableName() throws SQLException {
-
         final ResultSet resultSet = mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
@@ -199,12 +157,10 @@ public class TestJdbcCommon {
 
         // records name, should be result set first column table name
         assertEquals("NiFi_ExecuteSQL_Record", schema.getName());
-
     }
 
     @Test
     public void testCreateSchemaOnlyColumnLabel() throws SQLException {
-
         final ResultSet resultSet = mock(ResultSet.class);
         final ResultSetMetaData resultSetMetaData = mock(ResultSetMetaData.class);
         when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
@@ -229,22 +185,23 @@ public class TestJdbcCommon {
 
     @Test
     public void testConvertToBytes() throws SQLException, IOException {
-        final Statement st = con.createStatement();
-        st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
-        st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
-        st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
+        try (
+                Connection connection = getConnection();
+                Statement st = connection.createStatement()
+        ) {
+            st.executeUpdate("insert into restaurants values (1, 'Irifunes', 'San Mateo')");
+            st.executeUpdate("insert into restaurants values (2, 'Estradas', 'Daly City')");
+            st.executeUpdate("insert into restaurants values (3, 'Prime Rib House', 'San Francisco')");
 
-        final ResultSet resultSet = st.executeQuery("select R.*, ROW_NUMBER() OVER () as rownr from restaurants R");
+            final ResultSet resultSet = st.executeQuery("select R.*, ROW_NUMBER() OVER () as rownr from restaurants R");
 
-        final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
-        JdbcCommon.convertToAvroStream(resultSet, outStream, false);
+            final ByteArrayOutputStream outStream = new ByteArrayOutputStream();
+            JdbcCommon.convertToAvroStream(resultSet, outStream, false);
 
-        final byte[] serializedBytes = outStream.toByteArray();
-        assertNotNull(serializedBytes);
-
-        st.close();
+            final byte[] serializedBytes = outStream.toByteArray();
+            assertNotNull(serializedBytes);
+        }
     }
-
 
     @Test
     public void testCreateSchemaTypes() throws SQLException, IllegalArgumentException, IllegalAccessException {
@@ -447,8 +404,8 @@ public class TestJdbcCommon {
         final int dbPrecision = 5;
         final int dbScale = 0;
 
-        final int expectedPrecision = dbPrecision;
-        final int expectedScale = dbScale;
+        final int expectedPrecision = 5;
+        final int expectedScale = 0;
 
         final int defaultPrecision = 15;
         final int defaultScale = 15;
@@ -481,7 +438,9 @@ public class TestJdbcCommon {
 
         final JdbcCommon.AvroConversionOptions.Builder optionsBuilder = JdbcCommon.AvroConversionOptions
                 .builder().convertNames(true).useLogicalTypes(true).defaultPrecision(defaultPrecision);
-        if (defaultScale > -1) optionsBuilder.defaultScale(defaultScale);
+        if (defaultScale > -1) {
+            optionsBuilder.defaultScale(defaultScale);
+        }
 
         final JdbcCommon.AvroConversionOptions options = optionsBuilder.build();
         JdbcCommon.convertToAvroStream(rs, baos, options, null);
@@ -516,10 +475,13 @@ public class TestJdbcCommon {
 
     @Test
     public void testClob() throws Exception {
-        try (final Statement stmt = con.createStatement()) {
-            stmt.executeUpdate("CREATE TABLE clobtest (id INT, text CLOB(64 K))");
+        try (
+                Connection connection = getConnection();
+                Statement stmt = connection.createStatement()
+        ) {
+            stmt.executeUpdate("CREATE TABLE clobtest (id INT, text CLOB)");
             stmt.execute("INSERT INTO clobtest VALUES (41, NULL)");
-            PreparedStatement ps = con.prepareStatement("INSERT INTO clobtest VALUES (?, ?)");
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO clobtest VALUES (?, ?)");
             ps.setInt(1, 42);
             final char[] buffer = new char[4002];
             IntStream.range(0, 4002).forEach((i) -> buffer[i] = String.valueOf(i % 10).charAt(0));
@@ -569,10 +531,13 @@ public class TestJdbcCommon {
 
     @Test
     public void testBlob() throws Exception {
-        try (final Statement stmt = con.createStatement()) {
-            stmt.executeUpdate("CREATE TABLE blobtest (id INT, b BLOB(64 K))");
+        try (
+                Connection connection = getConnection();
+                Statement stmt = connection.createStatement()
+        ) {
+            stmt.executeUpdate("CREATE TABLE blobtest (id INT, b BLOB)");
             stmt.execute("INSERT INTO blobtest VALUES (41, NULL)");
-            PreparedStatement ps = con.prepareStatement("INSERT INTO blobtest VALUES (?, ?)");
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO blobtest VALUES (?, ?)");
             ps.setInt(1, 42);
             final byte[] buffer = new byte[4002];
             IntStream.range(0, 4002).forEach((i) -> buffer[i] = (byte) ((i % 10) + 65));
@@ -727,7 +692,7 @@ public class TestJdbcCommon {
 
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
-        final Long ret = 0L;
+        final long ret = 0L;
         when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
 
         final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
@@ -755,7 +720,7 @@ public class TestJdbcCommon {
 
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
-        final Long ret = 0L;
+        final long ret = 0L;
         when(rs.getObject(Mockito.anyInt())).thenReturn(ret);
 
         final InputStream instream = JdbcCommonTestUtils.convertResultSetToAvroInputStream(rs);
@@ -860,21 +825,17 @@ public class TestJdbcCommon {
         }
     }
 
-    // many test use Derby as database, so ensure driver is available
-    @Test
-    public void testDriverLoad() throws ClassNotFoundException {
-        final Class<?> clazz = Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
-        assertNotNull(clazz);
-    }
-
     @Test
     public void testSetSensitiveParametersDoesNotLogSensitiveValues() throws SQLException {
         final Map<String, SensitiveValueWrapper> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", new SensitiveValueWrapper("4", false));
         attributes.put("sql.args.1.value", new SensitiveValueWrapper("123.4", true));
-        try (final Statement stmt = con.createStatement()) {
-            stmt.executeUpdate("CREATE TABLE inttest (id INT)");
-            PreparedStatement ps = con.prepareStatement("INSERT INTO inttest VALUES (?)");
+        try (
+                Connection connection = getConnection();
+                Statement stmt = connection.createStatement()
+        ) {
+            stmt.executeUpdate("CREATE TABLE SENSITIVE_TEST (id INT)");
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO SENSITIVE_TEST VALUES (?)");
             final SQLException exception = assertThrows(SQLException.class, () -> JdbcCommon.setSensitiveParameters(ps, attributes));
             assertTrue(exception.getMessage().contains(MASKED_LOG_VALUE));
             assertFalse(exception.getMessage().contains("123.4"));
@@ -886,13 +847,15 @@ public class TestJdbcCommon {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", "4");
         attributes.put("sql.args.1.value", "123.4");
-        try (final Statement stmt = con.createStatement()) {
+        try (
+                Connection connection = getConnection();
+                Statement stmt = connection.createStatement()
+        ) {
             stmt.executeUpdate("CREATE TABLE inttest (id INT)");
-            PreparedStatement ps = con.prepareStatement("INSERT INTO inttest VALUES (?)");
+            PreparedStatement ps = connection.prepareStatement("INSERT INTO inttest VALUES (?)");
             final SQLException exception = assertThrows(SQLException.class, () -> JdbcCommon.setParameters(ps, attributes));
             assertFalse(exception.getMessage().contains(MASKED_LOG_VALUE));
             assertTrue(exception.getMessage().contains("123.4"));
         }
     }
-
 }

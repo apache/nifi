@@ -35,12 +35,12 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -54,21 +54,27 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public abstract class TestBaseJoltTransformRecord {
 
-    final static String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
-    static String chainrSpecContents;
-    protected TestRunner runner;
-    protected JoltTransformRecord processor;
-    protected MockRecordParser parser;
-    protected JsonRecordSetWriter writer;
+    static final String CHAINR_SPEC_PATH = "src/test/resources/specs/chainrSpec.json";
+    private static final String CUSTOM_CLASS_NAME = CustomTransformJarProvider.getCustomTransformClassName();
+    private static String chainrSpecContents;
+    private static Path customTransformJar;
+
+    @TempDir
+    private static Path tempDir;
+
+    private TestRunner runner;
+    private JoltTransformRecord processor;
+    private MockRecordParser parser;
+    private JsonRecordSetWriter writer;
 
     @BeforeAll
     static void setUpBeforeAll() throws Exception {
         chainrSpecContents = Files.readString(Paths.get(CHAINR_SPEC_PATH));
+        customTransformJar = CustomTransformJarProvider.createCustomTransformJar(tempDir);
     }
 
     @BeforeEach
@@ -238,7 +244,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.enableControllerService(writer);
         final String spec = Files.readString(Paths.get("src/test/resources/specs/customChainrSpec.json"));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.assertValid();
     }
@@ -251,7 +257,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
         runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
         runner.enableControllerService(writer);
-        final String customJarPath = "src/test/resources/TestJoltTransformRecord/TestCustomJoltTransform.jar";
+        final String customJarPath = customTransformJar.toString();
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, chainrSpecContents);
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
@@ -263,7 +269,7 @@ public abstract class TestBaseJoltTransformRecord {
     public void testCustomTransformationWithInvalidClassPath() {
         final String customJarPath = "src/test/resources/TestJoltTransformRecord/FakeCustomJar.jar";
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(new byte[0]);
@@ -272,9 +278,9 @@ public abstract class TestBaseJoltTransformRecord {
 
     @Test
     public void testCustomTransformationWithInvalidClassName() {
-        final String customJarPath = "src/test/resources/TestJoltTransformRecord/TestCustomJoltTransform.jar";
+        final String customJarPath = customTransformJar.toString();
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, chainrSpecContents);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "FakeCustomJoltTransform");
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "org.apache.nifi.processors.jolt.FakeCustomJoltTransform");
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CUSTOMR);
         runner.enqueue(new byte[0]);
@@ -299,7 +305,7 @@ public abstract class TestBaseJoltTransformRecord {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/chainrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/chainrOutput.json"));
     }
 
     @Test
@@ -320,7 +326,7 @@ public abstract class TestBaseJoltTransformRecord {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/shiftrOutput.json"));
     }
 
     @Test
@@ -341,7 +347,7 @@ public abstract class TestBaseJoltTransformRecord {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/shiftrOutput.json"));
     }
 
     @Test
@@ -380,7 +386,7 @@ public abstract class TestBaseJoltTransformRecord {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutputMultipleOutputRecords.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/shiftrOutputMultipleOutputRecords.json"));
     }
 
     @Test
@@ -401,7 +407,7 @@ public abstract class TestBaseJoltTransformRecord {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/shiftrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/shiftrOutput.json"));
     }
 
     @Test
@@ -420,7 +426,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/defaultrOutput.json"));
     }
 
     @Test
@@ -439,8 +445,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/removrOutput.json")), new String(transformed.toByteArray()));
-
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/removrOutput.json"));
     }
 
     @Test
@@ -459,8 +464,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/cardrOutput.json")), new String(transformed.toByteArray()));
-
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/cardrOutput.json"));
     }
 
     @Test
@@ -479,7 +483,7 @@ public abstract class TestBaseJoltTransformRecord {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/sortrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/sortrOutput.json"));
     }
 
     @Test
@@ -499,8 +503,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrELOutput.json")), new String(transformed.toByteArray()));
-
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/defaultrELOutput.json"));
     }
 
     @Test
@@ -519,7 +522,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.run();
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/modifierDefaultOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/modifierDefaultOutput.json"));
     }
 
     @Test
@@ -538,7 +541,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/modifierDefineOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/modifierDefineOutput.json"));
     }
 
     @Test
@@ -557,7 +560,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/modifierOverwriteOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/modifierOverwriteOutput.json"));
     }
 
     @Test
@@ -577,7 +580,7 @@ public abstract class TestBaseJoltTransformRecord {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/sortrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/sortrOutput.json"));
     }
 
     @Test
@@ -588,10 +591,10 @@ public abstract class TestBaseJoltTransformRecord {
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
         runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
         runner.enableControllerService(writer);
-        final String customJarPath = "src/test/resources/TestJoltTransformRecord/TestCustomJoltTransform.jar";
+        final String customJarPath = customTransformJar.toString();
         final String spec = Files.readString(Paths.get("src/test/resources/specs/defaultrSpec.json"));
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, spec);
-        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "TestCustomJoltTransform");
+        runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, CUSTOM_CLASS_NAME);
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.DEFAULTR);
         runner.enqueue(new byte[0]);
@@ -601,7 +604,7 @@ public abstract class TestBaseJoltTransformRecord {
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
         transformed.assertAttributeExists(CoreAttributes.MIME_TYPE.key());
         transformed.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/defaultrOutput.json"));
     }
 
     @Test
@@ -612,12 +615,10 @@ public abstract class TestBaseJoltTransformRecord {
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
         runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
         runner.enableControllerService(writer);
-        URL t = getClass().getResource("/TestJoltTransformRecord/TestCustomJoltTransform.jar");
-        assertNotNull(t);
-        final String customJarPath = t.getPath();
+        final String customJarPath = customTransformJar.toString();
         final String spec = Files.readString(Paths.get("src/test/resources/specs/customChainrSpec.json"));
-        final String customJoltTransform = "TestCustomJoltTransform";
-        final String customClass = "TestCustomJoltTransform";
+        final String customJoltTransform = CUSTOM_CLASS_NAME;
+        final String customClass = CUSTOM_CLASS_NAME;
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, "${JOLT_SPEC}");
         runner.setProperty(JoltTransformRecord.MODULES, customJarPath);
         runner.setProperty(JoltTransformRecord.CUSTOM_CLASS, "${CUSTOM_CLASS}");
@@ -652,7 +653,7 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
 
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/defaultrOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/defaultrOutput.json"));
     }
 
     @Test
@@ -681,6 +682,9 @@ public abstract class TestBaseJoltTransformRecord {
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 0);
         runner.assertTransferCount(JoltTransformRecord.REL_FAILURE, 0);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutput.json"));
     }
 
 
@@ -712,5 +716,16 @@ public abstract class TestBaseJoltTransformRecord {
         } else {
             recordGenerator.apply(numRecords, parser);
         }
+    }
+
+    private static String getExpectedContent(String path) throws IOException {
+        final boolean windows = System.getProperty("os.name").startsWith("Windows");
+        String expectedContent = Files.readString(Paths.get(path));
+
+        if (windows) {
+            expectedContent = expectedContent.replaceAll("\n", "\r\n");
+        }
+
+        return expectedContent;
     }
 }

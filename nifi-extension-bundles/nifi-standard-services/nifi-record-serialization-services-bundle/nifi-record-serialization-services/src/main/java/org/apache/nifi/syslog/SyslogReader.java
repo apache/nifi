@@ -81,7 +81,7 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
             .build();
 
     private volatile SyslogParser parser;
-    private volatile static boolean includeRaw;
+    private static volatile boolean includeRaw;
     private volatile RecordSchema recordSchema;
 
     @Override

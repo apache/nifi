@@ -20,8 +20,8 @@ import org.apache.nifi.util.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -184,7 +184,8 @@ public class CollisionAwareResourceProviderWorkerTest {
     }
 
     @Test
-    @Disabled("This test needs human interaction and should not part of a build")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "This test needs human interaction and should not part of a build")
     public void testExistingFileCannotBeDeleted() throws InterruptedException, IOException {
         setActions(Action.LIST, Action.FETCH);
         ensureTargetDirectoryExists(true);
@@ -201,7 +202,8 @@ public class CollisionAwareResourceProviderWorkerTest {
     }
 
     @Test
-    @Disabled("This test needs human interaction and should not part of a build")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "This test needs human interaction and should not part of a build")
     public void testExistingTemporaryFileCannotBeDeleted() throws InterruptedException, IOException {
         setActions(Action.LIST, Action.FETCH);
         ensureTargetDirectoryExists(true);

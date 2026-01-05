@@ -35,8 +35,8 @@ public class PropertyMatcher<T extends ComponentNode> implements AttributeMatche
     private static final String LABEL_VALUE = "Property value";
     private static final String LABEL_DESCRIPTION = "Property description";
 
-    private final static String FILTER_NAME_PROPERTIES = "properties";
-    private final static Set<String> FILTER_VALUES_PROPERTIES_EXCLUSION = new HashSet<>(Arrays.asList("no", "none", "false", "exclude", "0"));
+    private static final String FILTER_NAME_PROPERTIES = "properties";
+    private static final Set<String> FILTER_VALUES_PROPERTIES_EXCLUSION = new HashSet<>(Arrays.asList("no", "none", "false", "exclude", "0"));
 
     @Override
     public void match(final T component, final SearchQuery query, final List<String> matches) {

@@ -59,9 +59,9 @@ import java.util.Optional;
 
 @Tags({"PEM", "SSL", "TLS", "Key", "Certificate", "PKCS1", "PKCS8", "X.509", "ECDSA", "Ed25519", "RSA"})
 @CapabilityDescription("""
-    SSLContext Provider configurable using PEM Private Key and Certificate files.
-    Supports PKCS1 and PKCS8 encoding for Private Keys as well as X.509 encoding for Certificates.
-""")
+        SSLContext Provider configurable using PEM Private Key and Certificate files.
+        Supports PKCS1 and PKCS8 encoding for Private Keys as well as X.509 encoding for Certificates.
+        """)
 public class PEMEncodedSSLContextProvider extends AbstractControllerService implements SSLContextProvider, VerifiableControllerService {
     static final String DEFAULT_PROTOCOL = "TLS";
 

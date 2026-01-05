@@ -55,9 +55,12 @@ import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.kinesis.KinesisClient;
+import software.amazon.awssdk.services.kinesis.model.Consumer;
 import software.amazon.awssdk.services.kinesis.model.DescribeStreamResponse;
+import software.amazon.awssdk.services.kinesis.model.ListStreamConsumersResponse;
 import software.amazon.awssdk.services.kinesis.model.PutRecordsRequestEntry;
 import software.amazon.awssdk.services.kinesis.model.ScalingType;
+import software.amazon.awssdk.services.kinesis.model.StreamDescription;
 import software.amazon.awssdk.services.kinesis.model.StreamStatus;
 
 import java.net.URI;
@@ -67,6 +70,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
 
@@ -95,7 +99,7 @@ import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 class ConsumeKinesisIT {
 
     private static final Logger logger = LoggerFactory.getLogger(ConsumeKinesisIT.class);
-    private static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:4.10.0");
+    private static final DockerImageName LOCALSTACK_IMAGE = DockerImageName.parse("localstack/localstack:4.12.0");
 
     private static final LocalStackContainer localstack = new LocalStackContainer(LOCALSTACK_IMAGE).withServices("kinesis", "dynamodb", "cloudwatch");
 
@@ -195,6 +199,40 @@ class ConsumeKinesisIT {
         assertNotNull(flowFile.getAttribute("aws.kinesis.shard.id"));
 
         assertReceiveProvenanceEvents(runner.getProvenanceEvents(), flowFile);
+
+        // Creates an enhanced fan-out consumer by default.
+        assertEquals(
+                List.of(applicationName),
+                streamClient.getEnhancedFanOutConsumerNames(),
+                "Expected a single enhanced fan-out consumer with an application name");
+    }
+
+    @Test
+    void testConsumeSingleMessageFromSingleShard_withoutEnhancedFanOut() {
+        runner.setProperty(ConsumeKinesis.CONSUMER_TYPE, ConsumeKinesis.ConsumerType.SHARED_THROUGHPUT);
+
+        streamClient.createStream(1);
+
+        final String testMessage = "Hello, Kinesis!";
+        streamClient.putRecord("test-partition-key", testMessage);
+
+        runProcessorWithInitAndWaitForFiles(runner, 1);
+
+        runner.assertTransferCount(REL_SUCCESS, 1);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(REL_SUCCESS);
+        final MockFlowFile flowFile = flowFiles.getFirst();
+
+        flowFile.assertContentEquals(testMessage);
+        flowFile.assertAttributeEquals("aws.kinesis.partition.key", "test-partition-key");
+        assertNotNull(flowFile.getAttribute("aws.kinesis.first.sequence.number"));
+        assertNotNull(flowFile.getAttribute("aws.kinesis.last.sequence.number"));
+        assertNotNull(flowFile.getAttribute("aws.kinesis.shard.id"));
+
+        assertReceiveProvenanceEvents(runner.getProvenanceEvents(), flowFile);
+
+        assertTrue(
+                streamClient.getEnhancedFanOutConsumerNames().isEmpty(),
+                "No enhanced fan-out consumers should be created for Shared Throughput consumer type");
     }
 
     @Test
@@ -569,6 +607,28 @@ class ConsumeKinesisIT {
             logger.info("Stream {} is now active", streamName);
         }
 
+        List<String> getEnhancedFanOutConsumerNames() {
+            final String arn = describeStream().streamARN();
+
+            final ListStreamConsumersResponse response = executeWithRetry(
+                    "listStreamConsumers",
+                    () -> kinesisClient.listStreamConsumers(req -> req.streamARN(arn))
+            );
+
+            return response.consumers().stream()
+                    .map(Consumer::consumerName)
+                    .toList();
+        }
+
+        private StreamDescription describeStream() {
+            final DescribeStreamResponse response = executeWithRetry(
+                    "describeStream",
+                    () -> kinesisClient.describeStream(req -> req.streamName(streamName))
+            );
+
+            return response.streamDescription();
+        }
+
         void deleteStream() {
             logger.info("Deleting stream: {}", streamName);
 
@@ -627,9 +687,7 @@ class ConsumeKinesisIT {
 
             while (System.currentTimeMillis() < timeoutMillis) {
                 try {
-                    final DescribeStreamResponse response = kinesisClient.describeStream(req -> req.streamName(streamName));
-
-                    final StreamStatus status = response.streamDescription().streamStatus();
+                    final StreamStatus status = describeStream().streamStatus();
                     if (status == StreamStatus.ACTIVE) {
                         return;
                     }
@@ -653,14 +711,13 @@ class ConsumeKinesisIT {
             throw new IllegalStateException("Stream " + streamName + " did not become active within timeout");
         }
 
-        private void executeWithRetry(final String operation, final Runnable op) {
-            RuntimeException lastException = null;
+        private <T> T executeWithRetry(final String operation, final Callable<T> op) {
+            Exception lastException = null;
 
             for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
                 try {
-                    op.run();
-                    return;
-                } catch (final RuntimeException e) {
+                    return op.call();
+                } catch (final Exception e) {
                     lastException = e;
                     logger.warn("Attempt {} of {} failed for operation {}: {}",
                             attempt, MAX_RETRIES, operation, e.getMessage());

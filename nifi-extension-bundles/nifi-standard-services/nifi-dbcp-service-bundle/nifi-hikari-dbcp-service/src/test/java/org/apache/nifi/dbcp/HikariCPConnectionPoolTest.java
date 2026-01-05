@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
@@ -41,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 public class HikariCPConnectionPoolTest {
-    private final static String SERVICE_ID = HikariCPConnectionPoolTest.class.getSimpleName();
+    private static final String SERVICE_ID = HikariCPConnectionPoolTest.class.getSimpleName();
 
     private static final String INVALID_CONNECTION_URL = "jdbc:h2";
 
@@ -164,6 +165,25 @@ public class HikariCPConnectionPoolTest {
         final List<ConfigVerificationResult> results = service.verify(configContext, runner.getLogger(), configContext.getAllProperties());
 
         assertOutcomeSuccessful(results);
+    }
+
+    @Test
+    public void testDeregisterDriver() throws Exception {
+        final HikariCPConnectionPool service = new HikariCPConnectionPool();
+        runner.addControllerService(SERVICE_ID, service);
+        final String url = "jdbc:hsqldb:mem:test";
+        runner.setProperty(service, HikariCPConnectionPool.DATABASE_URL, url);
+        runner.setProperty(service, HikariCPConnectionPool.DB_USER, String.class.getSimpleName());
+        runner.setProperty(service, HikariCPConnectionPool.DB_PASSWORD, String.class.getName());
+        runner.setProperty(service, HikariCPConnectionPool.DB_DRIVERNAME, "org.hsqldb.jdbc.JDBCDriver");
+        runner.setProperty(service, HikariCPConnectionPool.MAX_TOTAL_CONNECTIONS, "2");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+        final int serviceRunningNumberOfDrivers = Collections.list(DriverManager.getDrivers()).size();
+        runner.disableControllerService(service);
+        runner.removeControllerService(service);
+        final int expectedDriversAfterRemove = serviceRunningNumberOfDrivers - 1;
+        assertEquals(expectedDriversAfterRemove, Collections.list(DriverManager.getDrivers()).size(), "Driver should be deregistered on remove");
     }
 
     private void setDatabaseProperties(final HikariCPConnectionPool service) {

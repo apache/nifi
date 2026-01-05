@@ -75,7 +75,7 @@ public class TestRollbackOnFailure {
         final List<Integer> results = new ArrayList<>();
         assertDoesNotThrow(() -> processInputs(context, inputs, results),
                 "ProcessException should NOT be thrown");
-        assertEquals( 2, context.getProcessedCount(), "Successful inputs");
+        assertEquals(2, context.getProcessedCount(), "Successful inputs");
     }
 
     @Test
@@ -88,7 +88,7 @@ public class TestRollbackOnFailure {
 
         final List<Integer> results = new ArrayList<>();
         assertThrows(ProcessException.class, () -> processInputs(context, inputs, results));
-        assertEquals( 0, context.getProcessedCount(), "Successful inputs");
+        assertEquals(0, context.getProcessedCount(), "Successful inputs");
     }
 
     @Test
@@ -103,7 +103,7 @@ public class TestRollbackOnFailure {
         final List<Integer> results = new ArrayList<>();
         assertDoesNotThrow(() -> processInputs(context, inputs, results),
                 "ProcessException should NOT be thrown");
-        assertEquals( 2, context.getProcessedCount(), "Successful inputs");
+        assertEquals(2, context.getProcessedCount(), "Successful inputs");
     }
 
     @Test

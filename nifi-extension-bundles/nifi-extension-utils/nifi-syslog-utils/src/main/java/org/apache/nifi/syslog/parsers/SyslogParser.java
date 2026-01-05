@@ -39,7 +39,7 @@ public class SyslogParser {
     public static final String SYSLOG_MSG_RFC5424_0 =
             "(?:\\<(\\d{1,3})\\>)" + // priority
                     "(?:(\\d)?\\s?)" + // version
-      /* yyyy-MM-dd'T'HH:mm:ss.SZ or yyyy-MM-dd'T'HH:mm:ss.S+hh:mm or - (null stamp) */
+                    /* yyyy-MM-dd'T'HH:mm:ss.SZ or yyyy-MM-dd'T'HH:mm:ss.S+hh:mm or - (null stamp) */
                     "(?:" +
                     "(\\d{4}[-]\\d{2}[-]\\d{2}[T]\\d{2}[:]\\d{2}[:]\\d{2}" +
                     "(?:\\.\\d{1,6})?(?:[+-]\\d{2}[:]\\d{2}|Z)?)|-)" + // stamp
@@ -106,7 +106,7 @@ public class SyslogParser {
         if (buffer.position() != 0) {
             buffer.flip();
         }
-        byte bytes[] = new byte[buffer.limit()];
+        byte[] bytes = new byte[buffer.limit()];
         buffer.get(bytes, 0, buffer.limit());
         return parseEvent(bytes, sender);
     }

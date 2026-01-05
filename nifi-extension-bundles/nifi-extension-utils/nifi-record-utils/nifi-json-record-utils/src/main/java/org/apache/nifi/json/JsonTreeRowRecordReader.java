@@ -99,8 +99,9 @@ public class JsonTreeRowRecordReader extends AbstractJsonRowRecordReader {
             return ((RecordDataType) ((ArrayDataType) recordField.getDataType()).getElementType()).getChildSchema();
         } else if (recordField.getDataType() instanceof RecordDataType) {
             return ((RecordDataType) recordField.getDataType()).getChildSchema();
-        } else
+        } else {
             throw new RuntimeException(String.format("Selected schema field [%s] is not record or array type.", recordField.getFieldName()));
+        }
     }
 
     @Override

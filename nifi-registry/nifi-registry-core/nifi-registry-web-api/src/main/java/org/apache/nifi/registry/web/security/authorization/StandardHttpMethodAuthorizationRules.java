@@ -22,7 +22,7 @@ import java.util.Set;
 
 public class StandardHttpMethodAuthorizationRules implements HttpMethodAuthorizationRules {
 
-    final private Set<HttpMethod> methodsRequiringAuthorization;
+    private final Set<HttpMethod> methodsRequiringAuthorization;
 
     public StandardHttpMethodAuthorizationRules() {
         this(Set.of(HttpMethod.values()));

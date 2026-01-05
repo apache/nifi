@@ -217,7 +217,6 @@ export class UserListingEffects {
                                         request: {
                                             requestId: userGroupUpdate.requestId,
                                             id: ug.id,
-                                            uri: ug.uri,
                                             revision: this.client.getRevision(userGroup),
                                             userGroupPayload: {
                                                 ...ug.component,
@@ -375,7 +374,6 @@ export class UserListingEffects {
                                             request: {
                                                 revision: response.revision,
                                                 id: request.user.id,
-                                                uri: request.user.uri,
                                                 userPayload: {
                                                     ...request.user.component,
                                                     ...response.user.payload
@@ -389,7 +387,6 @@ export class UserListingEffects {
                                             request: {
                                                 revision: response.revision,
                                                 id: request.user.id,
-                                                uri: request.user.uri,
                                                 userPayload: {
                                                     ...request.user.component,
                                                     ...response.user.payload
@@ -479,7 +476,6 @@ export class UserListingEffects {
                                             requestId: userGroupUpdate.requestId,
                                             revision: this.client.getRevision(userGroup),
                                             id: ug.id,
-                                            uri: ug.uri,
                                             userGroupPayload: {
                                                 ...ug.component,
                                                 users
@@ -516,7 +512,6 @@ export class UserListingEffects {
                                             requestId: userGroupUpdate.requestId,
                                             revision: this.client.getRevision(userGroup),
                                             id: ug.id,
-                                            uri: ug.uri,
                                             userGroupPayload: {
                                                 ...ug.component,
                                                 users
@@ -599,8 +594,7 @@ export class UserListingEffects {
                                     UserListingActions.updateUserGroup({
                                         request: {
                                             revision: response.revision,
-                                            id: response.userGroup.id,
-                                            uri: request.userGroup.uri,
+                                            id: request.userGroup.id,
                                             userGroupPayload: {
                                                 ...request.userGroup.component,
                                                 ...response.userGroup.payload,

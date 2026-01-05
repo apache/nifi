@@ -89,7 +89,7 @@ public class Revision implements Serializable {
             return true;
         }
 
-        if ((obj instanceof Revision) == false) {
+        if (!(obj instanceof Revision)) {
             return false;
         }
 

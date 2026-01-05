@@ -61,7 +61,8 @@ public class SequenceFileWriterImpl implements SequenceFileWriter {
         // This allows the Sequence File to say that the Values are of type BytesWritable (so they can be
         // read via the BytesWritable class) while allowing us to stream the data rather than buffering
         // entire files in memory.
-        final byte[] toReplace, replaceWith;
+        final byte[] toReplace;
+        final byte[] replaceWith;
         toReplace = InputStreamWritable.class.getCanonicalName().getBytes(StandardCharsets.UTF_8);
         replaceWith = BytesWritable.class.getCanonicalName().getBytes(StandardCharsets.UTF_8);
 

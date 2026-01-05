@@ -59,7 +59,6 @@ export interface CreateUserGroupResponse {
 export interface UpdateUserRequest {
     revision: Revision;
     id: string;
-    uri: string;
     userPayload: any;
     userGroupUpdate?: {
         requestId: number;
@@ -81,7 +80,6 @@ export interface UpdateUserGroupRequest {
     requestId?: number;
     revision: Revision;
     id: string;
-    uri: string;
     userGroupPayload: any;
 }
 

@@ -23,7 +23,7 @@ import java.util.Objects;
 
 public final class ResourceFactory {
 
-    private final static Resource CONTROLLER_RESOURCE = new Resource() {
+    private static final Resource CONTROLLER_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Controller.getValue();
@@ -40,7 +40,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource FLOW_RESOURCE = new Resource() {
+    private static final Resource FLOW_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Flow.getValue();
@@ -57,7 +57,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource POLICY_RESOURCE = new Resource() {
+    private static final Resource POLICY_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Policy.getValue();
@@ -74,7 +74,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource COUNTERS_RESOURCE = new Resource() {
+    private static final Resource COUNTERS_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Counters.getValue();
@@ -91,7 +91,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PROVENANCE_RESOURCE = new Resource() {
+    private static final Resource PROVENANCE_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Provenance.getValue();
@@ -108,7 +108,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PROVENANCE_DATA_RESOURCE = new Resource() {
+    private static final Resource PROVENANCE_DATA_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.ProvenanceData.getValue();
@@ -125,7 +125,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource DATA_RESOURCE = new Resource() {
+    private static final Resource DATA_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Data.getValue();
@@ -142,7 +142,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PROXY_RESOURCE = new Resource() {
+    private static final Resource PROXY_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Proxy.getValue();
@@ -159,7 +159,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource RESOURCE_RESOURCE = new Resource() {
+    private static final Resource RESOURCE_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Resource.getValue();
@@ -176,7 +176,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource SITE_TO_SITE_RESOURCE = new Resource() {
+    private static final Resource SITE_TO_SITE_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.SiteToSite.getValue();
@@ -193,7 +193,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource SYSTEM_RESOURCE = new Resource() {
+    private static final Resource SYSTEM_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.System.getValue();
@@ -210,7 +210,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource RESTRICTED_COMPONENTS_RESOURCE = new Resource() {
+    private static final Resource RESTRICTED_COMPONENTS_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.RestrictedComponents.getValue();
@@ -227,7 +227,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource TENANT_RESOURCE = new Resource() {
+    private static final Resource TENANT_RESOURCE = new Resource() {
         @Override
         public String getIdentifier() {
             return ResourceType.Tenant.getValue();
@@ -244,7 +244,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource POLICIES_RESOURCE = new Resource() {
+    private static final Resource POLICIES_RESOURCE = new Resource() {
 
         @Override
         public String getIdentifier() {
@@ -262,7 +262,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PARAMETER_CONTEXTS_RESOURCE = new Resource() {
+    private static final Resource PARAMETER_CONTEXTS_RESOURCE = new Resource() {
 
         @Override
         public String getIdentifier() {
@@ -280,7 +280,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource PARAMETER_PROVIDERS_RESOURCE = new Resource() {
+    private static final Resource PARAMETER_PROVIDERS_RESOURCE = new Resource() {
 
         @Override
         public String getIdentifier() {

@@ -20,7 +20,7 @@
     <parent>
         <artifactId>nifi-evtx-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>2.7.0-SNAPSHOT</version>
+        <version>2.8.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-evtx-processors</artifactId>
@@ -35,7 +35,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-xml-processing</artifactId>
-            <version>2.7.0-SNAPSHOT</version>
+            <version>2.8.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

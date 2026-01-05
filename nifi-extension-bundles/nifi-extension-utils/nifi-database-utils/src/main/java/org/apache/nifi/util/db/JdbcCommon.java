@@ -128,7 +128,7 @@ public class JdbcCommon {
     public static final String MIME_TYPE_AVRO_BINARY = "application/avro-binary";
     public static final String MASKED_LOG_VALUE = "MASKED VALUE";
 
-    private final static Logger logger = LoggerFactory.getLogger(JdbcCommon.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcCommon.class);
 
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
@@ -477,8 +477,9 @@ public class JdbcCommon {
                     }
                 }
 
-                if (options.maxRows > 0 && nrOfRows == options.maxRows)
+                if (options.maxRows > 0 && nrOfRows == options.maxRows) {
                     break;
+                }
             }
 
             return nrOfRows;
@@ -529,15 +530,13 @@ public class JdbcCommon {
 
         final FieldAssembler<Schema> builder = SchemaBuilder.record(tableName).namespace("any.data").fields();
 
-        /**
-         * Some missing Avro types - Decimal, Date types. May need some additional work.
-         */
+        // Some missing Avro types - Decimal, Date types. May need some additional work.
         for (int i = 1; i <= nrOfColumns; i++) {
-        /**
-        *   as per jdbc 4 specs, getColumnLabel will have the alias for the column, if not it will have the column name.
-        *  so it may be a better option to check for columnlabel first and if in case it is null is someimplementation,
-        *  check for alias. Postgres is the one that has the null column names for calculated fields.
-        */
+            /*
+             * As per JDBC 4 specs, getColumnLabel will have the alias for the column, if not it will have the column name.
+             * So it may be a better option to check for columnLabel first and if in case it is null in some implementation,
+             * check for alias. Postgres is the one that has the null column names for calculated fields.
+             */
             String nameOrLabel = StringUtils.isNotEmpty(meta.getColumnLabel(i)) ? meta.getColumnLabel(i) : meta.getColumnName(i);
             String columnName = options.convertNames ? normalizeNameForAvro(nameOrLabel) : nameOrLabel;
             switch (meta.getColumnType(i)) {

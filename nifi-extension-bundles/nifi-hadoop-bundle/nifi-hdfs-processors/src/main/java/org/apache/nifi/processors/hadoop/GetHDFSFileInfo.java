@@ -660,7 +660,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
             DIR(GROUP_PARENT_DIR.getValue()),
             NONE(GROUP_NONE.getValue());
 
-            final private String val;
+            private final String val;
 
             Grouping(String val) {
                 this.val = val;

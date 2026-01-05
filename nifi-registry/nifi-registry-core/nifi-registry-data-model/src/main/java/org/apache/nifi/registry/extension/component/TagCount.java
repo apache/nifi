@@ -51,8 +51,12 @@ public class TagCount implements Comparable<TagCount> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         TagCount tagCount = (TagCount) o;
         return count == tagCount.count && Objects.equals(tag, tagCount.tag);
     }

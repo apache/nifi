@@ -50,9 +50,9 @@ import java.util.Optional;
  * NiFi web controller's helper service that implements component search.
  */
 public class ControllerSearchService {
-    private final static String FILTER_NAME_GROUP = "group";
-    private final static String FILTER_NAME_SCOPE = "scope";
-    private final static String FILTER_SCOPE_VALUE_HERE = "here";
+    private static final String FILTER_NAME_GROUP = "group";
+    private static final String FILTER_NAME_SCOPE = "scope";
+    private static final String FILTER_SCOPE_VALUE_HERE = "here";
 
     private FlowController flowController;
     private Authorizer authorizer;

@@ -19,8 +19,8 @@ package org.apache.nifi.attribute.expression.language;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterLookup;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +62,8 @@ public class TestStandardPreparedQuery {
     }
 
     @Test
-    @Disabled("Intended for manual performance testing; should not be run in an automated environment")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Intended for manual performance testing; should not be run in an automated environment")
     public void test10MIterations() {
         final Map<String, String> attrs = new HashMap<>();
         attrs.put("xx", "world");
@@ -71,20 +72,6 @@ public class TestStandardPreparedQuery {
         final long start = System.nanoTime();
         for (int i = 0; i < 10000000; i++) {
             assertEquals("world", prepared.evaluateExpressions(new StandardEvaluationContext(attrs), null));
-        }
-        final long nanos = System.nanoTime() - start;
-        logger.info("{}", TimeUnit.NANOSECONDS.toMillis(nanos));
-    }
-
-    @Test
-    @Disabled("Takes too long")
-    public void test10MIterationsWithQuery() {
-        final Map<String, String> attrs = new HashMap<>();
-        attrs.put("xx", "world");
-
-        final long start = System.nanoTime();
-        for (int i = 0; i < 10000000; i++) {
-            assertEquals("world", Query.evaluateExpressions("${xx}", attrs, ParameterLookup.EMPTY));
         }
         final long nanos = System.nanoTime() - start;
         logger.info("{}", TimeUnit.NANOSECONDS.toMillis(nanos));

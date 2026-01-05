@@ -68,15 +68,27 @@ public class SystemDiagnosticsStatus implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         SystemDiagnosticsStatus that = (SystemDiagnosticsStatus) o;
 
-        if (getGarbageCollectionStatusList() != null ? !getGarbageCollectionStatusList().equals(that.getGarbageCollectionStatusList()) : that.getGarbageCollectionStatusList() != null) return false;
-        if (getHeapStatus() != null ? !getHeapStatus().equals(that.getHeapStatus()) : that.getHeapStatus() != null) return false;
-        if (systemProcessorStats != null ? !systemProcessorStats.equals(that.systemProcessorStats) : that.systemProcessorStats != null) return false;
-        if (getContentRepositoryUsageList() != null ? !getContentRepositoryUsageList().equals(that.getContentRepositoryUsageList()) : that.getContentRepositoryUsageList() != null) return false;
+        if (getGarbageCollectionStatusList() != null ? !getGarbageCollectionStatusList().equals(that.getGarbageCollectionStatusList()) : that.getGarbageCollectionStatusList() != null) {
+            return false;
+        }
+        if (getHeapStatus() != null ? !getHeapStatus().equals(that.getHeapStatus()) : that.getHeapStatus() != null) {
+            return false;
+        }
+        if (systemProcessorStats != null ? !systemProcessorStats.equals(that.systemProcessorStats) : that.systemProcessorStats != null) {
+            return false;
+        }
+        if (getContentRepositoryUsageList() != null ? !getContentRepositoryUsageList().equals(that.getContentRepositoryUsageList()) : that.getContentRepositoryUsageList() != null) {
+            return false;
+        }
         return getFlowfileRepositoryUsage() != null ? getFlowfileRepositoryUsage().equals(that.getFlowfileRepositoryUsage()) : that.getFlowfileRepositoryUsage() == null;
 
     }

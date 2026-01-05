@@ -191,7 +191,7 @@ public abstract class ITAbstractAzureCosmosDBDocument {
         CosmosQueryRequestOptions queryOptions = new CosmosQueryRequestOptions();
 
         CosmosPagedIterable<JsonNode> response = container.queryItems(
-            "select * from c order by c._ts", queryOptions, JsonNode.class );
+            "select * from c order by c._ts", queryOptions, JsonNode.class);
 
         response.forEach(data -> {
             if (data.get(TEST_COSMOS_PARTITION_KEY_FIELD_NAME) != null) {

@@ -64,6 +64,8 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -163,6 +165,7 @@ import org.apache.nifi.web.api.metrics.TextFormatPrometheusMetricsWriter;
 import org.apache.nifi.web.api.request.BulletinBoardPatternParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.FlowMetricsProducer;
+import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.api.request.IntegerParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -409,15 +412,9 @@ public class FlowResource extends ApplicationResource {
     @Path("current-user")
     @Operation(
             summary = "Retrieves the user identity of the user making the request",
-            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CurrentUserEntity.class))),
-            security = {
-                    @SecurityRequirement(name = "Read - /flow")
-            }
+            responses = @ApiResponse(content = @Content(schema = @Schema(implementation = CurrentUserEntity.class)))
     )
     public Response getCurrentUser() {
-
-        authorizeFlow();
-
         final CurrentUserEntity entity;
         if (isReplicateRequest()) {
             try (Response replicatedResponse = replicate(HttpMethod.GET)) {
@@ -579,13 +576,19 @@ public class FlowResource extends ApplicationResource {
             @Parameter(
                     description = "Name of the first field of JSON object. Applicable for JSON producer only."
             )
-            @QueryParam("rootFieldName") final String rootFieldName
+            @QueryParam("rootFieldName") final String rootFieldName,
+            @Parameter(
+                    description = "Flow metrics reporting strategy limits collected metrics"
+            )
+            @DefaultValue("ALL_COMPONENTS")
+            @QueryParam("flowMetricsReportingStrategy") final FlowMetricsReportingStrategy flowMetricsReportingStrategy
     ) {
 
         authorizeFlow();
 
         final Set<FlowMetricsRegistry> selectedRegistries = includedRegistries == null ? Collections.emptySet() : includedRegistries;
-        final Collection<CollectorRegistry> registries = serviceFacade.generateFlowMetrics(selectedRegistries);
+        final FlowMetricsReportingStrategy selectedStrategy = flowMetricsReportingStrategy == null ? FlowMetricsReportingStrategy.ALL_COMPONENTS : flowMetricsReportingStrategy;
+        final Collection<CollectorRegistry> registries = serviceFacade.generateFlowMetrics(selectedRegistries, selectedStrategy);
 
         if (FlowMetricsProducer.PROMETHEUS.getProducer().equalsIgnoreCase(producer)) {
             final StreamingOutput response = (outputStream -> {
@@ -1169,7 +1172,7 @@ public class FlowResource extends ApplicationResource {
 
                 final Predicate<ControllerServiceNode> filter;
                 if (ControllerServiceState.ENABLED.equals(desiredState)) {
-                    filter = service -> !service.isActive();
+                    filter = this::isControllerServiceNodeEligibleForEnabling;
                 } else {
                     filter = ControllerServiceNode::isActive;
                 }
@@ -1235,6 +1238,26 @@ public class FlowResource extends ApplicationResource {
         );
     }
 
+    private boolean isControllerServiceNodeEligibleForEnabling(final ControllerServiceNode controllerServiceNode) {
+        final boolean eligibleForEnabling;
+
+        if (controllerServiceNode.isActive()) {
+            // Active Controller Services are enabled
+            eligibleForEnabling = false;
+        } else {
+            final Collection<ValidationResult> validationErrors = controllerServiceNode.getValidationErrors();
+            if (validationErrors == null || validationErrors.isEmpty()) {
+                // VALID or VALIDATING Controller Services can be enabled
+                eligibleForEnabling = true;
+            } else {
+                // INVALID Controller Services can be enabled when Validation Results are limited to other disabled Controller Services
+                eligibleForEnabling = validationErrors.stream().allMatch(DisabledServiceValidationResult.class::isInstance);
+            }
+        }
+
+        return eligibleForEnabling;
+    }
+
     /**
      * Clears bulletins for components in the specified Process Group.
      *
@@ -1288,6 +1311,13 @@ public class FlowResource extends ApplicationResource {
             throw new IllegalArgumentException("The from timestamp must be specified.");
         }
 
+        // Collect RPG IDs to distinguish them from local connectables during authorization
+        final Set<String> remoteProcessGroupIds = serviceFacade.filterComponents(id, group ->
+                group.findAllRemoteProcessGroups().stream()
+                        .map(rpg -> rpg.getIdentifier())
+                        .collect(Collectors.toSet())
+        );
+
         // if the components are not specified, gather all authorized components
         if (clearBulletinsForGroupRequestEntity.getComponents() == null) {
             // get component IDs that the user has write access to
@@ -1337,8 +1367,10 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being cleared
                     final Set<String> requestComponentsToClear = clearBulletinsForGroupRequestEntity.getComponents();
                     requestComponentsToClear.forEach(componentId -> {
-                        final Authorizable connectable = lookup.getLocalConnectable(componentId);
-                        connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        final Authorizable authorizable = remoteProcessGroupIds.contains(componentId)
+                                ? lookup.getRemoteProcessGroup(componentId)
+                                : lookup.getLocalConnectable(componentId);
+                        authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },
                 () -> { },

@@ -36,15 +36,15 @@ public class Uuid5Evaluator extends StringEvaluator {
 
     @Override
     public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
-      final String subjectValue = subject.evaluate(evaluationContext).getValue();
-      if (subjectValue == null) {
-          return new StringQueryResult(null);
-      }
-      final String nsValue = namespace.evaluate(evaluationContext).getValue();
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
+        if (subjectValue == null) {
+            return new StringQueryResult(null);
+        }
+        final String nsValue = namespace.evaluate(evaluationContext).getValue();
 
-      String uuid = Uuid5Util.fromString(subjectValue, nsValue);
+        String uuid = Uuid5Util.fromString(subjectValue, nsValue);
 
-      return new StringQueryResult(uuid);
+        return new StringQueryResult(uuid);
     }
 
     @Override

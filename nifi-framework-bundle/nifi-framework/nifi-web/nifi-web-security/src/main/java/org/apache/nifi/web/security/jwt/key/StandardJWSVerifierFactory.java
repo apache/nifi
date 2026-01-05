@@ -58,7 +58,7 @@ public class StandardJWSVerifierFactory implements JWSVerifierFactory {
             } else if (key instanceof PublicKey publicKey) {
                 verifier = new Ed25519Verifier(publicKey);
             } else {
-               throw new KeyTypeException(PublicKey.class);
+                throw new KeyTypeException(PublicKey.class);
             }
         } else {
             throw new JOSEException("JWS Algorithm [%s] not supported".formatted(algorithm));

@@ -30,7 +30,6 @@ import jakarta.ws.rs.ext.Provider;
 public class NiFiRegistryJsonProvider extends JacksonJaxbJsonProvider {
 
     public NiFiRegistryJsonProvider() {
-        super();
         setMapper(ObjectMapperProvider.getMapper());
     }
 }

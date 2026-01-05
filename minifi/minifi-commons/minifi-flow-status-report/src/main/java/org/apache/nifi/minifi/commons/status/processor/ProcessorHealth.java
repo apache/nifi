@@ -52,13 +52,21 @@ public class ProcessorHealth implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ProcessorHealth that = (ProcessorHealth) o;
 
-        if (isHasBulletins() != that.isHasBulletins()) return false;
-        if (getRunStatus() != null ? !getRunStatus().equals(that.getRunStatus()) : that.getRunStatus() != null) return false;
+        if (isHasBulletins() != that.isHasBulletins()) {
+            return false;
+        }
+        if (getRunStatus() != null ? !getRunStatus().equals(that.getRunStatus()) : that.getRunStatus() != null) {
+            return false;
+        }
         return getValidationErrorList() != null ? getValidationErrorList().equals(that.getValidationErrorList()) : that.getValidationErrorList() == null;
 
     }

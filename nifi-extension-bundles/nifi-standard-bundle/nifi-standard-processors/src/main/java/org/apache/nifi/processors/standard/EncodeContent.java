@@ -181,8 +181,8 @@ public class EncodeContent extends AbstractProcessor {
 
     private static class EncodeBase64 implements StreamCallback {
 
-       private final int lineLength;
-       private final String lineSeparator;
+        private final int lineLength;
+        private final String lineSeparator;
 
         private EncodeBase64(final int lineLength,
             final String lineSeparator) {

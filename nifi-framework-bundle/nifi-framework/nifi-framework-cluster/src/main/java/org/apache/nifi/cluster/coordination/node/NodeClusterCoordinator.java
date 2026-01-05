@@ -1131,7 +1131,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     public ProtocolMessage handle(final ProtocolMessage protocolMessage, final Set<String> nodeIdentities) throws ProtocolException {
         return switch (protocolMessage.getType()) {
             case CONNECTION_REQUEST ->
-                    handleConnectionRequest((ConnectionRequestMessage) protocolMessage, nodeIdentities);
+                handleConnectionRequest((ConnectionRequestMessage) protocolMessage, nodeIdentities);
             case NODE_STATUS_CHANGE -> {
                 handleNodeStatusChange((NodeStatusChangeMessage) protocolMessage);
                 yield null;
@@ -1175,7 +1175,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         final NodeConnectionStatus oldStatus = nodeStatuses.get(statusChangeMessage.getNodeId().getId());
 
-        if (oldStatus == null && updatedStatus.getState() == NodeConnectionState.DISCONNECTED ) {
+        if (oldStatus == null && updatedStatus.getState() == NodeConnectionState.DISCONNECTED) {
             // There is no need to tell that node is getting disconnected if there was no status earlier.
             return;
         }

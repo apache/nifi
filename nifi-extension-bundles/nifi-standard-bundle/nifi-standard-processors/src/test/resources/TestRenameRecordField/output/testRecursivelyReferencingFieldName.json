@@ -9,4 +9,15 @@
     "state" : "MS",
     "zip" : "90210"
   } ]
+}, {
+  "NAME" : "Jane Smith",
+  "age" : 25,
+  "application" : "Apache Kafka",
+  "addresses" : [ {
+    "NAME" : "Work",
+    "street" : "1234 Office Blvd",
+    "city" : "Tech Town",
+    "state" : "CA",
+    "zip" : "94105"
+  } ]
 } ]

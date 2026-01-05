@@ -130,12 +130,12 @@ public abstract class AbstractByQueryElasticsearchTest {
                         '%s' validated against 'not-a-service' is invalid because Property references a Controller Service that does not exist
                         '%s' validated against 'not-a-service' is invalid because Invalid Controller Service: not-a-service is not a valid Controller Service Identifier
                         """,
-        ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE.getName(),
-        Arrays.stream(QueryDefinitionType.values()).map(QueryDefinitionType::getValue).collect(Collectors.joining(", ")),
-        ElasticsearchRestProcessor.INDEX.getName(), ElasticsearchRestProcessor.INDEX.getName(),
-        ElasticsearchRestProcessor.TYPE.getName(), ElasticsearchRestProcessor.TYPE.getName(),
-        ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH.getName(),
-        ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName(), ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName());
+            ElasticsearchRestProcessor.QUERY_DEFINITION_STYLE.getName(),
+            Arrays.stream(QueryDefinitionType.values()).map(QueryDefinitionType::getValue).collect(Collectors.joining(", ")),
+            ElasticsearchRestProcessor.INDEX.getName(), ElasticsearchRestProcessor.INDEX.getName(),
+            ElasticsearchRestProcessor.TYPE.getName(), ElasticsearchRestProcessor.TYPE.getName(),
+            ElasticsearchRestProcessor.MAX_JSON_FIELD_STRING_LENGTH.getName(),
+            ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName(), ElasticsearchRestProcessor.CLIENT_SERVICE.getDisplayName());
         assertEquals(expected, assertionError.getMessage());
     }
 

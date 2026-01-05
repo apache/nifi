@@ -233,7 +233,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
                 }
 
                 if (uploadedFileInfo == null) {
-                   uploadedFileInfo = createBoxFile(parentFolder, filename, rawIn, size, chunkUploadThreshold);
+                    uploadedFileInfo = createBoxFile(parentFolder, filename, rawIn, size, chunkUploadThreshold);
                 }
             } catch (BoxAPIResponseException e) {
                 if (e.getResponseCode() == CONFLICT_RESPONSE_CODE) {
@@ -276,7 +276,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
         return new BoxFolder(boxAPIConnection, folderId);
     }
 
-    private BoxFolder getOrCreateDirectParentFolder(ProcessContext context, FlowFile flowFile ) {
+    private BoxFolder getOrCreateDirectParentFolder(ProcessContext context, FlowFile flowFile) {
         final String subfolderPath = context.getProperty(SUBFOLDER_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String folderId = context.getProperty(FOLDER_ID).evaluateAttributeExpressions(flowFile).getValue();
         BoxFolder parentFolder = getFolderById(folderId);
@@ -325,7 +325,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
         final BoxFolder newParentFolder = getOrCreateFolder(subFolderNames.poll(), parentFolder, createFolder);
 
         if (!subFolderNames.isEmpty()) {
-           return getOrCreateSubfolders(subFolderNames, newParentFolder, createFolder);
+            return getOrCreateSubfolders(subFolderNames, newParentFolder, createFolder);
         } else {
             return newParentFolder;
         }
@@ -339,8 +339,8 @@ public class PutBoxFile extends AbstractBoxProcessor {
         }
 
         if (!createFolder) {
-           throw new ProcessException(format("The specified subfolder [%s] does not exist and [%s] is false.",
-                   folderName, CREATE_SUBFOLDER.getDisplayName()));
+            throw new ProcessException(format("The specified subfolder [%s] does not exist and [%s] is false.",
+                    folderName, CREATE_SUBFOLDER.getDisplayName()));
         }
 
         return createFolder(folderName, parentFolder);
@@ -350,7 +350,7 @@ public class PutBoxFile extends AbstractBoxProcessor {
         getLogger().info("Creating Folder [{}], Parent [{}]", folderName, parentFolder.getID());
 
         try {
-           return parentFolder.createFolder(folderName).getResource();
+            return parentFolder.createFolder(folderName).getResource();
         } catch (BoxAPIResponseException e) {
             if (e.getResponseCode() != CONFLICT_RESPONSE_CODE) {
                 throw e;

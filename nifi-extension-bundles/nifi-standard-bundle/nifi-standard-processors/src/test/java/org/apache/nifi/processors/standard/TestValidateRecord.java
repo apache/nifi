@@ -289,8 +289,8 @@ public class TestValidateRecord {
         final MockFlowFile validFlowFile = runner.getFlowFilesForRelationship(ValidateRecord.REL_VALID).getFirst();
         final byte[] validFlowFileBytes = validFlowFile.toByteArray();
         try (
-        final ByteArrayInputStream resultContentStream = new ByteArrayInputStream(validFlowFileBytes);
-        final RecordReader recordReader = avroReader.createRecordReader(validFlowFile.getAttributes(), resultContentStream, validFlowFileBytes.length, runner.getLogger())
+            final ByteArrayInputStream resultContentStream = new ByteArrayInputStream(validFlowFileBytes);
+            final RecordReader recordReader = avroReader.createRecordReader(validFlowFile.getAttributes(), resultContentStream, validFlowFileBytes.length, runner.getLogger())
         ) {
             final RecordSchema resultSchema = recordReader.getSchema();
             assertEquals(3, resultSchema.getFieldCount());
@@ -681,9 +681,9 @@ public class TestValidateRecord {
             assertEquals(2, ((Map<?, ?>) values[1]).size());
             final Object[] data = (Object[]) values[2];
             assertEquals(3, data.length);
-            assertEquals(2, ( (Map<?, ?>) ((Record) data[0]).getValue("points")).size());
-            assertEquals(2, ( (Map<?, ?>) ((Record) data[1]).getValue("points")).size());
-            assertEquals(2, ( (Map<?, ?>) ((Record) data[2]).getValue("points")).size());
+            assertEquals(2, ((Map<?, ?>) ((Record) data[0]).getValue("points")).size());
+            assertEquals(2, ((Map<?, ?>) ((Record) data[1]).getValue("points")).size());
+            assertEquals(2, ((Map<?, ?>) ((Record) data[2]).getValue("points")).size());
         }
     }
 

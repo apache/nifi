@@ -50,7 +50,7 @@ import static org.apache.nifi.jms.processors.ioconcept.writer.record.OutputStrat
 
 public class RecordWriter<T> implements FlowFileWriter<T> {
 
-    private final static String RECORD_COUNT_KEY = "record.count";
+    private static final String RECORD_COUNT_KEY = "record.count";
 
     private final RecordReaderFactory readerFactory;
     private final RecordSetWriterFactory writerFactory;

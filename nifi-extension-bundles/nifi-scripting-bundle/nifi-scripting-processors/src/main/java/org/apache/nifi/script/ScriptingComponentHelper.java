@@ -24,6 +24,7 @@ import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.util.StringUtils;
@@ -43,6 +44,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -54,8 +57,10 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
  * This class contains variables and methods common to scripting processors, reporting tasks, etc.
  */
 public class ScriptingComponentHelper {
-    public static final String SCRIPT_ENGINE_PROPERTY = "Script Language";
     private static final String UNKNOWN_VERSION = "UNKNOWN";
+
+    private static final String SCRIPT_ENGINE_PROPERTY_NAME = "Script Engine";
+    private static final String SCRIPT_LANGUAGE_PROPERTY_NAME = "Script Language";
 
     public PropertyDescriptor SCRIPT_ENGINE;
 
@@ -70,6 +75,34 @@ public class ScriptingComponentHelper {
     private ResourceReferences modules;
 
     public BlockingQueue<ScriptRunner> scriptRunnerQ = null;
+
+    /**
+     * Get Property Descriptor Builder for Script Engine with standard settings and no default value configured
+     *
+     * @return Property Descriptor Builder
+     */
+    public static PropertyDescriptor.Builder getScriptEnginePropertyBuilder() {
+        return new PropertyDescriptor.Builder()
+                .name("Script Engine")
+                .required(true)
+                .description("Language Engine for executing scripts")
+                .expressionLanguageSupported(ExpressionLanguageScope.NONE);
+    }
+
+    public static void migrateProperties(final PropertyConfiguration configuration) {
+        Objects.requireNonNull(configuration, "Property Configuration required");
+
+        final Optional<String> scriptEnginePropertyValueFound = configuration.getRawPropertyValue(SCRIPT_ENGINE_PROPERTY_NAME);
+        final String scriptEngineProperty = scriptEnginePropertyValueFound.orElse(null);
+
+        if (scriptEngineProperty == null || scriptEngineProperty.isEmpty()) {
+            // Revert Script Language property changes from NIFI-15108 when Script Engine property is not defined
+            configuration.renameProperty(SCRIPT_LANGUAGE_PROPERTY_NAME, SCRIPT_ENGINE_PROPERTY_NAME);
+        } else {
+            // Remove Script Language property when Script Engine property is defined from an earlier configuration
+            configuration.removeProperty(SCRIPT_LANGUAGE_PROPERTY_NAME);
+        }
+    }
 
     public String getScriptEngineName() {
         return scriptEngineName;
@@ -175,13 +208,7 @@ public class ScriptingComponentHelper {
             engineAllowableValues = engineList;
             AllowableValue[] engines = engineList.toArray(new AllowableValue[0]);
 
-            final PropertyDescriptor.Builder enginePropertyBuilder = new PropertyDescriptor.Builder()
-                    .name(SCRIPT_ENGINE_PROPERTY)
-                    .required(true)
-                    .description("Language Engine for executing scripts")
-                    .required(true)
-                    .expressionLanguageSupported(ExpressionLanguageScope.NONE);
-
+            final PropertyDescriptor.Builder enginePropertyBuilder = getScriptEnginePropertyBuilder();
             if (engineList.isEmpty()) {
                 enginePropertyBuilder.description("No Script Engines found");
             } else {

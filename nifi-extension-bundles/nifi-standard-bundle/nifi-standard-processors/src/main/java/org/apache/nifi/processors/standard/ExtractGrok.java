@@ -146,7 +146,7 @@ public class ExtractGrok extends AbstractProcessor {
         .build();
 
     public static final PropertyDescriptor NAMED_CAPTURES_ONLY = new PropertyDescriptor.Builder()
-        .name("Named captures only")
+        .name("Named Captures Only")
         .description("Only store named captures from grok")
         .required(true)
         .allowableValues("true", "false")
@@ -154,7 +154,7 @@ public class ExtractGrok extends AbstractProcessor {
         .defaultValue("false")
         .build();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             GROK_EXPRESSION,
             GROK_PATTERNS,
             DESTINATION,
@@ -174,7 +174,7 @@ public class ExtractGrok extends AbstractProcessor {
             .description("FlowFiles are routed to this relationship when no provided Grok Expression matches the content of the FlowFile")
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_MATCH,
             REL_NO_MATCH
     );
@@ -331,5 +331,6 @@ public class ExtractGrok extends AbstractProcessor {
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("Grok Pattern file", GROK_PATTERNS.getName());
+        config.renameProperty("Named captures only", NAMED_CAPTURES_ONLY.getName());
     }
 }

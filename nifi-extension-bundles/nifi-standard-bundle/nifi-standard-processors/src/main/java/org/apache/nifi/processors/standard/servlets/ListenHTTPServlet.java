@@ -415,15 +415,14 @@ public class ListenHTTPServlet extends HttpServlet {
 
             final AsyncContext asyncContext = request.startAsync();
             session.commitAsync(() -> {
-                        response.setStatus(this.returnCode);
-                        asyncContext.complete();
-                    }, t -> {
-                        logger.error("Failed to commit session. Returning error response to Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]",
-                                request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, t);
-                        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                        asyncContext.complete();
-                    }
-            );
+                response.setStatus(this.returnCode);
+                asyncContext.complete();
+            }, t -> {
+                logger.error("Failed to commit session. Returning error response to Remote Host: [{}] Port [{}] SubjectDN [{}] IssuerDN [{}]",
+                        request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer, t);
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                asyncContext.complete();
+            });
         }
     }
 
@@ -469,7 +468,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private void addMatchingRequestHeaders(final HttpServletRequest request, final Map<String, String> attributes) {
         // put arbitrary headers on flow file
         for (Enumeration<String> headerEnum = request.getHeaderNames();
-             headerEnum.hasMoreElements(); ) {
+             headerEnum.hasMoreElements();) {
             String headerName = headerEnum.nextElement();
             if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
                 String headerValue = request.getHeader(headerName);

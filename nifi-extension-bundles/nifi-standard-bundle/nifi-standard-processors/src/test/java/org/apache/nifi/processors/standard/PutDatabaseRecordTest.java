@@ -123,8 +123,8 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
                 .map(Arguments::of);
     }
 
-    private final static boolean ENABLED = true;
-    private final static boolean DISABLED = false;
+    private static final boolean ENABLED = true;
+    private static final boolean DISABLED = false;
 
     private static final String CONNECTION_FAILED = "Connection Failed";
 
@@ -141,7 +141,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
     private static final String createUUIDSchema = "CREATE TABLE UUID_TEST (id integer primary key, name VARCHAR(100))";
 
-    private static final String createLongVarBinarySchema = "CREATE TABLE LONGVARBINARY_TEST (id integer primary key, name LONG VARCHAR FOR BIT DATA)";
+    private static final String createBlobSchema = "CREATE TABLE LONGVARBINARY_TEST (id integer primary key, name BLOB)";
 
     private DBCPService dbcp;
 
@@ -1647,7 +1647,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
     }
 
     @Test
-    public void testLongVarchar() throws InitializationException, ProcessException, SQLException {
+    public void testClob() throws InitializationException, ProcessException, SQLException {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
         // Manually create and drop the tables and schemas
@@ -1658,7 +1658,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         } catch (final Exception ignored) {
             // Do nothing, table may not exist
         }
-        stmt.execute("CREATE TABLE TEMP (id integer primary key, name long varchar)");
+        stmt.execute("CREATE TABLE TEMP (id integer primary key, name CLOB)");
 
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -1703,7 +1703,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         } catch (final Exception ignored) {
             // Do nothing, table may not exist
         }
-        stmt.execute("CREATE TABLE TEMP (id integer primary key, code integer, name long varchar)");
+        stmt.execute("CREATE TABLE TEMP (id integer primary key, code integer, name CLOB)");
 
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);
@@ -2015,11 +2015,11 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
 
         recreateTable("""
-            CREATE TABLE ENUM_TEST (
-                id integer primary key,
-                suit varchar(8) not null
-            )
-        """);
+                CREATE TABLE ENUM_TEST (
+                    id integer primary key,
+                    suit varchar(8) not null
+                )
+                """);
 
         try (
                 Connection conn = dbcp.getConnection();
@@ -2027,12 +2027,12 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         ) {
             // Add constraint for Apache Derby
             stmt.execute("""
-                ALTER TABLE ENUM_TEST
-                ADD CONSTRAINT suit
-                CHECK (
-                    suit IN ('clubs', 'diamonds', 'hearts', 'spades')
-                )
-            """
+                    ALTER TABLE ENUM_TEST
+                    ADD CONSTRAINT suit
+                    CHECK (
+                        suit IN ('clubs', 'diamonds', 'hearts', 'spades')
+                    )
+                    """
             );
         }
 
@@ -2120,7 +2120,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         // Manually create and drop the tables and schemas
         final Connection conn = dbcp.getConnection();
         final Statement stmt = conn.createStatement();
-        stmt.execute(createLongVarBinarySchema);
+        stmt.execute(createBlobSchema);
 
         final MockRecordParser parser = new MockRecordParser();
         runner.addControllerService("parser", parser);

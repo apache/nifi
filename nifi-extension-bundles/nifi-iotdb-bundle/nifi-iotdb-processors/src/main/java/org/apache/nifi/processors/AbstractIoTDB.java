@@ -100,12 +100,12 @@ public abstract class AbstractIoTDB extends AbstractProcessor {
             .sensitive(true)
             .build();
 
-    protected final static Relationship REL_SUCCESS = new Relationship.Builder()
+    protected static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("Processing succeeded")
             .build();
 
-    protected final static Relationship REL_FAILURE = new Relationship.Builder()
+    protected static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("Processing failed")
             .build();

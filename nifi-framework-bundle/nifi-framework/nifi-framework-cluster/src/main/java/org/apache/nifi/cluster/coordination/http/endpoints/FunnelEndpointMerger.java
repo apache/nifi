@@ -30,7 +30,7 @@ public class FunnelEndpointMerger extends AbstractSingleEntityEndpoint<FunnelEnt
     public static final Pattern FUNNELS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/funnels");
     public static final Pattern FUNNEL_URI_PATTERN = Pattern.compile("/nifi-api/funnels/[a-f0-9\\-]{36}");
 
-    final private FunnelEntityMerger funnelEntityMerger = new FunnelEntityMerger();
+    private final FunnelEntityMerger funnelEntityMerger = new FunnelEntityMerger();
 
     @Override
     protected Class<FunnelEntity> getEntityClass() {

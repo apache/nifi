@@ -128,12 +128,18 @@ public enum ErrorTypes {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             Result result = (Result) o;
 
-            if (destination != result.destination) return false;
+            if (destination != result.destination) {
+                return false;
+            }
             return penalty == result.penalty;
         }
 

@@ -163,7 +163,7 @@ public class OnePasswordParameterProvider extends AbstractParameterProvider impl
 
         if (vaultID != null) {
             uriBuilder.addPathSegment(vaultID)
-            .addPathSegment(GET_ITEMS);
+                .addPathSegment(GET_ITEMS);
         }
 
         if (itemID != null) {

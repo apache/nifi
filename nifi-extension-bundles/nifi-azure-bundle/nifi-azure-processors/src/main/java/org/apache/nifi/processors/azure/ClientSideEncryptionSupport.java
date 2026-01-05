@@ -144,7 +144,7 @@ public interface ClientSideEncryptionSupport {
             case keySize192 -> Optional.of(KeyWrapAlgorithm.A192KW.toString());
             case keySize256, keySize384, keySize512 ->
                 // Default to the longest allowed key length for wrap
-                    Optional.of(KeyWrapAlgorithm.A256KW.toString());
+                Optional.of(KeyWrapAlgorithm.A256KW.toString());
             default -> Optional.empty();
         };
     }

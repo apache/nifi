@@ -879,7 +879,7 @@ export class ControllerServicesEffects {
             switchMap((request) =>
                 from(
                     this.controllerServiceService.clearBulletins({
-                        uri: request.uri,
+                        id: request.componentId,
                         fromTimestamp: request.fromTimestamp
                     })
                 ).pipe(

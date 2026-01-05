@@ -28,10 +28,10 @@ import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.condition.OS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,7 +97,8 @@ public class TestFileSystemRepository {
     }
 
     @Test
-    @Disabled("Intended for manual testing only, in order to judge changes to performance")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Intended for manual testing only, in order to judge changes to performance")
     public void testWritePerformance() throws IOException {
         final long bytesToWrite = 1_000_000_000L;
         final int contentSize = 100;
@@ -599,8 +600,8 @@ public class TestFileSystemRepository {
     @Test
     public void testSizeWithNoContent() {
         final ContentClaim claim =
-         new StandardContentClaim(new StandardResourceClaim(claimManager,
-                 "container1", "section 1", "1", false), 0L);
+            new StandardContentClaim(new StandardResourceClaim(claimManager,
+                    "container1", "section 1", "1", false), 0L);
 
         assertThrows(ContentNotFoundException.class, () -> repository.size(claim));
     }

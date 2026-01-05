@@ -1,0 +1,14 @@
+{
+  "totalSize" : 1,
+  "done" : true,
+  "records" : [ {
+    "attributes" : {
+      "type" : "DateTestObject__c",
+      "url" : "/services/data/v62.0/sobjects/DateTestObject__c/a01KA000000MRoRYAW"
+    },
+    "id__c" : "1",
+    "date__c" : "2025-12-16",
+    "datetime__c" : "2025-12-16T13:05:30.000+0000",
+    "time__c" : "13:05:30.000Z"
+  } ]
+}

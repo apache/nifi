@@ -120,10 +120,10 @@ class JmxMetricsResultConverterTest {
         //The content will be concerted to a LinkedHashMap where the key is 'CompositeData<array_index>'
         // and the value is a LinkedHashmap of the CompositeData content.
         final CompositeData[] expected = new CompositeData[] {
-                    compositeDataOne,
-                    compositeDataTwo,
-                    compositeDataThree
-                };
+            compositeDataOne,
+            compositeDataTwo,
+            compositeDataThree
+        };
 
         final Map<String, Object> actual = castToMap(metricsResultConverter.convert(expected));
 

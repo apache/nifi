@@ -21,6 +21,9 @@
         </encoder>
     </appender>
 
+    <!-- Py4J set to WARN to avoid verbose socket communication messages -->
+    <logger name="py4j.java_gateway" level="WARN" />
+
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     <logger name="org.apache.nifi" level="INFO"/>
     <logger name="org.slf4j.simpleLogger.log.org.apache.nifi.py4j" level="INFO"/>

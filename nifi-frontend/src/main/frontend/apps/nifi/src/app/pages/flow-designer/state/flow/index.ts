@@ -673,7 +673,7 @@ export interface FlowState {
 }
 
 export interface RunOnceRequest {
-    uri: string;
+    id: string;
     revision: Revision;
 }
 
@@ -689,7 +689,6 @@ export interface EnableProcessGroupRequest {
 
 export interface EnableComponentRequest {
     id: string;
-    uri: string;
     type: ComponentType;
     revision: Revision;
     errorStrategy: 'snackbar' | 'banner';
@@ -720,7 +719,6 @@ export interface DisableProcessGroupRequest {
 
 export interface DisableComponentRequest {
     id: string;
-    uri: string;
     type: ComponentType;
     revision: Revision;
     errorStrategy: 'snackbar' | 'banner';
@@ -751,7 +749,6 @@ export interface StartProcessGroupRequest {
 
 export interface StartComponentRequest {
     id: string;
-    uri: string;
     type: ComponentType;
     revision: Revision;
     errorStrategy: 'snackbar' | 'banner';
@@ -796,7 +793,6 @@ export interface ProcessGroupRunStatusRequest {
 
 export interface StopComponentRequest {
     id: string;
-    uri: string;
     type: ComponentType;
     revision: Revision;
     errorStrategy: 'snackbar' | 'banner';

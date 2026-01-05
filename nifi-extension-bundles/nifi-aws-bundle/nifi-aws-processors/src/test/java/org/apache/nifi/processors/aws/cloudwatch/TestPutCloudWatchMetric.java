@@ -17,8 +17,12 @@
 package org.apache.nifi.processors.aws.cloudwatch;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
+import org.apache.nifi.processors.aws.ObsoleteAbstractAwsProcessorProperties;
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,8 +39,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPutCloudWatchMetric {
@@ -67,7 +73,7 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
-        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
+        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
         assertEquals("TestMetric", datum.metricName());
         assertEquals(1d, datum.value(), 0.0001d);
     }
@@ -128,7 +134,7 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
-        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
+        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
         assertEquals("TestMetric", datum.metricName());
         assertEquals(1.23d, datum.value(), 0.0001d);
     }
@@ -152,7 +158,7 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
-        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
+        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
         assertEquals("TestMetric", datum.metricName());
         assertEquals(1.0d, datum.statisticValues().minimum(), 0.0001d);
         assertEquals(2.0d, datum.statisticValues().maximum(), 0.0001d);
@@ -177,7 +183,7 @@ public class TestPutCloudWatchMetric {
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         assertEquals("TestNamespace", mockPutCloudWatchMetric.actualNamespace);
-        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.get(0);
+        MetricDatum datum = mockPutCloudWatchMetric.actualMetricData.getFirst();
         assertEquals("TestMetric", datum.metricName());
         assertEquals(1d, datum.value(), 0.0001d);
 
@@ -283,5 +289,34 @@ public class TestPutCloudWatchMetric {
 
         assertEquals(1, mockPutCloudWatchMetric.putMetricDataCallCount);
         runner.assertAllFlowFilesTransferred(PutCloudWatchMetric.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("aws-region", REGION.getName()),
+                Map.entry(AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, AbstractAwsProcessor.PROXY_CONFIGURATION_SERVICE.getName()),
+                Map.entry("MetricName", PutCloudWatchMetric.METRIC_NAME.getName()),
+                Map.entry("maximum", PutCloudWatchMetric.MAXIMUM.getName()),
+                Map.entry("minimum", PutCloudWatchMetric.MINIMUM.getName()),
+                Map.entry("sampleCount", PutCloudWatchMetric.SAMPLECOUNT.getName()),
+                Map.entry("sum", PutCloudWatchMetric.SUM.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_ACCESS_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_SECRET_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_CREDENTIALS_FILE.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_HOST.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PORT.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_USERNAME.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PASSWORD.getValue());
+
+        assertEquals(expectedRemoved,
+                propertyMigrationResult.getPropertiesRemoved());
     }
 }

@@ -59,7 +59,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
     protected static final String HEADER_AUTHORIZATION = "Authorization";
     protected static final String HEADER_CONTENT_TYPE = "Content-Type";
 
-     public static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor API_URL = new PropertyDescriptor.Builder()
             .name("API URL")
             .description("The URL which receives the HTTP requests.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -190,7 +190,7 @@ public class HttpRecordSink extends AbstractControllerService implements RecordS
         WriteResult writeResult;
         try (final ByteArrayOutputStream baos = new ByteArrayOutputStream();
              final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), baos, attributes)) {
-                writeResult = sendRecords(recordSet, writer, baos, maxBatchSize);
+            writeResult = sendRecords(recordSet, writer, baos, maxBatchSize);
         } catch (SchemaNotFoundException e) {
             final String errorMessage = String.format("RecordSetWriter could not be created because the schema was not found. The schema name for the RecordSet to write is %s",
                     recordSet.getSchema().getSchemaName());

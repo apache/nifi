@@ -124,7 +124,7 @@ public class TestGcpSecretManagerParameterProvider {
         boolean mockedFirstPage = false;
         ListSecretsPage currentPage;
         ListSecretsPage previousPage = null;
-        for (final Iterator<ParameterGroup> it = mockGroups.iterator(); it.hasNext(); ) {
+        for (final Iterator<ParameterGroup> it = mockGroups.iterator(); it.hasNext();) {
             final ParameterGroup group = it.next();
             currentPage = mock(ListSecretsPage.class);
             if (mockedFirstPage) {

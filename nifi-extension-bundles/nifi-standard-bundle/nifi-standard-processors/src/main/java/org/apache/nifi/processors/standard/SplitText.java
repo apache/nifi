@@ -400,7 +400,7 @@ public class SplitText extends AbstractProcessor {
                 break;
             } else {
                 if (length + offsetInfo.getLength() > this.maxSplitSize) {
-                    throw new IllegalStateException( "Computing header resulted in header size being > MAX split size of " + this.maxSplitSize + ".");
+                    throw new IllegalStateException("Computing header resulted in header size being > MAX split size of " + this.maxSplitSize + ".");
                 } else {
                     length += offsetInfo.getLength();
                     actualLineCount++;
@@ -483,7 +483,10 @@ public class SplitText extends AbstractProcessor {
      * be used later to create {@link FlowFile} representing the split.
      */
     private class SplitInfo {
-        final long startOffset, length, trimmedLength, lineCount;
+        final long startOffset;
+        final long length;
+        final long trimmedLength;
+        final long lineCount;
         OffsetInfo remaningOffsetInfo;
 
         SplitInfo(long startOffset, long length, long trimmedLength, long lineCount, OffsetInfo remaningOffsetInfo) {

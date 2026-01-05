@@ -61,8 +61,8 @@ public class ConfigResource extends ApplicationResource {
             extensions = {
                     @Extension(
                             name = "access-policy", properties = {
-                            @ExtensionProperty(name = "action", value = "read"),
-                            @ExtensionProperty(name = "resource", value = "/policies,/tenants")}
+                                    @ExtensionProperty(name = "action", value = "read"),
+                                    @ExtensionProperty(name = "resource", value = "/policies,/tenants")}
                     )
             }
     )

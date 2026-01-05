@@ -691,7 +691,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         }
     }
 
-    private boolean hasMorePages(final DirContextProcessor processor ) {
+    private boolean hasMorePages(final DirContextProcessor processor) {
         return processor instanceof PagedResultsDirContextProcessor && ((PagedResultsDirContextProcessor) processor).hasMore();
     }
 

@@ -71,9 +71,15 @@ public class ArrayDataType extends DataType {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ArrayDataType)) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof ArrayDataType)) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         ArrayDataType that = (ArrayDataType) o;
         return isElementsNullable() == that.isElementsNullable()
                 && Objects.equals(getElementType(), that.getElementType());

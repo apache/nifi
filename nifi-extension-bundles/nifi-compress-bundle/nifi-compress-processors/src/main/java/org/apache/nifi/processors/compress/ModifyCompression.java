@@ -160,7 +160,7 @@ public class ModifyCompression extends AbstractProcessor {
 
     private static final Map<String, CompressionStrategy> compressionFormatMimeTypeMap;
 
-    private final static int STREAM_BUFFER_SIZE = 65536;
+    private static final int STREAM_BUFFER_SIZE = 65536;
 
     static {
         final Map<String, CompressionStrategy> mimeTypeMap = new HashMap<>();
@@ -273,7 +273,7 @@ public class ModifyCompression extends AbstractProcessor {
             case LZMA -> new LzmaInputStream(parentInputStream, new Decoder());
             case XZ_LZMA2 -> new XZInputStream(parentInputStream);
             case BZIP2 -> // need this two-arg constructor to support concatenated streams
-                    new BZip2CompressorInputStream(parentInputStream, true);
+                new BZip2CompressorInputStream(parentInputStream, true);
             case GZIP -> GzipCompressorInputStream.builder().setInputStream(parentInputStream).setDecompressConcatenated(true).get();
             case DEFLATE -> new InflaterInputStream(parentInputStream);
             case SNAPPY -> new SnappyInputStream(parentInputStream);

@@ -24,7 +24,6 @@ package org.apache.nifi.minifi.bootstrap.configuration;
 public class ConfigurationChangeException extends Exception {
 
     public ConfigurationChangeException() {
-        super();
     }
 
     public ConfigurationChangeException(String message) {

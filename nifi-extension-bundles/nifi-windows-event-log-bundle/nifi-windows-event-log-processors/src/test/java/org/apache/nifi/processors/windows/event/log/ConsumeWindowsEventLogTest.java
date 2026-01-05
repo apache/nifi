@@ -249,17 +249,17 @@ public class ConsumeWindowsEventLogTest {
             WinNT.HANDLE eventHandle = mock(WinNT.HANDLE.class);
             when(wEvtApi.EvtRender(isNull(), eq(eventHandle), eq(WEvtApi.EvtRenderFlags.EVENT_XML),
                     anyInt(), any(Pointer.class), any(Pointer.class), any(Pointer.class))).thenAnswer(invocation -> {
-                Object[] arguments = invocation.getArguments();
-                Pointer bufferUsed = (Pointer) arguments[5];
-                byte[] array = StandardCharsets.UTF_16LE.encode(eventXml).array();
-                if (array.length > (int) arguments[3]) {
-                    when(kernel32.GetLastError()).thenReturn(W32Errors.ERROR_INSUFFICIENT_BUFFER).thenReturn(W32Errors.ERROR_SUCCESS);
-                } else {
-                    ((Pointer) arguments[4]).write(0, array, 0, array.length);
-                }
-                bufferUsed.setInt(0, array.length);
-                return false;
-            });
+                        Object[] arguments = invocation.getArguments();
+                        Pointer bufferUsed = (Pointer) arguments[5];
+                        byte[] array = StandardCharsets.UTF_16LE.encode(eventXml).array();
+                        if (array.length > (int) arguments[3]) {
+                            when(kernel32.GetLastError()).thenReturn(W32Errors.ERROR_INSUFFICIENT_BUFFER).thenReturn(W32Errors.ERROR_SUCCESS);
+                        } else {
+                            ((Pointer) arguments[4]).write(0, array, 0, array.length);
+                        }
+                        bufferUsed.setInt(0, array.length);
+                        return false;
+                    });
             eventHandles.add(eventHandle);
         }
         return eventHandles;

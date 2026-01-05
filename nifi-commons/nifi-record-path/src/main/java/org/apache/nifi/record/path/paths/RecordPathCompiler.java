@@ -497,10 +497,10 @@ public class RecordPathCompiler {
             case NOT_EQUAL -> createBinaryOperationFilter(operatorTree, parent, NotEqualsFilter::new, absolute);
             case LESS_THAN -> createBinaryOperationFilter(operatorTree, parent, LessThanFilter::new, absolute);
             case LESS_THAN_EQUAL ->
-                    createBinaryOperationFilter(operatorTree, parent, LessThanOrEqualFilter::new, absolute);
+                createBinaryOperationFilter(operatorTree, parent, LessThanOrEqualFilter::new, absolute);
             case GREATER_THAN -> createBinaryOperationFilter(operatorTree, parent, GreaterThanFilter::new, absolute);
             case GREATER_THAN_EQUAL ->
-                    createBinaryOperationFilter(operatorTree, parent, GreaterThanOrEqualFilter::new, absolute);
+                createBinaryOperationFilter(operatorTree, parent, GreaterThanOrEqualFilter::new, absolute);
             case FUNCTION -> createFunctionFilter(operatorTree, absolute);
             default ->
                     throw new RecordPathException("Expected an Expression of form <value> <operator> <value> to follow '[' Token but found " + operatorTree);

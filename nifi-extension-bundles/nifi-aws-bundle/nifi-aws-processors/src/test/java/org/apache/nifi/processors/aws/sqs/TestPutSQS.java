@@ -17,7 +17,11 @@
 package org.apache.nifi.processors.aws.sqs;
 
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.aws.AbstractAwsProcessor;
+import org.apache.nifi.processors.aws.ObsoleteAbstractAwsProcessorProperties;
 import org.apache.nifi.processors.aws.testutil.AuthUtils;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +34,9 @@ import software.amazon.awssdk.services.sqs.model.SendMessageBatchResponse;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
+import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,13 +44,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestPutSQS {
 
     private TestRunner runner = null;
-    private PutSQS mockPutSQS = null;
     private SqsClient mockSQSClient = null;
 
     @BeforeEach
     public void setUp() {
         mockSQSClient = Mockito.mock(SqsClient.class);
-        mockPutSQS = new PutSQS() {
+        PutSQS mockPutSQS = new PutSQS() {
             @Override
             protected SqsClient getClient(ProcessContext context) {
                 return mockSQSClient;
@@ -72,8 +77,8 @@ public class TestPutSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
-        assertEquals("hello", request.entries().get(0).messageAttributes().get("x-custom-prop").stringValue());
-        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
+        assertEquals("hello", request.entries().getFirst().messageAttributes().get("x-custom-prop").stringValue());
+        assertEquals("TestMessageBody", request.entries().getFirst().messageBody());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
     }
@@ -94,7 +99,7 @@ public class TestPutSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
-        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
+        assertEquals("TestMessageBody", request.entries().getFirst().messageBody());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_FAILURE, 1);
     }
@@ -120,11 +125,37 @@ public class TestPutSQS {
         Mockito.verify(mockSQSClient, Mockito.times(1)).sendMessageBatch(captureRequest.capture());
         SendMessageBatchRequest request = captureRequest.getValue();
         assertEquals("https://sqs.us-west-2.amazonaws.com/123456789012/test-queue-000000000", request.queueUrl());
-        assertEquals("hello", request.entries().get(0).messageAttributes().get("x-custom-prop").stringValue());
-        assertEquals("TestMessageBody", request.entries().get(0).messageBody());
-        assertEquals("test1234", request.entries().get(0).messageGroupId());
-        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.entries().get(0).messageDeduplicationId());
+        assertEquals("hello", request.entries().getFirst().messageAttributes().get("x-custom-prop").stringValue());
+        assertEquals("TestMessageBody", request.entries().getFirst().messageBody());
+        assertEquals("test1234", request.entries().getFirst().messageGroupId());
+        assertEquals("fb0dfed8-092e-40ee-83ce-5b576cd26236", request.entries().getFirst().messageDeduplicationId());
 
         runner.assertAllFlowFilesTransferred(PutSQS.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> expected = Map.ofEntries(
+                Map.entry("aws-region", REGION.getName()),
+                Map.entry(AbstractAwsProcessor.OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AbstractAwsProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE.getName()),
+                Map.entry("message-group-id", PutSQS.MESSAGEGROUPID.getName()),
+                Map.entry("deduplication-message-id", PutSQS.MESSAGEDEDUPLICATIONID.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_ACCESS_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_SECRET_KEY.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_CREDENTIALS_FILE.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_HOST.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PORT.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_USERNAME.getValue(),
+                ObsoleteAbstractAwsProcessorProperties.OBSOLETE_PROXY_PASSWORD.getValue());
+
+        assertEquals(expectedRemoved,
+                propertyMigrationResult.getPropertiesRemoved());
     }
 }

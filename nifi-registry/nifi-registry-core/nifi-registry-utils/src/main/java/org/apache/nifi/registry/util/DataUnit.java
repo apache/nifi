@@ -25,172 +25,172 @@ public enum DataUnit {
      * Bytes
      */
     B {
-                @Override
-                public double toB(double value) {
-                    return value;
-                }
+        @Override
+        public double toB(double value) {
+            return value;
+        }
 
-                @Override
-                public double toKB(double value) {
-                    return value / POWERS[1];
-                }
+        @Override
+        public double toKB(double value) {
+            return value / POWERS[1];
+        }
 
-                @Override
-                public double toMB(double value) {
-                    return value / POWERS[2];
-                }
+        @Override
+        public double toMB(double value) {
+            return value / POWERS[2];
+        }
 
-                @Override
-                public double toGB(double value) {
-                    return value / POWERS[3];
-                }
+        @Override
+        public double toGB(double value) {
+            return value / POWERS[3];
+        }
 
-                @Override
-                public double toTB(double value) {
-                    return value / POWERS[4];
-                }
+        @Override
+        public double toTB(double value) {
+            return value / POWERS[4];
+        }
 
-                @Override
-                public double convert(double sourceSize, DataUnit sourceUnit) {
-                    return sourceUnit.toB(sourceSize);
-                }
-            },
+        @Override
+        public double convert(double sourceSize, DataUnit sourceUnit) {
+            return sourceUnit.toB(sourceSize);
+        }
+    },
     /**
      * Kilobytes
      */
     KB {
-                @Override
-                public double toB(double value) {
-                    return value * POWERS[1];
-                }
+        @Override
+        public double toB(double value) {
+            return value * POWERS[1];
+        }
 
-                @Override
-                public double toKB(double value) {
-                    return value;
-                }
+        @Override
+        public double toKB(double value) {
+            return value;
+        }
 
-                @Override
-                public double toMB(double value) {
-                    return value / POWERS[1];
-                }
+        @Override
+        public double toMB(double value) {
+            return value / POWERS[1];
+        }
 
-                @Override
-                public double toGB(double value) {
-                    return value / POWERS[2];
-                }
+        @Override
+        public double toGB(double value) {
+            return value / POWERS[2];
+        }
 
-                @Override
-                public double toTB(double value) {
-                    return value / POWERS[3];
-                }
+        @Override
+        public double toTB(double value) {
+            return value / POWERS[3];
+        }
 
-                @Override
-                public double convert(double sourceSize, DataUnit sourceUnit) {
-                    return sourceUnit.toKB(sourceSize);
-                }
-            },
+        @Override
+        public double convert(double sourceSize, DataUnit sourceUnit) {
+            return sourceUnit.toKB(sourceSize);
+        }
+    },
     /**
      * Megabytes
      */
     MB {
-                @Override
-                public double toB(double value) {
-                    return value * POWERS[2];
-                }
+        @Override
+        public double toB(double value) {
+            return value * POWERS[2];
+        }
 
-                @Override
-                public double toKB(double value) {
-                    return value * POWERS[1];
-                }
+        @Override
+        public double toKB(double value) {
+            return value * POWERS[1];
+        }
 
-                @Override
-                public double toMB(double value) {
-                    return value;
-                }
+        @Override
+        public double toMB(double value) {
+            return value;
+        }
 
-                @Override
-                public double toGB(double value) {
-                    return value / POWERS[1];
-                }
+        @Override
+        public double toGB(double value) {
+            return value / POWERS[1];
+        }
 
-                @Override
-                public double toTB(double value) {
-                    return value / POWERS[2];
-                }
+        @Override
+        public double toTB(double value) {
+            return value / POWERS[2];
+        }
 
-                @Override
-                public double convert(double sourceSize, DataUnit sourceUnit) {
-                    return sourceUnit.toMB(sourceSize);
-                }
-            },
+        @Override
+        public double convert(double sourceSize, DataUnit sourceUnit) {
+            return sourceUnit.toMB(sourceSize);
+        }
+    },
     /**
      * Gigabytes
      */
     GB {
-                @Override
-                public double toB(double value) {
-                    return value * POWERS[3];
-                }
+        @Override
+        public double toB(double value) {
+            return value * POWERS[3];
+        }
 
-                @Override
-                public double toKB(double value) {
-                    return value * POWERS[2];
-                }
+        @Override
+        public double toKB(double value) {
+            return value * POWERS[2];
+        }
 
-                @Override
-                public double toMB(double value) {
-                    return value * POWERS[1];
-                }
+        @Override
+        public double toMB(double value) {
+            return value * POWERS[1];
+        }
 
-                @Override
-                public double toGB(double value) {
-                    return value;
-                }
+        @Override
+        public double toGB(double value) {
+            return value;
+        }
 
-                @Override
-                public double toTB(double value) {
-                    return value / POWERS[1];
-                }
+        @Override
+        public double toTB(double value) {
+            return value / POWERS[1];
+        }
 
-                @Override
-                public double convert(double sourceSize, DataUnit sourceUnit) {
-                    return sourceUnit.toGB(sourceSize);
-                }
-            },
+        @Override
+        public double convert(double sourceSize, DataUnit sourceUnit) {
+            return sourceUnit.toGB(sourceSize);
+        }
+    },
     /**
      * Terabytes
      */
     TB {
-                @Override
-                public double toB(double value) {
-                    return value * POWERS[4];
-                }
+        @Override
+        public double toB(double value) {
+            return value * POWERS[4];
+        }
 
-                @Override
-                public double toKB(double value) {
-                    return value * POWERS[3];
-                }
+        @Override
+        public double toKB(double value) {
+            return value * POWERS[3];
+        }
 
-                @Override
-                public double toMB(double value) {
-                    return value * POWERS[2];
-                }
+        @Override
+        public double toMB(double value) {
+            return value * POWERS[2];
+        }
 
-                @Override
-                public double toGB(double value) {
-                    return value * POWERS[1];
-                }
+        @Override
+        public double toGB(double value) {
+            return value * POWERS[1];
+        }
 
-                @Override
-                public double toTB(double value) {
-                    return value;
-                }
+        @Override
+        public double toTB(double value) {
+            return value;
+        }
 
-                @Override
-                public double convert(double sourceSize, DataUnit sourceUnit) {
-                    return sourceUnit.toTB(sourceSize);
-                }
-            };
+        @Override
+        public double convert(double sourceSize, DataUnit sourceUnit) {
+            return sourceUnit.toTB(sourceSize);
+        }
+    };
 
     public double convert(final double sourceSize, final DataUnit sourceUnit) {
         throw new AbstractMethodError();

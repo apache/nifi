@@ -30,7 +30,7 @@ public class LabelEndpointMerger extends AbstractSingleEntityEndpoint<LabelEntit
     public static final Pattern LABELS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/labels");
     public static final Pattern LABEL_URI_PATTERN = Pattern.compile("/nifi-api/labels/[a-f0-9\\-]{36}");
 
-    final private LabelEntityMerger labelEntityMerger = new LabelEntityMerger();
+    private final LabelEntityMerger labelEntityMerger = new LabelEntityMerger();
 
     @Override
     protected Class<LabelEntity> getEntityClass() {

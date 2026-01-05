@@ -52,7 +52,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
     private List<String> rawFieldNames = null;
     private boolean allowDuplicateHeaderNames;
 
-    private volatile static CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
+    private static volatile CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
     public JacksonCSVRecordReader(final InputStream in, final ComponentLog logger, final RecordSchema schema, final CSVFormat csvFormat, final boolean hasHeader, final boolean ignoreHeader,
                                   final String dateFormat, final String timeFormat, final String timestampFormat, final String encoding, final boolean trimDoubleQuote) throws IOException {
@@ -120,10 +120,10 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                         final Set<String> deDupe = new HashSet<>(schema.getFieldCount());
                         for (final String name : rawFieldNames) {
                             if (!deDupe.add(name)) {
-                                    throw new IllegalArgumentException(String.format(
-                                            "The header contains a duplicate name: \"%s\" in %s. If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
-                                            name, rawFieldNames
-                                    ));
+                                throw new IllegalArgumentException(String.format(
+                                        "The header contains a duplicate name: \"%s\" in %s. If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
+                                        name, rawFieldNames
+                                ));
                             }
                         }
                     }

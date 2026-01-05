@@ -41,7 +41,7 @@ public class MqttClientFactory {
     public MqttClient create() throws TlsException {
         return switch (clientProperties.getMqttVersion()) {
             case MQTT_VERSION_3_AUTO, MQTT_VERSION_3_1, MQTT_VERSION_3_1_1 ->
-                    new PahoMqttClientAdapter(brokerUris.next(), clientProperties, logger);
+                new PahoMqttClientAdapter(brokerUris.next(), clientProperties, logger);
             case MQTT_VERSION_5_0 -> new HiveMqV5ClientAdapter(brokerUris.next(), clientProperties, logger);
         };
     }

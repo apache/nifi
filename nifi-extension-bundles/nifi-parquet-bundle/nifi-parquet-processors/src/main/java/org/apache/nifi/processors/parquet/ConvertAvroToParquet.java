@@ -70,7 +70,7 @@ import static org.apache.nifi.parquet.utils.ParquetUtils.createParquetConfig;
 })
 @DeprecationNotice(reason = "ConvertAvroToParquet is no longer needed since there is the AvroReader which along with ParquetRecordSetWriter can be used in ConvertRecord to achieve the same thing.",
         classNames = {"org.apache.nifi.processors.standard.ConvertRecord",
-        "org.apache.nifi.avro.AvroReader", "org.apache.nifi.parquet.ParquetRecordSetWriter"})
+                "org.apache.nifi.avro.AvroReader", "org.apache.nifi.parquet.ParquetRecordSetWriter"})
 public class ConvertAvroToParquet extends AbstractProcessor {
 
     // Attributes
@@ -136,7 +136,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
 
                     Schema avroSchema = dataFileReader.getSchema();
                     getLogger().debug(SchemaFormatter.format("json/pretty", avroSchema));
-                    ParquetWriter<GenericRecord> writer = createParquetWriter(context, flowFile, rawOut, avroSchema );
+                    ParquetWriter<GenericRecord> writer = createParquetWriter(context, flowFile, rawOut, avroSchema);
 
                     try {
                         int recordCount = 0;
@@ -165,7 +165,7 @@ public class ConvertAvroToParquet extends AbstractProcessor {
 
             Map<String, String> outAttributes = new HashMap<>();
             outAttributes.put(CoreAttributes.FILENAME.key(), newFilename.toString());
-            outAttributes.put(RECORD_COUNT_ATTRIBUTE, Integer.toString(totalRecordCount.get()) );
+            outAttributes.put(RECORD_COUNT_ATTRIBUTE, Integer.toString(totalRecordCount.get()));
 
             putFlowFile = session.putAllAttributes(putFlowFile, outAttributes);
             session.transfer(putFlowFile, SUCCESS);

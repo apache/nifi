@@ -25,6 +25,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.util.StringUtils;
@@ -51,6 +52,11 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
     protected volatile ScriptRunner scriptRunner = null;
     protected volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
     protected volatile ConfigurationContext configurationContext = null;
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        ScriptingComponentHelper.migrateProperties(config);
+    }
 
     /**
      * Returns a list of property descriptors supported by this record reader. The
@@ -150,7 +156,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
         setup();
     }
 
-    abstract public void setup();
+    public abstract void setup();
 
     /**
      * Reloads the script located at the given path

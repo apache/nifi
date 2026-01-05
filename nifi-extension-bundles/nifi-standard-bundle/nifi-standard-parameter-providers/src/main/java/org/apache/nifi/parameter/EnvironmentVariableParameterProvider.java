@@ -148,7 +148,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
 
         final List<Parameter> parameters = new ArrayList<>();
         environmentVariables
-                .forEach( (key, value) -> {
+                .forEach((key, value) -> {
                     if (inclusionStrategy.include(key)) {
                         parameters.add(new Parameter.Builder()
                             .name(key)
@@ -156,7 +156,7 @@ public class EnvironmentVariableParameterProvider extends AbstractParameterProvi
                             .provided(true)
                             .build());
                     }
-        });
+                });
         return Collections.singletonList(new ParameterGroup(parameterGroupName, parameters));
     }
 

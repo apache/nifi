@@ -185,11 +185,21 @@ public class ConsumeElasticsearch extends SearchElasticsearch {
             scrollPropertyDescriptors.stream()
                     .filter(pd -> !QUERY.equals(pd) && !QUERY_CLAUSE.equals(pd) && !QUERY_DEFINITION_STYLE.equals(pd) && !RESTART_ON_FINISH.equals(pd))
                     .map(property -> {
-                        if (property == ElasticsearchRestProcessor.SIZE) return SIZE;
-                        if (property == ElasticsearchRestProcessor.AGGREGATIONS) return AGGREGATIONS;
-                        if (property == ElasticsearchRestProcessor.SORT) return SORT;
-                        if (property == ElasticsearchRestProcessor.FIELDS) return FIELDS;
-                        if (property == ElasticsearchRestProcessor.SCRIPT_FIELDS) return SCRIPT_FIELDS;
+                        if (property == ElasticsearchRestProcessor.SIZE) {
+                            return SIZE;
+                        }
+                        if (property == ElasticsearchRestProcessor.AGGREGATIONS) {
+                            return AGGREGATIONS;
+                        }
+                        if (property == ElasticsearchRestProcessor.SORT) {
+                            return SORT;
+                        }
+                        if (property == ElasticsearchRestProcessor.FIELDS) {
+                            return FIELDS;
+                        }
+                        if (property == ElasticsearchRestProcessor.SCRIPT_FIELDS) {
+                            return SCRIPT_FIELDS;
+                        }
                         return property;
                     })
     ).toList();

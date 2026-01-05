@@ -36,7 +36,7 @@ public class TestReplaceTextWithMapping {
     public TestRunner getRunner() {
         TestRunner runner = TestRunners.newTestRunner(ReplaceTextWithMapping.class);
 
-        /**
+        /*
          * we have to disable validation of expression language because the processor will
          * need to evaluate the REGEX field with AND without flow files. If not disabled,
          * the test will throw an error about the evaluation scope

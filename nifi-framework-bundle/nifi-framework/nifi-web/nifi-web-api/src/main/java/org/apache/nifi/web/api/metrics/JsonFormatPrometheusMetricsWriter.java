@@ -45,7 +45,7 @@ public class JsonFormatPrometheusMetricsWriter extends AbstractPrometheusMetrics
     public void write(final Collection<CollectorRegistry> registries, final OutputStream outputStream) throws IOException {
         JsonFactory factory = new JsonFactory();
         try (final Writer writer = new BufferedWriter(new OutputStreamWriter(outputStream));
-        final JsonGenerator generator = factory.createGenerator(writer)) {
+            final JsonGenerator generator = factory.createGenerator(writer)) {
             generator.setCodec(new ObjectMapper());
             generator.writeStartObject();
             generator.writeFieldName(rootFieldName);

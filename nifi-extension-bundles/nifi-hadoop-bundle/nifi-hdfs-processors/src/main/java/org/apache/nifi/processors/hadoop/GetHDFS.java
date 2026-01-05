@@ -95,88 +95,88 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-    .name("success")
-    .description("All files retrieved from HDFS are transferred to this relationship")
-    .build();
+            .name("success")
+            .description("All files retrieved from HDFS are transferred to this relationship")
+            .build();
 
     // properties
     public static final PropertyDescriptor RECURSE_SUBDIRS = new PropertyDescriptor.Builder()
-    .name("Recurse Subdirectories")
-    .description("Indicates whether to pull files from subdirectories of the HDFS directory")
-    .required(true)
-    .allowableValues("true", "false")
-    .defaultValue("true")
-    .build();
+            .name("Recurse Subdirectories")
+            .description("Indicates whether to pull files from subdirectories of the HDFS directory")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
 
     public static final PropertyDescriptor KEEP_SOURCE_FILE = new PropertyDescriptor.Builder()
-    .name("Keep Source File")
-    .description("Determines whether to delete the file from HDFS after it has been successfully transferred. If true, the file will be fetched repeatedly. This is intended for testing only.")
-    .required(true)
-    .allowableValues("true", "false")
-    .defaultValue("false")
-    .build();
+            .name("Keep Source File")
+            .description("Determines whether to delete the file from HDFS after it has been successfully transferred. If true, the file will be fetched repeatedly. This is intended for testing only.")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
 
     public static final PropertyDescriptor FILE_FILTER_REGEX = new PropertyDescriptor.Builder()
-    .name("File Filter Regex")
-    .description("A Java Regular Expression for filtering Filenames; if a filter is supplied then only files whose names match that Regular "
-            + "Expression will be fetched, otherwise all files will be fetched")
+            .name("File Filter Regex")
+            .description("A Java Regular Expression for filtering Filenames; if a filter is supplied then only files whose names match that Regular "
+                    + "Expression will be fetched, otherwise all files will be fetched")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor FILTER_MATCH_NAME_ONLY = new PropertyDescriptor.Builder()
-    .name("Filter Match Name Only")
-    .description("If true then File Filter Regex will match on just the filename, otherwise subdirectory names will be included with filename "
-            + "in the regex comparison")
+            .name("Filter Match Name Only")
+            .description("If true then File Filter Regex will match on just the filename, otherwise subdirectory names will be included with filename "
+                    + "in the regex comparison")
             .required(true)
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
 
     public static final PropertyDescriptor IGNORE_DOTTED_FILES = new PropertyDescriptor.Builder()
-    .name("Ignore Dotted Files")
-    .description("If true, files whose names begin with a dot (\".\") will be ignored")
-    .required(true)
-    .allowableValues("true", "false")
-    .defaultValue("true")
-    .build();
+            .name("Ignore Dotted Files")
+            .description("If true, files whose names begin with a dot (\".\") will be ignored")
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .build();
 
     public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
-    .name("Minimum File Age")
-    .description("The minimum age that a file must be in order to be pulled; any file younger than this amount of time (based on last modification date) will be ignored")
-    .required(true)
-    .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
-    .defaultValue("0 sec")
-    .build();
+            .name("Minimum File Age")
+            .description("The minimum age that a file must be in order to be pulled; any file younger than this amount of time (based on last modification date) will be ignored")
+            .required(true)
+            .addValidator(StandardValidators.createTimePeriodValidator(0, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+            .defaultValue("0 sec")
+            .build();
 
     public static final PropertyDescriptor MAX_AGE = new PropertyDescriptor.Builder()
-    .name("Maximum File Age")
-    .description("The maximum age that a file must be in order to be pulled; any file older than this amount of time (based on last modification date) will be ignored")
-    .required(false)
-    .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
-    .build();
+            .name("Maximum File Age")
+            .description("The maximum age that a file must be in order to be pulled; any file older than this amount of time (based on last modification date) will be ignored")
+            .required(false)
+            .addValidator(StandardValidators.createTimePeriodValidator(100, TimeUnit.MILLISECONDS, Long.MAX_VALUE, TimeUnit.NANOSECONDS))
+            .build();
 
     public static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-    .name("Batch Size")
-    .description("The maximum number of files to pull in each iteration, based on run schedule.")
-    .required(true)
-    .defaultValue("100")
-    .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-    .build();
+            .name("Batch Size")
+            .description("The maximum number of files to pull in each iteration, based on run schedule.")
+            .required(true)
+            .defaultValue("100")
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor POLLING_INTERVAL = new PropertyDescriptor.Builder()
-    .name("Polling Interval")
-    .description("Indicates how long to wait between performing directory listings")
-    .required(true)
-    .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-    .defaultValue("0 sec")
-    .build();
+            .name("Polling Interval")
+            .description("Indicates how long to wait between performing directory listings")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("0 sec")
+            .build();
 
     public static final PropertyDescriptor BUFFER_SIZE = new PropertyDescriptor.Builder()
-    .name("IO Buffer Size")
-    .description("Amount of memory to use to buffer file contents during IO. This overrides the Hadoop Configuration")
-    .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
-    .build();
+            .name("IO Buffer Size")
+            .description("Amount of memory to use to buffer file contents during IO. This overrides the Hadoop Configuration")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .build();
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS
@@ -503,12 +503,12 @@ public class GetHDFS extends AbstractHadoopProcessor {
      */
     protected static class ProcessorConfiguration {
 
-        final private Pattern fileFilterPattern;
-        final private boolean ignoreDottedFiles;
-        final private boolean filterMatchBasenameOnly;
-        final private long minimumAge;
-        final private long maximumAge;
-        final private boolean recurseSubdirs;
+        private final Pattern fileFilterPattern;
+        private final boolean ignoreDottedFiles;
+        private final boolean filterMatchBasenameOnly;
+        private final long minimumAge;
+        private final long maximumAge;
+        private final boolean recurseSubdirs;
 
         ProcessorConfiguration(final ProcessContext context) {
             ignoreDottedFiles = context.getProperty(IGNORE_DOTTED_FILES).asBoolean();

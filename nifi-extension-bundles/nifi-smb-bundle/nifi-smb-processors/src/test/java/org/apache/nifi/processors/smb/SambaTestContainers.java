@@ -39,9 +39,9 @@ import org.testcontainers.utility.DockerImageName;
 
 public class SambaTestContainers {
 
-    protected final static Logger LOGGER = LoggerFactory.getLogger(SambaTestContainers.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(SambaTestContainers.class);
 
-    protected final static Integer DEFAULT_SAMBA_PORT = 445;
+    protected static final Integer DEFAULT_SAMBA_PORT = 445;
 
     protected enum AccessMode {
         READ_ONLY, READ_WRITE

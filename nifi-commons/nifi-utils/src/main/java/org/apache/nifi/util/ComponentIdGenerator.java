@@ -63,21 +63,21 @@ public class ComponentIdGenerator {
      * Will generate unique time based UUID where the next UUID is always
      * greater then the previous.
      */
-    public final static UUID generateId() {
+    public static final UUID generateId() {
         return generateId(System.currentTimeMillis());
     }
 
     /**
      *
      */
-    public final static UUID generateId(long currentTime) {
+    public static final UUID generateId(long currentTime) {
         return generateId(currentTime, randomGenerator.nextLong(), true);
     }
 
     /**
      *
      */
-    public final static UUID generateId(long msb, long lsb, boolean ensureUnique) {
+    public static final UUID generateId(long msb, long lsb, boolean ensureUnique) {
         long time;
 
         synchronized (lock) {

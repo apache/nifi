@@ -34,14 +34,16 @@ public class IncrementalContext {
     private final String ageFilterLower;
 
     public IncrementalContext(ProcessContext context, StateMap state) {
-        ageField = context.getProperty(QuerySalesforceObject.AGE_FIELD).getValue();
-        initialAgeFilter = context.getProperty(QuerySalesforceObject.INITIAL_AGE_FILTER).getValue();
-        ageFilterLower = state.get(QuerySalesforceObject.LAST_AGE_FILTER);
-        Optional<Long> ageDelayMs = Optional.ofNullable(context.getProperty(QuerySalesforceObject.AGE_DELAY).asTimePeriod(TimeUnit.MILLISECONDS));
+        ageField = context.getProperty(QuerySalesforceObject.AGE_FIELD).evaluateAttributeExpressions().getValue();
 
         if (ageField == null) {
+            initialAgeFilter = null;
+            ageFilterLower = null;
             ageFilterUpper = null;
         } else {
+            initialAgeFilter = context.getProperty(QuerySalesforceObject.INITIAL_AGE_FILTER).evaluateAttributeExpressions().getValue();
+            ageFilterLower = state.get(QuerySalesforceObject.LAST_AGE_FILTER);
+            Optional<Long> ageDelayMs = Optional.ofNullable(context.getProperty(QuerySalesforceObject.AGE_DELAY).asTimePeriod(TimeUnit.MILLISECONDS));
             OffsetDateTime ageFilterUpperTime = ageDelayMs
                     .map(delay -> OffsetDateTime.now().minus(delay, ChronoUnit.MILLIS))
                     .orElse(OffsetDateTime.now());

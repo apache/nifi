@@ -192,14 +192,18 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
 
         final Map<ComponentNode, Future<Void>> updated = new HashMap<>();
 
-        // verify that  we can stop all components (that are running) before doing anything
+        // verify that we can stop all components (that are running or starting) before doing anything
+        // Note: We check both RUNNING and STARTING states because a processor might be stuck in STARTING
+        // state if it references an invalid controller service (e.g., after a restart when the controller
+        // service configuration became invalid). Such processors need to be stopped before the controller
+        // service can be disabled.
         for (final ProcessorNode node : processors) {
-            if (node.getScheduledState() == ScheduledState.RUNNING) {
+            if (isRunningOrStarting(node)) {
                 node.verifyCanStop();
             }
         }
         for (final ReportingTaskNode node : reportingTasks) {
-            if (node.getScheduledState() == ScheduledState.RUNNING) {
+            if (isRunningOrStarting(node)) {
                 node.verifyCanStop();
             }
         }
@@ -209,15 +213,15 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
             }
         }
 
-        // stop all of the components that are running
+        // stop all of the components that are running or starting
         for (final ProcessorNode node : processors) {
-            if (node.getScheduledState() == ScheduledState.RUNNING) {
+            if (isRunningOrStarting(node)) {
                 final Future<Void> future = node.getProcessGroup().stopProcessor(node);
                 updated.put(node, future);
             }
         }
         for (final ReportingTaskNode node : reportingTasks) {
-            if (node.getScheduledState() == ScheduledState.RUNNING) {
+            if (isRunningOrStarting(node)) {
                 final Future<Void> future = processScheduler.unschedule(node);
                 updated.put(node, future);
             }
@@ -240,11 +244,28 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return updated;
     }
 
+    /**
+     * Checks if a processor is running or in the process of starting.
+     * A processor might be stuck in STARTING state if it references an invalid controller service.
+     */
+    private boolean isRunningOrStarting(final ProcessorNode node) {
+        final ScheduledState physicalState = node.getPhysicalScheduledState();
+        return physicalState == ScheduledState.RUNNING || physicalState == ScheduledState.STARTING;
+    }
+
+    /**
+     * Checks if a reporting task is running or in the process of starting.
+     * A reporting task might be stuck in STARTING state if it references an invalid controller service.
+     */
+    private boolean isRunningOrStarting(final ReportingTaskNode node) {
+        final ScheduledState scheduledState = node.getScheduledState();
+        return scheduledState == ScheduledState.RUNNING || scheduledState == ScheduledState.STARTING;
+    }
+
     @Override
     public CompletableFuture<Void> enableControllerService(final ControllerServiceNode serviceNode) {
         if (serviceNode.isActive()) {
-            final CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
-            return future;
+            return CompletableFuture.completedFuture(null);
         }
 
         serviceNode.verifyCanEnable();
@@ -260,8 +281,8 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 final Future<Void> future = enableControllerServiceAndDependencies(controllerServiceNode);
 
                 future.get(30, TimeUnit.SECONDS);
-                logger.debug("Successfully enabled {}; service state = {}", controllerServiceNode, controllerServiceNode.getState());
-            } catch (final ControllerServiceNotValidException csnve) {
+                logger.debug("{} enabled with state [{}]", controllerServiceNode, controllerServiceNode.getState());
+            } catch (final ControllerServiceNotValidException e) {
                 logger.warn("Failed to enable service {} because it is not currently valid", controllerServiceNode);
             } catch (Exception e) {
                 logger.error("Failed to enable {}", controllerServiceNode, e);
@@ -284,7 +305,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
                 for (ControllerServiceNode requiredService : requiredServices) {
                     if (!requiredService.isActive() && !serviceNodes.contains(requiredService)) {
                         skipStarting = true;
-                        logger.error("Will not start {} because its required service {} is not active and is not part of the collection of things to start", serviceNode, requiredService);
+                        logger.error("{} not started: Required Service {} not active and not requested for enabling", serviceNode, requiredService);
                     }
                 }
                 if (skipStarting) {
@@ -657,6 +678,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     private Class<? extends ControllerService> getServiceInterfaceByName(final Class<?> serviceClass, final String type) {
         for (final Class<?> serviceInterface : serviceClass.getInterfaces()) {
             if (!ControllerService.class.isAssignableFrom(serviceInterface)) {
@@ -679,6 +701,12 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         return node == null ? null : node.getName();
     }
 
+    /**
+     * Remove Controller Service and suppress warnings related to InstanceClassLoader that may not be defined
+     *
+     * @param serviceNode Controller Service Node to be removed
+     */
+    @SuppressWarnings("resource")
     @Override
     public void removeControllerService(final ControllerServiceNode serviceNode) {
         requireNonNull(serviceNode);

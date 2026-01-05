@@ -1169,9 +1169,9 @@ public class TestRecordPath {
             public void yieldsOneForReferencesToASingleFieldRegardlessOfItsValue() {
                 assertAll(Stream.of("id", "name", "missing", "attributes", "friends", "mainAccount")
                         .map(fieldName -> () -> {
-                                    FieldValue fieldValue = evaluateSingleFieldValue("count(/%s)".formatted(fieldName), record);
-                                    assertEquals(1L, fieldValue.getValue());
-                                }
+                            FieldValue fieldValue = evaluateSingleFieldValue("count(/%s)".formatted(fieldName), record);
+                            assertEquals(1L, fieldValue.getValue());
+                        }
                         ));
             }
 

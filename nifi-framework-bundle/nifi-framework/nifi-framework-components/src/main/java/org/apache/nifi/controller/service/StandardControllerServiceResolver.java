@@ -32,6 +32,8 @@ import org.apache.nifi.registry.flow.FlowSnapshotContainer;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -130,6 +132,7 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
         if (componentRequiredApis.isEmpty()) {
             return;
         }
+        final Collection<ControllerServiceAPI> supportedControllerServiceApis = componentRequiredApis.values();
 
         final Map<String, VersionedPropertyDescriptor> propertyDescriptors = component.getPropertyDescriptors();
         final Map<String, String> componentProperties = component.getProperties();
@@ -158,7 +161,6 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
 
             // If the referenced Controller Service is available, there is nothing to resolve.
             if (availableControllerServiceIds.contains(propertyValue)) {
-                unresolvedServices.add(propertyValue);
                 continue;
             }
 
@@ -168,27 +170,57 @@ public class StandardControllerServiceResolver implements ControllerServiceResol
                 continue;
             }
 
-            final ControllerServiceAPI descriptorRequiredApi = componentRequiredApis.get(propertyName);
-            if (descriptorRequiredApi == null) {
+            final List<VersionedControllerService> matchingVersionedControllerServices = findMatchingVersionedControllerServices(
+                    availableControllerServices,
+                    supportedControllerServiceApis,
+                    externalServiceReference
+            );
+
+            if (matchingVersionedControllerServices.size() == 1) {
+                final VersionedControllerService matchedVersionedControllerService = matchingVersionedControllerServices.getFirst();
+                final String resolvedId = matchedVersionedControllerService.getIdentifier();
+                componentProperties.put(propertyName, resolvedId);
+            } else {
+                // No matches or more than one match result in unresolved references
                 unresolvedServices.add(propertyValue);
-                continue;
             }
-
-            final String externalControllerServiceName = externalServiceReference.getName();
-            final List<VersionedControllerService> matchingControllerServices = availableControllerServices.stream()
-                    .filter(service -> service.getName().equals(externalControllerServiceName))
-                    .filter(service -> implementsApi(descriptorRequiredApi, service))
-                    .collect(Collectors.toList());
-
-            if (matchingControllerServices.size() != 1) {
-                unresolvedServices.add(propertyValue);
-                continue;
-            }
-
-            final VersionedControllerService matchingService = matchingControllerServices.get(0);
-            final String resolvedId = matchingService.getIdentifier();
-            componentProperties.put(propertyName, resolvedId);
         }
+    }
+
+    private List<VersionedControllerService> findMatchingVersionedControllerServices(
+            final Set<VersionedControllerService> availableControllerServices,
+            final Collection<ControllerServiceAPI> supportedControllerServiceApis,
+            final ExternalControllerServiceReference externalControllerServiceReference
+    ) {
+        final List<VersionedControllerService> matchingVersionedControllerServices = new ArrayList<>();
+
+        final String serviceReferenceName = externalControllerServiceReference.getName();
+        for (final VersionedControllerService availableControllerService : availableControllerServices) {
+            final String availableControllerServiceName = availableControllerService.getName();
+            // Find available Controller Service based on matched Name
+            if (availableControllerServiceName.equals(serviceReferenceName)) {
+                if (isVersionedControllerServiceSupported(availableControllerService, supportedControllerServiceApis)) {
+                    // Add matched Controller Service when supported Controller Service API found
+                    matchingVersionedControllerServices.add(availableControllerService);
+                }
+            }
+        }
+
+        return matchingVersionedControllerServices;
+    }
+
+    private boolean isVersionedControllerServiceSupported(
+            final VersionedControllerService versionedControllerService,
+            final Collection<ControllerServiceAPI> supportedControllerServiceApis
+    ) {
+        boolean supported = false;
+        for (final ControllerServiceAPI supportedControllerService : supportedControllerServiceApis) {
+            if (implementsApi(supportedControllerService, versionedControllerService)) {
+                supported = true;
+                break;
+            }
+        }
+        return supported;
     }
 
     private boolean implementsApi(final ControllerServiceAPI requiredServiceApi, final VersionedControllerService versionedControllerService) {

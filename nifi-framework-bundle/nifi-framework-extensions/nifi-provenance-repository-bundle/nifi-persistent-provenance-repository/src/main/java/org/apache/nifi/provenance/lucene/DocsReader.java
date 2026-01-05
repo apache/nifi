@@ -75,7 +75,7 @@ public class DocsReader {
 
     private long getByteOffset(final Document d, final RecordReader reader) {
         final IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);
-        if ( blockField != null ) {
+        if (blockField != null) {
             final int blockIndex = blockField.numericValue().intValue();
             final TocReader tocReader = reader.getTocReader();
             return tocReader.getBlockOffset(blockIndex);
@@ -87,16 +87,16 @@ public class DocsReader {
 
     private ProvenanceEventRecord getRecord(final Document d, final RecordReader reader) throws IOException {
         final IndexableField blockField = d.getField(FieldNames.BLOCK_INDEX);
-        if ( blockField == null ) {
+        if (blockField == null) {
             reader.skipTo(getByteOffset(d, reader));
         } else {
             reader.skipToBlock(blockField.numericValue().intValue());
         }
 
         StandardProvenanceEventRecord record;
-        while ( (record = reader.nextRecord()) != null) {
+        while ((record = reader.nextRecord()) != null) {
             final IndexableField idField = d.getField(SearchableFields.Identifier.getSearchableFieldName());
-            if ( idField == null || idField.numericValue().longValue() == record.getEventId() ) {
+            if (idField == null || idField.numericValue().longValue() == record.getEventId()) {
                 break;
             }
         }

@@ -132,7 +132,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             .description("All FlowFiles that cannot be routed to the AMQP destination are routed to this relationship")
             .build();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             Stream.of(
                     EXCHANGE,
                     ROUTING_KEY,
@@ -143,7 +143,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
             getCommonPropertyDescriptors().stream()
     ).toList();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
     );
@@ -283,7 +283,7 @@ public class PublishAMQP extends AbstractAMQPProcessor<AMQPPublisher> {
     private Map<String, Object> prepareAMQPHeaders(final FlowFile flowFile, final InputHeaderSource selectedHeaderSource, final Character headerSeparator, final Pattern pattern) {
         final Map<String, Object> headers = new HashMap<>();
         if (InputHeaderSource.FLOWFILE_ATTRIBUTES.equals(selectedHeaderSource)) {
-                headers.putAll(getMatchedAttributes(flowFile.getAttributes(), pattern));
+            headers.putAll(getMatchedAttributes(flowFile.getAttributes(), pattern));
         } else if (InputHeaderSource.AMQP_HEADERS_ATTRIBUTE.equals(selectedHeaderSource)) {
             readAmqpAttribute(flowFile, AMQP_HEADERS_ATTRIBUTE, value -> headers.putAll(validateAMQPHeaderProperty(value, headerSeparator)));
         }

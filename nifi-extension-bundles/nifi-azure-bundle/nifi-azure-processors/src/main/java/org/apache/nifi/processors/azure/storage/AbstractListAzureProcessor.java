@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.azure.storage;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -81,5 +83,11 @@ public abstract class AbstractListAzureProcessor<T extends ListableEntity> exten
             return false;
         }
         return true;
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 }

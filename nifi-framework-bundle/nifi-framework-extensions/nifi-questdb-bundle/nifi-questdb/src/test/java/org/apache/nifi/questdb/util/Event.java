@@ -61,8 +61,12 @@ public class Event {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final Event event = (Event) o;
         return value == event.value && Objects.equals(captured, event.captured) && Objects.equals(subject, event.subject);
     }

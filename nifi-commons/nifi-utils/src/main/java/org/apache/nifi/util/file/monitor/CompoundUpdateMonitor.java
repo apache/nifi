@@ -108,5 +108,10 @@ public class CompoundUpdateMonitor implements UpdateMonitor {
             // No DeferredMonitorAction was the same as last time. Therefore, it's not equal
             return false;
         }
+
+        @Override
+        public int hashCode() {
+            return monitors.hashCode();
+        }
     }
 }

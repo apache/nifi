@@ -86,7 +86,7 @@ public class MetricBuilder {
     }
 
     public JsonObject build() {
-       return build(false);
+        return build(false);
     }
 
 }

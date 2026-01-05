@@ -32,7 +32,6 @@ public class HttpCommunicationsSession extends AbstractCommunicationsSession {
     private String dataTransferUrl;
 
     public HttpCommunicationsSession() {
-        super();
         this.input = new HttpInput();
         this.output = new HttpOutput();
     }

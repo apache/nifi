@@ -93,15 +93,15 @@ public class PeerDescriptionModifier {
         final Map<Tuple<String, String>, List<Tuple<String, String>>> routeDefinitions = properties.getPropertyKeys().stream()
                 .filter(propertyKey -> propertyKey.startsWith(PROPERTY_PREFIX))
                 .map(propertyKey -> {
-                            final Matcher matcher = PROPERTY_REGEX.matcher(propertyKey);
-                            if (!matcher.matches()) {
-                                throw new IllegalArgumentException(
-                                        format("Found an invalid Site-to-Site route definition property '%s'." +
-                                                        " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
-                                                        " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.",
-                                                propertyKey));
-                            }
-                            return matcher;
+                    final Matcher matcher = PROPERTY_REGEX.matcher(propertyKey);
+                    if (!matcher.matches()) {
+                        throw new IllegalArgumentException(
+                                format("Found an invalid Site-to-Site route definition property '%s'." +
+                                                " Routing property keys should be formatted as 'nifi.remote.route.{protocol}.{name}.{routingConfigName}'." +
+                                                " Where {protocol} is 'raw' or 'http', and {routingConfigName} is 'when', 'hostname', 'port' or 'secure'.",
+                                        propertyKey));
+                    }
+                    return matcher;
                 })
                 .collect(Collectors.groupingBy(matcher -> new Tuple<>(matcher.group(1), matcher.group(2)),
                         Collectors.mapping(matcher -> new Tuple<>(matcher.group(3), matcher.group(0)), Collectors.toList())));

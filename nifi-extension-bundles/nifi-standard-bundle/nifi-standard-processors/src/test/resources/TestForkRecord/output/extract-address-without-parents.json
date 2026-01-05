@@ -1,0 +1,21 @@
+[ {
+  "id" : "home",
+  "street" : "1 nifi street",
+  "city" : "nifi city"
+}, {
+  "id" : "home",
+  "street" : "1 nifi street",
+  "city" : "nifi city"
+}, {
+  "id" : "work",
+  "street" : "1 nifi avenue",
+  "city" : "apache city"
+}, {
+  "id" : "home",
+  "street" : "10 nifi street",
+  "city" : "nifi city"
+}, {
+  "id" : "work",
+  "street" : "10 nifi avenue",
+  "city" : "apache city"
+} ]

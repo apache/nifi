@@ -84,52 +84,52 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     private static final Pattern LOCAL_FILE_SYSTEM_URI = Pattern.compile("^file:.*");
 
     private static final String NORMALIZE_ERROR_WITH_PROPERTY = "The filesystem component of the URI configured in the '{}' property ({}) does not match " +
-            "the filesystem URI from the Hadoop configuration file ({}) and will be ignored.";
+        "the filesystem URI from the Hadoop configuration file ({}) and will be ignored.";
 
     private static final String NORMALIZE_ERROR_WITHOUT_PROPERTY = "The filesystem component of the URI configured ({}) does not match the filesystem URI from " +
-            "the Hadoop configuration file ({}) and will be ignored.";
+        "the Hadoop configuration file ({}) and will be ignored.";
 
     // properties
     public static final PropertyDescriptor HADOOP_CONFIGURATION_RESOURCES = new PropertyDescriptor.Builder()
-            .name("Hadoop Configuration Resources")
-            .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
-                    + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration. "
-                    + "To use swebhdfs, see 'Additional Details' section of PutHDFS's documentation.")
-            .required(false)
-            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
-            .build();
+        .name("Hadoop Configuration Resources")
+        .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
+                + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration. "
+                + "To use swebhdfs, see 'Additional Details' section of PutHDFS's documentation.")
+        .required(false)
+        .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
+        .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+        .build();
 
     public static final PropertyDescriptor DIRECTORY = new PropertyDescriptor.Builder()
-            .name("Directory")
-            .description("The HDFS directory from which files should be read")
-            .required(true)
-            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
+        .name("Directory")
+        .description("The HDFS directory from which files should be read")
+        .required(true)
+        .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
 
     public static final PropertyDescriptor COMPRESSION_CODEC = new PropertyDescriptor.Builder()
-            .name("Compression codec")
-            .required(true)
-            .allowableValues(CompressionType.allowableValues())
-            .defaultValue(CompressionType.NONE.toString())
-            .build();
+        .name("Compression Codec")
+        .required(true)
+        .allowableValues(CompressionType.allowableValues())
+        .defaultValue(CompressionType.NONE.toString())
+        .build();
 
     public static final PropertyDescriptor ADDITIONAL_CLASSPATH_RESOURCES = new PropertyDescriptor.Builder()
-            .name("Additional Classpath Resources")
-            .description("A comma-separated list of paths to files and/or directories that will be added to the classpath and used for loading native libraries. " +
-                    "When specifying a directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
-            .required(false)
-            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
-            .dynamicallyModifiesClasspath(true)
-            .build();
+        .name("Additional Classpath Resources")
+        .description("A comma-separated list of paths to files and/or directories that will be added to the classpath and used for loading native libraries. " +
+                "When specifying a directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
+        .required(false)
+        .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
+        .dynamicallyModifiesClasspath(true)
+        .build();
 
     public static final PropertyDescriptor KERBEROS_USER_SERVICE = new PropertyDescriptor.Builder()
-            .name("Kerberos User Service")
-            .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
-            .identifiesControllerService(KerberosUserService.class)
-            .required(false)
-            .build();
+        .name("Kerberos User Service")
+        .description("Specifies the Kerberos User Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosUserService.class)
+        .required(false)
+        .build();
 
 
     public static final String ABSOLUTE_HDFS_PATH_ATTRIBUTE = "absolute.hdfs.path";
@@ -141,9 +141,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     private static final HdfsResources EMPTY_HDFS_RESOURCES = new HdfsResources(null, null, null, null);
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            HADOOP_CONFIGURATION_RESOURCES,
-            KERBEROS_USER_SERVICE,
-            ADDITIONAL_CLASSPATH_RESOURCES
+        HADOOP_CONFIGURATION_RESOURCES,
+        KERBEROS_USER_SERVICE,
+        ADDITIONAL_CLASSPATH_RESOURCES
     );
 
     // variables shared by all threads of this processor
@@ -170,6 +170,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         config.removeProperty("kerberos-credentials-service");
         config.removeProperty("Kerberos Relogin Period");
         config.renameProperty("kerberos-user-service", KERBEROS_USER_SERVICE.getName());
+        config.renameProperty("Compression codec", COMPRESSION_CODEC.getName());
     }
 
     @Override
@@ -290,9 +291,9 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     }
 
     protected List<String> getConfigLocations(PropertyContext context) {
-            final ResourceReferences configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
-            final List<String> locations = configResources.asLocations();
-            return locations;
+        final ResourceReferences configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
+        final List<String> locations = configResources.asLocations();
+        return locations;
     }
 
     @OnStopped
@@ -373,7 +374,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
 
         final Path workingDir = fs.getWorkingDirectory();
         getLogger().info("Initialized a new HDFS File System with working dir: {} default block size: {} default replication: {} config: {}",
-                workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString());
+            workingDir, fs.getDefaultBlockSize(workingDir), fs.getDefaultReplication(workingDir), config.toString());
 
         return new HdfsResources(config, fs, ugi, kerberosUser);
     }
@@ -522,7 +523,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
         return accessDenied;
     }
 
-    static protected class ValidationResources {
+    protected static class ValidationResources {
         private final List<String> configLocations;
         private final Configuration configuration;
 
@@ -545,7 +546,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     }
 
     protected Path getNormalizedPath(final String rawPath) {
-       return getNormalizedPath(rawPath, Optional.empty());
+        return getNormalizedPath(rawPath, Optional.empty());
     }
 
     protected Path getNormalizedPath(final ProcessContext context, final PropertyDescriptor property, final FlowFile flowFile) {
@@ -584,16 +585,15 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor implemen
     protected <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
         Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
         return causalChain
-                .filter(expectedCauseType::isInstance)
-                .map(expectedCauseType::cast)
-                .filter(causePredicate)
-                .findFirst();
+            .filter(expectedCauseType::isInstance)
+            .map(expectedCauseType::cast)
+            .filter(causePredicate)
+            .findFirst();
     }
 
     protected boolean handleAuthErrors(Throwable t, ProcessSession session, ProcessContext context, BiConsumer<ProcessSession, ProcessContext> sessionHandler) {
         Optional<GSSException> causeOptional = findCause(t, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
         if (causeOptional.isPresent()) {
-
             getLogger().error("An error occurred while connecting to HDFS. Rolling back session and, and resetting HDFS resources", causeOptional.get());
             try {
                 hdfsResources.set(resetHDFSResources(getConfigLocations(context), context));

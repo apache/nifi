@@ -31,6 +31,9 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -66,6 +69,7 @@ import software.amazon.kinesis.common.ConfigsBuilder;
 import software.amazon.kinesis.common.InitialPositionInStream;
 import software.amazon.kinesis.common.InitialPositionInStreamExtended;
 import software.amazon.kinesis.coordinator.Scheduler;
+import software.amazon.kinesis.coordinator.WorkerStateChangeListener;
 import software.amazon.kinesis.lifecycle.events.InitializationInput;
 import software.amazon.kinesis.lifecycle.events.LeaseLostInput;
 import software.amazon.kinesis.lifecycle.events.ProcessRecordsInput;
@@ -78,6 +82,9 @@ import software.amazon.kinesis.processor.ShardRecordProcessor;
 import software.amazon.kinesis.processor.ShardRecordProcessorFactory;
 import software.amazon.kinesis.processor.SingleStreamTracker;
 import software.amazon.kinesis.retrieval.KinesisClientRecord;
+import software.amazon.kinesis.retrieval.RetrievalSpecificConfig;
+import software.amazon.kinesis.retrieval.fanout.FanOutConfig;
+import software.amazon.kinesis.retrieval.polling.PollingConfig;
 
 import java.net.URI;
 import java.nio.channels.Channels;
@@ -89,7 +96,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -113,7 +122,7 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
         Consumes data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw)
         or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured.
         The processor may take a few minutes on the first start and several seconds on subsequent starts
-        to initialise before starting to fetch data.
+        to initialize before starting to fetch data.
         Uses DynamoDB for check pointing and coordination, and (optional) CloudWatch for metrics.
         """)
 @WritesAttributes({
@@ -156,13 +165,14 @@ public class ConsumeKinesis extends AbstractProcessor {
     private static final Duration HTTP_CLIENTS_CONNECTION_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration HTTP_CLIENTS_READ_TIMEOUT = Duration.ofMinutes(3);
 
-    /**
-     * Best balance between throughput and CPU usage by KCL.
-     */
-    private static final int KINESIS_HTTP_CLIENT_CONCURRENCY_PER_TASK = 16;
     private static final int KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES = 512 * 1024; // 512 KiB
     private static final Duration KINESIS_HTTP_HEALTH_CHECK_PERIOD = Duration.ofMinutes(1);
 
+    /**
+     * Using a large enough value to ensure we don't wait infinitely for the initialization.
+     * Actual initialization shouldn't take that long.
+     */
+    private static final Duration KINESIS_SCHEDULER_INITIALIZATION_TIMEOUT = Duration.ofMinutes(15);
     private static final Duration KINESIS_SCHEDULER_GRACEFUL_SHUTDOWN_TIMEOUT = Duration.ofMinutes(3);
 
     static final PropertyDescriptor STREAM_NAME = new PropertyDescriptor.Builder()
@@ -184,10 +194,17 @@ public class ConsumeKinesis extends AbstractProcessor {
             .description("""
                     The Controller Service that is used to obtain AWS credentials provider.
                     Ensure that the credentials provided have access to Kinesis, DynamoDB and (optional) CloudWatch.
-                    (See processor's additional details for more information.)
                     """)
             .required(true)
             .identifiesControllerService(AwsCredentialsProviderService.class)
+            .build();
+
+    static final PropertyDescriptor CONSUMER_TYPE = new PropertyDescriptor.Builder()
+            .name("Consumer Type")
+            .description("Strategy for reading records from Amazon Kinesis streams.")
+            .required(true)
+            .allowableValues(ConsumerType.class)
+            .defaultValue(ConsumerType.ENHANCED_FAN_OUT)
             .build();
 
     static final PropertyDescriptor PROCESSING_STRATEGY = new PropertyDescriptor.Builder()
@@ -204,7 +221,7 @@ public class ConsumeKinesis extends AbstractProcessor {
                     The Record Reader to use for parsing the data received from Kinesis.
 
                     The Record Reader is responsible for providing schemas for the records. If the schemas change frequently,
-                    it might hinder performance of the processor. (See processor's additional details for more information.)
+                    it might hinder performance of the processor.
                     """)
             .required(true)
             .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.RECORD)
@@ -286,6 +303,7 @@ public class ConsumeKinesis extends AbstractProcessor {
             AWS_CREDENTIALS_PROVIDER_SERVICE,
             REGION,
             CUSTOM_REGION,
+            CONSUMER_TYPE,
             PROCESSING_STRATEGY,
             RECORD_READER,
             RECORD_WRITER,
@@ -328,6 +346,11 @@ public class ConsumeKinesis extends AbstractProcessor {
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     @Override
@@ -392,15 +415,18 @@ public class ConsumeKinesis extends AbstractProcessor {
         final ConfigsBuilder configsBuilder = new ConfigsBuilder(streamTracker, applicationName, kinesisClient, dynamoDbClient, cloudWatchClient, workerId, recordProcessorFactory);
 
         final MetricsFactory metricsFactory = configureMetricsFactory(context);
+        final RetrievalSpecificConfig retrievalSpecificConfig = configureRetrievalSpecificConfig(context, kinesisClient, streamName, applicationName);
+
+        final InitializationStateChangeListener initializationListener = new InitializationStateChangeListener(getLogger());
 
         kinesisScheduler = new Scheduler(
                 configsBuilder.checkpointConfig(),
-                configsBuilder.coordinatorConfig(),
+                configsBuilder.coordinatorConfig().workerStateChangeListener(initializationListener),
                 configsBuilder.leaseManagementConfig(),
                 configsBuilder.lifecycleConfig(),
                 configsBuilder.metricsConfig().metricsFactory(metricsFactory),
                 configsBuilder.processorConfig(),
-                configsBuilder.retrievalConfig()
+                configsBuilder.retrievalConfig().retrievalSpecificConfig(retrievalSpecificConfig)
         );
 
         final String schedulerThreadName = "%s-Scheduler-%s".formatted(getClass().getSimpleName(), getIdentifier());
@@ -409,8 +435,34 @@ public class ConsumeKinesis extends AbstractProcessor {
         schedulerThread.start();
         // The thread is stopped when kinesisScheduler is shutdown in the onStopped method.
 
-        getLogger().info("Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
-                streamName, applicationName, workerId);
+        final InitializationResult result;
+        try {
+            result = initializationListener.result().get(KINESIS_SCHEDULER_INITIALIZATION_TIMEOUT.getSeconds(), SECONDS);
+        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            cleanUpState();
+            throw new ProcessException("Initialization failed for stream [%s]".formatted(streamName), e);
+        }
+
+        switch (result) {
+            case InitializationResult.Success ignored ->
+                getLogger().info(
+                        "Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
+                        streamName, applicationName, workerId);
+            case InitializationResult.Failure failure -> {
+                cleanUpState();
+
+                final ProcessException ex = failure.error()
+                        .map(err -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName), err))
+                        // This branch is active only when a scheduler was shutdown, but no initialization error was provided.
+                        // This behavior isn't typical and wasn't observed.
+                        .orElseGet(() -> new ProcessException(("Initialization failed for stream [%s]").formatted(streamName)));
+
+                throw ex;
+            }
+        }
     }
 
     /**
@@ -418,11 +470,11 @@ public class ConsumeKinesis extends AbstractProcessor {
      * {@link software.amazon.kinesis.common.KinesisClientUtil#adjustKinesisClientBuilder(KinesisAsyncClientBuilder)}.
      */
     private static SdkAsyncHttpClient createKinesisHttpClient(final ProcessContext context) {
-        final int maxConcurrency = KINESIS_HTTP_CLIENT_CONCURRENCY_PER_TASK * context.getMaxConcurrentTasks();
-
         return createHttpClientBuilder(context)
                 .protocol(Protocol.HTTP2)
-                .maxConcurrency(maxConcurrency)
+                // Since we're using HTTP/2, multiple concurrent requests will reuse the same HTTP connection.
+                // Therefore, the number of real connections is going to be relatively small.
+                .maxConcurrency(Integer.MAX_VALUE)
                 .http2Configuration(Http2Configuration.builder()
                         .initialWindowSize(KINESIS_HTTP_CLIENT_WINDOW_SIZE_BYTES)
                         .healthCheckPingPeriod(KINESIS_HTTP_HEALTH_CHECK_PERIOD)
@@ -472,7 +524,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         final InitialPosition initialPosition = context.getProperty(INITIAL_STREAM_POSITION).asAllowableValue(InitialPosition.class);
         return switch (initialPosition) {
             case TRIM_HORIZON ->
-                    InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.TRIM_HORIZON);
+                InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.TRIM_HORIZON);
             case LATEST -> InitialPositionInStreamExtended.newInitialPosition(InitialPositionInStream.LATEST);
             case AT_TIMESTAMP -> {
                 final String timestampValue = context.getProperty(STREAM_POSITION_TIMESTAMP).getValue();
@@ -508,12 +560,29 @@ public class ConsumeKinesis extends AbstractProcessor {
         };
     }
 
+    private static RetrievalSpecificConfig configureRetrievalSpecificConfig(
+            final ProcessContext context,
+            final KinesisAsyncClient kinesisClient,
+            final String streamName,
+            final String applicationName) {
+        final ConsumerType consumerType = context.getProperty(CONSUMER_TYPE).asAllowableValue(ConsumerType.class);
+        return switch (consumerType) {
+            case SHARED_THROUGHPUT -> new PollingConfig(kinesisClient).streamName(streamName);
+            case ENHANCED_FAN_OUT -> new FanOutConfig(kinesisClient).streamName(streamName).applicationName(applicationName);
+        };
+    }
+
     @OnStopped
     public void onStopped() {
+        cleanUpState();
+    }
+
+    private void cleanUpState() {
         if (kinesisScheduler != null) {
             shutdownScheduler();
             kinesisScheduler = null;
         }
+
         if (kinesisClient != null) {
             kinesisClient.close();
             kinesisClient = null;
@@ -532,6 +601,10 @@ public class ConsumeKinesis extends AbstractProcessor {
     }
 
     private void shutdownScheduler() {
+        if (kinesisScheduler.shutdownComplete()) {
+            return;
+        }
+
         final long start = System.nanoTime();
         getLogger().debug("Shutting down Kinesis Scheduler");
 
@@ -684,6 +757,77 @@ public class ConsumeKinesis extends AbstractProcessor {
         }
     }
 
+    private static final class InitializationStateChangeListener implements WorkerStateChangeListener {
+
+        private final ComponentLog logger;
+
+        private final CompletableFuture<InitializationResult> resultFuture = new CompletableFuture<>();
+
+        private volatile @Nullable Throwable initializationFailure;
+
+        InitializationStateChangeListener(final ComponentLog logger) {
+            this.logger = logger;
+        }
+
+        @Override
+        public void onWorkerStateChange(final WorkerState newState) {
+            logger.info("Worker state changed to [{}]", newState);
+
+            if (newState == WorkerState.STARTED) {
+                resultFuture.complete(new InitializationResult.Success());
+            } else if (newState == WorkerState.SHUT_DOWN) {
+                resultFuture.complete(new InitializationResult.Failure(Optional.ofNullable(initializationFailure)));
+            }
+        }
+
+        @Override
+        public void onAllInitializationAttemptsFailed(final Throwable e) {
+            // This method is called before the SHUT_DOWN_STARTED phase.
+            // Memorizing the error until the Scheduler is SHUT_DOWN.
+            initializationFailure = e;
+        }
+
+        Future<InitializationResult> result() {
+            return resultFuture;
+        }
+    }
+
+    private sealed interface InitializationResult {
+        record Success() implements InitializationResult {
+        }
+
+        record Failure(Optional<Throwable> error) implements InitializationResult {
+        }
+    }
+
+    enum ConsumerType implements DescribedValue {
+        SHARED_THROUGHPUT("Shared Throughput", "A consumer shares the read throughput limits with other consumers"),
+        ENHANCED_FAN_OUT("Enhanced Fan-Out", "A consumer is granted a dedicated read throughput with a lower latency");
+
+        private final String displayName;
+        private final String description;
+
+        ConsumerType(final String displayName, final String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
+
     enum ProcessingStrategy implements DescribedValue {
         FLOW_FILE("Write one FlowFile for each consumed Kinesis Record"),
         RECORD("Write one FlowFile containing multiple consumed Kinesis Records processed with Record Reader and Record Writer");
@@ -775,9 +919,8 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     enum OutputStrategy implements DescribedValue {
         USE_VALUE("Use Content as Value", "Write only the Kinesis Record value to the FlowFile record."),
-        USE_WRAPPER("Use Wrapper", "Write the Kinesis Record value and metadata into the FlowFile record. (See additional details for more information.)"),
-        INJECT_METADATA("Inject Metadata",
-                "Write the Kinesis Record value to the FlowFile record and add a sub-record to it with metadata. (See additional details for more information.)");
+        USE_WRAPPER("Use Wrapper", "Write the Kinesis Record value and metadata into the FlowFile record."),
+        INJECT_METADATA("Inject Metadata", "Write the Kinesis Record value to the FlowFile record and add a sub-record to it with metadata.");
 
         private final String displayName;
         private final String description;

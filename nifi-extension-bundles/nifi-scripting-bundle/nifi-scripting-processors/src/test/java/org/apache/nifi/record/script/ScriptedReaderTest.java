@@ -22,7 +22,9 @@ import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.MockComponentLog;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -42,11 +44,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for the ScriptedReader class
@@ -54,6 +58,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class ScriptedReaderTest {
     private static final String SOURCE_DIR = "src/test/resources";
     private static final String GROOVY_DIR = "groovy";
+    private static final String SCRIPT_LANGUAGE_PROPERTY = "Script Language";
+    private static final String SUPPORTED_SCRIPT_ENGINE = "Groovy";
     private static Path tempJar;
     @TempDir
     private Path targetScriptFile;
@@ -78,6 +84,44 @@ class ScriptedReaderTest {
         runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, (String) null);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> propertyValues = Map.of(
+                SCRIPT_LANGUAGE_PROPERTY, SUPPORTED_SCRIPT_ENGINE
+        );
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+
+        final ScriptedReader scriptedReader = new ScriptedReader();
+        scriptedReader.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        final String scriptLanguageRenamed = propertiesRenamed.get(SCRIPT_LANGUAGE_PROPERTY);
+        assertEquals(ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName(), scriptLanguageRenamed);
+    }
+
+    @Test
+    void testMigratePropertiesPreferringScriptEngineProperty() {
+        final String scriptEngineProperty = ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName();
+        final Map<String, String> propertyValues = Map.of(
+                SCRIPT_LANGUAGE_PROPERTY, "AWK",
+                scriptEngineProperty, SUPPORTED_SCRIPT_ENGINE
+        );
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+
+        final ScriptedReader scriptedReader = new ScriptedReader();
+        scriptedReader.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+
+        final Set<String> propertiesRemoved = result.getPropertiesRemoved();
+        assertTrue(propertiesRemoved.contains(SCRIPT_LANGUAGE_PROPERTY), "Script Language property should be removed");
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        assertTrue(propertiesRenamed.isEmpty(), "Properties should not be renamed when Script Engine is defined");
     }
 
     @Test

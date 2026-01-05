@@ -215,7 +215,7 @@ public abstract class AbstractPutElasticsearch extends AbstractProcessor impleme
                 indexOpValidationResult.valid(false)
                         .explanation(String.format("%s must be Expression Language or one of %s",
                                 INDEX_OP.getDisplayName(), ALLOWED_INDEX_OPERATIONS)
-                        );
+                    );
             } else {
                 indexOpValidationResult.valid(true);
             }

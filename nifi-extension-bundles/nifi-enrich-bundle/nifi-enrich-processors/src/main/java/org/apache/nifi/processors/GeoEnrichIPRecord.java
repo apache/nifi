@@ -380,16 +380,16 @@ public class GeoEnrichIPRecord extends AbstractEnrichIP {
 
         if (response == null) {
             return false;
-        } else if (response.getCity() == null) {
+        } else if (response.city() == null) {
             return false;
         }
 
-        boolean city = update(GEO_CITY, cached, record, response.getCity().getName());
-        boolean country = update(GEO_COUNTRY, cached, record, response.getCountry().getName());
-        boolean iso = update(GEO_COUNTRY_ISO, cached, record, response.getCountry().getIsoCode());
-        boolean lat = update(GEO_LATITUDE, cached, record, response.getLocation().getLatitude());
-        boolean lon = update(GEO_LONGITUDE, cached, record, response.getLocation().getLongitude());
-        boolean postal = update(GEO_POSTAL_CODE, cached, record, response.getPostal().getCode());
+        boolean city = update(GEO_CITY, cached, record, response.city().name());
+        boolean country = update(GEO_COUNTRY, cached, record, response.country().name());
+        boolean iso = update(GEO_COUNTRY_ISO, cached, record, response.country().isoCode());
+        boolean lat = update(GEO_LATITUDE, cached, record, response.location().latitude());
+        boolean lon = update(GEO_LONGITUDE, cached, record, response.location().longitude());
+        boolean postal = update(GEO_POSTAL_CODE, cached, record, response.postal().code());
 
         retVal = (city || country || iso || lat || lon || postal);
 

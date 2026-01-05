@@ -314,32 +314,32 @@ public class UnpackContent extends AbstractProcessor {
         // set the Unpacker to use for this FlowFile.  FlowFileUnpackager objects maintain state and are not reusable.
         final Unpacker unpacker;
         final boolean addFragmentAttrs = switch (packagingFormat) {
-          case TAR_FORMAT -> {
-            unpacker = tarUnpacker;
-            yield true;
-          }
-          case ZIP_FORMAT -> {
-            unpacker = zipUnpacker;
-            yield true;
-          }
-          case FLOWFILE_STREAM_FORMAT_V2 -> {
-            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
-            yield false;
-          }
-          case FLOWFILE_STREAM_FORMAT_V3 -> {
-            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
-            yield false;
-          }
-          case FLOWFILE_TAR_FORMAT -> {
-            unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
-            yield false;
-          }
-          default ->
-            // The format of the unpacker should be known before initialization
-            throw new ProcessException(packagingFormat + " is not a valid packaging format");
+            case TAR_FORMAT -> {
+                unpacker = tarUnpacker;
+                yield true;
+            }
+            case ZIP_FORMAT -> {
+                unpacker = zipUnpacker;
+                yield true;
+            }
+            case FLOWFILE_STREAM_FORMAT_V2 -> {
+                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV2());
+                yield false;
+            }
+            case FLOWFILE_STREAM_FORMAT_V3 -> {
+                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV3());
+                yield false;
+            }
+            case FLOWFILE_TAR_FORMAT -> {
+                unpacker = new FlowFileStreamUnpacker(new FlowFileUnpackagerV1());
+                yield false;
+            }
+            default ->
+                // The format of the unpacker should be known before initialization
+                throw new ProcessException(packagingFormat + " is not a valid packaging format");
         };
 
-      final List<FlowFile> unpacked = new ArrayList<>();
+        final List<FlowFile> unpacked = new ArrayList<>();
         try {
             unpacker.unpack(session, flowFile, unpacked);
             if (unpacked.isEmpty()) {
@@ -369,7 +369,7 @@ public class UnpackContent extends AbstractProcessor {
         config.renameProperty("allow-stored-entries-wdd", ALLOW_STORED_ENTRIES_WITH_DATA_DESCRIPTOR.getName());
     }
 
-    private static abstract class Unpacker {
+    private abstract static class Unpacker {
         protected Pattern fileFilter = null;
 
         public Unpacker() { }

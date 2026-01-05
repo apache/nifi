@@ -23,43 +23,43 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestVerification {
 
-    static public void assertDatatFlowMetrics(List<Metric> collectedMetrics) {
-        assertTrue( collectedMetrics.stream().anyMatch(
+    public static void assertDatatFlowMetrics(List<Metric> collectedMetrics) {
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.FLOW_FILES_RECEIVED) && o.getCategoryName().equals("DataFlow")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.BYTES_RECEIVED) && o.getCategoryName().equals("DataFlow")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.FLOW_FILES_SENT) && o.getCategoryName().equals("DataFlow")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.BYTES_SENT) && o.getCategoryName().equals("DataFlow")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.FLOW_FILES_QUEUED) && o.getCategoryName().equals("DataFlow")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.BYTES_QUEUED) && o.getCategoryName().equals("DataFlow")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.BYTES_READ) && o.getCategoryName().equals("DataFlow")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.BYTES_WRITTEN) && o.getCategoryName().equals("DataFlow")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.ACTIVE_THREADS) && o.getCategoryName().equals("DataFlow")));
     }
 
-    static public void assertJVMMetrics(List<Metric> collectedMetrics) {
-        assertTrue( collectedMetrics.stream().anyMatch(
+    public static void assertJVMMetrics(List<Metric> collectedMetrics) {
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_HEAP_USED) && o.getCategoryName().equals("JvmMetrics")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_NON_HEAP_USAGE) && o.getCategoryName().equals("JvmMetrics")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_THREAD_COUNT) && o.getCategoryName().equals("JvmMetrics")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_FILE_DESCRIPTOR_USAGE) && o.getCategoryName().equals("JvmMetrics")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_DAEMON_THREAD_COUNT) && o.getCategoryName().equals("JvmMetrics")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_THREAD_STATES_BLOCKED) && o.getCategoryName().equals("JvmMetrics")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_UPTIME) && o.getCategoryName().equals("JvmMetrics")));
-        assertTrue( collectedMetrics.stream().anyMatch(
+        assertTrue(collectedMetrics.stream().anyMatch(
             o -> o.getName().equals(MetricNames.JVM_HEAP_USAGE) && o.getCategoryName().equals("JvmMetrics")));
     }
 }

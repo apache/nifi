@@ -62,8 +62,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 class ListSmbTest {
 
-    private final static AtomicLong currentMillis = new AtomicLong();
-    private final static AtomicLong currentNanos = new AtomicLong();
+    private static final AtomicLong currentMillis = new AtomicLong();
+    private static final AtomicLong currentNanos = new AtomicLong();
     public static final String CLIENT_SERVICE_PROVIDER_ID = "client-provider-service-id";
 
     private static long currentMillis() {

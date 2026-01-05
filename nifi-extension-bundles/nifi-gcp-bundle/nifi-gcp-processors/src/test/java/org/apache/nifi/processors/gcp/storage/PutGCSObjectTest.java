@@ -113,7 +113,7 @@ public class PutGCSObjectTest extends AbstractGCSTest {
     private static final String CONTENT_DISPOSITION = "attachment; filename=\"" + FILENAME + "\"";
     private static final Long CREATE_TIME = 1234L;
     private static final Long UPDATE_TIME = 4567L;
-    private final static Long GENERATION = 5L;
+    private static final Long GENERATION = 5L;
 
     @Mock
     StorageOptions storageOptions;

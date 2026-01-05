@@ -57,14 +57,24 @@ public class RemoteProcessGroupHealth implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         RemoteProcessGroupHealth that = (RemoteProcessGroupHealth) o;
 
-        if (isHasBulletins() != that.isHasBulletins()) return false;
-        if (getActivePortCount() != that.getActivePortCount()) return false;
-        if (getInactivePortCount() != that.getInactivePortCount()) return false;
+        if (isHasBulletins() != that.isHasBulletins()) {
+            return false;
+        }
+        if (getActivePortCount() != that.getActivePortCount()) {
+            return false;
+        }
+        if (getInactivePortCount() != that.getInactivePortCount()) {
+            return false;
+        }
         return getTransmissionStatus() != null ? getTransmissionStatus().equals(that.getTransmissionStatus()) : that.getTransmissionStatus() == null;
 
     }

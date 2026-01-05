@@ -28,9 +28,8 @@ import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,6 +38,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestExecuteProcess {
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(ExecuteProcess.class);
+    }
 
     @Test
     public void testSplitArgs() {
@@ -54,7 +59,7 @@ public class TestExecuteProcess {
 
         final List<String> singleArg = ArgumentUtils.splitArgs("    hello   ", ';');
         assertEquals(1, singleArg.size());
-        assertEquals("    hello   ", singleArg.get(0));
+        assertEquals("    hello   ", singleArg.getFirst());
 
         final List<String> twoArg = ArgumentUtils.splitArgs("   hello ;   good-bye   ", ';');
         assertEquals(2, twoArg.size());
@@ -63,7 +68,7 @@ public class TestExecuteProcess {
 
         final List<String> oneUnnecessarilyQuotedArg = ArgumentUtils.splitArgs("  \"hello\" ", ';');
         assertEquals(1, oneUnnecessarilyQuotedArg.size());
-        assertEquals("  hello ", oneUnnecessarilyQuotedArg.get(0));
+        assertEquals("  hello ", oneUnnecessarilyQuotedArg.getFirst());
 
         final List<String> twoQuotedArg = ArgumentUtils.splitArgs("\"   hello\" \"good   bye\"", ' ');
         assertEquals(2, twoQuotedArg.size());
@@ -84,10 +89,8 @@ public class TestExecuteProcess {
         assertEquals("", twoArgOneWholeQuotedArgOneEmptyArg.get(3));
     }
 
-    @DisabledOnOs(OS.WINDOWS)
     @Test
     public void testEcho() {
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "echo");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "test-args");
         runner.setProperty(ExecuteProcess.BATCH_DURATION, "500 millis");
@@ -103,7 +106,6 @@ public class TestExecuteProcess {
 
     @Test
     public void validateProcessInterruptOnStop() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setEnvironmentVariableValue("command", "ping");
         runner.setProperty(ExecuteProcess.COMMAND, "${command}");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "nifi.apache.org");
@@ -125,34 +127,8 @@ public class TestExecuteProcess {
 
         final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         if (!flowFiles.isEmpty()) {
-            assertEquals("ping", flowFiles.get(0).getAttribute("command"));
+            assertEquals("ping", flowFiles.getFirst().getAttribute("command"));
         }
-    }
-
-    // @Test
-    public void testBigBinaryInputData() {
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi", "TRACE");
-        System.setProperty("org.slf4j.simpleLogger.log.org.apache.nifi.processors.standard", "DEBUG");
-
-        String workingDirName = "/var/test";
-        String testFile = "eclipse-java-luna-SR2-win32.zip";
-
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
-        runner.setProperty(ExecuteProcess.COMMAND, "cmd");
-        runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, " /c type " + testFile);
-        runner.setProperty(ExecuteProcess.WORKING_DIR, workingDirName);
-
-        File inFile = new File(workingDirName, testFile);
-
-        runner.run();
-
-        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
-        long totalFlowFilesSize = 0;
-        for (final MockFlowFile flowFile : flowFiles) {
-            totalFlowFilesSize += flowFile.getSize();
-        }
-
-        assertEquals(inFile.length(), totalFlowFilesSize);
     }
 
     @Test
@@ -162,9 +138,7 @@ public class TestExecuteProcess {
 
         String workingDirName = "/var/test";
         String testFile = "Novo_dicionário_da_língua_portuguesa_by_Cândido_de_Figueiredo.txt";
-        // String testFile = "eclipse-java-luna-SR2-win32.zip";
 
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "cmd");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, " /c type " + testFile);
         runner.setProperty(ExecuteProcess.WORKING_DIR, workingDirName);
@@ -201,7 +175,6 @@ public class TestExecuteProcess {
 
     @Test
     public void testNotRedirectErrorStream() {
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "cd");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "does-not-exist");
 
@@ -213,7 +186,9 @@ public class TestExecuteProcess {
 
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
 
-        if (isCommandFailed(runner)) return;
+        if (isCommandFailed(runner)) {
+            return;
+        }
 
         // ExecuteProcess doesn't wait for finishing to drain error stream if it's configure NOT to redirect stream.
         // This causes test failure when draining the error stream didn't finish
@@ -222,7 +197,7 @@ public class TestExecuteProcess {
         final int expectedWarningMessages = 1;
         final int maxRetry = 5;
         for (int i = 0; i < maxRetry
-            && (runner.getLogger().getWarnMessages().size() < expectedWarningMessages); i++) {
+            && (runner.getLogger().getWarnMessages().isEmpty()); i++) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ignored) {
@@ -238,7 +213,6 @@ public class TestExecuteProcess {
 
     @Test
     public void testRedirectErrorStream() {
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "cd");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "does-not-exist");
         runner.setProperty(ExecuteProcess.REDIRECT_ERROR_STREAM, "true");
@@ -251,7 +225,9 @@ public class TestExecuteProcess {
 
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
 
-        if (isCommandFailed(runner)) return;
+        if (isCommandFailed(runner)) {
+            return;
+        }
 
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
         assertEquals(0, warnMessages.size(), "If redirect error stream is true " +
@@ -262,7 +238,6 @@ public class TestExecuteProcess {
 
     @Test
     public void testRedirectErrorStreamWithExpressions() {
-        final TestRunner runner = TestRunners.newTestRunner(ExecuteProcess.class);
         runner.setProperty(ExecuteProcess.COMMAND, "ls");
         runner.setProperty(ExecuteProcess.COMMAND_ARGUMENTS, "${literal('does-not-exist'):toUpper()}");
         runner.setProperty(ExecuteProcess.REDIRECT_ERROR_STREAM, "true");
@@ -275,16 +250,18 @@ public class TestExecuteProcess {
 
         processor.onTrigger(processContext, runner.getProcessSessionFactory());
 
-        if (isCommandFailed(runner)) return;
+        if (isCommandFailed(runner)) {
+            return;
+        }
 
         final List<LogMessage> warnMessages = runner.getLogger().getWarnMessages();
         assertEquals(0, warnMessages.size(), "If redirect error stream is true " +
                 "the output should be sent as a content of flow-file.");
         final List<MockFlowFile> succeeded = runner.getFlowFilesForRelationship(ExecuteProcess.REL_SUCCESS);
         assertEquals(1, succeeded.size());
-        assertTrue(new String(succeeded.get(0).toByteArray()).contains("DOES-NOT-EXIST"));
-        assertEquals(succeeded.get(0).getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND), "ls");
-        assertEquals(succeeded.get(0).getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND_ARGS), "DOES-NOT-EXIST");
+        assertTrue(new String(succeeded.getFirst().toByteArray()).contains("DOES-NOT-EXIST"));
+        assertEquals(succeeded.getFirst().getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND), "ls");
+        assertEquals(succeeded.getFirst().getAttribute(ExecuteProcess.ATTRIBUTE_COMMAND_ARGS), "DOES-NOT-EXIST");
     }
 
     /**

@@ -549,7 +549,6 @@ export class EditProcessor extends TabbedDialog {
     stop() {
         this.stopComponentRequest.next({
             id: this.request.entity.id,
-            uri: this.request.entity.uri,
             type: ComponentType.Processor,
             revision: this.client.getRevision({
                 ...this.request.entity,
@@ -562,7 +561,6 @@ export class EditProcessor extends TabbedDialog {
     start() {
         this.startComponentRequest.next({
             id: this.request.entity.id,
-            uri: this.request.entity.uri,
             type: ComponentType.Processor,
             revision: this.client.getRevision({
                 ...this.request.entity,
@@ -575,7 +573,6 @@ export class EditProcessor extends TabbedDialog {
     disable() {
         this.disableComponentRequest.next({
             id: this.request.entity.id,
-            uri: this.request.entity.uri,
             type: ComponentType.Processor,
             revision: this.client.getRevision({
                 ...this.request.entity,
@@ -588,7 +585,6 @@ export class EditProcessor extends TabbedDialog {
     enable() {
         this.enableComponentRequest.next({
             id: this.request.entity.id,
-            uri: this.request.entity.uri,
             type: ComponentType.Processor,
             revision: this.client.getRevision({
                 ...this.request.entity,
@@ -616,7 +612,8 @@ export class EditProcessor extends TabbedDialog {
     verifyClicked(entity: any): void {
         this.verify.next({
             entity,
-            properties: this.getModifiedProperties()
+            properties: this.getModifiedProperties(),
+            componentType: ComponentType.Processor
         });
     }
 

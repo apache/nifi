@@ -103,6 +103,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
+        super.migrateProperties(config);
         config.renameProperty(OLD_OPERATION_MODE_PROPERTY_NAME, OPERATION_MODE.getName());
         config.renameProperty("gridfs-query", QUERY.getName());
     }

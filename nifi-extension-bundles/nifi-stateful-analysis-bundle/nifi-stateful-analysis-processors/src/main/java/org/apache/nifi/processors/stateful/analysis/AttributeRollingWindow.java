@@ -31,6 +31,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -95,20 +96,20 @@ public class AttributeRollingWindow extends AbstractProcessor {
             .build();
 
     static final PropertyDescriptor VALUE_TO_TRACK = new PropertyDescriptor.Builder()
-            .name("Value to track")
+            .name("Value to Track")
             .description("The expression on which to evaluate each FlowFile. The result of the expression will be added to the rolling window value.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .required(true)
             .build();
     static final PropertyDescriptor TIME_WINDOW = new PropertyDescriptor.Builder()
-            .name("Time window")
+            .name("Time Window")
             .description("The time window on which to calculate the rolling window.")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .required(true)
             .build();
     static final PropertyDescriptor SUB_WINDOW_LENGTH = new PropertyDescriptor.Builder()
-            .name("Sub-window length")
+            .name("Subwindow Length")
             .description("When set, values will be batched into sub-windows of the set length. This allows for much larger length total windows to be set but sacrifices some precision. If this is " +
                     "not set (or is 0) then each value is stored in state with the timestamp of when it was received. After the length of time stated in " + TIME_WINDOW.getDisplayName() +
                     " elaspes the value will be removed. If this is set, values will be batched together every X amount of time (where X is the time period set for this property) and removed " +
@@ -178,6 +179,13 @@ public class AttributeRollingWindow extends AbstractProcessor {
             getLogger().error("Ran into an error while processing {}.", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
         }
+    }
+
+    @Override
+    public void migrateProperties(PropertyConfiguration config) {
+        config.renameProperty("Value to track", VALUE_TO_TRACK.getName());
+        config.renameProperty("Time window", TIME_WINDOW.getName());
+        config.renameProperty("Sub-window length", SUB_WINDOW_LENGTH.getName());
     }
 
     private void noMicroBatch(ProcessContext context, ProcessSession session, FlowFile flowFile, Long currTime) {

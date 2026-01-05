@@ -199,6 +199,6 @@ public final class AuthorizeControllerServiceReference {
             final Optional<String> versionedId = cs.getVersionedComponentId();
             return versionedId.filter(unresolvedControllerServices::contains).isPresent();
         })
-        .forEach(ca -> ca.getAuthorizable().authorize(authorizer, RequestAction.READ, user));
+            .forEach(ca -> ca.getAuthorizable().authorize(authorizer, RequestAction.READ, user));
     }
 }

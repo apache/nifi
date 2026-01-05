@@ -24,6 +24,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
@@ -122,5 +123,6 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
         config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_TENANT_ID_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_TENANT_ID.getName());
         config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_ID_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_CLIENT_ID.getName());
         config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_SECRET_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_CLIENT_SECRET.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 }

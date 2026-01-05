@@ -112,10 +112,10 @@ public class WriteFastCSVResult extends AbstractRecordSetWriter implements Recor
     private String getFormat(final RecordField field) {
         final DataType dataType = field.getDataType();
         return switch (dataType.getFieldType()) {
-        case DATE -> dateFormat;
-        case TIME -> timeFormat;
+            case DATE -> dateFormat;
+            case TIME -> timeFormat;
             case TIMESTAMP -> timestampFormat;
-        default -> dataType.getFormat();
+            default -> dataType.getFormat();
         };
     }
 

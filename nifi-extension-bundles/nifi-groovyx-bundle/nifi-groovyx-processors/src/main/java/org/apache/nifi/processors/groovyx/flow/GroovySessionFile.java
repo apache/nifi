@@ -53,8 +53,12 @@ public class GroovySessionFile extends SessionFile implements GroovyObject {
      */
     @Override
     public Object getProperty(String key) {
-        if ("size".equals(key)) return getSize();
-        if ("attributes".equals(key)) return getAttributes();
+        if ("size".equals(key)) {
+            return getSize();
+        }
+        if ("attributes".equals(key)) {
+            return getAttributes();
+        }
         return this.getAttribute(key);
     }
 

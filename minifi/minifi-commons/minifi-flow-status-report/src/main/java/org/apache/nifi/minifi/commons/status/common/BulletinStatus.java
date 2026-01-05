@@ -41,12 +41,18 @@ public class BulletinStatus implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         BulletinStatus bulletin = (BulletinStatus) o;
 
-        if (getTimestamp() != null ? !getTimestamp().equals(bulletin.getTimestamp()) : bulletin.getTimestamp() != null) return false;
+        if (getTimestamp() != null ? !getTimestamp().equals(bulletin.getTimestamp()) : bulletin.getTimestamp() != null) {
+            return false;
+        }
         return getMessage() != null ? getMessage().equals(bulletin.getMessage()) : bulletin.getMessage() == null;
 
     }

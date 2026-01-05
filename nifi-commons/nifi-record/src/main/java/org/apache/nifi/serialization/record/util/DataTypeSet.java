@@ -66,7 +66,7 @@ public class DataTypeSet {
             types.remove(toRemove);
         }
 
-        types.add( toAdd == null ? dataType : toAdd );
+        types.add(toAdd == null ? dataType : toAdd);
     }
 
     /**

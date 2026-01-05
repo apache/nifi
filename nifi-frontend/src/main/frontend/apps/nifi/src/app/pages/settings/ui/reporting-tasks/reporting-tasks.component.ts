@@ -182,7 +182,8 @@ export class ReportingTasks implements OnInit, OnDestroy {
         this.store.dispatch(
             getComponentStateAndOpenDialog({
                 request: {
-                    componentUri: entity.uri,
+                    componentType: ComponentType.ReportingTask,
+                    componentId: entity.id,
                     componentName: entity.component.name,
                     canClear
                 }

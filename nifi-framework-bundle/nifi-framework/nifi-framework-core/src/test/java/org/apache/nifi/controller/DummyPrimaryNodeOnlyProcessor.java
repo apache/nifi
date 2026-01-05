@@ -17,11 +17,11 @@
 
 package org.apache.nifi.controller;
 
-        import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
-        import org.apache.nifi.processor.AbstractProcessor;
-        import org.apache.nifi.processor.ProcessContext;
-        import org.apache.nifi.processor.ProcessSession;
-        import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 
 /**
  * Dummy processor implementation to test {@link PrimaryNodeOnly} marker annotation

@@ -35,6 +35,7 @@ import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.gcp.ProxyAwareTransportFactory;
 import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
@@ -153,6 +154,7 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         config.renameProperty("compute-engine-credentials", LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName());
         config.renameProperty("service-account-json-file", SERVICE_ACCOUNT_JSON_FILE.getName());
         config.renameProperty("service-account-json", SERVICE_ACCOUNT_JSON.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
 
         final boolean legacyFlagsPresent = config.hasProperty(LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS)
                 || config.hasProperty(LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS);

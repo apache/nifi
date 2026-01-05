@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUpdateAttribute {
 
-    final static private String TEST_CONTENT = "THIS IS TEST CONTENT";
+    private static final String TEST_CONTENT = "THIS IS TEST CONTENT";
 
     final UpdateAttribute processor = new UpdateAttribute();
     final TestRunner runner = TestRunners.newTestRunner(processor);
@@ -100,6 +100,20 @@ public class TestUpdateAttribute {
     public void testAddAttributeWithIncorrectExpression() {
         runner.setProperty("NewId", "${UUID(}");
         runner.assertNotValid();
+    }
+
+    @Test
+    public void testDynamicPropertyWithUnsetParameter() {
+        runner.setProperty("attribute.with.param", "#{missing.parameter}");
+        runner.assertNotValid();
+        runner.setProperty("attribute.with.param", "#{missing.parameter}#{another.missing.parameter}");
+        runner.assertNotValid();
+        runner.setProperty("attribute.with.param", "#{missing.parameter} #{another.missing.parameter}");
+        runner.assertValid();
+        runner.setProperty("attribute.with.param", "#{missing.parameter}${now()}");
+        runner.assertValid();
+        runner.setProperty("attribute.with.param", "${#{missing.parameter}:isEmpty():ifElse('', #{missing.parameter})}");
+        runner.assertValid();
     }
 
     @Test

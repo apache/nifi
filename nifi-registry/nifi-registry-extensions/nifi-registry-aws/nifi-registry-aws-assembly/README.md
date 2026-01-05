@@ -79,6 +79,7 @@ Uncomment the extensionBundlePersistenceProvider for S3:
     <property name="Access Key"></property>
     <property name="Secret Access Key"></property>
     <property name="Endpoint URL"></property>
+    <property name="Force Path Style"></property>
 </extensionBundlePersistenceProvider>
 -->
 ```

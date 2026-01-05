@@ -259,7 +259,7 @@ public class AttributesToCSV extends AbstractProcessor {
         destinationContent = OUTPUT_OVERWRITE_CONTENT.getValue().equals(context.getProperty(DESTINATION).getValue());
         nullValForEmptyString = context.getProperty(NULL_VALUE_FOR_EMPTY_STRING).asBoolean();
         includeSchema = context.getProperty(INCLUDE_SCHEMA).asBoolean();
-     }
+    }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -296,11 +296,11 @@ public class AttributesToCSV extends AbstractProcessor {
         try {
             if (destinationContent) {
                 FlowFile conFlowfile = session.write(original, (in, out) -> {
-                        if (includeSchema) {
-                            sbNames.append(System.lineSeparator());
-                            out.write(sbNames.toString().getBytes());
-                        }
-                        out.write(sbValues.toString().getBytes());
+                    if (includeSchema) {
+                        sbNames.append(System.lineSeparator());
+                        out.write(sbNames.toString().getBytes());
+                    }
+                    out.write(sbValues.toString().getBytes());
                 });
                 conFlowfile = session.putAttribute(conFlowfile, CoreAttributes.MIME_TYPE.key(), OUTPUT_MIME_TYPE);
                 session.transfer(conFlowfile, REL_SUCCESS);

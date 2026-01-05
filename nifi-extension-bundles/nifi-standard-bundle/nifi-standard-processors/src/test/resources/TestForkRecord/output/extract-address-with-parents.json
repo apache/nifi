@@ -1,0 +1,121 @@
+[ {
+  "id" : "home",
+  "street" : "1 nifi street",
+  "city" : "nifi city",
+  "name" : {
+    "last" : "Doe",
+    "first" : "John"
+  },
+  "bankAccounts" : [ {
+    "bankID" : "OneBank",
+    "IBAN" : "OneIBAN",
+    "last5Transactions" : [ {
+      "comment" : "food",
+      "amount" : "-450"
+    } ]
+  } ]
+}, {
+  "id" : "home",
+  "street" : "1 nifi street",
+  "city" : "nifi city",
+  "name" : {
+    "last" : "Smith",
+    "first" : "Jane"
+  },
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : null
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "gas station",
+      "amount" : "-45"
+    }, {
+      "comment" : "hair cut",
+      "amount" : "-19"
+    } ]
+  } ]
+}, {
+  "id" : "work",
+  "street" : "1 nifi avenue",
+  "city" : "apache city",
+  "name" : {
+    "last" : "Smith",
+    "first" : "Jane"
+  },
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : null
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "gas station",
+      "amount" : "-45"
+    }, {
+      "comment" : "hair cut",
+      "amount" : "-19"
+    } ]
+  } ]
+}, {
+  "id" : "home",
+  "street" : "10 nifi street",
+  "city" : "nifi city",
+  "name" : {
+    "last" : "Clark",
+    "first" : "Jane"
+  },
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "gift",
+      "amount" : "+100"
+    }, {
+      "comment" : "flights",
+      "amount" : "-190"
+    } ]
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "nifi tshirt",
+      "amount" : "0"
+    }, {
+      "comment" : "theatre",
+      "amount" : "-19"
+    } ]
+  } ]
+}, {
+  "id" : "work",
+  "street" : "10 nifi avenue",
+  "city" : "apache city",
+  "name" : {
+    "last" : "Clark",
+    "first" : "Jane"
+  },
+  "bankAccounts" : [ {
+    "bankID" : "nifi bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "gift",
+      "amount" : "+100"
+    }, {
+      "comment" : "flights",
+      "amount" : "-190"
+    } ]
+  }, {
+    "bankID" : "apache bank",
+    "IBAN" : "myIBAN",
+    "last5Transactions" : [ {
+      "comment" : "nifi tshirt",
+      "amount" : "0"
+    }, {
+      "comment" : "theatre",
+      "amount" : "-19"
+    } ]
+  } ]
+} ]

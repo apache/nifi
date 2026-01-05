@@ -40,7 +40,8 @@ import {
     NiFiCommon,
     NifiTooltipDirective,
     CopyDirective,
-    ParameterContextReferenceEntity
+    ParameterContextReferenceEntity,
+    ComponentType
 } from '@nifi/shared';
 import {
     ConfigVerificationResult,
@@ -186,7 +187,8 @@ export class EditParameterProvider extends TabbedDialog {
     verifyClicked(entity: ParameterProviderEntity): void {
         this.verify.next({
             entity,
-            properties: this.getModifiedProperties()
+            properties: this.getModifiedProperties(),
+            componentType: ComponentType.ParameterProvider
         });
     }
 

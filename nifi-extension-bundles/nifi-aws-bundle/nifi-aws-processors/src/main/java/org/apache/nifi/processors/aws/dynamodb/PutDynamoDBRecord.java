@@ -390,7 +390,7 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
 
                 final String partitionKeyAttribute = context.getProperty(PARTITION_KEY_ATTRIBUTE).evaluateAttributeExpressions().getValue();
                 if (!flowFileAttributes.containsKey(partitionKeyAttribute)) {
-                    throw new ProcessException("Missing attribute \"" + partitionKeyAttribute + "\"" );
+                    throw new ProcessException("Missing attribute \"" + partitionKeyAttribute + "\"");
                 }
 
                 partitionKeyValue = flowFileAttributes.get(partitionKeyAttribute);

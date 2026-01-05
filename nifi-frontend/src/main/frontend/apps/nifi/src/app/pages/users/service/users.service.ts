@@ -19,7 +19,6 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Client } from '../../../service/client.service';
 import { Observable } from 'rxjs';
-import { NiFiCommon } from '@nifi/shared';
 import { UserEntity, UserGroupEntity } from '../../../state/shared';
 import {
     CreateUserGroupRequest,
@@ -33,7 +32,6 @@ import { ClusterConnectionService } from '../../../service/cluster-connection.se
 export class UsersService {
     private httpClient = inject(HttpClient);
     private client = inject(Client);
-    private nifiCommon = inject(NiFiCommon);
     private clusterConnectionService = inject(ClusterConnectionService);
 
     private static readonly API: string = '../nifi-api';
@@ -73,7 +71,7 @@ export class UsersService {
                 ...request.userPayload
             }
         };
-        return this.httpClient.put(this.nifiCommon.stripProtocol(request.uri), payload);
+        return this.httpClient.put(`${UsersService.API}/tenants/users/${request.id}`, payload);
     }
 
     updateUserGroup(request: UpdateUserGroupRequest): Observable<any> {
@@ -85,7 +83,7 @@ export class UsersService {
                 ...request.userGroupPayload
             }
         };
-        return this.httpClient.put(this.nifiCommon.stripProtocol(request.uri), payload);
+        return this.httpClient.put(`${UsersService.API}/tenants/user-groups/${request.id}`, payload);
     }
 
     deleteUser(user: UserEntity): Observable<any> {
@@ -95,7 +93,7 @@ export class UsersService {
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             }
         });
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(user.uri), { params });
+        return this.httpClient.delete(`${UsersService.API}/tenants/users/${user.id}`, { params });
     }
 
     deleteUserGroup(userGroup: UserGroupEntity): Observable<any> {
@@ -105,6 +103,6 @@ export class UsersService {
                 disconnectedNodeAcknowledged: this.clusterConnectionService.isDisconnectionAcknowledged()
             }
         });
-        return this.httpClient.delete(this.nifiCommon.stripProtocol(userGroup.uri), { params });
+        return this.httpClient.delete(`${UsersService.API}/tenants/user-groups/${userGroup.id}`, { params });
     }
 }

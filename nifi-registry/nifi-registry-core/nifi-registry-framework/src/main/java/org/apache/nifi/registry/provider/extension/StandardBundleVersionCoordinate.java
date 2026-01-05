@@ -70,8 +70,12 @@ public class StandardBundleVersionCoordinate implements BundleVersionCoordinate 
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final StandardBundleVersionCoordinate that = (StandardBundleVersionCoordinate) o;
         return bucketId.equals(that.bucketId)
                 && groupId.equals(that.groupId)

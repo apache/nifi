@@ -46,7 +46,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
@@ -54,8 +53,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MemoryBoundRecordBufferTest {
@@ -129,7 +128,7 @@ class MemoryBoundRecordBufferTest {
         final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
         assertEquals(records, consumedRecords);
         // Just consuming record should not checkpoint them.
-        assertFalse(checkpointer1.isCheckpointed());
+        assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer1.latestCheckpointedSequenceNumber());
     }
 
     @Test
@@ -143,7 +142,27 @@ class MemoryBoundRecordBufferTest {
         recordBuffer.consumeRecords(lease);
         recordBuffer.commitConsumedRecords(lease);
 
-        assertTrue(checkpointer1.isCheckpointed());
+        assertEquals(records.getLast().sequenceNumber(), checkpointer1.latestCheckpointedSequenceNumber());
+    }
+
+    @Test
+    void testCommitConsumedRecords_withRecordsAddedBeforeCommit() {
+        final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
+        final List<KinesisClientRecord> originalRecords = createTestRecords(2);
+
+        recordBuffer.addRecords(bufferId, originalRecords, checkpointer1);
+        final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
+
+        recordBuffer.consumeRecords(lease);
+
+        // Simulating new records added in parallel, before a commit.
+        final List<KinesisClientRecord> newRecords = createTestRecords(5);
+        recordBuffer.addRecords(bufferId, newRecords, checkpointer1);
+
+        recordBuffer.commitConsumedRecords(lease);
+
+        // Only originalRecords, which were consumed, are checkpointed.
+        assertEquals(originalRecords.getLast().sequenceNumber(), checkpointer1.latestCheckpointedSequenceNumber());
     }
 
     @Test
@@ -162,7 +181,7 @@ class MemoryBoundRecordBufferTest {
         recordBuffer.rollbackConsumedRecords(lease);
 
         // Checkpointer should not be called during rollback.
-        assertFalse(checkpointer1.isCheckpointed());
+        assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer1.latestCheckpointedSequenceNumber());
 
         final List<String> rolledBackMessages = recordBuffer.consumeRecords(lease).stream()
                 .map(this::readContent)
@@ -278,7 +297,7 @@ class MemoryBoundRecordBufferTest {
 
         // Should not be able to commit records for invalidated buffer.
         recordBuffer.commitConsumedRecords(lease);
-        assertFalse(checkpointer1.isCheckpointed());
+        assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer1.latestCheckpointedSequenceNumber());
 
         // Buffer should not be available in pool.
         assertTrue(recordBuffer.acquireBufferLease().isEmpty());
@@ -296,7 +315,7 @@ class MemoryBoundRecordBufferTest {
         recordBuffer.commitConsumedRecords(lease);
 
         recordBuffer.checkpointEndedShard(bufferId, checkpointer2);
-        assertTrue(checkpointer2.isCheckpointed());
+        assertEquals(TestCheckpointer.LATEST_SEQUENCE_NUMBER, checkpointer2.latestCheckpointedSequenceNumber());
 
         // Buffer should be removed and not available for operations.
         final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
@@ -315,7 +334,7 @@ class MemoryBoundRecordBufferTest {
         recordBuffer.commitConsumedRecords(lease);
 
         recordBuffer.shutdownShardConsumption(bufferId, checkpointer2);
-        assertTrue(checkpointer2.isCheckpointed());
+        assertEquals(TestCheckpointer.LATEST_SEQUENCE_NUMBER, checkpointer2.latestCheckpointedSequenceNumber());
 
         // Buffer should be removed and not available for operations.
         final List<KinesisClientRecord> consumedRecords = recordBuffer.consumeRecords(lease);
@@ -330,10 +349,37 @@ class MemoryBoundRecordBufferTest {
         recordBuffer.addRecords(bufferId, records, checkpointer1);
 
         recordBuffer.shutdownShardConsumption(bufferId, checkpointer2);
-        assertFalse(checkpointer1.isCheckpointed());
-        assertFalse(checkpointer2.isCheckpointed());
+        assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer1.latestCheckpointedSequenceNumber());
+        assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, checkpointer2.latestCheckpointedSequenceNumber());
 
         assertTrue(recordBuffer.acquireBufferLease().isEmpty(), "Buffer should not be available after shutdown");
+    }
+
+    @Test
+    void testShutdownShardConsumption_whileOtherShardIsValid() {
+        final int bufferSize = 100;
+
+        // Create buffer with small memory limit.
+        final MemoryBoundRecordBuffer recordBuffer = new MemoryBoundRecordBuffer(new NopComponentLog(), bufferSize, CHECKPOINT_INTERVAL);
+        final ShardBufferId bufferId1 = recordBuffer.createBuffer(SHARD_ID_1);
+        final ShardBufferId bufferId2 = recordBuffer.createBuffer(SHARD_ID_2);
+
+        final List<KinesisClientRecord> records1 = List.of(createRecordWithSize(bufferSize));
+        recordBuffer.addRecords(bufferId1, records1, checkpointer1);
+
+        // Shutting down a buffer with a record.
+        recordBuffer.shutdownShardConsumption(bufferId1, checkpointer1);
+
+        // Adding records to another buffer.
+        final List<KinesisClientRecord> records2 = List.of(createRecordWithSize(bufferSize));
+        assertTimeoutPreemptively(
+                Duration.ofSeconds(1),
+                () -> recordBuffer.addRecords(bufferId2, records2, checkpointer2),
+                "Records should be added to a buffer without memory backpressure");
+
+        final Lease lease = recordBuffer.acquireBufferLease().orElseThrow();
+        assertEquals(SHARD_ID_2, lease.shardId(), "Expected to acquire a lease for " + SHARD_ID_2);
+        assertEquals(records2, recordBuffer.consumeRecords(lease));
     }
 
     @Test
@@ -466,8 +512,11 @@ class MemoryBoundRecordBufferTest {
         executor.shutdown();
 
         assertAll(
-                checkpointers.stream()
-                        .map(it -> () -> assertTrue(it.isCheckpointed(), "Every checkpointer should have been called"))
+                checkpointers.stream().map(it -> () ->
+                        assertNotEquals(
+                                TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER,
+                                it.latestCheckpointedSequenceNumber(),
+                                "Every checkpointer should have been called"))
         );
 
         final long uniqueRecordsProcessed = processedRecordsFutures.stream()
@@ -550,7 +599,7 @@ class MemoryBoundRecordBufferTest {
         // Should handle all exception types gracefully.
         recordBuffer.commitConsumedRecords(lease);
 
-        assertTrue(failingCheckpointer.isCheckpointed());
+        assertEquals(records.getLast().sequenceNumber(), failingCheckpointer.latestCheckpointedSequenceNumber());
     }
 
     @Test
@@ -566,7 +615,7 @@ class MemoryBoundRecordBufferTest {
         recordBuffer.consumeRecords(lease);
 
         recordBuffer.commitConsumedRecords(lease);
-        assertFalse(failingCheckpointer.isCheckpointed());
+        assertEquals(TestCheckpointer.NO_CHECKPOINT_SEQUENCE_NUMBER, failingCheckpointer.latestCheckpointedSequenceNumber());
     }
 
     @Test
@@ -596,10 +645,13 @@ class MemoryBoundRecordBufferTest {
 
         // Commit records to unblock finishConsumption.
         recordBuffer.commitConsumedRecords(lease);
-        assertTrue(checkpointer1.isCheckpointed());
+        assertEquals(records.getLast().sequenceNumber(), checkpointer1.latestCheckpointedSequenceNumber());
 
         finishThread.join();
-        assertTrue(checkpointer2.isCheckpointed(), "Checkpointer should be called after finishConsumption unblocks");
+        assertEquals(
+                TestCheckpointer.LATEST_SEQUENCE_NUMBER,
+                checkpointer2.latestCheckpointedSequenceNumber(),
+                "Checkpointer should be called after finishConsumption unblocks");
     }
 
     private List<KinesisClientRecord> createTestRecords(int count) {
@@ -632,9 +684,13 @@ class MemoryBoundRecordBufferTest {
      */
     private static class TestCheckpointer implements RecordProcessorCheckpointer {
 
-        private final AtomicBoolean checkpointed = new AtomicBoolean(false);
+        static final String NO_CHECKPOINT_SEQUENCE_NUMBER = "NONE";
+        static final String LATEST_SEQUENCE_NUMBER = "LATEST";
+
         private final Exception exceptionToThrow;
         private final AtomicInteger throwsLeft;
+
+        private volatile String latestCheckpointedSequenceNumber = NO_CHECKPOINT_SEQUENCE_NUMBER;
 
         TestCheckpointer() {
             this.exceptionToThrow = null;
@@ -648,19 +704,7 @@ class MemoryBoundRecordBufferTest {
 
         @Override
         public void checkpoint() throws KinesisClientLibDependencyException, InvalidStateException, ThrottlingException, ShutdownException {
-            if (exceptionToThrow != null && throwsLeft.decrementAndGet() == 0) {
-                switch (exceptionToThrow) {
-                    case KinesisClientLibDependencyException e -> throw e;
-                    case InvalidStateException e -> throw e;
-                    case ThrottlingException e -> throw e;
-                    case ShutdownException e -> throw e;
-                    default -> throw new RuntimeException(exceptionToThrow);
-                }
-            }
-
-            if (checkpointed.getAndSet(true)) {
-                throw new IllegalStateException("TestCheckpointer has already been checkpointed");
-            }
+            doCheckpoint(LATEST_SEQUENCE_NUMBER);
         }
 
         @Override
@@ -674,8 +718,22 @@ class MemoryBoundRecordBufferTest {
         }
 
         @Override
-        public void checkpoint(String sequenceNumber, long subSequenceNumber) {
-            throw notImplemented();
+        public void checkpoint(String sequenceNumber, long subSequenceNumber) throws ShutdownException, InvalidStateException {
+            doCheckpoint(sequenceNumber);
+        }
+
+        private void doCheckpoint(final String sequenceNumber) throws InvalidStateException, ShutdownException {
+            if (exceptionToThrow != null && throwsLeft.decrementAndGet() == 0) {
+                switch (exceptionToThrow) {
+                    case KinesisClientLibDependencyException e -> throw e;
+                    case InvalidStateException e -> throw e;
+                    case ThrottlingException e -> throw e;
+                    case ShutdownException e -> throw e;
+                    default -> throw new RuntimeException(exceptionToThrow);
+                }
+            }
+
+            latestCheckpointedSequenceNumber = sequenceNumber;
         }
 
         @Override
@@ -723,8 +781,8 @@ class MemoryBoundRecordBufferTest {
             throw notImplemented();
         }
 
-        boolean isCheckpointed() {
-            return checkpointed.get();
+        String latestCheckpointedSequenceNumber() {
+            return latestCheckpointedSequenceNumber;
         }
 
         private static RuntimeException notImplemented() {

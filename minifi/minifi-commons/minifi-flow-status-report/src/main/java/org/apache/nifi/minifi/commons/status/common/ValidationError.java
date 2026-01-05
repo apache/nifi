@@ -48,13 +48,21 @@ public class ValidationError implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ValidationError that = (ValidationError) o;
 
-        if (getSubject() != null ? !getSubject().equals(that.getSubject()) : that.getSubject() != null) return false;
-        if (getInput() != null ? !getInput().equals(that.getInput()) : that.getInput() != null) return false;
+        if (getSubject() != null ? !getSubject().equals(that.getSubject()) : that.getSubject() != null) {
+            return false;
+        }
+        if (getInput() != null ? !getInput().equals(that.getInput()) : that.getInput() != null) {
+            return false;
+        }
         return getReason() != null ? getReason().equals(that.getReason()) : that.getReason() == null;
 
     }

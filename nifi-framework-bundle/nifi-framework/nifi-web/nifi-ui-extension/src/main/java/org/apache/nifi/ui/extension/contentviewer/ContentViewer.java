@@ -59,8 +59,12 @@ public class ContentViewer {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         ContentViewer that = (ContentViewer) o;
         return Objects.equals(contextPath, that.contextPath);
     }

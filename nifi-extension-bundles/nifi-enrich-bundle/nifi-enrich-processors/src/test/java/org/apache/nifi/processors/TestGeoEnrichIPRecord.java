@@ -39,6 +39,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.InputStream;
 import java.net.InetAddress;
@@ -46,6 +49,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.apache.nifi.processors.GeoEnrichTestUtils.getFullCityResponse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -90,7 +94,29 @@ public class TestGeoEnrichIPRecord {
         runner.enableControllerService(registry);
         runner.enableControllerService(reader);
         runner.enableControllerService(writer);
+    }
 
+    @ParameterizedTest
+    @MethodSource("logLevelArgs")
+    void testSpecifiedLogLevels(String logLevel, boolean expectValid) {
+        runner.setProperty(AbstractEnrichIP.LOG_LEVEL, logLevel);
+
+        if (expectValid) {
+            runner.assertValid();
+        } else {
+            runner.assertNotValid();
+        }
+    }
+
+    private static Stream<Arguments> logLevelArgs() {
+        return Stream.of(
+                Arguments.argumentSet("Valid Log Level Specified", "WARN", true),
+                Arguments.argumentSet("Invalid Log Level Specified", "GIBBERISH", false),
+                Arguments.argumentSet("Log Level Specified as Expression Language Expression", "${log.level}", true)
+        );
+    }
+
+    private void commonTest(String path, int not, int found, int original) {
         runner.setProperty(GeoEnrichIPRecord.GEO_CITY, "/geo/city");
         runner.setProperty(GeoEnrichIPRecord.GEO_COUNTRY, "/geo/country");
         runner.setProperty(GeoEnrichIPRecord.GEO_COUNTRY_ISO, "/geo/country_iso");
@@ -99,9 +125,7 @@ public class TestGeoEnrichIPRecord {
         runner.setProperty(GeoEnrichIPRecord.GEO_LONGITUDE, "/geo/lon");
         runner.setProperty(AbstractEnrichIP.LOG_LEVEL, "WARN");
         runner.assertValid();
-    }
 
-    private void commonTest(String path, int not, int found, int original) {
         Map<String, String> attrs = new HashMap<>();
         attrs.put("schema.name", "record");
         runner.enqueue(getClass().getResourceAsStream(path), attrs);

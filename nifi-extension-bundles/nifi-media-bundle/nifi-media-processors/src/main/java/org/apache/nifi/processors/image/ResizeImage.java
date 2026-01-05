@@ -178,7 +178,8 @@ public class ResizeImage extends AbstractProcessor {
 
         final boolean keepRatio = context.getProperty(KEEP_RATIO).evaluateAttributeExpressions(flowFile).asBoolean();
 
-        int width, height;
+        int width;
+        int height;
         try {
             width = context.getProperty(IMAGE_WIDTH).evaluateAttributeExpressions(flowFile).asInteger();
             height = context.getProperty(IMAGE_HEIGHT).evaluateAttributeExpressions(flowFile).asInteger();

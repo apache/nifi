@@ -203,7 +203,7 @@ public class TestWait {
         props.put("releaseSignalAttribute", "2");
         runner.enqueue(new byte[]{}, props);
         final AssertionError e = assertThrows(AssertionError.class, () -> {
-           runner.run();
+            runner.run();
         });
         assertInstanceOf(ProcessException.class, e.getCause());
         assertInstanceOf(IOException.class, e.getCause().getCause());

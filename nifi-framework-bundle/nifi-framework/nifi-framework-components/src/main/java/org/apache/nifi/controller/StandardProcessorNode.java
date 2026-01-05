@@ -1128,7 +1128,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         } else {
             for (final ParameterReference paramRef : parameterReferences) {
                 final Optional<Parameter> parameterRef = parameterContext.getParameter(paramRef.getParameterName());
-                if (!parameterRef.isPresent() ) {
+                if (!parameterRef.isPresent()) {
                     results.add(new ValidationResult.Builder()
                             .subject(RUN_SCHEDULE)
                             .input(paramRef.getParameterName())
@@ -1770,7 +1770,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 return;
             }
 
-           monitorAsyncTask(taskFuture, monitoringFuture, completionTimestampRef.get());
+            monitorAsyncTask(taskFuture, monitoringFuture, completionTimestampRef.get());
         };
 
         final Future<?> future = taskScheduler.scheduleWithFixedDelay(monitoringTask, 1, 10, TimeUnit.MILLISECONDS);

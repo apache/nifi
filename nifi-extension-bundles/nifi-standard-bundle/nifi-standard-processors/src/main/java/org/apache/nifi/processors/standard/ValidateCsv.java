@@ -93,7 +93,7 @@ import java.util.concurrent.atomic.AtomicReference;
 })
 public class ValidateCsv extends AbstractProcessor {
 
-    private final static List<String> ALLOWED_OPERATORS = List.of(
+    private static final List<String> ALLOWED_OPERATORS = List.of(
             "ParseBigDecimal", "ParseBool", "ParseChar", "ParseDate", "ParseDouble", "ParseInt", "ParseLong",
             "Optional", "DMinMax", "Equals", "ForbidSubStr", "LMinMax", "NotNull", "Null", "RequireHashCode", "RequireSubStr",
             "Strlen", "StrMinMax", "StrNotNullOrEmpty", "StrRegEx", "Unique", "UniqueHashCode", "IsIncludedIn"
@@ -376,51 +376,60 @@ public class ValidateCsv extends AbstractProcessor {
                 return new ParseDate(argument.substring(1, argument.length() - 1));
 
             case "parsedouble":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("ParseDouble does not expect any argument but has " + argument);
+                }
                 return new ParseDouble();
 
             case "parsebigdecimal":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("ParseBigDecimal does not expect any argument but has " + argument);
+                }
                 return new ParseBigDecimal();
 
             case "parsebool":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("ParseBool does not expect any argument but has " + argument);
+                }
                 return new ParseBool();
 
             case "parsechar":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("ParseChar does not expect any argument but has " + argument);
+                }
                 return new ParseChar();
 
             case "parseint":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("ParseInt does not expect any argument but has " + argument);
+                }
                 return new ParseInt();
 
             case "parselong":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("ParseLong does not expect any argument but has " + argument);
+                }
                 return new ParseLong();
 
             case "notnull":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("NotNull does not expect any argument but has " + argument);
+                }
                 return new NotNull();
 
             case "strregex":
                 return new StrRegEx(argument.substring(1, argument.length() - 1));
 
             case "unique":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("Unique does not expect any argument but has " + argument);
+                }
                 return new Unique();
 
             case "uniquehashcode":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("UniqueHashCode does not expect any argument but has " + argument);
+                }
                 return new UniqueHashCode();
 
             case "strlen":
@@ -444,8 +453,9 @@ public class ValidateCsv extends AbstractProcessor {
                 return new DMinMax(Double.parseDouble(doubles[0]), Double.parseDouble(doubles[1]));
 
             case "equals":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("Equals does not expect any argument but has " + argument);
+                }
                 return new Equals();
 
             case "forbidsubstr":
@@ -457,8 +467,9 @@ public class ValidateCsv extends AbstractProcessor {
                 return new RequireSubStr(requiredSubStrings);
 
             case "strnotnullorempty":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("StrNotNullOrEmpty does not expect any argument but has " + argument);
+                }
                 return new StrNotNullOrEmpty();
 
             case "requirehashcode":
@@ -470,8 +481,9 @@ public class ValidateCsv extends AbstractProcessor {
                 return new RequireHashCode(hashcodes);
 
             case "null":
-                if (argument != null && !argument.isEmpty())
+                if (argument != null && !argument.isEmpty()) {
                     throw new IllegalArgumentException("Null does not expect any argument but has " + argument);
+                }
                 return null;
 
             case "isincludedin":
@@ -677,10 +689,10 @@ public class ValidateCsv extends AbstractProcessor {
         }
 
         public List<Object> read(boolean includeAllViolations, CellProcessor... processors) throws IOException {
-            if ( processors == null ) {
+            if (processors == null) {
                 throw new NullPointerException("Processors should not be null");
             }
-            if ( readRow() ) {
+            if (readRow()) {
                 executeProcessors(new ArrayList<>(getColumns().size()), processors, includeAllViolations);
                 return new ArrayList<>(getColumns());
             }

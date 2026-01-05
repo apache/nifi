@@ -21,7 +21,6 @@ public class FlowFileConsumptionException extends Exception {
     private static final long serialVersionUID = 18923749824378923L;
 
     public FlowFileConsumptionException() {
-        super();
     }
 
     public FlowFileConsumptionException(final Throwable cause) {

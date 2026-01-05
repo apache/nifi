@@ -74,7 +74,7 @@ public class PutSQS extends AbstractAwsSyncProcessor<SqsClient, SqsClientBuilder
     public static final PropertyDescriptor QUEUE_URL = new PropertyDescriptor.Builder()
             .name("Queue URL")
             .description("The URL of the queue to act upon")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.URL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .build();

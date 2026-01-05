@@ -128,7 +128,7 @@ public class QueryTask implements Runnable {
             final TopDocs topDocs;
             final StoredFields storedFields;
             try {
-               storedFields = indexReader.storedFields();
+                storedFields = indexReader.storedFields();
 
                 // Sort based on document id, descending. This gives us most recent events first.
                 final Sort sort = new Sort(new SortField(null, SortField.Type.DOC, true));
@@ -180,7 +180,7 @@ public class QueryTask implements Runnable {
     private Tuple<List<ProvenanceEventRecord>, Long> readDocuments(final TopDocs topDocs, final StoredFields storedFields) {
         // If no topDocs is supplied, just provide a Tuple that has no records and a hit count of 0.
         if (topDocs == null || topDocs.totalHits.value() == 0) {
-            return new Tuple<>(Collections.<ProvenanceEventRecord> emptyList(), 0L);
+            return new Tuple<>(Collections.<ProvenanceEventRecord>emptyList(), 0L);
         }
 
         final long start = System.nanoTime();

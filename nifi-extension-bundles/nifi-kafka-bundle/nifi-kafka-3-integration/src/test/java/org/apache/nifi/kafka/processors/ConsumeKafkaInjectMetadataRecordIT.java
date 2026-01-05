@@ -74,7 +74,7 @@ class ConsumeKafkaInjectMetadataRecordIT extends AbstractConsumeKafkaIT {
         addRecordKeyReaderService(runner);
     }
 
-    static abstract class Verifier {
+    abstract static class Verifier {
         abstract void verify(final JsonNode jsonNode);
     }
 

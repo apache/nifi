@@ -90,12 +90,12 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE
     );
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             getCommonPropertyDescriptors().stream(),
             Stream.of(
                     RECORD_READER_FACTORY,
@@ -211,8 +211,9 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
     @Override
     protected void doPostActionOnSchedule(final ProcessContext context) {
         conflictHandlingStrategy = context.getProperty(CONFLICT_HANDLE_STRATEGY).getValue();
-        if (conflictHandlingStrategy == null)
+        if (conflictHandlingStrategy == null) {
             conflictHandlingStrategy = IGNORE_CONFLICT.getValue();
+        }
     }
 
 }

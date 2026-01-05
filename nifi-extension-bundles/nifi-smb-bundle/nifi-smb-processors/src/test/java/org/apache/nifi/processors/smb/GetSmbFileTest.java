@@ -72,11 +72,11 @@ public class GetSmbFileTest {
     @Mock
     private DiskShare diskShare;
 
-    private final static String HOSTNAME = "host";
-    private final static String SHARE = "share";
-    private final static String DIRECTORY = "nifi\\input";
-    private final static String USERNAME = "user";
-    private final static String PASSWORD = "pass";
+    private static final String HOSTNAME = "host";
+    private static final String SHARE = "share";
+    private static final String DIRECTORY = "nifi\\input";
+    private static final String USERNAME = "user";
+    private static final String PASSWORD = "pass";
 
     private void setupSmbProcessor() throws IOException {
         when(smbClient.connect(any(String.class))).thenReturn(connection);

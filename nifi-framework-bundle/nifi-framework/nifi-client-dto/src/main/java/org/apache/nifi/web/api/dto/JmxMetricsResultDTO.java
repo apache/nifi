@@ -22,9 +22,9 @@ import jakarta.xml.bind.annotation.XmlType;
 
 @XmlType(name = "jmxMetricsResults")
 public class JmxMetricsResultDTO {
-    final private String beanName;
-    final private String attributeName;
-    final private Object attributeValue;
+    private final String beanName;
+    private final String attributeName;
+    private final Object attributeValue;
 
     public JmxMetricsResultDTO(final String beanName, final String attributeName, final Object attributeValue) {
         this.beanName = beanName;

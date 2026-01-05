@@ -39,7 +39,8 @@ public class InputStreamWritable implements Writable {
 
     @Override
     public void write(DataOutput output) throws IOException {
-        int numRead, totalRead = 0;
+        int numRead;
+        int totalRead = 0;
         final byte[] buffer = new byte[8192];
         output.writeInt(size);
 

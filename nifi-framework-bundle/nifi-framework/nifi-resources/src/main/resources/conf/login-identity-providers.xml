@@ -111,6 +111,7 @@
     </provider>
     To enable the ldap-provider remove 2 lines. This is 2 of 2. -->
 
+    <!-- NOTE: The Kerberos Provider is deprecated for removal in subsequent releases -->
     <!--
         Identity Provider for users logging in with username/password against a Kerberos KDC server.
 

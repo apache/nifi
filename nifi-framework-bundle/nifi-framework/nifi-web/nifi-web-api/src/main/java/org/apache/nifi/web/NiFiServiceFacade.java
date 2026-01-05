@@ -161,6 +161,7 @@ import org.apache.nifi.web.api.entity.VersionedFlowEntity;
 import org.apache.nifi.web.api.entity.VersionedFlowSnapshotMetadataEntity;
 import org.apache.nifi.web.api.entity.VersionedReportingTaskImportResponseEntity;
 import org.apache.nifi.web.api.request.FlowMetricsRegistry;
+import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -407,9 +408,10 @@ public interface NiFiServiceFacade {
      * Generate metrics for the flow and return selected registries
      *
      * @param includeRegistries Set of Flow Metrics Registries to be returned
+     * @param flowMetricsStrategy Flow metrics reporting strategy limits collected metrics
      * @return Collector Registries
      */
-    Collection<CollectorRegistry> generateFlowMetrics(Set<FlowMetricsRegistry> includeRegistries);
+    Collection<CollectorRegistry> generateFlowMetrics(Set<FlowMetricsRegistry> includeRegistries, FlowMetricsReportingStrategy flowMetricsStrategy);
 
     /**
      * Updates the configuration for this controller.

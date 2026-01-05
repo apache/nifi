@@ -64,6 +64,7 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.oauth2.TokenRefreshStrategy;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -158,16 +159,16 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
                                 + "  If send message body is false, the flowfile will not be sent, but any other form data will be.")
 })
 public class InvokeHTTP extends AbstractProcessor {
-    public final static String STATUS_CODE = "invokehttp.status.code";
-    public final static String STATUS_MESSAGE = "invokehttp.status.message";
-    public final static String RESPONSE_BODY = "invokehttp.response.body";
-    public final static String REQUEST_URL = "invokehttp.request.url";
-    public final static String REQUEST_DURATION = "invokehttp.request.duration";
-    public final static String RESPONSE_URL = "invokehttp.response.url";
-    public final static String TRANSACTION_ID = "invokehttp.tx.id";
-    public final static String REMOTE_DN = "invokehttp.remote.dn";
-    public final static String EXCEPTION_CLASS = "invokehttp.java.exception.class";
-    public final static String EXCEPTION_MESSAGE = "invokehttp.java.exception.message";
+    public static final String STATUS_CODE = "invokehttp.status.code";
+    public static final String STATUS_MESSAGE = "invokehttp.status.message";
+    public static final String RESPONSE_BODY = "invokehttp.response.body";
+    public static final String REQUEST_URL = "invokehttp.request.url";
+    public static final String REQUEST_DURATION = "invokehttp.request.duration";
+    public static final String RESPONSE_URL = "invokehttp.response.url";
+    public static final String TRANSACTION_ID = "invokehttp.tx.id";
+    public static final String REMOTE_DN = "invokehttp.remote.dn";
+    public static final String EXCEPTION_CLASS = "invokehttp.java.exception.class";
+    public static final String EXCEPTION_MESSAGE = "invokehttp.java.exception.message";
 
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
@@ -664,6 +665,7 @@ public class InvokeHTTP extends AbstractProcessor {
         config.renameProperty("flow-file-naming-strategy", RESPONSE_FLOW_FILE_NAMING_STRATEGY.getName());
         config.renameProperty("Add Response Headers to Request", RESPONSE_HEADER_REQUEST_ATTRIBUTES_ENABLED.getName());
         config.renameProperty("Follow Redirects", RESPONSE_REDIRECTS_ENABLED.getName());
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     @Override

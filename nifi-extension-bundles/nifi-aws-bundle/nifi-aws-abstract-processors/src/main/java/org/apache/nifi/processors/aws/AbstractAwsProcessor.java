@@ -136,8 +136,9 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
+    public static final String OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME = "AWS Credentials Provider service";
     public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-        .name("AWS Credentials Provider service")
+        .name("AWS Credentials Provider Service")
         .description("The Controller Service that is used to obtain AWS credentials provider")
         .required(true)
         .identifiesControllerService(AwsCredentialsProviderService.class)
@@ -187,6 +188,7 @@ public abstract class AbstractAwsProcessor<C extends AwsClient, B extends AwsCli
     @Override
     public void migrateProperties(final PropertyConfiguration config) {
         config.renameProperty("aws-region", REGION.getName());
+        config.renameProperty(OBSOLETE_AWS_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, AWS_CREDENTIALS_PROVIDER_SERVICE.getName());
         migrateAuthenticationProperties(config);
         ProxyServiceMigration.migrateProxyProperties(config, PROXY_CONFIGURATION_SERVICE, OBSOLETE_PROXY_HOST, OBSOLETE_PROXY_PORT, OBSOLETE_PROXY_USERNAME, OBSOLETE_PROXY_PASSWORD);
         config.renameProperty(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, PROXY_CONFIGURATION_SERVICE.getName());

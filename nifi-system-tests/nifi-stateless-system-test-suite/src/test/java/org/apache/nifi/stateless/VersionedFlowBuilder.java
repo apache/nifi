@@ -47,13 +47,13 @@ public class VersionedFlowBuilder {
     private final VersionedProcessGroup rootGroup;
 
     public VersionedFlowBuilder() {
-         rootGroup = new VersionedProcessGroup();
-         rootGroup.setIdentifier("root");
-         rootGroup.setName("root");
+        rootGroup = new VersionedProcessGroup();
+        rootGroup.setIdentifier("root");
+        rootGroup.setName("root");
 
-         flowSnapshot = new VersionedFlowSnapshot();
-         flowSnapshot.setParameterContexts(new HashMap<>());
-         flowSnapshot.setFlowContents(rootGroup);
+        flowSnapshot = new VersionedFlowSnapshot();
+        flowSnapshot.setParameterContexts(new HashMap<>());
+        flowSnapshot.setFlowContents(rootGroup);
     }
 
     public VersionedProcessGroup createProcessGroup(final String name) {

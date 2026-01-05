@@ -1,0 +1,120 @@
+{
+  "flowContents": {
+    "identifier": "b3b38ea1-be11-309c-a3e7-e6c4e8e40841",
+    "instanceIdentifier": "3885d139-019b-1000-7d95-74bbfd0afd59",
+    "name": "WebClientServiceProvider",
+    "comments": "",
+    "position": {
+      "x": -219.5,
+      "y": -68.5
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [
+      {
+        "identifier": "f28069d1-1e89-3957-85f5-a7e3c32bd000",
+        "instanceIdentifier": "3885edf7-019b-1000-e7a1-1d3c9495a5ef",
+        "name": "StandardWebClientServiceProvider",
+        "comments": "",
+        "type": "org.apache.nifi.web.client.provider.service.StandardWebClientServiceProvider",
+        "bundle": {
+          "group": "org.apache.nifi",
+          "artifact": "nifi-web-client-provider-service-nar",
+          "version": "2.0.0"
+        },
+        "properties": {
+          "connect-timeout": "10 secs",
+          "redirect-handling-strategy": "FOLLOWED",
+          "read-timeout": "10 secs",
+          "ssl-context-service": "2f5d7ab9-a84c-3786-9144-113da76ff72e",
+          "proxy-configuration-service": null,
+          "write-timeout": "10 secs"
+        },
+        "propertyDescriptors": {
+          "connect-timeout": {
+            "name": "connect-timeout",
+            "displayName": "Connect Timeout",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          },
+          "redirect-handling-strategy": {
+            "name": "redirect-handling-strategy",
+            "displayName": "Redirect Handling Strategy",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          },
+          "read-timeout": {
+            "name": "read-timeout",
+            "displayName": "Read Timeout",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          },
+          "ssl-context-service": {
+            "name": "ssl-context-service",
+            "displayName": "SSL Context Service",
+            "identifiesControllerService": true,
+            "sensitive": false,
+            "dynamic": false
+          },
+          "proxy-configuration-service": {
+            "name": "proxy-configuration-service",
+            "displayName": "Proxy Configuration Service",
+            "identifiesControllerService": true,
+            "sensitive": false,
+            "dynamic": false
+          },
+          "write-timeout": {
+            "name": "write-timeout",
+            "displayName": "Write Timeout",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          }
+        },
+        "controllerServiceApis": [
+          {
+            "type": "org.apache.nifi.web.client.provider.api.WebClientServiceProvider",
+            "bundle": {
+              "group": "org.apache.nifi",
+              "artifact": "nifi-standard-services-api-nar",
+              "version": "2.0.0"
+            }
+          }
+        ],
+        "scheduledState": "DISABLED",
+        "bulletinLevel": "WARN",
+        "componentType": "CONTROLLER_SERVICE",
+        "groupIdentifier": "b3b38ea1-be11-309c-a3e7-e6c4e8e40841"
+      }
+    ],
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "scheduledState": "ENABLED",
+    "executionEngine": "INHERITED",
+    "maxConcurrentTasks": 1,
+    "statelessFlowTimeout": "1 min",
+    "componentType": "PROCESS_GROUP",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE"
+  },
+  "externalControllerServices": {
+    "2f5d7ab9-a84c-3786-9144-113da76ff72e": {
+      "identifier": "2f5d7ab9-a84c-3786-9144-113da76ff72e",
+      "name": "Provided SSL Context Service"
+    }
+  },
+  "parameterContexts": {},
+  "flowEncodingVersion": "1.0",
+  "parameterProviders": {},
+  "latest": false
+}

@@ -49,6 +49,7 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,6 +71,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.IntStream;
 
@@ -86,8 +88,8 @@ import static org.mockito.Mockito.when;
  */
 @ExtendWith(MockitoExtension.class)
 public class CaptureChangeMySQLTest {
-    // Use an http-based URL driver location because we don't have the driver available in the unit test, and we don't want the processor to
-    // be invalid due to a missing file. By specifying an HTTP based URL address, we won't validate whether or not the file exists
+    // Use a http-based URL driver location because we don't have the driver available in the unit test, and we don't want the processor to
+    // be invalid due to a missing file. By specifying an HTTP based URL address, we won't validate whether the file exists
     private static final String DRIVER_LOCATION = "http://mysql-driver.com/driver.jar";
     private static final String LOCAL_HOST = "localhost";
     private static final int DEFAULT_PORT = 3306;
@@ -283,9 +285,9 @@ public class CaptureChangeMySQLTest {
 
         List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         assertEquals(1, resultFiles.size());
-        assertEquals(TEN, resultFiles.get(0).getAttribute(EventWriter.SEQUENCE_ID_KEY));
+        assertEquals(TEN, resultFiles.getFirst().getAttribute(EventWriter.SEQUENCE_ID_KEY));
         // Verify the contents of the event includes the database and table name even though the cache is not configured
-        Map<String, Object> json = MAPPER.readValue(resultFiles.get(0).getContent(), Map.class);
+        Map<String, Object> json = MAPPER.readValue(resultFiles.getFirst().getContent(), Map.class);
         assertEquals(MY_DB, json.get(DATABASE_KEY));
         assertEquals(MY_TABLE, json.get("table_name"));
     }
@@ -767,7 +769,7 @@ public class CaptureChangeMySQLTest {
         // Five events total, 2 max per flow file, so 3 flow files
         assertEquals(3, resultFiles.size());
 
-        List<Map<String, Object>> json = MAPPER.readValue(resultFiles.get(0).toByteArray(), List.class);
+        List<Map<String, Object>> json = MAPPER.readValue(resultFiles.getFirst().toByteArray(), List.class);
         assertEquals(2, json.size());
         // BEGIN, INSERT, COMMIT (verifies that one of the INSERTs was skipped)
         assertEquals(BEGIN_SQL_KEYWORD_LOWERCASE, json.get(0).get(TYPE_KEY));
@@ -781,7 +783,7 @@ public class CaptureChangeMySQLTest {
         json = MAPPER.readValue(resultFiles.get(2).toByteArray(), List.class);
         // One event left
         assertEquals(1, json.size());
-        assertEquals(COMMIT_SQL_KEYWORD_LOWERCASE, json.get(0).get(TYPE_KEY));
+        assertEquals(COMMIT_SQL_KEYWORD_LOWERCASE, json.getFirst().get(TYPE_KEY));
     }
 
     @SuppressWarnings("unchecked")
@@ -867,7 +869,7 @@ public class CaptureChangeMySQLTest {
         List<MockFlowFile> resultFiles = testRunner.getFlowFilesForRelationship(CaptureChangeMySQL.REL_SUCCESS);
         // Five events total, 3 max per flow file, so 2 flow files
         assertEquals(2, resultFiles.size());
-        List<Map<String, Object>> json = MAPPER.readValue(resultFiles.get(0).toByteArray(), List.class);
+        List<Map<String, Object>> json = MAPPER.readValue(resultFiles.getFirst().toByteArray(), List.class);
         assertEquals(3, json.size());
         // BEGIN, INSERT, COMMIT (verifies that one of the INSERTs was skipped)
         assertEquals(BEGIN_SQL_KEYWORD_LOWERCASE, json.get(0).get(TYPE_KEY));
@@ -1230,7 +1232,7 @@ public class CaptureChangeMySQLTest {
 
         assertEquals(2, resultFiles.size());
         assertEquals(EventUtils.buildGtid(GTID_SOURCE_ID, "2-3"),
-                resultFiles.get(resultFiles.size() - 1).getAttribute(BinlogEventInfo.BINLOG_GTIDSET_KEY));
+                resultFiles.getLast().getAttribute(BinlogEventInfo.BINLOG_GTIDSET_KEY));
     }
 
     @Test
@@ -1267,7 +1269,7 @@ public class CaptureChangeMySQLTest {
 
         assertEquals(2, resultFiles.size());
         assertEquals(EventUtils.buildGtid(GTID_SOURCE_ID, "1-1", "3-3"),
-                resultFiles.get(resultFiles.size() - 1).getAttribute(BinlogEventInfo.BINLOG_GTIDSET_KEY));
+                resultFiles.getLast().getAttribute(BinlogEventInfo.BINLOG_GTIDSET_KEY));
     }
 
     @Test
@@ -1294,6 +1296,40 @@ public class CaptureChangeMySQLTest {
         assertEquals("alter table", processor.normalizeQuery(" /* This is a \n multiline comment test */ alter table"));
     }
 
+    @Test
+    void testMigration() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("capture-change-mysql-db-name-pattern", CaptureChangeMySQL.DATABASE_NAME_PATTERN.getName()),
+                Map.entry("capture-change-mysql-name-pattern", CaptureChangeMySQL.TABLE_NAME_PATTERN.getName()),
+                Map.entry("capture-change-mysql-max-wait-time", CaptureChangeMySQL.CONNECT_TIMEOUT.getName()),
+                Map.entry("capture-change-mysql-hosts", CaptureChangeMySQL.HOSTS.getName()),
+                Map.entry("capture-change-mysql-driver-class", CaptureChangeMySQL.DRIVER_NAME.getName()),
+                Map.entry("capture-change-mysql-driver-locations", CaptureChangeMySQL.DRIVER_LOCATION.getName()),
+                Map.entry("MySQL Driver Location(s)", CaptureChangeMySQL.DRIVER_LOCATION.getName()),
+                Map.entry("capture-change-mysql-username", CaptureChangeMySQL.USERNAME.getName()),
+                Map.entry("capture-change-mysql-password", CaptureChangeMySQL.PASSWORD.getName()),
+                Map.entry("events-per-flowfile-strategy", CaptureChangeMySQL.EVENTS_PER_FLOWFILE_STRATEGY.getName()),
+                Map.entry("number-of-events-per-flowfile", CaptureChangeMySQL.NUMBER_OF_EVENTS_PER_FLOWFILE.getName()),
+                Map.entry("capture-change-mysql-server-id", CaptureChangeMySQL.SERVER_ID.getName()),
+                Map.entry("capture-change-mysql-retrieve-all-records", CaptureChangeMySQL.RETRIEVE_ALL_RECORDS.getName()),
+                Map.entry("capture-change-mysql-include-begin-commit", CaptureChangeMySQL.INCLUDE_BEGIN_COMMIT.getName()),
+                Map.entry("capture-change-mysql-include-ddl-events", CaptureChangeMySQL.INCLUDE_DDL_EVENTS.getName()),
+                Map.entry("capture-change-mysql-init-seq-id", CaptureChangeMySQL.INIT_SEQUENCE_ID.getName()),
+                Map.entry("capture-change-mysql-init-binlog-filename", CaptureChangeMySQL.INIT_BINLOG_FILENAME.getName()),
+                Map.entry("capture-change-mysql-init-binlog-position", CaptureChangeMySQL.INIT_BINLOG_POSITION.getName()),
+                Map.entry("capture-change-mysql-use-gtid", CaptureChangeMySQL.USE_BINLOG_GTID.getName()),
+                Map.entry("capture-change-mysql-init-gtid", CaptureChangeMySQL.INIT_BINLOG_GTID.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of("capture-change-mysql-state-update-interval",
+                "capture-change-mysql-dist-map-cache-client",
+                "Distributed Map Cache Client - unused");
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
+    }
+
     /********************************
      * Mock and helper classes below
      ********************************/
@@ -1314,12 +1350,8 @@ public class CaptureChangeMySQLTest {
 
         @Override
         protected TableInfo loadTableInfo(TableInfoCacheKey key) {
-            TableInfo tableInfo = cache.get(key);
-            if (tableInfo == null) {
-                tableInfo = new TableInfo(key.getDatabaseName(), key.getTableName(), key.getTableId(),
-                        Collections.singletonList(new ColumnDefinition((byte) -4, "string1")));
-                cache.put(key, tableInfo);
-            }
+            TableInfo tableInfo = cache.computeIfAbsent(key, k -> new TableInfo(k.getDatabaseName(), k.getTableName(), k.getTableId(),
+                    Collections.singletonList(new ColumnDefinition((byte) -4, "string1"))));
             return tableInfo;
         }
 

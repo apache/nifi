@@ -309,12 +309,11 @@ public class StandardFlowPropertyEncryptorTest {
             .map(VersionedConfigurableExtension::getProperties)
             .flatMap(properties -> properties.entrySet().stream())
             .forEach(propertyEntry -> {
-                    if (propertyEntry.getKey().startsWith(SENSITIVE_PROPERTY_NAME_PREFIX)) {
-                        assertTrue(propertyEntry.getValue().startsWith(FlowSerializer.ENC_PREFIX));
-                    } else {
-                        assertFalse(propertyEntry.getValue().startsWith(FlowSerializer.ENC_PREFIX));
-                    }
+                if (propertyEntry.getKey().startsWith(SENSITIVE_PROPERTY_NAME_PREFIX)) {
+                    assertTrue(propertyEntry.getValue().startsWith(FlowSerializer.ENC_PREFIX));
+                } else {
+                    assertFalse(propertyEntry.getValue().startsWith(FlowSerializer.ENC_PREFIX));
                 }
-            );
+            });
     }
 }

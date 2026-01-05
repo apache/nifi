@@ -289,7 +289,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
 
     @Override
     public Set<Relationship> getRelationships() {
-       return RELATIONSHIPS;
+        return RELATIONSHIPS;
     }
 
     /**
@@ -553,7 +553,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
                     .forEach(entity -> orderedEntries
                             .computeIfAbsent(entity.getTimestamp(), __ -> new ArrayList<>())
                             .add(entity)
-                    );
+                );
 
             if (getLogger().isTraceEnabled()) {
                 getLogger().trace("orderedEntries: {}",

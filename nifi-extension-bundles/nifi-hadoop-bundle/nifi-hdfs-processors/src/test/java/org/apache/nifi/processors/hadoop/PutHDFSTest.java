@@ -78,12 +78,12 @@ import static org.mockito.Mockito.verify;
 
 @DisabledOnJre(value = { JRE.JAVA_25 }, disabledReason = "java.security.auth.Subject.getSubject() is not supported")
 public class PutHDFSTest {
-    private final static String TARGET_DIRECTORY = "target/test-classes";
-    private final static String AVRO_TARGET_DIRECTORY = TARGET_DIRECTORY + "/testdata-avro";
-    private final static String SOURCE_DIRECTORY = "src/test/resources/testdata";
-    private final static String AVRO_SOURCE_DIRECTORY = "src/test/resources/testdata-avro";
-    private final static String FILE_NAME = "randombytes-1";
-    private final static String AVRO_FILE_NAME = "input.avro";
+    private static final String TARGET_DIRECTORY = "target/test-classes";
+    private static final String AVRO_TARGET_DIRECTORY = TARGET_DIRECTORY + "/testdata-avro";
+    private static final String SOURCE_DIRECTORY = "src/test/resources/testdata";
+    private static final String AVRO_SOURCE_DIRECTORY = "src/test/resources/testdata-avro";
+    private static final String FILE_NAME = "randombytes-1";
+    private static final String AVRO_FILE_NAME = "input.avro";
 
     private MockFileSystem mockFileSystem;
 

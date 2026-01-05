@@ -45,9 +45,9 @@ import java.util.UUID;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class FlowAnalyzingRegistryClientNodeTest {
-    private final static String INSTANCE_IDENTIFIER = UUID.randomUUID().toString();
-    private final static String COMMENT_TEXT = "comment";
-    private final static String EXPECTED_VERSION = "3";
+    private static final String INSTANCE_IDENTIFIER = UUID.randomUUID().toString();
+    private static final String COMMENT_TEXT = "comment";
+    private static final String EXPECTED_VERSION = "3";
 
     @Mock
     FlowRegistryClientNode node;

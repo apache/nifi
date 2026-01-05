@@ -18,14 +18,14 @@ package org.apache.nifi.registry.jetty.handler;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.eclipse.jetty.ee10.webapp.MetaInfConfiguration;
+import org.eclipse.jetty.ee11.webapp.MetaInfConfiguration;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.ee10.servlet.DefaultServlet;
-import org.eclipse.jetty.ee10.servlet.ErrorPageErrorHandler;
-import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.ee11.servlet.DefaultServlet;
+import org.eclipse.jetty.ee11.servlet.ErrorPageErrorHandler;
+import org.eclipse.jetty.ee11.servlet.ServletHolder;
 import org.eclipse.jetty.ee.webapp.WebAppClassLoader;
-import org.eclipse.jetty.ee10.webapp.WebAppContext;
+import org.eclipse.jetty.ee11.webapp.WebAppContext;
 
 import java.io.File;
 import java.io.IOException;

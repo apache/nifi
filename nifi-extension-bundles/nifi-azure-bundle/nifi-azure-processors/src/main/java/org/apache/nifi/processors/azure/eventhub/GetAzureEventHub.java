@@ -19,6 +19,7 @@ package org.apache.nifi.processors.azure.eventhub;
 import com.azure.core.amqp.AmqpClientOptions;
 import com.azure.core.amqp.AmqpTransportType;
 import com.azure.core.credential.AzureNamedKeyCredential;
+import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ManagedIdentityCredential;
 import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.messaging.eventhubs.EventData;
@@ -47,6 +48,7 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.migration.PropertyConfiguration;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -58,6 +60,7 @@ import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.util.StopWatch;
 
 import java.time.Duration;
@@ -113,6 +116,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             .build();
     static final PropertyDescriptor SERVICE_BUS_ENDPOINT = AzureEventHubUtils.SERVICE_BUS_ENDPOINT;
     static final PropertyDescriptor AUTHENTICATION_STRATEGY = AzureEventHubComponent.AUTHENTICATION_STRATEGY;
+    static final PropertyDescriptor EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER = AzureEventHubComponent.OAUTH2_ACCESS_TOKEN_PROVIDER;
     static final PropertyDescriptor ACCESS_POLICY = new PropertyDescriptor.Builder()
             .name("Shared Access Policy Name")
             .description("The name of the shared access policy. This policy must have Listen claims.")
@@ -160,7 +164,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             .description("Any FlowFile that is successfully received from the event hub will be transferred to this Relationship.")
             .build();
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             NAMESPACE,
             EVENT_HUB_NAME,
             SERVICE_BUS_ENDPOINT,
@@ -168,6 +172,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             ACCESS_POLICY,
             POLICY_PRIMARY_KEY,
             AUTHENTICATION_STRATEGY,
+            EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER,
             CONSUMER_GROUP,
             ENQUEUE_TIME,
             RECEIVER_FETCH_SIZE,
@@ -175,7 +180,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
             PROXY_CONFIGURATION_SERVICE
     );
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS
     );
 
@@ -205,7 +210,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
+        return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, context);
     }
 
     @OnPrimaryNodeStateChange
@@ -338,6 +343,7 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         }
 
         config.removeProperty(AzureEventHubUtils.LEGACY_USE_MANAGED_IDENTITY_PROPERTY_NAME);
+        ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
     /**
@@ -410,15 +416,27 @@ public class GetAzureEventHub extends AbstractProcessor implements AzureEventHub
         final String consumerGroup = context.getProperty(CONSUMER_GROUP).getValue();
         eventHubClientBuilder.consumerGroup(consumerGroup);
 
-        if (authenticationStrategy == null || authenticationStrategy == AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY) {
-            final ManagedIdentityCredentialBuilder managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
-            final ManagedIdentityCredential managedIdentityCredential = managedIdentityCredentialBuilder.build();
-            eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, managedIdentityCredential);
-        } else {
-            final String policyName = context.getProperty(ACCESS_POLICY).getValue();
-            final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
-            final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
-            eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
+        final AzureEventHubAuthenticationStrategy resolvedAuthenticationStrategy =
+                authenticationStrategy == null ? AzureEventHubAuthenticationStrategy.MANAGED_IDENTITY : authenticationStrategy;
+
+        switch (resolvedAuthenticationStrategy) {
+            case MANAGED_IDENTITY -> {
+                final ManagedIdentityCredentialBuilder managedIdentityCredentialBuilder = new ManagedIdentityCredentialBuilder();
+                final ManagedIdentityCredential managedIdentityCredential = managedIdentityCredentialBuilder.build();
+                eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, managedIdentityCredential);
+            }
+            case SHARED_ACCESS_SIGNATURE -> {
+                final String policyName = context.getProperty(ACCESS_POLICY).getValue();
+                final String policyKey = context.getProperty(POLICY_PRIMARY_KEY).getValue();
+                final AzureNamedKeyCredential azureNamedKeyCredential = new AzureNamedKeyCredential(policyName, policyKey);
+                eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, azureNamedKeyCredential);
+            }
+            case OAUTH2 -> {
+                final OAuth2AccessTokenProvider tokenProvider =
+                        context.getProperty(EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+                final TokenCredential tokenCredential = AzureEventHubUtils.createTokenCredential(tokenProvider);
+                eventHubClientBuilder.credential(fullyQualifiedNamespace, eventHubName, tokenCredential);
+            }
         }
 
         // Set Azure Event Hub Client Identifier using Processor Identifier instead of default random UUID

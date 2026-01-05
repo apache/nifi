@@ -75,13 +75,13 @@ import static org.mockito.Mockito.when;
  */
 public class ITPutS3Object extends AbstractS3IT {
 
-    final static String TEST_PARTSIZE_STRING = "50 mb";
-    final static Long   TEST_PARTSIZE_LONG = 50L * 1024L * 1024L;
+    static final String TEST_PARTSIZE_STRING = "50 mb";
+    static final Long   TEST_PARTSIZE_LONG = 50L * 1024L * 1024L;
 
-    final static Long S3_MINIMUM_PART_SIZE = 50L * 1024L * 1024L;
-    final static Long S3_MAXIMUM_OBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
+    static final Long S3_MINIMUM_PART_SIZE = 50L * 1024L * 1024L;
+    static final Long S3_MAXIMUM_OBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
 
-    final static Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32}(-[0-9]+)?");
+    static final Pattern reS3ETag = Pattern.compile("[0-9a-fA-f]{32}(-[0-9]+)?");
 
     private static final Logger logger = LoggerFactory.getLogger(ITPutS3Object.class);
     private static String kmsKeyId = "";
@@ -441,7 +441,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(BUCKET_NAME, context.getProperty(PutS3Object.BUCKET_WITHOUT_DEFAULT_VALUE).evaluateAttributeExpressions((FlowFile) null).toString());
         assertEquals(SAMPLE_FILE_RESOURCE_NAME, context.getProperty(PutS3Object.KEY).evaluateAttributeExpressions(Collections.emptyMap()).toString());
         assertEquals(TEST_PARTSIZE_LONG.longValue(),
-                context.getProperty(PutS3Object.MULTIPART_PART_SIZE).asDataSize(DataUnit.B).longValue());
+            context.getProperty(PutS3Object.MULTIPART_PART_SIZE).asDataSize(DataUnit.B).longValue());
     }
 
     @Test
@@ -699,7 +699,7 @@ public class ITPutS3Object extends AbstractS3IT {
         assertEquals(FILE1_NAME, ff1.getAttribute(CoreAttributes.FILENAME.key()));
         assertEquals(BUCKET_NAME, ff1.getAttribute(PutS3Object.S3_BUCKET_KEY));
         assertEquals(FILE1_NAME, ff1.getAttribute(PutS3Object.S3_OBJECT_KEY));
-            assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
+        assertTrue(reS3ETag.matcher(ff1.getAttribute(PutS3Object.S3_ETAG_ATTR_KEY)).matches());
         assertEquals(tempByteCount, ff1.getSize());
     }
 
@@ -720,9 +720,9 @@ public class ITPutS3Object extends AbstractS3IT {
         runner.assertAllFlowFilesTransferred(PutS3Object.REL_SUCCESS, 1);
 
         final GetObjectTaggingRequest request = GetObjectTaggingRequest.builder()
-                .bucket(BUCKET_NAME)
-                .key("tag-test.txt")
-                .build();
+            .bucket(BUCKET_NAME)
+            .key("tag-test.txt")
+            .build();
         GetObjectTaggingResponse response = getClient().getObjectTagging(request);
         List<Tag> objectTags = response.tagSet();
 

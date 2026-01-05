@@ -48,8 +48,12 @@ public class DifferenceDTO {
 
     @Override
     public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         final DifferenceDTO that = (DifferenceDTO) o;
         return Objects.equals(differenceType, that.differenceType) && Objects.equals(difference, that.difference);
     }

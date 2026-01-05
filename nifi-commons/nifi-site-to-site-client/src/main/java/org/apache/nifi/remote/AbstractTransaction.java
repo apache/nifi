@@ -164,7 +164,7 @@ public abstract class AbstractTransaction implements Transaction {
         }
     }
 
-    abstract protected Response readTransactionResponse() throws IOException;
+    protected abstract Response readTransactionResponse() throws IOException;
 
     protected final void writeTransactionResponse(ResponseCode response) throws IOException {
         writeTransactionResponse(response, null);
@@ -174,7 +174,7 @@ public abstract class AbstractTransaction implements Transaction {
         writeTransactionResponse(response, explanation, true);
     }
 
-    abstract protected void writeTransactionResponse(ResponseCode response, String explanation, boolean flush) throws IOException;
+    protected abstract void writeTransactionResponse(ResponseCode response, String explanation, boolean flush) throws IOException;
 
     @Override
     public final void confirm() throws IOException {

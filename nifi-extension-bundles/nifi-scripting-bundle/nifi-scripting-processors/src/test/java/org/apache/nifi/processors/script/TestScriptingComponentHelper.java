@@ -19,25 +19,37 @@ package org.apache.nifi.processors.script;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.script.ScriptingComponentHelper;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestScriptingComponentHelper {
+class TestScriptingComponentHelper {
+
+    private static final String SCRIPT_LANGUAGE = "Script Language";
+    private static final String SCRIPT_ENGINE = "Script Engine";
+    private static final String CONFIGURED_SCRIPT_ENGINE = "AWK";
+    private static final String GROOVY_SCRIPT_ENGINE = "Groovy";
 
     @Test
-    public void testScriptEngineAllowableValuesWithDescriptions() {
+    void testScriptEngineAllowableValuesWithDescriptions() {
         final ScriptingComponentHelper helper = new ScriptingComponentHelper();
         helper.createResources();
 
         final List<PropertyDescriptor> descriptors = helper.getDescriptors();
         final Optional<PropertyDescriptor> optionalScriptEngine = descriptors.stream().filter(
-                descriptor -> descriptor.getName().equals(ScriptingComponentHelper.SCRIPT_ENGINE_PROPERTY)
+                descriptor -> descriptor.getName().equals(
+                        ScriptingComponentHelper.getScriptEnginePropertyBuilder().build().getName()
+                )
         ).findFirst();
 
         assertTrue(optionalScriptEngine.isPresent());
@@ -49,5 +61,40 @@ public class TestScriptingComponentHelper {
         for (final AllowableValue allowableValue : allowableValues) {
             assertNotNull(allowableValue.getDescription());
         }
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> propertyValues = Map.of(
+                SCRIPT_LANGUAGE, CONFIGURED_SCRIPT_ENGINE
+        );
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+
+        ScriptingComponentHelper.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        final String scriptLanguageRenamed = propertiesRenamed.get(SCRIPT_LANGUAGE);
+        assertEquals(SCRIPT_ENGINE, scriptLanguageRenamed);
+    }
+
+    @Test
+    void testMigratePropertiesPreferringScriptEngineProperty() {
+        final Map<String, String> propertyValues = Map.of(
+                SCRIPT_LANGUAGE, CONFIGURED_SCRIPT_ENGINE,
+                SCRIPT_ENGINE, GROOVY_SCRIPT_ENGINE
+        );
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+
+        ScriptingComponentHelper.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+
+        final Set<String> propertiesRemoved = result.getPropertiesRemoved();
+        assertTrue(propertiesRemoved.contains(SCRIPT_LANGUAGE), "Script Language property should be removed");
+
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+        assertTrue(propertiesRenamed.isEmpty(), "Properties should not be renamed when Script Engine is defined");
     }
 }

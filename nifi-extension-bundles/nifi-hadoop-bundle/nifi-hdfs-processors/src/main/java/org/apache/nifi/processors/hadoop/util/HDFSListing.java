@@ -72,7 +72,7 @@ public class HDFSListing {
      */
     public Set<Path> toPaths() {
         final Set<Path> paths = new HashSet<>(matchingPaths.size());
-        for ( final String pathname : matchingPaths ) {
+        for (final String pathname : matchingPaths) {
             paths.add(new Path(pathname));
         }
         return paths;

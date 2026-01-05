@@ -17,9 +17,9 @@
 
 package org.apache.nifi.wali;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.DummyRecord;
@@ -309,7 +309,7 @@ public class TestSequentialAccessWriteAheadLog {
 
 
     @Test
-    @Disabled("For manual performance testing")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true", disabledReason = "For manual performance testing")
     public void testUpdatePerformance() throws IOException, InterruptedException {
         final Path path = Paths.get("target/sequential-access-repo");
         deleteRecursively(path.toFile());

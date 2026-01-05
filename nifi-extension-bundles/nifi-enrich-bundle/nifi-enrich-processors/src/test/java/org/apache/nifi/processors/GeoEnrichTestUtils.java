@@ -118,7 +118,7 @@ public class GeoEnrichTestUtils {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        return new ObjectMapper().readerFor(CityResponse.class).with(inject).readValue(maxMindCityResponse);
+        return mapper.readerFor(CityResponse.class).with(inject).readValue(maxMindCityResponse);
     }
 
     public static CityResponse getNullLatAndLongCityResponse() throws Exception {
@@ -213,6 +213,6 @@ public class GeoEnrichTestUtils {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
-        return new ObjectMapper().readerFor(CityResponse.class).with(inject).readValue(maxMindCityResponse);
+        return mapper.readerFor(CityResponse.class).with(inject).readValue(maxMindCityResponse);
     }
 }

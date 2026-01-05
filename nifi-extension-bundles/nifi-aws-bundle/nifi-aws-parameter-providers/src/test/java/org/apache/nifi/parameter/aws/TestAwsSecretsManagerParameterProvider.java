@@ -130,6 +130,59 @@ public class TestAwsSecretsManagerParameterProvider {
         runProviderTest(defaultSecretsManager, 0, ConfigVerificationResult.Outcome.FAILED, "PATTERN", null);
     }
 
+    @Test
+    public void testFetchParametersWithNonStringValues() throws InitializationException {
+        // JSON with string, number, boolean, and null values
+        final String secretString = "{ \"stringParam\": \"stringValue\", \"numberParam\": 5432, \"booleanParam\": true, \"nullParam\": null }";
+
+        final SecretsManagerClient secretsManager = mock(SecretsManagerClient.class);
+        final GetSecretValueResponse response = GetSecretValueResponse.builder()
+                .name("MixedSecret")
+                .secretString(secretString)
+                .build();
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("MixedSecret")))).thenReturn(response);
+
+        final List<ParameterGroup> parameterGroups = runProviderTest(secretsManager, 3, ConfigVerificationResult.Outcome.SUCCESSFUL, "ENUMERATION", "MixedSecret");
+
+        assertEquals(1, parameterGroups.size());
+        final ParameterGroup group = parameterGroups.get(0);
+        assertEquals("MixedSecret", group.getGroupName());
+
+        final Map<String, String> parameterValues = group.getParameters().stream()
+                .collect(Collectors.toMap(p -> p.getDescriptor().getName(), Parameter::getValue));
+
+        assertEquals("stringValue", parameterValues.get("stringParam"));
+        assertEquals("5432", parameterValues.get("numberParam"));
+        assertEquals("true", parameterValues.get("booleanParam"));
+        // nullParam should not be included
+        assertEquals(3, parameterValues.size());
+    }
+
+    @Test
+    public void testFetchParametersWithNestedObjectsIgnored() throws InitializationException {
+        // JSON with nested objects and arrays that should be ignored
+        final String secretString = "{ \"validParam\": \"validValue\", \"nestedObject\": { \"inner\": \"value\" }, \"arrayParam\": [1, 2, 3] }";
+
+        final SecretsManagerClient secretsManager = mock(SecretsManagerClient.class);
+        final GetSecretValueResponse response = GetSecretValueResponse.builder()
+                .name("NestedSecret")
+                .secretString(secretString)
+                .build();
+        when(secretsManager.getSecretValue(argThat(matchesGetSecretValueRequest("NestedSecret")))).thenReturn(response);
+
+        final List<ParameterGroup> parameterGroups = runProviderTest(secretsManager, 1, ConfigVerificationResult.Outcome.SUCCESSFUL, "ENUMERATION", "NestedSecret");
+
+        assertEquals(1, parameterGroups.size());
+        final ParameterGroup group = parameterGroups.get(0);
+
+        final Map<String, String> parameterValues = group.getParameters().stream()
+                .collect(Collectors.toMap(p -> p.getDescriptor().getName(), Parameter::getValue));
+
+        // Only the simple value param should be included
+        assertEquals(1, parameterValues.size());
+        assertEquals("validValue", parameterValues.get("validParam"));
+    }
+
     private AwsSecretsManagerParameterProvider getParameterProvider() {
         return spy(new AwsSecretsManagerParameterProvider());
     }

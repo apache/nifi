@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.documentation.UseCase;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -65,6 +66,33 @@ import java.util.concurrent.TimeUnit;
                 """
 )
 public class DeleteSFTP extends AbstractProcessor {
+    public enum RemovalStrategy implements DescribedValue {
+        FILE("File", "Specify a file to delete"),
+        DIRECTORY("Directory", "Specify an empty directory to delete");
+
+        RemovalStrategy(String displayName, String description) {
+            this.displayName = displayName;
+            this.description = description;
+        }
+
+        private final String displayName;
+        private final String description;
+
+        @Override
+        public String getValue() {
+            return name();
+        }
+
+        @Override
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String getDescription() {
+            return description;
+        }
+    }
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -79,26 +107,37 @@ public class DeleteSFTP extends AbstractProcessor {
             .description("All FlowFiles, for which an existing file could not be deleted, are routed to this relationship")
             .build();
 
-    private final static Set<Relationship> relationships = Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_FAILURE);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_NOT_FOUND, REL_FAILURE);
+
+    public static final PropertyDescriptor REMOVAL_STRATEGY = new PropertyDescriptor.Builder()
+            .name("Removal Strategy")
+            .description("Specifies whether to delete a file or a directory")
+            .allowableValues(RemovalStrategy.class)
+            .defaultValue(RemovalStrategy.FILE)
+            .required(true)
+            .build();
 
     public static final PropertyDescriptor DIRECTORY_PATH = new PropertyDescriptor.Builder()
             .name("Directory Path")
-            .description("The path to the directory the file to delete is located in.")
+            .description("The path to the the actual directory to delete or the path to the directory the file to delete is located in.")
             .required(true)
             .defaultValue("${" + CoreAttributes.PATH.key() + "}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
+
     public static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
             .name("Filename")
             .description("The name of the file to delete.")
+            .dependsOn(REMOVAL_STRATEGY, RemovalStrategy.FILE)
             .required(true)
             .defaultValue("${" + CoreAttributes.FILENAME.key() + "}")
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    private final static List<PropertyDescriptor> properties = List.of(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            REMOVAL_STRATEGY,
             DIRECTORY_PATH,
             FILENAME,
             SFTPTransfer.HOSTNAME,
@@ -124,12 +163,12 @@ public class DeleteSFTP extends AbstractProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
@@ -147,6 +186,7 @@ public class DeleteSFTP extends AbstractProcessor {
         }
 
         final ComponentLog logger = getLogger();
+        final RemovalStrategy removalStrategy = context.getProperty(REMOVAL_STRATEGY).asAllowableValue(RemovalStrategy.class);
         String hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final int maxNumberOfFiles = context.getProperty(SFTPTransfer.BATCH_SIZE).asInteger();
@@ -156,36 +196,45 @@ public class DeleteSFTP extends AbstractProcessor {
             do {
                 //evaluate again inside the loop as each flowfile can have a different hostname
                 hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-
                 final long startNanos = System.nanoTime();
-
                 final String directoryPathProperty = context.getProperty(DIRECTORY_PATH).evaluateAttributeExpressions(flowFile).getValue();
-                final String filename = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
+                String filename = null;
 
                 try {
                     final Path directoryPath = Paths.get(directoryPathProperty).normalize();
-                    final Path filePath = directoryPath.resolve(filename).normalize();
+                    final String transitUri;
 
-                    if (!directoryPath.equals(filePath.getParent())) {
-                        final String errorMessage = "Attempting to delete file at path '%s' which is not a direct child of the directory '%s'"
-                                .formatted(filePath, directoryPath);
+                    if (removalStrategy == RemovalStrategy.DIRECTORY) {
+                        transfer.deleteDirectory(flowFile, directoryPath.toString());
+                        transitUri = "sftp://%s".formatted(directoryPath);
+                    } else {
+                        filename = context.getProperty(FILENAME).evaluateAttributeExpressions(flowFile).getValue();
+                        final Path filePath = directoryPath.resolve(filename).normalize();
 
-                        handleFailure(session, flowFile, errorMessage, null);
-                        continue;
+                        if (!directoryPath.equals(filePath.getParent())) {
+                            final String errorMessage = "Attempting to delete file at path '%s' which is not a direct child of the directory '%s'"
+                                    .formatted(filePath, directoryPath);
+
+                            handleFailure(session, flowFile, errorMessage, null);
+                            continue;
+                        }
+                        transfer.deleteFile(flowFile, directoryPath.toString(), filename);
+                        transitUri = "sftp://%s".formatted(filePath);
                     }
 
-                    transfer.deleteFile(flowFile, directoryPath.toString(), filename);
-
                     session.transfer(flowFile, REL_SUCCESS);
-                    final String transitUri = "sftp://%s".formatted(filePath);
                     final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
                     logger.debug("Successfully deleted file at path {} in {} millis; routing to success", flowFile, transferMillis);
                     session.getProvenanceReporter().invokeRemoteProcess(flowFile, transitUri, "Object deleted");
                 } catch (FileNotFoundException fileNotFoundException) {
                     session.transfer(flowFile, REL_NOT_FOUND);
                 } catch (IOException ioException) {
-                    final String errorMessage = "Failed to delete file '%s' in directory '%s'"
-                            .formatted(filename, directoryPathProperty);
+                    final String errorMessage;
+                    if (removalStrategy == RemovalStrategy.DIRECTORY) {
+                        errorMessage = "Failed to delete directory '%s'".formatted(directoryPathProperty);
+                    } else {
+                        errorMessage = "Failed to delete file '%s' in directory '%s'".formatted(filename, directoryPathProperty);
+                    }
 
                     handleFailure(session, flowFile, errorMessage, ioException);
                 }

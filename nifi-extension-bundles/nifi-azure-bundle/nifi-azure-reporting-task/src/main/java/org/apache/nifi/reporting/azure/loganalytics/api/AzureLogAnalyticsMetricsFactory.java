@@ -116,10 +116,10 @@ public class AzureLogAnalyticsMetricsFactory {
 
         // Append pool stats
         virtualMachineMetrics.memoryPoolUsage()
-        .forEach((name, usage) -> {
-            name = name.toLowerCase().replaceAll("\\s", "_");
-            builder.metric("jvm.mem_pool_" + name, usage);
-        });
+            .forEach((name, usage) -> {
+                name = name.toLowerCase().replaceAll("\\s", "_");
+                builder.metric("jvm.mem_pool_" + name, usage);
+            });
 
         return builder.build();
 

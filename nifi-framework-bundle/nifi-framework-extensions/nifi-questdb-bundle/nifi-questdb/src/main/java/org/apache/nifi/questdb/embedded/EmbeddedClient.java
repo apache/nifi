@@ -41,7 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 final class EmbeddedClient implements Client {
-    private final static Logger LOGGER = LoggerFactory.getLogger(EmbeddedClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedClient.class);
 
     private final Supplier<CairoEngine> engine;
     private final AtomicBoolean disconnected = new AtomicBoolean(false);

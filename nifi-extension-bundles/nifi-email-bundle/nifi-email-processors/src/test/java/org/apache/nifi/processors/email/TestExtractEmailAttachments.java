@@ -71,7 +71,7 @@ public class TestExtractEmailAttachments {
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailAttachments.REL_ATTACHMENTS);
 
         List<String> filenames = new ArrayList<>();
-        for (int a = 0; a < amount; a++ ) {
+        for (int a = 0; a < amount; a++) {
             filenames.add(splits.get(a).getAttribute("filename"));
         }
 

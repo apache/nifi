@@ -95,7 +95,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 "not flowfile attributes.")
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
-        .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+        .addValidator(StandardValidators.URL_VALIDATOR)
         .build();
 
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
@@ -489,7 +489,11 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 .url(endpoint);
         switch (method) {
             case "delete":
-                if (body != null) request.delete(requestBody); else request.delete();
+                if (body != null) {
+                    request.delete(requestBody);
+                } else {
+                    request.delete();
+                }
                 break;
             case "get":
                 request.get();

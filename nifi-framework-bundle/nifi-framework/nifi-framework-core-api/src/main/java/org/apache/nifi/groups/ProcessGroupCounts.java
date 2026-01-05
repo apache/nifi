@@ -18,9 +18,21 @@ package org.apache.nifi.groups;
 
 public class ProcessGroupCounts {
 
-    private final int localInputPortCount, localOutputPortCount, publicInputPortCount, publicOutputPortCount,
-            runningCount, stoppedCount, invalidCount, disabledCount, activeRemotePortCount, inactiveRemotePortCount,
-            upToDateCount, locallyModifiedCount, staleCount, locallyModifiedAndStaleCount, syncFailureCount;
+    private final int localInputPortCount;
+    private final int localOutputPortCount;
+    private final int publicInputPortCount;
+    private final int publicOutputPortCount;
+    private final int runningCount;
+    private final int stoppedCount;
+    private final int invalidCount;
+    private final int disabledCount;
+    private final int activeRemotePortCount;
+    private final int inactiveRemotePortCount;
+    private final int upToDateCount;
+    private final int locallyModifiedCount;
+    private final int staleCount;
+    private final int locallyModifiedAndStaleCount;
+    private final int syncFailureCount;
 
     public ProcessGroupCounts(int localInputPortCount, int localOutputPortCount, int publicInputPortCount, int publicOutputPortCount,
                               int runningCount, int stoppedCount, int invalidCount, int disabledCount, int activeRemotePortCount,

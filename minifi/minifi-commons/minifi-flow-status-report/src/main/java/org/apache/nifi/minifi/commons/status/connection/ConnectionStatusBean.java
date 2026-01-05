@@ -42,13 +42,21 @@ public class ConnectionStatusBean extends AbstractStatusBean {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ConnectionStatusBean that = (ConnectionStatusBean) o;
 
-        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) return false;
-        if (getConnectionHealth() != null ? !getConnectionHealth().equals(that.getConnectionHealth()) : that.getConnectionHealth() != null) return false;
+        if (getName() != null ? !getName().equals(that.getName()) : that.getName() != null) {
+            return false;
+        }
+        if (getConnectionHealth() != null ? !getConnectionHealth().equals(that.getConnectionHealth()) : that.getConnectionHealth() != null) {
+            return false;
+        }
         return getConnectionStats() != null ? getConnectionStats().equals(that.getConnectionStats()) : that.getConnectionStats() == null;
 
     }

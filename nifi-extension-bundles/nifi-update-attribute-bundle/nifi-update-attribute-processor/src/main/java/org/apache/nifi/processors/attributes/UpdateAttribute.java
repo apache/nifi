@@ -148,15 +148,15 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     // relationships
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .description("All successful FlowFiles are routed to this relationship").name("success").build();
+        .description("All successful FlowFiles are routed to this relationship").name("success").build();
     public static final Relationship REL_FAILED_SET_STATE = new Relationship.Builder()
-            .description("A failure to set the state after adding the attributes to the FlowFile will route the FlowFile here.").name("set state fail").build();
+        .description("A failure to set the state after adding the attributes to the FlowFile will route the FlowFile here.").name("set state fail").build();
 
-    private final static Set<Relationship> STATELESS_RELATIONSHIP_SET = Set.of(
+    private static final Set<Relationship> STATELESS_RELATIONSHIP_SET = Set.of(
             REL_SUCCESS
     );
 
-    private final static Set<Relationship> STATEFUL_RELATIONSHIP_SET = Set.of(
+    private static final Set<Relationship> STATEFUL_RELATIONSHIP_SET = Set.of(
             REL_SUCCESS,
             REL_FAILED_SET_STATE
     );
@@ -194,46 +194,46 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     // static properties
     public static final String DELETE_ATTRIBUTES_EXPRESSION_NAME = "Delete Attributes Expression";
     public static final PropertyDescriptor DELETE_ATTRIBUTES = new PropertyDescriptor.Builder()
-            .name(DELETE_ATTRIBUTES_EXPRESSION_NAME)
-            .description("Regular expression for attributes to be deleted from FlowFiles.  Existing attributes that match will be deleted regardless of whether they are updated by this processor.")
-            .required(false)
-            .addValidator(DELETE_PROPERTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
+        .name(DELETE_ATTRIBUTES_EXPRESSION_NAME)
+        .description("Regular expression for attributes to be deleted from FlowFiles.  Existing attributes that match will be deleted regardless of whether they are updated by this processor.")
+        .required(false)
+        .addValidator(DELETE_PROPERTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
 
     public static final String STORE_STATE_NAME = "Store State";
     public static final PropertyDescriptor STORE_STATE = new PropertyDescriptor.Builder()
-            .name(STORE_STATE_NAME)
-            .description("Select whether or not state will be stored. Selecting 'Stateless' will offer the default functionality of purely updating the attributes on a " +
-                    "FlowFile in a stateless manner. Selecting a stateful option will not only store the attributes on the FlowFile but also in the Processors " +
-                    "state. See the 'Stateful Usage' topic of the 'Additional Details' section of this processor's documentation for more information")
-            .required(true)
-            .allowableValues(DO_NOT_STORE_STATE, STORE_STATE_LOCALLY)
-            .defaultValue(DO_NOT_STORE_STATE)
-            .build();
+        .name(STORE_STATE_NAME)
+        .description("Select whether or not state will be stored. Selecting 'Stateless' will offer the default functionality of purely updating the attributes on a " +
+                "FlowFile in a stateless manner. Selecting a stateful option will not only store the attributes on the FlowFile but also in the Processors " +
+                "state. See the 'Stateful Usage' topic of the 'Additional Details' section of this processor's documentation for more information")
+        .required(true)
+        .allowableValues(DO_NOT_STORE_STATE, STORE_STATE_LOCALLY)
+        .defaultValue(DO_NOT_STORE_STATE)
+        .build();
 
     public static final String STATEFUL_VARIABLES_INIT_VALUE_NAME = "Stateful Variables Initial Value";
     public static final PropertyDescriptor STATEFUL_VARIABLES_INIT_VALUE = new PropertyDescriptor.Builder()
-            .name(STATEFUL_VARIABLES_INIT_VALUE_NAME)
-            .description("If using state to set/reference variables then this value is used to set the initial value of the stateful variable. This will only be used in the @OnScheduled method " +
-                    "when state does not contain a value for the variable. This is required if running statefully but can be empty if needed.")
-            .required(false)
-            .addValidator(Validator.VALID)
-            .build();
+        .name(STATEFUL_VARIABLES_INIT_VALUE_NAME)
+        .description("If using state to set/reference variables then this value is used to set the initial value of the stateful variable. This will only be used in the @OnScheduled method " +
+                "when state does not contain a value for the variable. This is required if running statefully but can be empty if needed.")
+        .required(false)
+        .addValidator(Validator.VALID)
+        .build();
 
     public static final PropertyDescriptor CANONICAL_VALUE_LOOKUP_CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("Cache Value Lookup Cache Size")
-            .description("Specifies how many canonical lookup values should be stored in the cache")
-            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .defaultValue("100")
-            .required(true)
-            .build();
+        .name("Cache Value Lookup Cache Size")
+        .description("Specifies how many canonical lookup values should be stored in the cache")
+        .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+        .defaultValue("100")
+        .required(true)
+        .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
-            DELETE_ATTRIBUTES,
-            STORE_STATE,
-            STATEFUL_VARIABLES_INIT_VALUE,
-            CANONICAL_VALUE_LOOKUP_CACHE_SIZE
+        DELETE_ATTRIBUTES,
+        STORE_STATE,
+        STATEFUL_VARIABLES_INIT_VALUE,
+        CANONICAL_VALUE_LOOKUP_CACHE_SIZE
     );
 
     private volatile Map<String, Action> defaultActions;
@@ -263,13 +263,13 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .required(false)
-                .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
-                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
-                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-                .dynamic(true)
-                .build();
+            .name(propertyDescriptorName)
+            .required(false)
+            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+            .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .dynamic(true)
+            .build();
     }
 
     @Override
@@ -291,8 +291,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     public void onScheduled(final ProcessContext context) throws IOException {
         final int cacheSize = context.getProperty(CANONICAL_VALUE_LOOKUP_CACHE_SIZE).asInteger();
         canonicalValueLookup = Caffeine.newBuilder()
-                .maximumSize(cacheSize)
-                .build(attributeValue -> attributeValue);
+            .maximumSize(cacheSize)
+            .build(attributeValue -> attributeValue);
 
         criteriaCache.set(CriteriaSerDe.deserialize(context.getAnnotationData()));
 
@@ -335,6 +335,19 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> reasons = new ArrayList<>(super.customValidate(context));
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.isDynamic()) {
+                if (entry.getValue() == null) {
+                    reasons.add(new ValidationResult.Builder()
+                            .subject(descriptor.getDisplayName())
+                            .valid(false)
+                            .explanation("Dynamic Property %s is null. Does it reference an unset parameter?".formatted(descriptor.getName()))
+                            .build());
+                }
+            }
+        }
 
         if (!context.getProperty(STORE_STATE).getValue().equals(DO_NOT_STORE_STATE)) {
             String initValue = context.getProperty(STATEFUL_VARIABLES_INIT_VALUE).getValue();
@@ -485,7 +498,7 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
             if (stateful) {
                 stateMap = session.getState(Scope.LOCAL);
                 stateInitialAttributes = stateMap.toMap();
-                stateWorkingAttributes = new  HashMap<>(stateMap.toMap());
+                stateWorkingAttributes = new HashMap<>(stateMap.toMap());
             } else {
                 stateInitialAttributes = null;
                 stateWorkingAttributes = null;
@@ -582,8 +595,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     //Evaluates the specified Criteria on the specified flowfile. Clones the
     // specified flow file for each rule that is applied.
     private boolean evaluateCriteria(final ProcessSession session, final ProcessContext context, final Criteria criteria, final FlowFile flowfile, final Map<FlowFile,
-            List<Rule>> matchedRules, final Map<String, String> statefulAttributes) {
-            final ComponentLog logger = getLogger();
+        List<Rule>> matchedRules, final Map<String, String> statefulAttributes) {
+        final ComponentLog logger = getLogger();
         final List<Rule> rules = criteria.getRules();
 
         // consider each rule and hold a copy of the flowfile for each matched rule
@@ -618,7 +631,6 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
     private boolean evaluateRule(final ProcessContext context, final Rule rule, FlowFile flowfile, final Map<String, String> statefulAttributes) {
         // go through each condition
         for (final Condition condition : rule.getConditions()) {
-
             // fail if any condition is not met
             if (!evaluateCondition(context, condition, flowfile, statefulAttributes)) {
                 return false;
@@ -645,8 +657,8 @@ public class UpdateAttribute extends AbstractProcessor implements Searchable {
 
     // Executes the specified action on the specified flowfile.
     private FlowFile executeActions(final ProcessSession session, final ProcessContext context, final List<Rule> rules, final Map<String, Action> defaultActions, final FlowFile flowfile,
-                                    final Map<String, String> stateInitialAttributes, final Map<String, String> stateWorkingAttributes) {
-            final ComponentLog logger = getLogger();
+                                final Map<String, String> stateInitialAttributes, final Map<String, String> stateWorkingAttributes) {
+        final ComponentLog logger = getLogger();
         final Map<String, Action> actions = new HashMap<>(defaultActions);
         final String ruleName = (rules == null || rules.isEmpty()) ? "default" : rules.getLast().getName();
 

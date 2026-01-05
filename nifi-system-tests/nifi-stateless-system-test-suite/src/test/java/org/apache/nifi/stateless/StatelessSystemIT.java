@@ -218,8 +218,8 @@ public class StatelessSystemIT {
 
             @Override
             public List<ReportingTaskDefinition> getReportingTaskDefinitions() {
-            return Collections.emptyList();
-        }
+                return Collections.emptyList();
+            }
 
             @Override
             public List<ParameterValueProviderDefinition> getParameterValueProviderDefinitions() {

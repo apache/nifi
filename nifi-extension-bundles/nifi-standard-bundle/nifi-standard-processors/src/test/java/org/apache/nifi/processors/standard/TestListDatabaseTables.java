@@ -102,8 +102,8 @@ class TestListDatabaseTables extends AbstractDatabaseConnectionServiceTest {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListDatabaseTables.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(
                 """
-                        TEST_TABLE1,,APP,APP.TEST_TABLE1,TABLE,,2
-                        TEST_TABLE2,,APP,APP.TEST_TABLE2,TABLE,,0
+                        TEST_TABLE1,PUBLIC,PUBLIC,PUBLIC.PUBLIC.TEST_TABLE1,TABLE,,2
+                        TEST_TABLE2,PUBLIC,PUBLIC,PUBLIC.PUBLIC.TEST_TABLE2,TABLE,,0
                         """);
     }
 

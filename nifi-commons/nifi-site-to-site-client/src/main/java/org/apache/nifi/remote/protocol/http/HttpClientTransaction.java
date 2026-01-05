@@ -138,30 +138,30 @@ public class HttpClientTransaction extends AbstractTransaction {
                     logger.debug("{} Finished sending flow files.", this);
                     break;
                 case BAD_CHECKSUM: {
-                        TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.BAD_CHECKSUM);
-                        ResponseCode badChecksumCancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
+                    TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.BAD_CHECKSUM);
+                    ResponseCode badChecksumCancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
                     if (badChecksumCancelResponse == ResponseCode.CANCEL_TRANSACTION) {
                         logger.debug("{} BAD_CHECKSUM, The transaction is canceled on server properly.", this);
                     } else {
                         logger.warn("{} BAD_CHECKSUM, Expected the transaction is canceled on server, but received {}.", this, badChecksumCancelResponse);
                     }
 
-                    }
+                }
                     break;
                 case CONFIRM_TRANSACTION:
                     // The actual HTTP request will be sent in readTransactionResponse.
                     logger.debug("{} Transaction is confirmed.", this);
                     break;
                 case CANCEL_TRANSACTION: {
-                        logger.debug("{} Canceling transaction.", this);
-                        TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CANCEL_TRANSACTION);
-                        ResponseCode cancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
+                    logger.debug("{} Canceling transaction.", this);
+                    TransactionResultEntity resultEntity = apiClient.commitTransferFlowFiles(transactionUrl, ResponseCode.CANCEL_TRANSACTION);
+                    ResponseCode cancelResponse = ResponseCode.fromCode(resultEntity.getResponseCode());
                     if (cancelResponse == ResponseCode.CANCEL_TRANSACTION) {
                         logger.debug("{} CANCEL_TRANSACTION, The transaction is canceled on server properly.", this);
                     } else {
                         logger.warn("{} CANCEL_TRANSACTION, Expected the transaction is canceled on server, but received {}.", this, cancelResponse);
                     }
-                    }
+                }
                     break;
             }
         }

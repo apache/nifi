@@ -23,23 +23,23 @@ import java.util.List;
 
 public final class FlowFileEventBatch<E extends NetworkEvent> {
 
-        private FlowFile flowFile;
-        private List<E> events;
+    private FlowFile flowFile;
+    private List<E> events;
 
-        public FlowFileEventBatch(final FlowFile flowFile, final List<E> events) {
-            this.flowFile = flowFile;
-            this.events = events;
-        }
+    public FlowFileEventBatch(final FlowFile flowFile, final List<E> events) {
+        this.flowFile = flowFile;
+        this.events = events;
+    }
 
-        public FlowFile getFlowFile() {
-            return flowFile;
-        }
+    public FlowFile getFlowFile() {
+        return flowFile;
+    }
 
-        public List<E> getEvents() {
-            return events;
-        }
+    public List<E> getEvents() {
+        return events;
+    }
 
-        public void setFlowFile(FlowFile flowFile) {
-            this.flowFile = flowFile;
-        }
+    public void setFlowFile(FlowFile flowFile) {
+        this.flowFile = flowFile;
+    }
 }

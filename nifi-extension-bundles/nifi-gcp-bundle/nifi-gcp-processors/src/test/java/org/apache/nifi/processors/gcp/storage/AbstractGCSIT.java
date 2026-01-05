@@ -131,7 +131,7 @@ public abstract class AbstractGCSIT {
      */
     protected void putTestFileEncrypted(String key, byte[] bytes) throws StorageException {
         storage.create(BlobInfo.newBuilder(BlobId.of(BUCKET, key))
-        .build(), bytes, Storage.BlobTargetOption.encryptionKey(ENCRYPTION_KEY));
+                .build(), bytes, Storage.BlobTargetOption.encryptionKey(ENCRYPTION_KEY));
     }
 
     /**

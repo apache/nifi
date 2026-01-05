@@ -47,8 +47,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTest {
 
-    private final static String TABLE_NAME_KEY = "tableName";
-    private final static String MAX_ROWS_KEY = "maxRows";
+    private static final String TABLE_NAME_KEY = "tableName";
+    private static final String MAX_ROWS_KEY = "maxRows";
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 

@@ -301,9 +301,9 @@ public class FlowDifferenceFilters {
             case RETRIED_RELATIONSHIPS_CHANGED -> processorNode.getRetriedRelationships().isEmpty();
             case RETRY_COUNT_CHANGED -> processorNode.getRetryCount() == ProcessorNode.DEFAULT_RETRY_COUNT;
             case MAX_BACKOFF_PERIOD_CHANGED ->
-                    ProcessorNode.DEFAULT_MAX_BACKOFF_PERIOD.equals(processorNode.getMaxBackoffPeriod());
+                ProcessorNode.DEFAULT_MAX_BACKOFF_PERIOD.equals(processorNode.getMaxBackoffPeriod());
             case BACKOFF_MECHANISM_CHANGED ->
-                    ProcessorNode.DEFAULT_BACKOFF_MECHANISM == processorNode.getBackoffMechanism();
+                ProcessorNode.DEFAULT_BACKOFF_MECHANISM == processorNode.getBackoffMechanism();
             default -> false;
         };
     }

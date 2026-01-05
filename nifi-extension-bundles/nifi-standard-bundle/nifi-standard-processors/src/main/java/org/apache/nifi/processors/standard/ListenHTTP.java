@@ -102,7 +102,7 @@ import java.util.regex.Pattern;
         The health check functionality can be configured to be accessible via a different port.
         For details, see the documentation of the \"Listening Port for health check requests\" property.
         A Record Reader and Record Writer property can be enabled on the processor to process incoming requests as records.
-        Record processing is not allowed for multipart requests and request in FlowFileV3 format (minifi).
+        Record processing is not allowed for multipart requests or requests in FlowFileV3 format (minifi).
         If the incoming request contains a FlowFileV3 package format, the data will be unpacked automatically into individual
         FlowFile(s) contained within the package; the original FlowFile names are restored.
         """)
@@ -121,7 +121,7 @@ import java.util.regex.Pattern;
         """
 )
 @MultiProcessorUseCase(
-        description = "Limit the date flow rate that is accepted",
+        description = "Limit the data flow rate that is accepted",
         keywords = {"rate", "limit"},
         notes = """
             When ListenHTTP cannot output FlowFiles due to back pressure, it will send HTTP 503 Service Unavailable
@@ -486,7 +486,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor implements Liste
         }
     }
 
-    synchronized private void createHttpServerFromService(final ProcessContext context) throws Exception {
+    private synchronized void createHttpServerFromService(final ProcessContext context) throws Exception {
         if (initialized.get()) {
             return;
         }

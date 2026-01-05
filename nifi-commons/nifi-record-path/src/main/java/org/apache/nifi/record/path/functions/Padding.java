@@ -31,13 +31,13 @@ import java.util.stream.Stream;
 
 abstract class Padding extends RecordPathSegment {
 
-    public final static String DEFAULT_PADDING_STRING = "_";
+    public static final String DEFAULT_PADDING_STRING = "_";
 
     private RecordPathSegment paddingStringPath;
     private RecordPathSegment inputStringPath;
     private RecordPathSegment desiredLengthPath;
 
-    Padding( final String path,
+    Padding(final String path,
              final RecordPathSegment parentPath,
              final RecordPathSegment inputStringPath,
              final RecordPathSegment desiredLengthPath,

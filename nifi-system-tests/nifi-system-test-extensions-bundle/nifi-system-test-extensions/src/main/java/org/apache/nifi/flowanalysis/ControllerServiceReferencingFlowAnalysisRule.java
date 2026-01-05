@@ -31,7 +31,7 @@ public class ControllerServiceReferencingFlowAnalysisRule extends AbstractFlowAn
             .required(true)
             .build();
 
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    private static final List<PropertyDescriptor> propertyDescriptors;
 
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();

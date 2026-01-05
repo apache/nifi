@@ -28,8 +28,8 @@ import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.stream.io.NullOutputStream;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,7 +170,8 @@ public class TestSchemaSwapSerializerDeserializer {
     }
 
     @Test
-    @Disabled("For manual testing, in order to ensure that changes do not negatively impact performance")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "For manual testing, in order to ensure that changes do not negatively impact performance")
     public void testWritePerformance() throws IOException, InterruptedException {
         final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
 

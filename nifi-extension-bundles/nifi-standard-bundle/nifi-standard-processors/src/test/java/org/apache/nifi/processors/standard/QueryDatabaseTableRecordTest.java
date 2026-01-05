@@ -45,8 +45,8 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
 
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
-    private final static String TABLE_NAME_KEY = "tableName";
-    private final static String MAX_ROWS_KEY = "maxRows";
+    private static final String TABLE_NAME_KEY = "tableName";
+    private static final String MAX_ROWS_KEY = "maxRows";
 
     TestRunner runner;
 

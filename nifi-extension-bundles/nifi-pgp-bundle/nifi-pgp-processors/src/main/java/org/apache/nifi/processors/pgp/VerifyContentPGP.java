@@ -216,11 +216,11 @@ public class VerifyContentPGP extends AbstractProcessor {
                         }
                     }
                     case PGPOnePassSignatureList onePassSignatureList ->
-                            onePassSignature = processOnePassSignatures(onePassSignatureList);
+                        onePassSignature = processOnePassSignatures(onePassSignatureList);
                     case PGPLiteralData literalData ->
-                            processLiteralData(literalData, outputStream, onePassSignature);
+                        processLiteralData(literalData, outputStream, onePassSignature);
                     case PGPSignatureList signatureList ->
-                            processSignatures(signatureList, onePassSignature);
+                        processSignatures(signatureList, onePassSignature);
                     default -> {
                     }
                 }

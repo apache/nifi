@@ -329,7 +329,7 @@ public class FileUtils {
     public static void deleteFilesInDirectory(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse, final boolean deleteEmptyDirectories) throws IOException {
         // ensure the specified directory is actually a directory and that it exists
         if (null != directory && directory.isDirectory()) {
-            final File ingestFiles[] = directory.listFiles();
+            final File[] ingestFiles = directory.listFiles();
             if (ingestFiles == null) {
                 // null if abstract pathname does not denote a directory, or if an I/O error occurs
                 throw new IOException("Unable to list directory content in: " + directory.getAbsolutePath());
@@ -384,7 +384,7 @@ public class FileUtils {
 
     // The invalid character list is derived from this Stackoverflow page.
     // https://stackoverflow.com/questions/1155107/is-there-a-cross-platform-java-method-to-remove-filename-special-chars
-    private final static int[] INVALID_CHARS = {34, 60, 62, 124, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+    private static final int[] INVALID_CHARS = {34, 60, 62, 124, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
             16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 58, 42, 63, 92, 47, 32};
 
     static {

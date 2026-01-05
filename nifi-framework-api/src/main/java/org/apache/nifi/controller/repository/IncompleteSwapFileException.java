@@ -30,7 +30,6 @@ public class IncompleteSwapFileException extends EOFException {
     private final SwapContents partialContents;
 
     public IncompleteSwapFileException(final String swapLocation, final SwapContents partialContents) {
-        super();
         this.swapLocation = swapLocation;
         this.partialContents = partialContents;
     }

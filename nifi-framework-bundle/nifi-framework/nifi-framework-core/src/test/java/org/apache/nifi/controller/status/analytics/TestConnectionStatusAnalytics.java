@@ -96,7 +96,7 @@ public class TestConnectionStatusAnalytics {
         return connectionStatusAnalytics;
     }
 
-    public Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getModelMap( String predictionType, Double score,
+    public Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> getModelMap(String predictionType, Double score,
                                                                                 Double targetPrediction, Number variablePrediction) {
         Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
         StatusAnalyticsModel model = Mockito.mock(StatusAnalyticsModel.class);

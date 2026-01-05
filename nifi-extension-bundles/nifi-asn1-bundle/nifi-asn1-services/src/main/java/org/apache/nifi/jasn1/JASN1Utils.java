@@ -74,7 +74,7 @@ public class JASN1Utils {
         // jASN1 generates a class having a single List field named 'seqOf' to denote 'SEQ OF X'.
         final Object[] declaredFields = Arrays.stream(type.getDeclaredFields())
             .filter(JASN1Utils::isRecordField).toArray();
-        if (declaredFields.length == 1 ) {
+        if (declaredFields.length == 1) {
             final Field seqOfField = (Field) declaredFields[0];
             if ("seqOf".equals(seqOfField.getName())) {
                 return seqOfField;

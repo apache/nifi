@@ -73,12 +73,12 @@ public class LuceneUtil {
         for (final Path path : allProvenanceLogs) {
             if (path.toFile().getName().startsWith(searchString)) {
                 final File file = path.toFile();
-                if ( file.exists() ) {
+                if (file.exists()) {
                     matchingFiles.add(file);
                 } else {
                     final File dir = file.getParentFile();
                     final File gzFile = new File(dir, file.getName() + ".gz");
-                    if ( gzFile.exists() ) {
+                    if (gzFile.exists()) {
                         matchingFiles.add(gzFile);
                     }
                 }

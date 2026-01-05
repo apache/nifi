@@ -84,20 +84,20 @@ import static org.mockito.Mockito.when;
 @Timeout(30)
 @ExtendWith(MockitoExtension.class)
 public class TestPutTCP {
-    private final static String TCP_SERVER_ADDRESS = "127.0.0.1";
-    private final static String SERVER_VARIABLE = "server.address";
-    private final static String TCP_SERVER_ADDRESS_EL = "${" + SERVER_VARIABLE + "}";
-    private final static int VALID_LARGE_FILE_SIZE = 32768;
-    private final static int VALID_SMALL_FILE_SIZE = 64;
-    private final static int LOAD_TEST_ITERATIONS = 500;
-    private final static int LOAD_TEST_THREAD_COUNT = 1;
-    private final static int DEFAULT_ITERATIONS = 1;
-    private final static int DEFAULT_THREAD_COUNT = 1;
-    private final static char CONTENT_CHAR = 'x';
-    private final static String OUTGOING_MESSAGE_DELIMITER = "\n";
-    private final static String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
-    private final static String[] EMPTY_FILE = {""};
-    private final static String[] VALID_FILES = {"abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\"};
+    private static final String TCP_SERVER_ADDRESS = "127.0.0.1";
+    private static final String SERVER_VARIABLE = "server.address";
+    private static final String TCP_SERVER_ADDRESS_EL = "${" + SERVER_VARIABLE + "}";
+    private static final int VALID_LARGE_FILE_SIZE = 32768;
+    private static final int VALID_SMALL_FILE_SIZE = 64;
+    private static final int LOAD_TEST_ITERATIONS = 500;
+    private static final int LOAD_TEST_THREAD_COUNT = 1;
+    private static final int DEFAULT_ITERATIONS = 1;
+    private static final int DEFAULT_THREAD_COUNT = 1;
+    private static final char CONTENT_CHAR = 'x';
+    private static final String OUTGOING_MESSAGE_DELIMITER = "\n";
+    private static final String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
+    private static final String[] EMPTY_FILE = {""};
+    private static final String[] VALID_FILES = {"abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba", "12345678", "343424222", "!@£$%^&*()_+:|{}[];\\"};
 
     private static final String WRITER_SERVICE_ID = RecordSetWriterFactory.class.getSimpleName();
 

@@ -90,4 +90,9 @@ public class VirtualPath {
         VirtualPath other = (VirtualPath) o;
         return path.equals(other.path);
     }
+
+    @Override
+    public int hashCode() {
+        return path.hashCode();
+    }
 }

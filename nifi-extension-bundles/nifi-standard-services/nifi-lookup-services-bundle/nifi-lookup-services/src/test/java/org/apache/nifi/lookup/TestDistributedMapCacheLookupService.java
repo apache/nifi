@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestDistributedMapCacheLookupService {
 
-    final static Optional<String> EMPTY_STRING = Optional.empty();
+    static final Optional<String> EMPTY_STRING = Optional.empty();
 
     @Test
     public void testDistributedMapCacheLookupService() throws InitializationException {

@@ -98,7 +98,7 @@ public class SyncResourceOperationHandler implements C2OperationHandler {
 
         List<ResourceItem> resourceItems;
         try {
-           resourceItems = getOperationArg(operation, RESOURCE_LIST_FIELD, new TypeReference<>() { }, c2Serializer);
+            resourceItems = getOperationArg(operation, RESOURCE_LIST_FIELD, new TypeReference<>() { }, c2Serializer);
 
         } catch (Exception e) {
             LOG.error("Resource item list could not be constructed from C2 request");

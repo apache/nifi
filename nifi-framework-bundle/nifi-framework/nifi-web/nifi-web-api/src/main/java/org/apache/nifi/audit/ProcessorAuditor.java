@@ -193,15 +193,15 @@ public class ProcessorAuditor extends NiFiAuditor {
                                 getItemPaths(nList, "" + doc.getNodeName(), xmlDumpOld);
                                 Map<String, Object> xmlDumpSame = new HashMap<>();
                                 xmlDumpNew.forEach((k, v) -> {
-                                            if (xmlDumpOld.containsKey(k)) {
-                                                xmlDumpSame.put(k, v);
-                                            }
-                                        }
+                                    if (xmlDumpOld.containsKey(k)) {
+                                        xmlDumpSame.put(k, v);
+                                    }
+                                }
                                 );
                                 xmlDumpSame.forEach((k, v) -> {
-                                            xmlDumpNew.remove(k);
-                                            xmlDumpOld.remove(k);
-                                        }
+                                    xmlDumpNew.remove(k);
+                                    xmlDumpOld.remove(k);
+                                }
                                 );
 
                                 AtomicReference<String> oldReference = new AtomicReference<>("");
@@ -475,12 +475,12 @@ public class ProcessorAuditor extends NiFiAuditor {
         if (nl != null) {
             for (int i = 0; i < nl.getLength(); i++) {
                 Node n;
-                if (( n = nl.item(i)) != null) {
+                if ((n = nl.item(i)) != null) {
                     if (n.getNodeType() == Node.ELEMENT_NODE || n.getNodeType() == Node.TEXT_NODE) {
                         if (n.hasChildNodes()) {
-                           if (n.getNodeType() == Node.ELEMENT_NODE) {
+                            if (n.getNodeType() == Node.ELEMENT_NODE) {
                                 getItemPaths(n.getChildNodes(), path + ":" + n.getNodeName(), map);
-                           }
+                            }
                         }
                         if (!n.hasChildNodes()) {
                             map.put(path + ":" + n.getNodeName().trim() + ":" + n.getNodeValue(), n);

@@ -85,17 +85,33 @@ public class ProcessorStats implements java.io.Serializable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         ProcessorStats that = (ProcessorStats) o;
 
-        if (getActiveThreads() != that.getActiveThreads()) return false;
-        if (getFlowfilesReceived() != that.getFlowfilesReceived()) return false;
-        if (getBytesRead() != that.getBytesRead()) return false;
-        if (getBytesWritten() != that.getBytesWritten()) return false;
-        if (getFlowfilesSent() != that.getFlowfilesSent()) return false;
-        if (getInvocations() != that.getInvocations()) return false;
+        if (getActiveThreads() != that.getActiveThreads()) {
+            return false;
+        }
+        if (getFlowfilesReceived() != that.getFlowfilesReceived()) {
+            return false;
+        }
+        if (getBytesRead() != that.getBytesRead()) {
+            return false;
+        }
+        if (getBytesWritten() != that.getBytesWritten()) {
+            return false;
+        }
+        if (getFlowfilesSent() != that.getFlowfilesSent()) {
+            return false;
+        }
+        if (getInvocations() != that.getInvocations()) {
+            return false;
+        }
         return getProcessingNanos() == that.getProcessingNanos();
 
     }

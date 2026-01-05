@@ -109,7 +109,7 @@ public class NiFiRegistrySecurityConfig {
                         .httpStrictTransportSecurity(hstsConfig -> hstsConfig.maxAgeInSeconds(31540000))
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
                 )
-                .authorizeRequests((authorize) -> authorize
+                .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
                                 PathPatternRequestMatcher.withDefaults().matcher("/access/token"),
                                 PathPatternRequestMatcher.withDefaults().matcher("/access/token/identity-provider"),
@@ -134,7 +134,7 @@ public class NiFiRegistrySecurityConfig {
     }
 
     private IdentityFilter x509AuthenticationFilter() {
-        return new IdentityFilter(x509IdentityProvider);
+        return new IdentityFilter(x509IdentityProvider, authenticationManager());
     }
 
     private IdentityAuthenticationProvider x509AuthenticationProvider() {
@@ -142,7 +142,7 @@ public class NiFiRegistrySecurityConfig {
     }
 
     private IdentityFilter jwtAuthenticationFilter() {
-        return new IdentityFilter(jwtIdentityProvider);
+        return new IdentityFilter(jwtIdentityProvider, authenticationManager());
     }
 
     private IdentityAuthenticationProvider jwtAuthenticationProvider() {

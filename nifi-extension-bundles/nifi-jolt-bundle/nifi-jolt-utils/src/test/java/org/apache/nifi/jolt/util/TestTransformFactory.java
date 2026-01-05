@@ -17,23 +17,24 @@
 
 package org.apache.nifi.jolt.util;
 
+import io.joltcommunity.jolt.CardinalityTransform;
+import io.joltcommunity.jolt.Chainr;
+import io.joltcommunity.jolt.Defaultr;
+import io.joltcommunity.jolt.JoltTransform;
+import io.joltcommunity.jolt.JsonUtils;
+import io.joltcommunity.jolt.Modifier;
+import io.joltcommunity.jolt.Shiftr;
+import io.joltcommunity.jolt.Sortr;
+import io.joltcommunity.jolt.removr.Removr;
+import org.apache.nifi.processors.jolt.CustomTransformJarProvider;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import org.junit.jupiter.api.Test;
-
-import com.bazaarvoice.jolt.CardinalityTransform;
-import com.bazaarvoice.jolt.Chainr;
-import com.bazaarvoice.jolt.Defaultr;
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.JsonUtils;
-import com.bazaarvoice.jolt.Modifier;
-import com.bazaarvoice.jolt.Removr;
-import com.bazaarvoice.jolt.Shiftr;
-import com.bazaarvoice.jolt.Sortr;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -41,6 +42,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestTransformFactory {
+
+    private static final String CUSTOM_CLASS_NAME = CustomTransformJarProvider.getCustomTransformClassName();
+    private static final String MISSING_CUSTOM_CLASS_NAME = "org.apache.nifi.processors.jolt.MissingCustomJoltTransform";
+
+    @TempDir
+    Path tempDir;
 
     @Test
     void testGetChainTransform() throws Exception {
@@ -113,19 +120,21 @@ class TestTransformFactory {
     @Test
     void testGetCustomTransformation() throws Exception {
         final String chainrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/chainrSpec.json")));
-        Path jarFilePath = Paths.get("src/test/resources/TestTransformFactory/TestCustomJoltTransform.jar");
+        Path jarFilePath = CustomTransformJarProvider.createCustomTransformJar(tempDir);
         URL[] urlPaths = new URL[1];
         urlPaths[0] = jarFilePath.toUri().toURL();
-        ClassLoader customClassLoader = new URLClassLoader(urlPaths, this.getClass().getClassLoader());
-        JoltTransform transform = TransformFactory.getCustomTransform(customClassLoader, "TestCustomJoltTransform", JsonUtils.jsonToObject(chainrSpec));
-        assertNotNull(transform);
-        assertEquals("TestCustomJoltTransform", transform.getClass().getName());
+        try (URLClassLoader customClassLoader = new URLClassLoader(urlPaths, this.getClass().getClassLoader())) {
+            JoltTransform transform = TransformFactory.getCustomTransform(customClassLoader, CUSTOM_CLASS_NAME, JsonUtils.jsonToObject(chainrSpec));
+            assertNotNull(transform);
+            assertEquals(CUSTOM_CLASS_NAME, transform.getClass().getName());
+        }
     }
 
     @Test
     void testGetCustomTransformationNotFound() throws Exception {
         final String chainrSpec = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformFactory/chainrSpec.json")));
-        ClassNotFoundException cnf = assertThrows(ClassNotFoundException.class, () -> TransformFactory.getCustomTransform(this.getClass().getClassLoader(), "TestCustomJoltTransform", chainrSpec));
-        assertEquals("TestCustomJoltTransform", cnf.getLocalizedMessage());
+        ClassNotFoundException cnf = assertThrows(ClassNotFoundException.class,
+                () -> TransformFactory.getCustomTransform(this.getClass().getClassLoader(), MISSING_CUSTOM_CLASS_NAME, chainrSpec));
+        assertEquals(MISSING_CUSTOM_CLASS_NAME, cnf.getLocalizedMessage());
     }
 }

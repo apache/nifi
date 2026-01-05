@@ -32,6 +32,6 @@ public abstract class ContentClaimOutputStream extends OutputStream {
      * @return a new ContentClaim
      * @throws IOException if unable to finalize the current ContentClaim or create a new one
      */
-    abstract public ContentClaim newContentClaim() throws IOException;
+    public abstract ContentClaim newContentClaim() throws IOException;
 
 }

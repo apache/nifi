@@ -49,7 +49,7 @@ import java.util.Set;
  */
 public class PGImport extends AbstractNiFiCommand<StringResult> {
 
-    private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     public PGImport() {
         super("pg-import", StringResult.class);

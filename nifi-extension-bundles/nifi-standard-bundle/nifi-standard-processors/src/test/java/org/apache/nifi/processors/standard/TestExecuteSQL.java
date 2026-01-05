@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
 
 public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
 
-    final static String QUERY_WITH_EL = "select "
+    static final String QUERY_WITH_EL = "select "
         + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
         + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
         + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
@@ -63,7 +63,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         + " from persons PER, products PRD, relationships REL"
         + " where PER.ID = ${person.id}";
 
-    final static String QUERY_WITHOUT_EL = "select "
+    static final String QUERY_WITHOUT_EL = "select "
         + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
         + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
         + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
@@ -71,7 +71,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         + " from persons PER, products PRD, relationships REL"
         + " where PER.ID = 10";
 
-    final static String QUERY_WITHOUT_EL_WITH_PARAMS = "select "
+    static final String QUERY_WITHOUT_EL_WITH_PARAMS = "select "
             + "  PER.ID as PersonId, PER.NAME as PersonName, PER.CODE as PersonCode"
             + ", PRD.ID as ProductId,PRD.NAME as ProductName,PRD.CODE as ProductCode"
             + ", REL.ID as RelId,    REL.NAME as RelName,    REL.CODE as RelCode"
@@ -524,7 +524,7 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         executeSql("insert into TEST_NULL_INT values(1,2,3)");
 
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "VALUES (1)");
         runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
         runner.enqueue("test".getBytes());
         runner.run();
@@ -556,9 +556,9 @@ public class TestExecuteSQL extends AbstractDatabaseConnectionServiceTest {
         executeSql("insert into TEST_NULL_INT values(1,2,3)");
 
         runner.setIncomingConnection(true);
-        runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(1)");
+        runner.setProperty(ExecuteSQL.SQL_PRE_QUERY, "VALUES (1)");
         runner.setProperty(ExecuteSQL.SQL_QUERY, "select * from TEST_NULL_INT");
-        runner.setProperty(ExecuteSQL.SQL_POST_QUERY, "CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(0);CALL SYSCS_UTIL.SYSCS_SET_STATISTICS_TIMING(0)");
+        runner.setProperty(ExecuteSQL.SQL_POST_QUERY, "VALUES (2)");
         runner.enqueue("test".getBytes());
         runner.run();
 

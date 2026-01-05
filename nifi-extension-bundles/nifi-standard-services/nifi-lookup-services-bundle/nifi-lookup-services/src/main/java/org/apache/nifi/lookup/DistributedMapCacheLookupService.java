@@ -59,7 +59,7 @@ public class DistributedMapCacheLookupService extends AbstractControllerService 
     private static final Set<String> REQUIRED_KEYS = Stream.of(KEY).collect(Collectors.toSet());
 
     private volatile DistributedMapCacheClient cache;
-    private volatile static Charset charset;
+    private static volatile Charset charset;
     private final Serializer<String> keySerializer = new StringSerializer();
     private final Deserializer<String> valueDeserializer = new StringDeserializer();
 

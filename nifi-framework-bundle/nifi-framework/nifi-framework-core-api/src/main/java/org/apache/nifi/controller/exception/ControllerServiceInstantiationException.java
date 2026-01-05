@@ -21,7 +21,6 @@ public class ControllerServiceInstantiationException extends RuntimeException {
     private static final long serialVersionUID = -544424320587059277L;
 
     public ControllerServiceInstantiationException() {
-        super();
     }
 
     public ControllerServiceInstantiationException(String message) {

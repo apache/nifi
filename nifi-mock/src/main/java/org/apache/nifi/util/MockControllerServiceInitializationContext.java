@@ -33,6 +33,7 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     private final ComponentLog logger;
     private final StateManager stateManager;
     private volatile boolean isClustered;
+    private volatile boolean isConfiguredForClustering = false;
     private volatile boolean isPrimaryNode;
     private final KerberosContext kerberosContext;
 
@@ -108,12 +109,21 @@ public class MockControllerServiceInitializationContext extends MockControllerSe
     }
 
     @Override
+    public boolean isConfiguredForClustering() {
+        return isConfiguredForClustering;
+    }
+
+    @Override
     public boolean isPrimary() {
         return isPrimaryNode;
     }
 
     public void setClustered(boolean clustered) {
         isClustered = clustered;
+    }
+
+    public void setConfiguredForClustering(final boolean configuredForClustering) {
+        this.isConfiguredForClustering = configuredForClustering;
     }
 
     public void setPrimaryNode(boolean primaryNode) {

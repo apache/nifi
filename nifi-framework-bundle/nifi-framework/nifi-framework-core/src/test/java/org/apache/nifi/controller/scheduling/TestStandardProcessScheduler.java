@@ -47,7 +47,6 @@ import org.apache.nifi.controller.scheduling.processors.FailOnScheduledProcessor
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
-import org.apache.nifi.controller.service.StandardControllerServiceNode;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.engine.FlowEngine;
@@ -74,7 +73,6 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.SynchronousValidationTrigger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.AdditionalMatchers;
@@ -95,7 +93,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -329,7 +326,7 @@ public class TestStandardProcessScheduler {
      * ControllerServiceNode.
      */
     @Test
-    public void validateServiceEnablementLogicHappensOnlyOnce() throws Exception {
+    public void validateServiceEnablementLogicHappensOnlyOnce() {
         final StandardProcessScheduler scheduler = createScheduler();
 
         final ControllerServiceNode serviceNode = flowManager.createControllerService(SimpleTestService.class.getName(),
@@ -454,44 +451,6 @@ public class TestStandardProcessScheduler {
          */
         assertTrue(serviceNode.isActive());
         assertSame(ControllerServiceState.ENABLING, serviceNode.getState());
-    }
-
-    /**
-     * Validates that in multithreaded environment enabling service can still
-     * be disabled. This test is set up in such way that disabling of the
-     * service could be initiated by both disable and enable methods. In other
-     * words it tests two conditions in
-     * {@link StandardControllerServiceNode#disable(ScheduledExecutorService)}
-     * where the disabling of the service can be initiated right there (if
-     * ENABLED), or if service is still enabling its disabling will be deferred
-     * to the logic in
-     * {@link StandardControllerServiceNode#enable(ScheduledExecutorService, long)}
-     * IN any even the resulting state of the service is DISABLED
-     */
-    @Test
-    @Disabled
-    @SuppressWarnings("PMD.UnusedLocalVariable")
-    public void validateEnabledDisableMultiThread() throws Exception {
-        final StandardProcessScheduler scheduler = createScheduler();
-        final StandardControllerServiceProvider provider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
-        final ExecutorService executor = Executors.newCachedThreadPool();
-        for (int i = 0; i < 200; i++) {
-            final ControllerServiceNode serviceNode = flowManager.createControllerService(RandomShortDelayEnablingService.class.getName(), "1",
-                    systemBundle.getBundleDetails().getCoordinate(), null, false, true, nullable(String.class));
-
-            executor.execute(() -> scheduler.enableControllerService(serviceNode));
-            Thread.sleep(10); // ensure that enable gets initiated before disable
-            executor.execute(() -> scheduler.disableControllerService(serviceNode));
-            Thread.sleep(100);
-            assertFalse(serviceNode.isActive());
-            assertEquals(ControllerServiceState.DISABLED, serviceNode.getState());
-        }
-
-        // need to sleep a while since we are emulating async invocations on
-        // method that is also internally async
-        Thread.sleep(500);
-        executor.shutdown();
-        executor.awaitTermination(5000, TimeUnit.MILLISECONDS);
     }
 
     /**

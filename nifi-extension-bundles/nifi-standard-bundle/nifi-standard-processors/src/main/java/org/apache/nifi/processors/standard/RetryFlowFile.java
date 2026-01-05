@@ -101,7 +101,7 @@ public class RetryFlowFile extends AbstractProcessor {
             .defaultValue("true")
             .build();
     public static final PropertyDescriptor FAIL_ON_OVERWRITE = new PropertyDescriptor.Builder()
-            .name("Fail on Non-numerical Overwrite")
+            .name("Fail on Nonnumerical Overwrite")
             .description("If the FlowFile already has the attribute defined in 'Retry Attribute' that is " +
                     "*not* a number, fail the FlowFile instead of resetting that value to '1'")
             .required(true)
@@ -212,8 +212,9 @@ public class RetryFlowFile extends AbstractProcessor {
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
         FlowFile flowfile = session.get();
-        if (null == flowfile)
+        if (null == flowfile) {
             return;
+        }
 
         String retryAttributeValue = flowfile.getAttribute(retryAttribute);
         Integer currentRetry;
@@ -274,22 +275,25 @@ public class RetryFlowFile extends AbstractProcessor {
         if (currentRetry > maximumRetries) {
             // Add dynamic properties
             for (PropertyDescriptor descriptor : context.getProperties().keySet()) {
-                if (!descriptor.isDynamic())
+                if (!descriptor.isDynamic()) {
                     continue;
+                }
 
                 String value = context.getProperty(descriptor)
                         .evaluateAttributeExpressions(flowfile)
                         .getValue();
-                if (!StringUtils.isBlank(value))
+                if (!StringUtils.isBlank(value)) {
                     flowfile = session.putAttribute(flowfile, descriptor.getName(), value);
+                }
             }
 
             flowfile = session.removeAttribute(flowfile, retryAttribute);
             flowfile = session.removeAttribute(flowfile, lastRetriedBy);
             session.transfer(flowfile, RETRIES_EXCEEDED);
         } else {
-            if (penalizeRetried)
+            if (penalizeRetried) {
                 session.penalize(flowfile);
+            }
 
             // Update and transfer
             flowfile = session.putAttribute(flowfile, retryAttribute, String.valueOf(currentRetry));
@@ -304,5 +308,6 @@ public class RetryFlowFile extends AbstractProcessor {
         config.renameProperty("maximum-retries", MAXIMUM_RETRIES.getName());
         config.renameProperty("penalize-retries", PENALIZE_RETRIED.getName());
         config.renameProperty("reuse-mode", REUSE_MODE.getName());
+        config.renameProperty("Fail on Non-numerical Overwrite", FAIL_ON_OVERWRITE.getName());
     }
 }

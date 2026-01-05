@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import jakarta.xml.bind.DatatypeConverter;
+import org.apache.nifi.embedded.database.EmbeddedDatabaseConnectionService;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -88,7 +90,7 @@ public class TestPutSQL {
     }
 
     @AfterAll
-    static void shutdown() {
+    static void close() throws IOException {
         service.close();
     }
 
@@ -530,7 +532,7 @@ public class TestPutSQL {
         final TestRunner runner = initTestRunner();
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST1 (id integer primary key, ts1 timestamp, ts2 timestamp)");
+                stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST1 (id integer primary key, ts1 timestamp(3), ts2 timestamp(3))");
             }
         }
 
@@ -567,7 +569,7 @@ public class TestPutSQL {
         final TestRunner runner = initTestRunner();
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST2 (id integer primary key, ts1 timestamp, ts2 timestamp)");
+                stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST2 (id integer primary key, ts1 timestamp(9), ts2 timestamp(9))");
             }
         }
 
@@ -817,7 +819,7 @@ public class TestPutSQL {
         }
 
         final String arg2TS = "00:01:02";
-        final String art3TS = "02:03:04";
+        final String art3TS = "12:03:04";
         final String timeFormatString = "HH:mm:ss";
         final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(timeFormatString);
         java.util.Date parsedDate = Date.from(LocalTime.parse(arg2TS, dateTimeFormatter).atDate(LocalDate.now()).atZone(ZoneId.systemDefault()).toInstant());
@@ -889,8 +891,7 @@ public class TestPutSQL {
         final TestRunner runner = initTestRunner();
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
-                stmt.executeUpdate("CREATE TABLE BINARYTESTS (id integer primary key, bn1 CHAR(8) FOR BIT DATA, bn2 VARCHAR(100) FOR BIT DATA, " +
-                        "bn3 LONG VARCHAR FOR BIT DATA)");
+                stmt.executeUpdate("CREATE TABLE BINARYTESTS (id integer primary key, bn1 BLOB, bn2 BLOB, bn3 BLOB)");
             }
         }
 
@@ -1682,8 +1683,9 @@ public class TestPutSQL {
         byte[] bBinary = randomBytes(length);
         ByteBuffer bytes = ByteBuffer.wrap(bBinary);
         StringBuilder sbBytes = new StringBuilder();
-        for (int i = bytes.position(); i < bytes.limit(); i++)
+        for (int i = bytes.position(); i < bytes.limit(); i++) {
             sbBytes.append((char) bytes.get(i));
+        }
 
         return sbBytes.toString();
     }

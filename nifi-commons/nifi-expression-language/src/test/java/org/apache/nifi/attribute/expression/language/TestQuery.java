@@ -248,8 +248,8 @@ public class TestQuery {
         assertEquals("$xyz", evaluateQueryForEscape("$$${abc}", attributes));
         assertEquals("$${abc}", evaluateQueryForEscape("$$$${abc}", attributes));
 
-        assertEquals( "Unescaped $$${5 because no closing brace", evaluateQueryForEscape("Unescaped $$${5 because no closing brace", attributes));
-        assertEquals( "Unescaped $ because no closing brace", evaluateQueryForEscape("Unescaped $$${'5'} because no closing brace", attributes));
+        assertEquals("Unescaped $$${5 because no closing brace", evaluateQueryForEscape("Unescaped $$${5 because no closing brace", attributes));
+        assertEquals("Unescaped $ because no closing brace", evaluateQueryForEscape("Unescaped $$${'5'} because no closing brace", attributes));
 
         assertEquals("I owe you $5", evaluateQueryForEscape("I owe you $5", attributes));
         assertEquals("You owe me $$5 too", evaluateQueryForEscape("You owe me $$5 too", attributes));
@@ -486,11 +486,10 @@ public class TestQuery {
         phoneBookAttributes.stream()
                 .filter(currentAttribute -> !currentAttribute.equals(updatedAttribute))
                 .forEach(currentAttribute -> {
-                            String expected = Query.evaluateExpressions(currentAttribute, originalAttributes, null, null, ParameterLookup.EMPTY);
-                            verifyEquals(currentAttribute, attributes, expected);
-                        }
-                );
-        if (!ADDRESS_BOOK_JSON_PATH_EMPTY.equals(updatedAttribute) ) {
+                    String expected = Query.evaluateExpressions(currentAttribute, originalAttributes, null, null, ParameterLookup.EMPTY);
+                    verifyEquals(currentAttribute, attributes, expected);
+                });
+        if (!ADDRESS_BOOK_JSON_PATH_EMPTY.equals(updatedAttribute)) {
             verifyEquals(updatedAttribute, attributes, updatedValue);
         }
     }
@@ -500,7 +499,7 @@ public class TestQuery {
         String addressBook = getResourceAsString("/json/address-book.json");
         attributes.put("json", addressBook);
 
-        if ( !ADDRESS_BOOK_JSON_PATH_EMPTY.equals(targetAttribute) ) {
+        if (!ADDRESS_BOOK_JSON_PATH_EMPTY.equals(targetAttribute)) {
             verifyEquals(targetAttribute, attributes, originalValue);
         }
 
@@ -525,7 +524,7 @@ public class TestQuery {
 
     @Test
     public void testJsonPathDeleteMissingPath() throws IOException {
-       verifyJsonPathExpressions(
+        verifyJsonPathExpressions(
             ADDRESS_BOOK_JSON_PATH_EMPTY,
             "",
             "${json:jsonPathDelete('$.missing-path')}",
@@ -603,7 +602,7 @@ public class TestQuery {
                 "",
                 "${json:jsonPathAdd('$.missing-path', 'Jimmy')}",
                 "");
-       verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
+        verifyEquals("${json:jsonPath('$.missing-path')}", attributes, "");
     }
 
     @Test
@@ -2333,7 +2332,7 @@ public class TestQuery {
 
         attributes.put("string", "special ♣");
         verifyEquals("${string:escapeHtml4()}", attributes, "special &clubs;");
-      }
+    }
 
     @Test
     public void testUnescapeFunctions() {

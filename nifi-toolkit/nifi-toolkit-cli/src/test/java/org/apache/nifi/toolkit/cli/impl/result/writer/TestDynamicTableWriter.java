@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.toolkit.cli.impl.result.writer;
 
+import org.apache.nifi.toolkit.cli.impl.result.util.OutputUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -27,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@DisabledOnOs(OS.WINDOWS)
 public class TestDynamicTableWriter {
 
     private Table table;
@@ -55,14 +53,16 @@ public class TestDynamicTableWriter {
     public void testWriteEmptyTable() {
         tableWriter.write(table, printStream);
 
-        final String result = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        final String result = outputStream.toString(StandardCharsets.UTF_8);
 
-        final String expected = "\n" +
-                "#     Name                   Id                                     Description   \n" +
-                "---   --------------------   ------------------------------------   -----------   \n" +
-                "\n";
+        final String expected = """
 
-        assertEquals(expected, result);
+                #     Name                   Id                                     Description  \s
+                ---   --------------------   ------------------------------------   -----------  \s
+
+                """;
+
+        assertEquals(OutputUtil.getExpectedContent(expected), result);
     }
 
     @Test
@@ -90,17 +90,19 @@ public class TestDynamicTableWriter {
 
         tableWriter.write(table, printStream);
 
-        final String result = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        final String result = outputStream.toString(StandardCharsets.UTF_8);
 
-        final String expected = "\n" +
-                "#   Name                                   Id                                    Description                                \n" +
-                "-   ------------------------------------   -----------------------------------   ----------------------------------------   \n" +
-                "1   Bucket 1                               12345-12345-12345-12345-12345-12345                                              \n" +
-                "2   Bucket 2 - This is a really reall...   12345-12345-12345-12345-12345-12345   This is a really really really really...   \n" +
-                "3   Bucket 3                               12345-12345-12345-12345-12345-12345   (empty)                                    \n" +
-                "\n";
+        final String expected = """
 
-        assertEquals(expected, result);
+                #   Name                                   Id                                    Description                               \s
+                -   ------------------------------------   -----------------------------------   ----------------------------------------  \s
+                1   Bucket 1                               12345-12345-12345-12345-12345-12345                                             \s
+                2   Bucket 2 - This is a really reall...   12345-12345-12345-12345-12345-12345   This is a really really really really...  \s
+                3   Bucket 3                               12345-12345-12345-12345-12345-12345   (empty)                                   \s
+
+                """;
+
+        assertEquals(OutputUtil.getExpectedContent(expected), result);
     }
 
     @Test
@@ -109,16 +111,17 @@ public class TestDynamicTableWriter {
         table.addRow("2", "Bucket 2", "12345-12345-12345-12345-12345-12345", null);
         tableWriter.write(table, printStream);
 
-        final String result = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+        final String result = outputStream.toString(StandardCharsets.UTF_8);
 
-        final String expected = "\n" +
-                "#   Name       Id                                    Description   \n" +
-                "-   --------   -----------------------------------   -----------   \n" +
-                "1   Bucket 1   12345-12345-12345-12345-12345-12345   (empty)       \n" +
-                "2   Bucket 2   12345-12345-12345-12345-12345-12345   (empty)       \n" +
-                "\n";
+        final String expected = """
 
-        assertEquals(expected, result);
+                #   Name       Id                                    Description  \s
+                -   --------   -----------------------------------   -----------  \s
+                1   Bucket 1   12345-12345-12345-12345-12345-12345   (empty)      \s
+                2   Bucket 2   12345-12345-12345-12345-12345-12345   (empty)      \s
+
+                """;
+
+        assertEquals(OutputUtil.getExpectedContent(expected), result);
     }
-
 }

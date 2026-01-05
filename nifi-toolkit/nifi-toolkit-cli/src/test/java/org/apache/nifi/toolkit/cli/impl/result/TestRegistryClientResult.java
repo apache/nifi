@@ -18,13 +18,12 @@ package org.apache.nifi.toolkit.cli.impl.result;
 
 import org.apache.nifi.toolkit.cli.api.ResultType;
 import org.apache.nifi.toolkit.cli.impl.result.nifi.RegistryClientsResult;
+import org.apache.nifi.toolkit.cli.impl.result.util.OutputUtil;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,7 +36,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@DisabledOnOs(OS.WINDOWS)
 public class TestRegistryClientResult {
 
     private ByteArrayOutputStream outputStream;
@@ -83,7 +81,7 @@ public class TestRegistryClientResult {
 
         final String resultOut = outputStream.toString(StandardCharsets.UTF_8);
 
-        final String expected = """
+        String expected = """
 
             #   Name                                   Type     Id                                     Properties                                                             \s
             -   ------------------------------------   ------   ------------------------------------   ---------------------------------------------------------------------  \s
@@ -92,7 +90,6 @@ public class TestRegistryClientResult {
 
             """;
 
-        assertEquals(expected, resultOut);
+        assertEquals(OutputUtil.getExpectedContent(expected), resultOut);
     }
-
 }

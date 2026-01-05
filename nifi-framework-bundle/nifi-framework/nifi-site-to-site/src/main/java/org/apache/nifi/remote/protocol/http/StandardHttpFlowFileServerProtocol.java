@@ -52,7 +52,6 @@ public class StandardHttpFlowFileServerProtocol extends AbstractFlowFileServerPr
     private final HttpRemoteSiteListener transactionManager;
 
     public StandardHttpFlowFileServerProtocol(final VersionNegotiator versionNegotiator, final NiFiProperties nifiProperties) {
-        super();
         this.versionNegotiator = versionNegotiator;
         this.transactionManager = HttpRemoteSiteListener.getInstance(nifiProperties);
     }

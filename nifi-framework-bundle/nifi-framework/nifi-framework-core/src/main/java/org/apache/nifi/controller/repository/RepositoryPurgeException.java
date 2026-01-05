@@ -26,7 +26,6 @@ public class RepositoryPurgeException extends RuntimeException {
     private static final long serialVersionUID = 1894237987230873423L;
 
     public RepositoryPurgeException() {
-        super();
     }
 
     public RepositoryPurgeException(String message) {

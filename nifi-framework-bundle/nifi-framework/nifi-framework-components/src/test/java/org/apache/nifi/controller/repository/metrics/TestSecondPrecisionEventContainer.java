@@ -40,7 +40,7 @@ public class TestSecondPrecisionEventContainer {
             final long timestamp = startTime + 300_000 * i + 300_000;
             final FlowFileEvent result = container.generateReport(timestamp);
             assertEquals(300 * 100, result.getBytesRead(), "Failure at i=" + i);
-            assertEquals( 300 * 100, result.getBytesWritten(), "Failure at i=" + i);
+            assertEquals(300 * 100, result.getBytesWritten(), "Failure at i=" + i);
         }
     }
 

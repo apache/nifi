@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.processors.jolt;
 
-import com.bazaarvoice.jolt.JoltTransform;
-import com.bazaarvoice.jolt.JsonUtils;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import io.joltcommunity.jolt.JoltTransform;
+import io.joltcommunity.jolt.JsonUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -43,6 +43,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -138,11 +139,13 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
             results.add(new ValidationResult.Builder().subject(JOLT_SPEC.getDisplayName()).valid(false).explanation(
                     "'Jolt Specification' must be set, or the Transformation must be 'Sort'").build());
         } else {
-            final ClassLoader customClassLoader;
+            ClassLoader customClassLoader = null;
+            boolean customClassLoaderCreated = false;
 
             try {
                 if (modulePath != null && !validationContext.isExpressionLanguagePresent(modulePath)) {
                     customClassLoader = ClassLoaderUtils.getCustomClassLoader(modulePath, this.getClass().getClassLoader(), getJarFilenameFilter());
+                    customClassLoaderCreated = true;
                 } else {
                     customClassLoader = this.getClass().getClassLoader();
                 }
@@ -193,6 +196,14 @@ public abstract class AbstractJoltTransform extends AbstractProcessor {
                         .subject(JOLT_SPEC.getDisplayName())
                         .explanation(message)
                         .build());
+            } finally {
+                if (customClassLoaderCreated && customClassLoader instanceof URLClassLoader) {
+                    try {
+                        ((URLClassLoader) customClassLoader).close();
+                    } catch (final IOException e) {
+                        getLogger().warn("Failed to close custom ClassLoader", e);
+                    }
+                }
             }
         }
 

@@ -27,8 +27,8 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -59,7 +59,8 @@ class TestInferJsonSchemaAccessStrategy {
     private final SchemaInferenceEngine<JsonNode> noTimestampInference = new JsonSchemaInference(new TimeValueInference("yyyy-MM-dd", "HH:mm:ss", "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"));
 
     @Test
-    @Disabled("Intended only for manual testing to determine performance before/after modifications")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Intended only for manual testing to determine performance before/after modifications")
     void testPerformanceOfSchemaInferenceWithTimestamp() throws IOException {
         final File file = new File("src/test/resources/json/prov-events.json");
         final byte[] data = Files.readAllBytes(file.toPath());
@@ -70,7 +71,7 @@ class TestInferJsonSchemaAccessStrategy {
         }
 
         final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                (var, content) -> new JsonRecordSource(content), timestampInference, Mockito.mock(ComponentLog.class)
+                (variables, content) -> new JsonRecordSource(content), timestampInference, Mockito.mock(ComponentLog.class)
         );
 
         for (int j = 0; j < 10; j++) {
@@ -88,7 +89,8 @@ class TestInferJsonSchemaAccessStrategy {
     }
 
     @Test
-    @Disabled("Intended only for manual testing to determine performance before/after modifications")
+    @EnabledIfSystemProperty(named = "nifi.test.performance", matches = "true",
+            disabledReason = "Intended only for manual testing to determine performance before/after modifications")
     void testPerformanceOfSchemaInferenceWithoutTimestamp() throws IOException {
         final File file = new File("src/test/resources/json/prov-events.json");
         final byte[] data = Files.readAllBytes(file.toPath());
@@ -103,7 +105,7 @@ class TestInferJsonSchemaAccessStrategy {
 
             for (int i = 0; i < 10_000; i++) {
                 try (final InputStream in = new ByteArrayInputStream(manyCopies)) {
-                    final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>((var, content) -> new JsonRecordSource(content),
+                    final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>((variables, content) -> new JsonRecordSource(content),
                             noTimestampInference, Mockito.mock(ComponentLog.class));
 
                     accessStrategy.getSchema(null, in, null);
@@ -239,7 +241,7 @@ class TestInferJsonSchemaAccessStrategy {
              final InputStream bufferedIn = new BufferedInputStream(in)) {
 
             final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>(
-                    (var, content) -> new JsonRecordSource(content, strategy, startingFieldName, new JsonParserFactory()),
+                    (variables, content) -> new JsonRecordSource(content, strategy, startingFieldName, new JsonParserFactory()),
                     timestampInference, Mockito.mock(ComponentLog.class)
             );
 

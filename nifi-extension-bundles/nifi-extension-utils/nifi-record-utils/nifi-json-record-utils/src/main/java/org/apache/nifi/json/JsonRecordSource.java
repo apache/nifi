@@ -50,7 +50,9 @@ public class JsonRecordSource implements RecordSource<JsonNode> {
 
         if (strategy == StartingFieldStrategy.NESTED_FIELD) {
             final SerializedString serializedNestedField = new SerializedString(startingFieldName);
-            while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken());
+            while (!jsonParser.nextFieldName(serializedNestedField) && jsonParser.hasCurrentToken()) {
+                // continue to next field
+            }
             logger.debug("Parsing starting at nested field [{}]", startingFieldName);
         }
     }

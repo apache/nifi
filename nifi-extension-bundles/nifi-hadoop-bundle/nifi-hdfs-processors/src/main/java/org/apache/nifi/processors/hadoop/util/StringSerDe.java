@@ -29,7 +29,7 @@ public class StringSerDe implements Serializer<String>, Deserializer<String> {
 
     @Override
     public String deserialize(final byte[] value) throws DeserializationException, IOException {
-        if ( value == null ) {
+        if (value == null) {
             return null;
         }
 

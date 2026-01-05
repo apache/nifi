@@ -21,7 +21,6 @@ public class StatusRequestException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 
     public StatusRequestException() {
-        super();
     }
 
     public StatusRequestException(final String message) {

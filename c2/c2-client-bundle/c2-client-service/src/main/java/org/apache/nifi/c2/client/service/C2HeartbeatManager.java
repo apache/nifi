@@ -72,9 +72,9 @@ public class C2HeartbeatManager implements Runnable {
         ofNullable(response.getRequestedOperations())
             .filter(not(List::isEmpty))
             .ifPresentOrElse(operations -> {
-                    LOGGER.info("Received {} operations from the C2 server", operations.size());
-                    operations.forEach(c2OperationManager::add);
-                },
+                LOGGER.info("Received {} operations from the C2 server", operations.size());
+                operations.forEach(c2OperationManager::add);
+            },
                 () -> LOGGER.debug("No operations received from the C2 server")
             );
     }

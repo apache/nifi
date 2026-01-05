@@ -307,7 +307,8 @@ describe('ReportingTasks', () => {
             expect(store.dispatch).toHaveBeenCalledWith(
                 getComponentStateAndOpenDialog({
                     request: {
-                        componentUri: mockReportingTaskEntity.uri,
+                        componentType: ComponentType.ReportingTask,
+                        componentId: mockReportingTaskEntity.id,
                         componentName: mockReportingTaskEntity.component.name,
                         canClear: true
                     }
@@ -327,7 +328,8 @@ describe('ReportingTasks', () => {
             expect(store.dispatch).toHaveBeenCalledWith(
                 getComponentStateAndOpenDialog({
                     request: {
-                        componentUri: mockReportingTaskEntity.uri,
+                        componentType: ComponentType.ReportingTask,
+                        componentId: mockReportingTaskEntity.id,
                         componentName: mockReportingTaskEntity.component.name,
                         canClear: false
                     }

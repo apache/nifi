@@ -26,6 +26,7 @@ import org.apache.nifi.csv.CSVRecordSetWriter;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.processors.standard.util.JsonUtil;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
@@ -39,8 +40,6 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.xml.XMLReader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 import org.xerial.snappy.SnappyInputStream;
 
 import java.io.ByteArrayInputStream;
@@ -58,7 +57,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Pretty-printing is not portable across operating systems")
 public class TestConvertRecord {
 
     private static final String PERSON_SCHEMA;
@@ -281,14 +279,15 @@ public class TestConvertRecord {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         try (final SnappyInputStream sis = new SnappyInputStream(new ByteArrayInputStream(flowFile.toByteArray())); final OutputStream out = baos) {
-            final byte[] buffer = new byte[8192]; int len;
+            final byte[] buffer = new byte[8192];
+            int len;
             while ((len = sis.read(buffer)) > 0) {
                 out.write(buffer, 0, len);
             }
             out.flush();
         }
 
-        assertEquals(Files.readString(person), baos.toString(StandardCharsets.UTF_8));
+        assertEquals(JsonUtil.getExpectedContent(person), baos.toString(StandardCharsets.UTF_8));
     }
 
     @Test

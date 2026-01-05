@@ -264,10 +264,10 @@ public class ZooKeeperClientConfig {
      */
     public static String cleanConnectString(final String connectString) {
         final String nospaces = StringUtils.deleteWhitespace(connectString);
-        final String hostPortPairs[] = StringUtils.split(nospaces, ",", 100);
+        final String[] hostPortPairs = StringUtils.split(nospaces, ",", 100);
         final List<String> cleanedEntries = new ArrayList<>(hostPortPairs.length);
         for (final String pair : hostPortPairs) {
-            final String pairSplits[] = StringUtils.split(pair, ":", 3);
+            final String[] pairSplits = StringUtils.split(pair, ":", 3);
             if (pairSplits.length > 2 || pairSplits[0].isEmpty()) {
                 throw new IllegalStateException("Invalid host:port pair entry '" +
                         pair + "' in nifi.properties " + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property");
@@ -278,8 +278,8 @@ public class ZooKeeperClientConfig {
                 if (PORT_PATTERN.matcher(pairSplits[1]).matches()) {
                     cleanedEntries.add(pairSplits[0] + ":" + pairSplits[1]);
                 } else {
-                throw new IllegalStateException("The port specified in this pair must be 1 to 5 digits only but was '" +
-                        pair + "' in nifi.properties " + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property");
+                    throw new IllegalStateException("The port specified in this pair must be 1 to 5 digits only but was '" +
+                            pair + "' in nifi.properties " + NiFiProperties.ZOOKEEPER_CONNECT_STRING + "' property");
                 }
             }
         }

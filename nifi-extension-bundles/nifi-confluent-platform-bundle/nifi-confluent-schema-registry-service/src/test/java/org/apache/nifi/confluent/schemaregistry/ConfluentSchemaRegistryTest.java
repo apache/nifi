@@ -17,13 +17,18 @@
 package org.apache.nifi.confluent.schemaregistry;
 
 import org.apache.nifi.confluent.schemaregistry.client.AuthenticationType;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ConfluentSchemaRegistryTest {
 
@@ -36,8 +41,7 @@ class ConfluentSchemaRegistryTest {
     @BeforeEach
     public void setUp() throws InitializationException {
         registry = new ConfluentSchemaRegistry();
-        final Processor processor = Mockito.mock(Processor.class);
-        runner = TestRunners.newTestRunner(processor);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, registry);
     }
 
@@ -100,5 +104,29 @@ class ConfluentSchemaRegistryTest {
     public void testValidateDynamicHttpHeaderPropertiesInvalidSubject() {
         runner.setProperty(registry, "not.valid.subject", "NotValid");
         runner.assertNotValid(registry);
+    }
+
+    @Test
+    void testMigration() {
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        final ConfluentSchemaRegistry confluentSchemaRegistry = new ConfluentSchemaRegistry();
+        confluentSchemaRegistry.migrateProperties(configuration);
+
+        Map<String, String> expected = Map.ofEntries(
+                Map.entry("url", ConfluentSchemaRegistry.SCHEMA_REGISTRY_URLS.getName()),
+                Map.entry("ssl-context", ConfluentSchemaRegistry.SSL_CONTEXT.getName()),
+                Map.entry("cache-size", ConfluentSchemaRegistry.CACHE_SIZE.getName()),
+                Map.entry("cache-expiration", ConfluentSchemaRegistry.CACHE_EXPIRATION.getName()),
+                Map.entry("timeout", ConfluentSchemaRegistry.TIMEOUT.getName()),
+                Map.entry("authentication-type", ConfluentSchemaRegistry.AUTHENTICATION_TYPE.getName()),
+                Map.entry("username", ConfluentSchemaRegistry.USERNAME.getName()),
+                Map.entry("password", ConfluentSchemaRegistry.PASSWORD.getName())
+        );
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expected, propertiesRenamed);
     }
 }

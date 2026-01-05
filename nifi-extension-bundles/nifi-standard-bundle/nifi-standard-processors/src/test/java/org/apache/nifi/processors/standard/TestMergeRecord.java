@@ -104,7 +104,7 @@ public class TestMergeRecord {
     public void testMergeSimpleDifferentWriteSchema() throws InitializationException {
         // Exclude Age field
         List<RecordField> writeFields = Collections.singletonList(
-          new RecordField("Name", RecordFieldType.STRING.getDataType())
+            new RecordField("Name", RecordFieldType.STRING.getDataType())
         );
         RecordSchema writeSchema = new SimpleRecordSchema(writeFields);
         writerService = new MockRecordWriter("header", false, -1, true, writeSchema);

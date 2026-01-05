@@ -84,13 +84,13 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             .addValidator(Validator.VALID)
             .build();
 
-    private final static Set<Relationship> RELATIONSHIPS = Set.of(
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
             REL_SUCCESS,
             REL_FAILURE,
             REL_ORIGINAL
     );
 
-    private final static List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Stream.concat(
             getCommonPropertyDescriptors().stream(),
             Stream.of(
                     JSON_TYPE,
@@ -146,7 +146,7 @@ public class GetMongo extends AbstractMongoQueryProcessor {
             }
             builder
                     .append(asJson)
-                    .append( (documents.size() > 1 && index + 1 < documents.size()) ? ", " : "" );
+                    .append((documents.size() > 1 && index + 1 < documents.size()) ? ", " : "");
         }
 
         return "[" + builder.toString() + "]";

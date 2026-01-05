@@ -94,7 +94,7 @@ public class PropertiesParameterProvider extends AbstractParameterProvider imple
         } catch (final IOException e) {
             throw new RuntimeException("Could not parse parameters as properties: " + parametersPropertiesValue);
         }
-       return parameters.entrySet().stream()
+        return parameters.entrySet().stream()
                 .map(entry -> new Parameter.Builder()
                     .name(entry.getKey().toString())
                     .value(entry.getValue().toString())

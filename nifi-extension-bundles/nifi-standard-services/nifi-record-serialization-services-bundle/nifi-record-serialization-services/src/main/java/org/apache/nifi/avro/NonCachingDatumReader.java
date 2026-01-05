@@ -33,7 +33,6 @@ import java.io.IOException;
  */
 public class NonCachingDatumReader<T> extends GenericDatumReader<T> {
     public NonCachingDatumReader() {
-        super();
     }
 
     public NonCachingDatumReader(final Schema schema) {
