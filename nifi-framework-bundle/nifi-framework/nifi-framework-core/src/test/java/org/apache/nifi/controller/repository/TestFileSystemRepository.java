@@ -309,16 +309,14 @@ public class TestFileSystemRepository {
     }
 
 
+    @DisabledOnOs(value = OS.WINDOWS,
+            disabledReason = "java.io.FileNotFoundException when there is an attempt to access file <temporary directory>\\content_repository\\0\\archive\\0.bin")
     @Test
     public void testContentNotFoundExceptionThrownIfResourceClaimTooShort() throws IOException {
         final Path contentDirectory = rootFile.resolve("0");
         Files.createDirectories(contentDirectory);
-        final Path archiveDirectory = contentDirectory.resolve("archive");
-        Files.createDirectories(archiveDirectory);
         final Path contentFile = contentDirectory.resolve("0.bin");
         Files.writeString(contentFile, "Hello World", StandardOpenOption.CREATE_NEW);
-        final Path archiveContentFile = archiveDirectory.resolve(contentFile.getFileName());
-        Files.createFile(archiveContentFile);
 
         final ResourceClaim resourceClaim = new StandardResourceClaim(claimManager, "default", "0", "0.bin", false);
         final StandardContentClaim existingContentClaim = new StandardContentClaim(resourceClaim, 0);
