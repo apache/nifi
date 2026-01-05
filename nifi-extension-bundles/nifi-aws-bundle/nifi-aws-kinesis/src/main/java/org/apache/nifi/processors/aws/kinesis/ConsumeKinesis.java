@@ -341,7 +341,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     private volatile @Nullable ReaderRecordProcessor readerRecordProcessor;
 
     private volatile Future<InitializationResult> initializationResultFuture;
-    private volatile AtomicBoolean initialized;
+    private final AtomicBoolean initialized = new AtomicBoolean();
 
     // An instance filed, so that it can be read in getRelationships.
     private volatile ProcessingStrategy processingStrategy = ProcessingStrategy.from(
@@ -422,7 +422,7 @@ public class ConsumeKinesis extends AbstractProcessor {
         final RetrievalSpecificConfig retrievalSpecificConfig = configureRetrievalSpecificConfig(context, kinesisClient, streamName, applicationName);
 
         final InitializationStateChangeListener initializationListener = new InitializationStateChangeListener(getLogger());
-        initialized = new AtomicBoolean(false);
+        initialized.set(false);
         initializationResultFuture = initializationListener.result();
 
         kinesisScheduler = new Scheduler(
@@ -568,7 +568,7 @@ public class ConsumeKinesis extends AbstractProcessor {
     public void onStopped() {
         cleanUpState();
 
-        initialized = null;
+        initialized.set(false);
         initializationResultFuture = null;
     }
 
