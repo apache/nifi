@@ -317,6 +317,8 @@ public class TestFileSystemRepository {
         Files.createDirectories(archiveDirectory);
         final Path contentFile = contentDirectory.resolve("0.bin");
         Files.writeString(contentFile, "Hello World", StandardOpenOption.CREATE_NEW);
+        final Path archiveContentFile = archiveDirectory.resolve(contentFile.getFileName());
+        Files.createFile(archiveContentFile);
 
         final ResourceClaim resourceClaim = new StandardResourceClaim(claimManager, "default", "0", "0.bin", false);
         final StandardContentClaim existingContentClaim = new StandardContentClaim(resourceClaim, 0);
