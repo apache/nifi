@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class GhostConnector implements Connector {
     private final String identifier;
@@ -117,6 +118,11 @@ public class GhostConnector implements Connector {
     @Override
     public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext workingContext) {
         return List.of();
+    }
+
+    @Override
+    public CompletableFuture<Void> drainFlowFiles(final FlowContext flowContext) {
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
