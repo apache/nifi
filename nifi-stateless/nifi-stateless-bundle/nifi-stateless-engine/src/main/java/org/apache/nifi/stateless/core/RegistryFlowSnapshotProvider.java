@@ -25,18 +25,17 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
-
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 
 public class RegistryFlowSnapshotProvider implements FlowSnapshotProvider {
     private static final Logger logger = LoggerFactory.getLogger(RegistryFlowSnapshotProvider.class);

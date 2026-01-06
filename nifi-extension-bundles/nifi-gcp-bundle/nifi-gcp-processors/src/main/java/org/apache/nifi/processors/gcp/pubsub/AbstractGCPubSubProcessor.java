@@ -24,6 +24,7 @@ import com.google.cloud.pubsub.v1.stub.PublisherStubSettings;
 import io.grpc.HttpConnectProxiedSocketAddress;
 import io.grpc.ProxiedSocketAddress;
 import io.grpc.ProxyDetector;
+import jakarta.annotation.Nullable;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -36,7 +37,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.proxy.ProxyConfiguration;
 
-import jakarta.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.SocketAddress;

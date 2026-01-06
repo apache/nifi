@@ -31,7 +31,6 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
-import javax.net.ssl.SSLContext;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -42,6 +41,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.net.ssl.SSLContext;
 
 /**
  * Standard implementation of Server Provider with default Handlers

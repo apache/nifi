@@ -23,7 +23,6 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
 
 import java.util.List;
 
-
 /**
  * Simple mock {@link PutCloudWatchMetric} processor for testing.
  */

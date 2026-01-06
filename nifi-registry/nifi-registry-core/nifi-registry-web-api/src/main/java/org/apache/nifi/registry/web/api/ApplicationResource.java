@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.CacheControl;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.UriBuilder;
+import jakarta.ws.rs.core.UriBuilderException;
+import jakarta.ws.rs.core.UriInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.event.EventService;
 import org.apache.nifi.registry.hook.Event;
@@ -25,14 +32,6 @@ import org.apache.nifi.registry.revision.web.LongParameter;
 import org.apache.nifi.registry.web.service.ServiceFacade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.CacheControl;
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.UriBuilder;
-import jakarta.ws.rs.core.UriBuilderException;
-import jakarta.ws.rs.core.UriInfo;
 
 import java.net.URI;
 import java.net.URISyntaxException;

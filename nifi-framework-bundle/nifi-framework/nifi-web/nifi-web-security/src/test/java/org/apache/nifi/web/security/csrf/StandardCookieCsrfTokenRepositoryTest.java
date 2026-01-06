@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.csrf;
 
+import jakarta.servlet.http.Cookie;
 import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.servlet.shared.ProxyHeader;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,8 +25,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.web.csrf.CsrfToken;
-
-import jakarta.servlet.http.Cookie;
 
 import java.util.UUID;
 

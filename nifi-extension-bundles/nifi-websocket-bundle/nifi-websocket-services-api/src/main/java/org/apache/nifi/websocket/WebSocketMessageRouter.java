@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.websocket;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.nifi.processor.Processor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WebSocketMessageRouter {
     private static final Logger logger = LoggerFactory.getLogger(WebSocketMessageRouter.class);

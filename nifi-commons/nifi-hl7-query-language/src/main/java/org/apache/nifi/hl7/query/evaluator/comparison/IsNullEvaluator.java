@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.hl7.query.evaluator.comparison;
 
-import java.util.Collection;
-import java.util.Map;
-
 import org.apache.nifi.hl7.model.HL7Component;
 import org.apache.nifi.hl7.query.evaluator.BooleanEvaluator;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
+
+import java.util.Collection;
+import java.util.Map;
 
 public class IsNullEvaluator extends BooleanEvaluator {
 

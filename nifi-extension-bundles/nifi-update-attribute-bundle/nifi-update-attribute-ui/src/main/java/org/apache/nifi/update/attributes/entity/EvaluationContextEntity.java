@@ -17,6 +17,7 @@
 package org.apache.nifi.update.attributes.entity;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
+
 import java.util.List;
 
 /**

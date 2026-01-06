@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.jms.processors;
 
+import jakarta.jms.Destination;
+import jakarta.jms.Message;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -53,8 +55,6 @@ import org.springframework.jms.connection.CachingConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
-import jakarta.jms.Destination;
-import jakarta.jms.Message;
 import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.util.HashMap;

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.action;
 
+import java.util.Optional;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.X509TrustManager;
-import java.util.Optional;
 
 /**
  * A context object that provides the configuration for a FlowActionReporter.

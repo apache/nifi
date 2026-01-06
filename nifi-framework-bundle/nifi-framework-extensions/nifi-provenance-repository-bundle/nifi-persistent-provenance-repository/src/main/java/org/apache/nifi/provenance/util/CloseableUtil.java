@@ -17,10 +17,10 @@
 
 package org.apache.nifi.provenance.util;
 
-import java.io.Closeable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
 
 public class CloseableUtil {
     private static final Logger logger = LoggerFactory.getLogger(CloseableUtil.class);

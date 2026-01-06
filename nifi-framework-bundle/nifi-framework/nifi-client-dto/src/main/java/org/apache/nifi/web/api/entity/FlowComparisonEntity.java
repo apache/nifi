@@ -17,13 +17,11 @@
 
 package org.apache.nifi.web.api.entity;
 
-import java.util.Set;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlRootElement;
-
 import org.apache.nifi.web.api.dto.ComponentDifferenceDTO;
 
-import io.swagger.v3.oas.annotations.media.Schema;
+import java.util.Set;
 
 @XmlRootElement(name = "flowComparisonEntity")
 public class FlowComparisonEntity extends Entity {

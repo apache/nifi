@@ -17,10 +17,10 @@
 
 package org.apache.nifi.cluster.coordination.node;
 
+import org.apache.nifi.cluster.protocol.NodeIdentifier;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 public final class NodeStateManager {
     private final ConcurrentMap<NodeIdentifier, NodeConnectionStatus> nodeStatuses = new ConcurrentHashMap<>();

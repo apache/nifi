@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.script;
 
 import org.apache.commons.codec.binary.Hex;
-
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;

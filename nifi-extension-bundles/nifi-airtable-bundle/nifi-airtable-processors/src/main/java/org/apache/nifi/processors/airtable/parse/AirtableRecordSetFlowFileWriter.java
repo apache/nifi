@@ -17,14 +17,15 @@
 
 package org.apache.nifi.processors.airtable.parse;
 
-import static org.apache.nifi.processors.airtable.parse.AirtableTableRetriever.JSON_FACTORY;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import java.io.IOException;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessSession;
+
+import java.io.IOException;
+
+import static org.apache.nifi.processors.airtable.parse.AirtableTableRetriever.JSON_FACTORY;
 
 public class AirtableRecordSetFlowFileWriter {
 

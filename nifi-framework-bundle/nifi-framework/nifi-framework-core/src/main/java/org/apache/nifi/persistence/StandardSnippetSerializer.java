@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import jakarta.xml.bind.JAXBContext;
 import jakarta.xml.bind.JAXBException;
 import jakarta.xml.bind.Marshaller;
-
 import org.apache.nifi.controller.StandardSnippet;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
+
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 public final class StandardSnippetSerializer {
 

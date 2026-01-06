@@ -17,9 +17,9 @@
 
 package org.apache.nifi.registry.flow.diff;
 
-import java.util.Set;
-
 import org.apache.nifi.flow.VersionedControllerService;
+
+import java.util.Set;
 
 public interface FlowComparator {
     FlowComparison compare();

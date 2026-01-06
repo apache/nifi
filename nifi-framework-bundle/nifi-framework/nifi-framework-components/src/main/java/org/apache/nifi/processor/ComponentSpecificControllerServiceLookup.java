@@ -17,11 +17,11 @@
 
 package org.apache.nifi.processor;
 
-import java.util.Set;
-
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+
+import java.util.Set;
 
 public class ComponentSpecificControllerServiceLookup implements ControllerServiceLookup {
     private final ControllerServiceProvider serviceProvider;

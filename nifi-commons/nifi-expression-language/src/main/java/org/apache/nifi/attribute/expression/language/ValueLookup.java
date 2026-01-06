@@ -17,8 +17,8 @@
 package org.apache.nifi.attribute.expression.language;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.EnvironmentVariables;
+import org.apache.nifi.registry.VariableDescriptor;
 
 import java.util.ArrayList;
 import java.util.Collection;

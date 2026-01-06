@@ -24,6 +24,18 @@ import io.fabric8.kubernetes.api.model.StatusDetails;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.dsl.Resource;
+import org.apache.nifi.components.AbstractConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.components.state.StateProvider;
+import org.apache.nifi.components.state.StateProviderInitializationContext;
+import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
+import org.apache.nifi.kubernetes.client.StandardKubernetesClientProvider;
+import org.apache.nifi.logging.ComponentLog;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.nio.charset.Charset;
@@ -38,17 +50,6 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.nifi.components.AbstractConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.components.state.StateProvider;
-import org.apache.nifi.components.state.StateProviderInitializationContext;
-import org.apache.nifi.kubernetes.client.ServiceAccountNamespaceProvider;
-import org.apache.nifi.kubernetes.client.StandardKubernetesClientProvider;
-import org.apache.nifi.logging.ComponentLog;
 
 /**
  * State Provider implementation based on Kubernetes ConfigMaps with Base64 encoded keys to meet Kubernetes constraints

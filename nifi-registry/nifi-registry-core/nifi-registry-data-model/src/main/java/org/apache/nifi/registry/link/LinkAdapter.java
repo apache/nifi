@@ -18,6 +18,7 @@ package org.apache.nifi.registry.link;
 
 import jakarta.ws.rs.core.Link;
 import jakarta.xml.bind.annotation.adapters.XmlAdapter;
+
 import java.util.Map;
 
 /**

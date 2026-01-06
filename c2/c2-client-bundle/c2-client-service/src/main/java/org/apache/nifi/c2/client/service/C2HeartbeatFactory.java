@@ -17,14 +17,25 @@
 
 package org.apache.nifi.c2.client.service;
 
-import static java.net.NetworkInterface.getNetworkInterfaces;
-import static java.util.Collections.list;
-import static java.util.Comparator.comparing;
-import static java.util.Comparator.comparingInt;
-import static java.util.Map.entry;
-import static java.util.Objects.nonNull;
-import static java.util.stream.Collectors.toSet;
-import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import org.apache.nifi.c2.client.C2ClientConfig;
+import org.apache.nifi.c2.client.PersistentUuidGenerator;
+import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
+import org.apache.nifi.c2.protocol.api.AgentInfo;
+import org.apache.nifi.c2.protocol.api.AgentManifest;
+import org.apache.nifi.c2.protocol.api.AgentRepositories;
+import org.apache.nifi.c2.protocol.api.AgentResourceConsumption;
+import org.apache.nifi.c2.protocol.api.AgentStatus;
+import org.apache.nifi.c2.protocol.api.C2Heartbeat;
+import org.apache.nifi.c2.protocol.api.DeviceInfo;
+import org.apache.nifi.c2.protocol.api.FlowInfo;
+import org.apache.nifi.c2.protocol.api.NetworkInfo;
+import org.apache.nifi.c2.protocol.api.ResourceInfo;
+import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
+import org.apache.nifi.c2.protocol.api.SupportedOperation;
+import org.apache.nifi.c2.protocol.api.SystemInfo;
+import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -39,25 +50,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.apache.nifi.c2.client.C2ClientConfig;
-import org.apache.nifi.c2.client.PersistentUuidGenerator;
-import org.apache.nifi.c2.client.service.model.RuntimeInfoWrapper;
-import org.apache.nifi.c2.protocol.api.AgentInfo;
-import org.apache.nifi.c2.protocol.api.AgentManifest;
-import org.apache.nifi.c2.protocol.api.AgentRepositories;
-import org.apache.nifi.c2.protocol.api.AgentResourceConsumption;
-import org.apache.nifi.c2.protocol.api.AgentStatus;
-import org.apache.nifi.c2.protocol.api.ResourceInfo;
-import org.apache.nifi.c2.protocol.api.C2Heartbeat;
-import org.apache.nifi.c2.protocol.api.DeviceInfo;
-import org.apache.nifi.c2.protocol.api.FlowInfo;
-import org.apache.nifi.c2.protocol.api.NetworkInfo;
-import org.apache.nifi.c2.protocol.api.SupportedOperation;
-import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
-import org.apache.nifi.c2.protocol.api.SystemInfo;
-import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.net.NetworkInterface.getNetworkInterfaces;
+import static java.util.Collections.list;
+import static java.util.Comparator.comparing;
+import static java.util.Comparator.comparingInt;
+import static java.util.Map.entry;
+import static java.util.Objects.nonNull;
+import static java.util.stream.Collectors.toSet;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 public class C2HeartbeatFactory {
 

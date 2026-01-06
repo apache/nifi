@@ -20,6 +20,7 @@ import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import org.apache.nifi.cluster.protocol.jaxb.message.DataFlowAdapter;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
@@ -31,7 +32,6 @@ import org.w3c.dom.Document;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.io.ByteArrayInputStream;
 import java.io.Serializable;
 import java.util.Arrays;

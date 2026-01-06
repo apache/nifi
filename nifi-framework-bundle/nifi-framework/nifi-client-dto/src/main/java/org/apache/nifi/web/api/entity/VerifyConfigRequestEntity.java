@@ -18,9 +18,8 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 
 @XmlRootElement(name = "verifyConfigRequest")
 public class VerifyConfigRequestEntity extends Entity {

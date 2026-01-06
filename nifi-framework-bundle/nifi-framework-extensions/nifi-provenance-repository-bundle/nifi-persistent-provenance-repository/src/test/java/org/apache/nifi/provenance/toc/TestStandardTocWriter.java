@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.provenance.toc;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.apache.nifi.util.file.FileUtils;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.nifi.util.file.FileUtils;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestStandardTocWriter {
     @Test

@@ -17,13 +17,14 @@
 
 package org.apache.nifi.c2.client;
 
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toUnmodifiableMap;
-import static org.apache.commons.lang3.StringUtils.EMPTY;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.Map;
-import org.apache.commons.lang3.StringUtils;
+
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toUnmodifiableMap;
+import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 /**
  * Configuration for a C2 Client.

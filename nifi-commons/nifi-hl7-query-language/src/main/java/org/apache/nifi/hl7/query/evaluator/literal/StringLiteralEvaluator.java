@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.hl7.query.evaluator.literal;
 
-import java.util.Map;
-
 import org.apache.nifi.hl7.query.evaluator.StringEvaluator;
+
+import java.util.Map;
 
 public class StringLiteralEvaluator extends StringEvaluator {
 

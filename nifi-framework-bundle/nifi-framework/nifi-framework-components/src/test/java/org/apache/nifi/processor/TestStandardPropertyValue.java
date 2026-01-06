@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.processor;
 
-import org.apache.nifi.components.DescribedValue;
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.repository.StandardFlowFileRecord;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.junit.jupiter.api.Test;
 
 import java.util.Calendar;
@@ -35,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 
 public class TestStandardPropertyValue {
 

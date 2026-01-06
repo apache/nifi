@@ -22,7 +22,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
-
 public class Query {
 
     private final String identifier;

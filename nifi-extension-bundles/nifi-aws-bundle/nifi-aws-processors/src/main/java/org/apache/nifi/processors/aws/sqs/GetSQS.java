@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.sqs;
 
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;

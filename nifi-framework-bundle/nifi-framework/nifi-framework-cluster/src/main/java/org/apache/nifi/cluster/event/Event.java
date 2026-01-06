@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.cluster.event;
 
-import java.util.Date;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.reporting.Severity;
+
+import java.util.Date;
 
 /**
  * Events describe the occurrence of something noteworthy. They record the event's source, a timestamp, a description, and a category.

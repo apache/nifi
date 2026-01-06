@@ -17,11 +17,11 @@
 
 package org.apache.nifi.controller.queue.clustered.partition;
 
-import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.processor.FlowFileFilter;
 
 import java.io.IOException;

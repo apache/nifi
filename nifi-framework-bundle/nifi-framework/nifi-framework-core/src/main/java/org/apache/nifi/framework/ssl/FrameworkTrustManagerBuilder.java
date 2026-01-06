@@ -23,13 +23,13 @@ import org.apache.nifi.security.ssl.StandardX509ExtendedTrustManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.X509ExtendedTrustManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.util.Objects;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
  * Framework implementation of Trust Manager Builder capable of reloading a Trust Store when building a Trust Manager

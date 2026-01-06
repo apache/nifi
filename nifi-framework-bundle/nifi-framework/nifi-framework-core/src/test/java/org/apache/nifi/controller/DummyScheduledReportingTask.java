@@ -17,9 +17,6 @@
 
 package org.apache.nifi.controller;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -27,6 +24,9 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Dummy reporting task to test @DefaultSchedule annotation

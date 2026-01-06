@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.oidc.logout;
 
+import jakarta.servlet.http.Cookie;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
@@ -44,7 +45,6 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.core.OAuth2RefreshToken;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 
-import jakarta.servlet.http.Cookie;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;

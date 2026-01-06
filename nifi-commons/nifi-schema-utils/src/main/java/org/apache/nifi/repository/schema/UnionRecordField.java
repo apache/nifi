@@ -17,10 +17,10 @@
 
 package org.apache.nifi.repository.schema;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Arrays;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 public class UnionRecordField implements RecordField {
     private final String fieldName;

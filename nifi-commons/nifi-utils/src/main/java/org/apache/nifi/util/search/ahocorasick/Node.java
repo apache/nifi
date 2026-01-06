@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.util.search.ahocorasick;
 
+import org.apache.nifi.util.search.SearchTerm;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.nifi.util.search.SearchTerm;
 
 /**
  *

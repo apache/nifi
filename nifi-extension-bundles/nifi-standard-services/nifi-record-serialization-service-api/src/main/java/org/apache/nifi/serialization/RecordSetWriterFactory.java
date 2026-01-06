@@ -17,15 +17,15 @@
 
 package org.apache.nifi.serialization;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Map;
-
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Map;
 
 /**
  * <p>

@@ -17,9 +17,8 @@
 package org.apache.nifi.web.api.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.entity.ComponentValidationResultsEntity;
-
 import jakarta.xml.bind.annotation.XmlType;
+import org.apache.nifi.web.api.entity.ComponentValidationResultsEntity;
 
 @XmlType(name = "parameterContextValidationRequest")
 public class ParameterContextValidationRequestDTO extends AsynchronousRequestDTO<ParameterContextValidationStepDTO> {

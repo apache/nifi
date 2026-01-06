@@ -17,19 +17,20 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
-import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
-import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
-import static org.apache.nifi.minifi.bootstrap.Status.OK;
+import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
-import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
+
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
+import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.DEFAULT_LOGGER;
+import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
+import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
+import static org.apache.nifi.minifi.bootstrap.Status.OK;
 
 public class DumpRunner implements CommandRunner {
     protected static final String DUMP_CMD = "DUMP";

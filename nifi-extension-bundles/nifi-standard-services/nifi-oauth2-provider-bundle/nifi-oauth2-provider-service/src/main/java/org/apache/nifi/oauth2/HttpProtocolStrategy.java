@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.oauth2;
 
+import okhttp3.Protocol;
 import org.apache.nifi.components.DescribedValue;
 
 import java.util.List;
-
-import okhttp3.Protocol;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;

@@ -17,14 +17,15 @@
 
 package org.apache.nifi.minifi.c2;
 
-import static org.slf4j.LoggerFactory.getLogger;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.File;
-import java.util.Optional;
 import org.apache.nifi.c2.client.service.operation.OperationQueue;
 import org.apache.nifi.c2.client.service.operation.OperationQueueDAO;
 import org.slf4j.Logger;
+
+import java.io.File;
+import java.util.Optional;
+
+import static org.slf4j.LoggerFactory.getLogger;
 
 public class FileBasedOperationQueueDAO implements OperationQueueDAO {
 

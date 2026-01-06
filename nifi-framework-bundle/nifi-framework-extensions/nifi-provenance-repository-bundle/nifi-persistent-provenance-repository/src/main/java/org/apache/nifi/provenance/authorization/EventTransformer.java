@@ -17,10 +17,10 @@
 
 package org.apache.nifi.provenance.authorization;
 
-import java.util.Optional;
-
 import org.apache.nifi.provenance.PlaceholderProvenanceEvent;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
+
+import java.util.Optional;
 
 /**
  * An interface for transforming a Provenance Event for which the user is not authorized to access

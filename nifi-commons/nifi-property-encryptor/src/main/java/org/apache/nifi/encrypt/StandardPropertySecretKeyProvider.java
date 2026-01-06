@@ -26,9 +26,9 @@ import org.apache.nifi.security.crypto.key.pbkdf2.Pbkdf2DerivedKeyProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.util.Objects;
 
 /**
  * Standard implementation of Property Secret Key Provider implementing supported Key Derivation Functions

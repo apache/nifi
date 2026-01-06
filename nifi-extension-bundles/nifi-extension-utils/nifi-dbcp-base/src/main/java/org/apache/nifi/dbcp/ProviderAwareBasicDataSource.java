@@ -17,8 +17,8 @@
 package org.apache.nifi.dbcp;
 
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.commons.dbcp2.Constants;
 import org.apache.commons.dbcp2.ConnectionFactory;
+import org.apache.commons.dbcp2.Constants;
 import org.apache.commons.dbcp2.DriverConnectionFactory;
 import org.apache.nifi.dbcp.api.DatabasePasswordProvider;
 import org.apache.nifi.dbcp.api.DatabasePasswordRequestContext;

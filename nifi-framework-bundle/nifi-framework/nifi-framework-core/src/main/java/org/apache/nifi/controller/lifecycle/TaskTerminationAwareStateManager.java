@@ -17,13 +17,13 @@
 
 package org.apache.nifi.controller.lifecycle;
 
-import java.io.IOException;
-import java.util.Map;
-
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
+
+import java.io.IOException;
+import java.util.Map;
 
 public class TaskTerminationAwareStateManager implements StateManager {
     private final StateManager stateManager;

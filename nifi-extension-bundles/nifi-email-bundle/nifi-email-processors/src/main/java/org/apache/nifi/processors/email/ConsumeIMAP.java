@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.email;
 
-import java.util.List;
-import java.util.stream.Stream;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -27,6 +24,9 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.springframework.integration.mail.inbound.ImapMailReceiver;
+
+import java.util.List;
+import java.util.stream.Stream;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Consumes messages from Email Server using IMAP protocol. "

@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.registry.web.security.authentication;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.registry.security.authorization.user.NiFiUserDetails;
 import org.apache.nifi.registry.security.authorization.user.StandardNiFiUser;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 public class AnonymousIdentityFilter extends AnonymousAuthenticationFilter {
 

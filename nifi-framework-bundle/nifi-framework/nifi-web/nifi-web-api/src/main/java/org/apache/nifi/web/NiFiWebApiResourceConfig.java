@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web;
 
+import jakarta.servlet.ServletContext;
+import jakarta.ws.rs.core.Context;
 import org.apache.nifi.web.api.config.AccessDeniedExceptionMapper;
 import org.apache.nifi.web.api.config.AdministrationExceptionMapper;
 import org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper;
@@ -58,9 +60,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.filter.EncodingFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import jakarta.servlet.ServletContext;
-import jakarta.ws.rs.core.Context;
 
 public class NiFiWebApiResourceConfig extends ResourceConfig {
 

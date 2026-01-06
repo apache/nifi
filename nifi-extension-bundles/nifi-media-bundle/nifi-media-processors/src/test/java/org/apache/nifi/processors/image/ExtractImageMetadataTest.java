@@ -33,7 +33,6 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-
 public class ExtractImageMetadataTest {
     private static final String BMP_HEADER = "BMP Header.";
     private static final String JPEG_HEADER = "JPEG.";

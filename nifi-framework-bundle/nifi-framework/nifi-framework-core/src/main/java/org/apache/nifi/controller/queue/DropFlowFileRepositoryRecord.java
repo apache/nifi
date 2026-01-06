@@ -17,13 +17,13 @@
 
 package org.apache.nifi.controller.queue;
 
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
+
+import java.util.Collections;
+import java.util.List;
 
 public class DropFlowFileRepositoryRecord implements RepositoryRecord {
     private final FlowFileQueue queue;

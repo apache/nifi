@@ -41,7 +41,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 @Tags({"hashicorp", "vault", "client"})
 @CapabilityDescription("A controller service for interacting with HashiCorp Vault.")
 @SupportsSensitiveDynamicProperties

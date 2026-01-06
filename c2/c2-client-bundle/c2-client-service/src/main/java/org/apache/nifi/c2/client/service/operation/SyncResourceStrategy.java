@@ -17,15 +17,16 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
+import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
+import org.apache.nifi.c2.protocol.api.ResourceItem;
+import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
+
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
-import org.apache.nifi.c2.protocol.api.ResourceItem;
-import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
 
 public interface SyncResourceStrategy {
 

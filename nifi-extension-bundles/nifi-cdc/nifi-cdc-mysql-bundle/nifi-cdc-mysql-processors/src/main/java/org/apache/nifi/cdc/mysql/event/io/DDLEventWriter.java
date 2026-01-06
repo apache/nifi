@@ -17,14 +17,13 @@
 package org.apache.nifi.cdc.mysql.event.io;
 
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
+import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.cdc.mysql.event.DDLEventInfo;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UncheckedIOException;
-
 
 /**
  * A writer class to output MySQL binlog Data Definition Language (DDL) events to flow file(s).

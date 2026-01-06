@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;

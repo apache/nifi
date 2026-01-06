@@ -17,13 +17,12 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlType;
+
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import jakarta.xml.bind.annotation.XmlType;
-
-import io.swagger.v3.oas.annotations.media.Schema;
 
 @XmlType(name = "jvmSystemDiagnosticsSnapshot")
 public class JVMSystemDiagnosticsSnapshotDTO implements Cloneable {

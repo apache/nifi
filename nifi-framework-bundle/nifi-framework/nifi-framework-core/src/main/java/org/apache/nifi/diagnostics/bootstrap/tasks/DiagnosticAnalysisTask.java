@@ -28,7 +28,6 @@ import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
 import org.apache.nifi.processor.Processor;
 
-import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.util.ArrayList;
@@ -37,6 +36,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import javax.management.ObjectName;
 
 public class DiagnosticAnalysisTask implements DiagnosticTask {
     private static final int THREAD_TO_AVAILABLE_PROCS_RATIO = 6;

@@ -29,10 +29,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.util.StringUtils;
 
-import javax.script.Invocable;
-import javax.script.ScriptEngineFactory;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -50,6 +46,10 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javax.script.Invocable;
+import javax.script.ScriptEngineFactory;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 
 import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 

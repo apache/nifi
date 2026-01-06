@@ -56,7 +56,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
-
 /**
  * RESTful endpoint for querying data provenance.
  */

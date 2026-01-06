@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
 import org.apache.nifi.controller.status.history.StatusHistoryUtil;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarThreadContextClassLoader;
@@ -29,6 +23,12 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.Tuple;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.api.dto.status.StatusSnapshotDTO;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 /**
  * <p>

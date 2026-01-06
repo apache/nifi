@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.minifi.properties;
 
-import java.io.File;
-import java.util.Properties;
-
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.apache.nifi.util.NiFiProperties;
+
+import java.io.File;
+import java.util.Properties;
 
 public class MiNiFiPropertiesLoader {
 

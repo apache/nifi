@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.cdc.mysql.event.io;
 
-import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.cdc.event.ColumnDefinition;
+import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.UpdateRowsEventInfo;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 
 import java.io.IOException;
@@ -28,7 +28,6 @@ import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.util.BitSet;
 import java.util.Map;
-
 
 /**
  * A writer class to output MySQL binlog "write rows" (aka INSERT) events to flow file(s).

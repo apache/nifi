@@ -17,8 +17,8 @@
 
 package org.apache.nifi.controller.queue.clustered.server;
 
-import javax.net.ssl.SSLSocket;
 import java.io.IOException;
+import javax.net.ssl.SSLSocket;
 
 public interface LoadBalanceAuthorizer {
     /**

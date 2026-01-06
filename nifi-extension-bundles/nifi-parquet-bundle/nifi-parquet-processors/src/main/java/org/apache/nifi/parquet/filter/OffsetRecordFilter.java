@@ -17,9 +17,10 @@
 
 package org.apache.nifi.parquet.filter;
 
-import java.util.concurrent.atomic.AtomicLong;
 import org.apache.parquet.filter.RecordFilter;
 import org.apache.parquet.filter.UnboundRecordFilter;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Filter to be used for 'jumping' to a specific record index.

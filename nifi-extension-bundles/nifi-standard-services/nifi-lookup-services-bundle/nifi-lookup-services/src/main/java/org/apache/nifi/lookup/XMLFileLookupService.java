@@ -24,7 +24,6 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
 import org.apache.nifi.lookup.configuration2.SafeXMLConfiguration;
 
-
 @Tags({"lookup", "cache", "enrich", "join", "xml", "reloadable", "key", "value"})
 @CapabilityDescription("A reloadable XML file-based lookup service." +
         " This service uses Apache Commons Configuration." +

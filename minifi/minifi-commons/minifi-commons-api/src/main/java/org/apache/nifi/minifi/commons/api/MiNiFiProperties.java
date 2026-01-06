@@ -17,6 +17,13 @@
 
 package org.apache.nifi.minifi.commons.api;
 
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import static java.util.stream.Collectors.toSet;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.ValidatorNames.BOOLEAN_VALIDATOR;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.ValidatorNames.LONG_VALIDATOR;
@@ -24,13 +31,6 @@ import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.ValidatorNames
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.ValidatorNames.PORT_VALIDATOR;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.ValidatorNames.TIME_PERIOD_VALIDATOR;
 import static org.apache.nifi.minifi.commons.api.MiNiFiProperties.ValidatorNames.VALID;
-
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public enum MiNiFiProperties {
     JAVA("java", "java", false, false, VALID),

@@ -20,7 +20,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.StringUtils;
 import org.junit.jupiter.params.ParameterizedTest;
-
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;

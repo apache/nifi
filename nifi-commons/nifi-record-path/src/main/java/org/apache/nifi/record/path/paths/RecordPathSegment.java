@@ -17,15 +17,15 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.Objects;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.RecordPathResult;
 import org.apache.nifi.record.path.StandardRecordPathEvaluationContext;
 import org.apache.nifi.serialization.record.Record;
+
+import java.util.Objects;
+import java.util.stream.Stream;
 
 public abstract class RecordPathSegment implements RecordPath {
     private final String path;

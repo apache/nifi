@@ -59,7 +59,6 @@ import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalancePro
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.SPACE_AVAILABLE;
 import static org.apache.nifi.controller.queue.clustered.protocol.LoadBalanceProtocolConstants.VERSION_ACCEPTED;
 
-
 public class LoadBalanceSession {
     private static final Logger logger = LoggerFactory.getLogger(LoadBalanceSession.class);
     static final int MAX_DATA_FRAME_SIZE = 65535;

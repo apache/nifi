@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import java.util.concurrent.TimeUnit;
-
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import java.util.concurrent.TimeUnit;
+
 /**
  * <p>
  * An implementation of {@link StatusAnalyticsEngine} that supports caching of ConnectionStatusAnalytics objects.

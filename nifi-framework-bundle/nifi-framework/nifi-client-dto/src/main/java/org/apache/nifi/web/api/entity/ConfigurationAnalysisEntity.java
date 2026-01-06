@@ -18,9 +18,8 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 
 @XmlRootElement(name = "configurationAnalysis")
 public class ConfigurationAnalysisEntity extends Entity {

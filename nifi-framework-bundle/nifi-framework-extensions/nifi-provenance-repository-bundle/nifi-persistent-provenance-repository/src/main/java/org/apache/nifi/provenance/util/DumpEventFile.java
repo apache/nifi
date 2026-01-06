@@ -17,15 +17,15 @@
 
 package org.apache.nifi.provenance.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Date;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Date;
 
 public class DumpEventFile {
 

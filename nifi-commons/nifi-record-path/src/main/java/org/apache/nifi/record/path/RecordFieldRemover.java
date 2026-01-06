@@ -17,14 +17,15 @@
 
 package org.apache.nifi.record.path;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.nifi.record.path.util.RecordPathCache;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class RecordFieldRemover {
     private final RecordPathCache recordPathCache;

@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.c2.client.service.model;
 
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.c2.protocol.api.AgentRepositories;
 import org.apache.nifi.c2.protocol.api.FlowQueueStatus;
 import org.apache.nifi.c2.protocol.api.ProcessorBulletin;
 import org.apache.nifi.c2.protocol.api.ProcessorStatus;
 import org.apache.nifi.c2.protocol.api.RunStatus;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
+
+import java.util.List;
+import java.util.Map;
 
 public class RuntimeInfoWrapper {
     final AgentRepositories repos;

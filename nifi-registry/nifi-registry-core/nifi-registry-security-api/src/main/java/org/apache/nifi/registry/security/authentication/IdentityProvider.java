@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.registry.security.authentication;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.registry.security.authentication.exception.IdentityAccessException;
 import org.apache.nifi.registry.security.authentication.exception.InvalidCredentialsException;
 import org.apache.nifi.registry.security.exception.SecurityProviderCreationException;
 import org.apache.nifi.registry.security.exception.SecurityProviderDestructionException;
-
-import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * IdentityProvider is an interface for a class that is able to establish a client identity.

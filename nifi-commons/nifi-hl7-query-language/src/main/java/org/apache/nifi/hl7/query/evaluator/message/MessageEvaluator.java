@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.hl7.query.evaluator.message;
 
-import java.util.Map;
-
 import org.apache.nifi.hl7.model.HL7Message;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
+
+import java.util.Map;
 
 public class MessageEvaluator implements Evaluator<HL7Message> {
 

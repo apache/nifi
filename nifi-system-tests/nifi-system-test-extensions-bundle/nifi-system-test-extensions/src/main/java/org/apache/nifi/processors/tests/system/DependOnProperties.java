@@ -17,8 +17,6 @@
 
 package org.apache.nifi.processors.tests.system;
 
-import java.util.Arrays;
-import java.util.List;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
@@ -27,6 +25,9 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static org.apache.nifi.processor.util.StandardValidators.NON_EMPTY_VALIDATOR;
 

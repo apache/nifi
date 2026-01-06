@@ -18,8 +18,8 @@ package org.apache.nifi.registry.bundle.extract.nar;
 
 import org.apache.nifi.registry.bundle.extract.BundleException;
 import org.apache.nifi.registry.bundle.extract.BundleExtractor;
-import org.apache.nifi.registry.bundle.model.BundleIdentifier;
 import org.apache.nifi.registry.bundle.model.BundleDetails;
+import org.apache.nifi.registry.bundle.model.BundleIdentifier;
 import org.apache.nifi.registry.extension.bundle.BuildInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,9 +31,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

@@ -17,14 +17,6 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.util;
 
-import java.lang.annotation.Annotation;
-import java.net.URI;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-
 import jakarta.ws.rs.core.EntityTag;
 import jakarta.ws.rs.core.GenericType;
 import jakarta.ws.rs.core.Link;
@@ -34,9 +26,16 @@ import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
-
 import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
+
+import java.lang.annotation.Annotation;
+import java.net.URI;
+import java.util.Collections;
+import java.util.Date;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class MockReplicationClient implements HttpReplicationClient {
     private int status = 200;

@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.distributed.cache.server.set;
 
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
+import org.wali.SerDe;
+import org.wali.SerDeFactory;
+import org.wali.UpdateType;
+import org.wali.WriteAheadRepository;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -28,12 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
-import org.wali.SerDe;
-import org.wali.SerDeFactory;
-import org.wali.UpdateType;
-import org.wali.WriteAheadRepository;
 
 public class PersistentSetCache implements SetCache {
 

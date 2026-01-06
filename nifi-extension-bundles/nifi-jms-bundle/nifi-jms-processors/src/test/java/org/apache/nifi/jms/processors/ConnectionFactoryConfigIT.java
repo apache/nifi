@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.jms.processors;
 
+import jakarta.jms.Connection;
+import jakarta.jms.JMSException;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProperties;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
@@ -28,9 +30,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import jakarta.jms.Connection;
-import jakarta.jms.JMSException;
 
 /**
  * Tests for the different Connection Factory configurations of {@link PublishJMS} and {@link ConsumeJMS}:

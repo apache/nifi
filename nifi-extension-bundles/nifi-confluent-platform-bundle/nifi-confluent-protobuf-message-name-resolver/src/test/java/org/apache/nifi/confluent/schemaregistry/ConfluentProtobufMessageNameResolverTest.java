@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.apache.nifi.confluent.schemaregistry.VarintUtils.writeZigZagVarint;
-
 import static org.apache.nifi.schemaregistry.services.SchemaDefinition.SchemaType.PROTOBUF;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;

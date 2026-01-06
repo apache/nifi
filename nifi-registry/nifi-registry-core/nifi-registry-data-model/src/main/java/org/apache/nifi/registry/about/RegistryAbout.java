@@ -19,7 +19,6 @@ package org.apache.nifi.registry.about;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-
 @XmlRootElement
 public class RegistryAbout {
     private final String registryAboutVersion;

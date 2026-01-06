@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.web.api;
 
+import jakarta.ws.rs.HttpMethod;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.util.LifecycleManagementException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import jakarta.ws.rs.HttpMethod;
 
 import java.net.URI;
 import java.util.Map;

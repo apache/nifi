@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.registry;
 
+import jakarta.servlet.ServletContext;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.context.ServletContextAware;
-
-import jakarta.servlet.ServletContext;
 
 /**
  * The JettyServer puts an instance of NiFiRegistryProperties into the ServletContext, this class

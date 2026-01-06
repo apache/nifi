@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.services.smb;
 
-import static java.util.Arrays.asList;
-import static java.util.stream.StreamSupport.stream;
-
 import com.hierynomus.msdtyp.AccessMask;
 import com.hierynomus.mserref.NtStatus;
 import com.hierynomus.msfscc.FileAttributes;
@@ -42,6 +39,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import static java.util.Arrays.asList;
+import static java.util.stream.StreamSupport.stream;
 
 class SmbjClientService implements SmbClientService {
 

@@ -47,7 +47,6 @@ import org.apache.nifi.processors.pgp.exception.PGPEncryptionException;
 import org.apache.nifi.processors.pgp.io.EncodingStreamCallback;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
-
 import org.bouncycastle.bcpg.BCPGInputStream;
 import org.bouncycastle.bcpg.Packet;
 import org.bouncycastle.bcpg.PacketTags;

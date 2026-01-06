@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.jms.processors;
 
+import jakarta.jms.ConnectionFactory;
+import jakarta.jms.Message;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -48,8 +50,6 @@ import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.connection.UserCredentialsConnectionFactoryAdapter;
 import org.springframework.jms.core.JmsTemplate;
 
-import jakarta.jms.ConnectionFactory;
-import jakarta.jms.Message;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;

@@ -17,9 +17,8 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.ParameterContextDTO;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.ParameterContextDTO;
 
 @XmlRootElement(name = "parameterContextEntity")
 public class ParameterContextEntity extends ComponentEntity {

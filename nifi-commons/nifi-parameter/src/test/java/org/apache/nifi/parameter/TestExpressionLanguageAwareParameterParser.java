@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.parameter;
 
-
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

@@ -17,9 +17,8 @@
 package org.apache.nifi.web.api.dto.flow;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
-
 import jakarta.xml.bind.annotation.XmlType;
+import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 
 /**
  * Breadcrumb for the flow.

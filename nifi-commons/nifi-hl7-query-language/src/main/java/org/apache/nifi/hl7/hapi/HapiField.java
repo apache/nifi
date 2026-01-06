@@ -16,19 +16,18 @@
  */
 package org.apache.nifi.hl7.hapi;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.apache.nifi.hl7.model.HL7Component;
-import org.apache.nifi.hl7.model.HL7Field;
-
 import ca.uhn.hl7v2.model.Composite;
 import ca.uhn.hl7v2.model.ExtraComponents;
 import ca.uhn.hl7v2.model.Primitive;
 import ca.uhn.hl7v2.model.Type;
 import ca.uhn.hl7v2.parser.EncodingCharacters;
 import ca.uhn.hl7v2.parser.PipeParser;
+import org.apache.nifi.hl7.model.HL7Component;
+import org.apache.nifi.hl7.model.HL7Field;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class HapiField implements HL7Field, HL7Component {
 

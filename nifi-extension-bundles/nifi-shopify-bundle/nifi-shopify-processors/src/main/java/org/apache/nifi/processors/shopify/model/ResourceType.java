@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.processors.shopify.model;
 
-import java.util.List;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.DescribedValue;
+
+import java.util.List;
 
 public enum ResourceType implements DescribedValue {
 

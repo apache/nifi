@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.hadoop.io.compress.BZip2Codec;
 import org.apache.hadoop.io.compress.DefaultCodec;
 import org.apache.hadoop.io.compress.GzipCodec;
 import org.apache.hadoop.io.compress.Lz4Codec;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.nifi.components.AllowableValue;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Compression Type Enum for Hadoop related processors.

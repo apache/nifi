@@ -17,9 +17,9 @@
 
 package org.apache.nifi.registry.flow.diff;
 
-import java.util.Optional;
-
 import org.apache.nifi.flow.VersionedComponent;
+
+import java.util.Optional;
 
 public interface FlowDifference {
     DifferenceType getDifferenceType();

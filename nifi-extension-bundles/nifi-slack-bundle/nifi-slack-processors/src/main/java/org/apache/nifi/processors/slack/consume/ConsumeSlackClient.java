@@ -26,7 +26,6 @@ import com.slack.api.methods.response.users.UsersInfoResponse;
 import java.io.IOException;
 import java.util.Map;
 
-
 /**
  * A simple wrapper around the Slack Client with the methods that we use so that they can be easily mocked for testing
  */

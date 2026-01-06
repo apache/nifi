@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.nifi.provenance.search.SearchableField;
+
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.nifi.provenance.search.SearchableField;
 
 public class SearchableFieldParser {
 

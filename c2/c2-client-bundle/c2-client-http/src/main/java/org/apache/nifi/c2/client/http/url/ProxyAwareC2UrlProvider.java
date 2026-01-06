@@ -17,15 +17,16 @@
 
 package org.apache.nifi.c2.client.http.url;
 
-import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.stripStart;
-
-import java.util.Optional;
 import okhttp3.HttpUrl;
-import org.apache.commons.lang3.Strings;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
+
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.stripStart;
 
 public class ProxyAwareC2UrlProvider implements C2UrlProvider {
 

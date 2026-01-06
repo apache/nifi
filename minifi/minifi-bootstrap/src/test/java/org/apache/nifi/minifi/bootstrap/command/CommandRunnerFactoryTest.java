@@ -17,21 +17,7 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.DUMP;
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.ENV;
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.FLOWSTATUS;
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.RESTART;
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.RUN;
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.START;
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.STATUS;
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.STOP;
-import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.UNKNOWN;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verifyNoInteractions;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.File;
 import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
 import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
@@ -48,6 +34,21 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.File;
+
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.DUMP;
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.ENV;
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.FLOWSTATUS;
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.RESTART;
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.RUN;
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.START;
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.STATUS;
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.STOP;
+import static org.apache.nifi.minifi.bootstrap.BootstrapCommand.UNKNOWN;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 class CommandRunnerFactoryTest {

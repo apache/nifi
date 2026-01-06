@@ -16,15 +16,16 @@
  */
 package org.apache.nifi.c2.client.service;
 
-import static java.util.Collections.singletonList;
+import org.apache.nifi.c2.util.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
-import org.apache.nifi.c2.util.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.util.Collections.singletonList;
 
 public class FlowIdHolder {
     private static final Logger LOGGER = LoggerFactory.getLogger(FlowIdHolder.class);

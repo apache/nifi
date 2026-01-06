@@ -17,9 +17,13 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration;
 
-import static java.util.Optional.ofNullable;
-import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.toList;
+import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
+import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
+import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
+import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
+import org.apache.nifi.minifi.properties.BootstrapProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -29,13 +33,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.nifi.minifi.bootstrap.RunMiNiFi;
-import org.apache.nifi.minifi.bootstrap.configuration.ingestors.interfaces.ChangeIngestor;
-import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
-import org.apache.nifi.minifi.bootstrap.util.ByteBufferInputStream;
-import org.apache.nifi.minifi.properties.BootstrapProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toList;
 
 public class ConfigurationChangeCoordinator implements Closeable, ConfigurationChangeNotifier {
 

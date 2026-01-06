@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.minifi.bootstrap.service;
 
-import static org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler.LoggerType.ERROR;
-import static org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler.LoggerType.STDOUT;
+import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -30,9 +31,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.Stream;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler.LoggerType.ERROR;
+import static org.apache.nifi.minifi.bootstrap.service.MiNiFiStdLogHandler.LoggerType.STDOUT;
 
 public class MiNiFiStdLogHandler {
 

@@ -27,13 +27,12 @@ import org.apache.nifi.toolkit.client.NiFiClientConfig;
 import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.toolkit.client.impl.request.util.AccessToken;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLContext;
-
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
 
 /**
  * Implementation of RequestConfig when using the OAuth Client Credentials Flow

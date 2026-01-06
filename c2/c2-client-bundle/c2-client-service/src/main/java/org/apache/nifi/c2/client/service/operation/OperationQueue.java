@@ -17,13 +17,14 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import static java.util.Optional.ofNullable;
+import org.apache.nifi.c2.protocol.api.C2Operation;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
-import org.apache.nifi.c2.protocol.api.C2Operation;
+
+import static java.util.Optional.ofNullable;
 
 public class OperationQueue implements Serializable {
     private static final long serialVersionUID = 1L;

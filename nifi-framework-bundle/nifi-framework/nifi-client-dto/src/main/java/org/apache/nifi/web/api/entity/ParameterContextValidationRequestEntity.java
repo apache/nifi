@@ -17,9 +17,8 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.ParameterContextValidationRequestDTO;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.ParameterContextValidationRequestDTO;
 
 @XmlRootElement(name = "parameterContextValidationRequestEntity")
 public class ParameterContextValidationRequestEntity extends Entity {

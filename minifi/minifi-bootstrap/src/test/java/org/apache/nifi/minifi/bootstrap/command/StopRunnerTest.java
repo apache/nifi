@@ -17,6 +17,22 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
+import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
+import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
+import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
+import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider;
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
+import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Optional;
+
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.UNINITIALIZED;
 import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
 import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
@@ -29,21 +45,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Optional;
-import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
-import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
-import org.apache.nifi.minifi.bootstrap.service.CurrentPortProvider;
-import org.apache.nifi.minifi.bootstrap.service.GracefulShutdownParameterProvider;
-import org.apache.nifi.minifi.bootstrap.service.MiNiFiCommandSender;
-import org.apache.nifi.minifi.bootstrap.util.ProcessUtils;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class StopRunnerTest {

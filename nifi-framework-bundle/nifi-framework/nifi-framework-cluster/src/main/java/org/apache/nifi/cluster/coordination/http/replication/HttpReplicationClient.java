@@ -17,11 +17,11 @@
 
 package org.apache.nifi.cluster.coordination.http.replication;
 
+import jakarta.ws.rs.core.Response;
+
 import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
-
-import jakarta.ws.rs.core.Response;
 
 public interface HttpReplicationClient {
 

@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.minifi.bootstrap;
 
-import java.io.IOException;
 import org.apache.nifi.minifi.bootstrap.service.BootstrapFileProvider;
+
+import java.io.IOException;
 
 public class WindowsService {
 

@@ -17,28 +17,6 @@
 
 package org.apache.nifi.processors.cipher;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding.BASE64;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding.HEXADECIMAL;
-import static org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding.UTF8;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -58,6 +36,28 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding.BASE64;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding.HEXADECIMAL;
+import static org.apache.nifi.processors.cipher.VerifyContentMAC.Encoding.UTF8;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)

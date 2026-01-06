@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.services.iceberg.parquet;
 
-import org.apache.nifi.services.iceberg.IcebergRowWriter;
 import org.apache.iceberg.DataFile;
 import org.apache.iceberg.FileFormat;
 import org.apache.iceberg.PartitionSpec;
@@ -31,6 +30,7 @@ import org.apache.iceberg.io.LocationProvider;
 import org.apache.iceberg.io.OutputFile;
 import org.apache.iceberg.types.Types;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.services.iceberg.IcebergRowWriter;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;

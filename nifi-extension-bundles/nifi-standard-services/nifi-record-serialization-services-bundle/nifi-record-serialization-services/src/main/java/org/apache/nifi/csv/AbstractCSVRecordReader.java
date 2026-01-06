@@ -23,6 +23,7 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
 import java.util.Optional;
 
 public abstract class AbstractCSVRecordReader implements RecordReader {

@@ -23,7 +23,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import java.io.IOException;
 import java.util.Map;
 
-
 /**
  * Supports GCP Application Default Credentials.
  *

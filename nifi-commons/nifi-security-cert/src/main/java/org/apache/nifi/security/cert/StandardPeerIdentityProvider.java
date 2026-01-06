@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.security.cert;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 /**
  * Standard implementation of Peer Identity Provider reads the first certificate as an X.509 certificate with Subject Alternative Names

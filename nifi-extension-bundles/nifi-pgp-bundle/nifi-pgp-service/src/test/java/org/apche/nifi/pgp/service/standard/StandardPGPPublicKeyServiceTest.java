@@ -23,7 +23,6 @@ import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.junit.jupiter.api.BeforeAll;

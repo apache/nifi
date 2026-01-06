@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.slack.consume;
 
-
 import org.apache.commons.lang3.StringUtils;
 
 public class SlackTimestamp implements Comparable<SlackTimestamp> {

@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.jms.processors;
 
-import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.nifi.logging.ComponentLog;
-import org.springframework.jms.connection.CachingConnectionFactory;
-import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.support.JmsHeaders;
-
 import jakarta.jms.BytesMessage;
 import jakarta.jms.Destination;
 import jakarta.jms.JMSException;
 import jakarta.jms.Message;
 import jakarta.jms.Session;
 import jakarta.jms.TextMessage;
+import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.nifi.logging.ComponentLog;
+import org.springframework.jms.connection.CachingConnectionFactory;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.support.JmsHeaders;
+
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;

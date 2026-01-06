@@ -21,7 +21,6 @@ import org.apache.nifi.context.PropertyContext;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 
-
 /**
  * Supports AWS Default Credentials.  Compared to ExplicitDefaultCredentialsStrategy, this strategy is always
  * willing to provide primary credentials, regardless of user input.  It is intended to be used as an invisible

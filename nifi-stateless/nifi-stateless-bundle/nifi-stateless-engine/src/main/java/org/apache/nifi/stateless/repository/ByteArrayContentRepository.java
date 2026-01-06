@@ -17,6 +17,13 @@
 
 package org.apache.nifi.stateless.repository;
 
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.ContentRepositoryContext;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.stream.io.StreamUtils;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,12 +37,6 @@ import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.ContentRepositoryContext;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.stream.io.StreamUtils;
 
 public class ByteArrayContentRepository implements ContentRepository {
     private ResourceClaimManager resourceClaimManager;

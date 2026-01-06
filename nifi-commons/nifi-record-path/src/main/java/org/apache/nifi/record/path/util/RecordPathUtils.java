@@ -17,12 +17,12 @@
 
 package org.apache.nifi.record.path.util;
 
-import java.util.Optional;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+
+import java.util.Optional;
 
 public class RecordPathUtils {
 

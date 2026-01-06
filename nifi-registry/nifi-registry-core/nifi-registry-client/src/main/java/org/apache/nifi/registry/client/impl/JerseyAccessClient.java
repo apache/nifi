@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.registry.client.impl;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.Invocation;
+import jakarta.ws.rs.client.WebTarget;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.client.AccessClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
@@ -23,9 +26,6 @@ import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.client.impl.request.BasicAuthRequestConfig;
 import org.apache.nifi.registry.client.impl.request.BearerTokenRequestConfig;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.Invocation;
-import jakarta.ws.rs.client.WebTarget;
 import java.io.IOException;
 import java.util.Map;
 

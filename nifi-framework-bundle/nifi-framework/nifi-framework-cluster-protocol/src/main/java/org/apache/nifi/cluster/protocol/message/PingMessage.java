@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.cluster.protocol.message;
 
-import java.util.Date;
 import jakarta.xml.bind.annotation.XmlRootElement;
+
+import java.util.Date;
 
 /**
  */

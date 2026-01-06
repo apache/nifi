@@ -17,11 +17,7 @@
 
 package org.apache.nifi.minifi.toolkit.configuration.json;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -34,7 +30,10 @@ import org.apache.nifi.minifi.toolkit.configuration.PathOutputStreamFactory;
 import org.apache.nifi.minifi.toolkit.schema.CorePropertiesSchema;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
 
 public class TransformNifiCommandFactory {
 

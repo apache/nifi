@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.remote.protocol;
 
+import org.apache.nifi.remote.exception.ProtocolException;
+
 import java.io.DataInputStream;
 import java.io.IOException;
-
-import org.apache.nifi.remote.exception.ProtocolException;
 
 public class Response {
 

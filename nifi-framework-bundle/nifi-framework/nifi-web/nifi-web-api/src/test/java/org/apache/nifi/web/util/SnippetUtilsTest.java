@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.util;
 
-
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.web.api.dto.DtoFactory;
