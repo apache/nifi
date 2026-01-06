@@ -52,6 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -291,6 +292,30 @@ public class PutSmbFileTest {
         verify(diskShare, times(count)).mkdir(
             any(String.class)
         );
+    }
+
+    @Test
+    public void testBatchCanContinueAfterDirectoryCreationFailure() throws IOException {
+        when(diskShare.folderExists(any())).thenReturn(false);
+        doThrow(new RuntimeException("Access denied")).when(diskShare).mkdir("dir2");
+
+        FlowFile flowFile1 = createFlowFileWithDirectoryAttribute(1, "dir1");
+        FlowFile flowFile2 = createFlowFileWithDirectoryAttribute(2, "dir2");
+        FlowFile flowFile3 = createFlowFileWithDirectoryAttribute(3, "dir3");
+
+        testRunner.setProperty(PutSmbFile.CREATE_DIRS, "true");
+        testRunner.setProperty(PutSmbFile.DIRECTORY, "${directory}");
+        testRunner.enqueue(flowFile1, flowFile2, flowFile3);
+        testRunner.run();
+
+        testRunner.assertTransferCount(PutSmbFile.REL_SUCCESS, 2);
+        testRunner.assertTransferCount(PutSmbFile.REL_FAILURE, 1);
+    }
+
+    private FlowFile createFlowFileWithDirectoryAttribute(long id, String directory) {
+        MockFlowFile flowFile = new MockFlowFile(id);
+        flowFile.putAttributes(Map.of("directory", directory));
+        return flowFile;
     }
 
     @Test
