@@ -136,6 +136,9 @@ public class ControllerFacadeTest {
         expectedDefinition.setArtifact(TEST_ARTIFACT);
         expectedDefinition.setVersion(TEST_VERSION);
         expectedDefinition.setType(TEST_CONNECTOR_TYPE);
+        expectedDefinition.setArtifact(TEST_ARTIFACT);
+        expectedDefinition.setGroup(TEST_GROUP);
+        expectedDefinition.setVersion(TEST_VERSION);
 
         when(runtimeManifestService.getManifestForBundle(TEST_GROUP, TEST_ARTIFACT, TEST_VERSION)).thenReturn(runtimeManifest);
         when(runtimeManifest.getBundles()).thenReturn(List.of(manifestBundle));

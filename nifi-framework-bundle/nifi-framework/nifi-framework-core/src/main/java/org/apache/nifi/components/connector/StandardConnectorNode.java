@@ -665,6 +665,11 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
+    public boolean isValidationPaused() {
+        return !triggerValidation;
+    }
+
+    @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final StepConfiguration configurationOverrides) {
         final List<SecretReference> invalidSecretRefs = new ArrayList<>();
         final List<AssetReference> invalidAssetRefs = new ArrayList<>();
@@ -924,12 +929,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     private void resetValidationState() {
         validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
-
-        if (triggerValidation && validationTrigger != null) {
-            validationTrigger.triggerAsync(this);
-        } else {
-            logger.debug("Reset validation state of {} but will not trigger async validation because trigger has been paused or is null", this);
-        }
+        validationTrigger.triggerAsync(this);
     }
 
     @Override
