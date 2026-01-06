@@ -45,7 +45,11 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
@@ -70,7 +74,7 @@ import java.util.Set;
         + "will be added as properties on the node/edge",
         value = "The variable name to be set", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
         description = "A dynamic property specifying a RecordField Expression identifying field(s) for whose values will be added to the matched node as properties")
-public class EnrichGraphRecord extends  AbstractGraphExecutor {
+public class EnrichGraphRecord extends AbstractGraphExecutor {
 
     private static final AllowableValue NODES = new AllowableValue(
             GraphClientService.NODES_TYPE,
@@ -147,16 +151,16 @@ public class EnrichGraphRecord extends  AbstractGraphExecutor {
     }
 
     public static final Relationship ORIGINAL = new Relationship.Builder().name("original")
-                                                    .description("Original flow files that successfully interacted with " +
-                                                            "graph server.")
-                                                    .build();
+            .description("Original flow files that successfully interacted with " +
+                    "graph server.")
+            .build();
     public static final Relationship FAILURE = new Relationship.Builder().name("failure")
-                                                    .description("Flow files that fail to interact with graph server.")
-                                                    .build();
+            .description("Flow files that fail to interact with graph server.")
+            .build();
     public static final Relationship GRAPH = new Relationship.Builder().name("response")
-                                                    .description("The response object from the graph server.")
-                                                    .autoTerminateDefault(true)
-                                                    .build();
+            .description("The response object from the graph server.")
+            .autoTerminateDefault(true)
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CLIENT_SERVICE,
@@ -210,7 +214,7 @@ public class EnrichGraphRecord extends  AbstractGraphExecutor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         FlowFile input = session.get();
-        if ( input == null ) {
+        if (input == null) {
             return;
         }
 
@@ -221,12 +225,12 @@ public class EnrichGraphRecord extends  AbstractGraphExecutor {
                 .keySet().stream()
                 .filter(PropertyDescriptor::isDynamic)
                 .forEach(it ->
-                    dynamic.put(it.getName(), recordPathCache.getCompiled(
-                                    context
-                                    .getProperty(it.getName())
-                                    .evaluateAttributeExpressions(finalInput)
-                                    .getValue()))
-                );
+                        dynamic.put(it.getName(), recordPathCache.getCompiled(
+                                context
+                                        .getProperty(it.getName())
+                                        .evaluateAttributeExpressions(finalInput)
+                                        .getValue()))
+            );
 
         long delta;
         FlowFile failedRecords = session.create(input);
@@ -261,29 +265,49 @@ public class EnrichGraphRecord extends  AbstractGraphExecutor {
                             }
                             final List<FieldValue> propertyValues = getRecordValue(record, recordPathCache.getCompiled("/" + fieldName));
                             // Use the first value if multiple are found
-                            if (propertyValues == null || propertyValues.isEmpty() || propertyValues.get(0).getValue() == null) {
-                                throw new IOException("Dynamic property field(s) not found in record (check the RecordPath Expression), sending this record to failure");
+                            if (propertyValues == null || propertyValues.isEmpty() || propertyValues.getFirst().getValue() == null) {
+                                continue;
                             }
 
-                            dynamicPropertyMap.put(fieldName, propertyValues.get(0).getValue());
+                            Object rawValue = propertyValues.getFirst().getValue();
+                            DataType rawDataType = propertyValues.getFirst().getField().getDataType();
+                            RecordFieldType rawValueType = rawDataType.getFieldType();
+                            // Change MapRecords to Maps recursively as needed
+                            if (RecordFieldType.ARRAY.equals(rawValueType)) {
+                                DataType arrayElementType = ((ArrayDataType) rawDataType).getElementType();
+                                if (RecordFieldType.RECORD.getDataType().equals(arrayElementType)) {
+                                    Object[] rawValueArray = (Object[]) rawValue;
+                                    Object[] mappedValueArray = new Object[rawValueArray.length];
+                                    for (int i = 0; i < rawValueArray.length; i++) {
+                                        MapRecord mapRecord = (MapRecord) rawValueArray[i];
+                                        mappedValueArray[i] = mapRecord.toMap(true);
+                                    }
+                                    dynamicPropertyMap.put(fieldName, mappedValueArray);
+                                }
+                            } else if (RecordFieldType.RECORD.equals(rawValueType)) {
+                                MapRecord mapRecord = (MapRecord) rawValue;
+                                dynamicPropertyMap.put(fieldName, mapRecord.toMap(true));
+                            } else {
+                                dynamicPropertyMap.put(fieldName, rawValue);
+                            }
                         }
                     } else {
-                        for (String entry : dynamic.keySet()) {
+                        for (String entry : keySet) {
                             if (!dynamicPropertyMap.containsKey(entry)) {
                                 final List<FieldValue> propertyValues = getRecordValue(record, dynamic.get(entry));
                                 // Use the first value if multiple are found
-                                if (propertyValues == null || propertyValues.isEmpty() || propertyValues.get(0).getValue() == null) {
+                                if (propertyValues == null || propertyValues.isEmpty() || propertyValues.getFirst().getValue() == null) {
                                     throw new IOException("Dynamic property field(s) not found in record (check the RecordPath Expression), sending this record to failure");
                                 }
 
-                                dynamicPropertyMap.put(entry, propertyValues.get(0).getValue());
+                                dynamicPropertyMap.put(entry, propertyValues.getFirst().getValue());
                             }
                         }
                     }
 
                     final String nodeType = context.getProperty(NODE_TYPE).evaluateAttributeExpressions(input).getValue();
                     List<Tuple<String, String>> identifiersAndValues = new ArrayList<>(identifierValues.size());
-                    for (FieldValue fieldValue: identifierValues) {
+                    for (FieldValue fieldValue : identifierValues) {
                         if (fieldValue.getValue() == null) {
                             throw new IOException(String.format("Identifier field '%s' is null for record at index %d, sending this record to failure", identifierField, records));
                         }
