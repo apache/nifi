@@ -5257,6 +5257,7 @@ public final class DtoFactory {
         dto.setValidationStatus(validationState.getStatus().name());
         dto.setValidationErrors(convertValidationErrors(validationState.getValidationErrors()));
         dto.setType(connector.getCanonicalClassName());
+        dto.setExtensionMissing(connector.isExtensionMissing());
 
         dto.setBundle(createBundleDto(connector.getBundleCoordinate()));
         dto.setState(connector.getCurrentState().name());
