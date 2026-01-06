@@ -432,6 +432,7 @@ public class MapRecord implements Record {
                     valueToAdd = ((MapRecord) value).toMap(true);
                 } else if (value != null
                         && value.getClass().isArray()
+                        && ((Object[]) value).length > 0
                         && ((Object[]) value)[0] instanceof MapRecord) {
                     Object[] records = (Object[]) value;
                     Map<String, Object>[] maps = new Map[records.length];
