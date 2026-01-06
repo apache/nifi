@@ -97,6 +97,7 @@ public class TestConnectorResource {
     private static final String CONFIGURATION_STEP_NAME = "test-step";
     private static final String PROPERTY_GROUP_NAME = "test-group";
     private static final String PROPERTY_NAME = "test-property";
+    private static final String PROCESS_GROUP_ID = "test-process-group-id";
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -362,40 +363,25 @@ public class TestConnectorResource {
     @Test
     public void testGetFlow() {
         final ProcessGroupFlowEntity responseEntity = createProcessGroupFlowEntity();
-        when(serviceFacade.getConnectorFlow(CONNECTOR_ID, null, false)).thenReturn(responseEntity);
+        when(serviceFacade.getConnectorFlow(CONNECTOR_ID, PROCESS_GROUP_ID, false)).thenReturn(responseEntity);
 
-        try (Response response = connectorResource.getFlow(CONNECTOR_ID, null, false)) {
+        try (Response response = connectorResource.getFlow(CONNECTOR_ID, PROCESS_GROUP_ID, false)) {
             assertEquals(200, response.getStatus());
             assertEquals(responseEntity, response.getEntity());
         }
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnectorFlow(CONNECTOR_ID, null, false);
-    }
-
-    @Test
-    public void testGetFlowWithProcessGroupId() {
-        final String childProcessGroupId = "child-process-group-id";
-        final ProcessGroupFlowEntity responseEntity = createProcessGroupFlowEntity();
-        when(serviceFacade.getConnectorFlow(CONNECTOR_ID, childProcessGroupId, false)).thenReturn(responseEntity);
-
-        try (Response response = connectorResource.getFlow(CONNECTOR_ID, childProcessGroupId, false)) {
-            assertEquals(200, response.getStatus());
-            assertEquals(responseEntity, response.getEntity());
-        }
-
-        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade).getConnectorFlow(CONNECTOR_ID, childProcessGroupId, false);
+        verify(serviceFacade).getConnectorFlow(CONNECTOR_ID, PROCESS_GROUP_ID, false);
     }
 
     @Test
     public void testGetFlowNotAuthorized() {
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
 
-        assertThrows(AccessDeniedException.class, () -> connectorResource.getFlow(CONNECTOR_ID, null, false));
+        assertThrows(AccessDeniedException.class, () -> connectorResource.getFlow(CONNECTOR_ID, PROCESS_GROUP_ID, false));
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
-        verify(serviceFacade, never()).getConnectorFlow(anyString(), any(), eq(false));
+        verify(serviceFacade, never()).getConnectorFlow(anyString(), anyString(), eq(false));
     }
 
     private ConnectorEntity createConnectorEntity() {

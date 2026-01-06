@@ -3692,17 +3692,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ProcessGroupFlowEntity getConnectorFlow(final String connectorId, final String processGroupId, final boolean uiOnly) {
         final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
         final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
-
-        final ProcessGroup targetProcessGroup;
-        if (processGroupId == null || processGroupId.isBlank()) {
-            targetProcessGroup = managedProcessGroup;
-        } else {
-            targetProcessGroup = managedProcessGroup.findProcessGroup(processGroupId);
-            if (targetProcessGroup == null) {
-                throw new ResourceNotFoundException("Process Group with ID " + processGroupId + " was not found within Connector " + connectorId);
-            }
+        final ProcessGroup targetProcessGroup = managedProcessGroup.findProcessGroup(processGroupId);
+        if (targetProcessGroup == null) {
+            throw new ResourceNotFoundException("Process Group with ID " + processGroupId + " was not found within Connector " + connectorId);
         }
-
         return createProcessGroupFlowEntity(targetProcessGroup, uiOnly);
     }
 
