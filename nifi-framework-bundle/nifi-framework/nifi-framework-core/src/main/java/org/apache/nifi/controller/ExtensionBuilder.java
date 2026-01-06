@@ -19,11 +19,11 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
-import org.apache.nifi.annotation.behavior.SupportsBatching;
-import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -33,9 +33,9 @@ import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorDetails;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
-import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.ConnectorStateTransition;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowContextFactory;
 import org.apache.nifi.components.connector.FrameworkConnectorInitializationContext;
@@ -483,30 +483,6 @@ public class ExtensionBuilder {
        requireNonNull(extensionManager, "Extension Manager");
        requireNonNull(managedProcessGroup, "Managed Process Group");
 
-       boolean creationSuccessful = true;
-       Connector connector;
-
-       try {
-           connector = createConnector();
-       } catch (final Exception e) {
-           logger.error("Could not create Connector of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage(), e);
-           connector = new GhostConnector(identifier, type);
-           creationSuccessful = false;
-       }
-
-       final String componentType;
-       if (creationSuccessful) {
-           componentType = connector.getClass().getSimpleName();
-       } else {
-           final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
-           componentType = "(Missing) " + simpleClassName;
-       }
-
-       final ComponentLog logger = new SimpleProcessLogger(identifier, connector, new StandardLoggingContext());
-       final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, logger);
-
-       final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, logger);
-
        final Authorizable connectorsAuthorizable = new Authorizable() {
            @Override
            public Authorizable getParentAuthorizable() {
@@ -519,6 +495,18 @@ public class ExtensionBuilder {
            }
        };
 
+       final Connector connector;
+       try {
+           connector = createConnector();
+       } catch (final Exception e) {
+           logger.error("Could not create Connector of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage(), e);
+           return createGhostConnectorNode(connectorsAuthorizable);
+       }
+
+       final String componentType = connector.getClass().getSimpleName();
+       final ComponentLog componentLog = new SimpleProcessLogger(identifier, connector, new StandardLoggingContext());
+       final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
+
        final ConnectorNode connectorNode = new StandardConnectorNode(
            identifier,
            flowController.getFlowManager(),
@@ -530,14 +518,44 @@ public class ExtensionBuilder {
            activeConfigurationContext,
            connectorStateTransition,
            flowContextFactory,
-           connectorValidationTrigger
+           connectorValidationTrigger,
+           false
        );
 
-       initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
-       // TODO: If an Exception is thrown in the call to #initialize, we should create a Ghosted Connector
-       connectorNode.initializeConnector(initContext);
+       try {
+           initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
+
+           final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);
+           connectorNode.initializeConnector(initContext);
+       } catch (final Exception e) {
+           logger.error("Could not initialize Connector of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage(), e);
+           return createGhostConnectorNode(connectorsAuthorizable);
+       }
 
        return connectorNode;
+   }
+
+   private ConnectorNode createGhostConnectorNode(final Authorizable connectorsAuthorizable) {
+       final GhostConnector ghostConnector = new GhostConnector(identifier, type);
+       final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
+       final String componentType = "(Missing) " + simpleClassName;
+       final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, new StandardLoggingContext());
+       final ConnectorDetails connectorDetails = new ConnectorDetails(ghostConnector, bundleCoordinate, componentLog);
+
+       return new StandardConnectorNode(
+           identifier,
+           flowController.getFlowManager(),
+           extensionManager,
+           connectorsAuthorizable,
+           connectorDetails,
+           componentType,
+           type,
+           activeConfigurationContext,
+           connectorStateTransition,
+           flowContextFactory,
+           connectorValidationTrigger,
+           true
+       );
    }
 
     private void initializeDefaultValues(final Connector connector, final FrameworkFlowContext flowContext) {
