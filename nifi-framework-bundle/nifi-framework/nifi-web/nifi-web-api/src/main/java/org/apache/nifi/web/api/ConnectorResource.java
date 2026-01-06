@@ -1351,6 +1351,7 @@ public class ConnectorResource extends ApplicationResource {
      * Retrieves the flow for the process group managed by the specified connector.
      *
      * @param id The id of the connector
+     * @param processGroupId Optional process group id to retrieve a specific child process group
      * @param uiOnly Whether to return only UI-specific fields
      * @return A processGroupFlowEntity
      */
@@ -1371,7 +1372,8 @@ public class ConnectorResource extends ApplicationResource {
             security = {
                     @SecurityRequirement(name = "Read - /connectors/{uuid}")
             },
-            description = "Returns the flow for the process group managed by the specified connector. If the uiOnly query parameter is " +
+            description = "Returns the flow for the process group managed by the specified connector. If a processGroupId is provided, " +
+                    "the flow for that specific process group within the connector's hierarchy will be returned. If the uiOnly query parameter is " +
                     "provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User " +
                     "Interface. As such, the selected fields may change at any time, even during incremental releases, without warning. " +
                     "As a result, this parameter should not be provided by any client other than the UI."
@@ -1382,6 +1384,10 @@ public class ConnectorResource extends ApplicationResource {
                     required = true
             )
             @PathParam("id") final String id,
+            @Parameter(
+                    description = "The process group id. If not specified, returns the root process group of the connector."
+            )
+            @QueryParam("processGroupId") final String processGroupId,
             @Parameter(
                     description = "Whether to return only UI-specific fields"
             )
@@ -1397,8 +1403,8 @@ public class ConnectorResource extends ApplicationResource {
             connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
-        // get the flow for the connector's managed process group
-        final ProcessGroupFlowEntity entity = serviceFacade.getConnectorFlow(id, uiOnly);
+        // get the flow for the connector's managed process group (or a specific child process group if processGroupId is provided)
+        final ProcessGroupFlowEntity entity = serviceFacade.getConnectorFlow(id, processGroupId, uiOnly);
         flowResource.populateRemainingFlowContent(entity.getProcessGroupFlow());
         return generateOkResponse(entity).build();
     }
