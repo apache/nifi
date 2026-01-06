@@ -26,11 +26,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 @DisabledOnOs(OS.WINDOWS) //The pretty printed json comparisons don't work on windows
 public class TestJoltTransformRecordUniform extends TestBaseJoltTransformRecord {
 
@@ -51,11 +46,11 @@ public class TestJoltTransformRecordUniform extends TestBaseJoltTransformRecord 
         runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
         runner.enableControllerService(writer);
 
-        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/flattenSpec.json"));
+        final String flattenSpec = getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenSpec.json");
         runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
         runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CHAINR);
 
-        final String inputJson = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/input.json"));
+        final String inputJson = getExpectedContent("src/test/resources/TestJoltTransformRecord/input.json");
         runner.enqueue(inputJson);
 
         runner.run();
@@ -64,6 +59,6 @@ public class TestJoltTransformRecordUniform extends TestBaseJoltTransformRecord 
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
 
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        assertEquals(Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/flattenedOutput.json")), new String(transformed.toByteArray()));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutput.json"));
     }
 }

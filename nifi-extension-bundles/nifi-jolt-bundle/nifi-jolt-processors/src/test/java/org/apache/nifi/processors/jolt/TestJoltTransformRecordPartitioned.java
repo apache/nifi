@@ -22,6 +22,7 @@ import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.inference.SchemaInferenceUtil;
+import org.apache.nifi.util.MockFlowFile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -29,8 +30,6 @@ import org.junit.jupiter.api.condition.OS;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @DisabledOnOs(OS.WINDOWS) //The pretty printed json comparisons don't work on windows
 public class TestJoltTransformRecordPartitioned extends TestBaseJoltTransformRecord {
@@ -64,20 +63,20 @@ public class TestJoltTransformRecordPartitioned extends TestBaseJoltTransformRec
         runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 2);
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
 
-        final String expectedOutput1 = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput1.json"));
-        final String expectedOutput2 = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput2.json"));
+        final String expectedOutput1 = getExpectedContent("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput1.json");
+        final String expectedOutput2 = getExpectedContent("src/test/resources/TestJoltTransformRecord/multipleSchemasOutput2.json");
 
-        final java.util.List<org.apache.nifi.util.MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS);
-        final String result1 = new String(flowFiles.get(0).toByteArray());
-        final String result2 = new String(flowFiles.get(1).toByteArray());
+        final java.util.List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS);
+        final MockFlowFile result1 = flowFiles.get(0);
+        final MockFlowFile result2 = flowFiles.get(1);
 
         // Handles non-deterministic order
-        if (result1.contains("TRASH")) {
-            assertEquals(expectedOutput1, result1);
-            assertEquals(expectedOutput2, result2);
+        if (result1.getContent().contains("TRASH")) {
+            result1.assertContentEquals(expectedOutput1);
+            result2.assertContentEquals(expectedOutput2);
         } else {
-            assertEquals(expectedOutput2, result1);
-            assertEquals(expectedOutput1, result2);
+            result1.assertContentEquals(expectedOutput2);
+            result2.assertContentEquals(expectedOutput1);
         }
     }
 }
