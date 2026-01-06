@@ -5264,10 +5264,7 @@ public final class DtoFactory {
         dto.setState(connector.getCurrentState().name());
 
         final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();
-        if (activeFlowContext != null && activeFlowContext.getManagedProcessGroup() != null) {
-            dto.setManagedProcessGroupId(activeFlowContext.getManagedProcessGroup().getIdentifier());
-        }
-
+        dto.setManagedProcessGroupId(activeFlowContext.getManagedProcessGroup().getIdentifier());
         dto.setActiveConfiguration(createConnectorConfigurationDtoFromFlowContext(connector, activeFlowContext));
         dto.setWorkingConfiguration(createConnectorConfigurationDtoFromFlowContext(connector, connector.getWorkingFlowContext()));
 
