@@ -63,6 +63,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -120,6 +121,21 @@ public abstract class AbstractFlowManager implements FlowManager {
     @Override
     public ProcessGroup getGroup(final String id) {
         return allProcessGroups.get(requireNonNull(id));
+    }
+
+    @Override
+    public ProcessGroup getGroup(final String groupId, final String connectorId) {
+        final ProcessGroup group = allProcessGroups.get(requireNonNull(groupId));
+        if (group == null) {
+            return null;
+        }
+
+        // If we found the group, return it only if it has the correct connector ID
+        if (Objects.equals(group.getConnectorIdentifier().orElse(null), connectorId)) {
+            return group;
+        }
+
+        return null;
     }
 
     @Override
