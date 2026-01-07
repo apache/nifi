@@ -30,6 +30,7 @@ public class ConnectorDTO extends ComponentDTO {
     private String type;
     private BundleDTO bundle;
     private String state; // RUNNING, STOPPED, DISABLED
+    private String managedProcessGroupId;
     private ConnectorConfigurationDTO activeConfiguration;
     private ConnectorConfigurationDTO workingConfiguration;
 
@@ -74,6 +75,15 @@ public class ConnectorDTO extends ComponentDTO {
 
     public void setState(final String state) {
         this.state = state;
+    }
+
+    @Schema(description = "The identifier of the root Process Group managed by this Connector.")
+    public String getManagedProcessGroupId() {
+        return managedProcessGroupId;
+    }
+
+    public void setManagedProcessGroupId(final String managedProcessGroupId) {
+        this.managedProcessGroupId = managedProcessGroupId;
     }
 
     @Schema(description = "The active configuration of the Connector.")
