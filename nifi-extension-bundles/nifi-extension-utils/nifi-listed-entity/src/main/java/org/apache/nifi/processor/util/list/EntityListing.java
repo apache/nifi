@@ -17,11 +17,11 @@
 
 package org.apache.nifi.processor.util.list;
 
-import java.util.Collection;
-import java.util.Date;
-
 import jakarta.xml.bind.annotation.XmlTransient;
 import jakarta.xml.bind.annotation.XmlType;
+
+import java.util.Collection;
+import java.util.Date;
 
 /**
  * A simple POJO for maintaining state about the last entities listed by an AbstractListProcessor that was performed so that

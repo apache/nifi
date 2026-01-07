@@ -17,14 +17,14 @@
 
 package org.apache.nifi.provenance.authorization;
 
+import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.provenance.PlaceholderProvenanceEvent;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.provenance.PlaceholderProvenanceEvent;
-import org.apache.nifi.provenance.ProvenanceEventRecord;
 
 public interface EventAuthorizer {
 

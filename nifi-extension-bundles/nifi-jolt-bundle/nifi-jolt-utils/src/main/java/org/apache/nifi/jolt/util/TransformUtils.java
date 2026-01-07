@@ -23,7 +23,6 @@ import io.joltcommunity.jolt.Transform;
 import java.util.Collections;
 import java.util.Map;
 
-
 public class TransformUtils {
 
     public static Object transform(JoltTransform joltTransform, Object input) {

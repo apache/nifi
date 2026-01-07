@@ -17,11 +17,11 @@
 
 package org.apache.nifi.controller.state.providers;
 
-import java.io.IOException;
-
 import org.apache.nifi.components.AbstractConfigurableComponent;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.state.StateProviderInitializationContext;
+
+import java.io.IOException;
 
 public abstract class AbstractStateProvider extends AbstractConfigurableComponent implements StateProvider {
     private String identifier;

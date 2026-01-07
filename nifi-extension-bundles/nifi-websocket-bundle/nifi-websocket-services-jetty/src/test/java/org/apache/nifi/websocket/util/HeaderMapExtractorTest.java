@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.websocket.util;
 
-import org.junit.jupiter.api.Test;
 import org.apache.nifi.websocket.jetty.util.HeaderMapExtractor;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;

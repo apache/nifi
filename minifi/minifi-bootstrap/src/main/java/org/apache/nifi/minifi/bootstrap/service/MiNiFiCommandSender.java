@@ -18,6 +18,10 @@ package org.apache.nifi.minifi.bootstrap.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
@@ -30,9 +34,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MiNiFiCommandSender {
 

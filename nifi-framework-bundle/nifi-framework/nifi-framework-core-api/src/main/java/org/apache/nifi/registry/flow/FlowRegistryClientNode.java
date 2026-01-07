@@ -19,11 +19,11 @@ package org.apache.nifi.registry.flow;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.LoggableComponent;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.flow.ExternalControllerServiceReference;
 import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 
 import java.io.IOException;

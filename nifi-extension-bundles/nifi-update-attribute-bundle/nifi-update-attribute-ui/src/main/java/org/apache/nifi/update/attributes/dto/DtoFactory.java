@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.update.attributes.dto;
 
+import org.apache.nifi.update.attributes.Action;
+import org.apache.nifi.update.attributes.Condition;
+import org.apache.nifi.update.attributes.Rule;
+
 import java.util.Set;
 import java.util.TreeSet;
-import org.apache.nifi.update.attributes.Condition;
-import org.apache.nifi.update.attributes.Action;
-import org.apache.nifi.update.attributes.Rule;
 
 /**
  *

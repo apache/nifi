@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.cf;
 
+import jakarta.jms.ConnectionFactory;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.behavior.Restriction;
@@ -27,8 +28,6 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
-
-import jakarta.jms.ConnectionFactory;
 import org.apache.nifi.migration.PropertyConfiguration;
 
 import java.util.List;

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop.inotify.util;
 
-
 import org.apache.hadoop.fs.XAttr;
 import org.apache.hadoop.fs.permission.AclEntry;
 import org.apache.hadoop.fs.permission.AclEntryScope;

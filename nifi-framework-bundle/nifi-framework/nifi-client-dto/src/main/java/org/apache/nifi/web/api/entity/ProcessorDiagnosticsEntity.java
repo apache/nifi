@@ -17,11 +17,9 @@
 
 package org.apache.nifi.web.api.entity;
 
-import jakarta.xml.bind.annotation.XmlRootElement;
-
-import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
-
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.diagnostics.ProcessorDiagnosticsDTO;
 
 @XmlRootElement(name = "processorDiagnosticsEntity")
 public class ProcessorDiagnosticsEntity extends ComponentEntity implements Permissible<ProcessorDiagnosticsDTO> {

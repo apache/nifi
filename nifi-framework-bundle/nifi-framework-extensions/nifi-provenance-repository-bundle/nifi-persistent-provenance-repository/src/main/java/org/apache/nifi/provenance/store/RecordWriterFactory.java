@@ -17,11 +17,11 @@
 
 package org.apache.nifi.provenance.store;
 
+import org.apache.nifi.provenance.serialization.RecordWriter;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.nifi.provenance.serialization.RecordWriter;
 
 public interface RecordWriterFactory {
     RecordWriter createWriter(final File file, final AtomicLong idGenerator, final boolean compressed, final boolean createToc) throws IOException;

@@ -17,6 +17,10 @@
 
 package org.apache.nifi.provenance.store.iterator;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.serialization.RecordReader;
+import org.apache.nifi.provenance.store.RecordReaderFactory;
+
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -25,10 +29,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-
-import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.provenance.serialization.RecordReader;
-import org.apache.nifi.provenance.store.RecordReaderFactory;
 
 public class SequentialRecordReaderEventIterator implements EventIterator {
     private final Iterator<File> fileIterator;

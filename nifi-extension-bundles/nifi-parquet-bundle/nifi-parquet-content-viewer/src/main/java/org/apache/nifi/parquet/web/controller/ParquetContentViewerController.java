@@ -28,6 +28,7 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.nifi.authorization.AccessDeniedException;
+import org.apache.nifi.parquet.shared.NifiParquetInputFile;
 import org.apache.nifi.web.ContentAccess;
 import org.apache.nifi.web.ContentRequestContext;
 import org.apache.nifi.web.DownloadableContent;
@@ -36,9 +37,9 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.io.InputFile;
-import org.apache.nifi.parquet.shared.NifiParquetInputFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;

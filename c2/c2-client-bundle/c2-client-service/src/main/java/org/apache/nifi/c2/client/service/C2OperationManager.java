@@ -17,18 +17,6 @@
 
 package org.apache.nifi.c2.client.service;
 
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
-import static java.util.function.Predicate.not;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
-import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.nifi.c2.client.api.C2Client;
 import org.apache.nifi.c2.client.service.operation.C2OperationHandler;
 import org.apache.nifi.c2.client.service.operation.C2OperationHandlerProvider;
@@ -41,6 +29,19 @@ import org.apache.nifi.c2.protocol.api.C2OperationState;
 import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.locks.ReentrantLock;
+
+import static java.util.Optional.of;
+import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
+import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 
 public class C2OperationManager implements Runnable {
 

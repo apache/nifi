@@ -1,4 +1,4 @@
-package org.apache.nifi.py4j.logback; /*
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -14,12 +14,13 @@ package org.apache.nifi.py4j.logback; /*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.py4j.logback;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
+import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.py4j.logging.LogLevelChangeListener;
 import org.apache.nifi.py4j.logging.StandardLogLevelChangeHandler;
-import org.apache.nifi.logging.LogLevel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

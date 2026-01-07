@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.hl7.query.result;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.apache.nifi.hl7.query.QueryResult;
 import org.apache.nifi.hl7.query.ResultHit;
 import org.apache.nifi.hl7.query.Selection;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MissedResult implements QueryResult {
 

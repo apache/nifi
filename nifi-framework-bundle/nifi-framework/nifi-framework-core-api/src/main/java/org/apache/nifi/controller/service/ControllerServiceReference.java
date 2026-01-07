@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.controller.service;
 
+import org.apache.nifi.controller.ComponentNode;
+
 import java.util.List;
 import java.util.Set;
-
-import org.apache.nifi.controller.ComponentNode;
 
 /**
  * Provides a collection of components that are referencing a Controller Service

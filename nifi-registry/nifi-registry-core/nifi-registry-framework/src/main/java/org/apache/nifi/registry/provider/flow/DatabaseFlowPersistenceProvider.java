@@ -24,9 +24,9 @@ import org.apache.nifi.registry.provider.ProviderContext;
 import org.apache.nifi.registry.provider.ProviderCreationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.List;
+import javax.sql.DataSource;
 
 /**
  * A FlowPersistenceProvider that uses a database table for storage. The intent is to use the same database as the rest

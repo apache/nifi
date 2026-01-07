@@ -17,10 +17,10 @@
 package org.apache.nifi.web.api.dto.provenance;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
-
 import jakarta.xml.bind.annotation.XmlType;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import org.apache.nifi.web.api.dto.util.DateTimeAdapter;
+
 import java.util.Date;
 import java.util.Map;
 

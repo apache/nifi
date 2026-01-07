@@ -17,23 +17,6 @@
 
 package org.apache.nifi.minifi.bootstrap.configuration.ingestors;
 
-import static java.nio.ByteBuffer.wrap;
-import static java.util.Optional.ofNullable;
-import static java.util.function.Predicate.not;
-import static org.apache.commons.io.IOUtils.toByteArray;
-import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
-import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
-
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UncheckedIOException;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.security.KeyStore;
-import java.util.Map;
-import java.util.function.Supplier;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.jetty.configuration.connector.StandardServerConnectorFactory;
 import org.apache.nifi.minifi.bootstrap.ConfigurationFileHolder;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeNotifier;
@@ -59,6 +42,23 @@ import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UncheckedIOException;
+import java.net.URI;
+import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import java.util.Map;
+import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
+
+import static java.nio.ByteBuffer.wrap;
+import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static org.apache.commons.io.IOUtils.toByteArray;
+import static org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator.NOTIFIER_INGESTORS_KEY;
+import static org.apache.nifi.minifi.bootstrap.configuration.differentiators.WholeConfigDifferentiator.WHOLE_CONFIG_KEY;
 
 public class RestChangeIngestor implements ChangeIngestor {
 

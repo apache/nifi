@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.jms.cf;
 
-import org.apache.nifi.logging.ComponentLog;
-
 import jakarta.jms.ConnectionFactory;
+import org.apache.nifi.logging.ComponentLog;
 
 public abstract class CachedJMSConnectionFactoryHandler implements JMSConnectionFactoryHandlerDefinition {
 

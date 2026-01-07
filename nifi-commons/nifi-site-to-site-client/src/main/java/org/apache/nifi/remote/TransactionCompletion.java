@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.remote.protocol.DataPacket;
+
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.remote.protocol.DataPacket;
 
 /**
  * A TransactionCompletion provides information about a {@link Transaction} that

@@ -17,14 +17,14 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
+import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
+import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
+import org.apache.nifi.minifi.bootstrap.service.MiNiFiStatusProvider;
+
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RESPONDING;
 import static org.apache.nifi.minifi.bootstrap.Status.MINIFI_NOT_RUNNING;
 import static org.apache.nifi.minifi.bootstrap.Status.OK;
-
-import org.apache.nifi.minifi.bootstrap.MiNiFiParameters;
-import org.apache.nifi.minifi.bootstrap.MiNiFiStatus;
-import org.apache.nifi.minifi.bootstrap.service.MiNiFiStatusProvider;
 
 public class StatusRunner implements CommandRunner {
     private final MiNiFiParameters miNiFiParameters;

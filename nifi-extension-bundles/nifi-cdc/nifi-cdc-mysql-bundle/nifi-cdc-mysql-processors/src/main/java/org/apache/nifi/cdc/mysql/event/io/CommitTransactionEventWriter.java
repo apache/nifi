@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.cdc.mysql.event.io;
 
-
 import org.apache.nifi.cdc.event.io.EventWriterConfiguration;
 import org.apache.nifi.cdc.mysql.event.CommitTransactionEventInfo;
 import org.apache.nifi.processor.ProcessSession;

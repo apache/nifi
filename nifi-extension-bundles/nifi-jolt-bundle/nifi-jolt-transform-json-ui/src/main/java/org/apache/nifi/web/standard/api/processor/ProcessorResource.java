@@ -17,13 +17,6 @@
 
 package org.apache.nifi.web.standard.api.processor;
 
-import org.apache.nifi.web.ComponentDetails;
-import org.apache.nifi.web.NiFiWebConfigurationContext;
-import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
-import org.apache.nifi.web.standard.api.AbstractStandardResource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.PUT;
@@ -32,6 +25,13 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.apache.nifi.web.ComponentDetails;
+import org.apache.nifi.web.NiFiWebConfigurationContext;
+import org.apache.nifi.web.NiFiWebConfigurationRequestContext;
+import org.apache.nifi.web.standard.api.AbstractStandardResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Map;
 
 @Path("/standard/processor")

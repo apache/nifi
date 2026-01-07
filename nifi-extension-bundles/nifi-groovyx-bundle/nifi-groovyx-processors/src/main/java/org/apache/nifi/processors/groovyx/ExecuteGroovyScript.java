@@ -18,16 +18,6 @@ package org.apache.nifi.processors.groovyx;
 
 import groovy.lang.GroovyShell;
 import groovy.lang.Script;
-import java.io.File;
-import java.lang.reflect.Method;
-import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
-import java.time.Duration;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -65,6 +55,17 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.codehaus.groovy.runtime.StackTraceUtils;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.time.Duration;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @Tags({"script", "groovy", "groovyx"})

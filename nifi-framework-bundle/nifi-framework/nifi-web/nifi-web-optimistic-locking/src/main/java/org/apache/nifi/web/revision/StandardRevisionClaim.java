@@ -17,11 +17,11 @@
 
 package org.apache.nifi.web.revision;
 
+import org.apache.nifi.web.Revision;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-
-import org.apache.nifi.web.Revision;
 
 public class StandardRevisionClaim implements RevisionClaim {
     private final Set<Revision> revisions;

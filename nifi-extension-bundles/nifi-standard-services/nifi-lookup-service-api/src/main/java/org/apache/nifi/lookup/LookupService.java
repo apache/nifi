@@ -17,11 +17,11 @@
 
 package org.apache.nifi.lookup;
 
+import org.apache.nifi.controller.ControllerService;
+
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.apache.nifi.controller.ControllerService;
 
 public interface LookupService<T> extends ControllerService {
 

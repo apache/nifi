@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.kubernetes.state.provider;
 
+import org.apache.nifi.components.state.StateMap;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.nifi.components.state.StateMap;
 
 /**
  * Standard implementation of StateMap

@@ -17,9 +17,8 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
-
 import jakarta.xml.bind.annotation.XmlRootElement;
+import org.apache.nifi.web.api.dto.ParameterProviderApplyParametersRequestDTO;
 
 @XmlRootElement(name = "parameterProviderApplyParametersRequestEntity")
 public class ParameterProviderApplyParametersRequestEntity extends Entity {

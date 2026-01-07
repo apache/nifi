@@ -24,7 +24,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
-
 /**
  * Dummy processor to test @DefaultSchedule annotation
  */

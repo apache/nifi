@@ -43,7 +43,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 
-import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
@@ -51,6 +50,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import javax.net.ssl.SSLContext;
 
 public abstract class AbstractMongoProcessor extends AbstractProcessor {
     public static final String ATTRIBUTE_MONGODB_UPDATE_MODE = "mongodb.update.mode";

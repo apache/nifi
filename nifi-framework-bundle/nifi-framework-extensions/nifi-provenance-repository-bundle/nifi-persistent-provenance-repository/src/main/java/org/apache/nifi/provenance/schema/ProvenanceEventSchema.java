@@ -17,6 +17,12 @@
 
 package org.apache.nifi.provenance.schema;
 
+import org.apache.nifi.repository.schema.RecordField;
+import org.apache.nifi.repository.schema.RecordSchema;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.apache.nifi.provenance.schema.EventRecordFields.ALTERNATE_IDENTIFIER;
 import static org.apache.nifi.provenance.schema.EventRecordFields.CHILD_UUIDS;
 import static org.apache.nifi.provenance.schema.EventRecordFields.COMPONENT_ID;
@@ -38,12 +44,6 @@ import static org.apache.nifi.provenance.schema.EventRecordFields.SOURCE_QUEUE_I
 import static org.apache.nifi.provenance.schema.EventRecordFields.SOURCE_SYSTEM_FLOWFILE_IDENTIFIER;
 import static org.apache.nifi.provenance.schema.EventRecordFields.TRANSIT_URI;
 import static org.apache.nifi.provenance.schema.EventRecordFields.UPDATED_ATTRIBUTES;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.nifi.repository.schema.RecordField;
-import org.apache.nifi.repository.schema.RecordSchema;
 
 public class ProvenanceEventSchema {
     public static final RecordSchema PROVENANCE_EVENT_SCHEMA_V1 = buildSchemaV1(true);

@@ -16,14 +16,14 @@
  */
 package org.apache.nifi.provenance.serialization;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.provenance.ByteArraySchemaRecordWriter;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class RecordWriters {
     private static final int DEFAULT_COMPRESSION_BLOCK_SIZE = 1024 * 1024; // 1 MB

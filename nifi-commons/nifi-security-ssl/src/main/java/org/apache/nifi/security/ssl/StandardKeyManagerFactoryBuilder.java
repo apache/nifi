@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.security.ssl;
 
-import javax.net.ssl.KeyManagerFactory;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
+import javax.net.ssl.KeyManagerFactory;
 
 /**
  * Standard implementation of Key Manager Factory Builder

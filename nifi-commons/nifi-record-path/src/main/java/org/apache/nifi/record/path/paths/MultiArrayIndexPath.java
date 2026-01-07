@@ -17,10 +17,6 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.ArrayIndexFieldValue;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.NumericRange;
@@ -30,6 +26,10 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 
 public class MultiArrayIndexPath extends RecordPathSegment {
     private final List<NumericRange> indices;

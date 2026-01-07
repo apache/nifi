@@ -17,10 +17,9 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.dto.WritablePermission;
-
-import jakarta.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "parameterEntity")
 public class ParameterEntity extends Entity implements WritablePermission {

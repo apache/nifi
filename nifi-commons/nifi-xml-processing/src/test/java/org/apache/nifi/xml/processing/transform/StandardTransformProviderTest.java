@@ -21,12 +21,12 @@ import org.apache.nifi.xml.processing.ResourceProvider;
 import org.junit.jupiter.api.Test;
 import org.w3c.dom.Node;
 
+import java.io.IOException;
+import java.io.InputStream;
 import javax.xml.transform.Source;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.dom.DOMResult;
 import javax.xml.transform.stream.StreamSource;
-import java.io.IOException;
-import java.io.InputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;

@@ -17,10 +17,10 @@
 
 package org.apache.nifi.repository.schema;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 public class MapRecordField implements RecordField {
     private final String fieldName;

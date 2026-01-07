@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.services.smb;
 
-import java.io.IOException;
-import java.net.URI;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.logging.ComponentLog;
+
+import java.io.IOException;
+import java.net.URI;
 
 public interface SmbClientProviderService extends ControllerService {
 

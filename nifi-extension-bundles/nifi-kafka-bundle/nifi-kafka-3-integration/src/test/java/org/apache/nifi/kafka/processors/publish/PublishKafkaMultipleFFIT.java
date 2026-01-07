@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.kafka.processors.publish;
 
-import org.apache.nifi.kafka.processors.PublishKafka;
 import org.apache.nifi.kafka.processors.AbstractPublishKafkaIT;
+import org.apache.nifi.kafka.processors.PublishKafka;
 import org.apache.nifi.kafka.shared.property.FailureStrategy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;

@@ -17,9 +17,10 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
-import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationState;
+
+import java.util.Optional;
 
 public interface C2OperationRestartHandler {
 

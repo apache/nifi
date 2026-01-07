@@ -17,6 +17,24 @@
 
 package org.apache.nifi.minifi.c2.command.syncresource;
 
+import org.apache.nifi.c2.client.service.operation.SyncResourceStrategy;
+import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
+import org.apache.nifi.c2.protocol.api.ResourceItem;
+import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+
 import static java.nio.file.Files.copy;
 import static java.nio.file.Files.createTempFile;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -30,23 +48,6 @@ import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NO_OPERATION;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.PARTIALLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.ResourceType.ASSET;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import org.apache.nifi.c2.client.service.operation.SyncResourceStrategy;
-import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
-import org.apache.nifi.c2.protocol.api.ResourceItem;
-import org.apache.nifi.c2.protocol.api.ResourcesGlobalHash;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DefaultSyncResourceStrategy implements SyncResourceStrategy {
 

@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.processors.groovyx.sql;
 
-import groovy.sql.Sql;
-import groovy.sql.InParameter;
 import groovy.lang.GString;
+import groovy.sql.InParameter;
+import groovy.sql.Sql;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.Types;
-import java.sql.SQLException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Types;
 
 /***
  * class to simplify work with CLOB, BLOB, DATE, and TIMESTAMP types.

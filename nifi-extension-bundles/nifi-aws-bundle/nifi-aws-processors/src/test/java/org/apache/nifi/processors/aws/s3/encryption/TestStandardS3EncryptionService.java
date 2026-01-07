@@ -38,7 +38,6 @@ import static org.apache.nifi.processors.aws.s3.encryption.S3EncryptionTestUtil.
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-
 public class TestStandardS3EncryptionService {
     private StandardS3EncryptionService service;
     private String strategyName;

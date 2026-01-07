@@ -16,31 +16,10 @@
  */
 package org.apache.nifi.processors.dropbox;
 
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
-
 import com.dropbox.core.DbxDownloader;
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.FileMetadata;
-import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -61,6 +40,28 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+
+import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.FILENAME_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ID_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.PATH_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.REVISION_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.SIZE_DESC;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.TIMESTAMP_DESC;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"dropbox", "storage", "fetch"})

@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.controller.serialization;
 
-import java.io.OutputStream;
-
 import org.apache.nifi.controller.FlowController;
+
+import java.io.OutputStream;
 
 /**
  * Serializes the flow configuration of a controller instance to an output stream.

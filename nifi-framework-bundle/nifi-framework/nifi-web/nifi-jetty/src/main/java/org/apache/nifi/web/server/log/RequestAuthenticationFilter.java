@@ -16,22 +16,22 @@
  */
 package org.apache.nifi.web.server.log;
 
-import org.apache.nifi.web.security.log.AuthenticationUserAttribute;
-import org.eclipse.jetty.server.Request.AuthenticationState;
-import org.eclipse.jetty.security.authentication.LoginAuthenticator;
-import org.eclipse.jetty.security.internal.DefaultUserIdentity;
-import org.eclipse.jetty.security.UserIdentity;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import javax.security.auth.Subject;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.nifi.web.security.log.AuthenticationUserAttribute;
+import org.eclipse.jetty.security.UserIdentity;
+import org.eclipse.jetty.security.authentication.LoginAuthenticator;
+import org.eclipse.jetty.security.internal.DefaultUserIdentity;
+import org.eclipse.jetty.server.Request.AuthenticationState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 import java.security.Principal;
+import javax.security.auth.Subject;
 
 /**
  * Request Authentication Filter sets Jetty Request Authentication using Spring Security Authentication as Principal

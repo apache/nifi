@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.tests.system;
 
-import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -24,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import javax.net.ssl.SSLContext;
 
 public class AggregateNiFiInstance implements NiFiInstance {
     private final List<NiFiInstance> instances;

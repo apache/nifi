@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.util.search;
 
+import org.apache.nifi.util.search.ahocorasick.SearchState;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Set;
-
-import org.apache.nifi.util.search.ahocorasick.SearchState;
 
 /**
  * Defines an interface to search for content given a set of search terms. Any implementation of search must be thread safe.

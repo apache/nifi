@@ -49,8 +49,8 @@ import java.util.function.Function;
 
 import static com.google.protobuf.CodedInputStream.decodeZigZag32;
 import static com.google.protobuf.TextFormat.unsignedToString;
-import static org.apache.nifi.services.protobuf.FieldType.STRING;
 import static org.apache.nifi.services.protobuf.FieldType.BYTES;
+import static org.apache.nifi.services.protobuf.FieldType.STRING;
 
 /**
  * The class is responsible for creating Record by mapping the provided proto schema fields with the list of Unknown fields parsed from encoded proto data.

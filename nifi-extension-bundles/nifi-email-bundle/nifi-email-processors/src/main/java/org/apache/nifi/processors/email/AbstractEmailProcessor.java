@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.processors.email;
 
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
@@ -40,9 +43,6 @@ import org.springframework.integration.context.IntegrationContextUtils;
 import org.springframework.integration.mail.inbound.AbstractMailReceiver;
 import org.springframework.scheduling.concurrent.ConcurrentTaskScheduler;
 
-import jakarta.mail.Address;
-import jakarta.mail.Message;
-import jakarta.mail.MessagingException;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

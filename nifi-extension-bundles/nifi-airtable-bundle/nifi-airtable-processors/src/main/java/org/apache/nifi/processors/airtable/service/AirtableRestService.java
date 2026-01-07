@@ -17,6 +17,13 @@
 
 package org.apache.nifi.processors.airtable.service;
 
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.Range;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.web.client.api.HttpResponseEntity;
+import org.apache.nifi.web.client.api.HttpUriBuilder;
+import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -24,12 +31,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.Range;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.web.client.api.HttpResponseEntity;
-import org.apache.nifi.web.client.api.HttpUriBuilder;
-import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
 
 public class AirtableRestService {
 

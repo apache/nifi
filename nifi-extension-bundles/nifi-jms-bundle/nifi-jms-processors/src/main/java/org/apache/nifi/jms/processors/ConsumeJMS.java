@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
+import jakarta.jms.Session;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -53,7 +54,6 @@ import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
 
-import jakarta.jms.Session;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;

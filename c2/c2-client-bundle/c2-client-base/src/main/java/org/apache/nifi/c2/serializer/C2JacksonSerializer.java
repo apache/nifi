@@ -17,19 +17,20 @@
 
 package org.apache.nifi.c2.serializer;
 
-import static java.util.Optional.empty;
-import static java.util.Optional.ofNullable;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import java.util.Optional;
 import org.apache.nifi.c2.protocol.api.OperandType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Optional;
+
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
 
 public class C2JacksonSerializer implements C2Serializer {
 

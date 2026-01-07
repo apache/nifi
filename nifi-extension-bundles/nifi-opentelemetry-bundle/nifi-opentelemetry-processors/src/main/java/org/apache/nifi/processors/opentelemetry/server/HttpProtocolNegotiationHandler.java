@@ -35,8 +35,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.opentelemetry.io.RequestContentListener;
 import org.apache.nifi.processors.opentelemetry.io.StandardRequestContentListener;
 
-import javax.net.ssl.SSLEngine;
 import java.util.concurrent.BlockingQueue;
+import javax.net.ssl.SSLEngine;
 
 /**
  * HTTP Protocol Negotiation Handler configures Channel Pipeline based on HTTP/2 or HTTP/1.1

@@ -22,12 +22,12 @@ import py4j.GatewayServer;
 import py4j.Py4JServerConnection;
 import py4j.commands.Command;
 
-import javax.net.ServerSocketFactory;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.Collections;
 import java.util.List;
+import javax.net.ServerSocketFactory;
 
 /**
  * A custom implementation of the GatewayServer that makes more sense for NiFi's use case.

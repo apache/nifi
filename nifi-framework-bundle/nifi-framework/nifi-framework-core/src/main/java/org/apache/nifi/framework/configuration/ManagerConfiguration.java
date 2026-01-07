@@ -34,11 +34,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Optional;
 import java.util.Set;
+import javax.net.ssl.SSLContext;
 
 import static org.apache.nifi.util.NiFiProperties.CLUSTER_LEADER_ELECTION_IMPLEMENTATION;
 import static org.apache.nifi.util.NiFiProperties.DEFAULT_CLUSTER_LEADER_ELECTION_IMPLEMENTATION;

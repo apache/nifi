@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.client.impl;
 
+import jakarta.ws.rs.client.WebTarget;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.client.BundleClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
@@ -23,7 +24,6 @@ import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.extension.bundle.Bundle;
 import org.apache.nifi.registry.extension.bundle.BundleFilterParams;
 
-import jakarta.ws.rs.client.WebTarget;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;

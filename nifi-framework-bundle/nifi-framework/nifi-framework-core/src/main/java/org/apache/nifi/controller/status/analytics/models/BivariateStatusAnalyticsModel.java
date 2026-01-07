@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.controller.status.analytics.models;
 
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
+
 import java.util.Map;
 import java.util.stream.Stream;
 
-import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 /**
  * <p>
  * An abstract class for implementations of {@link StatusAnalyticsModel} which makes bivariate models compatible with analytics interface

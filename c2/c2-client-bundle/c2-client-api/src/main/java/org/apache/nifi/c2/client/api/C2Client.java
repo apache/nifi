@@ -17,13 +17,14 @@
 
 package org.apache.nifi.c2.client.api;
 
+import org.apache.nifi.c2.protocol.api.C2Heartbeat;
+import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
+import org.apache.nifi.c2.protocol.api.C2OperationAck;
+
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.function.Function;
-import org.apache.nifi.c2.protocol.api.C2Heartbeat;
-import org.apache.nifi.c2.protocol.api.C2HeartbeatResponse;
-import org.apache.nifi.c2.protocol.api.C2OperationAck;
 
 /**
  * Defines interface methods used to implement a C2 Client. The controller can be application-specific but is used for such tasks as updating the flow.

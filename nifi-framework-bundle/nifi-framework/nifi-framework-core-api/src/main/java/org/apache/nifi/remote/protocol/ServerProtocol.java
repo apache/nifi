@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.remote.protocol;
 
-import java.io.IOException;
-import java.util.Optional;
-
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -31,6 +28,9 @@ import org.apache.nifi.remote.cluster.NodeInformation;
 import org.apache.nifi.remote.codec.FlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.exception.ProtocolException;
+
+import java.io.IOException;
+import java.util.Optional;
 
 public interface ServerProtocol extends VersionedRemoteResource {
 

@@ -17,8 +17,6 @@
 
 package org.apache.nifi.record.path.paths;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.ArrayIndexFieldValue;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
@@ -27,6 +25,8 @@ import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+
+import java.util.stream.Stream;
 
 public class ArrayIndexPath extends RecordPathSegment {
     private final int index;

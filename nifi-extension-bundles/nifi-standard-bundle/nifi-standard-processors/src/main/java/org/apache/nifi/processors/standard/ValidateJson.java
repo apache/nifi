@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.Error;
@@ -46,19 +47,18 @@ import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.json.schema.JsonSchema;
+import org.apache.nifi.json.schema.SchemaVersion;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.json.schema.JsonSchema;
 import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
-import org.apache.nifi.json.schema.SchemaVersion;
 import org.apache.nifi.schemaregistry.services.JsonSchemaRegistry;
-import org.apache.nifi.processor.DataUnit;
-import com.fasterxml.jackson.core.StreamReadConstraints;
 
 import java.io.IOException;
 import java.io.InputStream;

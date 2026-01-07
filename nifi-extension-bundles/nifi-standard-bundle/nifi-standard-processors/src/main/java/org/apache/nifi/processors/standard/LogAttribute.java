@@ -152,8 +152,6 @@ public class LogAttribute extends AbstractProcessor {
             CHARSET
     );
 
-    public static final String FIFTY_DASHES = "--------------------------------------------------";
-
     public enum DebugLevels {
         trace, debug, info, warn, error
     }

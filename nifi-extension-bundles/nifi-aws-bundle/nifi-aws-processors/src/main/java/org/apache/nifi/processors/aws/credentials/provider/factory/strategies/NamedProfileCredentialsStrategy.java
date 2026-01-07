@@ -21,7 +21,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 
-
 /**
  * Supports AWS Credentials using a named profile configured in the credentials file (typically ~/.aws/credentials).
  *

@@ -17,9 +17,9 @@
 package org.apache.nifi.web;
 
 import jakarta.annotation.Nullable;
+import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.admin.action.ActionConverter;
 import org.apache.nifi.admin.action.ActionToFlowActionConverter;
-import org.apache.nifi.action.FlowActionReporter;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.admin.service.EntityStoreAuditService;
 import org.apache.nifi.framework.configuration.ApplicationPropertiesConfiguration;

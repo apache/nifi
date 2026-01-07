@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.nifi.flowfile.FlowFile;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
-import org.apache.nifi.flowfile.FlowFile;
 
 public class TestUtil {
     public static FlowFile createFlowFile(final long id, final long fileSize, final Map<String, String> attributes) {

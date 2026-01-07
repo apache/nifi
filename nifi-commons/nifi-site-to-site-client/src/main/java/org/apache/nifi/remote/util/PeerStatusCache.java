@@ -16,11 +16,12 @@
  */
 package org.apache.nifi.remote.util;
 
-import java.util.Set;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.nifi.remote.PeerStatus;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+
+import java.util.Set;
 
 public class PeerStatusCache {
 

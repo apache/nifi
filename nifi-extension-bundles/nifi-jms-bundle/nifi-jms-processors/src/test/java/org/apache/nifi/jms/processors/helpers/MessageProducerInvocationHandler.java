@@ -16,15 +16,14 @@
  */
 package org.apache.nifi.jms.processors.helpers;
 
+import jakarta.jms.MessageProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import jakarta.jms.MessageProducer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * {@link MessageProducer} invocation handler.

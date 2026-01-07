@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.registry.client.impl;
 
+import jakarta.ws.rs.client.Entity;
+import jakarta.ws.rs.client.WebTarget;
+import jakarta.ws.rs.core.MediaType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.BucketClient;
@@ -24,9 +27,6 @@ import org.apache.nifi.registry.client.RequestConfig;
 import org.apache.nifi.registry.field.Fields;
 import org.apache.nifi.registry.revision.entity.RevisionInfo;
 
-import jakarta.ws.rs.client.Entity;
-import jakarta.ws.rs.client.WebTarget;
-import jakarta.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;

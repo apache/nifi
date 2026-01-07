@@ -16,17 +16,13 @@
  */
 package org.apache.nifi.processors.iceberg;
 
-import org.apache.iceberg.Schema;
-import org.apache.iceberg.types.Types;
-import org.apache.nifi.processors.iceberg.record.DelegatedRecord;
-import org.apache.nifi.services.iceberg.IcebergCatalog;
-import org.apache.nifi.services.iceberg.IcebergRowWriter;
-import org.apache.nifi.services.iceberg.IcebergWriter;
 import org.apache.iceberg.AppendFiles;
 import org.apache.iceberg.DataFile;
+import org.apache.iceberg.Schema;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.TableIdentifier;
+import org.apache.iceberg.types.Types;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -40,9 +36,13 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.iceberg.record.DelegatedRecord;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.services.iceberg.IcebergCatalog;
+import org.apache.nifi.services.iceberg.IcebergRowWriter;
+import org.apache.nifi.services.iceberg.IcebergWriter;
 
 import java.io.IOException;
 import java.io.InputStream;

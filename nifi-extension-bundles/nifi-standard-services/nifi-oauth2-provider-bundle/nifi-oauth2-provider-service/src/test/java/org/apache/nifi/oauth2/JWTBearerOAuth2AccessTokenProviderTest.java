@@ -44,8 +44,6 @@ import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.net.ssl.X509ExtendedKeyManager;
-
 import java.net.URISyntaxException;
 import java.security.PrivateKey;
 import java.security.interfaces.ECPrivateKey;
@@ -54,6 +52,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import javax.net.ssl.X509ExtendedKeyManager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

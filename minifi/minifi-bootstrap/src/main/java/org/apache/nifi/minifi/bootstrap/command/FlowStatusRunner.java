@@ -17,11 +17,11 @@
 
 package org.apache.nifi.minifi.bootstrap.command;
 
+import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
+
 import static org.apache.nifi.minifi.bootstrap.RunMiNiFi.CMD_LOGGER;
 import static org.apache.nifi.minifi.bootstrap.Status.ERROR;
 import static org.apache.nifi.minifi.bootstrap.Status.OK;
-
-import org.apache.nifi.minifi.bootstrap.service.PeriodicStatusReporterManager;
 
 public class FlowStatusRunner implements CommandRunner {
     private final PeriodicStatusReporterManager periodicStatusReporterManager;

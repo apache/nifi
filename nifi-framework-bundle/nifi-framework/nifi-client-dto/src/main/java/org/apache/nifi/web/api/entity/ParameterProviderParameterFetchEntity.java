@@ -17,9 +17,8 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import org.apache.nifi.web.api.dto.RevisionDTO;
-
 import jakarta.xml.bind.annotation.XmlType;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 
 /**
  * Request for fetching parameters from a Parameter Provider.

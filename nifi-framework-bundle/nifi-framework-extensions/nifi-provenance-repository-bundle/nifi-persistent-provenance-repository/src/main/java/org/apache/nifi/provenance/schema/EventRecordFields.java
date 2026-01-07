@@ -17,15 +17,15 @@
 
 package org.apache.nifi.provenance.schema;
 
-import static org.apache.nifi.repository.schema.Repetition.EXACTLY_ONE;
-import static org.apache.nifi.repository.schema.Repetition.ZERO_OR_MORE;
-import static org.apache.nifi.repository.schema.Repetition.ZERO_OR_ONE;
-
 import org.apache.nifi.repository.schema.ComplexRecordField;
 import org.apache.nifi.repository.schema.FieldType;
 import org.apache.nifi.repository.schema.MapRecordField;
 import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.SimpleRecordField;
+
+import static org.apache.nifi.repository.schema.Repetition.EXACTLY_ONE;
+import static org.apache.nifi.repository.schema.Repetition.ZERO_OR_MORE;
+import static org.apache.nifi.repository.schema.Repetition.ZERO_OR_ONE;
 
 public class EventRecordFields {
 

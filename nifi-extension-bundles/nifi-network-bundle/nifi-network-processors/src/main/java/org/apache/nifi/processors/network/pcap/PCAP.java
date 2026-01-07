@@ -18,7 +18,6 @@ package org.apache.nifi.processors.network.pcap;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
 import java.util.ArrayList;
 import java.util.List;
 

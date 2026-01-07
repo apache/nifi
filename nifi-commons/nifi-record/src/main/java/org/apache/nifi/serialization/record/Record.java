@@ -17,14 +17,14 @@
 
 package org.apache.nifi.serialization.record;
 
+import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
-import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
 public interface Record {
 

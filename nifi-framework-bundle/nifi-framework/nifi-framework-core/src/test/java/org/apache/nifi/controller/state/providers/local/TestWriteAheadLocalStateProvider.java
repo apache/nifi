@@ -17,7 +17,6 @@
 
 package org.apache.nifi.controller.state.providers.local;
 
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -26,17 +25,18 @@ import org.apache.nifi.components.state.StateProviderInitializationContext;
 import org.apache.nifi.controller.state.StateMapUpdate;
 import org.apache.nifi.controller.state.providers.AbstractTestStateProvider;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.wali.WriteAheadRepository;
 
-import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import javax.net.ssl.SSLContext;
 
 public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider {
     private StateProvider provider;

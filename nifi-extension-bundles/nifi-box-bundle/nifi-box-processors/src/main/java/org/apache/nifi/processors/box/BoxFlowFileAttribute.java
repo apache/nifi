@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import java.util.function.Function;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+
+import java.util.function.Function;
 
 public enum BoxFlowFileAttribute {
     ID(BoxFileAttributes.ID, BoxFileInfo::getId),

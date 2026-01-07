@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.hl7.query.evaluator.message;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.hl7.model.HL7Component;
 import org.apache.nifi.hl7.model.HL7Message;
 import org.apache.nifi.hl7.model.HL7Segment;
 import org.apache.nifi.hl7.query.evaluator.Evaluator;
 import org.apache.nifi.hl7.query.evaluator.IntegerEvaluator;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 public class DotEvaluator implements Evaluator<Object> {
 

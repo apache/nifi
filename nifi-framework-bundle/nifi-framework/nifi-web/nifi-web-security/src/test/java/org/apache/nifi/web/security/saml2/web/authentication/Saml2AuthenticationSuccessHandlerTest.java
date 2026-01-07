@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.security.saml2.web.authentication;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.Cookie;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
@@ -31,8 +33,6 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.regex.Pattern;

@@ -22,8 +22,8 @@ import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.manager.PermissionsDtoMerger;
 import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
-import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 
 import java.net.URI;
 import java.util.ArrayList;

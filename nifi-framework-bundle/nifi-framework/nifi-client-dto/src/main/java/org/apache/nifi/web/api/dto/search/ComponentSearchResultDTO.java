@@ -17,8 +17,8 @@
 package org.apache.nifi.web.api.dto.search;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.xml.bind.annotation.XmlType;
+
 import java.util.List;
 
 /**

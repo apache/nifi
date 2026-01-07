@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.security.krb;
 
-import javax.security.auth.login.AppConfigurationEntry;
-import javax.security.auth.login.Configuration;
 import java.util.HashMap;
 import java.util.Map;
+import javax.security.auth.login.AppConfigurationEntry;
+import javax.security.auth.login.Configuration;
 
 /**
  * JAAS Configuration to use when logging in with username/password.

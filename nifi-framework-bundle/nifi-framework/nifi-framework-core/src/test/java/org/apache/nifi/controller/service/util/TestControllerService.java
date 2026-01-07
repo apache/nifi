@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.controller.service.util;
 
-import java.util.Collection;
-import java.util.List;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
+
+import java.util.Collection;
+import java.util.List;
 
 public class TestControllerService implements ControllerService {
 

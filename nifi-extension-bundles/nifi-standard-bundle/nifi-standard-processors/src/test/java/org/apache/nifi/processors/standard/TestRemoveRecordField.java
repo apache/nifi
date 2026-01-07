@@ -43,7 +43,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-
 class TestRemoveRecordField {
 
     private TestRunner runner;

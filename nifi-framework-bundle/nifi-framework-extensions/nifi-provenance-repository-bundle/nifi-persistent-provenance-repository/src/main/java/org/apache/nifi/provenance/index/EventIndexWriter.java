@@ -17,13 +17,13 @@
 
 package org.apache.nifi.provenance.index;
 
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.IndexWriter;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexWriter;
 
 public interface EventIndexWriter extends Closeable {
 

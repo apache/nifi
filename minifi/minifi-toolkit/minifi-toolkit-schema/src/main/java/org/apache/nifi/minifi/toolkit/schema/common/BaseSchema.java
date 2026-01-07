@@ -17,6 +17,8 @@
 
 package org.apache.nifi.minifi.toolkit.schema.common;
 
+import org.apache.nifi.minifi.toolkit.schema.exception.SchemaInstantiatonException;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -29,7 +31,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.nifi.minifi.toolkit.schema.exception.SchemaInstantiatonException;
 
 public abstract class BaseSchema implements Schema {
     public static final String IT_WAS_NOT_FOUND_AND_IT_IS_REQUIRED = "it was not found and it is required";

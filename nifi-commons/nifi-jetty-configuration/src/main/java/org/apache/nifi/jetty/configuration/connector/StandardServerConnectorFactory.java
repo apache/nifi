@@ -29,12 +29,12 @@ import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
-import javax.net.ssl.SSLContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import javax.net.ssl.SSLContext;
 
 /**
  * Standard implementation of Server Connector Factory supporting HTTP/2 and HTTP/1.1 with TLS or simple HTTP/1.1

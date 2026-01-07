@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.hl7.query.evaluator.literal;
 
-import java.util.Map;
-
 import org.apache.nifi.hl7.query.evaluator.IntegerEvaluator;
+
+import java.util.Map;
 
 public class IntegerLiteralEvaluator extends IntegerEvaluator {
 

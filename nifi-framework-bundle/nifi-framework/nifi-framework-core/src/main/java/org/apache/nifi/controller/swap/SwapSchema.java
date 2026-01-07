@@ -17,10 +17,6 @@
 
 package org.apache.nifi.controller.swap;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.nifi.controller.repository.schema.ContentClaimSchema;
 import org.apache.nifi.controller.repository.schema.FlowFileSchema;
 import org.apache.nifi.repository.schema.ComplexRecordField;
@@ -30,6 +26,10 @@ import org.apache.nifi.repository.schema.RecordField;
 import org.apache.nifi.repository.schema.RecordSchema;
 import org.apache.nifi.repository.schema.Repetition;
 import org.apache.nifi.repository.schema.SimpleRecordField;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class SwapSchema {
     public static final RecordSchema SWAP_SUMMARY_SCHEMA_V1;

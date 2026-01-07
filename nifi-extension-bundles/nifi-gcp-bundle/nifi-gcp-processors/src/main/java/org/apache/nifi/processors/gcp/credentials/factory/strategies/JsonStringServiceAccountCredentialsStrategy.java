@@ -23,7 +23,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Map;
 
-
 /**
  * Supports service account credentials provided as a JSON string.
  *

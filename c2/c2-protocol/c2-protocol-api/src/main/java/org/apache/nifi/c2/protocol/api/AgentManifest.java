@@ -17,11 +17,11 @@
 
 package org.apache.nifi.c2.protocol.api;
 
-import java.util.Objects;
-import java.util.Set;
-
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
+
+import java.util.Objects;
+import java.util.Set;
 
 public class AgentManifest extends RuntimeManifest {
     private static final long serialVersionUID = 1L;

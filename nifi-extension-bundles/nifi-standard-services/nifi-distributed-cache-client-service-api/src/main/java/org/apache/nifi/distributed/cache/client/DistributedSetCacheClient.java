@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.distributed.cache.client;
 
-import java.io.IOException;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
+
+import java.io.IOException;
 
 /**
  * This interface defines an API that can be used for interacting with a

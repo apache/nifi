@@ -17,10 +17,10 @@
 
 package org.apache.nifi.controller.queue;
 
+import org.apache.nifi.controller.repository.FlowFileRecord;
+
 import java.io.IOException;
 import java.util.List;
-
-import org.apache.nifi.controller.repository.FlowFileRecord;
 
 public interface DropFlowFileAction {
     QueueSize drop(List<FlowFileRecord> flowFiles, String requestor) throws IOException;

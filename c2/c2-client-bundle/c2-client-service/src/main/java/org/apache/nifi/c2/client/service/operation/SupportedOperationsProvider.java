@@ -17,15 +17,16 @@
 
 package org.apache.nifi.c2.client.service.operation;
 
+import org.apache.nifi.c2.protocol.api.OperandType;
+import org.apache.nifi.c2.protocol.api.OperationType;
+import org.apache.nifi.c2.protocol.api.SupportedOperation;
+
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.nifi.c2.protocol.api.OperandType;
-import org.apache.nifi.c2.protocol.api.OperationType;
-import org.apache.nifi.c2.protocol.api.SupportedOperation;
 
 public class SupportedOperationsProvider {
     private final Map<OperationType, Map<OperandType, C2OperationHandler>> operationHandlers;

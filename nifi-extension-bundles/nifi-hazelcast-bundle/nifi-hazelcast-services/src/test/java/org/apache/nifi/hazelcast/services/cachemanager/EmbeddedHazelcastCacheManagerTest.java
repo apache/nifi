@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.hazelcast.services.cachemanager;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-
-import org.junit.jupiter.api.Test;
-
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
 

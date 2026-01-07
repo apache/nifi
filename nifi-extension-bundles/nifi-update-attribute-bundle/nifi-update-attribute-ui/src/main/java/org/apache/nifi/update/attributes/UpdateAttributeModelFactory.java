@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.update.attributes;
 
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardExpressionLanguageCompiler;
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageParsingException;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.update.attributes.dto.ActionDTO;
 import org.apache.nifi.update.attributes.dto.ConditionDTO;
 import org.apache.nifi.update.attributes.dto.RuleDTO;

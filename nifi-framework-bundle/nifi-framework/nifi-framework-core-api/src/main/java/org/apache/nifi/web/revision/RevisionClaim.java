@@ -17,9 +17,9 @@
 
 package org.apache.nifi.web.revision;
 
-import java.util.Set;
-
 import org.apache.nifi.web.Revision;
+
+import java.util.Set;
 
 public interface RevisionClaim {
     Set<Revision> getRevisions();

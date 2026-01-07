@@ -16,14 +16,13 @@
  */
 package org.apache.nifi.services.iceberg.catalog;
 
-import org.apache.iceberg.rest.RESTSessionCatalog;
-import org.apache.iceberg.rest.auth.AuthProperties;
-import org.apache.nifi.services.iceberg.IcebergCatalog;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.catalog.Catalog;
 import org.apache.iceberg.catalog.SessionCatalog;
 import org.apache.iceberg.metrics.LoggingMetricsReporter;
 import org.apache.iceberg.rest.RESTClient;
+import org.apache.iceberg.rest.RESTSessionCatalog;
+import org.apache.iceberg.rest.auth.AuthProperties;
 import org.apache.iceberg.rest.auth.OAuth2Properties;
 import org.apache.nifi.annotation.behavior.SupportsSensitiveDynamicProperties;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -38,6 +37,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.services.iceberg.IcebergCatalog;
 import org.apache.nifi.services.iceberg.IcebergFileIOProvider;
 import org.apache.nifi.services.iceberg.ProviderContext;
 

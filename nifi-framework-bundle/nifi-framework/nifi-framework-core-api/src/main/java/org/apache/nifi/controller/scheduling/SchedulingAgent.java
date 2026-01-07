@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.controller.scheduling;
 
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.ReportingTaskNode;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.controller.ReportingTaskNode;
 
 public interface SchedulingAgent {
 

@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.web.security.x509;
 
-import java.security.cert.X509Certificate;
-
 import org.apache.nifi.security.cert.StandardPrincipalFormatter;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
+
+import java.security.cert.X509Certificate;
 
 /**
  * Principal extractor for extracting a DN.

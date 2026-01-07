@@ -16,16 +16,15 @@
  */
 package org.apache.nifi.hl7.hapi;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import org.apache.nifi.hl7.model.HL7Field;
-import org.apache.nifi.hl7.model.HL7Segment;
-
 import ca.uhn.hl7v2.HL7Exception;
 import ca.uhn.hl7v2.model.Segment;
 import ca.uhn.hl7v2.model.Type;
+import org.apache.nifi.hl7.model.HL7Field;
+import org.apache.nifi.hl7.model.HL7Segment;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class HapiSegment implements HL7Segment {
 

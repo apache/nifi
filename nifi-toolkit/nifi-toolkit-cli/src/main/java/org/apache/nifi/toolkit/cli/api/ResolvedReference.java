@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.toolkit.cli.api;
 
-import java.util.Objects;
-
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
+
+import java.util.Objects;
 
 /**
  * Represents a resolved back-reference produced by a ReferenceResolver.

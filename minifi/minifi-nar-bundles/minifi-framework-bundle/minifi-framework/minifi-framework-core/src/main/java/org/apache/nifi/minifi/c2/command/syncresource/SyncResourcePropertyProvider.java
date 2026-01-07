@@ -18,6 +18,7 @@
 package org.apache.nifi.minifi.c2.command.syncresource;
 
 import org.apache.nifi.c2.client.service.operation.OperandPropertiesProvider;
+
 import java.util.Map;
 
 public class SyncResourcePropertyProvider implements OperandPropertiesProvider {

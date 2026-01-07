@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;

@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.processors.pgp;
 
+import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
 import org.apache.nifi.pgp.service.api.PGPPublicKeyService;
 import org.apache.nifi.pgp.util.PGPFileUtils;
-import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.pgp.util.PGPOperationUtils;
-import org.apache.nifi.pgp.service.api.KeyIdentifierConverter;
+import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;

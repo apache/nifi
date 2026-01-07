@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.web.security.oidc.logout;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.nifi.web.security.cookie.ApplicationCookieName;
 import org.apache.nifi.web.security.cookie.ApplicationCookieService;
 import org.apache.nifi.web.security.cookie.StandardApplicationCookieService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
-import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
 import org.apache.nifi.web.security.oidc.client.web.OidcAuthorizedClient;
+import org.apache.nifi.web.security.oidc.client.web.OidcRegistrationProperty;
 import org.apache.nifi.web.security.oidc.revocation.TokenRevocationRequest;
 import org.apache.nifi.web.security.oidc.revocation.TokenRevocationResponse;
 import org.apache.nifi.web.security.oidc.revocation.TokenRevocationResponseClient;
@@ -42,8 +44,6 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;

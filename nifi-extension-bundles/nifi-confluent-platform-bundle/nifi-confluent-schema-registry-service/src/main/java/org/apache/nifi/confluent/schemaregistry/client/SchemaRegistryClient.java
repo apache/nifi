@@ -17,12 +17,12 @@
 
 package org.apache.nifi.confluent.schemaregistry.client;
 
-import java.io.IOException;
-
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.schemaregistry.services.SchemaDefinition;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+
+import java.io.IOException;
 
 public interface SchemaRegistryClient {
 

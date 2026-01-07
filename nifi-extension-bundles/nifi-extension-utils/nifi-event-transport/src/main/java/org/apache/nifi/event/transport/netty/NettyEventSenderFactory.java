@@ -37,7 +37,6 @@ import org.apache.nifi.event.transport.netty.channel.StandardChannelInitializer;
 import org.apache.nifi.event.transport.netty.channel.pool.InitializingChannelPoolHandler;
 import org.apache.nifi.event.transport.netty.channel.ssl.ClientSslStandardChannelInitializer;
 
-import javax.net.ssl.SSLContext;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.time.Duration;
@@ -45,6 +44,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import javax.net.ssl.SSLContext;
 
 /**
  * Netty Event Sender Factory

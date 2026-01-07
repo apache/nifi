@@ -17,15 +17,16 @@
 
 package org.apache.nifi.record.path.util;
 
-import java.lang.reflect.Array;
-import java.util.Optional;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
+
+import java.lang.reflect.Array;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 public class Filters {
 

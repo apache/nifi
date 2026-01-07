@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import org.apache.hadoop.io.SequenceFile.Writer;
+import org.apache.hadoop.io.Text;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
+import org.apache.nifi.util.FlowFilePackagerV3;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -24,13 +32,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.hadoop.io.SequenceFile.Writer;
-import org.apache.hadoop.io.Text;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processors.hadoop.util.InputStreamWritable;
-import org.apache.nifi.util.FlowFilePackagerV3;
-import org.slf4j.LoggerFactory;
 
 public class FlowFileStreamUnpackerSequenceFileWriter extends SequenceFileWriterImpl {
 

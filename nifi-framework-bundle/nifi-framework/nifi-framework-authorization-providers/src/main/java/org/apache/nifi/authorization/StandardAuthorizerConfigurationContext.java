@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.authorization;
 
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.parameter.ParameterLookup;
 
 import java.util.Collections;
 import java.util.HashMap;

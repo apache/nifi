@@ -17,10 +17,10 @@
 package org.apache.nifi.extension.manifest;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.xml.bind.annotation.XmlAccessType;
 import jakarta.xml.bind.annotation.XmlAccessorType;
+
 import java.util.Objects;
 
 @XmlAccessorType(XmlAccessType.FIELD)

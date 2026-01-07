@@ -17,13 +17,13 @@
 
 package org.apache.nifi.serialization;
 
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSet;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Map;
-
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSet;
 
 public abstract class AbstractRecordSetWriter implements RecordSetWriter {
     private final OutputStream out;

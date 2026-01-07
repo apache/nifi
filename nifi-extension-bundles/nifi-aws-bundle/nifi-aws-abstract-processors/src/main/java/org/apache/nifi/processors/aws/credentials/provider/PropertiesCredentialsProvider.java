@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.aws.credentials.provider;
 
-
 import org.apache.nifi.processor.exception.ProcessException;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.AwsCredentials;

@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.cluster;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.apache.nifi.cluster.protocol.HeartbeatPayload;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 
-import org.apache.nifi.cluster.protocol.HeartbeatPayload;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  */

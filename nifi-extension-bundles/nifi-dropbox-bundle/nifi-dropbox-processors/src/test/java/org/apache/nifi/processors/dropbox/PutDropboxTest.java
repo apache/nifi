@@ -17,20 +17,6 @@
 
 package org.apache.nifi.processors.dropbox;
 
-import static com.dropbox.core.v2.files.UploadError.path;
-import static com.dropbox.core.v2.files.WriteConflictError.FILE;
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
-import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
-import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
-import static org.mockito.Answers.RETURNS_DEEP_STUBS;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.dropbox.core.DbxException;
 import com.dropbox.core.LocalizedText;
 import com.dropbox.core.v2.DbxClientV2;
@@ -46,10 +32,6 @@ import com.dropbox.core.v2.files.UploadUploader;
 import com.dropbox.core.v2.files.UploadWriteFailed;
 import com.dropbox.core.v2.files.WriteError;
 import com.dropbox.core.v2.files.WriteMode;
-import java.io.InputStream;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
@@ -59,6 +41,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static com.dropbox.core.v2.files.UploadError.path;
+import static com.dropbox.core.v2.files.WriteConflictError.FILE;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
+import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
+import static org.apache.nifi.processors.dropbox.DropboxAttributes.ERROR_MESSAGE;
+import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class PutDropboxTest extends AbstractDropboxTest {

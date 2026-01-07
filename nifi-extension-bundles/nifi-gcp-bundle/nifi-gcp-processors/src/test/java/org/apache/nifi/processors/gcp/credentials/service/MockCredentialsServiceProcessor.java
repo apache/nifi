@@ -31,7 +31,6 @@ import java.util.List;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 public class MockCredentialsServiceProcessor extends AbstractGCPProcessor {
     public final List<PropertyDescriptor> properties = Arrays.asList(
             GCP_CREDENTIALS_PROVIDER_SERVICE

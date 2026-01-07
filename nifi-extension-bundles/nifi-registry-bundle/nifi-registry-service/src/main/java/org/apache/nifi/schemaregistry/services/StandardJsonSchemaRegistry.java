@@ -17,8 +17,8 @@
 package org.apache.nifi.schemaregistry.services;
 
 import com.networknt.schema.InputFormat;
-import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SchemaLocation;
+import com.networknt.schema.SchemaRegistry;
 import com.networknt.schema.SpecificationVersion;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -28,11 +28,11 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.json.schema.JsonSchema;
+import org.apache.nifi.json.schema.SchemaVersion;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.schema.access.JsonSchemaRegistryComponent;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.json.schema.SchemaVersion;
 
 import java.util.Arrays;
 import java.util.Collection;

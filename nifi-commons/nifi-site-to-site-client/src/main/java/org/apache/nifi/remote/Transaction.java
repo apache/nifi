@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.remote;
 
+import org.apache.nifi.remote.protocol.DataPacket;
+
 import java.io.IOException;
 import java.util.Map;
-
-import org.apache.nifi.remote.protocol.DataPacket;
 
 /**
  * <p>

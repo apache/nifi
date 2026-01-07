@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.security.x509;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.slf4j.Logger;
@@ -23,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.security.cert.X509Certificate;
 
 /**

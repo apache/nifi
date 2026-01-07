@@ -17,7 +17,6 @@
 
 package org.apache.nifi.minifi.toolkit.schema.serialization;
 
-import java.io.Writer;
 import org.apache.nifi.minifi.toolkit.schema.ConfigSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.ConvertableSchema;
 import org.apache.nifi.minifi.toolkit.schema.common.StringUtil;
@@ -30,6 +29,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;

@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.hl7.query.result;
 
+import org.apache.nifi.hl7.query.QueryResult;
+import org.apache.nifi.hl7.query.ResultHit;
+import org.apache.nifi.hl7.query.Selection;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.hl7.query.QueryResult;
-import org.apache.nifi.hl7.query.ResultHit;
-import org.apache.nifi.hl7.query.Selection;
 
 public class StandardQueryResult implements QueryResult {
 

@@ -17,7 +17,6 @@
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
 import jakarta.xml.bind.annotation.adapters.XmlAdapter;
-
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
 

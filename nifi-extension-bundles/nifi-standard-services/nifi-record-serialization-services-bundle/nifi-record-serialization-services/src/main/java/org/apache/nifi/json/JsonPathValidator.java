@@ -17,11 +17,10 @@
 
 package org.apache.nifi.json;
 
+import com.jayway.jsonpath.JsonPath;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
-
-import com.jayway.jsonpath.JsonPath;
 
 public class JsonPathValidator implements Validator {
 

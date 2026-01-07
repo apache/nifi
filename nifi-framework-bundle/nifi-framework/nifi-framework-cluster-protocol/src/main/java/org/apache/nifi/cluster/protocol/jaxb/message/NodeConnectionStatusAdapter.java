@@ -18,7 +18,6 @@
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
 import jakarta.xml.bind.annotation.adapters.XmlAdapter;
-
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 
 public class NodeConnectionStatusAdapter extends XmlAdapter<AdaptedNodeConnectionStatus, NodeConnectionStatus> {

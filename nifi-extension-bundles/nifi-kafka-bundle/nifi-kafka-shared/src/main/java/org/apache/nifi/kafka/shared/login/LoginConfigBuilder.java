@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.kafka.shared.login;
 
-import javax.security.auth.login.AppConfigurationEntry;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import javax.security.auth.login.AppConfigurationEntry;
 
 /**
  * Helper class to build JAAS configuration

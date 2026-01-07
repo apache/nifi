@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.registry.security.ldap.tenants;
 
-
 import org.apache.nifi.registry.security.authorization.Group;
 import org.apache.nifi.registry.security.authorization.User;
 import org.apache.nifi.registry.security.authorization.util.UserGroupProviderUtils;
