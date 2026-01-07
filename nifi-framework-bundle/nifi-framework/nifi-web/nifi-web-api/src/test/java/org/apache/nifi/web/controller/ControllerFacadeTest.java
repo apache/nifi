@@ -132,6 +132,9 @@ public class ControllerFacadeTest {
     @Test
     public void testGetConnectorDefinitionReturnsDefinitionWhenFound() {
         final ConnectorDefinition expectedDefinition = new ConnectorDefinition();
+        expectedDefinition.setGroup(TEST_GROUP);
+        expectedDefinition.setArtifact(TEST_ARTIFACT);
+        expectedDefinition.setVersion(TEST_VERSION);
         expectedDefinition.setType(TEST_CONNECTOR_TYPE);
 
         when(runtimeManifestService.getManifestForBundle(TEST_GROUP, TEST_ARTIFACT, TEST_VERSION)).thenReturn(runtimeManifest);
