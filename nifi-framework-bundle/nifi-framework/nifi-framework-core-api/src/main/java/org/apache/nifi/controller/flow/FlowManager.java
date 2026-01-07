@@ -165,6 +165,15 @@ public interface FlowManager extends ParameterProviderLookup {
      */
     ProcessGroup getGroup(String id);
 
+    /**
+     * Returns the ProcessGroup with the given ID that is managed by the Connector with the given ID,
+     * or null if no such ProcessGroup exists.
+     * @param groupId id of the group
+     * @param connectorId id of the connector
+     * @return the ProcessGroup with the given ID or null if none can be found
+     */
+    ProcessGroup getGroup(String groupId, String connectorId);
+
     void onProcessGroupAdded(ProcessGroup group);
 
     void onProcessGroupRemoved(ProcessGroup group);

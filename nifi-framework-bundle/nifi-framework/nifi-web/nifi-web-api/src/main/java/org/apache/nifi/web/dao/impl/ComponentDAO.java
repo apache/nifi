@@ -63,8 +63,8 @@ public abstract class ComponentDAO {
      * @param groupId id
      * @return group
      */
-    protected ProcessGroup locateProcessGroup(FlowController flowController, String groupId) {
-        ProcessGroup group = flowController.getFlowManager().getGroup(groupId);
+    protected ProcessGroup locateProcessGroup(final FlowController flowController, final String groupId) {
+        ProcessGroup group = flowController.getFlowManager().getGroup(groupId, null);
 
         if (group == null) {
             throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
