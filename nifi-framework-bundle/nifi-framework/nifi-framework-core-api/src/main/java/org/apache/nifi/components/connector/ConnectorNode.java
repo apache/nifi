@@ -66,6 +66,12 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
 
     BundleCoordinate getBundleCoordinate();
 
+    /**
+     * Returns whether or not the underlying extension is missing (i.e., the Connector is a GhostConnector).
+     * @return true if the extension is missing, false otherwise
+     */
+    boolean isExtensionMissing();
+
     List<AllowableValue> fetchAllowableValues(String stepName, String propertyName);
 
     List<AllowableValue> fetchAllowableValues(String stepName, String propertyName, String filter);

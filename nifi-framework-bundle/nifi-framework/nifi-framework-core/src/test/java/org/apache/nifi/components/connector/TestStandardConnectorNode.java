@@ -513,7 +513,8 @@ public class TestStandardConnectorNode {
             new StandardConnectorConfigurationContext(assetManager, secretsManager),
             stateTransition,
             flowContextFactory,
-            validationTrigger);
+            validationTrigger,
+            false);
 
         // mock secrets manager
         final SecretsManager secretsManager = mock(SecretsManager.class);

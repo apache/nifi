@@ -89,6 +89,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     private final AtomicReference<ValidationState> validationState = new AtomicReference<>(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
     private final ConnectorValidationTrigger validationTrigger;
+    private final boolean extensionMissing;
     private volatile boolean triggerValidation = true;
 
     private volatile FrameworkFlowContext workingFlowContext;
@@ -101,7 +102,7 @@ public class StandardConnectorNode implements ConnectorNode {
         final Authorizable parentAuthorizable, final ConnectorDetails connectorDetails, final String componentType, final String componentCanonicalClass,
         final MutableConnectorConfigurationContext configurationContext,
         final ConnectorStateTransition stateTransition, final FlowContextFactory flowContextFactory,
-        final ConnectorValidationTrigger validationTrigger) {
+        final ConnectorValidationTrigger validationTrigger, final boolean extensionMissing) {
 
         this.identifier = identifier;
         this.flowManager = flowManager;
@@ -114,6 +115,7 @@ public class StandardConnectorNode implements ConnectorNode {
         this.stateTransition = stateTransition;
         this.flowContextFactory = flowContextFactory;
         this.validationTrigger = validationTrigger;
+        this.extensionMissing = extensionMissing;
 
         this.name = connectorDetails.getConnector().getClass().getSimpleName();
 
@@ -529,6 +531,11 @@ public class StandardConnectorNode implements ConnectorNode {
     @Override
     public BundleCoordinate getBundleCoordinate() {
         return bundleCoordinate;
+    }
+
+    @Override
+    public boolean isExtensionMissing() {
+        return extensionMissing;
     }
 
     @Override
