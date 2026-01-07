@@ -476,7 +476,7 @@ public class ExtensionBuilder {
        return flowAnalysisRuleNode;
    }
 
-   public ConnectorNode buildConnector() {
+   public ConnectorNode buildConnector(final boolean loadInitialFlow) {
        requireNonNull(identifier, "Connector ID");
        requireNonNull(type, "Connector Type");
        requireNonNull(bundleCoordinate, "Bundle Coordinate");
@@ -528,8 +528,17 @@ public class ExtensionBuilder {
            final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);
            connectorNode.initializeConnector(initContext);
        } catch (final Exception e) {
-           logger.error("Could not initialize Connector of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage(), e);
+           logger.error("Could not initialize Connector of type {} from {} for ID {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e);
            return createGhostConnectorNode(connectorsAuthorizable);
+       }
+
+       if (loadInitialFlow) {
+           try {
+               connectorNode.loadInitialFlow();
+           } catch (final Exception e) {
+               logger.error("Failed to load initial flow for {}; creating \"Ghost\" implementation", connectorNode, e);
+               return createGhostConnectorNode(connectorsAuthorizable);
+           }
        }
 
        return connectorNode;
@@ -541,6 +550,9 @@ public class ExtensionBuilder {
        final String componentType = "(Missing) " + simpleClassName;
        final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, new StandardLoggingContext());
        final ConnectorDetails connectorDetails = new ConnectorDetails(ghostConnector, bundleCoordinate, componentLog);
+
+       // If an instance class loader has been created for this connector, remove it because it's no longer necessary.
+       extensionManager.removeInstanceClassLoader(identifier);
 
        return new StandardConnectorNode(
            identifier,
