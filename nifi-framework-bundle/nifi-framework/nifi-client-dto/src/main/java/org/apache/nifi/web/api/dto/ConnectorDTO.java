@@ -37,6 +37,7 @@ public class ConnectorDTO extends ComponentDTO {
     private Collection<String> validationErrors;
     private String validationStatus;
     private Boolean multipleVersionsAvailable;
+    private Boolean extensionMissing;
 
     private String configurationUrl;
     private String detailsUrl;
@@ -147,5 +148,14 @@ public class ConnectorDTO extends ComponentDTO {
 
     public void setDetailsUrl(final String detailsUrl) {
         this.detailsUrl = detailsUrl;
+    }
+
+    @Schema(description = "Whether the extension for this connector is missing.")
+    public Boolean getExtensionMissing() {
+        return extensionMissing;
+    }
+
+    public void setExtensionMissing(final Boolean extensionMissing) {
+        this.extensionMissing = extensionMissing;
     }
 }
