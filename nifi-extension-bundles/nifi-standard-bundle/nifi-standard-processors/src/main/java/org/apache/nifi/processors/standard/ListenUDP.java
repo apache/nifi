@@ -59,8 +59,8 @@ import java.util.concurrent.BlockingQueue;
         "specific remote host and port by specifying the Sending Host and Sending Host Port properties, otherwise it will listen " +
         "for datagrams from all hosts and ports.")
 @WritesAttributes({
-        @WritesAttribute(attribute = "udp.sender", description = "The sending host of the messages."),
-        @WritesAttribute(attribute = "udp.port", description = "The sending port the messages were received.")
+        @WritesAttribute(attribute = "udp.sender", description = "The sending host/port of the messages."),
+        @WritesAttribute(attribute = "udp.port", description = "The listening port on which the messages were received.")
 })
 public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEvent> {
 

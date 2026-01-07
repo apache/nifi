@@ -124,8 +124,8 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                         buffer.clear();
                         while (!stopped && (socketAddress = channel.receive(buffer)) != null) {
                             String sender = "";
-                            if (socketAddress instanceof InetSocketAddress) {
-                                sender = ((InetSocketAddress) socketAddress).getAddress().toString();
+                            if (socketAddress instanceof InetSocketAddress inetSocketAddress) {
+                                sender = inetSocketAddress.toString();
                             }
 
                             // create a byte array from the buffer

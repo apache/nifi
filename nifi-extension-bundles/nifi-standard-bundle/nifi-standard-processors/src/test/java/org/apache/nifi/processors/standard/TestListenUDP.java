@@ -45,6 +45,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -213,6 +214,7 @@ public class TestListenUDP {
             flowFile.assertContentEquals("This is message " + (i + 1));
             assertEquals(String.valueOf(port), flowFile.getAttribute(ListenUDP.UDP_PORT_ATTR));
             assertTrue(StringUtils.isNotEmpty(flowFile.getAttribute(ListenUDP.UDP_SENDER_ATTR)));
+            assertTrue(Pattern.compile(".+?(:\\d{4,5})").matcher(flowFile.getAttribute(ListenUDP.UDP_SENDER_ATTR)).matches());
         }
     }
 
