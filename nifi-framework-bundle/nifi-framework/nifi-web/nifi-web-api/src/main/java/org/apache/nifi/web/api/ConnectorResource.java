@@ -1348,18 +1348,19 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
-     * Retrieves the flow for the process group managed by the specified connector.
+     * Retrieves the flow for a process group within the specified connector.
      *
-     * @param id The id of the connector
+     * @param connectorId The id of the connector
+     * @param processGroupId The process group id within the connector's hierarchy
      * @param uiOnly Whether to return only UI-specific fields
      * @return A processGroupFlowEntity
      */
     @GET
     @Consumes(MediaType.WILDCARD)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/{id}/flow")
+    @Path("/{connectorId}/flow/process-groups/{processGroupId}")
     @Operation(
-            summary = "Gets the flow for the process group managed by a connector",
+            summary = "Gets the flow for a process group within a connector",
             responses = {
                     @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ProcessGroupFlowEntity.class))),
                     @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
@@ -1371,17 +1372,24 @@ public class ConnectorResource extends ApplicationResource {
             security = {
                     @SecurityRequirement(name = "Read - /connectors/{uuid}")
             },
-            description = "Returns the flow for the process group managed by the specified connector. If the uiOnly query parameter is " +
-                    "provided with a value of true, the returned entity may only contain fields that are necessary for rendering the NiFi User " +
-                    "Interface. As such, the selected fields may change at any time, even during incremental releases, without warning. " +
-                    "As a result, this parameter should not be provided by any client other than the UI."
+            description = "Returns the flow for the specified process group within the connector's hierarchy. The processGroupId can be " +
+                    "obtained from the managedProcessGroupId field of the ConnectorDTO for the root process group, or from child process " +
+                    "groups within the flow. If the uiOnly query parameter is provided with a value of true, the returned entity may only " +
+                    "contain fields that are necessary for rendering the NiFi User Interface. As such, the selected fields may change at " +
+                    "any time, even during incremental releases, without warning. As a result, this parameter should not be provided by " +
+                    "any client other than the UI."
     )
     public Response getFlow(
             @Parameter(
                     description = "The connector id.",
                     required = true
             )
-            @PathParam("id") final String id,
+            @PathParam("connectorId") final String connectorId,
+            @Parameter(
+                    description = "The process group id.",
+                    required = true
+            )
+            @PathParam("processGroupId") final String processGroupId,
             @Parameter(
                     description = "Whether to return only UI-specific fields"
             )
@@ -1393,12 +1401,12 @@ public class ConnectorResource extends ApplicationResource {
 
         // authorize access to the connector
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connector = lookup.getConnector(id);
+            final Authorizable connector = lookup.getConnector(connectorId);
             connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
         });
 
-        // get the flow for the connector's managed process group
-        final ProcessGroupFlowEntity entity = serviceFacade.getConnectorFlow(id, uiOnly);
+        // get the flow for the specified process group within the connector's hierarchy
+        final ProcessGroupFlowEntity entity = serviceFacade.getConnectorFlow(connectorId, processGroupId, uiOnly);
         flowResource.populateRemainingFlowContent(entity.getProcessGroupFlow());
         return generateOkResponse(entity).build();
     }
