@@ -47,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 class TestMapRecord {
 
@@ -335,9 +334,9 @@ class TestMapRecord {
     }
 
     @Test
-    void testNestedSchemaWithEmptyArray() {
-        final String FOO_TEST_VAL = "test!";
-        final String NESTED_RECORD_VALUE = "Hello, world!";
+    void testNestedSchemaWithEmptyArray() throws Exception {
+        final String testValue = "test!";
+        final String nestedRecordValue = "Hello, world!";
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("foo", RecordFieldType.STRING.getDataType(), null, set("bar", "baz")));
@@ -350,10 +349,10 @@ class TestMapRecord {
         RecordSchema fullSchema = new SimpleRecordSchema(fields);
 
         Map<String, Object> nestedValues = new HashMap<>();
-        nestedValues.put("test", NESTED_RECORD_VALUE);
+        nestedValues.put("test", nestedRecordValue);
         Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
         Map<String, Object> values = new HashMap<>();
-        values.put("foo", FOO_TEST_VAL);
+        values.put("foo", testValue);
         values.put("nested", nestedRecord);
 
         values.put("array", new Object[0]);
@@ -361,20 +360,18 @@ class TestMapRecord {
         Record record = new MapRecord(fullSchema, values);
 
         Map<String, Object> fullConversion = null;
-        try {
-            fullConversion = ((MapRecord) record).toMap(true);
-        } catch (Exception e) {
-            fail("Nested toMap() failed unexpectedly");
-        }
-        assertEquals(FOO_TEST_VAL, fullConversion.get("foo"));
+        fullConversion = ((MapRecord) record).toMap(true);
+
+        assertEquals(testValue, fullConversion.get("foo"));
         assertInstanceOf(Map.class, fullConversion.get("nested"));
 
         Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
         assertEquals(1, nested.size());
-        assertEquals(NESTED_RECORD_VALUE, nested.get("test"));
+        assertEquals(nestedRecordValue, nested.get("test"));
 
-        assertInstanceOf(Object[].class, fullConversion.get("array"));
-        Object[] recordArray = (Object[]) fullConversion.get("array");
+        Object arrayFieldName = fullConversion.get("array");
+        assertInstanceOf(Object[].class, arrayFieldName);
+        Object[] recordArray = (Object[]) arrayFieldName;
         assertEquals(0, recordArray.length);
     }
 
