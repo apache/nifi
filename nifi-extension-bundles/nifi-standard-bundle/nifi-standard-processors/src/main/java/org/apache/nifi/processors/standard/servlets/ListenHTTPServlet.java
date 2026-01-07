@@ -468,7 +468,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private void addMatchingRequestHeaders(final HttpServletRequest request, final Map<String, String> attributes) {
         // put arbitrary headers on flow file
         for (Enumeration<String> headerEnum = request.getHeaderNames();
-             headerEnum.hasMoreElements(); ) {
+             headerEnum.hasMoreElements();) {
             String headerName = headerEnum.nextElement();
             if (headerPattern != null && headerPattern.matcher(headerName).matches()) {
                 String headerValue = request.getHeader(headerName);

@@ -61,7 +61,7 @@ public class InMemoryGraphClient extends AbstractControllerService implements Gr
             throw new ProcessException("Generated test exception");
         }
         ScriptEngine engine = new ScriptEngineManager().getEngineByName("groovy");
-        parameters.entrySet().stream().forEach( it -> {
+        parameters.entrySet().stream().forEach(it -> {
             engine.put(it.getKey(), it.getValue());
         });
         if (graph == null) {

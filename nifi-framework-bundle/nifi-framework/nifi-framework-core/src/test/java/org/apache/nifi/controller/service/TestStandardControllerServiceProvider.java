@@ -409,7 +409,7 @@ public class TestStandardControllerServiceProvider {
                 reloadComponent, extensionManager, new SynchronousValidationTrigger());
 
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
-        final FlowController flowController = Mockito.mock(FlowController.class );
+        final FlowController flowController = Mockito.mock(FlowController.class);
         Mockito.when(flowController.getFlowManager()).thenReturn(flowManager);
         Mockito.when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
 

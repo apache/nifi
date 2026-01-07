@@ -152,10 +152,10 @@ public class TestAvroReaderWithEmbeddedSchema {
         fields.add(new Field("map", Schema.createMap(Schema.create(Type.STRING)), null, (Object) null));
         fields.add(new Field("array", Schema.createArray(Schema.create(Type.LONG)), null, (Object) null));
         fields.add(new Field("account", accountSchema, null, (Object) null));
-        fields.add(new Field("desiredbalance", Schema.createUnion( // test union of NULL and other type with no value
+        fields.add(new Field("desiredbalance", Schema.createUnion(// test union of NULL and other type with no value
             Arrays.asList(Schema.create(Type.NULL), Schema.create(Type.DOUBLE))),
             null, (Object) null));
-        fields.add(new Field("dreambalance", Schema.createUnion( // test union of NULL and other type with a value
+        fields.add(new Field("dreambalance", Schema.createUnion(// test union of NULL and other type with a value
             Arrays.asList(Schema.create(Type.NULL), Schema.create(Type.DOUBLE))),
             null, (Object) null));
         fields.add(new Field("favAnimal", Schema.createUnion(Arrays.asList(catSchema, dogSchema)), null, (Object) null));

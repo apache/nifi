@@ -31,7 +31,7 @@ public class LongSerDe implements Serializer<Long>, Deserializer<Long> {
 
     @Override
     public Long deserialize(final byte[] input) throws DeserializationException, IOException {
-        if ( input == null || input.length == 0 ) {
+        if (input == null || input.length == 0) {
             return null;
         }
 

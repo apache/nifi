@@ -480,7 +480,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
         if (statelessTimeout != null) {
             group.setStatelessFlowTimeout(statelessTimeout);
         }
-        if (proposed.getScheduledState() != null && ScheduledState.RUNNING.name().equals(proposed.getScheduledState().name()) ) {
+        if (proposed.getScheduledState() != null && ScheduledState.RUNNING.name().equals(proposed.getScheduledState().name())) {
             context.getComponentScheduler().startStatelessGroup(group);
         }
 

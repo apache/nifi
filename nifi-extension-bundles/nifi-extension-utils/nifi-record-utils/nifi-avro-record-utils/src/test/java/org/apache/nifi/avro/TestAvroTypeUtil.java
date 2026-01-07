@@ -882,7 +882,7 @@ public class TestAvroTypeUtil {
         Object o = AvroTypeUtil.convertToAvroObject(obj, s);
         assertInstanceOf(Record.class, o);
         List innerList = (List) ((Record) o).get("List");
-        assertNotNull( innerList );
+        assertNotNull(innerList);
         assertEquals(10, innerList.size());
         for (Object inner : innerList) {
             assertInstanceOf(Record.class, inner);

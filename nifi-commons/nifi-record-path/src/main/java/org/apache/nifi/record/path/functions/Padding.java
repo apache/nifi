@@ -37,7 +37,7 @@ abstract class Padding extends RecordPathSegment {
     private RecordPathSegment inputStringPath;
     private RecordPathSegment desiredLengthPath;
 
-    Padding( final String path,
+    Padding(final String path,
              final RecordPathSegment parentPath,
              final RecordPathSegment inputStringPath,
              final RecordPathSegment desiredLengthPath,

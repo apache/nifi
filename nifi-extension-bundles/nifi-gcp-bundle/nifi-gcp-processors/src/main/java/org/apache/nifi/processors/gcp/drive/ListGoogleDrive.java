@@ -300,7 +300,7 @@ public class ListGoogleDrive extends AbstractListProcessor<GoogleDriveFileInfo> 
 
             queryTemplateBuilder.append(" and (mimeType = '").append(DRIVE_FOLDER_MIME_TYPE).append("'");
             queryTemplateBuilder.append(" or modifiedTime >= '").append(formattedMinTimestamp).append("'");
-            queryTemplateBuilder.append(" or createdTime >= '").append(formattedMinTimestamp).append( "'");
+            queryTemplateBuilder.append(" or createdTime >= '").append(formattedMinTimestamp).append("'");
             queryTemplateBuilder.append(")");
         }
         if (minAge != null && minAge > 0) {

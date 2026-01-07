@@ -68,8 +68,8 @@ import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
     @WritesAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ERROR_STATUS_CODE, description = "DynamoDB status code")
     })
 @ReadsAttributes({
-    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value" ),
-    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value" ),
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_HASH_KEY_VALUE, description = "Items hash key value"),
+    @ReadsAttribute(attribute = AbstractDynamoDBProcessor.DYNAMODB_ITEM_RANGE_KEY_VALUE, description = "Items range key value"),
     })
 public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
 
@@ -121,7 +121,7 @@ public class DeleteDynamoDB extends AbstractDynamoDBProcessor {
                 continue;
             }
 
-            if (!isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue, session, flowFile) ) {
+            if (!isRangeKeyValueConsistent(rangeKeyName, rangeKeyValue, session, flowFile)) {
                 continue;
             }
 

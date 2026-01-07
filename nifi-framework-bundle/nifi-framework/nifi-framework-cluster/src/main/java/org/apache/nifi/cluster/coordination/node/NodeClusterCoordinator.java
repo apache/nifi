@@ -1175,7 +1175,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
 
         final NodeConnectionStatus oldStatus = nodeStatuses.get(statusChangeMessage.getNodeId().getId());
 
-        if (oldStatus == null && updatedStatus.getState() == NodeConnectionState.DISCONNECTED ) {
+        if (oldStatus == null && updatedStatus.getState() == NodeConnectionState.DISCONNECTED) {
             // There is no need to tell that node is getting disconnected if there was no status earlier.
             return;
         }

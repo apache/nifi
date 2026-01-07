@@ -393,8 +393,8 @@ public class CopyPasteIT extends NiFiSystemIT {
 
         // Wait for the Version Control Information to show a state of UP_TO_DATE. We have to wait for this because it initially is set to SYNC_FAILURE and a background task
         // is kicked off to determine the state.
-        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(innerGroup.getId())) );
-        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(pastedGroupId)) );
+        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(innerGroup.getId())));
+        waitFor(() -> VersionControlInformationDTO.UP_TO_DATE.equals(getClientUtil().getVersionControlState(pastedGroupId)));
 
         // The two processors should have the same Versioned Component ID
         assertEquals(terminate1.getComponent().getName(), terminate2.getComponent().getName());

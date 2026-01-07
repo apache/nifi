@@ -167,7 +167,7 @@ public abstract class AbstractFetchHDFSRecord extends AbstractHadoopProcessor {
         }
 
         final FlowFile originalFlowFile = session.get();
-        if (originalFlowFile == null ) {
+        if (originalFlowFile == null) {
             context.yield();
             return;
         }

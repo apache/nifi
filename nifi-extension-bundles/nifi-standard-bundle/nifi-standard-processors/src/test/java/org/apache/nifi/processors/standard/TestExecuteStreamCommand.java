@@ -19,6 +19,7 @@ package org.apache.nifi.processors.standard;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -30,8 +31,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -575,10 +574,9 @@ public class TestExecuteStreamCommand {
         assertEquals(isWindows() ? "cmd.exe" : "echo", outputFlowFile.getAttribute("execution.command"));
     }
 
-    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Not reaching expected relationships")
     @Test
     public void testArgumentsWithQuotesFromAttributeDynamicProperties() throws Exception {
-        File dummy = new File("src/test/resources/TestJson/json-sample.json");
+        File dummy = new File("src/test/resources/TestJson/short-json-sample.json");
         assertTrue(dummy.exists());
 
         Map<String, String> attrs = new HashMap<>();
@@ -620,10 +618,14 @@ public class TestExecuteStreamCommand {
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         MockFlowFile outputFlowFile = flowFiles.getFirst();
-        String output = new String(outputFlowFile.toByteArray());
+        String output = new String(outputFlowFile.toByteArray()).trim();     
         ObjectMapper mapper = new ObjectMapper();
+        if(isWindows()) {
+        	output = StringUtils.unwrap(output, '"');
+        }
         JsonNode tree1 = mapper.readTree(json);
         JsonNode tree2 = mapper.readTree(output);
+        
         assertEquals(tree1, tree2);
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(isWindows() ? "cmd.exe" : "echo", outputFlowFile.getAttribute("execution.command"));

@@ -26,7 +26,7 @@ import java.util.Map;
 
 public class FlowFileUnpackagerV2 implements FlowFileUnpackager {
 
-    private final byte readBuffer[] = new byte[8192];
+    private final byte[] readBuffer = new byte[8192];
     private Map<String, String> nextAttributes = null;
     private boolean haveReadSomething = false;
 

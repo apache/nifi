@@ -134,9 +134,9 @@ public class TestEventFactory {
         assertEquals(6, event.getFields().size());
 
         //Assert null values are empty Strings.
-        assertEquals( "", event.getField(EventFieldName.BUCKET_DESCRIPTION).getValue());
+        assertEquals("", event.getField(EventFieldName.BUCKET_DESCRIPTION).getValue());
         assertEquals("", event.getField(EventFieldName.ALLOW_PUBLIC_READ).getValue());
-        assertEquals( "0", event.getField(EventFieldName.CREATED_TIMESTAMP).getValue());
+        assertEquals("0", event.getField(EventFieldName.CREATED_TIMESTAMP).getValue());
     }
 
     @Test
@@ -151,10 +151,10 @@ public class TestEventFactory {
         assertEquals(8, event.getFields().size());
 
         //Assert null values are empty Strings.
-        assertEquals( "", event.getField(EventFieldName.BUCKET_NAME).getValue());
-        assertEquals( "", event.getField(EventFieldName.FLOW_NAME).getValue());
-        assertEquals( "0", event.getField(EventFieldName.CREATED_TIMESTAMP).getValue());
-        assertEquals( "0", event.getField(EventFieldName.MODIFIED_TIMESTAMP).getValue());
+        assertEquals("", event.getField(EventFieldName.BUCKET_NAME).getValue());
+        assertEquals("", event.getField(EventFieldName.FLOW_NAME).getValue());
+        assertEquals("0", event.getField(EventFieldName.CREATED_TIMESTAMP).getValue());
+        assertEquals("0", event.getField(EventFieldName.MODIFIED_TIMESTAMP).getValue());
     }
 
     @Test
@@ -173,9 +173,9 @@ public class TestEventFactory {
         assertEquals(8, event.getFields().size());
 
         //Assert null values are empty Strings.
-        assertEquals( "", event.getField(EventFieldName.BUCKET_NAME).getValue());
-        assertEquals( "", event.getField(EventFieldName.FLOW_NAME).getValue());
-        assertEquals( "0", event.getField(EventFieldName.MODIFIED_TIMESTAMP).getValue());
+        assertEquals("", event.getField(EventFieldName.BUCKET_NAME).getValue());
+        assertEquals("", event.getField(EventFieldName.FLOW_NAME).getValue());
+        assertEquals("0", event.getField(EventFieldName.MODIFIED_TIMESTAMP).getValue());
     }
 
     @Test

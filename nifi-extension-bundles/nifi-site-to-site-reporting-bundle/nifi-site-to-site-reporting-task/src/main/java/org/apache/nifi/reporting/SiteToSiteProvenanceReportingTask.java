@@ -399,7 +399,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
             for (final Map.Entry<String, String> entry : values.entrySet()) {
 
-                if (entry.getKey() == null ) {
+                if (entry.getKey() == null) {
                     continue;
                 } else if (entry.getValue() == null) {
                     if (allowNullValues) {

@@ -93,7 +93,7 @@ public class TestListSFTP {
         runner.assertAllFlowFilesContainAttribute(ListFile.FILE_PERMISSIONS_ATTRIBUTE);
         runner.assertAllFlowFilesContainAttribute(ListFile.FILE_SIZE_ATTRIBUTE);
         runner.assertAllFlowFilesContainAttribute(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE);
-        runner.assertAllFlowFilesContainAttribute( "filename");
+        runner.assertAllFlowFilesContainAttribute("filename");
 
         final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(ListSFTP.REL_SUCCESS).getFirst();
         retrievedFile.assertAttributeEquals("sftp.listing.user", sshServer.getUsername());

@@ -54,7 +54,7 @@ public class SlackResponseUtil {
             return 1;
         }
 
-        return Integer.parseInt( slackApiException.getResponse().header("Retry-After", "10") );
+        return Integer.parseInt(slackApiException.getResponse().header("Retry-After", "10"));
     }
 
     public static boolean hasReplies(final Message message) {

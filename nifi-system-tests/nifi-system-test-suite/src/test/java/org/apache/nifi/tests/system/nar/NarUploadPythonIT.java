@@ -145,7 +145,7 @@ public class NarUploadPythonIT extends NiFiSystemIT {
 
         // Verify existing processor is un-ghosted
         final ProcessorEntity pythonProcessorAfterRestore = getNifiClient().getProcessorClient().getProcessor(pythonProcessor.getId());
-        assertNotNull(pythonProcessorAfterRestore );
+        assertNotNull(pythonProcessorAfterRestore);
         assertNotNull(pythonProcessorAfterRestore .getComponent());
         assertFalse(pythonProcessorAfterRestore .getComponent().getExtensionMissing());
 

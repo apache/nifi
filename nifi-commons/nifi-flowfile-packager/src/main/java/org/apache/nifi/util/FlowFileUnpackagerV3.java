@@ -29,7 +29,7 @@ public class FlowFileUnpackagerV3 implements FlowFileUnpackager {
 
     private byte[] nextHeader = null;
     private boolean haveReadSomething = false;
-    private final byte readBuffer[] = new byte[8192];
+    private final byte[] readBuffer = new byte[8192];
 
     @Override
     public boolean hasMoreData() throws IOException {

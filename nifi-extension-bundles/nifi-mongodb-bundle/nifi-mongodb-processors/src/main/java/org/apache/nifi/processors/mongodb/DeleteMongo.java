@@ -125,7 +125,7 @@ public class DeleteMongo extends AbstractMongoProcessor {
         final Boolean failMode  = context.getProperty(FAIL_ON_NO_DELETE).asBoolean();
 
         if (deleteMode.equals(DELETE_ATTR.getValue())
-                && (StringUtils.isEmpty(deleteAttr) || !ALLOWED_DELETE_VALUES.contains(deleteAttr.toLowerCase()) )) {
+                && (StringUtils.isEmpty(deleteAttr) || !ALLOWED_DELETE_VALUES.contains(deleteAttr.toLowerCase()))) {
             getLogger().error("{} is not an allowed value for mongodb.delete.mode", deleteAttr);
             session.transfer(flowFile, REL_FAILURE);
             return;
@@ -142,7 +142,7 @@ public class DeleteMongo extends AbstractMongoProcessor {
             DeleteResult result;
 
             if (deleteMode.equals(DELETE_ONE.getValue())
-                    || (deleteMode.equals(DELETE_ATTR.getValue()) && deleteAttr.toLowerCase().equals("one") )) {
+                    || (deleteMode.equals(DELETE_ATTR.getValue()) && deleteAttr.toLowerCase().equals("one"))) {
                 result = collection.deleteOne(query);
             } else {
                 result = collection.deleteMany(query);

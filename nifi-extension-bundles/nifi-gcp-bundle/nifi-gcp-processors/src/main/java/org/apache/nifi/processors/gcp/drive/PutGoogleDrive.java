@@ -423,7 +423,7 @@ public class PutGoogleDrive extends AbstractProcessor implements GoogleDriveTrai
 
             final long dataSizeBytes = DataUnit.parseDataSize(input, DataUnit.B).longValue();
 
-            if (dataSizeBytes % MIN_ALLOWED_CHUNK_SIZE_IN_BYTES != 0 ) {
+            if (dataSizeBytes % MIN_ALLOWED_CHUNK_SIZE_IN_BYTES != 0) {
                 return new ValidationResult.Builder()
                         .subject(subject)
                         .input(input)

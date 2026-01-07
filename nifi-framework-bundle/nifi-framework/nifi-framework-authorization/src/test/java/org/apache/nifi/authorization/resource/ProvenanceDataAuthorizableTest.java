@@ -66,7 +66,7 @@ public class ProvenanceDataAuthorizableTest {
 
     @Test
     public void testAuthorizeNullUser() {
-        assertThrows( AccessDeniedException.class, () ->
+        assertThrows(AccessDeniedException.class, () ->
             testProvenanceDataAuthorizable.authorize(testAuthorizer, RequestAction.READ,
                     null, null));
     }

@@ -391,7 +391,7 @@ public class TestConsumeKinesisStream {
         assertEquals(scheduler.coordinatorConfig().applicationName(), "test-application");
         assertEquals(scheduler.leaseManagementConfig().streamName(), "test-stream");
         assertEquals(scheduler.retrievalConfig().streamTracker().streamConfigList().getFirst().initialPositionInStreamExtended().getInitialPositionInStream(),
-                InitialPositionInStream.TRIM_HORIZON );
+                InitialPositionInStream.TRIM_HORIZON);
         assertEquals(scheduler.coordinatorConfig().parentShardPollIntervalMillis(), 1);
     }
 

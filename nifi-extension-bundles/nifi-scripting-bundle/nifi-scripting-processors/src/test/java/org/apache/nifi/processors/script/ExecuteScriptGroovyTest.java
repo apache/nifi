@@ -102,7 +102,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         runner.run(iterations);
 
         runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, iterations);
-        runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).forEach( flowFile -> {
+        runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS).forEach(flowFile -> {
             flowFile.assertAttributeExists("time-updated");
             flowFile.assertAttributeExists("thread");
             assertTrue(SINGLE_POOL_THREAD_PATTERN.matcher(flowFile.getAttribute("thread")).find());

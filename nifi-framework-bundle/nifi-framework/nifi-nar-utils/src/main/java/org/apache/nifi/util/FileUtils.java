@@ -156,7 +156,7 @@ public class FileUtils {
     public static void deleteFilesInDirectory(final File directory, final FilenameFilter filter, final Logger logger, final boolean recurse, final boolean deleteEmptyDirectories) throws IOException {
         // ensure the specified directory is actually a directory and that it exists
         if (null != directory && directory.isDirectory()) {
-            final File ingestFiles[] = directory.listFiles();
+            final File[] ingestFiles = directory.listFiles();
             if (ingestFiles == null) {
                 // null if abstract pathname does not denote a directory, or if an I/O error occurs
                 throw new IOException("Unable to list directory content in: " + directory.getAbsolutePath());
