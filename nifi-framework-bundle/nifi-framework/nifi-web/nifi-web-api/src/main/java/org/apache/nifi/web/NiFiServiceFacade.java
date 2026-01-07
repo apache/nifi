@@ -220,7 +220,7 @@ public interface NiFiServiceFacade {
 
     ConnectorEntity discardConnectorUpdate(Revision revision, String connectorId);
 
-    ProcessGroupFlowEntity getConnectorFlow(String id, boolean uiOnly);
+    ProcessGroupFlowEntity getConnectorFlow(String connectorId, String processGroupId, boolean uiOnly);
 
     ProcessGroupStatusEntity getConnectorProcessGroupStatus(String id, Boolean recursive);
 
