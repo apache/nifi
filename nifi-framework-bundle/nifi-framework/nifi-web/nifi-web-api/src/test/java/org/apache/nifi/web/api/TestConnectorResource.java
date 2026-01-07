@@ -32,9 +32,11 @@ import org.apache.nifi.web.api.dto.AllowableValueDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -86,12 +88,16 @@ public class TestConnectorResource {
     @Mock
     private UriBuilder uriBuilder;
 
+    @Mock
+    private FlowResource flowResource;
+
     private static final String CONNECTOR_ID = "test-connector-id";
     private static final String CONNECTOR_NAME = "Test Connector";
     private static final String CONNECTOR_TYPE = "TestConnectorType";
     private static final String CONFIGURATION_STEP_NAME = "test-step";
     private static final String PROPERTY_GROUP_NAME = "test-group";
     private static final String PROPERTY_NAME = "test-property";
+    private static final String PROCESS_GROUP_ID = "test-process-group-id";
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -109,6 +115,7 @@ public class TestConnectorResource {
         lenient().when(uriBuilder.build()).thenReturn(new URI("http://localhost:8080/nifi-api/connectors/" + CONNECTOR_ID));
 
         connectorResource.setServiceFacade(serviceFacade);
+        connectorResource.setFlowResource(flowResource);
         connectorResource.httpServletRequest = httpServletRequest;
         connectorResource.properties = properties;
         connectorResource.uriInfo = uriInfo;
@@ -353,6 +360,30 @@ public class TestConnectorResource {
         verify(serviceFacade, never()).getSecrets();
     }
 
+    @Test
+    public void testGetFlow() {
+        final ProcessGroupFlowEntity responseEntity = createProcessGroupFlowEntity();
+        when(serviceFacade.getConnectorFlow(CONNECTOR_ID, PROCESS_GROUP_ID, false)).thenReturn(responseEntity);
+
+        try (Response response = connectorResource.getFlow(CONNECTOR_ID, PROCESS_GROUP_ID, false)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(responseEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorFlow(CONNECTOR_ID, PROCESS_GROUP_ID, false);
+    }
+
+    @Test
+    public void testGetFlowNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () -> connectorResource.getFlow(CONNECTOR_ID, PROCESS_GROUP_ID, false));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getConnectorFlow(anyString(), anyString(), eq(false));
+    }
+
     private ConnectorEntity createConnectorEntity() {
         final ConnectorEntity entity = new ConnectorEntity();
 
@@ -409,6 +440,14 @@ public class TestConnectorResource {
 
         entity.setAllowableValues(List.of(allowableValueEntity1, allowableValueEntity2));
 
+        return entity;
+    }
+
+    private ProcessGroupFlowEntity createProcessGroupFlowEntity() {
+        final ProcessGroupFlowEntity entity = new ProcessGroupFlowEntity();
+        final ProcessGroupFlowDTO flowDTO = new ProcessGroupFlowDTO();
+        flowDTO.setId("root-process-group-id");
+        entity.setProcessGroupFlow(flowDTO);
         return entity;
     }
 }
