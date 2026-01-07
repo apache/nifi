@@ -486,36 +486,12 @@ public class ExtensionBuilder {
         return flowAnalysisRuleNode;
     }
 
-    public ConnectorNode buildConnector() {
+    public ConnectorNode buildConnector(final boolean loadInitialFlow) {
         requireNonNull(identifier, "Connector ID");
         requireNonNull(type, "Connector Type");
         requireNonNull(bundleCoordinate, "Bundle Coordinate");
         requireNonNull(extensionManager, "Extension Manager");
         requireNonNull(managedProcessGroup, "Managed Process Group");
-
-        boolean creationSuccessful = true;
-        Connector connector;
-
-        try {
-            connector = createConnector();
-        } catch (final Exception e) {
-            logger.error("Could not create Connector of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage(), e);
-            connector = new GhostConnector(identifier, type);
-            creationSuccessful = false;
-        }
-
-        final String componentType;
-        if (creationSuccessful) {
-            componentType = connector.getClass().getSimpleName();
-        } else {
-            final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
-            componentType = "(Missing) " + simpleClassName;
-        }
-
-        final ComponentLog componentLog = new SimpleProcessLogger(identifier, connector, new StandardLoggingContext());
-        final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
-
-        final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);
 
         final Authorizable connectorsAuthorizable = new Authorizable() {
             @Override
@@ -529,6 +505,18 @@ public class ExtensionBuilder {
             }
         };
 
+        final Connector connector;
+        try {
+            connector = createConnector();
+        } catch (final Exception e) {
+            logger.error("Could not create Connector of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage(), e);
+            return createGhostConnectorNode(connectorsAuthorizable);
+        }
+
+        final String componentType = connector.getClass().getSimpleName();
+        final ComponentLog componentLog = new SimpleProcessLogger(identifier, connector, new StandardLoggingContext());
+        final ConnectorDetails connectorDetails = new ConnectorDetails(connector, bundleCoordinate, componentLog);
+
         final ConnectorNode connectorNode = new StandardConnectorNode(
             identifier,
             flowController.getFlowManager(),
@@ -540,14 +528,56 @@ public class ExtensionBuilder {
             activeConfigurationContext,
             connectorStateTransition,
             flowContextFactory,
-            connectorValidationTrigger
+            connectorValidationTrigger,
+            false
         );
 
-        initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
-        // TODO: If an Exception is thrown in the call to #initialize, we should create a Ghosted Connector
-        connectorNode.initializeConnector(initContext);
+        try {
+            initializeDefaultValues(connector, connectorNode.getActiveFlowContext());
+
+            final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);
+            connectorNode.initializeConnector(initContext);
+        } catch (final Exception e) {
+            logger.error("Could not initialize Connector of type {} from {} for ID {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e);
+            return createGhostConnectorNode(connectorsAuthorizable);
+        }
+
+        if (loadInitialFlow) {
+            try {
+                connectorNode.loadInitialFlow();
+            } catch (final Exception e) {
+                logger.error("Failed to load initial flow for {}; creating \"Ghost\" implementation", connectorNode, e);
+                return createGhostConnectorNode(connectorsAuthorizable);
+            }
+        }
 
         return connectorNode;
+    }
+
+    private ConnectorNode createGhostConnectorNode(final Authorizable connectorsAuthorizable) {
+        final GhostConnector ghostConnector = new GhostConnector(identifier, type);
+        final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
+        final String componentType = "(Missing) " + simpleClassName;
+        final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, new StandardLoggingContext());
+        final ConnectorDetails connectorDetails = new ConnectorDetails(ghostConnector, bundleCoordinate, componentLog);
+
+        // If an instance class loader has been created for this connector, remove it because it's no longer necessary.
+        extensionManager.removeInstanceClassLoader(identifier);
+
+        return new StandardConnectorNode(
+            identifier,
+            flowController.getFlowManager(),
+            extensionManager,
+            connectorsAuthorizable,
+            connectorDetails,
+            componentType,
+            type,
+            activeConfigurationContext,
+            connectorStateTransition,
+            flowContextFactory,
+            connectorValidationTrigger,
+            true
+        );
     }
 
     private void initializeDefaultValues(final Connector connector, final FrameworkFlowContext flowContext) {

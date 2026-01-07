@@ -780,16 +780,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .connectorStateTransition(stateTransition)
             .connectorInitializationContextBuilder(flowController.getConnectorRepository().createInitializationContextBuilder())
             .connectorValidationTrigger(flowController.getConnectorValidationTrigger())
-            .buildConnector();
-
-        if (firstTimeAdded) {
-            try {
-                connectorNode.loadInitialFlow();
-            } catch (final Exception e) {
-                logger.error("Failed to load initial flow for Connector {}", connectorNode, e);
-                // TODO: Create a Ghosted Connector instead
-            }
-        }
+            .buildConnector(firstTimeAdded);
 
         // Establish the Connector as the parent authorizable of the managed root group
         managedRootGroup.setExplicitParentAuthorizable(connectorNode);
