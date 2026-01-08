@@ -25,18 +25,19 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ReflectionUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(ReflectionUtils.class);
-    private static Map<Class<?>, Map<Annotations, List<Method>>> annotationCache = new WeakHashMap<>();
+    private static Map<Class<?>, Map<Annotations, List<Method>>> annotationCache = new ConcurrentHashMap<>();
 
     /**
      * Invokes all methods on the given instance that have been annotated with the given Annotation. If the signature of the method that is defined in <code>instance</code> uses 1 or more parameters,
@@ -166,13 +167,11 @@ public class ReflectionUtils {
         // This can add up to several seconds very easily.
         final Annotations annotations = new Annotations(annotationClasses);
 
-        synchronized (annotationCache) {
-            final Map<Annotations, List<Method>> innerMap = annotationCache.get(clazz);
-            if (innerMap != null) {
-                final List<Method> methods = innerMap.get(annotations);
-                if (methods != null) {
-                    return methods;
-                }
+        final Map<Annotations, List<Method>> innerMap = annotationCache.get(clazz);
+        if (innerMap != null) {
+            final List<Method> methods = innerMap.get(annotations);
+            if (methods != null) {
+                return methods;
             }
         }
 
@@ -180,12 +179,14 @@ public class ReflectionUtils {
         final List<Method> methods = discoverMethodsWithAnnotations(clazz, annotationClasses);
 
         // Store the discovered methods in our cache so that they are available next time.
-        synchronized (annotationCache) {
-            final Map<Annotations, List<Method>> innerMap = annotationCache.computeIfAbsent(clazz, key -> new ConcurrentHashMap<>());
-            innerMap.putIfAbsent(annotations, methods);
-        }
+        final Map<Annotations, List<Method>> discoveredInnerMap = annotationCache.computeIfAbsent(clazz, key -> new ConcurrentHashMap<>(Collections.singletonMap(annotations, methods)));
+        discoveredInnerMap.putIfAbsent(annotations, methods);
 
         return methods;
+    }
+
+    public static void invalidateCacheForClassLoader(final ClassLoader classLoader) {
+        annotationCache.keySet().removeIf((clazz -> Objects.equals(clazz.getClassLoader(), classLoader)));
     }
 
     private static List<Method> discoverMethodsWithAnnotations(final Class<?> clazz, final Class<? extends Annotation>[] annotations) {

@@ -26,6 +26,7 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.parameter.ParameterProviderInitializationContext;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.ReflectionUtils;
 
 /**
  * Initializes a ParameterProvider using a MockReportingInitializationContext;

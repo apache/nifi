@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +80,7 @@ public class InstanceClassLoader extends AbstractNativeLibHandlingClassLoader {
         if (parent instanceof SharedInstanceClassLoader) {
             ((SharedInstanceClassLoader) parent).close();
         }
+        ReflectionUtils.invalidateCacheForClassLoader(this);
     }
 
     /**
