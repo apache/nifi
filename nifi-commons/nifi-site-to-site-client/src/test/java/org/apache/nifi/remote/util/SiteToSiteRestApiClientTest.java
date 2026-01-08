@@ -61,6 +61,7 @@ import static java.net.HttpURLConnection.HTTP_PROXY_AUTH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -331,6 +332,10 @@ class SiteToSiteRestApiClientTest {
         assertNotNull(request);
         assertEquals(GET_METHOD, request.getMethod());
         assertProtocolVersionFound(request);
+
+        final Headers requestHeaders = request.getHeaders();
+        final String acceptHeader = requestHeaders.get(ACCEPT_HEADER);
+        assertNull(acceptHeader);
     }
 
     @Test
