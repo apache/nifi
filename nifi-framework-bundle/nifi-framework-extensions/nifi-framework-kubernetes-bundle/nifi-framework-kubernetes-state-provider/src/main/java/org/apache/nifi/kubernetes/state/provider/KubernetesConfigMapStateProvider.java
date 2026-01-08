@@ -155,64 +155,28 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
     @Override
     public void setState(final Map<String, String> state, final String componentId) throws IOException {
         try {
-            final ConfigMap configMap = createConfigMapBuilder(state, componentId).build();
-            Resource<ConfigMap> configMapResource = kubernetesClient.configMaps().resource(configMap);
-            final String configMapName = configMap.getMetadata().getName();
+            final ConfigMap configMap = createConfigMapBuilder(state, componentId, null).build();
+            ConfigMap configMapResult = null;
 
-            ConfigMap configMapCreated = null;
-
-            // Attempt to create or update, up to 3 times. We expect that we will update more frequently than create
-            // so we first attempt to update. If we get back a 404, then we create it.
-            boolean create = false;
+            // Attempt to create or update, up to 3 times
             for (int attempt = 0; attempt < MAX_UPDATE_ATTEMPTS; attempt++) {
                 try {
-                    if (create) {
-                        configMapCreated = configMapResource.create();
+                    final ConfigMap existingConfigMap = kubernetesClient.configMaps().resource(configMap).get();
+                    if (existingConfigMap == null) {
+                        configMapResult = kubernetesClient.configMaps().resource(configMap).create();
                     } else {
-                        configMapCreated = configMapResource.update();
+                        existingConfigMap.setData(configMap.getData());
+                        configMapResult = kubernetesClient.configMaps().resource(existingConfigMap).update();
                     }
-
                     break;
                 } catch (final KubernetesClientException e) {
                     final int returnCode = e.getCode();
-                    if (returnCode == HttpURLConnection.HTTP_NOT_FOUND) {
-                        // A 404 return code indicates that we need to create the resource instead of update it.
-                        // Now, we will attempt to create the resource instead of update it, so we'll reset the attempt counter.
-                        attempt = 0;
-                        create = true;
-                        continue;
-                    }
-
-                    if (returnCode == HttpURLConnection.HTTP_CONFLICT) {
-                        logger.debug("Update conflict detected when setting state for Component ID [{}]. Attempt {} of {}.", componentId, attempt + 1, MAX_UPDATE_ATTEMPTS);
-
-                        if (attempt < MAX_UPDATE_ATTEMPTS - 1) {
-                            final ConfigMap latestConfigMap = kubernetesClient.configMaps()
-                                    .inNamespace(namespace)
-                                    .withName(configMapName)
-                                    .get();
-
-                            if (latestConfigMap != null) {
-                                final ObjectMeta latestMetadata = latestConfigMap.getMetadata();
-                                final String latestResourceVersion = latestMetadata != null ? latestMetadata.getResourceVersion() : null;
-
-                                if (latestResourceVersion != null) {
-                                    configMap.getMetadata().setResourceVersion(latestResourceVersion);
-                                    configMapResource = kubernetesClient.configMaps().resource(configMap);
-                                    logger.debug("Retrying state update for Component ID [{}] with resource version [{}]", componentId, latestResourceVersion);
-                                    continue;
-                                }
-                            }
-                        }
-
-                        throw e;
-                    }
-
-                    if (returnCode >= 500) {
-                        // Server-side error. We should retry, up to some number of attempts.
+                    if (returnCode == HttpURLConnection.HTTP_CONFLICT || returnCode >= HttpURLConnection.HTTP_INTERNAL_ERROR) {
+                        // Conflict or Server-side error. We should retry, up to some number of attempts.
                         if (attempt == MAX_UPDATE_ATTEMPTS - 1) {
                             throw e;
                         }
+                        logger.warn("Failed to update state for Component ID [{}] on attempt {} of {}", componentId, attempt + 1, MAX_UPDATE_ATTEMPTS, e);
                     } else {
                         // There's an issue with the request. Throw the Exception.
                         throw e;
@@ -227,11 +191,11 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
                 }
             }
 
-            if (configMapCreated == null) {
+            if (configMapResult == null) {
                 throw new IOException("Exhausted maximum number of attempts (%s) to update state for component with ID %s but could not update it".formatted(MAX_UPDATE_ATTEMPTS, componentId));
             }
 
-            final Optional<String> version = getVersion(configMapCreated);
+            final Optional<String> version = getVersion(configMapResult);
             logger.debug("Set State Component ID [{}] Version [{}]", componentId, version);
         } catch (final KubernetesClientException e) {
             if (isNotFound(e.getCode())) {
@@ -257,7 +221,8 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
             final ConfigMap configMap = configMapResource(componentId).get();
             final Map<String, String> data = configMap == null ? Collections.emptyMap() : getDecodedMap(configMap.getData());
             final Optional<String> version = configMap == null ? Optional.empty() : getVersion(configMap);
-            return new StandardStateMap(data, version);
+            final Optional<ObjectMeta> configMapMetadata = configMap == null ? Optional.empty() : Optional.of(configMap.getMetadata());
+            return new StandardStateMap(data, version, configMapMetadata);
         } catch (final RuntimeException e) {
             throw new IOException(String.format("Get failed for Component ID [%s]", componentId), e);
         }
@@ -273,12 +238,19 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
      */
     @Override
     public boolean replace(final StateMap currentState, final Map<String, String> state, final String componentId) throws IOException {
-        final ConfigMapBuilder configMapBuilder = createConfigMapBuilder(state, componentId);
-        final Optional<String> stateVersion = currentState.getStateVersion();
-        if (stateVersion.isPresent()) {
-            final String resourceVersion = stateVersion.get();
-            configMapBuilder.editOrNewMetadata().withResourceVersion(resourceVersion).endMetadata();
+        if (currentState instanceof StandardStateMap standardStateMap) {
+            return replace(standardStateMap, state, componentId);
+        } else {
+            throw new IllegalStateException("Current state is not an instance of StandardStateMap");
         }
+    }
+
+    private boolean replace(final StandardStateMap currentState, final Map<String, String> state, final String componentId) throws IOException {
+        final Optional<ObjectMeta> existingMetadata = currentState.getConfigMapMetadata();
+        final ConfigMapBuilder configMapBuilder = createConfigMapBuilder(state, componentId, existingMetadata.orElse(null));
+
+        final Optional<String> stateVersion = currentState.getStateVersion();
+        stateVersion.ifPresent(resourceVersion -> configMapBuilder.editOrNewMetadata().withResourceVersion(resourceVersion).endMetadata());
         final ConfigMap configMap = configMapBuilder.build();
 
         try {
@@ -412,15 +384,25 @@ public class KubernetesConfigMapStateProvider extends AbstractConfigurableCompon
         return kubernetesClient.configMaps().inNamespace(namespace).withName(name);
     }
 
-    private ConfigMapBuilder createConfigMapBuilder(final Map<String, String> state, final String componentId) {
-        final Map<String, String> encodedData = getEncodedMap(state);
+    private ConfigMapBuilder createConfigMapBuilder(final Map<String, String> state, final String componentId, final ObjectMeta existingMetadata) {
         final String name = getConfigMapName(componentId);
-        return new ConfigMapBuilder()
+
+        final ConfigMapBuilder configMapBuilder;
+        if (existingMetadata == null) {
+            configMapBuilder = new ConfigMapBuilder()
                 .withNewMetadata()
                 .withNamespace(namespace)
                 .withName(name)
-                .endMetadata()
-                .withData(encodedData);
+                .endMetadata();
+        } else if (namespace.equals(existingMetadata.getNamespace()) && name.equals(existingMetadata.getName())) {
+            configMapBuilder = new ConfigMapBuilder().withMetadata(existingMetadata);
+        } else {
+            throw new IllegalArgumentException("ConfigMap metadata with namespace [%s] and name [%s], did not match expected namespace [%s] and name [%s]"
+                .formatted(existingMetadata.getNamespace(), existingMetadata.getName(), namespace, name));
+        }
+
+        final Map<String, String> encodedData = getEncodedMap(state);
+        return configMapBuilder.withData(encodedData);
     }
 
     private String getConfigMapName(final String componentId) {
