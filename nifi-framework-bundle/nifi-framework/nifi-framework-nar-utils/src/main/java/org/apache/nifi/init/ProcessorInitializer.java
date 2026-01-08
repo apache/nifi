@@ -16,17 +16,12 @@
  */
 package org.apache.nifi.init;
 
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.mock.MockComponentLogger;
-import org.apache.nifi.mock.MockProcessContext;
 import org.apache.nifi.mock.MockProcessorInitializationContext;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.util.ReflectionUtils;
 
 /**
  * Initializes a Processor using a MockProcessorInitializationContext
@@ -47,19 +42,6 @@ public class ProcessorInitializer implements ConfigurableComponentInitializer {
         ProcessorInitializationContext initializationContext = new MockProcessorInitializationContext();
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), initializationContext.getIdentifier())) {
             processor.initialize(initializationContext);
-        }
-    }
-
-    @Override
-    public void teardown(ConfigurableComponent component) {
-        Processor processor = (Processor) component;
-        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
-
-            final ComponentLog logger = new MockComponentLogger();
-            final MockProcessContext context = new MockProcessContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, processor, logger, context);
-        } finally {
-            extensionManager.removeInstanceClassLoader(component.getIdentifier());
         }
     }
 }

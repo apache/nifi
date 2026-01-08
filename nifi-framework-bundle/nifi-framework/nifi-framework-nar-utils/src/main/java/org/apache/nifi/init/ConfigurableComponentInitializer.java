@@ -35,11 +35,4 @@ public interface ConfigurableComponentInitializer {
      * @throws InitializationException if the component could not be initialized
      */
     void initialize(ConfigurableComponent component) throws InitializationException;
-
-    /**
-     * Calls the lifecycle methods that should be called when a flow is shutdown.
-     *
-     * @param component the component to initialize
-     */
-    void teardown(ConfigurableComponent component);
 }

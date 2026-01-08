@@ -16,17 +16,13 @@
  */
 package org.apache.nifi.init;
 
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.mock.MockComponentLogger;
-import org.apache.nifi.mock.MockConfigurationContext;
 import org.apache.nifi.mock.MockReportingInitializationContext;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.util.ReflectionUtils;
 
 /**
  * Initializes a ReportingTask using a MockReportingInitializationContext;
@@ -47,18 +43,6 @@ public class ReportingTaskInitializer implements ConfigurableComponentInitialize
         ReportingInitializationContext context = new MockReportingInitializationContext();
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), context.getIdentifier())) {
             reportingTask.initialize(context);
-        }
-    }
-
-    @Override
-    public void teardown(ConfigurableComponent component) {
-        ReportingTask reportingTask = (ReportingTask) component;
-        try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
-
-            final MockConfigurationContext context = new MockConfigurationContext();
-            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask, new MockComponentLogger(), context);
-        } finally {
-            extensionManager.removeInstanceClassLoader(component.getIdentifier());
         }
     }
 }
