@@ -446,7 +446,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public Future<Void> drainFlowFiles() {
-        requireStopped();
+        requireStopped("drain FlowFiles");
         stateTransition.setCurrentState(ConnectorState.DRAINING);
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
@@ -458,7 +458,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public Future<Void> purgeFlowFiles(final String requestor) {
-        requireStopped();
+        requireStopped("purge FlowFiles");
         stateTransition.setCurrentState(ConnectorState.PURGING);
 
         final String dropRequestId = UUID.randomUUID().toString();
@@ -468,15 +468,15 @@ public class StandardConnectorNode implements ConnectorNode {
         return stateUpdateFuture;
     }
 
-    private void requireStopped() {
+    private void requireStopped(final String action) {
         final ConnectorState desiredState = getDesiredState();
         if (desiredState != ConnectorState.STOPPED) {
-            throw new IllegalStateException("Cannot drain flow files for " + this + " because its desired state is currently " + desiredState + "; it must be STOPPED.");
+            throw new IllegalStateException("Cannot " + action + " for " + this + " because its desired state is currently " + desiredState + "; it must be STOPPED.");
         }
 
         final ConnectorState currentState = getCurrentState();
         if (currentState != ConnectorState.STOPPED) {
-            throw new IllegalStateException("Cannot drain flow files for " + this + " because its current state is currently " + currentState + "; it must be STOPPED.");
+            throw new IllegalStateException("Cannot " + action + " for " + this + " because its current state is currently " + currentState + "; it must be STOPPED.");
         }
     }
 
