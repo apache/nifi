@@ -333,6 +333,48 @@ class TestMapRecord {
         }
     }
 
+    @Test
+    void testNestedSchemaWithEmptyArray() throws Exception {
+        final String testValue = "test!";
+        final String nestedRecordValue = "Hello, world!";
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("foo", RecordFieldType.STRING.getDataType(), null, set("bar", "baz")));
+        List<RecordField> nestedFields = new ArrayList<>();
+        nestedFields.add(new RecordField("test", RecordFieldType.STRING.getDataType()));
+        RecordSchema nestedSchema = new SimpleRecordSchema(nestedFields);
+        RecordDataType nestedType = new RecordDataType(nestedSchema);
+        fields.add(new RecordField("nested", nestedType));
+        fields.add(new RecordField("array", new ArrayDataType(nestedType)));
+        RecordSchema fullSchema = new SimpleRecordSchema(fields);
+
+        Map<String, Object> nestedValues = new HashMap<>();
+        nestedValues.put("test", nestedRecordValue);
+        Record nestedRecord = new MapRecord(nestedSchema, nestedValues);
+        Map<String, Object> values = new HashMap<>();
+        values.put("foo", testValue);
+        values.put("nested", nestedRecord);
+
+        values.put("array", new Object[0]);
+
+        Record record = new MapRecord(fullSchema, values);
+
+        Map<String, Object> fullConversion = null;
+        fullConversion = ((MapRecord) record).toMap(true);
+
+        assertEquals(testValue, fullConversion.get("foo"));
+        assertInstanceOf(Map.class, fullConversion.get("nested"));
+
+        Map<String, Object> nested = (Map<String, Object>) fullConversion.get("nested");
+        assertEquals(1, nested.size());
+        assertEquals(nestedRecordValue, nested.get("test"));
+
+        Object arrayFieldName = fullConversion.get("array");
+        assertInstanceOf(Object[].class, arrayFieldName);
+        Object[] recordArray = (Object[]) arrayFieldName;
+        assertEquals(0, recordArray.length);
+    }
+
     @ParameterizedTest
     @MethodSource("provideLocalDates")
     void testGettingLocalDate(final String input, final String format, LocalDate expectedDate) {
