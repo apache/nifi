@@ -925,32 +925,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public void enableConnector(final ConnectorNode connectorNode) {
-        final ConnectorState currentState = connectorNode.getCurrentState();
-        if (currentState != ConnectorState.DISABLED) {
-            throw new IllegalStateException("Connector cannot be enabled because its state is set to " + currentState
-                    + " but transition to STOPPED state is allowed only from the DISABLED state");
-        }
-
-        connectorNode.enable();
-    }
-
-    @Override
-    public void disableConnector(final ConnectorNode connectorNode) {
-        final ConnectorState currentState = connectorNode.getCurrentState();
-        if (currentState == ConnectorState.DISABLED) {
-            return;
-        }
-
-        if (currentState != ConnectorState.STOPPED) {
-            throw new IllegalStateException("Connector cannot be disabled because its state is set to " + currentState
-                    + " but transition to DISABLED state is allowed only from the STOPPED state");
-        }
-
-        connectorNode.disable();
-    }
-
-    @Override
     public void onConnectorRemoved(final ConnectorNode connectorNode) {
         lifecycleStateManager.removeLifecycleState(connectorNode.getIdentifier());
     }

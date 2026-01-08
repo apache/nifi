@@ -21,17 +21,17 @@ import org.apache.commons.lang3.ClassUtils;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.listen.ListenPortDefinition;
 import org.apache.nifi.components.connector.AssetReference;
-import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
+import org.apache.nifi.components.listen.ListenPortDefinition;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceDefinition;
 import org.apache.nifi.connectable.Connectable;
@@ -1106,7 +1106,6 @@ public class VersionedComponentFlowMapper {
         }
 
         return switch (connectorState) {
-            case DISABLED -> org.apache.nifi.flow.ScheduledState.DISABLED;
             case RUNNING, STARTING -> org.apache.nifi.flow.ScheduledState.RUNNING;
             default -> org.apache.nifi.flow.ScheduledState.ENABLED;
         };
