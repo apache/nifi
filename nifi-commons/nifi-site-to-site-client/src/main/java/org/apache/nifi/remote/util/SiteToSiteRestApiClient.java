@@ -355,7 +355,6 @@ public class SiteToSiteRestApiClient implements Closeable {
         session.setDataTransferUrl(uri.toString());
 
         final HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(uri).GET();
-        requestBuilder.setHeader(ACCEPT_HEADER, APPLICATION_JSON);
 
         final HttpResponse<InputStream> response = sendRequest(requestBuilder);
         final int responseCode = response.statusCode();
