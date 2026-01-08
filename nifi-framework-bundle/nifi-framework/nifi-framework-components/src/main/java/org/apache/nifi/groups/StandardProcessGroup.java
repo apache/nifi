@@ -2112,7 +2112,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             return this;
         }
 
-        final ProcessGroup group = flowManager.getGroup(id);
+        final ProcessGroup group = flowManager.getGroup(id, getConnectorIdentifier().orElse(null));
         if (group == null) {
             return null;
         }

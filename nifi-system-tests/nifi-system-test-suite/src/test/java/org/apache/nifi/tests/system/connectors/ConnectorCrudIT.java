@@ -17,24 +17,31 @@
 
 package org.apache.nifi.tests.system.connectors;
 
+import jakarta.ws.rs.NotFoundException;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
+import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ConnectorCrudIT extends NiFiSystemIT {
 
@@ -147,5 +154,47 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         getClientUtil().configureConnectorWithReferences(connector.getId(), "Ignored Step", supersecretProperties);
         getClientUtil().applyConnectorUpdate(connector);
         getClientUtil().waitForValidConnector(connector.getId());
+    }
+
+    @Test
+    public void testProcessGroupAccessibility() throws NiFiClientException, IOException {
+        final ConnectorEntity connector = getClientUtil().createConnector("NestedProcessGroupConnector");
+        assertNotNull(connector);
+
+        final ConnectorEntity updatedConnector = getNifiClient().getConnectorClient().getConnector(connector.getId());
+        final String managedProcessGroupId = updatedConnector.getComponent().getManagedProcessGroupId();
+        assertNotNull(managedProcessGroupId);
+
+        final ProcessGroupFlowEntity connectorFlowEntity = getNifiClient().getConnectorClient().getFlow(connector.getId(), managedProcessGroupId);
+        assertNotNull(connectorFlowEntity);
+
+        final ProcessGroupFlowDTO connectorFlow = connectorFlowEntity.getProcessGroupFlow();
+        assertNotNull(connectorFlow);
+        assertEquals(managedProcessGroupId, connectorFlow.getId());
+
+        try {
+            getNifiClient().getFlowClient().getProcessGroup(managedProcessGroupId);
+            fail("Was able to retrieve connector-managed process group via FlowClient");
+        } catch (final NiFiClientException e) {
+            assertInstanceOf(NotFoundException.class, e.getCause());
+        }
+
+        final Set<ProcessGroupEntity> childGroups = connectorFlow.getFlow().getProcessGroups();
+        assertEquals(1, childGroups.size(), "Expected exactly one child process group");
+
+        final ProcessGroupEntity childGroup = childGroups.iterator().next();
+        final String childGroupId = childGroup.getId();
+        assertNotNull(childGroupId);
+
+        final ProcessGroupFlowEntity childFlowEntity = getNifiClient().getConnectorClient().getFlow(connector.getId(), childGroupId);
+        assertNotNull(childFlowEntity);
+        assertEquals(childGroupId, childFlowEntity.getProcessGroupFlow().getId());
+
+        try {
+            getNifiClient().getFlowClient().getProcessGroup(childGroupId);
+            fail("Was able to retrieve child process group of connector-managed flow via FlowClient");
+        } catch (final NiFiClientException e) {
+            assertInstanceOf(NotFoundException.class, e.getCause());
+        }
     }
 }

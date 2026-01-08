@@ -17,11 +17,6 @@
 
 package org.apache.nifi.web.dao.impl;
 
-import static org.mockito.Answers.RETURNS_DEEP_STUBS;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.groups.ProcessGroup;
@@ -34,6 +29,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.mockito.Answers.RETURNS_DEEP_STUBS;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestStandardProcessGroupDAO {
@@ -59,21 +59,12 @@ public class TestStandardProcessGroupDAO {
         testSubject = new StandardProcessGroupDAO();
         testSubject.setFlowController(flowController);
 
-        when(flowController
-                .getFlowManager()
-                .getGroup(PARENT_PROCESS_GROUP_ID)
-        ).thenReturn(parentProcessGroup);
-
-        when(flowController
-                .getFlowManager()
-                .getParameterContextManager()
-                .getParameterContext(PARAMETER_CONTEXT_ID)
-        ).thenReturn(parameterContext);
+        when(flowController.getFlowManager().getGroup(PARENT_PROCESS_GROUP_ID, null)).thenReturn(parentProcessGroup);
+        when(flowController.getFlowManager().getParameterContextManager().getParameterContext(PARAMETER_CONTEXT_ID)).thenReturn(parameterContext);
     }
 
     @Test
     public void testCreateProcessGroup() {
-        //GIVEN
         ParameterContextReferenceEntity parameterContextReferenceEntity = new ParameterContextReferenceEntity();
         parameterContextReferenceEntity.setId(PARAMETER_CONTEXT_ID);
 
@@ -84,10 +75,8 @@ public class TestStandardProcessGroupDAO {
         processGroupDTO.setPosition(new PositionDTO(10.0, 20.0));
         processGroupDTO.setParameterContext(parameterContextReferenceEntity);
 
-        //WHEN
         ProcessGroup createdProcessGroup = testSubject.createProcessGroup(PARENT_PROCESS_GROUP_ID, processGroupDTO);
 
-        //THEN
         verify(createdProcessGroup).setParent(parentProcessGroup);
         verify(createdProcessGroup).setParameterContext(parameterContext);
         verify(createdProcessGroup).setName(PROCESS_GROUP_NAME);

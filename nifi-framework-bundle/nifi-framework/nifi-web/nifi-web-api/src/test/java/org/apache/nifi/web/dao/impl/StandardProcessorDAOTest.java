@@ -24,13 +24,13 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.dao.ComponentStateDAO;
-import org.apache.nifi.controller.flow.FlowManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -210,7 +210,7 @@ class StandardProcessorDAOTest {
         final Bundle bundle = new Bundle(bundleDetails, getClass().getClassLoader());
         final List<Bundle> bundles = List.of(bundle);
 
-        when(flowManager.getGroup(eq(groupId))).thenReturn(processGroup);
+        when(flowManager.getGroup(eq(groupId), eq(null))).thenReturn(processGroup);
         when(flowController.getExtensionManager()).thenReturn(extensionManager);
         when(flowManager.createProcessor(eq(processorType), eq(id), eq(bundleCoordinate))).thenReturn(processorNode);
         when(extensionManager.getBundles(eq(processorType))).thenReturn(bundles);

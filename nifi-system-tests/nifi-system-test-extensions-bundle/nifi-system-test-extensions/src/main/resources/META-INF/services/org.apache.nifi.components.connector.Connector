@@ -15,5 +15,6 @@
 
 org.apache.nifi.connectors.tests.system.NopConnector
 org.apache.nifi.connectors.tests.system.AssetConnector
+org.apache.nifi.connectors.tests.system.NestedProcessGroupConnector
 
 
