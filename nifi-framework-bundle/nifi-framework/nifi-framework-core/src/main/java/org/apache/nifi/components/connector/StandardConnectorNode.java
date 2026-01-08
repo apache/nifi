@@ -446,37 +446,48 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public Future<Void> drainFlowFiles() {
-        requireStopped("drain FlowFiles");
-        stateTransition.setCurrentState(ConnectorState.DRAINING);
+        requireStopped("drain FlowFiles", ConnectorState.DRAINING);
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
             final CompletableFuture<Void> future = connectorDetails.getConnector().drainFlowFiles(activeFlowContext);
             final CompletableFuture<Void> stateUpdateFuture = future.whenComplete((result, failureCause) -> stateTransition.setCurrentState(ConnectorState.STOPPED));
             return stateUpdateFuture;
+        } catch (final Throwable t) {
+            stateTransition.setCurrentState(ConnectorState.STOPPED);
+            throw t;
         }
     }
 
     @Override
     public Future<Void> purgeFlowFiles(final String requestor) {
-        requireStopped("purge FlowFiles");
-        stateTransition.setCurrentState(ConnectorState.PURGING);
+        requireStopped("purge FlowFiles", ConnectorState.PURGING);
 
-        final String dropRequestId = UUID.randomUUID().toString();
-        final DropFlowFileStatus status = activeFlowContext.getManagedProcessGroup().dropAllFlowFiles(dropRequestId, requestor);
-        final CompletableFuture<Void> future = status.getCompletionFuture();
-        final CompletableFuture<Void> stateUpdateFuture = future.whenComplete((result, failureCause) -> stateTransition.setCurrentState(ConnectorState.STOPPED));
-        return stateUpdateFuture;
+        try {
+            final String dropRequestId = UUID.randomUUID().toString();
+            final DropFlowFileStatus status = activeFlowContext.getManagedProcessGroup().dropAllFlowFiles(dropRequestId, requestor);
+            final CompletableFuture<Void> future = status.getCompletionFuture();
+            final CompletableFuture<Void> stateUpdateFuture = future.whenComplete((result, failureCause) -> stateTransition.setCurrentState(ConnectorState.STOPPED));
+            return stateUpdateFuture;
+        } catch (final Throwable t) {
+            stateTransition.setCurrentState(ConnectorState.STOPPED);
+            throw t;
+        }
     }
 
-    private void requireStopped(final String action) {
+    private void requireStopped(final String action, final ConnectorState newState) {
         final ConnectorState desiredState = getDesiredState();
         if (desiredState != ConnectorState.STOPPED) {
             throw new IllegalStateException("Cannot " + action + " for " + this + " because its desired state is currently " + desiredState + "; it must be STOPPED.");
         }
 
-        final ConnectorState currentState = getCurrentState();
-        if (currentState != ConnectorState.STOPPED) {
-            throw new IllegalStateException("Cannot " + action + " for " + this + " because its current state is currently " + currentState + "; it must be STOPPED.");
+        boolean stateUpdated = false;
+        while (!stateUpdated) {
+            final ConnectorState currentState = getCurrentState();
+            if (currentState != ConnectorState.STOPPED) {
+                throw new IllegalStateException("Cannot " + action + " for " + this + " because its current state is currently " + currentState + "; it must be STOPPED.");
+            }
+
+            stateUpdated = stateTransition.trySetCurrentState(ConnectorState.STOPPED, newState);
         }
     }
 
