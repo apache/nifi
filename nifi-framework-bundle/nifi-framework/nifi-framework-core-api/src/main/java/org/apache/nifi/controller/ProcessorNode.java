@@ -312,7 +312,7 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
-    public abstract Object invokeConnectorMethod(String methodName, Map<String, Object> arguments, ProcessContext processContext) throws InvocationFailedException;
+    public abstract String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ProcessContext processContext) throws InvocationFailedException;
 
     public abstract List<ConnectorMethod> getConnectorMethods();
 }
