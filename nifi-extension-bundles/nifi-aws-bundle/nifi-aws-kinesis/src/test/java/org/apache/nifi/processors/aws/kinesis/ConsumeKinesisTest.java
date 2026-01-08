@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.aws.kinesis;
 
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.region.RegionUtil;
 import org.apache.nifi.reporting.InitializationException;
@@ -34,8 +33,6 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.ProcessingSt
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_PARSE_FAILURE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ConsumeKinesisTest {
 
@@ -62,19 +59,6 @@ class ConsumeKinesisTest {
         final Set<Relationship> relationships = testRunner.getProcessor().getRelationships();
 
         assertEquals(Set.of(REL_SUCCESS, REL_PARSE_FAILURE), relationships);
-    }
-
-    @Test
-    void failInitializationWithInvalidValues() {
-        // KCL Scheduler initialization will fail, as the runner is configured with placeholder credentials.
-
-        // Using the processor object to avoid error wrapping by testRunner.
-        final ConsumeKinesis consumeKinesis = (ConsumeKinesis) testRunner.getProcessor();
-        final ProcessException ex = assertThrows(
-                ProcessException.class,
-                () -> consumeKinesis.setup(testRunner.getProcessContext()));
-
-        assertNotNull(ex.getCause(), "The initialization exception is expected to have a cause");
     }
 
     private static TestRunner createTestRunner() {

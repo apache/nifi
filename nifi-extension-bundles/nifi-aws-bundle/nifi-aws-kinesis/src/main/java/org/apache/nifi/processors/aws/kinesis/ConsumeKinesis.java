@@ -100,6 +100,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -169,10 +170,10 @@ public class ConsumeKinesis extends AbstractProcessor {
     private static final Duration KINESIS_HTTP_HEALTH_CHECK_PERIOD = Duration.ofMinutes(1);
 
     /**
-     * Using a large enough value to ensure we don't wait infinitely for the initialization.
-     * Actual initialization shouldn't take that long.
+     * How long to wait for a Scheduler initialization to complete in the OnScheduled method.
+     * If the initialization takes longer than this, the processor will continue initialization checks in the onTrigger method.
      */
-    private static final Duration KINESIS_SCHEDULER_INITIALIZATION_TIMEOUT = Duration.ofMinutes(15);
+    private static final Duration KINESIS_SCHEDULER_ON_SCHEDULED_INITIALIZATION_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration KINESIS_SCHEDULER_GRACEFUL_SHUTDOWN_TIMEOUT = Duration.ofMinutes(3);
 
     static final PropertyDescriptor STREAM_NAME = new PropertyDescriptor.Builder()
@@ -339,6 +340,9 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     private volatile @Nullable ReaderRecordProcessor readerRecordProcessor;
 
+    private volatile Future<InitializationResult> initializationResultFuture;
+    private final AtomicBoolean initialized = new AtomicBoolean();
+
     // An instance filed, so that it can be read in getRelationships.
     private volatile ProcessingStrategy processingStrategy = ProcessingStrategy.from(
             PROCESSING_STRATEGY.getDefaultValue());
@@ -418,6 +422,8 @@ public class ConsumeKinesis extends AbstractProcessor {
         final RetrievalSpecificConfig retrievalSpecificConfig = configureRetrievalSpecificConfig(context, kinesisClient, streamName, applicationName);
 
         final InitializationStateChangeListener initializationListener = new InitializationStateChangeListener(getLogger());
+        initialized.set(false);
+        initializationResultFuture = initializationListener.result();
 
         kinesisScheduler = new Scheduler(
                 configsBuilder.checkpointConfig(),
@@ -435,33 +441,19 @@ public class ConsumeKinesis extends AbstractProcessor {
         schedulerThread.start();
         // The thread is stopped when kinesisScheduler is shutdown in the onStopped method.
 
-        final InitializationResult result;
         try {
-            result = initializationListener.result().get(KINESIS_SCHEDULER_INITIALIZATION_TIMEOUT.getSeconds(), SECONDS);
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
+            final InitializationResult result = initializationResultFuture.get(
+                    KINESIS_SCHEDULER_ON_SCHEDULED_INITIALIZATION_TIMEOUT.getSeconds(), SECONDS);
+            checkInitializationResult(result);
+        } catch (final TimeoutException e) {
+            // During a first run the processor will take more time to initialize. We return from OnSchedule and continue waiting in the onTrigger method.
+            getLogger().warn("Kinesis Scheduler initialization may take up to 10 minutes on a first run, which is caused by AWS resources initialization");
+        } catch (final InterruptedException | ExecutionException e) {
             if (e instanceof InterruptedException) {
                 Thread.currentThread().interrupt();
             }
             cleanUpState();
             throw new ProcessException("Initialization failed for stream [%s]".formatted(streamName), e);
-        }
-
-        switch (result) {
-            case InitializationResult.Success ignored ->
-                getLogger().info(
-                        "Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
-                        streamName, applicationName, workerId);
-            case InitializationResult.Failure failure -> {
-                cleanUpState();
-
-                final ProcessException ex = failure.error()
-                        .map(err -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName), err))
-                        // This branch is active only when a scheduler was shutdown, but no initialization error was provided.
-                        // This behavior isn't typical and wasn't observed.
-                        .orElseGet(() -> new ProcessException(("Initialization failed for stream [%s]").formatted(streamName)));
-
-                throw ex;
-            }
         }
     }
 
@@ -575,6 +567,9 @@ public class ConsumeKinesis extends AbstractProcessor {
     @OnStopped
     public void onStopped() {
         cleanUpState();
+
+        initialized.set(false);
+        initializationResultFuture = null;
     }
 
     private void cleanUpState() {
@@ -633,12 +628,46 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        if (!initialized.get()) {
+            if (!initializationResultFuture.isDone()) {
+                getLogger().debug("Waiting for Kinesis Scheduler to finish initialization");
+                context.yield();
+                return;
+            }
+
+            checkInitializationResult(initializationResultFuture.resultNow());
+        }
+
         final Optional<Lease> leaseAcquired = recordBuffer.acquireBufferLease();
 
         leaseAcquired.ifPresentOrElse(
                 lease -> processRecordsFromBuffer(session, lease),
                 context::yield
         );
+    }
+
+    private void checkInitializationResult(final InitializationResult initializationResult) {
+        switch (initializationResult) {
+            case InitializationResult.Success ignored -> {
+                final boolean wasInitialized = initialized.getAndSet(true);
+                if (!wasInitialized) {
+                    getLogger().info(
+                            "Started Kinesis Scheduler for stream [{}] with application name [{}] and workerId [{}]",
+                            streamName, kinesisScheduler.applicationName(), kinesisScheduler.leaseManagementConfig().workerIdentifier());
+                }
+            }
+            case InitializationResult.Failure failure -> {
+                cleanUpState();
+
+                final ProcessException ex = failure.error()
+                        .map(err -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName), err))
+                        // This branch is active only when a scheduler was shutdown, but no initialization error was provided.
+                        // This behavior isn't typical and wasn't observed.
+                        .orElseGet(() -> new ProcessException("Initialization failed for stream [%s]".formatted(streamName)));
+
+                throw ex;
+            }
+        }
     }
 
     private void processRecordsFromBuffer(final ProcessSession session, final Lease lease) {
