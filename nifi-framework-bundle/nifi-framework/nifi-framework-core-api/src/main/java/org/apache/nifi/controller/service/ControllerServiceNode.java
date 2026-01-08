@@ -263,7 +263,7 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
 
     void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory serviceFactory);
 
-    Object invokeConnectorMethod(String methodName, Map<String, Object> arguments, ConfigurationContext configurationContext) throws InvocationFailedException;
+    String invokeConnectorMethod(String methodName, Map<String, String> jsonArguments, ConfigurationContext configurationContext) throws InvocationFailedException;
 
     List<ConnectorMethod> getConnectorMethods();
 }
