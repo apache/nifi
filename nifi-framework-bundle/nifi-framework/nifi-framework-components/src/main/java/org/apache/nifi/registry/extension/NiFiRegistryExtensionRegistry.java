@@ -18,6 +18,8 @@ package org.apache.nifi.registry.extension;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.fasterxml.jackson.module.jakarta.xmlbind.JakartaXmlBindAnnotationIntrospector;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.registry.extension.bundle.BundleVersionMetadata;
 import org.apache.nifi.security.proxied.entity.StandardProxiedEntityEncoder;
@@ -46,7 +48,9 @@ public class NiFiRegistryExtensionRegistry extends AbstractExtensionRegistry<NiF
 
     private static final String PROXIED_ENTITIES_CHAIN_HEADER = "X-ProxiedEntitiesChain";
 
-    private static final ObjectMapper objectMapper = new ObjectMapper().disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    private static final ObjectMapper objectMapper = new ObjectMapper()
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .setAnnotationIntrospector(new JakartaXmlBindAnnotationIntrospector(TypeFactory.defaultInstance()));
 
     private HttpClient httpClient;
 
