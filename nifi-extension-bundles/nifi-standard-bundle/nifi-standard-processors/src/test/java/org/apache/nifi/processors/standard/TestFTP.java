@@ -228,7 +228,7 @@ public class TestFTP {
     @Test
     public void testFetchFtp() {
         FileSystem results = fakeFtpServer.getFileSystem();
-
+        results.add(new DirectoryEntry("c:\\data\\data"));
         FileEntry sampleFile = new FileEntry("c:\\data\\randombytes-2");
         sampleFile.setContents("Just some random test test test chocolate");
         results.add(sampleFile);
@@ -328,6 +328,7 @@ public class TestFTP {
             disabledReason = "org.mockftpserver does not support specification of charset")
     public void testFetchFtpUnicodeFileName() {
         FileSystem fs = fakeFtpServer.getFileSystem();
+        fs.add(new DirectoryEntry("c:\\data\\data"));
 
         FileEntry sampleFile = new FileEntry("c:\\data\\őűőű.txt");
         sampleFile.setContents("Just some random test test test chocolate");
