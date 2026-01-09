@@ -123,7 +123,7 @@ public class TestStandardAzureCredentialsControllerService {
         public org.apache.nifi.oauth2.AccessToken getAccessDetails() {
             final org.apache.nifi.oauth2.AccessToken accessToken = new org.apache.nifi.oauth2.AccessToken();
             accessToken.setAccessToken(ACCESS_TOKEN_VALUE);
-            accessToken.setExpiresIn(3600);
+            accessToken.setExpiresIn(3600L);
             return accessToken;
         }
     }
