@@ -124,8 +124,10 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                         buffer.clear();
                         while (!stopped && (socketAddress = channel.receive(buffer)) != null) {
                             String sender = "";
+                            int port = 0;
                             if (socketAddress instanceof InetSocketAddress inetSocketAddress) {
-                                sender = inetSocketAddress.toString();
+                                sender = inetSocketAddress.getAddress().toString();
+                                port = inetSocketAddress.getPort();
                             }
 
                             // create a byte array from the buffer
@@ -133,7 +135,7 @@ public class DatagramChannelDispatcher<E extends Event<DatagramChannel>> impleme
                             byte[] bytes = new byte[buffer.limit()];
                             buffer.get(bytes, 0, buffer.limit());
 
-                            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender);
+                            final Map<String, String> metadata = EventFactoryUtil.createMapWithSender(sender, port);
                             final E event = eventFactory.create(bytes, metadata, null);
                             events.offer(event);
 
