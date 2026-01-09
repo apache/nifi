@@ -29,7 +29,7 @@ public class ConnectorDTO extends ComponentDTO {
     private String name;
     private String type;
     private BundleDTO bundle;
-    private String state; // RUNNING, STOPPED, DISABLED
+    private String state; // RUNNING, STOPPED
     private String managedProcessGroupId;
     private ConnectorConfigurationDTO activeConfiguration;
     private ConnectorConfigurationDTO workingConfiguration;
@@ -69,7 +69,7 @@ public class ConnectorDTO extends ComponentDTO {
         this.bundle = bundle;
     }
 
-    @Schema(description = "The state of the Connector.", allowableValues = {"RUNNING", "STOPPED", "DISABLED"})
+    @Schema(description = "The state of the Connector.", allowableValues = {"RUNNING", "STOPPED"})
     public String getState() {
         return state;
     }

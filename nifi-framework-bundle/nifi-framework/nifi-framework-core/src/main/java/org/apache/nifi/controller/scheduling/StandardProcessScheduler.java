@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -922,32 +921,6 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     public CompletableFuture<Void> stopConnector(final ConnectorNode connectorNode) {
         // TODO: Implement
         throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void enableConnector(final ConnectorNode connectorNode) {
-        final ConnectorState currentState = connectorNode.getCurrentState();
-        if (currentState != ConnectorState.DISABLED) {
-            throw new IllegalStateException("Connector cannot be enabled because its state is set to " + currentState
-                    + " but transition to STOPPED state is allowed only from the DISABLED state");
-        }
-
-        connectorNode.enable();
-    }
-
-    @Override
-    public void disableConnector(final ConnectorNode connectorNode) {
-        final ConnectorState currentState = connectorNode.getCurrentState();
-        if (currentState == ConnectorState.DISABLED) {
-            return;
-        }
-
-        if (currentState != ConnectorState.STOPPED) {
-            throw new IllegalStateException("Connector cannot be disabled because its state is set to " + currentState
-                    + " but transition to DISABLED state is allowed only from the STOPPED state");
-        }
-
-        connectorNode.disable();
     }
 
     @Override
