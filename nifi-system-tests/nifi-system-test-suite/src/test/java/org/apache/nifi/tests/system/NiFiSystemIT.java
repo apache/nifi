@@ -261,6 +261,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         getClientUtil().disableControllerLevelServices();
         getClientUtil().disableFlowAnalysisRules();
         getClientUtil().stopTransmitting("root");
+        getClientUtil().stopConnectors();
         getClientUtil().deleteAll("root");
         getClientUtil().deleteControllerLevelServices();
         getClientUtil().deleteReportingTasks();

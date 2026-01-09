@@ -138,5 +138,3 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
         connectorClient.deleteConnector(connector);
     }
 }
-
-

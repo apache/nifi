@@ -32,6 +32,7 @@ import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClusterSummaryEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
+import org.apache.nifi.web.api.entity.ConnectorsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
@@ -398,6 +399,14 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
                 .resolveTemplate("bucket-id", bucket)
                 .queryParam("branch", branch);
             return getRequestBuilder(target).get(VersionedFlowsEntity.class);
+        });
+    }
+
+    @Override
+    public ConnectorsEntity getConnectors() throws NiFiClientException, IOException {
+        return executeAction("Error retrieving Connectors", () -> {
+            final WebTarget target = flowTarget.path("/connectors");
+            return getRequestBuilder(target).get(ConnectorsEntity.class);
         });
     }
 }
