@@ -17,7 +17,7 @@
 
 package org.apache.nifi.controller.queue;
 
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Represents the status of a Drop FlowFile Request that has been issued to
@@ -81,5 +81,5 @@ public interface DropFlowFileStatus {
     /**
      * @return a Future that can be used to determine when the drop operation has completed
      */
-    Future<Void> getCompletionFuture();
+    CompletableFuture<Void> getCompletionFuture();
 }

@@ -26,6 +26,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class SleepingConnector implements Connector {
     private final Duration sleepDuration;
@@ -116,5 +117,10 @@ public class SleepingConnector implements Connector {
     @Override
     public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext workingContext) {
         return List.of();
+    }
+
+    @Override
+    public CompletableFuture<Void> drainFlowFiles(final FlowContext flowContext) {
+        return CompletableFuture.completedFuture(null);
     }
 }

@@ -31,6 +31,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * A simple no-op Connector implementation for testing purposes.
@@ -159,4 +160,8 @@ public class NopConnector implements Connector {
         return List.of();
     }
 
+    @Override
+    public CompletableFuture<Void> drainFlowFiles(final FlowContext flowContext) {
+        return CompletableFuture.completedFuture(null);
+    }
 }

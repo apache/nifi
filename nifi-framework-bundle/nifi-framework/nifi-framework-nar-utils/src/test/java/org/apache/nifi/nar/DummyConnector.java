@@ -31,6 +31,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @Tags({"test", "connector"})
 public class DummyConnector implements Connector {
@@ -110,5 +111,10 @@ public class DummyConnector implements Connector {
     @Override
     public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext flowContext, final String filter) {
         return List.of();
+    }
+
+    @Override
+    public CompletableFuture<Void> drainFlowFiles(final FlowContext flowContext) {
+        return CompletableFuture.completedFuture(null);
     }
 }

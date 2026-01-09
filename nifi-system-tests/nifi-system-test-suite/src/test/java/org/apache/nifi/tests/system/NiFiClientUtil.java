@@ -80,6 +80,7 @@ import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ConnectorsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceRunStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
@@ -395,6 +396,24 @@ public class NiFiClientUtil {
 
             Thread.sleep(100L);
         }
+    }
+
+    public void stopConnectors() throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorsEntity connectorsEntity = nifiClient.getFlowClient().getConnectors();
+        for (final ConnectorEntity connector : connectorsEntity.getConnectors()) {
+            getConnectorClient().stopConnector(connector);
+            waitForConnectorStopped(connector.getId());
+        }
+    }
+
+    public void stopConnector(final ConnectorEntity connectorEntity) throws NiFiClientException, IOException, InterruptedException {
+        stopConnector(connectorEntity.getId());
+    }
+
+    public void stopConnector(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        getConnectorClient().stopConnector(entity);
+        waitForConnectorStopped(connectorId);
     }
 
     public void waitForConnectorStopped(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
