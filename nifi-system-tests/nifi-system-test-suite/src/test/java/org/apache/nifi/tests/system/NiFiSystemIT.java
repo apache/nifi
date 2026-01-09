@@ -44,7 +44,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -62,6 +61,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.net.ssl.SSLContext;
 
 @ExtendWith(TroubleshootingTestWatcher.class)
 @Timeout(value = 5, unit = TimeUnit.MINUTES)
@@ -261,6 +261,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         getClientUtil().disableControllerLevelServices();
         getClientUtil().disableFlowAnalysisRules();
         getClientUtil().stopTransmitting("root");
+        getClientUtil().stopConnectors();
         getClientUtil().deleteAll("root");
         getClientUtil().deleteControllerLevelServices();
         getClientUtil().deleteReportingTasks();

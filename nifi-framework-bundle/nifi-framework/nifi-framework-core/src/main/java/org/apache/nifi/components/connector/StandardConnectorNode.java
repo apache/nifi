@@ -36,6 +36,7 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
@@ -64,6 +65,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
@@ -440,6 +442,53 @@ public class StandardConnectorNode implements ConnectorNode {
         scheduler.schedule(() -> stopComponent(scheduler, stopCompleteFuture), 0, TimeUnit.SECONDS);
 
         return stopCompleteFuture;
+    }
+
+    @Override
+    public Future<Void> drainFlowFiles() {
+        requireStopped("drain FlowFiles", ConnectorState.DRAINING);
+
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
+            final CompletableFuture<Void> future = connectorDetails.getConnector().drainFlowFiles(activeFlowContext);
+            final CompletableFuture<Void> stateUpdateFuture = future.whenComplete((result, failureCause) -> stateTransition.setCurrentState(ConnectorState.STOPPED));
+            return stateUpdateFuture;
+        } catch (final Throwable t) {
+            stateTransition.setCurrentState(ConnectorState.STOPPED);
+            throw t;
+        }
+    }
+
+    @Override
+    public Future<Void> purgeFlowFiles(final String requestor) {
+        requireStopped("purge FlowFiles", ConnectorState.PURGING);
+
+        try {
+            final String dropRequestId = UUID.randomUUID().toString();
+            final DropFlowFileStatus status = activeFlowContext.getManagedProcessGroup().dropAllFlowFiles(dropRequestId, requestor);
+            final CompletableFuture<Void> future = status.getCompletionFuture();
+            final CompletableFuture<Void> stateUpdateFuture = future.whenComplete((result, failureCause) -> stateTransition.setCurrentState(ConnectorState.STOPPED));
+            return stateUpdateFuture;
+        } catch (final Throwable t) {
+            stateTransition.setCurrentState(ConnectorState.STOPPED);
+            throw t;
+        }
+    }
+
+    private void requireStopped(final String action, final ConnectorState newState) {
+        final ConnectorState desiredState = getDesiredState();
+        if (desiredState != ConnectorState.STOPPED) {
+            throw new IllegalStateException("Cannot " + action + " for " + this + " because its desired state is currently " + desiredState + "; it must be STOPPED.");
+        }
+
+        boolean stateUpdated = false;
+        while (!stateUpdated) {
+            final ConnectorState currentState = getCurrentState();
+            if (currentState != ConnectorState.STOPPED) {
+                throw new IllegalStateException("Cannot " + action + " for " + this + " because its current state is currently " + currentState + "; it must be STOPPED.");
+            }
+
+            stateUpdated = stateTransition.trySetCurrentState(ConnectorState.STOPPED, newState);
+        }
     }
 
     private void stopComponent(final FlowEngine scheduler, final CompletableFuture<Void> stopCompleteFuture) {

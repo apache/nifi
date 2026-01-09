@@ -42,6 +42,8 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.StandardFlowManager;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
+import org.apache.nifi.controller.queue.DropFlowFileRequest;
+import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
@@ -78,6 +80,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -88,6 +91,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
 import static java.util.Objects.requireNonNull;
@@ -410,7 +417,8 @@ public class StandardConnectorNodeIT {
             .anyMatch(result -> result.getSubject() != null && result.getSubject().contains("First Primary Color"));
         assertTrue(hasColorError);
 
-        final ConnectorConfiguration validConfig = createFileAndColorsConfiguration(".", "red");
+        final File colorsFile = new File("src/test/resources/colors.txt");
+        final ConnectorConfiguration validConfig = createFileAndColorsConfiguration(colorsFile.getAbsolutePath(), "red");
         configure(connectorNode, validConfig);
 
         final ValidationState updatedValidationState = connectorNode.performValidation();
@@ -438,6 +446,58 @@ public class StandardConnectorNodeIT {
         assertEquals(ValidationStatus.INVALID, validationState.getStatus());
         assertEquals(1, validationState.getValidationErrors().size());
     }
+
+    @Test
+    public void testPurgeFlowFilesEmptiesQueues() throws FlowUpdateException, ExecutionException, InterruptedException, TimeoutException {
+        final ConnectorNode connectorNode = initializeDynamicFlowConnector();
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+
+        final Connection connection = queueDataBySource(rootGroup, "Create FlowFile");
+        assertEquals(1, connection.getFlowFileQueue().size().getObjectCount());
+
+        final Future<Void> purgeFuture = connectorNode.purgeFlowFiles("test-user");
+        purgeFuture.get(10, TimeUnit.SECONDS);
+
+        assertTrue(connection.getFlowFileQueue().isEmpty());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+    }
+
+    @Test
+    public void testPurgeFlowFilesMultipleQueues() throws FlowUpdateException, ExecutionException, InterruptedException, TimeoutException {
+        final ConnectorNode connectorNode = initializeDynamicFlowConnector();
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+
+        final Connection connection1 = queueDataBySource(rootGroup, "Create FlowFile");
+        final Connection connection2 = queueDataByDestination(rootGroup, "Terminate FlowFile");
+        assertEquals(1, connection1.getFlowFileQueue().size().getObjectCount());
+        assertEquals(1, connection2.getFlowFileQueue().size().getObjectCount());
+
+        final Future<Void> purgeFuture = connectorNode.purgeFlowFiles("test-user");
+        purgeFuture.get(10, TimeUnit.SECONDS);
+
+        assertTrue(connection1.getFlowFileQueue().isEmpty());
+        assertTrue(connection2.getFlowFileQueue().isEmpty());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+    }
+
+    @Test
+    public void testPurgeFlowFilesRequiresStoppedState() throws FlowUpdateException {
+        final ConnectorNode connectorNode = initializeDynamicFlowConnector();
+        final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        queueDataBySource(rootGroup, "Create FlowFile");
+
+        connectorNode.enable();
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+
+        connectorNode.start(componentLifecycleThreadPool);
+        assertEquals(ConnectorState.RUNNING, connectorNode.getDesiredState());
+
+        final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> connectorNode.purgeFlowFiles("test-user"));
+        assertTrue(exception.getMessage().contains("must be STOPPED"));
+
+        connectorNode.stop(componentLifecycleThreadPool);
+    }
+
 
     private List<String> getConfigurationStepNames(final ConnectorNode connectorNode) {
         return connectorNode.getConfigurationSteps().stream()
@@ -483,6 +543,20 @@ public class StandardConnectorNodeIT {
         when(flowFileQueue.isEmpty()).thenAnswer(invocation -> flowFileList.isEmpty());
         when(flowFileQueue.getLoadBalanceStrategy()).thenReturn(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE);
         when(flowFileQueue.getLoadBalanceCompression()).thenReturn(LoadBalanceCompression.DO_NOT_COMPRESS);
+
+        // Mock dropFlowFiles to clear the list and return a completed status
+        when(flowFileQueue.dropFlowFiles(anyString(), anyString())).thenAnswer(invocation -> {
+            final String requestId = invocation.getArgument(0);
+            final int originalCount = flowFileList.size();
+            flowFileList.clear();
+
+            final DropFlowFileRequest dropRequest = new DropFlowFileRequest(requestId);
+            dropRequest.setOriginalSize(new QueueSize(originalCount, originalCount));
+            dropRequest.setCurrentSize(new QueueSize(0, 0));
+            dropRequest.setDroppedSize(new QueueSize(originalCount, originalCount));
+            dropRequest.setState(DropFlowFileState.COMPLETE);
+            return dropRequest;
+        });
 
         final FlowFileQueueFactory flowFileQueueFactory = (loadBalanceStrategy, partitioningAttribute, processGroup) -> flowFileQueue;
 

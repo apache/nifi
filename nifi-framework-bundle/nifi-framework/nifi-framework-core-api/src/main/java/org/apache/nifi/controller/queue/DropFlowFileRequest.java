@@ -18,7 +18,6 @@
 package org.apache.nifi.controller.queue;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 
 public class DropFlowFileRequest implements DropFlowFileStatus {
     private final String identifier;
@@ -91,7 +90,7 @@ public class DropFlowFileRequest implements DropFlowFileStatus {
     }
 
     @Override
-    public Future<Void> getCompletionFuture() {
+    public CompletableFuture<Void> getCompletionFuture() {
         return completionFuture;
     }
 

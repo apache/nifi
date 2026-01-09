@@ -494,6 +494,85 @@ public class TestStandardConnectorNode {
         assertEquals("The property value is invalid", failedResult.getExplanation());
     }
 
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    public void testDrainFlowFilesTransitionsStateToDraining() throws FlowUpdateException {
+        final CompletableFuture<Void> drainCompletionFuture = new CompletableFuture<>();
+        final DrainBlockingConnector drainBlockingConnector = new DrainBlockingConnector(drainCompletionFuture);
+        final StandardConnectorNode connectorNode = createConnectorNode(drainBlockingConnector);
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+
+        final Future<Void> drainFuture = connectorNode.drainFlowFiles();
+
+        assertEquals(ConnectorState.DRAINING, connectorNode.getCurrentState());
+        assertFalse(drainFuture.isDone());
+
+        drainCompletionFuture.complete(null);
+
+        try {
+            drainFuture.get(2, TimeUnit.SECONDS);
+        } catch (final Exception e) {
+            throw new RuntimeException("Drain future failed to complete", e);
+        }
+
+        assertTrue(drainFuture.isDone());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+    }
+
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    public void testDrainFlowFilesFutureDoesNotCompleteUntilDrainFinishes() throws FlowUpdateException, InterruptedException {
+        final CompletableFuture<Void> drainCompletionFuture = new CompletableFuture<>();
+        final DrainBlockingConnector drainBlockingConnector = new DrainBlockingConnector(drainCompletionFuture);
+        final StandardConnectorNode connectorNode = createConnectorNode(drainBlockingConnector);
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+
+        final Future<Void> drainFuture = connectorNode.drainFlowFiles();
+        assertEquals(ConnectorState.DRAINING, connectorNode.getCurrentState());
+
+        Thread.sleep(200);
+        assertFalse(drainFuture.isDone());
+        assertEquals(ConnectorState.DRAINING, connectorNode.getCurrentState());
+
+        drainCompletionFuture.complete(null);
+
+        try {
+            drainFuture.get(2, TimeUnit.SECONDS);
+        } catch (final Exception e) {
+            throw new RuntimeException("Drain future failed to complete", e);
+        }
+
+        assertTrue(drainFuture.isDone());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+    }
+
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    public void testDrainFlowFilesStateTransitionsBackToStoppedOnCompletion() throws FlowUpdateException {
+        final CompletableFuture<Void> drainCompletionFuture = new CompletableFuture<>();
+        final DrainBlockingConnector drainBlockingConnector = new DrainBlockingConnector(drainCompletionFuture);
+        final StandardConnectorNode connectorNode = createConnectorNode(drainBlockingConnector);
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
+
+        final Future<Void> drainFuture = connectorNode.drainFlowFiles();
+        assertEquals(ConnectorState.DRAINING, connectorNode.getCurrentState());
+
+        drainCompletionFuture.complete(null);
+
+        try {
+            drainFuture.get(2, TimeUnit.SECONDS);
+        } catch (final Exception e) {
+            throw new RuntimeException("Drain future failed to complete", e);
+        }
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
+    }
+
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);
@@ -666,6 +745,49 @@ public class TestStandardConnectorNode {
         @Override
         public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
             return List.of();
+        }
+    }
+
+    /**
+     * Test connector that allows control over when drainFlowFiles completes via a CompletableFuture
+     */
+    private static class DrainBlockingConnector extends AbstractConnector {
+        private final CompletableFuture<Void> drainCompletionFuture;
+
+        public DrainBlockingConnector(final CompletableFuture<Void> drainCompletionFuture) {
+            this.drainCompletionFuture = drainCompletionFuture;
+        }
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            return List.of();
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+
+        @Override
+        public CompletableFuture<Void> drainFlowFiles(final FlowContext flowContext) {
+            return drainCompletionFuture;
         }
     }
 
