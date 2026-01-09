@@ -79,4 +79,46 @@ public class TestJoltTransformRecordPartitioned extends TestBaseJoltTransformRec
             result2.assertContentEquals(expectedOutput1);
         }
     }
+
+    @Test
+    public void testJoltComplexChoiceField() throws Exception {
+        final JsonTreeReader reader = new JsonTreeReader();
+        runner.addControllerService("reader", reader);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+        runner.enableControllerService(reader);
+        runner.setProperty(JoltTransformRecord.RECORD_READER, "reader");
+
+        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
+        runner.enableControllerService(writer);
+
+        final String flattenSpec = getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenSpec.json");
+        runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
+        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CHAINR);
+
+        final String inputJson = getExpectedContent("src/test/resources/TestJoltTransformRecord/input.json");
+        runner.enqueue(inputJson);
+
+        runner.run();
+
+        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 2);
+        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
+
+        final String expectedOutput1 = getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutputPartitioned1.json");
+        final String expectedOutput2 = getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutputPartitioned2.json");
+
+
+        final java.util.List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS);
+        final MockFlowFile result1 = flowFiles.get(0);
+        final MockFlowFile result2 = flowFiles.get(1);
+
+        // Handles non-deterministic order
+        if (result1.getContent().contains("Minute")) {
+            result1.assertContentEquals(expectedOutput2);
+            result2.assertContentEquals(expectedOutput1);
+        } else {
+            result1.assertContentEquals(expectedOutput1);
+            result2.assertContentEquals(expectedOutput2);
+        }
+    }
 }

@@ -19,10 +19,8 @@ package org.apache.nifi.processors.jolt;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.jolt.util.JoltTransformStrategy;
 import org.apache.nifi.json.JsonRecordSetWriter;
-import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -668,33 +666,6 @@ public abstract class TestBaseJoltTransformRecord {
     }
 
     @Test
-    public void testJoltComplexChoiceField() throws Exception {
-        final JsonTreeReader reader = new JsonTreeReader();
-        runner.addControllerService("reader", reader);
-        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
-        runner.enableControllerService(reader);
-        runner.setProperty(JoltTransformRecord.RECORD_READER, "reader");
-
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
-        runner.setProperty(writer, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
-        runner.enableControllerService(writer);
-
-        final String flattenSpec = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/flattenSpec.json"));
-        runner.setProperty(JoltTransformRecord.JOLT_SPEC, flattenSpec);
-        runner.setProperty(JoltTransformRecord.JOLT_TRANSFORM, JoltTransformStrategy.CHAINR);
-
-        final String inputJson = Files.readString(Paths.get("src/test/resources/TestJoltTransformRecord/input.json"));
-        runner.enqueue(inputJson);
-
-        runner.run();
-        runner.assertTransferCount(JoltTransformRecord.REL_SUCCESS, 1);
-        runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
-
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutput.json"));
-    }
-
-    @Test
     public void testTransformInputAllFiltered() throws IOException {
         generateTestData(3, null);
 
@@ -716,7 +687,7 @@ public abstract class TestBaseJoltTransformRecord {
 
     private static Stream<Arguments> getChainrArguments() {
         return Stream.of(Arguments.of(Paths.get(CHAINR_SPEC_PATH), "has no single line comments"),
-                Arguments.of(Paths.get("src/test/resources/specs/chainrSpecWithSingleLineComment.json"), "has a single line comment"));
+            Arguments.of(Paths.get("src/test/resources/specs/chainrSpecWithSingleLineComment.json"), "has a single line comment"));
     }
 
     protected void generateTestData(int numRecords, final BiFunction<Integer, MockRecordParser, Void> recordGenerator) {
@@ -725,8 +696,8 @@ public abstract class TestBaseJoltTransformRecord {
             final RecordSchema seriesSchema = new SimpleRecordSchema(List.of(new RecordField("value", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType()))));
             final RecordSchema qualitySchema = new SimpleRecordSchema(List.of(new RecordField("value", RecordFieldType.INT.getDataType())));
             final RecordSchema ratingSchema = new SimpleRecordSchema(
-                    Arrays.asList(new RecordField("primary", RecordFieldType.RECORD.getDataType()), new RecordField("series", RecordFieldType.RECORD.getDataType()),
-                            new RecordField("quality", RecordFieldType.RECORD.getDataType())));
+                Arrays.asList(new RecordField("primary", RecordFieldType.RECORD.getDataType()), new RecordField("series", RecordFieldType.RECORD.getDataType()),
+                    new RecordField("quality", RecordFieldType.RECORD.getDataType())));
             parser.addSchemaField("rating", RecordFieldType.RECORD);
 
             for (int i = 0; i < numRecords; i++) {

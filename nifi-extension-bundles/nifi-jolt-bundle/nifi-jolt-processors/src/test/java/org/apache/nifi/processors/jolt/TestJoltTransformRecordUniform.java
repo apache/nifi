@@ -59,6 +59,6 @@ public class TestJoltTransformRecordUniform extends TestBaseJoltTransformRecord 
         runner.assertTransferCount(JoltTransformRecord.REL_ORIGINAL, 1);
 
         final MockFlowFile transformed = runner.getFlowFilesForRelationship(JoltTransformRecord.REL_SUCCESS).getFirst();
-        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutput.json"));
+        transformed.assertContentEquals(getExpectedContent("src/test/resources/TestJoltTransformRecord/flattenedOutputUniform.json"));
     }
 }
