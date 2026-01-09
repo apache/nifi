@@ -24,13 +24,18 @@ public interface ConnectorValidationTrigger {
 
     /**
      * Triggers validation of the given connector to occur asynchronously.
+     * If the Connector's validation is already in progress by another thread, this method will
+     * return without triggering another validation. If the Connector's validation is paused, this
+     * will schedule the validation to occur once unpaused.
      *
      * @param connector the connector to validate
      */
     void triggerAsync(ConnectorNode connector);
 
     /**
-     * Triggers validation of the given connector immediately in the current thread.
+     * Triggers validation of the given connector immediately in the current thread. This will
+     * trigger validation even if other validation is currently in progress or if the Connector's
+     * validation is paused.
      *
      * @param connector the connector to validate
      */
