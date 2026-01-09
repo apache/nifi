@@ -37,11 +37,11 @@ import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.A
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ACCOUNT_NAME;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CREDENTIALS_TYPE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.MANAGED_IDENTITY_CLIENT_ID;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.OAUTH2_ACCESS_TOKEN_PROVIDER;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SAS_TOKEN;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_ID;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.SERVICE_PRINCIPAL_TENANT_ID;
-import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.OAUTH2_ACCESS_TOKEN_PROVIDER;
 
 /**
  * Provides credentials details for Azure Storage processors

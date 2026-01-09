@@ -20,8 +20,8 @@ import com.azure.core.credential.AccessToken;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -462,7 +462,7 @@ public class TestADLSCredentialsControllerService {
         public org.apache.nifi.oauth2.AccessToken getAccessDetails() {
             final org.apache.nifi.oauth2.AccessToken token = new org.apache.nifi.oauth2.AccessToken();
             token.setAccessToken(ACCESS_TOKEN_VALUE);
-            token.setExpiresIn(3600);
+            token.setExpiresIn(3600L);
             return token;
         }
     }

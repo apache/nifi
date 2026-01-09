@@ -19,8 +19,8 @@ package org.apache.nifi.services.azure.storage;
 import com.azure.core.credential.AccessToken;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -333,7 +333,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         public org.apache.nifi.oauth2.AccessToken getAccessDetails() {
             final org.apache.nifi.oauth2.AccessToken accessToken = new org.apache.nifi.oauth2.AccessToken();
             accessToken.setAccessToken(ACCESS_TOKEN_VALUE);
-            accessToken.setExpiresIn(3600);
+            accessToken.setExpiresIn(3600L);
             return accessToken;
         }
     }

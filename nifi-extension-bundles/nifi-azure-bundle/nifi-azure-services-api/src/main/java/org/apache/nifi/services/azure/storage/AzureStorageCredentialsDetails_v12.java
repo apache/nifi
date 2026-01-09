@@ -18,10 +18,9 @@ package org.apache.nifi.services.azure.storage;
 
 import com.azure.core.credential.AccessToken;
 import com.azure.core.http.ProxyOptions;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 
 import java.util.Objects;
-
-import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 
 import static org.apache.nifi.services.azure.util.ProxyOptionsUtils.equalsProxyOptions;
 import static org.apache.nifi.services.azure.util.ProxyOptionsUtils.hashCodeProxyOptions;

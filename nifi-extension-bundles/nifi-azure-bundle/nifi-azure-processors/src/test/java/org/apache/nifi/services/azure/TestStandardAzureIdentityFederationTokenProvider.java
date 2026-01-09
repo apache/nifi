@@ -101,7 +101,7 @@ public class TestStandardAzureIdentityFederationTokenProvider {
         public AccessToken getAccessDetails() {
             final AccessToken accessToken = new AccessToken();
             accessToken.setAccessToken("client-assertion");
-            accessToken.setExpiresIn(600);
+            accessToken.setExpiresIn(600L);
             return accessToken;
         }
     }
