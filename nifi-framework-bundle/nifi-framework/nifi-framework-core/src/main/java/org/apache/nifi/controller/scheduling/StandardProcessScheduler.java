@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
