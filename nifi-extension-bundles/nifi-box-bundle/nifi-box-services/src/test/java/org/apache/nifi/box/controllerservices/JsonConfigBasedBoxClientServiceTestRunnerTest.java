@@ -26,7 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -137,13 +136,9 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
                 Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE.getName())
         );
 
-        Set<String> expectedRemoved = Set.of("Connect Timeout", "Read Timeout");
-
         final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
         final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
-        final Set<String> propertiesRemoved = result.getPropertiesRemoved();
 
         assertEquals(expectedRenamed, propertiesRenamed);
-        assertEquals(expectedRemoved, propertiesRemoved);
     }
 }

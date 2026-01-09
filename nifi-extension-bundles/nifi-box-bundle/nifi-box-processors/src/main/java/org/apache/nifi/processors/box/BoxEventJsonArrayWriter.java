@@ -198,16 +198,16 @@ final class BoxEventJsonArrayWriter implements Closeable {
                 Object value = entry.getValue();
                 if (value == null) {
                     generator.writeNullField(key);
-                } else if (value instanceof String) {
-                    generator.writeStringField(key, (String) value);
-                } else if (value instanceof Number) {
-                    generator.writeNumberField(key, ((Number) value).doubleValue());
-                } else if (value instanceof Boolean) {
-                    generator.writeBooleanField(key, (Boolean) value);
-                } else if (value instanceof Map) {
+                } else if (value instanceof String strValue) {
+                    generator.writeStringField(key, strValue);
+                } else if (value instanceof Number numValue) {
+                    generator.writeNumberField(key, numValue.doubleValue());
+                } else if (value instanceof Boolean boolValue) {
+                    generator.writeBooleanField(key, boolValue);
+                } else if (value instanceof Map<?, ?> mapValue) {
                     // Nested map - use ObjectMapper to serialize
                     generator.writeFieldName(key);
-                    generator.writeRawValue(OBJECT_MAPPER.writeValueAsString(value));
+                    generator.writeRawValue(OBJECT_MAPPER.writeValueAsString(mapValue));
                 } else {
                     // For other types, convert to string
                     generator.writeStringField(key, value.toString());

@@ -74,6 +74,8 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 })
 public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
 
+    private static final String DEFAULT_METADATA_TYPE = "properties";
+
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor.Builder()
             .name("File ID")
             .description("The ID of the file for which to create metadata.")
@@ -287,6 +289,9 @@ public class CreateBoxFileMetadataInstance extends AbstractBoxProcessor {
      * @param metadataValues The metadata key-value pairs.
      */
     void createFileMetadata(final String fileId, final String templateKey, final Map<String, Object> metadataValues) {
-        boxClient.getFileMetadata().createFileMetadataById(fileId, CreateFileMetadataByIdScope.ENTERPRISE, templateKey, metadataValues);
+        final CreateFileMetadataByIdScope scope = DEFAULT_METADATA_TYPE.equals(templateKey)
+                ? CreateFileMetadataByIdScope.GLOBAL
+                : CreateFileMetadataByIdScope.ENTERPRISE;
+        boxClient.getFileMetadata().createFileMetadataById(fileId, scope, templateKey, metadataValues);
     }
 }

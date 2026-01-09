@@ -18,6 +18,7 @@ package org.apache.nifi.processors.box;
 
 import com.box.sdkgen.client.BoxClient;
 import com.box.sdkgen.managers.events.GetEventsQueryParams;
+import com.box.sdkgen.managers.events.GetEventsQueryParamsEventTypeField;
 import com.box.sdkgen.managers.events.GetEventsQueryParamsStreamTypeField;
 import com.box.sdkgen.schemas.event.Event;
 import com.box.sdkgen.schemas.events.Events;
@@ -45,8 +46,10 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -128,7 +131,7 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
     }
 
     private volatile BoxClient boxClient;
-    private volatile List<String> eventTypes;
+    private volatile List<GetEventsQueryParamsEventTypeField> eventTypes;
     private volatile String streamPosition;
 
     @OnScheduled
@@ -137,10 +140,30 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
         boxClient = boxClientService.getBoxClient();
 
         eventTypes = context.getProperty(EVENT_TYPES).isSet()
-                ? List.of(context.getProperty(EVENT_TYPES).getValue().split(","))
+                ? parseEventTypes(context.getProperty(EVENT_TYPES).getValue())
                 : List.of();
 
         streamPosition = calculateStreamPosition(context);
+    }
+
+    /**
+     * Parses a comma-separated string of event type names into a list of enum values.
+     * Unknown event types are logged as warnings and ignored.
+     */
+    private List<GetEventsQueryParamsEventTypeField> parseEventTypes(final String eventTypesStr) {
+        return Arrays.stream(eventTypesStr.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(s -> {
+                    try {
+                        return GetEventsQueryParamsEventTypeField.valueOf(s);
+                    } catch (IllegalArgumentException e) {
+                        getLogger().warn("Unknown event type '{}' will be ignored", s);
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     private String calculateStreamPosition(final ProcessContext context) {
@@ -193,7 +216,7 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
         } else if (positionField.isLongNumber()) {
             return String.valueOf(positionField.getLongNumber());
         }
-        return null;
+        throw new IllegalStateException("EventsNextStreamPositionField contains neither String nor Long value");
     }
 
     @Override
@@ -225,9 +248,9 @@ public class ConsumeBoxEnterpriseEvents extends AbstractBoxProcessor {
                 .streamPosition(position)
                 .streamType(GetEventsQueryParamsStreamTypeField.ADMIN_LOGS_STREAMING);
 
-        // Note: Event type filtering has been removed in SDK v10 migration
-        // The eventType filter now requires GetEventsQueryParamsEventTypeField enum values
-        // TODO: Implement event type filtering with proper enum conversion if needed
+        if (eventTypes != null && !eventTypes.isEmpty()) {
+            queryParamsBuilder.eventType(eventTypes);
+        }
 
         return boxClient.getEvents().getEvents(queryParamsBuilder.build());
     }

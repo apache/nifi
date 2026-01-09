@@ -58,6 +58,8 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
 })
 public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
 
+    private static final String DEFAULT_METADATA_TYPE = "properties";
+
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor.Builder()
             .name("File ID")
             .description("The ID of the file from which to delete metadata.")
@@ -183,6 +185,9 @@ public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
      * @param templateKey The template key of the metadata to delete.
      */
     void deleteFileMetadata(final String fileId, final String templateKey) {
-        boxClient.getFileMetadata().deleteFileMetadataById(fileId, DeleteFileMetadataByIdScope.ENTERPRISE, templateKey);
+        final DeleteFileMetadataByIdScope scope = DEFAULT_METADATA_TYPE.equals(templateKey)
+                ? DeleteFileMetadataByIdScope.GLOBAL
+                : DeleteFileMetadataByIdScope.ENTERPRISE;
+        boxClient.getFileMetadata().deleteFileMetadataById(fileId, scope, templateKey);
     }
 }
