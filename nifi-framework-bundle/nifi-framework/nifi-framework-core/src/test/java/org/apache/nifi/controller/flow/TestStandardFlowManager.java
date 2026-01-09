@@ -23,7 +23,9 @@ import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorInitializationContext;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.StandardConnectorInitializationContext;
+import org.apache.nifi.components.connector.StandardConnectorStateTransition;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.GarbageCollectionLog;
 import org.apache.nifi.controller.MockStateManagerProvider;
@@ -54,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -139,10 +142,14 @@ public class TestStandardFlowManager {
         when(flowController.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
         when(flowController.getReloadComponent()).thenReturn(mock(ReloadComponent.class));
 
+        final ConnectorValidationTrigger validationTrigger = mock(ConnectorValidationTrigger.class);
+        when(flowController.getConnectorValidationTrigger()).thenReturn(validationTrigger);
+
         final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
         when(connectorRepository.createInitializationContextBuilder()).thenAnswer(
             invocation -> new StandardConnectorInitializationContext.Builder());
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
+        when(connectorRepository.createStateTransition(anyString(), anyString())).thenReturn(new StandardConnectorStateTransition("test component"));
 
         // Create the connector
         final String type = NopConnector.class.getName();

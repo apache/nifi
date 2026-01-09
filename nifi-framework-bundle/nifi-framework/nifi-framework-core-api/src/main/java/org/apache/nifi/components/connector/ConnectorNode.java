@@ -113,6 +113,12 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     void resumeValidationTrigger();
 
+    /**
+     * Indicates whether validation triggering is currently paused.
+     * @return true if validation triggering is paused, false otherwise
+     */
+    boolean isValidationPaused();
+
     List<ConfigVerificationResult> verifyConfigurationStep(String configurationStepName, StepConfiguration configurationOverrides);
 
     List<ConfigVerificationResult> verify();
