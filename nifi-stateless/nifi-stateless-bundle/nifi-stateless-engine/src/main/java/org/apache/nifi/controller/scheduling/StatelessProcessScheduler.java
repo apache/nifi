@@ -346,16 +346,6 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
-    public void enableConnector(final ConnectorNode connectorNode) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void disableConnector(final ConnectorNode connectorNode) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public void onConnectorRemoved(final ConnectorNode connectorNode) {
     }
 

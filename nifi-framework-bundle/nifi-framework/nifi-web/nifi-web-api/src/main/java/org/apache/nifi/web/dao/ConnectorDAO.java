@@ -45,10 +45,6 @@ public interface ConnectorDAO {
 
     void stopConnector(String id);
 
-    void enableConnector(String id);
-
-    void disableConnector(String id);
-
     void updateConnectorConfigurationStep(String id, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);
 
     void applyConnectorUpdate(String id, ConnectorUpdateContext updateContext);

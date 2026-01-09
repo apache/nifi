@@ -3591,7 +3591,6 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
             switch (state) {
                 case RUNNING -> connectorDAO.startConnector(id);
                 case STOPPED -> connectorDAO.stopConnector(id);
-                case DISABLED -> connectorDAO.disableConnector(id);
                 default -> throw new IllegalArgumentException("Unsupported scheduled state for Connector: " + state);
             }
             controllerFacade.save();
