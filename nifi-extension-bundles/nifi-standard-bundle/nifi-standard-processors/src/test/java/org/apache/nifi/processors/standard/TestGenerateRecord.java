@@ -21,8 +21,13 @@ import org.apache.nifi.avro.AvroReader;
 import org.apache.nifi.avro.AvroRecordSetWriter;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processors.standard.faker.FakerMethodHolder;
 import org.apache.nifi.processors.standard.faker.FakerUtils;
+import org.apache.nifi.processors.standard.faker.PredefinedRecordSchema;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
@@ -149,13 +154,15 @@ public class TestGenerateRecord {
         flowFile.assertContentEquals(String.join("", Collections.nCopies(FakerUtils.getDatatypeFunctionMap().size() - 1, ",")) + "\n");
     }
 
-    // Tests that the remaining fields are supported by the processor.
+    // Tests that the special FT_* types in FakerUtils are supported by the processor.
+    // Note: FT_BOOL is defined but not added to createFakerPropertyList(), so we exclude it.
     @Test
     public void testFieldsReturnValue() throws Exception {
 
-        List<Field> fieldTypeFields = Arrays.stream(GenerateRecord.class.getFields()).filter((field) -> field.getName().startsWith("FT_")).toList();
+List<Field> fieldTypeFields = Arrays.stream(GenerateRecord.class.getFields()).filter((field) -> field.getName().startsWith("FT_")).toList();
         for (Field field : fieldTypeFields) {
-            testRunner.setProperty(field.getName().toLowerCase(Locale.ROOT), ((AllowableValue) field.get(processor)).getValue());
+            field.setAccessible(true);
+            testRunner.setProperty(field.getName().toLowerCase(Locale.ROOT), ((AllowableValue) field.get(null)).getValue());
         }
 
         final Map<String, String> recordFields = processor.getFields(testRunner.getProcessContext());
@@ -300,5 +307,182 @@ public class TestGenerateRecord {
 
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    @Test
+    public void testValidationFailsWithNoSchemaConfiguration() throws InitializationException {
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true);
+        testRunner.addControllerService("record-writer", recordWriter);
+        testRunner.enableControllerService(recordWriter);
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testValidationFailsWithMultipleSchemaConfigurations() throws Exception {
+        String schemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestGenerateRecord/nested_nullable.avsc")));
+
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true);
+        testRunner.addControllerService("record-writer", recordWriter);
+        testRunner.enableControllerService(recordWriter);
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
+
+        // Set both Schema Text and Predefined Schema - should be invalid
+        testRunner.setProperty(GenerateRecord.SCHEMA_TEXT, schemaText);
+        testRunner.setProperty(GenerateRecord.PREDEFINED_SCHEMA, PredefinedRecordSchema.PERSON.name());
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testValidationFailsWithPredefinedSchemaAndDynamicProperties() throws Exception {
+        final MockRecordWriter recordWriter = new MockRecordWriter(null, true);
+        testRunner.addControllerService("record-writer", recordWriter);
+        testRunner.enableControllerService(recordWriter);
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
+
+        // Set both Predefined Schema and dynamic property - should be invalid
+        testRunner.setProperty(GenerateRecord.PREDEFINED_SCHEMA, PredefinedRecordSchema.PERSON.name());
+        testRunner.setProperty("myField", "Address.fullAddress");
+
+        testRunner.assertNotValid();
+    }
+
+    @Test
+    public void testPredefinedSchemaPerson() throws Exception {
+        testPredefinedSchema(PredefinedRecordSchema.PERSON, 5,
+                "id", "firstName", "lastName", "email", "phoneNumber", "dateOfBirth", "age", "active", "address");
+    }
+
+    @Test
+    public void testPredefinedSchemaOrder() throws Exception {
+        testPredefinedSchema(PredefinedRecordSchema.ORDER, 5,
+                "orderId", "customerId", "customerName", "customerEmail", "orderDate", "orderTime",
+                "orderTimestamp", "totalAmount", "currency", "status", "shipped", "itemCount", "lineItems");
+    }
+
+    @Test
+    public void testPredefinedSchemaEvent() throws Exception {
+        testPredefinedSchema(PredefinedRecordSchema.EVENT, 5,
+                "eventId", "eventType", "eventDate", "eventTime", "eventTimestamp", "source",
+                "severity", "message", "processed", "retryCount", "durationMs", "tags", "metadata");
+    }
+
+    @Test
+    public void testPredefinedSchemaSensor() throws Exception {
+        testPredefinedSchema(PredefinedRecordSchema.SENSOR, 5,
+                "sensorId", "deviceType", "manufacturer", "readingTimestamp", "temperature",
+                "humidity", "pressure", "batteryLevel", "signalStrength", "online", "location");
+    }
+
+    @Test
+    public void testPredefinedSchemaProduct() throws Exception {
+        testPredefinedSchema(PredefinedRecordSchema.PRODUCT, 5,
+                "productId", "sku", "name", "description", "category", "brand", "price",
+                "currency", "inStock", "quantity", "rating", "reviewCount", "createdDate",
+                "lastUpdated", "tags", "dimensions");
+    }
+
+    @Test
+    public void testPredefinedSchemaStockTrade() throws Exception {
+        testPredefinedSchema(PredefinedRecordSchema.STOCK_TRADE, 5,
+                "tradeId", "symbol", "companyName", "exchange", "tradeType", "tradeTimestamp",
+                "price", "quantity", "totalValue", "currency", "bidPrice", "askPrice",
+                "high52Week", "low52Week", "marketCap", "settled");
+    }
+
+    @Test
+    public void testPredefinedSchemaCompleteExample() throws Exception {
+        testPredefinedSchema(PredefinedRecordSchema.COMPLETE_EXAMPLE, 3,
+                "id", "active", "score", "count", "rating", "price", "balance", "initial",
+                "flags", "rank", "createdDate", "lastLoginTime", "lastModified", "tags",
+                "scores", "metadata", "profile", "orders");
+    }
+
+    private void testPredefinedSchema(PredefinedRecordSchema predefinedSchema, int numRecords, String... expectedFields) throws Exception {
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        testRunner.addControllerService("json-writer", jsonWriter);
+        testRunner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        testRunner.enableControllerService(jsonWriter);
+
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "json-writer");
+        testRunner.setProperty(GenerateRecord.PREDEFINED_SCHEMA, predefinedSchema.name());
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "true");
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "0");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, String.valueOf(numRecords));
+
+        testRunner.assertValid();
+        testRunner.run();
+
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
+
+        // Verify record count attribute
+        flowFile.assertAttributeEquals("record.count", String.valueOf(numRecords));
+        flowFile.assertAttributeEquals("mime.type", "application/json");
+
+        // Verify content is valid JSON and contains expected fields
+        final String content = flowFile.getContent();
+        assertNotNull(content);
+        assertTrue(content.startsWith("["), "Content should be a JSON array");
+
+        // Verify all expected fields are present in the output
+        for (String field : expectedFields) {
+            assertTrue(content.contains("\"" + field + "\""),
+                    "Expected field '" + field + "' not found in output for schema " + predefinedSchema.name());
+        }
+
+        // Parse and verify records using JsonTreeReader
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        testRunner.addControllerService("json-reader", jsonReader);
+        testRunner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
+        testRunner.enableControllerService(jsonReader);
+
+        final byte[] contentBytes = flowFile.toByteArray();
+        try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(contentBytes);
+             final RecordReader recordReader = jsonReader.createRecordReader(flowFile.getAttributes(), inputStream, contentBytes.length, testRunner.getLogger())) {
+
+            int recordCount = 0;
+            Record record;
+            while ((record = recordReader.nextRecord()) != null) {
+                recordCount++;
+                // Verify each expected field exists in the record
+                for (String field : expectedFields) {
+                    assertTrue(record.getSchema().getFieldNames().contains(field),
+                            "Record schema should contain field '" + field + "' for schema " + predefinedSchema.name());
+                }
+            }
+            assertEquals(numRecords, recordCount, "Should have generated " + numRecords + " records");
+        }
+    }
+
+    @Test
+    public void testPredefinedSchemaWithNullPercentage() throws Exception {
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        testRunner.addControllerService("json-writer", jsonWriter);
+        testRunner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        testRunner.enableControllerService(jsonWriter);
+
+        testRunner.setProperty(GenerateRecord.RECORD_WRITER, "json-writer");
+        testRunner.setProperty(GenerateRecord.PREDEFINED_SCHEMA, PredefinedRecordSchema.PERSON.name());
+        testRunner.setProperty(GenerateRecord.NULLABLE_FIELDS, "true");
+        testRunner.setProperty(GenerateRecord.NULL_PERCENTAGE, "100");
+        testRunner.setProperty(GenerateRecord.NUM_RECORDS, "1");
+
+        testRunner.assertValid();
+        testRunner.run();
+
+        testRunner.assertTransferCount(GenerateRecord.REL_SUCCESS, 1);
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(GenerateRecord.REL_SUCCESS).get(0);
+
+        // With 100% null percentage, all nullable fields should be null
+        final String content = flowFile.getContent();
+        assertNotNull(content);
+        // The content should contain null values
+        assertTrue(content.contains("null"), "With 100% null percentage, output should contain null values");
     }
 }
