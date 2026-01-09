@@ -60,7 +60,7 @@ public class OffsetTracker {
                     pollingContext.getAutoOffsetReset(), offsets);
         } else {
             pollingSummary = new PollingSummary(pollingContext.getGroupId(), pollingContext.getTopics(),
-                    pollingContext.getAutoOffsetReset(), offsets);
+                    pollingContext.getAutoOffsetReset(), pollingContext.getPartition(), offsets);
         }
         return pollingSummary;
     }
