@@ -230,15 +230,16 @@ public class StandardConnectorNode implements ConnectorNode {
     public void applyUpdate() throws FlowUpdateException {
         try {
             applyUpdate(workingFlowContext);
-        } catch (final Throwable t) {
-            // Since we failed to update, make sure that we stop the Connector.
+        } catch (final FlowUpdateException e) {
+            // Since we failed to update, make sure that we stop the Connector. Note that we do not do this for all
+            // throwables because IllegalStateException for example indicates that we did not even attempt to perform the update.
             try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
                 connectorDetails.getConnector().stop(activeFlowContext);
             } catch (final Throwable stopThrowable) {
-                t.addSuppressed(stopThrowable);
+                e.addSuppressed(stopThrowable);
             }
 
-            throw t;
+            throw e;
         }
     }
 
@@ -518,7 +519,7 @@ public class StandardConnectorNode implements ConnectorNode {
         }
 
         final ConnectorState currentState = getCurrentState();
-        if (currentState == ConnectorState.STOPPED) {
+        if (currentState == ConnectorState.STOPPED || currentState == ConnectorState.UPDATE_FAILED || currentState == ConnectorState.UPDATED) {
             return;
         }
 
