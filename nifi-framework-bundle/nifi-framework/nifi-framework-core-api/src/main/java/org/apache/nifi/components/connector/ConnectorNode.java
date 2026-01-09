@@ -161,15 +161,6 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     Collection<ValidationResult> getValidationErrors();
 
-    /**
-     * Enables the Connector. This method should only be invoked via the ConnectorRepository.
-     */
-    void enable();
-
-    /**
-     * Disables the Connector. This method should only be invoked via the ConnectorRepository.
-     */
-    void disable();
 
     ValidationState getValidationState();
 

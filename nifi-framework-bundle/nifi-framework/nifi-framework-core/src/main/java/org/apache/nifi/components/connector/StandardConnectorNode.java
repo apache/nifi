@@ -37,6 +37,7 @@ import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
@@ -227,7 +228,19 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void applyUpdate() throws FlowUpdateException {
-        applyUpdate(workingFlowContext);
+        try {
+            applyUpdate(workingFlowContext);
+        } catch (final FlowUpdateException e) {
+            // Since we failed to update, make sure that we stop the Connector. Note that we do not do this for all
+            // throwables because IllegalStateException for example indicates that we did not even attempt to perform the update.
+            try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
+                connectorDetails.getConnector().stop(activeFlowContext);
+            } catch (final Throwable stopThrowable) {
+                e.addSuppressed(stopThrowable);
+            }
+
+            throw e;
+        }
     }
 
     private void applyUpdate(final FrameworkFlowContext contextToInherit) throws FlowUpdateException {
@@ -321,39 +334,6 @@ public class StandardConnectorNode implements ConnectorNode {
         return stateTransition.getDesiredState();
     }
 
-    @Override
-    public void enable() {
-        if (getCurrentState() == ConnectorState.STOPPED) {
-            return;
-        }
-        if (getCurrentState() != ConnectorState.DISABLED) {
-            throw new IllegalStateException("Cannot enable " + this + " because its desired state is currently " + getCurrentState()
-                                            + "; it must be DISABLED in order to be enabled.");
-        }
-
-        stateTransition.setDesiredState(ConnectorState.STOPPED);
-        if (stateTransition.trySetCurrentState(ConnectorState.DISABLED, ConnectorState.STOPPED)) {
-            logger.info("Transitioned current state for {} to {}", this, ConnectorState.STOPPED);
-            return;
-        }
-
-        logger.info("{} enabled but not currently DISABLED so set desired state to STOPPED; current state is {}", this, stateTransition.getCurrentState());
-    }
-
-    @Override
-    public void disable() {
-        stateTransition.setDesiredState(ConnectorState.DISABLED);
-
-        final ConnectorState currentState = getCurrentState();
-        if (currentState == ConnectorState.DISABLED || currentState == ConnectorState.STOPPED || currentState == ConnectorState.UPDATE_FAILED) {
-            if (stateTransition.trySetCurrentState(currentState, ConnectorState.DISABLED)) {
-                logger.info("Transitioned current state for {} to {}", this, ConnectorState.DISABLED);
-                return;
-            }
-        }
-
-        logger.info("{} disabled but not in a state that can immediately transition to DISABLED so set desired state to DISABLED; current state is {}", this, currentState);
-    }
 
     @Override
     public Optional<Duration> getIdleDuration() {
@@ -424,7 +404,7 @@ public class StandardConnectorNode implements ConnectorNode {
         boolean stateUpdated = false;
         while (!stateUpdated) {
             final ConnectorState currentState = getCurrentState();
-            if (currentState == ConnectorState.STOPPED || currentState == ConnectorState.DISABLED) {
+            if (currentState == ConnectorState.STOPPED) {
                 logger.debug("{} is already {}; will not attempt to stop", this, currentState);
                 stopCompleteFuture.complete(null);
                 return stopCompleteFuture;
@@ -504,18 +484,9 @@ public class StandardConnectorNode implements ConnectorNode {
         stopCompleteFuture.complete(null);
 
         final ConnectorState desiredState = getDesiredState();
-        switch (desiredState) {
-            case DISABLED -> {
-                logger.info("{} was requested to be DISABLED while it was stopping so will now transition to DISABLED", this);
-                disable();
-            }
-            case RUNNING -> {
-                logger.info("{} was requested to be RUNNING while it was stopping so will attempt to start again", this);
-                start(scheduler, new CompletableFuture<>());
-            }
-            default -> {
-                // No action needed for other states
-            }
+        if (desiredState == ConnectorState.RUNNING) {
+            logger.info("{} was requested to be RUNNING while it was stopping so will attempt to start again", this);
+            start(scheduler, new CompletableFuture<>());
         }
     }
 
@@ -541,8 +512,14 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void verifyCanDelete() {
+        final QueueSize queueSize = getActiveFlowContext().getManagedProcessGroup().getQueueSize();
+        if (queueSize.getObjectCount() > 0) {
+            throw new IllegalStateException("Cannot delete " + this + " because its Process Group has " + queueSize.getObjectCount()
+                + " FlowFiles queued; all FlowFiles must be removed before it can be deleted.");
+        }
+
         final ConnectorState currentState = getCurrentState();
-        if (currentState == ConnectorState.STOPPED || currentState == ConnectorState.DISABLED) {
+        if (currentState == ConnectorState.STOPPED || currentState == ConnectorState.UPDATE_FAILED || currentState == ConnectorState.UPDATED) {
             return;
         }
 
@@ -551,11 +528,6 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void verifyCanStart() {
-        final ConnectorState currentState = getCurrentState();
-        if (currentState == ConnectorState.DISABLED) {
-            throw new IllegalStateException("Cannot start " + this + " because its state is currently " + currentState + "; it must be fully stopped before it can be started.");
-        }
-
         final ValidationState state = performValidation();
         if (state.getStatus() != ValidationStatus.VALID) {
             throw new IllegalStateException("Cannot start " + this + " because it is not valid: " + state.getValidationErrors());

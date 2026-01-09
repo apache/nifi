@@ -481,12 +481,11 @@ public class StandardConnectorNodeIT {
     }
 
     @Test
-    public void testPurgeFlowFilesRequiresStoppedState() throws FlowUpdateException {
+    public void testPurgeFlowFilesRequiresStoppedState() {
         final ConnectorNode connectorNode = initializeDynamicFlowConnector();
         final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
         queueDataBySource(rootGroup, "Create FlowFile");
 
-        connectorNode.enable();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
 
         connectorNode.start(componentLifecycleThreadPool);

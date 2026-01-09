@@ -158,58 +158,6 @@ public class ConnectorAuditor extends NiFiAuditor {
     }
 
     /**
-     * Audits the enabling of a connector via enableConnector().
-     *
-     * @param proceedingJoinPoint join point
-     * @param connectorId connector id
-     * @param connectorDAO connector dao
-     * @throws Throwable if an error occurs
-     */
-    @Around("within(org.apache.nifi.web.dao.ConnectorDAO+) && "
-            + "execution(void enableConnector(java.lang.String)) && "
-            + "args(connectorId) && "
-            + "target(connectorDAO)")
-    public void enableConnectorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final ConnectorDAO connectorDAO) throws Throwable {
-        final ConnectorNode connector = connectorDAO.getConnector(connectorId);
-        final ConnectorState previousState = connector.getCurrentState();
-
-        proceedingJoinPoint.proceed();
-
-        if (isAuditable() && previousState == ConnectorState.DISABLED) {
-            final Action action = generateAuditRecord(connector, Operation.Enable);
-            if (action != null) {
-                saveAction(action, logger);
-            }
-        }
-    }
-
-    /**
-     * Audits the disabling of a connector via disableConnector().
-     *
-     * @param proceedingJoinPoint join point
-     * @param connectorId connector id
-     * @param connectorDAO connector dao
-     * @throws Throwable if an error occurs
-     */
-    @Around("within(org.apache.nifi.web.dao.ConnectorDAO+) && "
-            + "execution(void disableConnector(java.lang.String)) && "
-            + "args(connectorId) && "
-            + "target(connectorDAO)")
-    public void disableConnectorAdvice(final ProceedingJoinPoint proceedingJoinPoint, final String connectorId, final ConnectorDAO connectorDAO) throws Throwable {
-        final ConnectorNode connector = connectorDAO.getConnector(connectorId);
-        final ConnectorState previousState = connector.getCurrentState();
-
-        proceedingJoinPoint.proceed();
-
-        if (isAuditable() && previousState != ConnectorState.DISABLED) {
-            final Action action = generateAuditRecord(connector, Operation.Disable);
-            if (action != null) {
-                saveAction(action, logger);
-            }
-        }
-    }
-
-    /**
      * Audits configuration step updates via updateConnectorConfigurationStep().
      *
      * @param proceedingJoinPoint join point

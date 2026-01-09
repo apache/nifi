@@ -25,6 +25,7 @@ import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -81,6 +82,7 @@ public class TestStandardConnectorNode {
         scheduler = new FlowEngine(1, "flow-engine");
 
         when(managedProcessGroup.purge()).thenReturn(CompletableFuture.completedFuture(null));
+        when(managedProcessGroup.getQueueSize()).thenReturn(new QueueSize(0, 0L));
 
         flowContextFactory = new FlowContextFactory() {
             @Override
@@ -144,47 +146,6 @@ public class TestStandardConnectorNode {
     }
 
     @Test
-    public void testCannotStartFromDisabledState() throws FlowUpdateException {
-        final StandardConnectorNode connectorNode = createConnectorNode();
-        connectorNode.disable();
-        assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
-
-        assertThrows(IllegalStateException.class, () -> connectorNode.start(scheduler));
-    }
-
-    @Test
-    public void testCannotTransitionFromDisabledToRunning() throws FlowUpdateException {
-        final StandardConnectorNode connectorNode = createConnectorNode();
-        connectorNode.disable();
-        assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
-
-        assertThrows(IllegalStateException.class, () -> connectorNode.start(scheduler));
-
-        assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
-    }
-
-    @Test
-    public void testEnableFromDisabledState() throws FlowUpdateException {
-        final StandardConnectorNode connectorNode = createConnectorNode();
-        connectorNode.disable();
-        assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
-
-        connectorNode.enable();
-        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
-        assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
-    }
-
-    @Test
-    public void testDisableFromStoppedState() throws FlowUpdateException {
-        final StandardConnectorNode connectorNode = createConnectorNode();
-        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
-
-        connectorNode.disable();
-        assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
-        assertEquals(ConnectorState.DISABLED, connectorNode.getDesiredState());
-    }
-
-    @Test
     public void testStartFutureCompletedOnlyWhenRunning() throws Exception {
         final StandardConnectorNode connectorNode = createConnectorNode();
         final Future<Void> startFuture = connectorNode.start(scheduler);
@@ -240,14 +201,6 @@ public class TestStandardConnectorNode {
     public void testVerifyCanDeleteWhenStopped() throws FlowUpdateException {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
-        connectorNode.verifyCanDelete();
-    }
-
-    @Test
-    public void testVerifyCanDeleteWhenDisabled() throws FlowUpdateException {
-        final StandardConnectorNode connectorNode = createConnectorNode();
-        connectorNode.disable();
-        assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
         connectorNode.verifyCanDelete();
     }
 
@@ -344,23 +297,6 @@ public class TestStandardConnectorNode {
         final StandardConnectorNode connectorNode = createConnectorNode();
         assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
         assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
-
-        final ConnectorConfiguration newConfiguration = createTestConfiguration();
-
-        connectorNode.transitionStateForUpdating();
-        connectorNode.prepareForUpdate();
-        connectorNode.setConfiguration("testGroup", createStepConfiguration());
-        connectorNode.applyUpdate();
-
-        assertEquals(newConfiguration, connectorNode.getActiveFlowContext().getConfigurationContext().toConnectorConfiguration());
-    }
-
-    @Test
-    public void testSetConfigurationWhenDisabled() throws FlowUpdateException {
-        final StandardConnectorNode connectorNode = createConnectorNode();
-        connectorNode.disable();
-        assertEquals(ConnectorState.DISABLED, connectorNode.getCurrentState());
-        assertEquals(ConnectorState.DISABLED, connectorNode.getDesiredState());
 
         final ConnectorConfiguration newConfiguration = createTestConfiguration();
 
