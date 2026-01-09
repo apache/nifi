@@ -26,15 +26,15 @@ import org.apache.nifi.authorization.ManagedAuthorizer;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.cluster.protocol.StandardDataFlow;
-import org.apache.nifi.components.connector.NamedStepConfiguration;
-import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.AssetReference;
-import org.apache.nifi.components.connector.ConnectorValueReference;
-import org.apache.nifi.components.connector.SecretReference;
-import org.apache.nifi.components.connector.StringLiteralValue;
+import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.NamedStepConfiguration;
+import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.connector.StringLiteralValue;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
@@ -1181,6 +1181,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             final List<VersionedConfigurationStep> activeFlowConfig = versionedConnector.getActiveFlowConfiguration();
             final List<VersionedConfigurationStep> workingFlowConfig = versionedConnector.getWorkingFlowConfiguration();
             connectorRepository.inheritConfiguration(connectorNode, activeFlowConfig, workingFlowConfig, versionedConnector.getBundle());
+
+            final ScheduledState desiredState = versionedConnector.getScheduledState();
+            if (desiredState == ScheduledState.RUNNING) {
+                connectorRepository.startConnector(connectorNode);
+            } else if (desiredState == ScheduledState.ENABLED) {
+                connectorRepository.stopConnector(connectorNode);
+            }
         } catch (final FlowUpdateException e) {
             throw new RuntimeException(connectorNode + " failed to inherit configuration", e);
         }
