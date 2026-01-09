@@ -269,10 +269,6 @@ public interface ProcessScheduler {
 
     CompletableFuture<Void> stopConnector(ConnectorNode connectorNode);
 
-    void enableConnector(ConnectorNode connectorNode);
-
-    void disableConnector(ConnectorNode connectorNode);
-
     void onConnectorRemoved(ConnectorNode connectorNode);
 
     /**

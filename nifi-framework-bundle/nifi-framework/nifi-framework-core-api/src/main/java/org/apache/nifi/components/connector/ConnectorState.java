@@ -22,7 +22,6 @@ public enum ConnectorState {
     RUNNING,
     STOPPING,
     STOPPED,
-    DISABLED,
     DRAINING,
     PURGING,
     PREPARING_FOR_UPDATE,

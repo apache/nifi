@@ -128,18 +128,6 @@ public class StandardConnectorDAO implements ConnectorDAO {
     }
 
     @Override
-    public void enableConnector(final String id) {
-        final ConnectorNode connector = getConnector(id);
-        connector.enable();
-    }
-
-    @Override
-    public void disableConnector(final String id) {
-        final ConnectorNode connector = getConnector(id);
-        connector.disable();
-    }
-
-    @Override
     public void updateConnectorConfigurationStep(final String id, final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepDto) {
         final ConnectorNode connector = getConnector(id);
 
