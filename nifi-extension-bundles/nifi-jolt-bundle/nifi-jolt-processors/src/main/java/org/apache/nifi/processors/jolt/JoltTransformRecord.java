@@ -40,10 +40,14 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
 
@@ -61,6 +65,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static java.util.Comparator.comparing;
 
 @SideEffectFree
 @SupportsBatching
@@ -158,7 +164,7 @@ public class JoltTransformRecord extends AbstractJoltTransform {
                     }
 
                     final RecordSchema recordSchema = transformedRecord.getSchema();
-                    final RecordSchema writeSchema = writerFactory.getSchema(original.getAttributes(), recordSchema);
+                    final RecordSchema writeSchema = writerFactory.getSchema(original.getAttributes(), normalizeSchema(recordSchema));
 
                     RecordSetWriter writer = writerMap.get(writeSchema);
 
@@ -428,5 +434,45 @@ public class JoltTransformRecord extends AbstractJoltTransform {
                 return o;
             }
         }
+    }
+
+    /**
+     * Recursively normalizes RecordSchema object.
+     * This is used to avoid unnecessary partitioning due to field ordering issues when using the 'PARTITION_BY_SCHEMA' strategy
+     *
+     * @param schema The schema to normalize
+     */
+    private RecordSchema normalizeSchema(final RecordSchema schema) {
+        if (schema == null) {
+            return null;
+        }
+
+        // Normalize child schemas
+        final List<RecordField> normalizedFields = new ArrayList<>();
+        for (final RecordField field : schema.getFields()) {
+            final DataType dataType = field.getDataType();
+            if (dataType instanceof RecordDataType recordDataType) {
+
+                final RecordSchema childSchema = recordDataType.getChildSchema();
+
+                if (childSchema != null) {
+                    final RecordSchema normalizedChildSchema = normalizeSchema(childSchema);
+
+                    final RecordField normalizedField =
+                        new RecordField(field.getFieldName(), RecordFieldType.RECORD.getRecordDataType(normalizedChildSchema), field.getDefaultValue(), field.getAliases(), field.isNullable());
+                    normalizedFields.add(normalizedField);
+                } else {
+                    normalizedFields.add(field);
+                }
+            } else {
+                // Not a nested record, add as is
+                normalizedFields.add(field);
+            }
+        }
+
+        // Sort fields alphabetically
+        normalizedFields.sort(comparing(RecordField::getFieldName));
+
+        return new SimpleRecordSchema(normalizedFields);
     }
 }
