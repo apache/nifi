@@ -18,6 +18,7 @@
 package org.apache.nifi.tests.system.connectors;
 
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
@@ -66,6 +67,9 @@ public class ConnectorCrudIT extends NiFiSystemIT {
 
         final ConnectorEntity connectorAfterRestart = getNifiClient().getConnectorClient().getConnector(connector.getId());
         assertNotNull(connectorAfterRestart);
+
+        final String connectorState = connectorAfterRestart.getComponent().getState();
+        assertEquals(ConnectorState.STOPPED.name(), connectorState);
 
         final ConnectorConfigurationDTO activeConfig = connectorAfterRestart.getComponent().getActiveConfiguration();
         final Map<String, ConnectorValueReferenceDTO> activeProperties = activeConfig.getConfigurationStepConfigurations().getFirst().getPropertyGroupConfigurations().getFirst().getPropertyValues();
