@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIException;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxCollaboration;
-import com.box.sdk.BoxCollaborator;
-import com.box.sdk.BoxFile;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.schemas.collaboration.Collaboration;
+import com.box.sdkgen.schemas.collaborationaccessgrantee.CollaborationAccessGrantee;
+import com.box.sdkgen.schemas.collaborations.Collaborations;
+import com.box.sdkgen.schemas.groupmini.GroupMini;
+import com.box.sdkgen.schemas.usercollaborations.UserCollaborations;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -135,7 +136,7 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
             STATUSES
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -150,7 +151,7 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -176,33 +177,19 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
         try {
             flowFile = fetchCollaborations(fileId, roles, statuses, session, flowFile);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (final BoxAPIResponseException e) {
+        } catch (final BoxAPIError e) {
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getResponseCode()));
-
-            if (e.getResponseCode() == 404) {
-                getLogger().warn("Box file with ID {} was not found.", fileId);
-                session.transfer(flowFile, REL_NOT_FOUND);
-            } else {
-                getLogger().error("Failed to retrieve Box file collaborations for file [{}]", fileId, e);
-                session.transfer(flowFile, REL_FAILURE);
+            if (e.getResponseInfo() != null) {
+                flowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getResponseInfo().getStatusCode()));
+                if (e.getResponseInfo().getStatusCode() == 404) {
+                    getLogger().warn("Box file with ID {} was not found.", fileId);
+                    session.transfer(flowFile, REL_NOT_FOUND);
+                    return;
+                }
             }
-        } catch (final BoxAPIException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, String.valueOf(e.getResponseCode()));
-            flowFile = session.penalize(flowFile);
+            getLogger().error("Failed to retrieve Box file collaborations for file [{}]", fileId, e);
             session.transfer(flowFile, REL_FAILURE);
         }
-    }
-
-    /**
-     * Creates a BoxFile instance for a given file ID.
-     *
-     * @param fileId the ID of the file
-     * @return BoxFile instance
-     */
-    protected BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
     }
 
     private FlowFile fetchCollaborations(final String fileId,
@@ -211,8 +198,7 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
                                          final ProcessSession session,
                                          final FlowFile flowFile) {
 
-        final BoxFile boxFile = getBoxFile(fileId);
-        final Iterable<BoxCollaboration.Info> collaborations = boxFile.getAllFileCollaborations();
+        final Collaborations collaborations = boxClient.getListCollaborations().getFileCollaborations(fileId);
 
         final Set<String> allowedRoles = parseFilter(roleFilter);
         final Set<String> allowedStatuses = parseFilter(statusFilter);
@@ -256,17 +242,21 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
      * @param attributeValues the map to populate with collaboration attributes
      * @return the total count of collaborations processed (before filtering)
      */
-    private int processCollaborations(final Iterable<BoxCollaboration.Info> collaborations,
+    private int processCollaborations(final Collaborations collaborations,
                                       final Set<String> allowedRoles,
                                       final Set<String> allowedStatuses,
                                       final Map<String, List<String>> attributeValues) {
         int count = 0;
 
-        for (final BoxCollaboration.Info collab : collaborations) {
+        if (collaborations.getEntries() == null) {
+            return count;
+        }
+
+        for (final Collaboration collab : collaborations.getEntries()) {
             count++;
 
-            final String status = collab.getStatus().toString().toLowerCase();
-            final String role = roleToJsonValue(collab.getRole());
+            final String status = collab.getStatus() != null ? collab.getStatus().getValue().toLowerCase() : "unknown";
+            final String role = collab.getRole() != null ? collab.getRole().getValue().toLowerCase() : "unknown";
 
             // Skip if not in allowed roles or statuses
             if ((allowedRoles != null && !allowedRoles.contains(role))
@@ -290,33 +280,50 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
      * @param useNewFormat    whether to include new format attributes (with role)
      * @param attributeValues the map to populate with collaboration attributes
      */
-    private void processCollaboration(final BoxCollaboration.Info collab,
+    private void processCollaboration(final Collaboration collab,
                                       final String status,
                                       final String role,
                                       final boolean useNewFormat,
                                       final Map<String, List<String>> attributeValues) {
-        final boolean isUser = collab.getAccessibleBy().getType().equals(BoxCollaborator.CollaboratorType.USER);
-        final String entityType = isUser ? "users" : "groups";
-        final String collabId = collab.getAccessibleBy().getID();
-        final String login = collab.getAccessibleBy().getLogin();
-
-        // Add backward compatibility attributes
-        addToMap(attributeValues, status + "." + entityType + ".ids", collabId);
-
-        if (login != null) {
-            final String loginKey = isUser ? status + ".users.emails" : status + ".groups.emails";
-            addToMap(attributeValues, loginKey, login);
+        final CollaborationAccessGrantee accessibleBy = collab.getAccessibleBy();
+        if (accessibleBy == null) {
+            return;
         }
 
-        // Add new format attributes if filters were provided
-        if (useNewFormat) {
-            addToMap(attributeValues, status + "." + role + "." + entityType + ".ids", collabId);
+        final boolean isUser = accessibleBy.isUserCollaborations();
+        final String entityType = isUser ? "users" : "groups";
+        String collabId = null;
+        String login = null;
+
+        if (isUser) {
+            UserCollaborations user = accessibleBy.getUserCollaborations();
+            collabId = user.getId();
+            login = user.getLogin();
+        } else if (accessibleBy.isGroupMini()) {
+            GroupMini group = accessibleBy.getGroupMini();
+            collabId = group.getId();
+            login = group.getName();
+        }
+
+        if (collabId != null) {
+            // Add backward compatibility attributes
+            addToMap(attributeValues, status + "." + entityType + ".ids", collabId);
 
             if (login != null) {
-                final String loginKey = isUser
-                        ? status + "." + role + ".users.logins" :
-                        status + "." + role + ".groups.emails";
+                final String loginKey = isUser ? status + ".users.emails" : status + ".groups.emails";
                 addToMap(attributeValues, loginKey, login);
+            }
+
+            // Add new format attributes if filters were provided
+            if (useNewFormat) {
+                addToMap(attributeValues, status + "." + role + "." + entityType + ".ids", collabId);
+
+                if (login != null) {
+                    final String loginKey = isUser
+                            ? status + "." + role + ".users.logins" :
+                            status + "." + role + ".groups.emails";
+                    addToMap(attributeValues, loginKey, login);
+                }
             }
         }
     }
@@ -331,19 +338,5 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
         if (values != null && !values.isEmpty()) {
             attributes.put(key, String.join(",", values));
         }
-    }
-
-    private static String roleToJsonValue(final BoxCollaboration.Role role) {
-        // BoxCollaboration.Role::toJSONString() is package-private, so we have to duplicate the mapping.
-        return switch (role) {
-            case EDITOR -> "editor";
-            case VIEWER -> "viewer";
-            case PREVIEWER -> "previewer";
-            case UPLOADER -> "uploader";
-            case PREVIEWER_UPLOADER -> "previewer uploader";
-            case VIEWER_UPLOADER -> "viewer uploader";
-            case CO_OWNER -> "co-owner";
-            case OWNER -> "owner";
-        };
     }
 }

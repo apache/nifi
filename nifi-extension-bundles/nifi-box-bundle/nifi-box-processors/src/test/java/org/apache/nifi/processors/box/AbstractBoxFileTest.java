@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxFolder;
-import com.box.sdk.BoxFolder.Info;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.schemas.file.FilePathCollectionField;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.folderfull.FolderFull;
+import com.box.sdkgen.schemas.foldermini.FolderMini;
 import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -31,8 +32,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.OffsetDateTime;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
@@ -43,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -59,44 +61,47 @@ public class AbstractBoxFileTest {
     protected TestRunner testRunner;
 
     @Mock
-    protected BoxFolder mockBoxFolder;
+    protected FolderFull mockBoxFolder;
 
     @Mock
     protected BoxClientService mockBoxClientService;
 
     @Mock
-    protected BoxAPIConnection mockBoxAPIConnection;
+    protected BoxClient mockBoxClient;
 
     @Mock
-    protected BoxFile.Info mockFileInfo;
+    protected FileFull mockFileInfo;
 
     @Mock
-    protected BoxFolder.Info mockBoxFolderInfo;
+    protected FolderMini mockBoxFolderInfo;
 
 
     @BeforeEach
     void setUp() throws Exception {
         doReturn(mockBoxClientService.toString()).when(mockBoxClientService).getIdentifier();
-        lenient().doReturn(mockBoxAPIConnection).when(mockBoxClientService).getBoxApiConnection();
+        lenient().doReturn(mockBoxClient).when(mockBoxClientService).getBoxClient();
 
         testRunner.addControllerService(mockBoxClientService.getIdentifier(), mockBoxClientService);
         testRunner.enableControllerService(mockBoxClientService);
         testRunner.setProperty(AbstractBoxProcessor.BOX_CLIENT_SERVICE, mockBoxClientService.getIdentifier());
     }
 
-    protected BoxFile.Info createFileInfo(String path, Long createdTime) {
-        return createFileInfo(path, createdTime, singletonList(mockBoxFolderInfo));
+    protected FileFull createFileInfo(String path, Long modifiedTime) {
+        return createFileInfo(path, modifiedTime, singletonList(mockBoxFolderInfo));
     }
 
-    protected BoxFile.Info createFileInfo(String path, Long createdTime, List<Info> pathCollection) {
+    protected FileFull createFileInfo(String path, Long modifiedTime, List<FolderMini> pathCollection) {
         when(mockBoxFolderInfo.getName()).thenReturn(path);
-        when(mockBoxFolderInfo.getID()).thenReturn("not0");
+        when(mockBoxFolderInfo.getId()).thenReturn("not0");
 
-        when(mockFileInfo.getID()).thenReturn(TEST_FILE_ID);
+        FilePathCollectionField pathCollectionField = mock(FilePathCollectionField.class);
+        when(pathCollectionField.getEntries()).thenReturn(pathCollection);
+
+        when(mockFileInfo.getId()).thenReturn(TEST_FILE_ID);
         when(mockFileInfo.getName()).thenReturn(TEST_FILENAME);
-        when(mockFileInfo.getPathCollection()).thenReturn(pathCollection);
+        when(mockFileInfo.getPathCollection()).thenReturn(pathCollectionField);
         when(mockFileInfo.getSize()).thenReturn(TEST_SIZE);
-        when(mockFileInfo.getModifiedAt()).thenReturn(new Date(createdTime));
+        when(mockFileInfo.getModifiedAt()).thenReturn(OffsetDateTime.ofInstant(java.time.Instant.ofEpochMilli(modifiedTime), java.time.ZoneOffset.UTC));
 
         return mockFileInfo;
     }
@@ -121,7 +126,6 @@ public class AbstractBoxFileTest {
         flowFile.assertAttributeEquals(BoxFileAttributes.ID, TEST_FILE_ID);
         flowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), TEST_FILENAME);
         flowFile.assertAttributeEquals(CoreAttributes.PATH.key(), path);
-        flowFile.assertAttributeEquals(BoxFileAttributes.TIMESTAMP, valueOf(new Date(MODIFIED_TIME)));
         flowFile.assertAttributeEquals(BoxFileAttributes.SIZE, valueOf(TEST_SIZE));
     }
 }

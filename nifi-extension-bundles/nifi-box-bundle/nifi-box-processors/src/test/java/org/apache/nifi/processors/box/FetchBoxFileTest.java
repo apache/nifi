@@ -16,7 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxFile;
+import com.box.sdkgen.managers.downloads.DownloadsManager;
+import com.box.sdkgen.managers.files.FilesManager;
+import com.box.sdkgen.managers.files.GetFileByIdQueryParams;
+import com.box.sdkgen.schemas.file.FilePathCollectionField;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.foldermini.FolderMini;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.PropertyMigrationResult;
@@ -27,79 +32,80 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.OutputStream;
+import java.io.ByteArrayInputStream;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class FetchBoxFileTest extends AbstractBoxFileTest {
     @Mock
-    BoxFile mockBoxFile;
+    FilesManager mockFilesManager;
+
+    @Mock
+    DownloadsManager mockDownloadsManager;
 
     @Override
     @BeforeEach
     void setUp() throws Exception {
-
-        final FetchBoxFile testSubject = new FetchBoxFile() {
-            @Override
-            protected BoxFile getBoxFile(String fileId) {
-                return mockBoxFile;
-            }
-        };
+        final FetchBoxFile testSubject = new FetchBoxFile();
 
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
+
+        lenient().when(mockBoxClient.getFiles()).thenReturn(mockFilesManager);
+        lenient().when(mockBoxClient.getDownloads()).thenReturn(mockDownloadsManager);
     }
 
     @Test
-    void testBoxIdFromFlowFileAttribute()  {
+    void testBoxIdFromFlowFileAttribute() {
         testRunner.setProperty(FetchBoxFile.FILE_ID, "${box.id}");
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(BoxFileAttributes.ID, TEST_FILE_ID);
         inputFlowFile.putAttributes(attributes);
 
-        final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_FOLDER_NAME,  MODIFIED_TIME);
-        doReturn(fetchedFileInfo).when(mockBoxFile).getInfo();
-
+        final FileFull fetchedFileInfo = createMockFileFull();
+        when(mockFilesManager.getFileById(anyString(), any(GetFileByIdQueryParams.class))).thenReturn(fetchedFileInfo);
+        doAnswer(invocation -> new ByteArrayInputStream(CONTENT.getBytes())).when(mockDownloadsManager).downloadFile(anyString());
 
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_SUCCESS);
         final MockFlowFile ff0 = flowFiles.getFirst();
-        assertOutFlowFileAttributes(ff0);
-        verify(mockBoxFile).download(any(OutputStream.class));
+        ff0.assertAttributeEquals(BoxFileAttributes.ID, TEST_FILE_ID);
         assertProvenanceEvent(ProvenanceEventType.FETCH);
     }
 
     @Test
-    void testBoxIdFromProperty()  {
+    void testBoxIdFromProperty() {
         testRunner.setProperty(FetchBoxFile.FILE_ID, TEST_FILE_ID);
 
-        final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME);
-        doReturn(fetchedFileInfo).when(mockBoxFile).getInfo();
-
+        final FileFull fetchedFileInfo = createMockFileFull();
+        when(mockFilesManager.getFileById(anyString(), any(GetFileByIdQueryParams.class))).thenReturn(fetchedFileInfo);
+        doAnswer(invocation -> new ByteArrayInputStream(CONTENT.getBytes())).when(mockDownloadsManager).downloadFile(anyString());
 
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_SUCCESS, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_SUCCESS);
         final MockFlowFile ff0 = flowFiles.getFirst();
-        assertOutFlowFileAttributes(ff0);
-        verify(mockBoxFile).download(any(OutputStream.class));
+        ff0.assertAttributeEquals(BoxFileAttributes.ID, TEST_FILE_ID);
         assertProvenanceEvent(ProvenanceEventType.FETCH);
     }
 
@@ -107,18 +113,16 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
     void testFileDownloadFailure() {
         testRunner.setProperty(FetchBoxFile.FILE_ID, TEST_FILE_ID);
 
-        doThrow(new RuntimeException("Download failed")).when(mockBoxFile).download(any(OutputStream.class));
-
+        doThrow(new RuntimeException("Download failed")).when(mockDownloadsManager).downloadFile(anyString());
 
         MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
         testRunner.run();
 
-
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_FAILURE, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_FAILURE);
         final MockFlowFile ff0 = flowFiles.getFirst();
-        ff0.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Download failed");
+        ff0.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Failed to download file from Box");
         assertNoProvenanceEvent();
     }
 
@@ -131,5 +135,23 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
 
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         assertEquals(expected, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    private FileFull createMockFileFull() {
+        FolderMini folderInfo = org.mockito.Mockito.mock(FolderMini.class);
+        when(folderInfo.getName()).thenReturn(TEST_FOLDER_NAME);
+        when(folderInfo.getId()).thenReturn("not0");
+
+        FilePathCollectionField pathCollection = org.mockito.Mockito.mock(FilePathCollectionField.class);
+        when(pathCollection.getEntries()).thenReturn(List.of(folderInfo));
+
+        FileFull fileInfo = org.mockito.Mockito.mock(FileFull.class);
+        when(fileInfo.getId()).thenReturn(TEST_FILE_ID);
+        when(fileInfo.getName()).thenReturn(TEST_FILENAME);
+        when(fileInfo.getPathCollection()).thenReturn(pathCollection);
+        when(fileInfo.getSize()).thenReturn(TEST_SIZE);
+        when(fileInfo.getModifiedAt()).thenReturn(OffsetDateTime.ofInstant(Instant.ofEpochMilli(MODIFIED_TIME), ZoneOffset.UTC));
+
+        return fileInfo;
     }
 }

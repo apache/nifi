@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processors.box.utils;
 
-import com.box.sdk.Metadata;
-import com.eclipsesource.json.JsonValue;
+import com.box.sdkgen.schemas.metadatafull.MetadataFull;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -25,65 +24,75 @@ import java.util.Map;
 public class BoxMetadataUtils {
 
     /**
-     * Parses a JsonValue and returns the appropriate Java object.
+     * Parses an Object value and returns the appropriate Java object.
      * Box does not allow exponential notation in metadata values, so we need to handle
      * special number formats. For numbers containing decimal points or exponents, we try to
      * convert them to BigDecimal first for precise representation. If that fails, we
      * fall back to double, which might lose precision but allows the processing to continue.
      *
-     * @param jsonValue The JsonValue to parse.
+     * @param value The Object value to parse.
      * @return The parsed Java object.
      */
-    public static Object parseJsonValue(final JsonValue jsonValue) {
-        if (jsonValue == null) {
+    public static Object parseValue(final Object value) {
+        if (value == null) {
             return null;
         }
-        if (jsonValue.isString()) {
-            return jsonValue.asString();
-        } else if (jsonValue.isNumber()) {
-            final String numberString = jsonValue.toString();
+        if (value instanceof String) {
+            return value;
+        } else if (value instanceof Number) {
+            final String numberString = value.toString();
             if (numberString.contains(".") || numberString.toLowerCase().contains("e")) {
                 try {
                     return (new BigDecimal(numberString)).toPlainString();
                 } catch (final NumberFormatException e) {
-                    return jsonValue.asDouble();
+                    return ((Number) value).doubleValue();
                 }
             } else {
                 try {
-                    return jsonValue.asLong();
+                    return ((Number) value).longValue();
                 } catch (final NumberFormatException e) {
                     return (new BigDecimal(numberString)).toPlainString();
                 }
             }
-        } else if (jsonValue.isBoolean()) {
-            return jsonValue.asBoolean();
+        } else if (value instanceof Boolean) {
+            return value;
         }
         // Fallback: return the string representation.
-        return jsonValue.toString();
+        return value.toString();
     }
 
     /**
      * Processes Box metadata instance and populates the provided map with the default fields.
      *
      * @param fileId         The ID of the file.
+     * @param scope          The scope of the metadata (e.g., "enterprise", "global").
+     * @param templateKey    The template key of the metadata.
      * @param metadata       The Box metadata instance.
      * @param instanceFields The map to populate with metadata fields.
      */
     public static void processBoxMetadataInstance(final String fileId,
-                                                  final Metadata metadata,
+                                                  final String scope,
+                                                  final String templateKey,
+                                                  final MetadataFull metadata,
                                                   final Map<String, Object> instanceFields) {
-        instanceFields.put("$id", metadata.getID());
-        instanceFields.put("$type", metadata.getTypeName());
+        instanceFields.put("$id", metadata.getId());
+        instanceFields.put("$type", metadata.getType());
         instanceFields.put("$parent", "file_" + fileId); // match the Box API format
-        instanceFields.put("$template", metadata.getTemplateName());
-        instanceFields.put("$scope", metadata.getScope());
+        instanceFields.put("$template", templateKey);
+        instanceFields.put("$scope", scope);
+        instanceFields.put("$typeVersion", metadata.getTypeVersion());
+        instanceFields.put("$canEdit", metadata.getCanEdit());
 
-        for (final String fieldName : metadata.getPropertyPaths()) {
-            final JsonValue jsonValue = metadata.getValue(fieldName);
-            if (jsonValue != null) {
-                final String cleanFieldName = fieldName.startsWith("/") ? fieldName.substring(1) : fieldName;
-                final Object fieldValue = parseJsonValue(jsonValue);
-                instanceFields.put(cleanFieldName, fieldValue);
+        // Process extra data (custom fields)
+        final Map<String, Object> extraData = metadata.getExtraData();
+        if (extraData != null) {
+            for (final Map.Entry<String, Object> entry : extraData.entrySet()) {
+                final String fieldName = entry.getKey();
+                // Skip system fields that start with $
+                if (!fieldName.startsWith("$")) {
+                    final Object fieldValue = parseValue(entry.getValue());
+                    instanceFields.put(fieldName, fieldValue);
+                }
             }
         }
     }

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxFolder;
+import com.box.sdkgen.client.BoxClient;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
@@ -50,13 +50,7 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
     @Override
     @BeforeEach
     void setUp() throws Exception {
-
-        final ListBoxFile testSubject = new ListBoxFile() {
-            @Override
-            BoxFolder getFolder(String folderId) {
-                return mockBoxFolder;
-            }
-        };
+        final ListBoxFile testSubject = new ListBoxFile();
 
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
@@ -136,7 +130,7 @@ public class ListBoxFileTest extends AbstractBoxFileTest implements FileListingT
     }
 
     @Override
-    public BoxFolder getMockBoxFolder() {
-        return mockBoxFolder;
+    public BoxClient getMockBoxClient() {
+        return mockBoxClient;
     }
 }

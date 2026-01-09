@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.filemetadata.DeleteFileMetadataByIdScope;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -57,6 +57,8 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DES
         @WritesAttribute(attribute = ERROR_MESSAGE, description = ERROR_MESSAGE_DESC)
 })
 public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
+
+    private static final String DEFAULT_METADATA_TYPE = "properties";
 
     public static final PropertyDescriptor FILE_ID = new PropertyDescriptor.Builder()
             .name("File ID")
@@ -108,7 +110,7 @@ public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
             TEMPLATE_KEY
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -124,7 +126,7 @@ public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -138,8 +140,7 @@ public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
         final String templateKey = context.getProperty(TEMPLATE_KEY).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
-            final BoxFile boxFile = getBoxFile(fileId);
-            boxFile.deleteMetadata(templateKey);
+            deleteFileMetadata(fileId, templateKey);
 
             final Map<String, String> attributes = Map.of(
                     "box.id", fileId,
@@ -151,14 +152,15 @@ public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
                     "Deleted metadata instance using template key: " + templateKey);
             session.transfer(flowFile, REL_SUCCESS);
 
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        } catch (final BoxAPIError e) {
+            final int statusCode = e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0;
+            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(statusCode));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
 
-            if (e.getResponseCode() == 404) {
-                final String errorBody = e.getResponse();
+            if (statusCode == 404) {
+                final String errorMessage = e.getMessage();
 
-                if (errorBody != null && errorBody.toLowerCase().contains("specified metadata template not found")) {
+                if (errorMessage != null && errorMessage.toLowerCase().contains("specified metadata template not found")) {
                     getLogger().warn("Box metadata instance with template key {} was not found for file ID {}.", templateKey, fileId);
                     session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
                 } else {
@@ -177,12 +179,15 @@ public class DeleteBoxFileMetadataInstance extends AbstractBoxProcessor {
     }
 
     /**
-     * Returns a BoxFile object for the given file ID.
+     * Deletes metadata from a file.
      *
-     * @param fileId The ID of the file.
-     * @return A BoxFile object for the given file ID.
+     * @param fileId      The ID of the file.
+     * @param templateKey The template key of the metadata to delete.
      */
-    BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
+    void deleteFileMetadata(final String fileId, final String templateKey) {
+        final DeleteFileMetadataByIdScope scope = DEFAULT_METADATA_TYPE.equals(templateKey)
+                ? DeleteFileMetadataByIdScope.GLOBAL
+                : DeleteFileMetadataByIdScope.ENTERPRISE;
+        boxClient.getFileMetadata().deleteFileMetadataById(fileId, scope, templateKey);
     }
 }
