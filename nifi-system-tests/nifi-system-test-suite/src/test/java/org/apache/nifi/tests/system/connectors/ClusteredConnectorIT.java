@@ -17,20 +17,28 @@
 
 package org.apache.nifi.tests.system.connectors;
 
+import jakarta.ws.rs.NotFoundException;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
+import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.NodeEntity;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class ClusteredConnectorIT extends ConnectorCrudIT {
     private static final Logger logger = LoggerFactory.getLogger(ClusteredConnectorIT.class);
@@ -108,6 +116,90 @@ public class ClusteredConnectorIT extends ConnectorCrudIT {
         assertWorkingConfigurationValue(finalNode2Connector, "Ignored Property", "Working Only Value");
         logger.info("Validated active and working configuration on Node 2");
     }
+
+    @Test
+    public void testDeleteConnectorOnConnect() throws NiFiClientException, IOException, InterruptedException {
+        // Create Connector
+        final ConnectorEntity connector = getClientUtil().createConnector("DataQueuingConnector");
+        assertNotNull(connector);
+
+        // Disconnect node 2
+        disconnectNode(2);
+
+        // Should not be able to delete connector
+        final ConnectorClient connectorClient = getNifiClient().getConnectorClient();
+        assertThrows(NiFiClientException.class, () -> connectorClient.deleteConnector(connector));
+
+        final NodeEntity node2Entity = getNodeEntity(2);
+        getNifiClient().getControllerClient().deleteNode(node2Entity.getNode().getNodeId());
+
+        // Should now be able to delete connector
+        connectorClient.deleteConnector(connector);
+
+        // Should now be able to add node 2 back
+        getNiFiInstance().getNodeInstance(2).stop();
+        getNiFiInstance().getNodeInstance(2).start(true);
+        waitForAllNodesConnected();
+
+        switchClientToNode(2);
+
+        // We should get a 404
+        try {
+            getNifiClient().getConnectorClient().getConnector(connector.getId());
+            fail("Expected NiFiClientException but it was not thrown");
+        } catch (final NiFiClientException e) {
+            assertInstanceOf(NotFoundException.class, e.getCause());
+        }
+    }
+
+
+    @Test
+    public void testDeleteConnectorOnConnectWithDataQueued() throws NiFiClientException, IOException, InterruptedException {
+        // Create Connector
+        final ConnectorEntity connector = getClientUtil().createConnector("DataQueuingConnector");
+        assertNotNull(connector);
+
+        getNifiClient().getConnectorClient().startConnector(connector);
+
+        Thread.sleep(1000L); // Wait 1 second to allow some data to queue
+
+        // Disconnect node 2
+        disconnectNode(2);
+        getNiFiInstance().getNodeInstance(2).stop();
+
+        // Should not be able to delete connector
+        final ConnectorClient connectorClient = getNifiClient().getConnectorClient();
+        assertThrows(NiFiClientException.class, () -> connectorClient.deleteConnector(connector));
+
+        // Remove node 2 from cluster.
+        final NodeEntity node2Entity = getNodeEntity(2);
+        getNifiClient().getControllerClient().deleteNode(node2Entity.getNode().getNodeId());
+
+        // We cannot delete the connector directly because it has data queued. Stop Node 1, delete the flow.json.gz file, and restart Node 1.
+        getNiFiInstance().getNodeInstance(1).stop();
+        final File node1InstanceDir = getNiFiInstance().getNodeInstance(1).getInstanceDirectory();
+        final File node1ConfDir = new File(node1InstanceDir, "conf");
+        final File flowJson = new File(node1ConfDir, "flow.json.gz");
+        Files.delete(flowJson.toPath());
+
+        getNiFiInstance().getNodeInstance(1).start(true);
+        waitForCoordinatorElected();
+
+        // Should now be able to add node 2 back
+        getNiFiInstance().getNodeInstance(2).start(true);
+        waitForAllNodesConnected();
+
+        switchClientToNode(2);
+
+        // We should get a 404
+        try {
+            getNifiClient().getConnectorClient().getConnector(connector.getId());
+            fail("Expected NiFiClientException but it was not thrown");
+        } catch (final NiFiClientException e) {
+            assertInstanceOf(NotFoundException.class, e.getCause());
+        }
+    }
+
 
     private void assertActiveConfigurationValue(final ConnectorEntity connector, final String propertyName, final String expectedValue) {
         final String actualValue = getConfigurationValue(connector.getComponent().getActiveConfiguration(), propertyName);

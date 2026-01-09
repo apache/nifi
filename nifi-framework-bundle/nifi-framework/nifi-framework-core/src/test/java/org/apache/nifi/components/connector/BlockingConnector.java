@@ -25,6 +25,7 @@ import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 public class BlockingConnector implements Connector {
@@ -124,4 +125,8 @@ public class BlockingConnector implements Connector {
         return List.of();
     }
 
+    @Override
+    public CompletableFuture<Void> drainFlowFiles(final FlowContext flowContext) {
+        return CompletableFuture.completedFuture(null);
+    }
 }

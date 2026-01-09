@@ -198,6 +198,19 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     Future<Void> stop(FlowEngine scheduler);
 
     /**
+     * Allows the Connector to drain any in-flight data while not accepting any new data.
+     */
+    Future<Void> drainFlowFiles();
+
+    /**
+     * Purges all FlowFiles from the Connector, immediately dropping the data.
+     *
+     * @param requestor the user requesting the purge. This will be recorded in the associated provenance DROP events.
+     * @return a Future that will be completed when the purge operation is finished
+     */
+    Future<Void> purgeFlowFiles(String requestor);
+
+    /**
      * Updates the configuration of one of the configuration steps. This method should only be invoked via the ConnectorRepository.
      * @param configurationStepName the name of the configuration step being set
      *                              (must match one of the names returned by {@link Connector#getConfigurationSteps()})

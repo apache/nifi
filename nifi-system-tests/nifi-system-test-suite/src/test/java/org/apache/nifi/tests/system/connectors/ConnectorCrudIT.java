@@ -148,4 +148,14 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         getClientUtil().applyConnectorUpdate(connector);
         getClientUtil().waitForValidConnector(connector.getId());
     }
+
+    @Test
+    public void testDeleteConnectorNoDataQueued() throws NiFiClientException, IOException {
+        // Create Connector
+        final ConnectorEntity connector = getClientUtil().createConnector("DataQueuingConnector");
+        assertNotNull(connector);
+
+        // Delete
+        getNifiClient().getConnectorClient().deleteConnector(connector);
+    }
 }
