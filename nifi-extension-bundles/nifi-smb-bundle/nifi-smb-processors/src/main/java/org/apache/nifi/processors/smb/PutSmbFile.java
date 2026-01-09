@@ -343,7 +343,7 @@ public class PutSmbFile extends AbstractProcessor {
                         try {
                             createMissingDirectoriesRecursively(logger, share, destinationFileParentDirectory);
                         } catch (Exception e) {
-                            logger.error("Penalizing {} and routing to failure because failed to create missing destination directories ({})", flowFile, destinationFileParentDirectory);
+                            logger.error("Penalizing {} and routing to failure because failed to create missing destination directories ({})", flowFile, destinationFileParentDirectory, e);
                             flowFile = session.penalize(flowFile);
                             session.transfer(flowFile, REL_FAILURE);
                             continue;
@@ -421,7 +421,7 @@ public class PutSmbFile extends AbstractProcessor {
                     session.getProvenanceReporter().send(flowFile, provenanceUri.toString(), processingTimeInMilli);
                     session.transfer(flowFile, REL_SUCCESS);
                 } catch (Exception e) {
-                    logger.error("Error processing flowfile", e);
+                    logger.error("Error processing flowfile {}", flowFile, e);
                     flowFile = session.penalize(flowFile);
                     session.transfer(flowFile, REL_FAILURE);
                 }
