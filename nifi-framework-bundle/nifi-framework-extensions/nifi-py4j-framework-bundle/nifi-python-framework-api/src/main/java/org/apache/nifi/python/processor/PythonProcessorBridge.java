@@ -58,4 +58,21 @@ public interface PythonProcessorBridge {
      * @return the current state of the Processor loading
      */
     LoadState getLoadState();
+
+    /**
+     * Cancels the processor initialization if it is still in progress.
+     * This is typically called when the NAR containing the processor is being deleted
+     * while the processor is still initializing. After cancellation, the bridge
+     * will transition to the {@link LoadState#CANCELLED} state.
+     *
+     * <p>If the processor has already finished initializing, this method has no effect.</p>
+     */
+    void cancel();
+
+    /**
+     * Returns whether this bridge has been cancelled.
+     *
+     * @return {@code true} if {@link #cancel()} has been called, {@code false} otherwise
+     */
+    boolean isCancelled();
 }
