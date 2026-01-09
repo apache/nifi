@@ -19,12 +19,14 @@ package org.apache.nifi.components.connector.util;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.components.connector.ComponentBundleLookup;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -47,8 +49,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 public class VersionedFlowUtils {
+    private static final Pattern VERSION_SEPARATOR_PATTERN = Pattern.compile("[^\\d]+");
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -362,5 +367,71 @@ public class VersionedFlowUtils {
         for (final VersionedProcessGroup childGroup : processGroup.getProcessGroups()) {
             removeUnreferencedControllerServices(childGroup, referencedServiceIds);
         }
+    }
+
+    public static void updateToLatestBundles(final VersionedProcessGroup processGroup, final ComponentBundleLookup componentBundleLookup) {
+        for (final VersionedProcessor processor : processGroup.getProcessors()) {
+            updateToLatestBundle(processor, componentBundleLookup);
+        }
+
+        for (final VersionedControllerService service : processGroup.getControllerServices()) {
+            updateToLatestBundle(service, componentBundleLookup);
+        }
+
+        for (final VersionedProcessGroup childGroup : processGroup.getProcessGroups()) {
+            updateToLatestBundles(childGroup, componentBundleLookup);
+        }
+    }
+
+    public static void updateToLatestBundle(final VersionedProcessor processor, final ComponentBundleLookup componentBundleLookup) {
+        final Bundle latest = getLatestBundle(processor, componentBundleLookup);
+        processor.setBundle(latest);
+    }
+
+    public static void updateToLatestBundle(final VersionedControllerService service, final ComponentBundleLookup componentBundleLookup) {
+        final Bundle latest = getLatestBundle(service, componentBundleLookup);
+        service.setBundle(latest);
+    }
+
+    private static Bundle getLatestBundle(final VersionedConfigurableExtension versionedComponent, final ComponentBundleLookup componentBundleLookup) {
+        final String type = versionedComponent.getType();
+        final List<Bundle> bundles = componentBundleLookup.getAvailableBundles(type);
+        final List<Bundle> includingExisting = new ArrayList<>(bundles);
+        if (versionedComponent.getBundle() != null && !includingExisting.contains(versionedComponent.getBundle())) {
+            includingExisting.add(versionedComponent.getBundle());
+        }
+
+        return getLatest(includingExisting);
+    }
+
+    public static Bundle getLatest(final List<Bundle> bundles) {
+        Bundle latest = null;
+        for (final Bundle bundle : bundles) {
+            if (latest == null || compareVersion(bundle.getVersion(), latest.getVersion()) > 0) {
+                latest = bundle;
+            }
+        }
+
+        return latest;
+    }
+
+    private static int compareVersion(final String v1, final String v2) {
+        final String[] parts1 = VERSION_SEPARATOR_PATTERN.split(v1);
+        final String[] parts2 = VERSION_SEPARATOR_PATTERN.split(v2);
+
+        final int length = Math.max(parts1.length, parts2.length);
+        for (int i = 0; i < length; i++) {
+            final int part1 = i < parts1.length ? Integer.parseInt(parts1[i]) : 0;
+            final int part2 = i < parts2.length ? Integer.parseInt(parts2[i]) : 0;
+
+            if (part1 < part2) {
+                return -1;
+            } else if (part1 > part2) {
+                return 1;
+            }
+        }
+
+        // Return lower value for shorter version strings (e.g., 1.0.0 > 1.0.0-SNAPSHOT)
+        return -Integer.compare(v1.length(), v2.length());
     }
 }
