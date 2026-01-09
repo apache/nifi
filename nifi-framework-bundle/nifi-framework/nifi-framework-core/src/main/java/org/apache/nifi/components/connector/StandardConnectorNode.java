@@ -1019,12 +1019,13 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private boolean hasWorkingConfigurationChanges() {
-        if (workingFlowContext == null) {
+        final FrameworkFlowContext workingContext = this.workingFlowContext;
+        if (workingContext == null) {
             return false;
         }
 
         final ConnectorConfiguration activeConfig = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
-        final ConnectorConfiguration workingConfig = workingFlowContext.getConfigurationContext().toConnectorConfiguration();
+        final ConnectorConfiguration workingConfig = workingContext.getConfigurationContext().toConnectorConfiguration();
         return !Objects.equals(activeConfig, workingConfig);
     }
 

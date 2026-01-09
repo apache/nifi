@@ -29,7 +29,7 @@ public class StandardConnectorAction implements ConnectorAction {
     public StandardConnectorAction(final String name, final String description, final boolean allowed, final String reasonNotAllowed) {
         this.name = Objects.requireNonNull(name, "name is required");
         this.description = Objects.requireNonNull(description, "description is required");
-        this.allowed = Objects.requireNonNull(allowed, "allowed flag is required");
+        this.allowed = allowed;
         this.reasonNotAllowed = reasonNotAllowed;
     }
 
