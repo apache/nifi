@@ -168,7 +168,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
 
     @Override
     public boolean isValidationNecessary() {
-        return getValidationStatus() != ValidationStatus.VALID;
+        return true;
     }
 
     @Override
