@@ -28,7 +28,9 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
+import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
 import reactor.core.publisher.Mono;
 
 public class BlobServiceClientFactory extends AbstractStorageClientFactory<AzureStorageCredentialsDetails_v12, BlobServiceClient> {
@@ -73,11 +75,15 @@ public class BlobServiceClientFactory extends AbstractStorageClientFactory<Azure
                         .clientSecret(credentialsDetails.getServicePrincipalClientSecret())
                         .httpClient(new NettyAsyncHttpClientBuilder()
                                 .proxy(credentialsDetails.getProxyOptions())
-                                .build())
+                        .build())
                         .build());
                 break;
             case ACCESS_TOKEN:
-                TokenCredential credential = tokenRequestContext -> Mono.just(credentialsDetails.getAccessToken());
+                final AzureIdentityFederationTokenProvider identityTokenProvider = credentialsDetails.getIdentityTokenProvider();
+                final TokenCredential credential = identityTokenProvider != null
+                        ? tokenRequestContext -> Mono.fromSupplier(() ->
+                        OAuth2AccessTokenAdapter.toAzureAccessToken(identityTokenProvider.getAccessDetails()))
+                        : tokenRequestContext -> Mono.just(credentialsDetails.getAccessToken());
                 clientBuilder.credential(credential);
                 break;
         }

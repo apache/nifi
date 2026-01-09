@@ -21,7 +21,8 @@ import org.apache.nifi.components.DescribedValue;
 public enum BlobStorageAuthenticationStrategy implements DescribedValue {
     STORAGE_ACCOUNT_KEY("Storage Account Key", "Authenticate to Azure Blob Storage using the account key."),
     SHARED_ACCESS_SIGNATURE("Shared Access Signature", "Authenticate to Azure Blob Storage using a SAS token."),
-    OAUTH2("OAuth2", "Authenticate to Azure Blob Storage using an OAuth2 Access Token Provider backed by an Entra registered application.");
+    OAUTH2("OAuth2", "Authenticate to Azure Blob Storage using an OAuth2 Access Token Provider backed by an Entra registered application."),
+    IDENTITY_FEDERATION("Identity Federation", "Authenticate to Azure Blob Storage using a workload identity token exchanged for an Azure AD access token.");
 
     private final String displayName;
     private final String description;

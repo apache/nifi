@@ -33,6 +33,8 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -53,12 +55,15 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
     public static AllowableValue SERVICE_PRINCIPAL = new AllowableValue("service-principal",
             "Service Principal",
             "Azure Active Directory Service Principal with Client ID / Client Secret of a registered application");
+    public static AllowableValue OAUTH2 = new AllowableValue("oauth2-access-token",
+            "OAuth2 Access Token",
+            "Uses an OAuth2 Access Token Provider controller service to obtain access tokens for Azure clients.");
     public static final PropertyDescriptor CREDENTIAL_CONFIGURATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Credential Configuration Strategy")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .sensitive(false)
-            .allowableValues(DEFAULT_CREDENTIAL, MANAGED_IDENTITY, SERVICE_PRINCIPAL)
+            .allowableValues(DEFAULT_CREDENTIAL, MANAGED_IDENTITY, SERVICE_PRINCIPAL, OAUTH2)
             .defaultValue(DEFAULT_CREDENTIAL)
             .build();
 
@@ -103,12 +108,21 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .dependsOn(CREDENTIAL_CONFIGURATION_STRATEGY, SERVICE_PRINCIPAL)
             .build();
 
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Azure Identity Federation Token Provider")
+            .description("Controller Service used to obtain Azure access tokens via workload identity federation.")
+            .identifiesControllerService(AzureIdentityFederationTokenProvider.class)
+            .required(true)
+            .dependsOn(CREDENTIAL_CONFIGURATION_STRATEGY, OAUTH2)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CREDENTIAL_CONFIGURATION_STRATEGY,
             MANAGED_IDENTITY_CLIENT_ID,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
-            SERVICE_PRINCIPAL_CLIENT_SECRET
+            SERVICE_PRINCIPAL_CLIENT_SECRET,
+            OAUTH2_ACCESS_TOKEN_PROVIDER
     );
 
     private TokenCredential credentials;
@@ -133,6 +147,8 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             credentials = getManagedIdentityCredential(context);
         } else if (SERVICE_PRINCIPAL.getValue().equals(configurationStrategy)) {
             credentials = getServicePrincipalCredential(context);
+        } else if (OAUTH2.getValue().equals(configurationStrategy)) {
+            credentials = getOAuth2Credential(context);
         } else {
             final String errorMsg = String.format("Configuration Strategy [%s] not recognized", configurationStrategy);
             getLogger().error(errorMsg);
@@ -176,6 +192,13 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
                 .clientSecret(clientSecret)
                 .httpClient(getHttpClient())
                 .build();
+    }
+
+    private TokenCredential getOAuth2Credential(final ConfigurationContext context) {
+        final AzureIdentityFederationTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER)
+                .asControllerService(AzureIdentityFederationTokenProvider.class);
+        return tokenRequestContext -> Mono.fromSupplier(() ->
+                OAuth2AccessTokenAdapter.toAzureAccessToken(oauth2AccessTokenProvider.getAccessDetails()));
     }
 
     @Override
