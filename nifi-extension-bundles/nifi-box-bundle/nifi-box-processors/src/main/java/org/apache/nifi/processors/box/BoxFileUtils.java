@@ -45,10 +45,7 @@ public final class BoxFileUtils {
         if (fileInfo.getPathCollection() == null || fileInfo.getPathCollection().getEntries() == null) {
             return "/";
         }
-        return "/" + fileInfo.getPathCollection().getEntries().stream()
-                .filter(pathItem -> !pathItem.getId().equals("0"))
-                .map(FolderMini::getName)
-                .collect(Collectors.joining("/"));
+        return getParentPath(fileInfo.getPathCollection().getEntries());
     }
 
     public static String getParentPath(final List<FolderMini> pathCollection) {

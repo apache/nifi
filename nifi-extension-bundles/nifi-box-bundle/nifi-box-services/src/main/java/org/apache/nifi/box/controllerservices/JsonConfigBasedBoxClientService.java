@@ -20,7 +20,11 @@ import com.box.sdkgen.box.errors.BoxSDKError;
 import com.box.sdkgen.box.jwtauth.BoxJWTAuth;
 import com.box.sdkgen.box.jwtauth.JWTConfig;
 import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.networking.boxnetworkclient.BoxNetworkClient;
+import com.box.sdkgen.networking.network.NetworkSession;
+import com.box.sdkgen.networking.networkclient.NetworkClient;
 import com.box.sdkgen.networking.proxyconfig.ProxyConfig;
+import okhttp3.OkHttpClient;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -44,6 +48,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 
 import java.net.Proxy;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -91,6 +96,22 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
+    public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("Connect Timeout")
+        .description("The maximum time to wait when establishing a connection to Box API.")
+        .required(true)
+        .defaultValue("30 sec")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("Read Timeout")
+        .description("The maximum time to wait for a response from Box API.")
+        .required(true)
+        .defaultValue("30 sec")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP, ProxySpec.HTTP_AUTH};
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -98,6 +119,8 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         ACCOUNT_ID,
         APP_CONFIG_FILE,
         APP_CONFIG_JSON,
+        CONNECT_TIMEOUT,
+        READ_TIMEOUT,
         ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
     );
 
@@ -187,7 +210,6 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         }
 
         BoxJWTAuth auth = new BoxJWTAuth(jwtConfig);
-        BoxClient client;
 
         final BoxAppActor appActor = context.getProperty(APP_ACTOR).asAllowableValue(BoxAppActor.class);
         switch (appActor) {
@@ -200,8 +222,23 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
             }
         }
 
+        final Duration connectTimeout = Duration.ofMillis(context.getProperty(CONNECT_TIMEOUT).asTimePeriod(java.util.concurrent.TimeUnit.MILLISECONDS));
+        final Duration readTimeout = Duration.ofMillis(context.getProperty(READ_TIMEOUT).asTimePeriod(java.util.concurrent.TimeUnit.MILLISECONDS));
+
+        final OkHttpClient okHttpClient = BoxNetworkClient.getDefaultOkHttpClientBuilder()
+                .connectTimeout(connectTimeout)
+                .readTimeout(readTimeout)
+                .build();
+        final NetworkClient networkClient = new BoxNetworkClient(okHttpClient);
+        final NetworkSession networkSession = new NetworkSession.Builder()
+                .networkClient(networkClient)
+                .build();
+
+        BoxClient client;
         try {
-            client = new BoxClient(auth);
+            client = new BoxClient.Builder(auth)
+                    .networkSession(networkSession)
+                    .build();
         } catch (final BoxSDKError e) {
             if (jwtConfig.getEnterpriseId() != null && jwtConfig.getEnterpriseId().equals("0")) {
                 throw new ProcessException("Box API integration is not enabled for account, the account's enterprise ID cannot be 0", e);
@@ -232,8 +269,5 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         config.renameProperty("app-config-file", APP_CONFIG_FILE.getName());
         config.renameProperty("app-config-json", APP_CONFIG_JSON.getName());
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
-        // Remove timeout properties that are no longer supported in Box SDK 10.x
-        config.removeProperty("Connect Timeout");
-        config.removeProperty("Read Timeout");
     }
 }
