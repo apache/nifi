@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Component representing a Connector instance.
@@ -41,6 +42,7 @@ public class ConnectorDTO extends ComponentDTO {
 
     private String configurationUrl;
     private String detailsUrl;
+    private List<ConnectorActionDTO> availableActions;
 
     @Schema(description = "The name of the Connector.")
     public String getName() {
@@ -157,5 +159,14 @@ public class ConnectorDTO extends ComponentDTO {
 
     public void setExtensionMissing(final Boolean extensionMissing) {
         this.extensionMissing = extensionMissing;
+    }
+
+    @Schema(description = "The available actions that can be performed on this Connector.")
+    public List<ConnectorActionDTO> getAvailableActions() {
+        return availableActions;
+    }
+
+    public void setAvailableActions(final List<ConnectorActionDTO> availableActions) {
+        this.availableActions = availableActions;
     }
 }

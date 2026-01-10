@@ -291,4 +291,20 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
 
         return CompletableFuture.allOf(stopFutures.toArray(new CompletableFuture[0]));
     }
+
+    @Override
+    public int getActiveThreadCount() {
+        return getActiveThreadCount(processGroup);
+    }
+
+    private int getActiveThreadCount(final ProcessGroup group) {
+        int total = 0;
+        for (final ProcessorNode processor : group.getProcessors()) {
+            total += processor.getActiveThreadCount();
+        }
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            total += getActiveThreadCount(childGroup);
+        }
+        return total;
+    }
 }
