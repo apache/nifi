@@ -27,6 +27,7 @@ import org.apache.nifi.components.connector.processors.TerminateFlowFile;
 import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.services.CounterService;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
@@ -159,6 +160,7 @@ public class StandardConnectorNodeIT {
         when(flowController.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
         when(flowController.getValidationTrigger()).thenReturn(mock(ValidationTrigger.class));
+        when(flowController.getConnectorValidationTrigger()).thenReturn(mock(ConnectorValidationTrigger.class));
 
         doAnswer(invocation -> {
             return createConnection(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3), invocation.getArgument(4));

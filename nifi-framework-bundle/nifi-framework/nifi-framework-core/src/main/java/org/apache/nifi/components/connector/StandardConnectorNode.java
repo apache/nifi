@@ -872,8 +872,7 @@ public class StandardConnectorNode implements ConnectorNode {
         final List<ConnectorAction> actions = new ArrayList<>();
         final ConnectorState currentState = getCurrentState();
         final boolean dataQueued = activeFlowContext.getManagedProcessGroup().isDataQueued();
-        final boolean stopped = currentState == ConnectorState.STOPPED || currentState == ConnectorState.DISABLED
-            || currentState == ConnectorState.UPDATED || currentState == ConnectorState.UPDATE_FAILED;
+        final boolean stopped = isStopped();
 
         actions.add(createStartAction(currentState, stopped));
         actions.add(createStopAction(currentState));
@@ -887,16 +886,40 @@ public class StandardConnectorNode implements ConnectorNode {
         return actions;
     }
 
+    private boolean isStopped() {
+        final ConnectorState currentState = getCurrentState();
+        if (currentState == ConnectorState.STOPPED) {
+            return true;
+        }
+        if (currentState == ConnectorState.UPDATED || currentState == ConnectorState.UPDATE_FAILED) {
+            return !isActiveThread(getActiveFlowContext().getManagedProcessGroup());
+        }
+        return false;
+    }
+
+    private boolean isActiveThread(final ProcessGroup processGroup) {
+        for (final ProcessorNode processor : processGroup.getProcessors()) {
+            if (processor.getActiveThreadCount() > 0) {
+                return true;
+            }
+        }
+
+        for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
+            if (isActiveThread(childGroup)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private ConnectorAction createStartAction(final ConnectorState currentState, final boolean stopped) {
         final boolean allowed;
         final String reason;
 
-        if (currentState == ConnectorState.DISABLED) {
+        if (!stopped) {
             allowed = false;
-            reason = "Connector is disabled";
-        } else if (!stopped) {
-            allowed = false;
-            reason = "Connector must be stopped";
+            reason = "Connector is not stopped";
         } else {
             allowed = true;
             reason = null;
