@@ -22,6 +22,7 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.models.BlobErrorCode;
+import com.azure.storage.blob.models.BlobHttpHeaders;
 import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.BlobType;
@@ -62,6 +63,8 @@ import java.util.concurrent.TimeUnit;
 import static com.azure.core.http.ContentType.APPLICATION_OCTET_STREAM;
 import static com.azure.core.util.FluxUtil.toFluxByteBuffer;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.BLOB_STORAGE_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CONTENT_MD5;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.convertMd5ToBytes;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBNAME;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_BLOBTYPE;
 import static org.apache.nifi.processors.azure.storage.utils.BlobAttributes.ATTR_DESCRIPTION_CONTAINER;
@@ -112,6 +115,7 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
             AzureStorageUtils.CREATE_CONTAINER,
             AzureStorageUtils.CONFLICT_RESOLUTION,
             BLOB_NAME,
+            CONTENT_MD5,
             RESOURCE_TRANSFER_SOURCE,
             FILE_RESOURCE_SERVICE,
             AzureStorageUtils.PROXY_CONFIGURATION_SERVICE,
@@ -182,6 +186,14 @@ public class PutAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 impl
                     final ParallelTransferOptions parallelTransferOptions = new ParallelTransferOptions().setBlockSizeLong(blockSize);
                     blobParallelUploadOptions.setParallelTransferOptions(parallelTransferOptions);
                     blobParallelUploadOptions.setRequestConditions(blobRequestConditions);
+
+                    final String contentMd5 = context.getProperty(CONTENT_MD5).evaluateAttributeExpressions(sourceFlowFile).getValue();
+                    if (contentMd5 != null) {
+                        final byte[] md5Bytes = convertMd5ToBytes(contentMd5);
+                        final BlobHttpHeaders blobHttpHeaders = new BlobHttpHeaders().setContentMd5(md5Bytes);
+                        blobParallelUploadOptions.setHeaders(blobHttpHeaders);
+                    }
+
                     Response<BlockBlobItem> response = blobClient.uploadWithResponse(blobParallelUploadOptions, null, Context.NONE);
                     BlockBlobItem blob = response.getValue();
                     applyUploadResultAttributes(attributes, blob, BlobType.BLOCK_BLOB, transferSize);

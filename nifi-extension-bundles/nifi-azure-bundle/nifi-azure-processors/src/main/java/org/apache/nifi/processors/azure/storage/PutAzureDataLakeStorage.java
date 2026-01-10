@@ -23,6 +23,7 @@ import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
+import com.azure.storage.file.datalake.models.PathHttpHeaders;
 import com.azure.storage.file.datalake.options.DataLakeFileFlushOptions;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -68,9 +69,11 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.ADLS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.CONTENT_MD5;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILE;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.convertMd5ToBytes;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateDirectoryProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileProperty;
 import static org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils.evaluateFileSystemProperty;
@@ -127,6 +130,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             FILESYSTEM,
             DIRECTORY,
             FILE,
+            CONTENT_MD5,
             WRITING_STRATEGY,
             BASE_TEMPORARY_PATH,
             CONFLICT_RESOLUTION,
@@ -162,6 +166,9 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final Optional<FileResource> fileResourceFound = getFileResource(resourceTransferSource, context, flowFile.getAttributes());
             final long transferSize = fileResourceFound.map(FileResource::getSize).orElse(flowFile.getSize());
 
+            final String contentMd5Value = context.getProperty(CONTENT_MD5).evaluateAttributeExpressions(flowFile).getValue();
+            final byte[] contentMd5 = contentMd5Value != null ? convertMd5ToBytes(contentMd5Value) : null;
+
             final DataLakeFileClient fileClient;
 
             if (writingStrategy == WritingStrategy.WRITE_AND_RENAME) {
@@ -172,7 +179,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 final DataLakeDirectoryClient tempDirectoryClient = fileSystemClient.getDirectoryClient(tempDirectory);
                 final DataLakeFileClient tempFileClient = tempDirectoryClient.createFile(tempFilePrefix + fileName, true);
 
-                uploadFile(session, flowFile, fileResourceFound, transferSize, tempFileClient);
+                uploadFile(session, flowFile, fileResourceFound, transferSize, tempFileClient, contentMd5);
 
                 createDirectoryIfNotExists(directoryClient);
 
@@ -181,7 +188,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 fileClient = createFile(directoryClient, fileName, conflictResolution);
 
                 if (fileClient != null) {
-                    uploadFile(session, flowFile, fileResourceFound, transferSize, fileClient);
+                    uploadFile(session, flowFile, fileResourceFound, transferSize, fileClient, contentMd5);
                 }
             }
 
@@ -235,19 +242,19 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     }
 
     private void uploadFile(final ProcessSession session, final FlowFile flowFile, final Optional<FileResource> fileResourceFound,
-                            final long transferSize, final DataLakeFileClient fileClient) throws Exception {
+                            final long transferSize, final DataLakeFileClient fileClient, final byte[] contentMd5) throws Exception {
         try (final InputStream inputStream = new BufferedInputStream(
                 fileResourceFound.map(FileResource::getInputStream)
                         .orElseGet(() -> session.read(flowFile)))
         ) {
-            uploadContent(fileClient, inputStream, transferSize);
+            uploadContent(fileClient, inputStream, transferSize, contentMd5);
         } catch (final Exception e) {
             removeFile(fileClient);
             throw e;
         }
     }
 
-    private static void uploadContent(final DataLakeFileClient fileClient, final InputStream in, final long length) throws IOException  {
+    private static void uploadContent(final DataLakeFileClient fileClient, final InputStream in, final long length, final byte[] contentMd5) throws IOException  {
         long chunkStart = 0;
         long chunkSize;
 
@@ -266,7 +273,13 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             chunkStart += chunkSize;
         }
 
-        fileClient.flushWithResponse(length, new DataLakeFileFlushOptions().setClose(true), null, Context.NONE);
+        final DataLakeFileFlushOptions flushOptions = new DataLakeFileFlushOptions().setClose(true);
+        if (contentMd5 != null) {
+            final PathHttpHeaders pathHttpHeaders = new PathHttpHeaders().setContentMd5(contentMd5);
+            flushOptions.setPathHttpHeaders(pathHttpHeaders);
+        }
+
+        fileClient.flushWithResponse(length, flushOptions, null, Context.NONE);
     }
 
     /**
