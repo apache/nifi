@@ -26,6 +26,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ExtensionBuilder;
 import org.apache.nifi.controller.FlowController;
@@ -183,6 +184,7 @@ public class TestStandardControllerServiceProvider {
             .nodeTypeProvider(Mockito.mock(NodeTypeProvider.class))
             .validationTrigger(Mockito.mock(ValidationTrigger.class))
             .reloadComponent(Mockito.mock(ReloadComponent.class))
+            .verifiableComponentFactory(Mockito.mock(VerifiableComponentFactory.class))
             .stateManagerProvider(Mockito.mock(StateManagerProvider.class))
             .extensionManager(extensionManager)
             .buildControllerService();
@@ -397,6 +399,7 @@ public class TestStandardControllerServiceProvider {
 
     private ProcessorNode createProcessor(final StandardProcessScheduler scheduler, final ControllerServiceProvider serviceProvider) {
         final ReloadComponent reloadComponent = Mockito.mock(ReloadComponent.class);
+        final VerifiableComponentFactory verifiableComponentFactory = Mockito.mock(VerifiableComponentFactory.class);
 
         final Processor processor = new DummyProcessor();
         final MockProcessContext context = new MockProcessContext(processor, Mockito.mock(StateManager.class));
@@ -406,7 +409,7 @@ public class TestStandardControllerServiceProvider {
         final LoggableComponent<Processor> dummyProcessor = new LoggableComponent<>(processor, systemBundle.getBundleDetails().getCoordinate(), null);
         final ProcessorNode procNode = new StandardProcessorNode(dummyProcessor, mockInitContext.getIdentifier(),
                 new StandardValidationContextFactory(serviceProvider), scheduler, serviceProvider,
-                reloadComponent, extensionManager, new SynchronousValidationTrigger());
+                reloadComponent, verifiableComponentFactory, extensionManager, new SynchronousValidationTrigger());
 
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
         final FlowController flowController = Mockito.mock(FlowController.class);

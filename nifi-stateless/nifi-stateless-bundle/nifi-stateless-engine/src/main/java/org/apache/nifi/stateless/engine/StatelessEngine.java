@@ -20,6 +20,7 @@ package org.apache.nifi.stateless.engine;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -74,4 +75,6 @@ public interface StatelessEngine {
     Duration getStatusTaskInterval();
 
     AssetManager getAssetManager();
+
+    VerifiableComponentFactory getVerifiableComponentFactory();
 }

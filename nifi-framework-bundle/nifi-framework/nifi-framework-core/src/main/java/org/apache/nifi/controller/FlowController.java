@@ -52,9 +52,11 @@ import org.apache.nifi.components.monitor.LongRunningTaskMonitor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
+import org.apache.nifi.components.validation.StandardVerifiableComponentFactory;
 import org.apache.nifi.components.validation.TriggerValidationTask;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -325,6 +327,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final FlowEngine flowAnalysisThreadPool;
     private final ValidationTrigger validationTrigger;
     private final ReloadComponent reloadComponent;
+    private final VerifiableComponentFactory verifiableComponentFactory;
     private final ProvenanceAuthorizableFactory provenanceAuthorizableFactory;
     private final UserAwareEventAccess eventAccess;
     private final ParameterContextManager parameterContextManager;
@@ -640,6 +643,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         this.snippetManager = new SnippetManager();
         this.reloadComponent = new StandardReloadComponent(this);
+        this.verifiableComponentFactory = new StandardVerifiableComponentFactory(this, this.nifiProperties);
 
         final ProcessGroup rootGroup = flowManager.createProcessGroup(ComponentIdGenerator.generateId().toString());
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);
@@ -2085,6 +2089,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
     public ReloadComponent getReloadComponent() {
         return reloadComponent;
+    }
+
+    public VerifiableComponentFactory getVerifiableComponentFactory() {
+        return verifiableComponentFactory;
     }
 
     public void startProcessor(final String parentGroupId, final String processorId) {
