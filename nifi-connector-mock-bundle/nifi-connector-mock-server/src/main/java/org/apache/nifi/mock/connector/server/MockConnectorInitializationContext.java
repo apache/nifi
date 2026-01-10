@@ -18,12 +18,13 @@
 package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.components.connector.FrameworkConnectorInitializationContextBuilder;
+import org.apache.nifi.components.connector.ComponentBundleLookup;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.FrameworkConnectorInitializationContext;
+import org.apache.nifi.components.connector.FrameworkConnectorInitializationContextBuilder;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
-import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -36,6 +37,7 @@ public class MockConnectorInitializationContext implements FrameworkConnectorIni
     private final ComponentLog componentLog;
     private final SecretsManager secretsManager;
     private final AssetManager assetManager;
+    private final ComponentBundleLookup componentBundleLookup;
 
     private final MockExtensionMapper mockExtensionMapper;
 
@@ -46,6 +48,7 @@ public class MockConnectorInitializationContext implements FrameworkConnectorIni
         this.secretsManager = builder.secretsManager;
         this.assetManager = builder.assetManager;
         this.mockExtensionMapper = builder.mockExtensionMapper;
+        this.componentBundleLookup = builder.componentBundleLookup;
     }
 
 
@@ -62,6 +65,11 @@ public class MockConnectorInitializationContext implements FrameworkConnectorIni
     @Override
     public ComponentLog getLogger() {
         return componentLog;
+    }
+
+    @Override
+    public ComponentBundleLookup getComponentBundleLookup() {
+        return componentBundleLookup;
     }
 
     @Override
@@ -118,6 +126,7 @@ public class MockConnectorInitializationContext implements FrameworkConnectorIni
         private ComponentLog componentLog;
         private SecretsManager secretsManager;
         private AssetManager assetManager;
+        private ComponentBundleLookup componentBundleLookup;
 
         public Builder(final MockExtensionMapper mockExtensionMapper) {
             this.mockExtensionMapper = mockExtensionMapper;
@@ -144,6 +153,12 @@ public class MockConnectorInitializationContext implements FrameworkConnectorIni
         @Override
         public Builder secretsManager(final SecretsManager secretsManager) {
             this.secretsManager = secretsManager;
+            return this;
+        }
+
+        @Override
+        public Builder componentBundleLookup(final ComponentBundleLookup bundleLookup) {
+            this.componentBundleLookup = bundleLookup;
             return this;
         }
 

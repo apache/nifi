@@ -30,6 +30,7 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
     private final ComponentLog componentLog;
     private final SecretsManager secretsManager;
     private final AssetManager assetManager;
+    private final ComponentBundleLookup componentBundleLookup;
 
 
     private StandardConnectorInitializationContext(final Builder builder) {
@@ -38,8 +39,8 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
         this.componentLog = builder.componentLog;
         this.secretsManager = builder.secretsManager;
         this.assetManager = builder.assetManager;
+        this.componentBundleLookup = builder.componentBundleLookup;
     }
-
 
     @Override
     public String getIdentifier() {
@@ -54,6 +55,11 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
     @Override
     public ComponentLog getLogger() {
         return componentLog;
+    }
+
+    @Override
+    public ComponentBundleLookup getComponentBundleLookup() {
+        return componentBundleLookup;
     }
 
     @Override
@@ -90,6 +96,7 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
         private ComponentLog componentLog;
         private SecretsManager secretsManager;
         private AssetManager assetManager;
+        private ComponentBundleLookup componentBundleLookup;
 
         @Override
         public Builder identifier(final String identifier) {
@@ -118,6 +125,12 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
         @Override
         public Builder assetManager(final AssetManager assetManager) {
             this.assetManager = assetManager;
+            return this;
+        }
+
+        @Override
+        public Builder componentBundleLookup(final ComponentBundleLookup bundleLookup) {
+            this.componentBundleLookup = bundleLookup;
             return this;
         }
 
