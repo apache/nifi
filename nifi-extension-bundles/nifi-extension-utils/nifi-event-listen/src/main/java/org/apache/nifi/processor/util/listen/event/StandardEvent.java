@@ -26,11 +26,17 @@ import java.nio.channels.SelectableChannel;
 public class StandardEvent<C extends SelectableChannel> implements Event<C> {
 
     private final String sender;
+    private final String senderPort;
     private final byte[] data;
     private final ChannelResponder<C> responder;
 
     public StandardEvent(final String sender, final byte[] data, final ChannelResponder<C> responder) {
+        this(sender, null, data, responder);
+    }
+
+    public StandardEvent(final String sender, final String senderPort, final byte[] data, final ChannelResponder<C> responder) {
         this.sender = sender;
+        this.senderPort = senderPort;
         this.data = data;
         this.responder = responder;
     }
@@ -38,6 +44,10 @@ public class StandardEvent<C extends SelectableChannel> implements Event<C> {
     @Override
     public String getSender() {
         return sender;
+    }
+
+    public String getSenderPort() {
+        return senderPort;
     }
 
     @Override

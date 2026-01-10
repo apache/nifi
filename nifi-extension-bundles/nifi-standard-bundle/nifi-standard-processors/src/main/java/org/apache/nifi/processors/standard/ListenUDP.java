@@ -60,7 +60,8 @@ import java.util.concurrent.BlockingQueue;
         "for datagrams from all hosts and ports.")
 @WritesAttributes({
         @WritesAttribute(attribute = "udp.sender", description = "The sending host of the messages."),
-        @WritesAttribute(attribute = "udp.port", description = "The sending port the messages were received.")
+        @WritesAttribute(attribute = "udp.sender.port", description = "The sending port of the messages."),
+        @WritesAttribute(attribute = "udp.port", description = "The listening port on which the messages were received.")
 })
 public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEvent> {
 
@@ -87,6 +88,7 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
 
     public static final String UDP_PORT_ATTR = "udp.port";
     public static final String UDP_SENDER_ATTR = "udp.sender";
+    public static final String UDP_SENDER_PORT_ATTR = "udp.sender.port";
 
     @Override
     protected List<PropertyDescriptor> getAdditionalProperties() {
@@ -131,9 +133,12 @@ public class ListenUDP extends AbstractListenEventBatchingProcessor<StandardEven
 
     @Override
     protected Map<String, String> getAttributes(final FlowFileEventBatch batch) {
-        final String sender = batch.getEvents().getFirst().getSender();
-        final Map<String, String> attributes = new HashMap<>(3);
+        final StandardEvent standardEvent = batch.getEvents().getFirst();
+        final String sender = standardEvent.getSender();
+        final String senderPort = standardEvent.getSenderPort();
+        final Map<String, String> attributes = new HashMap<>(4);
         attributes.put(UDP_SENDER_ATTR, sender);
+        attributes.put(UDP_SENDER_PORT_ATTR, senderPort);
         attributes.put(UDP_PORT_ATTR, String.valueOf(port));
         return attributes;
     }
