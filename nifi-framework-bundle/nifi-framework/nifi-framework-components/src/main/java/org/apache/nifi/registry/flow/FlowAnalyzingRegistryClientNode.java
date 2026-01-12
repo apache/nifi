@@ -29,7 +29,6 @@ import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.TerminationAwareLogger;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -39,6 +38,7 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
@@ -111,7 +111,8 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     private boolean analyzeProcessGroupToRegister(final VersionedProcessGroup snapshot) {
-        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = flowMapper.mapNonVersionedProcessGroup(flowManager.getGroup(snapshot.getInstanceIdentifier()), serviceProvider);
+        final ProcessGroup group = flowManager.getGroup(snapshot.getInstanceIdentifier(), null);
+        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = flowMapper.mapNonVersionedProcessGroup(group, serviceProvider);
 
         flowAnalyzer.analyzeProcessGroup(nonVersionedProcessGroup);
         final List<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroup(snapshot.getInstanceIdentifier()).stream()

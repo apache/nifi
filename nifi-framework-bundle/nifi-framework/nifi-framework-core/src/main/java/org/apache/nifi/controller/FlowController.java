@@ -52,14 +52,14 @@ import org.apache.nifi.components.ClassLoaderAwarePythonBridge;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorRepositoryInitializationContext;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
+import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.StandardConnectorRepoInitializationContext;
 import org.apache.nifi.components.connector.StandardConnectorRepository;
+import org.apache.nifi.components.connector.StandardConnectorValidationTrigger;
 import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.secrets.SecretsManagerInitializationContext;
 import org.apache.nifi.components.connector.secrets.StandardSecretsManagerInitializationContext;
-import org.apache.nifi.components.connector.ConnectorValidationTrigger;
-import org.apache.nifi.components.connector.StandardConnectorValidationTrigger;
 import org.apache.nifi.components.monitor.LongRunningTaskMonitor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateProvider;
@@ -229,8 +229,6 @@ import org.apache.nifi.web.revision.RevisionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.NotificationEmitter;
-import javax.net.ssl.SSLContext;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -263,6 +261,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.management.NotificationEmitter;
+import javax.net.ssl.SSLContext;
 
 import static java.util.Objects.requireNonNull;
 
@@ -2180,7 +2180,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      * @return the process group or null if not group is found
      */
     private ProcessGroup lookupGroup(final String id) {
-        final ProcessGroup group = flowManager.getGroup(id);
+        final ProcessGroup group = flowManager.getGroup(id, null);
         if (group == null) {
             throw new IllegalStateException("No Group with ID " + id + " exists");
         }

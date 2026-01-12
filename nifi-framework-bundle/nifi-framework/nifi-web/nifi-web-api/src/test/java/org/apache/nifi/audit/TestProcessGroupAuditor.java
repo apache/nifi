@@ -122,7 +122,7 @@ public class TestProcessGroupAuditor {
         when(processor1.getConnectableType()).thenReturn(ConnectableType.PROCESSOR);
         when(processor2.getConnectableType()).thenReturn(ConnectableType.PROCESSOR);
 
-        when(flowManager.getGroup(eq(PG_1))).thenReturn(processGroup);
+        when(flowManager.getGroup(eq(PG_1), eq(null))).thenReturn(processGroup);
         when(flowManager.findConnectable(eq(PROC_1))).thenReturn(processor1);
         when(flowManager.findConnectable(eq(PROC_2))).thenReturn(processor2);
         when(flowController.getFlowManager()).thenReturn(flowManager);
@@ -169,7 +169,7 @@ public class TestProcessGroupAuditor {
         when(processGroup.findInputPort(OUTPUT_PORT)).thenReturn(null);
         when(processGroup.findOutputPort(OUTPUT_PORT)).thenReturn(outputPort);
 
-        when(flowManager.getGroup(eq(PG_1))).thenReturn(processGroup);
+        when(flowManager.getGroup(eq(PG_1), eq(null))).thenReturn(processGroup);
         when(flowManager.findConnectable(eq(PROC_1))).thenReturn(processor1);
         when(flowManager.findConnectable(eq(PROC_2))).thenReturn(processor2);
         when(flowManager.findConnectable(eq(INPUT_PORT))).thenReturn(inputPort);
@@ -237,7 +237,7 @@ public class TestProcessGroupAuditor {
         when(cs.getName()).thenReturn(CS_1);
         when(processGroup.findControllerService(eq(CS_1), eq(true), eq(true))).thenReturn(cs);
 
-        when(flowManager.getGroup(eq(PG_1))).thenReturn(processGroup);
+        when(flowManager.getGroup(eq(PG_1), eq(null))).thenReturn(processGroup);
         when(flowManager.getControllerServiceNode(eq(CS_1))).thenReturn(cs);
         when(flowController.getFlowManager()).thenReturn(flowManager);
         when(flowController.getControllerServiceProvider()).thenReturn(csProvider);
