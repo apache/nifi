@@ -112,7 +112,8 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     }
 
     private boolean analyzeProcessGroupToRegister(final VersionedProcessGroup snapshot) {
-        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = flowMapper.mapNonVersionedProcessGroup(flowManager.getGroup(snapshot.getInstanceIdentifier()), serviceProvider);
+        final ProcessGroup group = flowManager.getGroup(snapshot.getInstanceIdentifier(), null);
+        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = flowMapper.mapNonVersionedProcessGroup(group, serviceProvider);
 
         flowAnalyzer.analyzeProcessGroup(nonVersionedProcessGroup);
         final List<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForGroup(snapshot.getInstanceIdentifier()).stream()

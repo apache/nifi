@@ -90,7 +90,7 @@ class FlowAnalyzingRegistryClientNodeTest {
     @BeforeEach
     public void setUp() {
         Mockito.when(versionedProcessGroup.getInstanceIdentifier()).thenReturn(INSTANCE_IDENTIFIER);
-        Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(processGroup);
+        Mockito.when(flowManager.getGroup(Mockito.anyString(), Mockito.eq(null))).thenReturn(processGroup);
         Mockito.when(flowMapper.mapNonVersionedProcessGroup(Mockito.same(processGroup), Mockito.same(serviceProvider))).thenReturn(nonVersionedProcessGroup);
         Mockito.when(ruleViolation1.getEnforcementPolicy()).thenReturn(EnforcementPolicy.ENFORCE);
         Mockito.when(ruleViolation2.getEnforcementPolicy()).thenReturn(EnforcementPolicy.ENFORCE);

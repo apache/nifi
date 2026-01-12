@@ -306,10 +306,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             flowController.getReloadComponent(), flowController, nifiProperties, statelessGroupNodeFactory,
             flowController.getAssetManager(), connectorId);
 
-        // We don't want to register the group if it's being created as part of a Connector
-        if (connectorId == null) {
-            onProcessGroupAdded(group);
-        }
+        onProcessGroupAdded(group);
 
         return group;
     }
@@ -751,7 +748,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
         final String managedGroupId = UUID.nameUUIDFromBytes((id + "-root").getBytes(StandardCharsets.UTF_8)).toString();
-        final ProcessGroup managedRootGroup = createProcessGroup(managedGroupId);
+        final ProcessGroup managedRootGroup = createProcessGroup(managedGroupId, id);
 
         final String paramContextId = UUID.nameUUIDFromBytes((id + "-parameter-context").getBytes(StandardCharsets.UTF_8)).toString();
         final String paramContextName = "Connector " + id + " Parameter Context";

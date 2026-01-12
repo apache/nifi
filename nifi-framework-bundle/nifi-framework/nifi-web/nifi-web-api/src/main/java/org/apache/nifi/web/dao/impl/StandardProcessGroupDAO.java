@@ -120,7 +120,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public boolean hasProcessGroup(String groupId) {
-        return flowController.getFlowManager().getGroup(groupId) != null;
+        return flowController.getFlowManager().getGroup(groupId, null) != null;
     }
 
     @Override
@@ -411,7 +411,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             .map(flowManager::getControllerServiceNode)
             .collect(Collectors.toList());
 
-        final ProcessGroup group = flowManager.getGroup(groupId);
+        final ProcessGroup group = flowManager.getGroup(groupId, null);
         if (group == null) {
             throw new IllegalArgumentException("Cannot activate Controller Services with IDs " + serviceIds + " because the associated Process Group (id=" + groupId + ") could not be found");
         }

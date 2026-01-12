@@ -119,7 +119,7 @@ public class TestLabelAuditor {
     @Test
     void testCreateLabelAdvice() {
         final LabelDTO labelDto = getLabelDto();
-        when(flowManager.getGroup(eq(GROUP_ID))).thenReturn(processGroup);
+        when(flowManager.getGroup(eq(GROUP_ID), eq(null))).thenReturn(processGroup);
         when(flowManager.createLabel(eq(LABEL_ID), eq(LABEL))).thenReturn(new StandardLabel(LABEL_ID, LABEL));
 
         final Label label = labelDao.createLabel(GROUP_ID, labelDto);

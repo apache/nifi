@@ -147,7 +147,7 @@ class TestProcessorAuditor {
         when(flowController.getControllerServiceProvider()).thenReturn(mock(ControllerServiceProvider.class));
         when(flowController.getStateManagerProvider()).thenReturn(mockStateManagerProvider);
 
-        when(flowManager.getGroup(GROUP_ID)).thenReturn(processGroup);
+        when(flowManager.getGroup(GROUP_ID, null)).thenReturn(processGroup);
         when(flowManager.createProcessor(anyString(), anyString(), any())).thenReturn(mockProcessorNode);
 
         final Bundle bundle = getBundle();
