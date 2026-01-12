@@ -84,5 +84,11 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
         authContext.authorizeWrite();
         return delegate.stopProcessors();
     }
+
+    @Override
+    public int getActiveThreadCount() {
+        authContext.authorizeRead();
+        return delegate.getActiveThreadCount();
+    }
 }
 
