@@ -15,7 +15,9 @@
 
 # StandardAzureIdentityFederationTokenProvider
 
-The *StandardAzureIdentityFederationTokenProvider* exchanges workload identity tokens from external identity providers for Azure AD access tokens. Components such as the ADLS and Azure Storage credentials controller services reference it when the **Credentials Type** is set to **Access Token**.
+The *StandardAzureIdentityFederationTokenProvider* exchanges workload identity tokens from external identity providers for Azure AD access tokens using Azure Identity SDK's `ClientAssertionCredential`. This approach provides built-in token caching, automatic refresh, and robust error handling.
+
+Components such as the ADLS and Azure Storage credentials controller services reference it when the **Credentials Type** is set to **Access Token**.
 
 > **Note**: Microsoft Entra requires a single resource (`*.default`) per client credentials request. Configure one controller service per Azure resource you need to access.
 
@@ -25,9 +27,8 @@ The *StandardAzureIdentityFederationTokenProvider* exchanges workload identity t
 1. **Client Assertion Provider** – Select a controller service that retrieves the external workload identity token. The token is passed to Azure AD as the `client_assertion` parameter.
 2. **Tenant ID** and **Client ID** – Provide the Microsoft Entra tenant and application (client) ID for the federated app registration.
 3. **Scope** – Defaults to `https://storage.azure.com/.default`. Adjust to match the resource you are targeting; Azure AD only allows a single resource (`*.default`) per token request.
-4. **Web Client Service** – Choose a `WebClientServiceProvider` (such as `StandardWebClientServiceProvider`) that handles HTTP requests.
 
-At runtime the service submits a `client_credentials` request to `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token` unless a custom token endpoint is supplied. The returned Azure AD access token is propagated to the calling component.
+At runtime the service uses `ClientAssertionCredential` to exchange the client assertion for an Azure AD access token via `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`. The Azure Identity SDK handles token caching and automatic refresh when tokens expire. The returned Azure AD access token is propagated to the calling component.
 
 Ensure the federated app registration has the necessary Azure RBAC roles (for example *Storage Blob Data Contributor* and *Azure Event Hubs Data Receiver/Sender* as appropriate) and that the client assertion provider refreshes assertions before they expire so new Azure access tokens can be obtained. Create separate controller service instances if you need tokens for different Azure resources.
 
