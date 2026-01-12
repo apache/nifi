@@ -244,4 +244,11 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     void inheritConfiguration(List<VersionedConfigurationStep> activeFlowConfiguration, List<VersionedConfigurationStep> workingFlowConfiguration,
         Bundle flowContextBundle) throws FlowUpdateException;
+
+    /**
+     * Returns the list of available actions that can be performed on this Connector.
+     * Each action includes whether it is currently allowed and, if not, the reason why.
+     * @return the list of available actions
+     */
+    List<ConnectorAction> getAvailableActions();
 }

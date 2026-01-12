@@ -68,6 +68,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConfigurationStep;
+import org.apache.nifi.components.connector.ConnectorAction;
 import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
@@ -5267,7 +5268,23 @@ public final class DtoFactory {
         dto.setManagedProcessGroupId(activeFlowContext.getManagedProcessGroup().getIdentifier());
         dto.setActiveConfiguration(createConnectorConfigurationDtoFromFlowContext(connector, activeFlowContext));
         dto.setWorkingConfiguration(createConnectorConfigurationDtoFromFlowContext(connector, connector.getWorkingFlowContext()));
+        dto.setAvailableActions(createConnectorActionDtos(connector));
 
+        return dto;
+    }
+
+    private List<ConnectorActionDTO> createConnectorActionDtos(final ConnectorNode connector) {
+        return connector.getAvailableActions().stream()
+            .map(this::createConnectorActionDto)
+            .collect(Collectors.toList());
+    }
+
+    private ConnectorActionDTO createConnectorActionDto(final ConnectorAction action) {
+        final ConnectorActionDTO dto = new ConnectorActionDTO();
+        dto.setName(action.getName());
+        dto.setDescription(action.getDescription());
+        dto.setAllowed(action.isAllowed());
+        dto.setReasonNotAllowed(action.getReasonNotAllowed());
         return dto;
     }
 
