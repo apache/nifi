@@ -35,6 +35,7 @@ import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.FlowFileActivity;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
+import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -864,6 +865,175 @@ public class StandardConnectorNode implements ConnectorNode {
     @Override
     public void discardWorkingConfiguration() {
         recreateWorkingFlowContext();
+    }
+
+    @Override
+    public List<ConnectorAction> getAvailableActions() {
+        final List<ConnectorAction> actions = new ArrayList<>();
+        final ConnectorState currentState = getCurrentState();
+        final boolean dataQueued = activeFlowContext.getManagedProcessGroup().isDataQueued();
+        final boolean stopped = isStopped();
+
+        actions.add(createStartAction(stopped));
+        actions.add(createStopAction(currentState));
+        actions.add(createConfigureAction());
+        actions.add(createDiscardWorkingConfigAction());
+        actions.add(createPurgeFlowFilesAction(stopped, dataQueued));
+        actions.add(createDrainFlowFilesAction(stopped, dataQueued));
+        actions.add(createApplyUpdatesAction(currentState));
+        actions.add(createDeleteAction(stopped, dataQueued));
+
+        return actions;
+    }
+
+    private boolean isStopped() {
+        final ConnectorState currentState = getCurrentState();
+        if (currentState == ConnectorState.STOPPED) {
+            return true;
+        }
+        if (currentState == ConnectorState.UPDATED || currentState == ConnectorState.UPDATE_FAILED) {
+            return !hasActiveThread(getActiveFlowContext().getManagedProcessGroup());
+        }
+        return false;
+    }
+
+    private ConnectorAction createStartAction(final boolean stopped) {
+        final boolean allowed;
+        final String reason;
+
+        if (!stopped) {
+            allowed = false;
+            reason = "Connector is not stopped";
+        } else {
+            allowed = true;
+            reason = null;
+        }
+
+        return new StandardConnectorAction("START", "Start the connector", allowed, reason);
+    }
+
+    private ConnectorAction createStopAction(final ConnectorState currentState) {
+        final boolean allowed;
+        if (currentState == ConnectorState.RUNNING || currentState == ConnectorState.STARTING) {
+            allowed = true;
+        } else if (currentState == ConnectorState.UPDATED || currentState == ConnectorState.UPDATE_FAILED) {
+            allowed = hasActiveThread(activeFlowContext.getManagedProcessGroup());
+        } else {
+            allowed = false;
+        }
+
+        final String reason = allowed ? null : "Connector is not running";
+        return new StandardConnectorAction("STOP", "Stop the connector", allowed, reason);
+    }
+
+    private ConnectorAction createConfigureAction() {
+        return new StandardConnectorAction("CONFIGURE", "Configure the connector", true, null);
+    }
+
+    private ConnectorAction createDiscardWorkingConfigAction() {
+        final boolean allowed = hasWorkingConfigurationChanges();
+        final String reason = allowed ? null : "No pending changes to discard";
+
+        return new StandardConnectorAction("DISCARD_WORKING_CONFIGURATION", "Discard any changes made to the working configuration", allowed, reason);
+    }
+
+    private boolean hasActiveThread(final ProcessGroup group) {
+        for (final ProcessorNode processor : group.getProcessors()) {
+            if (processor.getActiveThreadCount() > 0) {
+                return true;
+            }
+        }
+
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            if (hasActiveThread(childGroup)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private ConnectorAction createPurgeFlowFilesAction(final boolean stopped, final boolean dataQueued) {
+        final boolean allowed;
+        final String reason;
+
+        if (!stopped) {
+            allowed = false;
+            reason = "Connector must be stopped";
+        } else if (!dataQueued) {
+            allowed = false;
+            reason = "No data is queued";
+        } else {
+            allowed = true;
+            reason = null;
+        }
+
+        return new StandardConnectorAction("PURGE_FLOWFILES", "Purge all FlowFiles from the connector, dropping all data without processing it", allowed, reason);
+    }
+
+    private ConnectorAction createDrainFlowFilesAction(final boolean stopped, final boolean dataQueued) {
+        final boolean allowed;
+        final String reason;
+
+        if (!stopped) {
+            allowed = false;
+            reason = "Connector must be stopped";
+        } else if (!dataQueued) {
+            allowed = false;
+            reason = "No data is queued";
+        } else {
+            allowed = true;
+            reason = null;
+        }
+
+        return new StandardConnectorAction("DRAIN_FLOWFILES", "Process data that is currently in the flow but do not ingest any additional data", allowed, reason);
+    }
+
+    private ConnectorAction createApplyUpdatesAction(final ConnectorState currentState) {
+        final boolean allowed;
+        final String reason;
+
+        if (currentState == ConnectorState.PREPARING_FOR_UPDATE || currentState == ConnectorState.UPDATING) {
+            allowed = false;
+            reason = "Connector is updating";
+        } else if (!hasWorkingConfigurationChanges()) {
+            allowed = false;
+            reason = "No pending changes";
+        } else {
+            allowed = true;
+            reason = null;
+        }
+
+        return new StandardConnectorAction("APPLY_UPDATES", "Apply the working configuration to the active configuration", allowed, reason);
+    }
+
+    private ConnectorAction createDeleteAction(final boolean stopped, final boolean dataQueued) {
+        final boolean allowed;
+        final String reason;
+
+        if (!stopped) {
+            allowed = false;
+            reason = "Connector must be stopped";
+        } else if (dataQueued) {
+            allowed = false;
+            reason = "Data is queued";
+        } else {
+            allowed = true;
+            reason = null;
+        }
+
+        return new StandardConnectorAction("DELETE", "Delete the connector", allowed, reason);
+    }
+
+    private boolean hasWorkingConfigurationChanges() {
+        final FrameworkFlowContext workingContext = this.workingFlowContext;
+        if (workingContext == null) {
+            return false;
+        }
+
+        final ConnectorConfiguration activeConfig = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
+        final ConnectorConfiguration workingConfig = workingContext.getConfigurationContext().toConnectorConfiguration();
+        return !Objects.equals(activeConfig, workingConfig);
     }
 
     @Override

@@ -159,6 +159,7 @@ public class StandardConnectorNodeIT {
         when(flowController.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
         when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
         when(flowController.getValidationTrigger()).thenReturn(mock(ValidationTrigger.class));
+        when(flowController.getConnectorValidationTrigger()).thenReturn(mock(ConnectorValidationTrigger.class));
 
         doAnswer(invocation -> {
             return createConnection(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3), invocation.getArgument(4));
