@@ -210,7 +210,7 @@ class StandardProcessorDAOTest {
         final Bundle bundle = new Bundle(bundleDetails, getClass().getClassLoader());
         final List<Bundle> bundles = List.of(bundle);
 
-        when(flowManager.getGroup(eq(groupId))).thenReturn(processGroup);
+        when(flowManager.getGroup(eq(groupId), eq(null))).thenReturn(processGroup);
         when(flowController.getExtensionManager()).thenReturn(extensionManager);
         when(flowManager.createProcessor(eq(processorType), eq(id), eq(bundleCoordinate))).thenReturn(processorNode);
         when(extensionManager.getBundles(eq(processorType))).thenReturn(bundles);

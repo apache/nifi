@@ -40,11 +40,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Objects;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Objects;
 
 /**
  * Jersey implementation of ConnectorClient.
@@ -361,21 +361,21 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
 
     @Override
     public ProcessGroupFlowEntity getFlow(final String connectorId) throws NiFiClientException, IOException {
-        return getFlow(connectorId, false);
+        final ConnectorEntity connector = getConnector(connectorId);
+        final String managedProcessGroupId = connector.getComponent().getManagedProcessGroupId();
+        return getFlow(connectorId, managedProcessGroupId);
     }
 
     @Override
-    public ProcessGroupFlowEntity getFlow(final String connectorId, final boolean uiOnly) throws NiFiClientException, IOException {
+    public ProcessGroupFlowEntity getFlow(final String connectorId, final String processGroupId) throws NiFiClientException, IOException {
         Objects.requireNonNull(connectorId, "Connector ID required");
+        Objects.requireNonNull(processGroupId, "Process Group ID required");
 
         return executeAction("Error retrieving connector flow", () -> {
             WebTarget target = connectorTarget
-                    .path("/flow")
-                    .resolveTemplate("id", connectorId);
-
-            if (uiOnly) {
-                target = target.queryParam("uiOnly", "true");
-            }
+                    .path("/flow/process-groups/{processGroupId}")
+                    .resolveTemplate("id", connectorId)
+                    .resolveTemplate("processGroupId", processGroupId);
 
             return getRequestBuilder(target).get(ProcessGroupFlowEntity.class);
         });
