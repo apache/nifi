@@ -81,6 +81,10 @@ public final class DBCPProperties {
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+
+    public static final PropertyDescriptor DB_PASSWORD_WITH_PASSWORD_SOURCE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(DB_PASSWORD)
             .dependsOn(PASSWORD_SOURCE, PasswordSource.PASSWORD)
             .build();
 
