@@ -53,7 +53,6 @@ public class TestStandardAzureIdentityFederationTokenProvider {
     public void testValidConfiguration() {
         runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.TENANT_ID, "tenant-id");
         runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.CLIENT_ID, "client-id");
-        runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.SCOPE, "https://storage.azure.com/.default");
         runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.CLIENT_ASSERTION_PROVIDER, "assertion-provider");
 
         runner.assertValid(tokenProvider);
@@ -81,28 +80,6 @@ public class TestStandardAzureIdentityFederationTokenProvider {
         runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.CLIENT_ID, "client-id");
 
         runner.assertNotValid(tokenProvider);
-    }
-
-    @Test
-    public void testDefaultScopeIsSet() {
-        runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.TENANT_ID, "tenant-id");
-        runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.CLIENT_ID, "client-id");
-        runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.CLIENT_ASSERTION_PROVIDER, "assertion-provider");
-
-        runner.assertValid(tokenProvider);
-
-        // SCOPE has a default value, so if not explicitly set, it should still be valid
-        // The validation above confirms the default value is properly applied
-    }
-
-    @Test
-    public void testCustomScope() {
-        runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.TENANT_ID, "tenant-id");
-        runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.CLIENT_ID, "client-id");
-        runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.SCOPE, "https://eventhubs.azure.net/.default");
-        runner.setProperty(tokenProvider, StandardAzureIdentityFederationTokenProvider.CLIENT_ASSERTION_PROVIDER, "assertion-provider");
-
-        runner.assertValid(tokenProvider);
     }
 
     private static class MockOAuth2AccessTokenProvider extends AbstractControllerService implements OAuth2AccessTokenProvider {

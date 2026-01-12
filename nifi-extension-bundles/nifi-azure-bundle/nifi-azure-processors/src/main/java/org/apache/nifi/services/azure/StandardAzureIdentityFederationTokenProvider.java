@@ -18,9 +18,6 @@ package org.apache.nifi.services.azure;
 
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
-import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
-import com.azure.identity.ClientAssertionCredential;
-import com.azure.identity.ClientAssertionCredentialBuilder;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -31,25 +28,26 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.services.azure.util.AzureWorkloadIdentityCredentialUtils;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Controller Service that exchanges an external identity token for an Azure AD access token
- * using the Microsoft Entra workload identity federation flow via {@link ClientAssertionCredential}.
+ * Controller Service that provides Azure {@link TokenCredential} for workload identity federation.
+ * Uses {@link AzureWorkloadIdentityCredentialUtils} to build the credential from an external identity token.
  */
 @Tags({"azure", "identity", "federation", "credentials", "workload"})
-@CapabilityDescription("Exchanges workload identity tokens for Azure AD access tokens suitable for accessing Azure services. "
-        + "Uses Azure Identity SDK's ClientAssertionCredential for robust token exchange with built-in caching and retry logic.")
+@CapabilityDescription("Provides Azure TokenCredential for workload identity federation. "
+        + "Exchanges external identity tokens (from an OAuth2 provider) for Azure AD access tokens "
+        + "using Azure Identity SDK's ClientAssertionCredential with built-in caching and retry logic.")
 public class StandardAzureIdentityFederationTokenProvider extends AbstractControllerService
         implements AzureIdentityFederationTokenProvider, VerifiableControllerService {
 
-    private static final String DEFAULT_SCOPE = "https://storage.azure.com/.default";
+    private static final String DEFAULT_VERIFICATION_SCOPE = "https://storage.azure.com/.default";
     private static final String ERROR_EXCHANGE_FAILED = "Failed to exchange workload identity token: %s";
     private static final String STEP_EXCHANGE_TOKEN = "Exchange workload identity token";
 
@@ -67,14 +65,6 @@ public class StandardAzureIdentityFederationTokenProvider extends AbstractContro
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
-    public static final PropertyDescriptor SCOPE = new PropertyDescriptor.Builder()
-            .name("Scope")
-            .description("OAuth2 scope requested from Azure AD. Defaults to https://storage.azure.com/.default for Azure Storage access.")
-            .required(true)
-            .defaultValue(DEFAULT_SCOPE)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .build();
-
     public static final PropertyDescriptor CLIENT_ASSERTION_PROVIDER = new PropertyDescriptor.Builder()
             .name("Client Assertion Provider")
             .description("Controller Service that retrieves the external workload identity token (client assertion) exchanged with Azure AD.")
@@ -85,12 +75,10 @@ public class StandardAzureIdentityFederationTokenProvider extends AbstractContro
     private static final List<PropertyDescriptor> DESCRIPTORS = List.of(
             TENANT_ID,
             CLIENT_ID,
-            SCOPE,
             CLIENT_ASSERTION_PROVIDER
     );
 
-    private volatile ClientAssertionCredential credential;
-    private volatile OAuth2AccessTokenProvider clientAssertionProvider;
+    private volatile TokenCredential credential;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -101,15 +89,10 @@ public class StandardAzureIdentityFederationTokenProvider extends AbstractContro
     public void onEnabled(final ConfigurationContext context) {
         final String tenantId = context.getProperty(TENANT_ID).getValue();
         final String clientId = context.getProperty(CLIENT_ID).getValue();
-        this.clientAssertionProvider = context.getProperty(CLIENT_ASSERTION_PROVIDER)
+        final OAuth2AccessTokenProvider clientAssertionProvider = context.getProperty(CLIENT_ASSERTION_PROVIDER)
                 .asControllerService(OAuth2AccessTokenProvider.class);
 
-        this.credential = new ClientAssertionCredentialBuilder()
-                .tenantId(tenantId)
-                .clientId(clientId)
-                .clientAssertion(this::getClientAssertion)
-                .httpClient(new NettyAsyncHttpClientBuilder().build())
-                .build();
+        this.credential = AzureWorkloadIdentityCredentialUtils.createCredential(tenantId, clientId, clientAssertionProvider);
     }
 
     @Override
@@ -127,18 +110,13 @@ public class StandardAzureIdentityFederationTokenProvider extends AbstractContro
         try {
             final String tenantId = context.getProperty(TENANT_ID).getValue();
             final String clientId = context.getProperty(CLIENT_ID).getValue();
-            final String verificationScope = context.getProperty(SCOPE).getValue();
             final OAuth2AccessTokenProvider verificationAssertionProvider = context.getProperty(CLIENT_ASSERTION_PROVIDER)
                     .asControllerService(OAuth2AccessTokenProvider.class);
 
-            final ClientAssertionCredential verificationCredential = new ClientAssertionCredentialBuilder()
-                    .tenantId(tenantId)
-                    .clientId(clientId)
-                    .clientAssertion(() -> verificationAssertionProvider.getAccessDetails().getAccessToken())
-                    .httpClient(new NettyAsyncHttpClientBuilder().build())
-                    .build();
+            final TokenCredential verificationCredential = AzureWorkloadIdentityCredentialUtils.createCredential(
+                    tenantId, clientId, verificationAssertionProvider);
 
-            final TokenRequestContext tokenRequestContext = new TokenRequestContext().addScopes(verificationScope);
+            final TokenRequestContext tokenRequestContext = new TokenRequestContext().addScopes(DEFAULT_VERIFICATION_SCOPE);
             verificationCredential.getToken(tokenRequestContext).block();
 
             return Collections.singletonList(resultBuilder
@@ -153,17 +131,5 @@ public class StandardAzureIdentityFederationTokenProvider extends AbstractContro
                     .explanation(explanation)
                     .build());
         }
-    }
-
-    private String getClientAssertion() {
-        final AccessToken assertionToken = clientAssertionProvider.getAccessDetails();
-        if (assertionToken == null) {
-            throw new IllegalStateException("Client assertion provider returned null");
-        }
-        final String assertion = assertionToken.getAccessToken();
-        if (assertion == null || assertion.isBlank()) {
-            throw new IllegalStateException("Client assertion provider returned empty token");
-        }
-        return assertion;
     }
 }
