@@ -240,7 +240,7 @@ public abstract class AbstractDBCPConnectionPool extends AbstractControllerServi
 
     protected DatabasePasswordProvider getDatabasePasswordProvider(final ConfigurationContext context) {
         final PropertyValue passwordSourceProperty = context.getProperty(PASSWORD_SOURCE);
-        final boolean databasePasswordProviderSelected = passwordSourceProperty != null
+        final boolean databasePasswordProviderSelected = passwordSourceProperty != null && passwordSourceProperty.isSet()
                 && PASSWORD_PROVIDER.getValue().equals(passwordSourceProperty.getValue());
 
         if (!databasePasswordProviderSelected) {
