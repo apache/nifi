@@ -72,6 +72,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
@@ -2153,6 +2154,59 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
 
         // Drop the schemas here so as not to interfere with other tests
         stmt.execute("drop table LONGVARBINARY_TEST");
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void testInsertBinaryTypesUsesSetBytes() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        final String createTable = "CREATE TABLE BINARY_TYPES_TEST (id INTEGER PRIMARY KEY, binary_col BINARY(10), varbinary_col VARBINARY(100), longvarbinary_col LONGVARBINARY);";
+
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        stmt.execute(createTable);
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("binaryCol", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
+        parser.addSchemaField("varbinaryCol", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
+        parser.addSchemaField("longvarbinaryCol", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
+
+        final byte[] binaryValue = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        final byte[] varbinaryValue = new byte[]{11, 12, 13};
+        final byte[] longvarbinaryValue = new byte[]{21, 22, 23, 24, 25};
+
+        parser.addRecord(1, binaryValue, varbinaryValue, longvarbinaryValue);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "BINARY_TYPES_TEST");
+
+        final Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+
+        verify(spyStmt.get()).setBytes(eq(2), eq(binaryValue));
+        verify(spyStmt.get()).setBytes(eq(3), eq(varbinaryValue));
+        verify(spyStmt.get()).setBytes(eq(4), eq(longvarbinaryValue));
+
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM BINARY_TYPES_TEST;");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertArrayEquals(binaryValue, rs.getBytes(2));
+        assertArrayEquals(varbinaryValue, rs.getBytes(3));
+        assertArrayEquals(longvarbinaryValue, rs.getBytes(4));
+        assertFalse(rs.next());
+
+        stmt.execute("DROP TABLE BINARY_TYPES_TEST;");
         stmt.close();
         conn.close();
     }

@@ -1065,7 +1065,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     throw new IOException("Unable to parse data as CLOB/String " + value, e);
                 }
             }
-        } else if (sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
+        } else if (sqlType == Types.BINARY || sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
             if (fieldSqlType == Types.ARRAY || fieldSqlType == Types.VARCHAR) {
                 if (!(value instanceof byte[])) {
                     if (value == null) {
@@ -1076,7 +1076,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             throw new IOException("Unable to setNull() on prepared statement", e);
                         }
                     } else {
-                        throw new IOException("Expected VARBINARY/LONGVARBINARY to be of type byte[] but is instead " + value.getClass().getName());
+                        throw new IOException("Expected BINARY/VARBINARY/LONGVARBINARY to be of type byte[] but is instead " + value.getClass().getName());
                     }
                 }
                 byte[] byteArray = (byte[]) value;
