@@ -132,6 +132,50 @@ public interface ConnectorClient {
     ConnectorEntity stopConnector(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
 
     /**
+     * Initiates draining of FlowFiles for a connector.
+     *
+     * @param connectorId the connector ID
+     * @param clientId the client ID
+     * @param version the revision version
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity drainConnector(String connectorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    /**
+     * Initiates draining of FlowFiles for a connector using the information from the entity.
+     *
+     * @param connectorEntity the connector entity to drain
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity drainConnector(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
+     * Cancels an ongoing drain operation for a connector.
+     *
+     * @param connectorId the connector ID
+     * @param clientId the client ID
+     * @param version the revision version
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity cancelDrain(String connectorId, String clientId, long version) throws NiFiClientException, IOException;
+
+    /**
+     * Cancels an ongoing drain operation for a connector using the information from the entity.
+     *
+     * @param connectorEntity the connector entity to cancel draining for
+     * @return the updated connector entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ConnectorEntity cancelDrain(ConnectorEntity connectorEntity) throws NiFiClientException, IOException;
+
+    /**
      * Gets the configuration step names for a connector.
      *
      * @param connectorId the connector ID

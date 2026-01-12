@@ -623,6 +623,155 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
+     * Initiates the draining of FlowFiles for the specified connector.
+     *
+     * @param id The id of the connector to drain.
+     * @param requestConnectorEntity A connectorEntity containing the revision.
+     * @return A connectorEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/drain")
+    @Operation(
+            summary = "Initiates draining of FlowFiles for a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConnectorEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            description = "This will initiate draining of FlowFiles for a stopped connector. Draining allows the connector to process " +
+                    "data that is currently in the flow but does not ingest any additional data. The connector must be in a STOPPED state " +
+                    "before draining can begin. Once initiated, the connector will transition to a DRAINING state. Use the DELETE method " +
+                    "on this endpoint to cancel an ongoing drain operation.",
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid} or /operation/connectors/{uuid}")
+            }
+    )
+    public Response initiateDrain(
+            @Parameter(
+                    description = "The connector id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @Parameter(
+                    description = "The connector entity with revision.",
+                    required = true
+            ) final ConnectorEntity requestConnectorEntity) {
+
+        if (requestConnectorEntity == null || requestConnectorEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Connector entity with revision must be specified.");
+        }
+
+        if (requestConnectorEntity.getId() != null && !id.equals(requestConnectorEntity.getId())) {
+            throw new IllegalArgumentException(String.format("The connector id (%s) in the request body does not equal the "
+                    + "connector id of the requested resource (%s).", requestConnectorEntity.getId(), id));
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestConnectorEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestConnectorEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        final Revision requestRevision = getRevision(requestConnectorEntity, id);
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                requestRevision,
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    final Authorizable connector = lookup.getConnector(id);
+                    OperationAuthorizable.authorizeOperation(connector, authorizer, user);
+                },
+                () -> serviceFacade.verifyDrainConnector(id),
+                (revision, connectorEntity) -> {
+                    final ConnectorEntity entity = serviceFacade.drainConnector(revision, id);
+                    populateRemainingConnectorEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Cancels the draining of FlowFiles for the specified connector.
+     *
+     * @param version The revision is used to verify the client is working with the latest version of the flow.
+     * @param clientId Optional client id. If the client id is not specified, a new one will be generated. This value (whether specified or generated) is included in the response.
+     * @param id The id of the connector to cancel draining for.
+     * @return A connectorEntity.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/drain")
+    @Operation(
+            summary = "Cancels the draining of FlowFiles for a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ConnectorEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid} or /operation/connectors/{uuid}")
+            }
+    )
+    public Response cancelDrain(
+            @Parameter(
+                    description = "The revision is used to verify the client is working with the latest version of the flow."
+            )
+            @QueryParam(VERSION) final LongParameter version,
+            @Parameter(
+                    description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
+            )
+            @QueryParam(CLIENT_ID) final ClientIdParameter clientId,
+            @Parameter(
+                    description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @Parameter(
+                    description = "The connector id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        final ConnectorEntity requestConnectorEntity = new ConnectorEntity();
+        requestConnectorEntity.setId(id);
+
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                requestRevision,
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+                    final Authorizable connector = lookup.getConnector(id);
+                    OperationAuthorizable.authorizeOperation(connector, authorizer, user);
+                },
+                () -> serviceFacade.verifyCancelConnectorDrain(id),
+                (revision, connectorEntity) -> {
+                    final ConnectorEntity entity = serviceFacade.cancelConnectorDrain(revision, id);
+                    populateRemainingConnectorEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
      * Gets the configuration step names for the specified connector.
      *
      * @param id The id of the connector to retrieve configuration steps from
