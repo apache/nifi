@@ -201,4 +201,12 @@ public class AzureStorageCredentialsDetails_v12 {
         return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN, null, null, null,
                 null, null, null, accessToken, identityTokenProvider, null);
     }
+
+    public static AzureStorageCredentialsDetails_v12 createWithIdentityTokenProvider(
+            String accountName,
+            String endpointSuffix,
+            AzureIdentityFederationTokenProvider identityTokenProvider) {
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN, null, null, null,
+                null, null, null, null, identityTokenProvider, null);
+    }
 }

@@ -17,6 +17,7 @@
 package org.apache.nifi.services.azure.storage;
 
 import com.azure.core.credential.AccessToken;
+import com.azure.core.credential.TokenCredential;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
@@ -27,7 +28,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -281,9 +284,8 @@ public class TestADLSCredentialsControllerService {
         final ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        final AccessToken accessToken = actual.getAccessToken();
-        assertNotNull(accessToken);
-        assertEquals(MockOAuth2AccessTokenProvider.ACCESS_TOKEN_VALUE, accessToken.getToken());
+        final AzureIdentityFederationTokenProvider identityTokenProvider = actual.getIdentityTokenProvider();
+        assertNotNull(identityTokenProvider);
     }
 
     @Test
@@ -459,11 +461,8 @@ public class TestADLSCredentialsControllerService {
         private static final String ACCESS_TOKEN_VALUE = "access-token";
 
         @Override
-        public org.apache.nifi.oauth2.AccessToken getAccessDetails() {
-            final org.apache.nifi.oauth2.AccessToken token = new org.apache.nifi.oauth2.AccessToken();
-            token.setAccessToken(ACCESS_TOKEN_VALUE);
-            token.setExpiresIn(3600L);
-            return token;
+        public TokenCredential getCredentials() {
+            return tokenRequestContext -> Mono.just(new AccessToken(ACCESS_TOKEN_VALUE, OffsetDateTime.now().plusHours(1)));
         }
     }
 }

@@ -26,6 +26,9 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
+
+import java.time.OffsetDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,11 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class TestStandardAzureCredentialsControllerService {
     private static final String CREDENTIALS_SERVICE_IDENTIFIER = "credentials-service";
     private static final String SAMPLE_MANAGED_CLIENT_ID = "sample-managed-client-id";
-    private static final String TOKEN_PROVIDER_IDENTIFIER = "oauth2-provider";
+    private static final String TOKEN_PROVIDER_IDENTIFIER = "identity-provider";
 
     private TestRunner runner;
     private StandardAzureCredentialsControllerService credentialsService;
-    private MockOAuth2AccessTokenProvider tokenProvider;
+    private MockIdentityFederationTokenProvider tokenProvider;
 
     @BeforeEach
     public void setUp() throws InitializationException {
@@ -45,7 +48,7 @@ public class TestStandardAzureCredentialsControllerService {
         credentialsService = new StandardAzureCredentialsControllerService();
         runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);
 
-        tokenProvider = new MockOAuth2AccessTokenProvider();
+        tokenProvider = new MockIdentityFederationTokenProvider();
         runner.addControllerService(TOKEN_PROVIDER_IDENTIFIER, tokenProvider);
         runner.enableControllerService(tokenProvider);
     }
@@ -113,18 +116,15 @@ public class TestStandardAzureCredentialsControllerService {
         final TokenCredential tokenCredential = credentialsService.getCredentials();
         final AccessToken accessToken = tokenCredential.getToken(new TokenRequestContext().addScopes("https://storage.azure.com/.default")).block();
         assertNotNull(accessToken);
-        assertEquals(MockOAuth2AccessTokenProvider.ACCESS_TOKEN_VALUE, accessToken.getToken());
+        assertEquals(MockIdentityFederationTokenProvider.ACCESS_TOKEN_VALUE, accessToken.getToken());
     }
 
-    private static final class MockOAuth2AccessTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
+    private static final class MockIdentityFederationTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
         private static final String ACCESS_TOKEN_VALUE = "access-token";
 
         @Override
-        public org.apache.nifi.oauth2.AccessToken getAccessDetails() {
-            final org.apache.nifi.oauth2.AccessToken accessToken = new org.apache.nifi.oauth2.AccessToken();
-            accessToken.setAccessToken(ACCESS_TOKEN_VALUE);
-            accessToken.setExpiresIn(3600L);
-            return accessToken;
+        public TokenCredential getCredentials() {
+            return tokenRequestContext -> Mono.just(new AccessToken(ACCESS_TOKEN_VALUE, OffsetDateTime.now().plusHours(1)));
         }
     }
 }

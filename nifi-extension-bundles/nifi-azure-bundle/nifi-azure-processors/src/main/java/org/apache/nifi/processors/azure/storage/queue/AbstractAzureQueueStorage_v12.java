@@ -45,7 +45,6 @@ import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
-import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -180,9 +179,8 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
                 break;
             case ACCESS_TOKEN:
                 final AzureIdentityFederationTokenProvider identityTokenProvider = storageCredentialsDetails.getIdentityTokenProvider();
-                TokenCredential credential = identityTokenProvider != null
-                        ? tokenRequestContext -> Mono.fromSupplier(() ->
-                        OAuth2AccessTokenAdapter.toAzureAccessToken(identityTokenProvider.getAccessDetails()))
+                final TokenCredential credential = identityTokenProvider != null
+                        ? identityTokenProvider.getCredentials()
                         : tokenRequestContext -> Mono.just(storageCredentialsDetails.getAccessToken());
                 clientBuilder.credential(credential);
                 break;

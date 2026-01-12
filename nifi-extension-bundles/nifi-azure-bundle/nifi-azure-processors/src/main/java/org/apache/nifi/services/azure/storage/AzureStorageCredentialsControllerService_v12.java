@@ -28,7 +28,6 @@ import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
-import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
 
 import java.util.List;
 import java.util.Map;
@@ -112,13 +111,12 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
                 return AzureStorageCredentialsDetails_v12.createWithServicePrincipal(accountName, endpointSuffix,
                         servicePrincipalTenantId, servicePrincipalClientId, servicePrincipalClientSecret, proxyOptions);
             case ACCESS_TOKEN:
-                final AzureIdentityFederationTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER)
+                final AzureIdentityFederationTokenProvider identityTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER)
                         .asControllerService(AzureIdentityFederationTokenProvider.class);
-                return AzureStorageCredentialsDetails_v12.createWithAccessToken(
+                return AzureStorageCredentialsDetails_v12.createWithIdentityTokenProvider(
                         accountName,
                         endpointSuffix,
-                        OAuth2AccessTokenAdapter.toAzureAccessToken(oauth2AccessTokenProvider.getAccessDetails()),
-                        oauth2AccessTokenProvider);
+                        identityTokenProvider);
         }
 
         throw new IllegalArgumentException("Unhandled credentials type: " + credentialsType);

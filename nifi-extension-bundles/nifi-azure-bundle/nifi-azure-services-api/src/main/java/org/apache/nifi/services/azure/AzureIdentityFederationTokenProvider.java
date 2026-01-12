@@ -16,12 +16,21 @@
  */
 package org.apache.nifi.services.azure;
 
-import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
+import com.azure.core.credential.TokenCredential;
+import org.apache.nifi.controller.ControllerService;
 
 /**
- * Azure-specific extension of {@link OAuth2AccessTokenProvider} used for workload identity federation.
+ * Controller Service that provides Azure {@link TokenCredential} for workload identity federation.
  * Implementations exchange an external identity token for an Azure AD access token suitable for
- * Azure service clients (for example, Storage or Data Lake).
+ * Azure service clients (for example, Storage, Data Lake, or Event Hubs).
  */
-public interface AzureIdentityFederationTokenProvider extends OAuth2AccessTokenProvider {
+public interface AzureIdentityFederationTokenProvider extends ControllerService {
+
+    /**
+     * Returns a {@link TokenCredential} that can be used to authenticate with Azure services.
+     * The credential handles token acquisition and refresh automatically.
+     *
+     * @return a TokenCredential for Azure service authentication
+     */
+    TokenCredential getCredentials();
 }

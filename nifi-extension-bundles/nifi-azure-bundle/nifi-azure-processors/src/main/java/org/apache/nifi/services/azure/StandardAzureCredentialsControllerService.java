@@ -33,8 +33,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
-import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -197,8 +195,7 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
     private TokenCredential getOAuth2Credential(final ConfigurationContext context) {
         final AzureIdentityFederationTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER)
                 .asControllerService(AzureIdentityFederationTokenProvider.class);
-        return tokenRequestContext -> Mono.fromSupplier(() ->
-                OAuth2AccessTokenAdapter.toAzureAccessToken(oauth2AccessTokenProvider.getAccessDetails()));
+        return oauth2AccessTokenProvider.getCredentials();
     }
 
     @Override

@@ -29,7 +29,6 @@ import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
-import org.apache.nifi.services.azure.util.OAuth2AccessTokenAdapter;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubComponent;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
@@ -158,12 +157,26 @@ public final class AzureEventHubUtils {
     public static TokenCredential createTokenCredential(final OAuth2AccessTokenProvider tokenProvider) {
         Objects.requireNonNull(tokenProvider, "OAuth2 Access Token Provider is required");
 
-        return tokenRequestContext -> Mono.fromSupplier(() -> OAuth2AccessTokenAdapter.toAzureAccessToken(tokenProvider.getAccessDetails()));
+        return tokenRequestContext -> Mono.fromSupplier(() -> {
+            final org.apache.nifi.oauth2.AccessToken accessToken = tokenProvider.getAccessDetails();
+            Objects.requireNonNull(accessToken, "Access Token is required");
+            final String tokenValue = accessToken.getAccessToken();
+            if (tokenValue == null || tokenValue.isEmpty()) {
+                throw new IllegalStateException("Access Token value is required");
+            }
+            final java.time.Instant fetchTime = Objects.requireNonNull(accessToken.getFetchTime(), "Access Token fetch time required");
+            final long expiresIn = accessToken.getExpiresIn();
+            final java.time.Instant expirationInstant = expiresIn > 0
+                    ? fetchTime.plusSeconds(expiresIn)
+                    : fetchTime.plusSeconds(300);
+            final java.time.OffsetDateTime expirationTime = java.time.OffsetDateTime.ofInstant(expirationInstant, java.time.ZoneOffset.UTC);
+            return new com.azure.core.credential.AccessToken(tokenValue, expirationTime);
+        });
     }
 
     public static TokenCredential createTokenCredential(final AzureIdentityFederationTokenProvider tokenProvider) {
         Objects.requireNonNull(tokenProvider, "Identity Federation Token Provider is required");
-        return createTokenCredential((OAuth2AccessTokenProvider) tokenProvider);
+        return tokenProvider.getCredentials();
     }
 
     private static Proxy getProxy(ProxyConfiguration proxyConfiguration) {

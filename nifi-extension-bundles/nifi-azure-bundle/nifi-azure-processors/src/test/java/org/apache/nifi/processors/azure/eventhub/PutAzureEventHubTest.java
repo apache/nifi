@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.messaging.eventhubs.EventHubProducerClient;
 import com.azure.messaging.eventhubs.models.SendOptions;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -41,6 +42,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Mono;
 
 import java.net.Proxy;
 import java.util.Collections;
@@ -304,11 +306,9 @@ public class PutAzureEventHubTest {
 
     private static class MockIdentityFederationTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
         @Override
-        public AccessToken getAccessDetails() {
-            final AccessToken accessToken = new AccessToken();
-            accessToken.setAccessToken("access-token");
-            accessToken.setExpiresIn(TimeUnit.MINUTES.toSeconds(5));
-            return accessToken;
+        public TokenCredential getCredentials() {
+            return tokenRequestContext -> Mono.just(
+                    new com.azure.core.credential.AccessToken("access-token", java.time.OffsetDateTime.now().plusMinutes(5)));
         }
     }
 }

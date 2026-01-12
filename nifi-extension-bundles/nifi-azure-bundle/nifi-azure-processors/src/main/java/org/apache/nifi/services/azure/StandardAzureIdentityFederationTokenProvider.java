@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.services.azure;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
 import com.azure.identity.ClientAssertionCredential;
@@ -34,8 +35,6 @@ import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.time.Duration;
-import java.time.OffsetDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,14 +43,13 @@ import java.util.Map;
  * Controller Service that exchanges an external identity token for an Azure AD access token
  * using the Microsoft Entra workload identity federation flow via {@link ClientAssertionCredential}.
  */
-@Tags({"azure", "oauth2", "identity", "federation", "credentials"})
+@Tags({"azure", "identity", "federation", "credentials", "workload"})
 @CapabilityDescription("Exchanges workload identity tokens for Azure AD access tokens suitable for accessing Azure services. "
         + "Uses Azure Identity SDK's ClientAssertionCredential for robust token exchange with built-in caching and retry logic.")
 public class StandardAzureIdentityFederationTokenProvider extends AbstractControllerService
         implements AzureIdentityFederationTokenProvider, VerifiableControllerService {
 
     private static final String DEFAULT_SCOPE = "https://storage.azure.com/.default";
-    private static final String TOKEN_TYPE_BEARER = "Bearer";
     private static final String ERROR_EXCHANGE_FAILED = "Failed to exchange workload identity token: %s";
     private static final String STEP_EXCHANGE_TOKEN = "Exchange workload identity token";
 
@@ -93,7 +91,6 @@ public class StandardAzureIdentityFederationTokenProvider extends AbstractContro
 
     private volatile ClientAssertionCredential credential;
     private volatile OAuth2AccessTokenProvider clientAssertionProvider;
-    private volatile String scope;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -104,7 +101,6 @@ public class StandardAzureIdentityFederationTokenProvider extends AbstractContro
     public void onEnabled(final ConfigurationContext context) {
         final String tenantId = context.getProperty(TENANT_ID).getValue();
         final String clientId = context.getProperty(CLIENT_ID).getValue();
-        this.scope = context.getProperty(SCOPE).getValue();
         this.clientAssertionProvider = context.getProperty(CLIENT_ASSERTION_PROVIDER)
                 .asControllerService(OAuth2AccessTokenProvider.class);
 
@@ -117,30 +113,8 @@ public class StandardAzureIdentityFederationTokenProvider extends AbstractContro
     }
 
     @Override
-    public AccessToken getAccessDetails() {
-        final TokenRequestContext tokenRequestContext = new TokenRequestContext().addScopes(scope);
-        final com.azure.core.credential.AccessToken azureToken = credential.getToken(tokenRequestContext).block();
-
-        if (azureToken == null) {
-            throw new IllegalStateException("Failed to obtain access token from Azure AD");
-        }
-
-        final AccessToken accessToken = new AccessToken();
-        accessToken.setAccessToken(azureToken.getToken());
-
-        final OffsetDateTime expiresAt = azureToken.getExpiresAt();
-        if (expiresAt != null) {
-            final long expiresInSeconds = Duration.between(OffsetDateTime.now(), expiresAt).getSeconds();
-            accessToken.setExpiresIn(Math.max(0, expiresInSeconds));
-        }
-
-        accessToken.setTokenType(TOKEN_TYPE_BEARER);
-        return accessToken;
-    }
-
-    @Override
-    public void refreshAccessDetails() {
-        clientAssertionProvider.refreshAccessDetails();
+    public TokenCredential getCredentials() {
+        return credential;
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.messaging.eventhubs.CheckpointStore;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventProcessorClient;
@@ -744,11 +745,9 @@ public class TestConsumeAzureEventHub {
 
     private static class MockIdentityFederationTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
         @Override
-        public AccessToken getAccessDetails() {
-            final AccessToken accessToken = new AccessToken();
-            accessToken.setAccessToken("access-token");
-            accessToken.setExpiresIn(TimeUnit.MINUTES.toSeconds(5));
-            return accessToken;
+        public TokenCredential getCredentials() {
+            return tokenRequestContext -> Mono.just(
+                    new com.azure.core.credential.AccessToken("access-token", java.time.OffsetDateTime.now().plusMinutes(5)));
         }
     }
 }
