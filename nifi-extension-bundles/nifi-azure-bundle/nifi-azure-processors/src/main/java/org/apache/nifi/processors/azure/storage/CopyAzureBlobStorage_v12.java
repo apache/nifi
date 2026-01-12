@@ -63,7 +63,6 @@ import org.apache.nifi.services.azure.storage.AzureStorageConflictResolutionStra
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsType;
-import reactor.core.publisher.Mono;
 
 import java.text.DecimalFormat;
 import java.time.OffsetDateTime;
@@ -365,12 +364,9 @@ public class CopyAzureBlobStorage_v12 extends AbstractAzureBlobProcessor_v12 {
 
     private static HttpAuthorization getHttpAuthorization(final AzureStorageCredentialsDetails_v12 credentialsDetails) {
         switch (credentialsDetails.getCredentialsType()) {
-            case ACCESS_TOKEN -> {
+            case IDENTITY_FEDERATION -> {
                 final AzureIdentityFederationTokenProvider identityTokenProvider = credentialsDetails.getIdentityTokenProvider();
-                final TokenCredential credential = identityTokenProvider != null
-                        ? identityTokenProvider.getCredentials()
-                        : tokenRequestContext -> Mono.just(credentialsDetails.getAccessToken());
-                return getHttpAuthorizationFromTokenCredential(credential);
+                return getHttpAuthorizationFromTokenCredential(identityTokenProvider.getCredentials());
             }
             case MANAGED_IDENTITY -> {
                 final ManagedIdentityCredential credential = new ManagedIdentityCredentialBuilder()

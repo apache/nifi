@@ -165,34 +165,34 @@ public class TestAzureStorageCredentialsControllerService_v12 {
     }
 
     @Test
-    public void testAccessTokenCredentialsTypeValid() {
+    public void testIdentityFederationCredentialsTypeValid() {
         configureAccountName();
-        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
-        configureOAuth2Provider();
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
+        configureIdentityFederationProvider();
 
         runner.assertValid(credentialsService);
     }
 
     @Test
-    public void testAccessTokenCredentialsTypeNotValidWhenProviderMissing() {
+    public void testIdentityFederationCredentialsTypeNotValidWhenProviderMissing() {
         configureAccountName();
-        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
 
         runner.assertNotValid(credentialsService);
     }
 
     @Test
-    public void testGetCredentialsDetailsWithAccessToken() throws Exception {
+    public void testGetCredentialsDetailsWithIdentityFederation() throws Exception {
         configureAccountName();
-        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
-        configureOAuth2Provider();
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
+        configureIdentityFederationProvider();
 
         runner.enableControllerService(credentialsService);
 
         final AzureStorageCredentialsDetails_v12 actual = credentialsService.getCredentialsDetails(Collections.emptyMap());
 
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
-        assertEquals(AzureStorageCredentialsType.ACCESS_TOKEN, actual.getCredentialsType());
+        assertEquals(AzureStorageCredentialsType.IDENTITY_FEDERATION, actual.getCredentialsType());
         final AzureIdentityFederationTokenProvider identityTokenProvider = actual.getIdentityTokenProvider();
         assertNotNull(identityTokenProvider);
     }
@@ -324,8 +324,8 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         runner.setProperty(credentialsService, SERVICE_PRINCIPAL_CLIENT_SECRET, SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE);
     }
 
-    private void configureOAuth2Provider() {
-        runner.setProperty(credentialsService, AzureStorageUtils.OAUTH2_ACCESS_TOKEN_PROVIDER, TOKEN_PROVIDER_IDENTIFIER);
+    private void configureIdentityFederationProvider() {
+        runner.setProperty(credentialsService, AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER, TOKEN_PROVIDER_IDENTIFIER);
     }
 
     private static final class MockOAuth2AccessTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {

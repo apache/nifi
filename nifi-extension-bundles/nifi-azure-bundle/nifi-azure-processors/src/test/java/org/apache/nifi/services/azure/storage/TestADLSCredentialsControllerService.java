@@ -165,17 +165,17 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testValidWithAccountNameAndAccessToken() {
-        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
+    public void testValidWithAccountNameAndIdentityFederation() {
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
         configureAccountName();
-        configureOAuth2Provider();
+        configureIdentityFederationProvider();
 
         runner.assertValid(credentialsService);
     }
 
     @Test
-    public void testNotValidWithAccessTokenMissingProvider() {
-        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
+    public void testNotValidWithIdentityFederationMissingProvider() {
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
         configureAccountName();
 
         runner.assertNotValid(credentialsService);
@@ -274,10 +274,10 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testGetCredentialsDetailsWithAccessToken() throws Exception {
-        configureCredentialsType(AzureStorageCredentialsType.ACCESS_TOKEN);
+    public void testGetCredentialsDetailsWithIdentityFederation() throws Exception {
+        configureCredentialsType(AzureStorageCredentialsType.IDENTITY_FEDERATION);
         configureAccountName();
-        configureOAuth2Provider();
+        configureIdentityFederationProvider();
 
         runner.enableControllerService(credentialsService);
 
@@ -448,8 +448,8 @@ public class TestADLSCredentialsControllerService {
         runner.setProperty(credentialsService, AzureStorageUtils.SERVICE_PRINCIPAL_CLIENT_SECRET, SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE);
     }
 
-    private void configureOAuth2Provider() {
-        runner.setProperty(credentialsService, AzureStorageUtils.OAUTH2_ACCESS_TOKEN_PROVIDER, TOKEN_PROVIDER_IDENTIFIER);
+    private void configureIdentityFederationProvider() {
+        runner.setProperty(credentialsService, AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER, TOKEN_PROVIDER_IDENTIFIER);
     }
 
     private void configurePropertyUsingEL(PropertyDescriptor propertyDescriptor, String variableName, String variableValue) {

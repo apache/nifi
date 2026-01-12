@@ -87,7 +87,7 @@ public final class AzureStorageUtils {
                     AzureStorageCredentialsType.SAS_TOKEN,
                     AzureStorageCredentialsType.MANAGED_IDENTITY,
                     AzureStorageCredentialsType.SERVICE_PRINCIPAL,
-                    AzureStorageCredentialsType.ACCESS_TOKEN))
+                    AzureStorageCredentialsType.IDENTITY_FEDERATION))
             .defaultValue(AzureStorageCredentialsType.SAS_TOKEN)
             .build();
 
@@ -254,12 +254,12 @@ public final class AzureStorageUtils {
             .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.SERVICE_PRINCIPAL)
             .build();
 
-    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
-            .name("Azure Identity Federation Token Provider")
-            .description("Controller Service that exchanges workload identity tokens for Azure AD access tokens.")
+    public static final PropertyDescriptor IDENTITY_FEDERATION_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Identity Federation Token Provider")
+            .description("Controller Service that provides Azure credentials via workload identity federation.")
             .identifiesControllerService(AzureIdentityFederationTokenProvider.class)
             .required(true)
-            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.ACCESS_TOKEN)
+            .dependsOn(CREDENTIALS_TYPE, AzureStorageCredentialsType.IDENTITY_FEDERATION)
             .build();
 
     private AzureStorageUtils() {

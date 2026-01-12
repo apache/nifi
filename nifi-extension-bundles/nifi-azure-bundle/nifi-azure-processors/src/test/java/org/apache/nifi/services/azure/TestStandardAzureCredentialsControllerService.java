@@ -93,21 +93,21 @@ public class TestStandardAzureCredentialsControllerService {
     }
 
     @Test
-    public void testOAuth2StrategyRequiresProvider() {
+    public void testIdentityFederationStrategyRequiresProvider() {
         runner.setProperty(credentialsService,
                 StandardAzureCredentialsControllerService.CREDENTIAL_CONFIGURATION_STRATEGY,
-                StandardAzureCredentialsControllerService.OAUTH2);
+                StandardAzureCredentialsControllerService.IDENTITY_FEDERATION);
 
         runner.assertNotValid(credentialsService);
     }
 
     @Test
-    public void testOAuth2StrategyProvidesTokenCredential() throws Exception {
+    public void testIdentityFederationStrategyProvidesTokenCredential() throws Exception {
         runner.setProperty(credentialsService,
                 StandardAzureCredentialsControllerService.CREDENTIAL_CONFIGURATION_STRATEGY,
-                StandardAzureCredentialsControllerService.OAUTH2);
+                StandardAzureCredentialsControllerService.IDENTITY_FEDERATION);
         runner.setProperty(credentialsService,
-                StandardAzureCredentialsControllerService.OAUTH2_ACCESS_TOKEN_PROVIDER,
+                StandardAzureCredentialsControllerService.IDENTITY_FEDERATION_TOKEN_PROVIDER,
                 TOKEN_PROVIDER_IDENTIFIER);
 
         runner.assertValid(credentialsService);
