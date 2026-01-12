@@ -44,7 +44,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.apache.nifi.flowfile.attributes.CoreAttributes.MIME_TYPE;
-import static org.apache.nifi.processors.aws.ml.AbstractAwsMachineLearningJobStatusProcessor.TASK_ID;
 import static org.apache.nifi.processors.aws.region.RegionUtil.CUSTOM_REGION;
 import static org.apache.nifi.processors.aws.region.RegionUtil.REGION;
 
@@ -140,7 +139,7 @@ public abstract class AbstractAwsMachineLearningJobStarter<
 
     protected FlowFile postProcessFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final Res response) {
         final String awsTaskId = getAwsTaskId(context, response, flowFile);
-        FlowFile processedFlowFile = session.putAttribute(flowFile, TASK_ID.getName(), awsTaskId);
+        FlowFile processedFlowFile = session.putAttribute(flowFile, "awsTaskId", awsTaskId);
         processedFlowFile = session.putAttribute(processedFlowFile, MIME_TYPE.key(), "application/json");
         getLogger().debug("AWS ML Task [{}] started", awsTaskId);
         return processedFlowFile;
