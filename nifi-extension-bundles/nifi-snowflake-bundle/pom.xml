@@ -23,10 +23,10 @@
     <properties>
         <parquet.version>1.16.0</parquet.version>
         <guava.version>33.5.0-jre</guava.version>
-        <protobuf.version>4.33.2</protobuf.version>
+        <protobuf.version>4.33.3</protobuf.version>
         <grpc.version>1.78.0</grpc.version>
         <!-- Check Ingest SDK and JDBC compatibility when upgrading -->
-        <snowflake-ingest-sdk.version>4.4.0-unshaded</snowflake-ingest-sdk.version>
+        <snowflake-ingest-sdk.version>4.4.1-unshaded</snowflake-ingest-sdk.version>
         <snowflake-jdbc-thin.version>3.28.0</snowflake-jdbc-thin.version>
     </properties>
 
