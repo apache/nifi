@@ -2201,7 +2201,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
      * @return the process group or null if not group is found
      */
     private ProcessGroup lookupGroup(final String id) {
-        final ProcessGroup group = flowManager.getGroup(id);
+        final ProcessGroup group = flowManager.getGroup(id, null);
         if (group == null) {
             throw new IllegalStateException("No Group with ID " + id + " exists");
         }

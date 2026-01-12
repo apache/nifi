@@ -234,15 +234,15 @@ public interface ConnectorClient {
     ProcessGroupFlowEntity getFlow(String connectorId) throws NiFiClientException, IOException;
 
     /**
-     * Gets the flow for the process group managed by a connector.
+     * Gets the flow for a specific process group within a connector's managed flow.
      *
      * @param connectorId the connector ID
-     * @param uiOnly whether to return only UI-specific fields
+     * @param processGroupId the process group ID within the connector's managed flow
      * @return the process group flow entity
      * @throws NiFiClientException if an error occurs during the request
      * @throws IOException if an I/O error occurs
      */
-    ProcessGroupFlowEntity getFlow(String connectorId, boolean uiOnly) throws NiFiClientException, IOException;
+    ProcessGroupFlowEntity getFlow(String connectorId, String processGroupId) throws NiFiClientException, IOException;
 
     /**
      * Gets the status for the process group managed by a connector.
