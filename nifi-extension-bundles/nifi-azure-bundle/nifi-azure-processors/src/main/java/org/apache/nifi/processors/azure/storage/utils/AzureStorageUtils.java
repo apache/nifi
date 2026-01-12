@@ -41,6 +41,7 @@ import java.net.Proxy;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.EnumSet;
+import java.util.HexFormat;
 import java.util.Map;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
@@ -380,12 +381,7 @@ public final class AzureStorageUtils {
     public static byte[] convertMd5ToBytes(final String md5String) {
         // MD5 in hex format is 32 characters (128 bits = 16 bytes, 2 hex chars per byte)
         if (md5String.length() == 32 && md5String.matches("[0-9a-fA-F]+")) {
-            // Convert hex to bytes
-            final byte[] bytes = new byte[16];
-            for (int i = 0; i < 16; i++) {
-                bytes[i] = (byte) Integer.parseInt(md5String.substring(i * 2, i * 2 + 2), 16);
-            }
-            return bytes;
+            return HexFormat.of().parseHex(md5String);
         } else {
             // Assume Base64 format
             return Base64.getDecoder().decode(md5String);
