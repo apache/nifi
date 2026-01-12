@@ -874,7 +874,7 @@ public class StandardConnectorNode implements ConnectorNode {
         final boolean dataQueued = activeFlowContext.getManagedProcessGroup().isDataQueued();
         final boolean stopped = isStopped();
 
-        actions.add(createStartAction(currentState, stopped));
+        actions.add(createStartAction(stopped));
         actions.add(createStopAction(currentState));
         actions.add(createConfigureAction());
         actions.add(createDiscardWorkingConfigAction());
@@ -892,28 +892,12 @@ public class StandardConnectorNode implements ConnectorNode {
             return true;
         }
         if (currentState == ConnectorState.UPDATED || currentState == ConnectorState.UPDATE_FAILED) {
-            return !isActiveThread(getActiveFlowContext().getManagedProcessGroup());
+            return !hasActiveThread(getActiveFlowContext().getManagedProcessGroup());
         }
         return false;
     }
 
-    private boolean isActiveThread(final ProcessGroup processGroup) {
-        for (final ProcessorNode processor : processGroup.getProcessors()) {
-            if (processor.getActiveThreadCount() > 0) {
-                return true;
-            }
-        }
-
-        for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
-            if (isActiveThread(childGroup)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private ConnectorAction createStartAction(final ConnectorState currentState, final boolean stopped) {
+    private ConnectorAction createStartAction(final boolean stopped) {
         final boolean allowed;
         final String reason;
 

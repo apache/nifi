@@ -27,7 +27,6 @@ import org.apache.nifi.components.connector.processors.TerminateFlowFile;
 import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.services.CounterService;
-import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
