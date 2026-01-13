@@ -51,25 +51,27 @@ import java.util.function.Function;
  */
 public enum PredefinedRecordSchema implements DescribedValue {
 
-    PERSON("Person", "A person with name, contact information, and address") {
+    PERSON("Person", "A person with name, contact information, and address (schema.org/Person)") {
         @Override
         public RecordSchema getSchema(boolean nullable) {
+            // PostalAddress fields per schema.org/PostalAddress
             List<RecordField> addressFields = Arrays.asList(
-                    new RecordField("street", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("city", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("state", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("zipCode", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("country", RecordFieldType.STRING.getDataType(), nullable)
+                    new RecordField("streetAddress", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("addressLocality", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("addressRegion", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("postalCode", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("addressCountry", RecordFieldType.STRING.getDataType(), nullable)
             );
             RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
 
+            // Person fields per schema.org/Person
             List<RecordField> fields = Arrays.asList(
-                    new RecordField("id", RecordFieldType.UUID.getDataType(), nullable),
-                    new RecordField("firstName", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("lastName", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
+                    new RecordField("givenName", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("familyName", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("email", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("phoneNumber", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("dateOfBirth", RecordFieldType.DATE.getDataType(), nullable),
+                    new RecordField("telephone", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("birthDate", RecordFieldType.DATE.getDataType(), nullable),
                     new RecordField("age", RecordFieldType.INT.getDataType(), nullable),
                     new RecordField("active", RecordFieldType.BOOLEAN.getDataType(), nullable),
                     new RecordField("address", RecordFieldType.RECORD.getRecordDataType(addressSchema), nullable)
@@ -80,25 +82,25 @@ public enum PredefinedRecordSchema implements DescribedValue {
         @Override
         public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
             Map<String, Object> values = new LinkedHashMap<>();
-            values.put("id", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
-            values.put("firstName", generateNullableValue(nullPercentage, faker, f -> f.name().firstName()));
-            values.put("lastName", generateNullableValue(nullPercentage, faker, f -> f.name().lastName()));
+            values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
+            values.put("givenName", generateNullableValue(nullPercentage, faker, f -> f.name().firstName()));
+            values.put("familyName", generateNullableValue(nullPercentage, faker, f -> f.name().lastName()));
             values.put("email", generateNullableValue(nullPercentage, faker, f -> f.internet().emailAddress()));
-            values.put("phoneNumber", generateNullableValue(nullPercentage, faker, f -> f.phoneNumber().phoneNumber()));
-            values.put("dateOfBirth", generateNullableValue(nullPercentage, faker, f -> {
+            values.put("telephone", generateNullableValue(nullPercentage, faker, f -> f.phoneNumber().phoneNumber()));
+            values.put("birthDate", generateNullableValue(nullPercentage, faker, f -> {
                 LocalDate birthday = f.timeAndDate().birthday(18, 80);
                 return Date.valueOf(birthday);
             }));
             values.put("age", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(18, 80)));
             values.put("active", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
 
-            // Generate nested address record
+            // Generate nested address record (PostalAddress)
             Map<String, Object> addressValues = new LinkedHashMap<>();
-            addressValues.put("street", generateNullableValue(nullPercentage, faker, f -> f.address().streetAddress()));
-            addressValues.put("city", generateNullableValue(nullPercentage, faker, f -> f.address().city()));
-            addressValues.put("state", generateNullableValue(nullPercentage, faker, f -> f.address().state()));
-            addressValues.put("zipCode", generateNullableValue(nullPercentage, faker, f -> f.address().zipCode()));
-            addressValues.put("country", generateNullableValue(nullPercentage, faker, f -> f.address().country()));
+            addressValues.put("streetAddress", generateNullableValue(nullPercentage, faker, f -> f.address().streetAddress()));
+            addressValues.put("addressLocality", generateNullableValue(nullPercentage, faker, f -> f.address().city()));
+            addressValues.put("addressRegion", generateNullableValue(nullPercentage, faker, f -> f.address().state()));
+            addressValues.put("postalCode", generateNullableValue(nullPercentage, faker, f -> f.address().zipCode()));
+            addressValues.put("addressCountry", generateNullableValue(nullPercentage, faker, f -> f.address().country()));
 
             RecordSchema addressSchema = schema.getField("address").get().getDataType().getFieldType() == RecordFieldType.RECORD
                     ? ((RecordDataType) schema.getField("address").get().getDataType()).getChildSchema()
@@ -112,31 +114,33 @@ public enum PredefinedRecordSchema implements DescribedValue {
         }
     },
 
-    ORDER("Order", "An e-commerce order with line items, amounts, and timestamps") {
+    ORDER("Order", "An e-commerce order with line items, amounts, and timestamps (schema.org/Order)") {
         @Override
         public RecordSchema getSchema(boolean nullable) {
-            List<RecordField> lineItemFields = Arrays.asList(
-                    new RecordField("productId", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("productName", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("quantity", RecordFieldType.INT.getDataType(), nullable),
-                    new RecordField("unitPrice", RecordFieldType.DOUBLE.getDataType(), nullable)
+            // OrderItem fields per schema.org/OrderItem
+            List<RecordField> orderedItemFields = Arrays.asList(
+                    new RecordField("identifier", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("name", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("orderQuantity", RecordFieldType.INT.getDataType(), nullable),
+                    new RecordField("price", RecordFieldType.DOUBLE.getDataType(), nullable)
             );
-            RecordSchema lineItemSchema = new SimpleRecordSchema(lineItemFields);
+            RecordSchema orderedItemSchema = new SimpleRecordSchema(orderedItemFields);
 
+            // Order fields per schema.org/Order
             List<RecordField> fields = Arrays.asList(
-                    new RecordField("orderId", RecordFieldType.UUID.getDataType(), nullable),
-                    new RecordField("customerId", RecordFieldType.UUID.getDataType(), nullable),
+                    new RecordField("orderNumber", RecordFieldType.UUID.getDataType(), nullable),
+                    new RecordField("customer", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("customerName", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("customerEmail", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("orderDate", RecordFieldType.DATE.getDataType(), nullable),
                     new RecordField("orderTime", RecordFieldType.TIME.getDataType(), nullable),
-                    new RecordField("orderTimestamp", RecordFieldType.TIMESTAMP.getDataType(), nullable),
-                    new RecordField("totalAmount", RecordFieldType.DECIMAL.getDecimalDataType(10, 2), nullable),
-                    new RecordField("currency", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("status", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("shipped", RecordFieldType.BOOLEAN.getDataType(), nullable),
+                    new RecordField("orderDelivery", RecordFieldType.TIMESTAMP.getDataType(), nullable),
+                    new RecordField("totalPrice", RecordFieldType.DECIMAL.getDecimalDataType(10, 2), nullable),
+                    new RecordField("priceCurrency", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("orderStatus", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("isGift", RecordFieldType.BOOLEAN.getDataType(), nullable),
                     new RecordField("itemCount", RecordFieldType.INT.getDataType(), nullable),
-                    new RecordField("lineItems", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(lineItemSchema)), nullable)
+                    new RecordField("orderedItem", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(orderedItemSchema)), nullable)
             );
             return new SimpleRecordSchema(fields);
         }
@@ -144,77 +148,80 @@ public enum PredefinedRecordSchema implements DescribedValue {
         @Override
         public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
             Map<String, Object> values = new LinkedHashMap<>();
-            values.put("orderId", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
-            values.put("customerId", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
+            values.put("orderNumber", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
+            values.put("customer", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
             values.put("customerName", generateNullableValue(nullPercentage, faker, f -> f.name().fullName()));
             values.put("customerEmail", generateNullableValue(nullPercentage, faker, f -> f.internet().emailAddress()));
 
             Instant orderInstant = faker.timeAndDate().past(365, TimeUnit.DAYS);
             values.put("orderDate", generateNullableValue(nullPercentage, faker, f -> new Date(orderInstant.toEpochMilli())));
             values.put("orderTime", generateNullableValue(nullPercentage, faker, f -> new Time(orderInstant.toEpochMilli())));
-            values.put("orderTimestamp", generateNullableValue(nullPercentage, faker, f -> new Timestamp(orderInstant.toEpochMilli())));
+            values.put("orderDelivery", generateNullableValue(nullPercentage, faker, f -> new Timestamp(orderInstant.toEpochMilli())));
 
-            String[] statuses = {"PENDING", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"};
+            // OrderStatus values per schema.org/OrderStatus
+            String[] statuses = {"OrderCancelled", "OrderDelivered", "OrderInTransit", "OrderPaymentDue",
+                    "OrderPickupAvailable", "OrderProblem", "OrderProcessing", "OrderReturned"};
             String status = statuses[faker.number().numberBetween(0, statuses.length)];
-            values.put("status", generateNullableValue(nullPercentage, faker, f -> status));
-            values.put("shipped", generateNullableValue(nullPercentage, faker, f -> "SHIPPED".equals(status) || "DELIVERED".equals(status)));
+            values.put("orderStatus", generateNullableValue(nullPercentage, faker, f -> status));
+            values.put("isGift", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
 
-            String[] currencies = {"USD", "EUR", "GBP", "JPY", "CAD"};
-            values.put("currency", generateNullableValue(nullPercentage, faker, f -> currencies[f.number().numberBetween(0, currencies.length)]));
+            // Use Faker's money provider for currency codes
+            values.put("priceCurrency", generateNullableValue(nullPercentage, faker, f -> f.money().currencyCode()));
 
-            // Generate line items
+            // Generate ordered items
             int itemCount = faker.number().numberBetween(1, 5);
             values.put("itemCount", generateNullableValue(nullPercentage, faker, f -> itemCount));
 
-            RecordSchema lineItemSchema = null;
-            if (schema.getField("lineItems").get().getDataType().getFieldType() == RecordFieldType.ARRAY) {
-                DataType elementType = ((ArrayDataType) schema.getField("lineItems").get().getDataType()).getElementType();
+            RecordSchema orderedItemSchema = null;
+            if (schema.getField("orderedItem").get().getDataType().getFieldType() == RecordFieldType.ARRAY) {
+                DataType elementType = ((ArrayDataType) schema.getField("orderedItem").get().getDataType()).getElementType();
                 if (elementType.getFieldType() == RecordFieldType.RECORD) {
-                    lineItemSchema = ((RecordDataType) elementType).getChildSchema();
+                    orderedItemSchema = ((RecordDataType) elementType).getChildSchema();
                 }
             }
 
-            double totalAmount = 0.0;
-            Object[] lineItems = new Object[itemCount];
+            double totalPrice = 0.0;
+            Object[] orderedItems = new Object[itemCount];
             for (int i = 0; i < itemCount; i++) {
-                Map<String, Object> lineItemValues = new LinkedHashMap<>();
-                lineItemValues.put("productId", "PRD-" + faker.number().digits(8));
-                lineItemValues.put("productName", faker.commerce().productName());
+                Map<String, Object> orderedItemValues = new LinkedHashMap<>();
+                orderedItemValues.put("identifier", "PRD-" + faker.number().digits(8));
+                orderedItemValues.put("name", faker.commerce().productName());
                 int quantity = faker.number().numberBetween(1, 10);
-                double unitPrice = faker.number().randomDouble(2, 10, 500);
-                lineItemValues.put("quantity", quantity);
-                lineItemValues.put("unitPrice", unitPrice);
-                totalAmount += quantity * unitPrice;
+                double price = faker.number().randomDouble(2, 10, 500);
+                orderedItemValues.put("orderQuantity", quantity);
+                orderedItemValues.put("price", price);
+                totalPrice += quantity * price;
 
-                if (lineItemSchema != null) {
-                    lineItems[i] = new MapRecord(lineItemSchema, lineItemValues);
+                if (orderedItemSchema != null) {
+                    orderedItems[i] = new MapRecord(orderedItemSchema, orderedItemValues);
                 }
             }
-            values.put("lineItems", generateNullableValue(nullPercentage, faker, f -> lineItems));
-            final double finalTotal = totalAmount;
-            values.put("totalAmount", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(finalTotal).setScale(2, RoundingMode.HALF_UP)));
+            values.put("orderedItem", generateNullableValue(nullPercentage, faker, f -> orderedItems));
+            final double finalTotal = totalPrice;
+            values.put("totalPrice", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(finalTotal).setScale(2, RoundingMode.HALF_UP)));
 
             return values;
         }
     },
 
-    EVENT("Event", "A timestamped event with metadata and tags") {
+    EVENT("Event", "A timestamped event with metadata and keywords (schema.org/Event)") {
         @Override
         public RecordSchema getSchema(boolean nullable) {
+            // Event fields per schema.org/Event
             List<RecordField> fields = Arrays.asList(
-                    new RecordField("eventId", RecordFieldType.UUID.getDataType(), nullable),
-                    new RecordField("eventType", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("eventDate", RecordFieldType.DATE.getDataType(), nullable),
-                    new RecordField("eventTime", RecordFieldType.TIME.getDataType(), nullable),
-                    new RecordField("eventTimestamp", RecordFieldType.TIMESTAMP.getDataType(), nullable),
-                    new RecordField("source", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("severity", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("message", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("processed", RecordFieldType.BOOLEAN.getDataType(), nullable),
-                    new RecordField("retryCount", RecordFieldType.INT.getDataType(), nullable),
-                    new RecordField("durationMs", RecordFieldType.LONG.getDataType(), nullable),
-                    new RecordField("tags", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), nullable),
-                    new RecordField("metadata", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()), nullable)
+                    new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
+                    new RecordField("additionalType", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("startDate", RecordFieldType.DATE.getDataType(), nullable),
+                    new RecordField("startTime", RecordFieldType.TIME.getDataType(), nullable),
+                    new RecordField("endDate", RecordFieldType.TIMESTAMP.getDataType(), nullable),
+                    new RecordField("organizer", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("eventStatus", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("description", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("isAccessibleForFree", RecordFieldType.BOOLEAN.getDataType(), nullable),
+                    new RecordField("attendeeCount", RecordFieldType.INT.getDataType(), nullable),
+                    new RecordField("duration", RecordFieldType.LONG.getDataType(), nullable),
+                    new RecordField("keywords", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), nullable),
+                    new RecordField("additionalProperty", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()), nullable)
             );
             return new SimpleRecordSchema(fields);
         }
@@ -222,69 +229,72 @@ public enum PredefinedRecordSchema implements DescribedValue {
         @Override
         public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
             Map<String, Object> values = new LinkedHashMap<>();
-            values.put("eventId", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
+            values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
 
-            String[] eventTypes = {"USER_LOGIN", "USER_LOGOUT", "PURCHASE", "PAGE_VIEW", "API_CALL", "ERROR", "WARNING", "AUDIT"};
-            values.put("eventType", generateNullableValue(nullPercentage, faker, f -> eventTypes[f.number().numberBetween(0, eventTypes.length)]));
+            // Use Faker's hacker provider for event type naming
+            values.put("additionalType", generateNullableValue(nullPercentage, faker, f ->
+                    f.hacker().verb().toUpperCase() + "_" + f.hacker().noun().toUpperCase()));
 
             Instant eventInstant = faker.timeAndDate().past(30, TimeUnit.DAYS);
-            values.put("eventDate", generateNullableValue(nullPercentage, faker, f -> new Date(eventInstant.toEpochMilli())));
-            values.put("eventTime", generateNullableValue(nullPercentage, faker, f -> new Time(eventInstant.toEpochMilli())));
-            values.put("eventTimestamp", generateNullableValue(nullPercentage, faker, f -> new Timestamp(eventInstant.toEpochMilli())));
+            values.put("startDate", generateNullableValue(nullPercentage, faker, f -> new Date(eventInstant.toEpochMilli())));
+            values.put("startTime", generateNullableValue(nullPercentage, faker, f -> new Time(eventInstant.toEpochMilli())));
+            values.put("endDate", generateNullableValue(nullPercentage, faker, f -> new Timestamp(eventInstant.toEpochMilli())));
 
-            String[] sources = {"web-app", "mobile-app", "api-gateway", "batch-processor", "stream-processor"};
-            values.put("source", generateNullableValue(nullPercentage, faker, f -> sources[f.number().numberBetween(0, sources.length)]));
+            // Use Faker's app provider for organizer names
+            values.put("organizer", generateNullableValue(nullPercentage, faker, f -> f.app().name().toLowerCase().replace(" ", "-")));
 
-            String[] severities = {"DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"};
-            values.put("severity", generateNullableValue(nullPercentage, faker, f -> severities[f.number().numberBetween(0, severities.length)]));
-            values.put("message", generateNullableValue(nullPercentage, faker, f -> f.lorem().sentence()));
-            values.put("processed", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
-            values.put("retryCount", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(0, 5)));
-            values.put("durationMs", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(1L, 10000L)));
+            // EventStatus values per schema.org/EventStatusType
+            String[] statuses = {"EventCancelled", "EventMovedOnline", "EventPostponed", "EventRescheduled", "EventScheduled"};
+            values.put("eventStatus", generateNullableValue(nullPercentage, faker, f -> statuses[f.number().numberBetween(0, statuses.length)]));
+            values.put("description", generateNullableValue(nullPercentage, faker, f -> f.lorem().sentence()));
+            values.put("isAccessibleForFree", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
+            values.put("attendeeCount", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(0, 5)));
+            values.put("duration", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(1L, 10000L)));
 
-            // Generate tags array
-            String[] possibleTags = {"important", "urgent", "reviewed", "automated", "manual", "verified", "pending"};
-            int tagCount = faker.number().numberBetween(1, 4);
-            String[] tags = new String[tagCount];
-            for (int i = 0; i < tagCount; i++) {
-                tags[i] = possibleTags[faker.number().numberBetween(0, possibleTags.length)];
+            // Generate keywords array using Faker's marketing buzzwords
+            int keywordCount = faker.number().numberBetween(1, 4);
+            String[] keywords = new String[keywordCount];
+            for (int i = 0; i < keywordCount; i++) {
+                keywords[i] = faker.marketing().buzzwords().toLowerCase();
             }
-            values.put("tags", generateNullableValue(nullPercentage, faker, f -> tags));
+            values.put("keywords", generateNullableValue(nullPercentage, faker, f -> keywords));
 
-            // Generate metadata map
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put("version", "1." + faker.number().numberBetween(0, 10));
-            metadata.put("environment", faker.options().option("dev", "staging", "prod"));
-            metadata.put("region", faker.options().option("us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"));
-            metadata.put("correlationId", UUID.randomUUID().toString());
-            values.put("metadata", generateNullableValue(nullPercentage, faker, f -> metadata));
+            // Generate additionalProperty map using Faker providers
+            Map<String, String> additionalProperty = new HashMap<>();
+            additionalProperty.put("version", faker.app().version());
+            additionalProperty.put("environment", faker.options().option("dev", "staging", "prod"));
+            // Use Faker's AWS provider for region
+            additionalProperty.put("region", faker.aws().region());
+            additionalProperty.put("correlationId", UUID.randomUUID().toString());
+            values.put("additionalProperty", generateNullableValue(nullPercentage, faker, f -> additionalProperty));
 
             return values;
         }
     },
 
-    SENSOR("Sensor", "An IoT sensor reading with location and measurements") {
+    SENSOR("Sensor", "An IoT sensor reading with geo coordinates and measurements") {
         @Override
         public RecordSchema getSchema(boolean nullable) {
-            List<RecordField> locationFields = Arrays.asList(
+            // GeoCoordinates fields per schema.org/GeoCoordinates
+            List<RecordField> geoFields = Arrays.asList(
                     new RecordField("latitude", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("longitude", RecordFieldType.DOUBLE.getDataType(), nullable),
-                    new RecordField("altitude", RecordFieldType.DOUBLE.getDataType(), nullable)
+                    new RecordField("elevation", RecordFieldType.DOUBLE.getDataType(), nullable)
             );
-            RecordSchema locationSchema = new SimpleRecordSchema(locationFields);
+            RecordSchema geoSchema = new SimpleRecordSchema(geoFields);
 
             List<RecordField> fields = Arrays.asList(
-                    new RecordField("sensorId", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("deviceType", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("identifier", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("additionalType", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("manufacturer", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("readingTimestamp", RecordFieldType.TIMESTAMP.getDataType(), nullable),
+                    new RecordField("dateCreated", RecordFieldType.TIMESTAMP.getDataType(), nullable),
                     new RecordField("temperature", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("humidity", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("pressure", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("batteryLevel", RecordFieldType.INT.getDataType(), nullable),
                     new RecordField("signalStrength", RecordFieldType.INT.getDataType(), nullable),
-                    new RecordField("online", RecordFieldType.BOOLEAN.getDataType(), nullable),
-                    new RecordField("location", RecordFieldType.RECORD.getRecordDataType(locationSchema), nullable)
+                    new RecordField("isActive", RecordFieldType.BOOLEAN.getDataType(), nullable),
+                    new RecordField("geo", RecordFieldType.RECORD.getRecordDataType(geoSchema), nullable)
             );
             return new SimpleRecordSchema(fields);
         }
@@ -292,68 +302,71 @@ public enum PredefinedRecordSchema implements DescribedValue {
         @Override
         public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
             Map<String, Object> values = new LinkedHashMap<>();
-            values.put("sensorId", generateNullableValue(nullPercentage, faker, f -> "SNS-" + f.number().digits(10)));
+            // Use Faker's device provider for serial number
+            values.put("identifier", generateNullableValue(nullPercentage, faker, f -> f.device().serial()));
 
-            String[] deviceTypes = {"TEMPERATURE", "HUMIDITY", "PRESSURE", "MOTION", "LIGHT", "AIR_QUALITY", "MULTI"};
-            values.put("deviceType", generateNullableValue(nullPercentage, faker, f -> deviceTypes[f.number().numberBetween(0, deviceTypes.length)]));
+            // Use Faker's device provider for platform/type
+            values.put("additionalType", generateNullableValue(nullPercentage, faker, f -> f.device().platform()));
 
-            String[] manufacturers = {"SensorCorp", "IoTech", "SmartDevices", "DataSense", "EnviroMonitor"};
-            values.put("manufacturer", generateNullableValue(nullPercentage, faker, f -> manufacturers[f.number().numberBetween(0, manufacturers.length)]));
+            // Use Faker's device provider for manufacturer
+            values.put("manufacturer", generateNullableValue(nullPercentage, faker, f -> f.device().manufacturer()));
 
-            values.put("readingTimestamp", generateNullableValue(nullPercentage, faker, f -> new Timestamp(System.currentTimeMillis() - f.number().numberBetween(0, 3600000))));
+            values.put("dateCreated", generateNullableValue(nullPercentage, faker, f -> new Timestamp(System.currentTimeMillis() - f.number().numberBetween(0, 3600000))));
             values.put("temperature", generateNullableValue(nullPercentage, faker, f -> f.number().randomDouble(2, -20, 45)));
             values.put("humidity", generateNullableValue(nullPercentage, faker, f -> f.number().randomDouble(2, 0, 100)));
             values.put("pressure", generateNullableValue(nullPercentage, faker, f -> f.number().randomDouble(2, 980, 1050)));
             values.put("batteryLevel", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(0, 100)));
             values.put("signalStrength", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(-100, -30)));
-            values.put("online", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
+            values.put("isActive", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
 
-            // Generate nested location record
-            Map<String, Object> locationValues = new LinkedHashMap<>();
-            locationValues.put("latitude", faker.number().randomDouble(6, -90, 90));
-            locationValues.put("longitude", faker.number().randomDouble(6, -180, 180));
-            locationValues.put("altitude", faker.number().randomDouble(2, 0, 3000));
+            // Generate nested geo record (GeoCoordinates)
+            Map<String, Object> geoValues = new LinkedHashMap<>();
+            geoValues.put("latitude", faker.number().randomDouble(6, -90, 90));
+            geoValues.put("longitude", faker.number().randomDouble(6, -180, 180));
+            geoValues.put("elevation", faker.number().randomDouble(2, 0, 3000));
 
-            RecordSchema locationSchema = schema.getField("location").get().getDataType().getFieldType() == RecordFieldType.RECORD
-                    ? ((RecordDataType) schema.getField("location").get().getDataType()).getChildSchema()
+            RecordSchema geoSchema = schema.getField("geo").get().getDataType().getFieldType() == RecordFieldType.RECORD
+                    ? ((RecordDataType) schema.getField("geo").get().getDataType()).getChildSchema()
                     : null;
 
-            if (locationSchema != null) {
-                values.put("location", generateNullableValue(nullPercentage, faker, f -> new MapRecord(locationSchema, locationValues)));
+            if (geoSchema != null) {
+                values.put("geo", generateNullableValue(nullPercentage, faker, f -> new MapRecord(geoSchema, geoValues)));
             }
 
             return values;
         }
     },
 
-    PRODUCT("Product", "A product catalog entry with pricing and inventory") {
+    PRODUCT("Product", "A product catalog entry with pricing and inventory (schema.org/Product)") {
         @Override
         public RecordSchema getSchema(boolean nullable) {
+            // QuantitativeValue for dimensions per schema.org/QuantitativeValue
             List<RecordField> dimensionFields = Arrays.asList(
-                    new RecordField("length", RecordFieldType.DOUBLE.getDataType(), nullable),
+                    new RecordField("depth", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("width", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("height", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("weight", RecordFieldType.DOUBLE.getDataType(), nullable)
             );
             RecordSchema dimensionSchema = new SimpleRecordSchema(dimensionFields);
 
+            // Product fields per schema.org/Product
             List<RecordField> fields = Arrays.asList(
-                    new RecordField("productId", RecordFieldType.UUID.getDataType(), nullable),
+                    new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
                     new RecordField("sku", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("name", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("description", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("category", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("brand", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("price", RecordFieldType.DECIMAL.getDecimalDataType(10, 2), nullable),
-                    new RecordField("currency", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("inStock", RecordFieldType.BOOLEAN.getDataType(), nullable),
-                    new RecordField("quantity", RecordFieldType.INT.getDataType(), nullable),
-                    new RecordField("rating", RecordFieldType.DOUBLE.getDataType(), nullable),
+                    new RecordField("priceCurrency", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("availability", RecordFieldType.BOOLEAN.getDataType(), nullable),
+                    new RecordField("inventoryLevel", RecordFieldType.INT.getDataType(), nullable),
+                    new RecordField("ratingValue", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("reviewCount", RecordFieldType.INT.getDataType(), nullable),
-                    new RecordField("createdDate", RecordFieldType.DATE.getDataType(), nullable),
-                    new RecordField("lastUpdated", RecordFieldType.TIMESTAMP.getDataType(), nullable),
-                    new RecordField("tags", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), nullable),
-                    new RecordField("dimensions", RecordFieldType.RECORD.getRecordDataType(dimensionSchema), nullable)
+                    new RecordField("dateCreated", RecordFieldType.DATE.getDataType(), nullable),
+                    new RecordField("dateModified", RecordFieldType.TIMESTAMP.getDataType(), nullable),
+                    new RecordField("keywords", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), nullable),
+                    new RecordField("additionalProperty", RecordFieldType.RECORD.getRecordDataType(dimensionSchema), nullable)
             );
             return new SimpleRecordSchema(fields);
         }
@@ -361,47 +374,47 @@ public enum PredefinedRecordSchema implements DescribedValue {
         @Override
         public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
             Map<String, Object> values = new LinkedHashMap<>();
-            values.put("productId", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
+            values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
             values.put("sku", generateNullableValue(nullPercentage, faker, f -> "SKU-" + f.number().digits(8)));
             values.put("name", generateNullableValue(nullPercentage, faker, f -> f.commerce().productName()));
             values.put("description", generateNullableValue(nullPercentage, faker, f -> f.lorem().paragraph()));
             values.put("category", generateNullableValue(nullPercentage, faker, f -> f.commerce().department()));
-            values.put("brand", generateNullableValue(nullPercentage, faker, f -> f.company().name()));
+            // Use Faker's commerce provider for brand
+            values.put("brand", generateNullableValue(nullPercentage, faker, f -> f.commerce().brand()));
             values.put("price", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(f.number().randomDouble(2, 5, 2000)).setScale(2, RoundingMode.HALF_UP)));
 
-            String[] currencies = {"USD", "EUR", "GBP"};
-            values.put("currency", generateNullableValue(nullPercentage, faker, f -> currencies[f.number().numberBetween(0, currencies.length)]));
+            // Use Faker's money provider for currency codes
+            values.put("priceCurrency", generateNullableValue(nullPercentage, faker, f -> f.money().currencyCode()));
 
-            int quantity = faker.number().numberBetween(0, 500);
-            values.put("inStock", generateNullableValue(nullPercentage, faker, f -> quantity > 0));
-            values.put("quantity", generateNullableValue(nullPercentage, faker, f -> quantity));
-            values.put("rating", generateNullableValue(nullPercentage, faker, f -> f.number().randomDouble(1, 1, 5)));
+            int inventoryLevel = faker.number().numberBetween(0, 500);
+            values.put("availability", generateNullableValue(nullPercentage, faker, f -> inventoryLevel > 0));
+            values.put("inventoryLevel", generateNullableValue(nullPercentage, faker, f -> inventoryLevel));
+            values.put("ratingValue", generateNullableValue(nullPercentage, faker, f -> f.number().randomDouble(1, 1, 5)));
             values.put("reviewCount", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(0, 5000)));
-            values.put("createdDate", generateNullableValue(nullPercentage, faker, f -> new Date(f.timeAndDate().past(365, TimeUnit.DAYS).toEpochMilli())));
-            values.put("lastUpdated", generateNullableValue(nullPercentage, faker, f -> new Timestamp(f.timeAndDate().past(30, TimeUnit.DAYS).toEpochMilli())));
+            values.put("dateCreated", generateNullableValue(nullPercentage, faker, f -> new Date(f.timeAndDate().past(365, TimeUnit.DAYS).toEpochMilli())));
+            values.put("dateModified", generateNullableValue(nullPercentage, faker, f -> new Timestamp(f.timeAndDate().past(30, TimeUnit.DAYS).toEpochMilli())));
 
-            // Generate tags array
-            String[] possibleTags = {"new", "sale", "bestseller", "limited", "exclusive", "eco-friendly", "premium"};
-            int tagCount = faker.number().numberBetween(0, 4);
-            String[] tags = new String[tagCount];
-            for (int i = 0; i < tagCount; i++) {
-                tags[i] = possibleTags[faker.number().numberBetween(0, possibleTags.length)];
+            // Generate keywords array using Faker's marketing buzzwords
+            int keywordCount = faker.number().numberBetween(0, 4);
+            String[] keywords = new String[keywordCount];
+            for (int i = 0; i < keywordCount; i++) {
+                keywords[i] = faker.marketing().buzzwords().toLowerCase();
             }
-            values.put("tags", generateNullableValue(nullPercentage, faker, f -> tags));
+            values.put("keywords", generateNullableValue(nullPercentage, faker, f -> keywords));
 
-            // Generate nested dimensions record
+            // Generate nested additionalProperty record (dimensions)
             Map<String, Object> dimensionValues = new LinkedHashMap<>();
-            dimensionValues.put("length", faker.number().randomDouble(2, 1, 100));
+            dimensionValues.put("depth", faker.number().randomDouble(2, 1, 100));
             dimensionValues.put("width", faker.number().randomDouble(2, 1, 100));
             dimensionValues.put("height", faker.number().randomDouble(2, 1, 100));
             dimensionValues.put("weight", faker.number().randomDouble(2, 1, 50));
 
-            RecordSchema dimensionSchema = schema.getField("dimensions").get().getDataType().getFieldType() == RecordFieldType.RECORD
-                    ? ((RecordDataType) schema.getField("dimensions").get().getDataType()).getChildSchema()
+            RecordSchema dimensionSchema = schema.getField("additionalProperty").get().getDataType().getFieldType() == RecordFieldType.RECORD
+                    ? ((RecordDataType) schema.getField("additionalProperty").get().getDataType()).getChildSchema()
                     : null;
 
             if (dimensionSchema != null) {
-                values.put("dimensions", generateNullableValue(nullPercentage, faker, f -> new MapRecord(dimensionSchema, dimensionValues)));
+                values.put("additionalProperty", generateNullableValue(nullPercentage, faker, f -> new MapRecord(dimensionSchema, dimensionValues)));
             }
 
             return values;
@@ -411,23 +424,24 @@ public enum PredefinedRecordSchema implements DescribedValue {
     STOCK_TRADE("Stock Trade", "A stock market trade with pricing and volume") {
         @Override
         public RecordSchema getSchema(boolean nullable) {
+            // Using schema.org naming conventions where applicable
             List<RecordField> fields = Arrays.asList(
-                    new RecordField("tradeId", RecordFieldType.UUID.getDataType(), nullable),
-                    new RecordField("symbol", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("companyName", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
+                    new RecordField("tickerSymbol", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("name", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("exchange", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("tradeType", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("tradeTimestamp", RecordFieldType.TIMESTAMP.getDataType(), nullable),
+                    new RecordField("actionType", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("dateCreated", RecordFieldType.TIMESTAMP.getDataType(), nullable),
                     new RecordField("price", RecordFieldType.DECIMAL.getDecimalDataType(12, 4), nullable),
-                    new RecordField("quantity", RecordFieldType.LONG.getDataType(), nullable),
-                    new RecordField("totalValue", RecordFieldType.DECIMAL.getDecimalDataType(16, 2), nullable),
-                    new RecordField("currency", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("orderQuantity", RecordFieldType.LONG.getDataType(), nullable),
+                    new RecordField("totalPrice", RecordFieldType.DECIMAL.getDecimalDataType(16, 2), nullable),
+                    new RecordField("priceCurrency", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("bidPrice", RecordFieldType.DECIMAL.getDecimalDataType(12, 4), nullable),
                     new RecordField("askPrice", RecordFieldType.DECIMAL.getDecimalDataType(12, 4), nullable),
-                    new RecordField("high52Week", RecordFieldType.DECIMAL.getDecimalDataType(12, 4), nullable),
-                    new RecordField("low52Week", RecordFieldType.DECIMAL.getDecimalDataType(12, 4), nullable),
+                    new RecordField("highPrice", RecordFieldType.DECIMAL.getDecimalDataType(12, 4), nullable),
+                    new RecordField("lowPrice", RecordFieldType.DECIMAL.getDecimalDataType(12, 4), nullable),
                     new RecordField("marketCap", RecordFieldType.LONG.getDataType(), nullable),
-                    new RecordField("settled", RecordFieldType.BOOLEAN.getDataType(), nullable)
+                    new RecordField("isSettled", RecordFieldType.BOOLEAN.getDataType(), nullable)
             );
             return new SimpleRecordSchema(fields);
         }
@@ -435,34 +449,35 @@ public enum PredefinedRecordSchema implements DescribedValue {
         @Override
         public Map<String, Object> generateValues(Faker faker, RecordSchema schema, int nullPercentage) {
             Map<String, Object> values = new LinkedHashMap<>();
-            values.put("tradeId", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
+            values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
 
-            String[] symbols = {"AAPL", "GOOGL", "MSFT", "AMZN", "META", "TSLA", "NVDA", "JPM", "V", "JNJ"};
-            String[] companies = {"Apple Inc.", "Alphabet Inc.", "Microsoft Corp.", "Amazon.com Inc.", "Meta Platforms Inc.",
-                    "Tesla Inc.", "NVIDIA Corp.", "JPMorgan Chase & Co.", "Visa Inc.", "Johnson & Johnson"};
-            int symbolIdx = faker.number().numberBetween(0, symbols.length);
-            values.put("symbol", generateNullableValue(nullPercentage, faker, f -> symbols[symbolIdx]));
-            values.put("companyName", generateNullableValue(nullPercentage, faker, f -> companies[symbolIdx]));
+            // Use Faker's stock provider for symbols (randomly choose between NASDAQ and NYSE)
+            values.put("tickerSymbol", generateNullableValue(nullPercentage, faker, f ->
+                    f.bool().bool() ? f.stock().nsdqSymbol() : f.stock().nyseSymbol()));
+            // Use Faker's company provider for company names
+            values.put("name", generateNullableValue(nullPercentage, faker, f -> f.company().name()));
 
-            String[] exchanges = {"NYSE", "NASDAQ", "LSE", "TSE"};
-            values.put("exchange", generateNullableValue(nullPercentage, faker, f -> exchanges[f.number().numberBetween(0, exchanges.length)]));
+            // Use Faker's stock provider for exchanges
+            values.put("exchange", generateNullableValue(nullPercentage, faker, f -> f.stock().exchanges()));
 
-            String[] tradeTypes = {"BUY", "SELL"};
-            values.put("tradeType", generateNullableValue(nullPercentage, faker, f -> tradeTypes[f.number().numberBetween(0, tradeTypes.length)]));
-            values.put("tradeTimestamp", generateNullableValue(nullPercentage, faker, f -> new Timestamp(System.currentTimeMillis() - f.number().numberBetween(0, 86400000))));
+            // Trade types are fundamental financial terms (BUY/SELL)
+            String[] actionTypes = {"BuyAction", "SellAction"};
+            values.put("actionType", generateNullableValue(nullPercentage, faker, f -> actionTypes[f.number().numberBetween(0, actionTypes.length)]));
+            values.put("dateCreated", generateNullableValue(nullPercentage, faker, f -> new Timestamp(System.currentTimeMillis() - f.number().numberBetween(0, 86400000))));
 
             double price = faker.number().randomDouble(4, 10, 3000);
-            long quantity = faker.number().numberBetween(1, 10000);
+            long orderQuantity = faker.number().numberBetween(1, 10000);
             values.put("price", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price).setScale(4, RoundingMode.HALF_UP)));
-            values.put("quantity", generateNullableValue(nullPercentage, faker, f -> quantity));
-            values.put("totalValue", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * quantity).setScale(2, RoundingMode.HALF_UP)));
-            values.put("currency", generateNullableValue(nullPercentage, faker, f -> "USD"));
+            values.put("orderQuantity", generateNullableValue(nullPercentage, faker, f -> orderQuantity));
+            values.put("totalPrice", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * orderQuantity).setScale(2, RoundingMode.HALF_UP)));
+            // Use Faker's money provider for currency codes
+            values.put("priceCurrency", generateNullableValue(nullPercentage, faker, f -> f.money().currencyCode()));
             values.put("bidPrice", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * 0.999).setScale(4, RoundingMode.HALF_UP)));
             values.put("askPrice", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * 1.001).setScale(4, RoundingMode.HALF_UP)));
-            values.put("high52Week", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * 1.5).setScale(4, RoundingMode.HALF_UP)));
-            values.put("low52Week", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * 0.6).setScale(4, RoundingMode.HALF_UP)));
+            values.put("highPrice", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * 1.5).setScale(4, RoundingMode.HALF_UP)));
+            values.put("lowPrice", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(price * 0.6).setScale(4, RoundingMode.HALF_UP)));
             values.put("marketCap", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(1_000_000_000L, 3_000_000_000_000L)));
-            values.put("settled", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
+            values.put("isSettled", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
 
             return values;
         }
@@ -471,70 +486,70 @@ public enum PredefinedRecordSchema implements DescribedValue {
     COMPLETE_EXAMPLE("Complete Example", "A comprehensive schema demonstrating all supported data types including nested records, arrays, and maps") {
         @Override
         public RecordSchema getSchema(boolean nullable) {
-            // Deepest nested record: Coordinates
-            List<RecordField> coordinateFields = Arrays.asList(
+            // GeoCoordinates per schema.org/GeoCoordinates
+            List<RecordField> geoFields = Arrays.asList(
                     new RecordField("latitude", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("longitude", RecordFieldType.DOUBLE.getDataType(), nullable)
             );
-            RecordSchema coordinateSchema = new SimpleRecordSchema(coordinateFields);
+            RecordSchema geoSchema = new SimpleRecordSchema(geoFields);
 
-            // Address record with nested coordinates
+            // PostalAddress per schema.org/PostalAddress with nested geo
             List<RecordField> addressFields = Arrays.asList(
-                    new RecordField("street", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("city", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("state", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("zipCode", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("country", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("coordinates", RecordFieldType.RECORD.getRecordDataType(coordinateSchema), nullable)
+                    new RecordField("streetAddress", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("addressLocality", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("addressRegion", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("postalCode", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("addressCountry", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("geo", RecordFieldType.RECORD.getRecordDataType(geoSchema), nullable)
             );
             RecordSchema addressSchema = new SimpleRecordSchema(addressFields);
 
-            // Profile record with nested address
-            List<RecordField> profileFields = Arrays.asList(
-                    new RecordField("firstName", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("lastName", RecordFieldType.STRING.getDataType(), nullable),
+            // Person per schema.org/Person with nested address
+            List<RecordField> personFields = Arrays.asList(
+                    new RecordField("givenName", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("familyName", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("email", RecordFieldType.STRING.getDataType(), nullable),
                     new RecordField("age", RecordFieldType.INT.getDataType(), nullable),
                     new RecordField("verified", RecordFieldType.BOOLEAN.getDataType(), nullable),
                     new RecordField("address", RecordFieldType.RECORD.getRecordDataType(addressSchema), nullable)
             );
-            RecordSchema profileSchema = new SimpleRecordSchema(profileFields);
+            RecordSchema personSchema = new SimpleRecordSchema(personFields);
 
-            // Order record for array of records
+            // Order per schema.org/Order for array of records
             List<RecordField> orderFields = Arrays.asList(
-                    new RecordField("orderId", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("amount", RecordFieldType.DOUBLE.getDataType(), nullable),
-                    new RecordField("currency", RecordFieldType.STRING.getDataType(), nullable),
-                    new RecordField("placed", RecordFieldType.DATE.getDataType(), nullable),
-                    new RecordField("shipped", RecordFieldType.BOOLEAN.getDataType(), nullable)
+                    new RecordField("orderNumber", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("totalPrice", RecordFieldType.DOUBLE.getDataType(), nullable),
+                    new RecordField("priceCurrency", RecordFieldType.STRING.getDataType(), nullable),
+                    new RecordField("orderDate", RecordFieldType.DATE.getDataType(), nullable),
+                    new RecordField("isGift", RecordFieldType.BOOLEAN.getDataType(), nullable)
             );
             RecordSchema orderSchema = new SimpleRecordSchema(orderFields);
 
-            // Main schema with all types
+            // Main schema with all types using schema.org naming
             List<RecordField> fields = Arrays.asList(
                     // Basic types
-                    new RecordField("id", RecordFieldType.UUID.getDataType(), nullable),
-                    new RecordField("active", RecordFieldType.BOOLEAN.getDataType(), nullable),
+                    new RecordField("identifier", RecordFieldType.UUID.getDataType(), nullable),
+                    new RecordField("isActive", RecordFieldType.BOOLEAN.getDataType(), nullable),
                     new RecordField("score", RecordFieldType.INT.getDataType(), nullable),
                     new RecordField("count", RecordFieldType.LONG.getDataType(), nullable),
-                    new RecordField("rating", RecordFieldType.DOUBLE.getDataType(), nullable),
+                    new RecordField("ratingValue", RecordFieldType.DOUBLE.getDataType(), nullable),
                     new RecordField("price", RecordFieldType.FLOAT.getDataType(), nullable),
                     new RecordField("balance", RecordFieldType.DECIMAL.getDecimalDataType(12, 2), nullable),
                     new RecordField("initial", RecordFieldType.CHAR.getDataType(), nullable),
                     new RecordField("flags", RecordFieldType.BYTE.getDataType(), nullable),
-                    new RecordField("rank", RecordFieldType.SHORT.getDataType(), nullable),
+                    new RecordField("position", RecordFieldType.SHORT.getDataType(), nullable),
 
-                    // Date/Time types
-                    new RecordField("createdDate", RecordFieldType.DATE.getDataType(), nullable),
-                    new RecordField("lastLoginTime", RecordFieldType.TIME.getDataType(), nullable),
-                    new RecordField("lastModified", RecordFieldType.TIMESTAMP.getDataType(), nullable),
+                    // Date/Time types per schema.org
+                    new RecordField("dateCreated", RecordFieldType.DATE.getDataType(), nullable),
+                    new RecordField("lastLogin", RecordFieldType.TIME.getDataType(), nullable),
+                    new RecordField("dateModified", RecordFieldType.TIMESTAMP.getDataType(), nullable),
 
                     // Complex types
-                    new RecordField("tags", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), nullable),
+                    new RecordField("keywords", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), nullable),
                     new RecordField("scores", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType()), nullable),
-                    new RecordField("metadata", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()), nullable),
-                    new RecordField("profile", RecordFieldType.RECORD.getRecordDataType(profileSchema), nullable),
-                    new RecordField("orders", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(orderSchema)), nullable)
+                    new RecordField("additionalProperty", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()), nullable),
+                    new RecordField("person", RecordFieldType.RECORD.getRecordDataType(personSchema), nullable),
+                    new RecordField("orderedItem", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(orderSchema)), nullable)
             );
             return new SimpleRecordSchema(fields);
         }
@@ -544,31 +559,30 @@ public enum PredefinedRecordSchema implements DescribedValue {
             Map<String, Object> values = new LinkedHashMap<>();
 
             // Basic types
-            values.put("id", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
-            values.put("active", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
+            values.put("identifier", generateNullableValue(nullPercentage, faker, f -> UUID.randomUUID()));
+            values.put("isActive", generateNullableValue(nullPercentage, faker, f -> f.bool().bool()));
             values.put("score", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(0, 100)));
             values.put("count", generateNullableValue(nullPercentage, faker, f -> f.number().numberBetween(0L, 1_000_000L)));
-            values.put("rating", generateNullableValue(nullPercentage, faker, f -> f.number().randomDouble(2, 0, 5)));
+            values.put("ratingValue", generateNullableValue(nullPercentage, faker, f -> f.number().randomDouble(2, 0, 5)));
             values.put("price", generateNullableValue(nullPercentage, faker, f -> (float) f.number().randomDouble(2, 1, 1000)));
             values.put("balance", generateNullableValue(nullPercentage, faker, f -> BigDecimal.valueOf(f.number().randomDouble(2, -10000, 50000)).setScale(2, RoundingMode.HALF_UP)));
             values.put("initial", generateNullableValue(nullPercentage, faker, f -> (char) ('A' + f.number().numberBetween(0, 26))));
             values.put("flags", generateNullableValue(nullPercentage, faker, f -> (byte) f.number().numberBetween(0, 127)));
-            values.put("rank", generateNullableValue(nullPercentage, faker, f -> (short) f.number().numberBetween(1, 1000)));
+            values.put("position", generateNullableValue(nullPercentage, faker, f -> (short) f.number().numberBetween(1, 1000)));
 
-            // Date/Time types
+            // Date/Time types per schema.org
             Instant pastInstant = faker.timeAndDate().past(365, TimeUnit.DAYS);
-            values.put("createdDate", generateNullableValue(nullPercentage, faker, f -> new Date(pastInstant.toEpochMilli())));
-            values.put("lastLoginTime", generateNullableValue(nullPercentage, faker, f -> new Time(f.timeAndDate().past(1, TimeUnit.DAYS).toEpochMilli())));
-            values.put("lastModified", generateNullableValue(nullPercentage, faker, f -> new Timestamp(f.timeAndDate().past(7, TimeUnit.DAYS).toEpochMilli())));
+            values.put("dateCreated", generateNullableValue(nullPercentage, faker, f -> new Date(pastInstant.toEpochMilli())));
+            values.put("lastLogin", generateNullableValue(nullPercentage, faker, f -> new Time(f.timeAndDate().past(1, TimeUnit.DAYS).toEpochMilli())));
+            values.put("dateModified", generateNullableValue(nullPercentage, faker, f -> new Timestamp(f.timeAndDate().past(7, TimeUnit.DAYS).toEpochMilli())));
 
-            // Array of strings
-            String[] possibleTags = {"important", "urgent", "reviewed", "automated", "verified", "pending", "approved"};
-            int tagCount = faker.number().numberBetween(1, 5);
-            String[] tags = new String[tagCount];
-            for (int i = 0; i < tagCount; i++) {
-                tags[i] = possibleTags[faker.number().numberBetween(0, possibleTags.length)];
+            // Array of strings (keywords) using Faker's word provider
+            int keywordCount = faker.number().numberBetween(1, 5);
+            String[] keywords = new String[keywordCount];
+            for (int i = 0; i < keywordCount; i++) {
+                keywords[i] = faker.word().adjective();
             }
-            values.put("tags", generateNullableValue(nullPercentage, faker, f -> tags));
+            values.put("keywords", generateNullableValue(nullPercentage, faker, f -> keywords));
 
             // Array of integers
             int scoreCount = faker.number().numberBetween(3, 8);
@@ -578,60 +592,61 @@ public enum PredefinedRecordSchema implements DescribedValue {
             }
             values.put("scores", generateNullableValue(nullPercentage, faker, f -> scores));
 
-            // Map
-            Map<String, String> metadata = new HashMap<>();
-            metadata.put("source", faker.options().option("web", "mobile", "api", "batch"));
-            metadata.put("version", "1." + faker.number().numberBetween(0, 10));
-            metadata.put("environment", faker.options().option("dev", "staging", "prod"));
-            metadata.put("region", faker.options().option("us-east-1", "us-west-2", "eu-west-1"));
-            values.put("metadata", generateNullableValue(nullPercentage, faker, f -> metadata));
+            // Map (additionalProperty) using Faker providers
+            Map<String, String> additionalProperty = new HashMap<>();
+            additionalProperty.put("source", faker.app().name().toLowerCase().replace(" ", "-"));
+            additionalProperty.put("version", faker.app().version());
+            additionalProperty.put("environment", faker.options().option("dev", "staging", "prod"));
+            // Use Faker's AWS provider for region
+            additionalProperty.put("region", faker.aws().region());
+            values.put("additionalProperty", generateNullableValue(nullPercentage, faker, f -> additionalProperty));
 
-            // Nested profile record (3 levels deep: profile -> address -> coordinates)
-            RecordSchema profileSchema = schema.getField("profile").get().getDataType().getFieldType() == RecordFieldType.RECORD
-                    ? ((RecordDataType) schema.getField("profile").get().getDataType()).getChildSchema()
+            // Nested person record (3 levels deep: person -> address -> geo)
+            RecordSchema personSchema = schema.getField("person").get().getDataType().getFieldType() == RecordFieldType.RECORD
+                    ? ((RecordDataType) schema.getField("person").get().getDataType()).getChildSchema()
                     : null;
 
-            if (profileSchema != null) {
-                Map<String, Object> profileValues = new LinkedHashMap<>();
-                profileValues.put("firstName", faker.name().firstName());
-                profileValues.put("lastName", faker.name().lastName());
-                profileValues.put("email", faker.internet().emailAddress());
-                profileValues.put("age", faker.number().numberBetween(18, 80));
-                profileValues.put("verified", faker.bool().bool());
+            if (personSchema != null) {
+                Map<String, Object> personValues = new LinkedHashMap<>();
+                personValues.put("givenName", faker.name().firstName());
+                personValues.put("familyName", faker.name().lastName());
+                personValues.put("email", faker.internet().emailAddress());
+                personValues.put("age", faker.number().numberBetween(18, 80));
+                personValues.put("verified", faker.bool().bool());
 
-                RecordSchema addressSchema = profileSchema.getField("address").get().getDataType().getFieldType() == RecordFieldType.RECORD
-                        ? ((RecordDataType) profileSchema.getField("address").get().getDataType()).getChildSchema()
+                RecordSchema addressSchema = personSchema.getField("address").get().getDataType().getFieldType() == RecordFieldType.RECORD
+                        ? ((RecordDataType) personSchema.getField("address").get().getDataType()).getChildSchema()
                         : null;
 
                 if (addressSchema != null) {
                     Map<String, Object> addressValues = new LinkedHashMap<>();
-                    addressValues.put("street", faker.address().streetAddress());
-                    addressValues.put("city", faker.address().city());
-                    addressValues.put("state", faker.address().state());
-                    addressValues.put("zipCode", faker.address().zipCode());
-                    addressValues.put("country", faker.address().country());
+                    addressValues.put("streetAddress", faker.address().streetAddress());
+                    addressValues.put("addressLocality", faker.address().city());
+                    addressValues.put("addressRegion", faker.address().state());
+                    addressValues.put("postalCode", faker.address().zipCode());
+                    addressValues.put("addressCountry", faker.address().country());
 
-                    RecordSchema coordinateSchema = addressSchema.getField("coordinates").get().getDataType().getFieldType() == RecordFieldType.RECORD
-                            ? ((RecordDataType) addressSchema.getField("coordinates").get().getDataType()).getChildSchema()
+                    RecordSchema geoSchema = addressSchema.getField("geo").get().getDataType().getFieldType() == RecordFieldType.RECORD
+                            ? ((RecordDataType) addressSchema.getField("geo").get().getDataType()).getChildSchema()
                             : null;
 
-                    if (coordinateSchema != null) {
-                        Map<String, Object> coordValues = new LinkedHashMap<>();
-                        coordValues.put("latitude", faker.number().randomDouble(6, -90, 90));
-                        coordValues.put("longitude", faker.number().randomDouble(6, -180, 180));
-                        addressValues.put("coordinates", new MapRecord(coordinateSchema, coordValues));
+                    if (geoSchema != null) {
+                        Map<String, Object> geoValues = new LinkedHashMap<>();
+                        geoValues.put("latitude", faker.number().randomDouble(6, -90, 90));
+                        geoValues.put("longitude", faker.number().randomDouble(6, -180, 180));
+                        addressValues.put("geo", new MapRecord(geoSchema, geoValues));
                     }
 
-                    profileValues.put("address", new MapRecord(addressSchema, addressValues));
+                    personValues.put("address", new MapRecord(addressSchema, addressValues));
                 }
 
-                values.put("profile", generateNullableValue(nullPercentage, faker, f -> new MapRecord(profileSchema, profileValues)));
+                values.put("person", generateNullableValue(nullPercentage, faker, f -> new MapRecord(personSchema, personValues)));
             }
 
-            // Array of order records
+            // Array of order records (orderedItem)
             RecordSchema orderSchema = null;
-            if (schema.getField("orders").get().getDataType().getFieldType() == RecordFieldType.ARRAY) {
-                DataType elementType = ((ArrayDataType) schema.getField("orders").get().getDataType()).getElementType();
+            if (schema.getField("orderedItem").get().getDataType().getFieldType() == RecordFieldType.ARRAY) {
+                DataType elementType = ((ArrayDataType) schema.getField("orderedItem").get().getDataType()).getElementType();
                 if (elementType.getFieldType() == RecordFieldType.RECORD) {
                     orderSchema = ((RecordDataType) elementType).getChildSchema();
                 }
@@ -643,15 +658,15 @@ public enum PredefinedRecordSchema implements DescribedValue {
                 Object[] orders = new Object[orderCount];
                 for (int i = 0; i < orderCount; i++) {
                     Map<String, Object> orderValues = new LinkedHashMap<>();
-                    orderValues.put("orderId", "ORD-" + faker.number().digits(8));
-                    orderValues.put("amount", faker.number().randomDouble(2, 10, 500));
-                    String[] currencies = {"USD", "EUR", "GBP"};
-                    orderValues.put("currency", currencies[faker.number().numberBetween(0, currencies.length)]);
-                    orderValues.put("placed", new Date(faker.timeAndDate().past(90, TimeUnit.DAYS).toEpochMilli()));
-                    orderValues.put("shipped", faker.bool().bool());
+                    orderValues.put("orderNumber", "ORD-" + faker.number().digits(8));
+                    orderValues.put("totalPrice", faker.number().randomDouble(2, 10, 500));
+                    // Use Faker's money provider for currency codes
+                    orderValues.put("priceCurrency", faker.money().currencyCode());
+                    orderValues.put("orderDate", new Date(faker.timeAndDate().past(90, TimeUnit.DAYS).toEpochMilli()));
+                    orderValues.put("isGift", faker.bool().bool());
                     orders[i] = new MapRecord(finalOrderSchema, orderValues);
                 }
-                values.put("orders", generateNullableValue(nullPercentage, faker, f -> orders));
+                values.put("orderedItem", generateNullableValue(nullPercentage, faker, f -> orders));
             }
 
             return values;

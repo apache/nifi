@@ -354,53 +354,60 @@ List<Field> fieldTypeFields = Arrays.stream(GenerateRecord.class.getFields()).fi
 
     @Test
     public void testPredefinedSchemaPerson() throws Exception {
+        // Field names aligned with schema.org/Person and schema.org/PostalAddress
         testPredefinedSchema(PredefinedRecordSchema.PERSON, 5,
-                "id", "firstName", "lastName", "email", "phoneNumber", "dateOfBirth", "age", "active", "address");
+                "identifier", "givenName", "familyName", "email", "telephone", "birthDate", "age", "active", "address");
     }
 
     @Test
     public void testPredefinedSchemaOrder() throws Exception {
+        // Field names aligned with schema.org/Order
         testPredefinedSchema(PredefinedRecordSchema.ORDER, 5,
-                "orderId", "customerId", "customerName", "customerEmail", "orderDate", "orderTime",
-                "orderTimestamp", "totalAmount", "currency", "status", "shipped", "itemCount", "lineItems");
+                "orderNumber", "customer", "customerName", "customerEmail", "orderDate", "orderTime",
+                "orderDelivery", "totalPrice", "priceCurrency", "orderStatus", "isGift", "itemCount", "orderedItem");
     }
 
     @Test
     public void testPredefinedSchemaEvent() throws Exception {
+        // Field names aligned with schema.org/Event
         testPredefinedSchema(PredefinedRecordSchema.EVENT, 5,
-                "eventId", "eventType", "eventDate", "eventTime", "eventTimestamp", "source",
-                "severity", "message", "processed", "retryCount", "durationMs", "tags", "metadata");
+                "identifier", "additionalType", "startDate", "startTime", "endDate", "organizer",
+                "eventStatus", "description", "isAccessibleForFree", "attendeeCount", "duration", "keywords", "additionalProperty");
     }
 
     @Test
     public void testPredefinedSchemaSensor() throws Exception {
+        // Field names aligned with schema.org conventions (GeoCoordinates for location)
         testPredefinedSchema(PredefinedRecordSchema.SENSOR, 5,
-                "sensorId", "deviceType", "manufacturer", "readingTimestamp", "temperature",
-                "humidity", "pressure", "batteryLevel", "signalStrength", "online", "location");
+                "identifier", "additionalType", "manufacturer", "dateCreated", "temperature",
+                "humidity", "pressure", "batteryLevel", "signalStrength", "isActive", "geo");
     }
 
     @Test
     public void testPredefinedSchemaProduct() throws Exception {
+        // Field names aligned with schema.org/Product
         testPredefinedSchema(PredefinedRecordSchema.PRODUCT, 5,
-                "productId", "sku", "name", "description", "category", "brand", "price",
-                "currency", "inStock", "quantity", "rating", "reviewCount", "createdDate",
-                "lastUpdated", "tags", "dimensions");
+                "identifier", "sku", "name", "description", "category", "brand", "price",
+                "priceCurrency", "availability", "inventoryLevel", "ratingValue", "reviewCount", "dateCreated",
+                "dateModified", "keywords", "additionalProperty");
     }
 
     @Test
     public void testPredefinedSchemaStockTrade() throws Exception {
+        // Field names aligned with schema.org conventions
         testPredefinedSchema(PredefinedRecordSchema.STOCK_TRADE, 5,
-                "tradeId", "symbol", "companyName", "exchange", "tradeType", "tradeTimestamp",
-                "price", "quantity", "totalValue", "currency", "bidPrice", "askPrice",
-                "high52Week", "low52Week", "marketCap", "settled");
+                "identifier", "tickerSymbol", "name", "exchange", "actionType", "dateCreated",
+                "price", "orderQuantity", "totalPrice", "priceCurrency", "bidPrice", "askPrice",
+                "highPrice", "lowPrice", "marketCap", "isSettled");
     }
 
     @Test
     public void testPredefinedSchemaCompleteExample() throws Exception {
+        // Field names aligned with schema.org conventions
         testPredefinedSchema(PredefinedRecordSchema.COMPLETE_EXAMPLE, 3,
-                "id", "active", "score", "count", "rating", "price", "balance", "initial",
-                "flags", "rank", "createdDate", "lastLoginTime", "lastModified", "tags",
-                "scores", "metadata", "profile", "orders");
+                "identifier", "isActive", "score", "count", "ratingValue", "price", "balance", "initial",
+                "flags", "position", "dateCreated", "lastLogin", "dateModified", "keywords",
+                "scores", "additionalProperty", "person", "orderedItem");
     }
 
     private void testPredefinedSchema(PredefinedRecordSchema predefinedSchema, int numRecords, String... expectedFields) throws Exception {
