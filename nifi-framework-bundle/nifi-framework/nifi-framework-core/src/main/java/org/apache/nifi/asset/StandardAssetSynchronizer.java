@@ -198,6 +198,8 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         while (System.currentTimeMillis() < expirationTime.toEpochMilli()) {
             final Asset syncedAsset = synchronizeAsset(assetsRestApiClient, parameterContextId, coordinatorAsset);
             if (syncedAsset != null) {
+                logger.info("Synchronizing asset complete [id={},name={},file={},digest={}]",
+                        syncedAsset.getIdentifier(), syncedAsset.getName(), syncedAsset.getFile().getAbsolutePath(), syncedAsset.getDigest().orElse("[Missing]"));
                 return;
             }
             logger.info("Unable to synchronize asset [id={},name={}] for parameter context [{}]: retrying until [{}]",
