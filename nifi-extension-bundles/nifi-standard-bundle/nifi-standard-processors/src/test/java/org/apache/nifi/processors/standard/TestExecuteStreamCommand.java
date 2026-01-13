@@ -16,27 +16,21 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processors.standard.util.ArgumentUtils;
-import org.apache.nifi.processors.standard.util.JsonUtil;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.DisabledOnOs;
-import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -575,16 +569,11 @@ public class TestExecuteStreamCommand {
         assertEquals(isWindows() ? "cmd.exe" : "echo", outputFlowFile.getAttribute("execution.command"));
     }
 
-    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Not reaching expected relationships")
     @Test
     public void testArgumentsWithQuotesFromAttributeDynamicProperties() throws Exception {
-        File dummy = new File("src/test/resources/TestJson/json-sample.json");
-        assertTrue(dummy.exists());
-
         Map<String, String> attrs = new HashMap<>();
-
-        String json = FileUtils.readFileToString(dummy, StandardCharsets.UTF_8);
-        attrs.put("json.attribute", JsonUtil.getExpectedContent(json));
+        String exStr = "Hello World with quotes";
+        attrs.put("str.attribute", exStr);
         runner.enqueue("".getBytes(), attrs);
 
         runner.setProperty(ExecuteStreamCommand.ARGUMENTS_STRATEGY, ExecuteStreamCommand.DYNAMIC_PROPERTY_ARGUMENTS_STRATEGY.getValue());
@@ -611,7 +600,7 @@ public class TestExecuteStreamCommand {
             .name("command.argument.3")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
-        runner.setProperty(dynamicProp3, "${json.attribute}");
+        runner.setProperty(dynamicProp3, "${str.attribute}");
         runner.setProperty(ExecuteStreamCommand.IGNORE_STDIN, "true");
 
         runner.run(1);
@@ -620,11 +609,11 @@ public class TestExecuteStreamCommand {
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteStreamCommand.OUTPUT_STREAM_RELATIONSHIP);
         MockFlowFile outputFlowFile = flowFiles.getFirst();
-        String output = new String(outputFlowFile.toByteArray());
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode tree1 = mapper.readTree(json);
-        JsonNode tree2 = mapper.readTree(output);
-        assertEquals(tree1, tree2);
+        String output = new String(outputFlowFile.toByteArray()).trim();
+        if (isWindows()) {
+            output = StringUtils.unwrap(output, '"');
+        }
+        assertEquals(exStr, output);
         assertEquals("0", outputFlowFile.getAttribute("execution.status"));
         assertEquals(isWindows() ? "cmd.exe" : "echo", outputFlowFile.getAttribute("execution.command"));
     }
