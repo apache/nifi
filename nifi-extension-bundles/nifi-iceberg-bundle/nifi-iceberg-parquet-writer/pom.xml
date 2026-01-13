@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.apache.parquet</groupId>
             <artifactId>parquet-avro</artifactId>
-            <version>1.16.0</version>
+            <version>1.17.0</version>
         </dependency>
         <!-- Avro provided in shared NAR -->
         <dependency>

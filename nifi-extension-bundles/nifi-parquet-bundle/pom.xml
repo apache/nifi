@@ -31,7 +31,7 @@
         <module>nifi-parquet-nar</module>
     </modules>
     <properties>
-        <parquet.version>1.16.0</parquet.version>
+        <parquet.version>1.17.0</parquet.version>
     </properties>
     <dependencyManagement>
         <dependencies>
