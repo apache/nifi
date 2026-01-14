@@ -17,7 +17,9 @@
 
 package org.apache.nifi.components.connector.facades.standalone;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.ConfigVerificationResult;
@@ -48,7 +50,9 @@ import java.util.List;
 import java.util.Map;
 
 public class StandaloneProcessorFacade implements ProcessorFacade {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
 
     private final ProcessorNode processorNode;
     private final VersionedProcessor versionedProcessor;
