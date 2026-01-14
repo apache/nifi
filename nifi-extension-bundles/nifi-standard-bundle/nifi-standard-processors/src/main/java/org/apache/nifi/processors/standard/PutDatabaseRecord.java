@@ -219,7 +219,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .name("Pre-Processing SQL")
             .description("""
                     One or more SQL statements, separated by semicolons, executed on the current database connection,
-                    before processing records for each FlowFile
+                    before processing records for each FlowFile. Literal semicolons can be included in SQL statements
+                    by prefixing the semicolon with a backslash character.
                     """)
             .required(false)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -230,7 +231,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .name("Post-Processing SQL")
             .description("""
                     One or more SQL statements, separated by semicolons, executed on the current database connection,
-                    after processing records for each FlowFile
+                    after processing records for each FlowFile. Literal semicolons can be included in SQL statements
+                    by prefixing the semicolon with a backslash.
                     """)
             .required(false)
             .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
@@ -1241,7 +1243,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
             final String[] statements = UNESCAPED_SEMICOLON_PATTERN.split(propertyValue);
             sqlStatements = new ArrayList<>(statements.length);
             for (String statement : statements) {
-                final String sqlStatement = statement.replaceAll(ESCAPED_SEMICOLON, SEMICOLON);
+                final String sqlStatement = statement.replaceAll(ESCAPED_SEMICOLON, SEMICOLON).trim();
+                if (sqlStatement.isEmpty()) {
+                    continue;
+                }
                 sqlStatements.add(sqlStatement);
             }
         }
