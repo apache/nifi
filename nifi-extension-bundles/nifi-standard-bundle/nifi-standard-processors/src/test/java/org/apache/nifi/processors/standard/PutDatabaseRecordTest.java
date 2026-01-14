@@ -127,6 +127,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
     private static final boolean ENABLED = true;
     private static final boolean DISABLED = false;
 
+    private static final String BATCHES_EXECUTED_COUNTER = "Batches Executed";
     private static final String CONNECTION_FAILED = "Connection Failed";
 
     private static final String PARSER_ID = MockRecordParser.class.getSimpleName();
@@ -2209,6 +2210,59 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         stmt.execute("DROP TABLE BINARY_TYPES_TEST;");
         stmt.close();
         conn.close();
+    }
+
+    @Test
+    public void testPrePostProcessingSql() throws InitializationException, ProcessException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService(PARSER_ID, parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addRecord(1, "testing");
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, PARSER_ID);
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, TABLE_NAME);
+
+        final String dropCreateSql = "DROP TABLE IF EXISTS %s; %s".formatted(TABLE_NAME, createPersons);
+        runner.setProperty(PutDatabaseRecord.PRE_PROCESSING_SQL, dropCreateSql);
+        runner.setProperty(PutDatabaseRecord.POST_PROCESSING_SQL, "DROP TABLE PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS);
+        final Long batchesExecuted = runner.getCounterValue(BATCHES_EXECUTED_COUNTER);
+        assertEquals(1, batchesExecuted, "Batches executed counter not matched");
+    }
+
+    @Test
+    public void testPreProcessingSqlFailure() throws InitializationException, ProcessException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService(PARSER_ID, parser);
+        runner.enableControllerService(parser);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, PARSER_ID);
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, TABLE_NAME);
+
+        final String preProcessingSql = "DROP TABLE UNKNOWN";
+        runner.setProperty(PutDatabaseRecord.PRE_PROCESSING_SQL, preProcessingSql);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE);
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).getFirst();
+        firstFlowFile.assertAttributeExists(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR);
+        final String recordError = firstFlowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR);
+        assertTrue(recordError.contains(PutDatabaseRecord.PRE_PROCESSING_SQL.getName()), "Pre-Processing SQL not found in [%s]".formatted(recordError));
     }
 
     private void recreateTable() throws ProcessException {
