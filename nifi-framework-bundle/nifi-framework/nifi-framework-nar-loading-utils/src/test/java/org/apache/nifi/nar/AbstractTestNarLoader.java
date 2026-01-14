@@ -26,15 +26,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Properties;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -56,25 +52,16 @@ public abstract class AbstractTestNarLoader {
 
     @BeforeEach
     public void setup() throws IOException, ClassNotFoundException {
-        Files.createDirectories(tempDir.resolve(getWorkDir()));
-        Files.createDirectories(tempDir.resolve(getNarAutoloadDir()));
+        final Path workDir = Files.createDirectories(tempDir.resolve(getWorkDir()));
+        final Path narAutoLoadDir = Files.createDirectories(tempDir.resolve(getNarAutoloadDir()));
 
         // Create NiFiProperties
         final Path originalPropertiesFile = Paths.get(getPropertiesFile());
-        String modifiedPropertiesFileContent;
-        try (Stream<String> lines = Files.lines(originalPropertiesFile)) {
-            modifiedPropertiesFileContent = lines.filter(line -> line.startsWith(NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY)
-                            ||
-                            line.startsWith(NiFiProperties.NAR_WORKING_DIRECTORY)
-                            ||
-                            line.startsWith(NiFiProperties.NAR_LIBRARY_DIRECTORY))
-                    .map(line -> line.replaceFirst("\\./target", tempDir.toString()))
-                    .collect(Collectors.joining("\n"));
-        }
+        final Map<String, String> additionalProperties = Map.of(
+                NiFiProperties.NAR_WORKING_DIRECTORY, workDir.toString(),
+                NiFiProperties.NAR_LIBRARY_AUTOLOAD_DIRECTORY, narAutoLoadDir.toString()
+        );
 
-        final Reader modifiedPropertiesFileContentReader = new StringReader(modifiedPropertiesFileContent);
-        final Properties additionalProperties = new Properties();
-        additionalProperties.load(modifiedPropertiesFileContentReader);
         properties = NiFiProperties.createBasicNiFiProperties(originalPropertiesFile.toString(), additionalProperties);
 
         // Unpack NARs
