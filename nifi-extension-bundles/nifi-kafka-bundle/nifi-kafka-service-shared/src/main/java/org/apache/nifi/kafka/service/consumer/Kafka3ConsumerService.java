@@ -45,6 +45,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
@@ -57,6 +58,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     private final ComponentLog componentLog;
     private final Consumer<byte[], byte[]> consumer;
     private final Subscription subscription;
+    private final Map<TopicPartition, Long> uncommittedOffsets = new ConcurrentHashMap<>();
     private volatile boolean closed = false;
 
     public Kafka3ConsumerService(final ComponentLog componentLog, final Consumer<byte[], byte[]> consumer, final Subscription subscription) {
@@ -82,7 +84,25 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     @Override
     public void onPartitionsRevoked(final Collection<TopicPartition> partitions) {
         componentLog.info("Kafka revoked the following Partitions from this consumer: {}", partitions);
-        rollback(new HashSet<>(partitions));
+
+        // Commit pending offsets for revoked partitions before losing ownership
+        final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
+        for (final TopicPartition partition : partitions) {
+            final Long offset = uncommittedOffsets.remove(partition);
+            if (offset != null) {
+                offsetsToCommit.put(partition, new OffsetAndMetadata(offset));
+            }
+        }
+
+        if (!offsetsToCommit.isEmpty()) {
+            try {
+                consumer.commitSync(offsetsToCommit);
+                componentLog.info("Committed offsets during rebalance for partitions: {}", offsetsToCommit);
+            } catch (final Exception e) {
+                componentLog.warn("Failed to commit offsets during rebalance, rolling back", e);
+                rollback(new HashSet<>(partitions));
+            }
+        }
     }
 
     @Override
@@ -91,7 +111,10 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
 
         final long started = System.currentTimeMillis();
         consumer.commitSync(offsets);
-        final long elapsed = started - System.currentTimeMillis();
+        final long elapsed = System.currentTimeMillis() - started;
+
+        // Clear tracked offsets for committed partitions
+        offsets.keySet().forEach(uncommittedOffsets::remove);
 
         componentLog.debug("Committed Records in [{} ms] for {}", elapsed, pollingSummary);
     }
@@ -105,6 +128,9 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
         if (partitions.isEmpty()) {
             return;
         }
+
+        // Clear tracked offsets for rolled back partitions
+        partitions.forEach(uncommittedOffsets::remove);
 
         try {
             final Map<TopicPartition, OffsetAndMetadata> metadataMap = consumer.committed(partitions);
@@ -135,6 +161,13 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
         final ConsumerRecords<byte[], byte[]> consumerRecords = consumer.poll(maxWaitDuration);
         if (consumerRecords.isEmpty()) {
             return List.of();
+        }
+
+        // Track the maximum offset for each partition to commit during rebalance
+        for (final ConsumerRecord<byte[], byte[]> record : consumerRecords) {
+            final TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
+            // Store offset + 1 because Kafka commits the next offset to consume
+            uncommittedOffsets.merge(topicPartition, record.offset() + 1, Math::max);
         }
 
         return new RecordIterable(consumerRecords);
