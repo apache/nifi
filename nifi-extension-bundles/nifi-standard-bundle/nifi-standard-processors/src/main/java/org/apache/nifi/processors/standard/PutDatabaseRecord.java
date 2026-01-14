@@ -215,6 +215,30 @@ public class PutDatabaseRecord extends AbstractProcessor {
             .expressionLanguageSupported(NONE)
             .build();
 
+    static final PropertyDescriptor PRE_PROCESSING_SQL = new Builder()
+            .name("Pre-Processing SQL")
+            .description("""
+                    One or more SQL statements, separated by semicolons, executed on the current database connection,
+                    before processing records for each FlowFile. Literal semicolons can be included in SQL statements
+                    by prefixing the semicolon with a backslash character.
+                    """)
+            .required(false)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor POST_PROCESSING_SQL = new Builder()
+            .name("Post-Processing SQL")
+            .description("""
+                    One or more SQL statements, separated by semicolons, executed on the current database connection,
+                    after processing records for each FlowFile. Literal semicolons can be included in SQL statements
+                    by prefixing the semicolon with a backslash.
+                    """)
+            .required(false)
+            .expressionLanguageSupported(FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     static final PropertyDescriptor DBCP_SERVICE = new Builder()
             .name("Database Connection Pooling Service")
             .description("The Controller Service that is used to obtain a connection to the database for sending records.")
@@ -416,6 +440,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
     static final PropertyDescriptor DB_TYPE = DatabaseAdapterDescriptor.getDatabaseTypeDescriptor();
     static final PropertyDescriptor DATABASE_DIALECT_SERVICE = DatabaseAdapterDescriptor.getDatabaseDialectServiceDescriptor(DB_TYPE);
 
+    static final Pattern UNESCAPED_SEMICOLON_PATTERN = Pattern.compile("(?<!\\\\);");
+    static final String ESCAPED_SEMICOLON = "\\\\;";
+    static final String SEMICOLON = ";";
+
     protected static final List<PropertyDescriptor> properties = List.of(
             RECORD_READER_FACTORY,
             DB_TYPE,
@@ -423,6 +451,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
             STATEMENT_TYPE,
             STATEMENT_TYPE_RECORD_PATH,
             DATA_RECORD_PATH,
+            PRE_PROCESSING_SQL,
+            POST_PROCESSING_SQL,
             DBCP_SERVICE,
             CATALOG_NAME,
             SCHEMA_NAME,
@@ -1184,6 +1214,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
     private void putToDatabase(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final Connection connection) throws Exception {
         final String statementType = getStatementType(context, flowFile);
 
+        final List<String> preProcessingSqlStatements = getSqlStatements(context, flowFile, PRE_PROCESSING_SQL);
+        executeSqlStatements(connection, preProcessingSqlStatements, PRE_PROCESSING_SQL);
+
         try (final InputStream in = session.read(flowFile)) {
             final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
             final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, in, getLogger());
@@ -1193,6 +1226,41 @@ public class PutDatabaseRecord extends AbstractProcessor {
             } else {
                 final DMLSettings settings = new DMLSettings(context);
                 executeDML(context, session, flowFile, connection, recordReader, statementType, settings);
+            }
+        }
+
+        final List<String> postProcessingSqlStatements = getSqlStatements(context, flowFile, POST_PROCESSING_SQL);
+        executeSqlStatements(connection, postProcessingSqlStatements, POST_PROCESSING_SQL);
+    }
+
+    private List<String> getSqlStatements(final ProcessContext context, final FlowFile flowFile, final PropertyDescriptor propertyDescriptor) {
+        final List<String> sqlStatements;
+
+        final String propertyValue = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
+        if (propertyValue == null || propertyValue.isBlank()) {
+            sqlStatements = List.of();
+        } else {
+            final String[] statements = UNESCAPED_SEMICOLON_PATTERN.split(propertyValue);
+            sqlStatements = new ArrayList<>(statements.length);
+            for (String statement : statements) {
+                final String sqlStatement = statement.replaceAll(ESCAPED_SEMICOLON, SEMICOLON).trim();
+                if (sqlStatement.isEmpty()) {
+                    continue;
+                }
+                sqlStatements.add(sqlStatement);
+            }
+        }
+
+        return sqlStatements;
+    }
+
+    private void executeSqlStatements(final Connection connection, final List<String> sqlStatements, final PropertyDescriptor propertyDescriptor) {
+        for (final String sql : sqlStatements) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute(sql);
+            } catch (final SQLException e) {
+                final String message = "Failed to execute %s Statement [%s]".formatted(propertyDescriptor.getName(), sql);
+                throw new ProcessException(message, e);
             }
         }
     }
