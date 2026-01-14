@@ -28,6 +28,7 @@ import org.apache.nifi.components.connector.MutableConnectorConfigurationContext
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -269,5 +270,43 @@ class StandardConnectorDAOTest {
         verify(connectorRepository).removeConnector(CONNECTOR_ID);
         verify(connectorAssetRepository, never()).deleteAssets(any());
     }
+
+    @Test
+    void testVerifyCreateWithExistingConnectorId() {
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(CONNECTOR_ID);
+        connectorDTO.setType("org.apache.nifi.connector.TestConnector");
+
+        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+
+        final IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
+            connectorDAO.verifyCreate(connectorDTO)
+        );
+
+        assertEquals("A Connector already exists with ID %s".formatted(CONNECTOR_ID), exception.getMessage());
+    }
+
+    @Test
+    void testVerifyCreateWithNewId() {
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(CONNECTOR_ID);
+
+        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(null);
+
+        connectorDAO.verifyCreate(connectorDTO);
+
+        verify(connectorRepository).getConnector(CONNECTOR_ID);
+    }
+
+    @Test
+    void testVerifyCreateWithNullId() {
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(null);
+
+        connectorDAO.verifyCreate(connectorDTO);
+
+        verify(connectorRepository, never()).getConnector(any());
+    }
+
 }
 

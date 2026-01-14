@@ -258,9 +258,6 @@ public class ConnectorResource extends ApplicationResource {
         }
 
         final ConnectorDTO requestConnector = requestConnectorEntity.getComponent();
-        if (requestConnector.getId() != null) {
-            throw new IllegalArgumentException("Connector ID cannot be specified.");
-        }
 
         if (StringUtils.isBlank(requestConnector.getType())) {
             throw new IllegalArgumentException("The type of connector to create must be specified.");
@@ -284,7 +281,13 @@ public class ConnectorResource extends ApplicationResource {
                     final ConnectorDTO connector = connectorEntity.getComponent();
 
                     // set the connector id as appropriate
-                    connector.setId(generateUuid());
+                    final String clientSpecifiedId = connector.getId();
+                    if (clientSpecifiedId != null) {
+                        // validate the client-specified connector id. uniqueness is verified by verifyCreateConnector()
+                        connector.setId(normalizeUuid(clientSpecifiedId));
+                    } else {
+                        connector.setId(generateUuid());
+                    }
 
                     // create the new connector
                     final Revision revision = getRevision(connectorEntity, connector.getId());
@@ -296,6 +299,24 @@ public class ConnectorResource extends ApplicationResource {
                     return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
+    }
+
+    /**
+     * Validates client-specified id is a UUID and normalizes its string format to the lowercase digest used by NiFi.
+     *
+     * @param clientSpecifiedId the client-passed ID, which should be a valid UUID
+     * @return the normalized string representation of the validated UUID
+     * @throws IllegalArgumentException if the clientSpecifiedId is not a valid UUID
+     */
+    private String normalizeUuid(final String clientSpecifiedId) {
+        try {
+            final UUID uuid = UUID.fromString(clientSpecifiedId);
+            logger.debug("ID [{}] is a valid UUID", clientSpecifiedId);
+            return uuid.toString();
+        } catch (final Exception e) {
+            logger.error("ID [{}] is not a valid UUID", clientSpecifiedId, e);
+            throw new IllegalArgumentException("ID [" + clientSpecifiedId + "] is not a valid UUID.");
+        }
     }
 
     /**
