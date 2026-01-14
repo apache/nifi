@@ -49,11 +49,12 @@ public abstract class AbstractTestNarLoader {
     StandardNarLoader narLoader;
     NarClassLoaders narClassLoaders;
     ExtensionDiscoveringManager extensionManager;
+    Path narAutoLoadDir;
 
     @BeforeEach
     public void setup() throws IOException, ClassNotFoundException {
         final Path workDir = Files.createDirectories(tempDir.resolve(getWorkDir()));
-        final Path narAutoLoadDir = Files.createDirectories(tempDir.resolve(getNarAutoloadDir()));
+        narAutoLoadDir = Files.createDirectories(tempDir.resolve(getNarAutoloadDir()));
 
         // Create NiFiProperties
         final Path originalPropertiesFile = Paths.get(getPropertiesFile());

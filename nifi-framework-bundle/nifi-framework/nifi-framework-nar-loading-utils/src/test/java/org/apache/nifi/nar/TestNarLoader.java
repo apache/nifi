@@ -24,7 +24,6 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
@@ -44,7 +43,6 @@ public class TestNarLoader extends AbstractTestNarLoader {
     public void testNarLoaderWhenAllAvailable() throws IOException {
         // Copy all NARs from src/test/resources/extensions to <temporary directory>/extensions
         final File extensionsDir = new File(EXTENSIONS_DIR);
-        final Path narAutoLoadDir = tempDir.resolve(NAR_AUTOLOAD_DIR);
         final File[] extensions = extensionsDir.listFiles();
         assertNotNull(extensions);
         for (final File extensionFile : extensions) {
@@ -68,7 +66,6 @@ public class TestNarLoader extends AbstractTestNarLoader {
     @Test
     public void testNarLoaderWhenDependentNarsAreMissing() throws IOException {
         final File extensionsDir = new File(EXTENSIONS_DIR);
-        final Path narAutoLoadDir = tempDir.resolve(NAR_AUTOLOAD_DIR);
 
         // Copy processors NAR first which depends on service API NAR
         final File processorsNar = new File(extensionsDir, "nifi-example-processors-nar-1.0.nar");

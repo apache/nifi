@@ -48,7 +48,6 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
     @Test
     public void testLoadSameLibraryFromBy2NarClassLoadersFromNar() throws Exception {
         final File extensionsDir = new File(EXTENSIONS_DIR);
-        final Path narAutoLoadDir = tempDir.resolve(NAR_AUTOLOAD_DIR);
         final File[] extensions = extensionsDir.listFiles();
         assertNotNull(extensions);
         for (final File extensionFile : extensions) {
@@ -91,7 +90,6 @@ public class TestLoadNativeLibFromNar extends AbstractTestNarLoader {
     @Test
     public void testLoadSameLibraryBy2InstanceClassLoadersFromNar() throws Exception {
         final File extensionsDir = new File(EXTENSIONS_DIR);
-        final Path narAutoLoadDir = tempDir.resolve(NAR_AUTOLOAD_DIR);
         final File[] extensions = extensionsDir.listFiles();
         assertNotNull(extensions);
         for (final File extensionFile : extensions) {
