@@ -269,7 +269,6 @@ public class StandardConnectorNode implements ConnectorNode {
             getComponentLog().info("Working Context has been applied to Active Context");
 
             // The update has been completed. Tear down and recreate the working flow context to ensure it is in a clean state.
-
             resetValidationState();
             recreateWorkingFlowContext();
         } catch (final Throwable t) {
@@ -666,7 +665,7 @@ public class StandardConnectorNode implements ConnectorNode {
             // Update all RUNNING components to ENABLED before applying the initial flow so that components
             // are not started before being configured.
             stopComponents(initialFlow.getFlowContents());
-            initializationContext.updateFlow(activeFlowContext, initialFlow);
+            initializationContext.updateFlow(activeFlowContext, initialFlow, BundleCompatibility.RESOLVE_BUNDLE);
         }
 
         resetValidationState();
@@ -1156,6 +1155,7 @@ public class StandardConnectorNode implements ConnectorNode {
     private void resetValidationState() {
         validationState.set(new ValidationState(ValidationStatus.VALIDATING, Collections.emptyList()));
         validationTrigger.triggerAsync(this);
+        logger.debug("Validation state has been reset for {}", this);
     }
 
     @Override
@@ -1216,6 +1216,16 @@ public class StandardConnectorNode implements ConnectorNode {
             }
 
             validationState.set(resultState);
+
+            if (resultState.getStatus() == ValidationStatus.VALID) {
+                logger.info("Validation completed for {}. Connector is valid.", this);
+            } else {
+                logger.info("Validation completed for {}. Connector is invalid: {}", this,
+                    resultState.getValidationErrors().stream()
+                        .map(ValidationResult::getExplanation)
+                        .collect(Collectors.joining("; ")));
+            }
+
             return resultState;
         }
     }
