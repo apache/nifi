@@ -42,7 +42,7 @@ public class TestNarLoader extends AbstractTestNarLoader {
 
     @Test
     public void testNarLoaderWhenAllAvailable() throws IOException {
-        // Copy all NARs from src/test/resources/extensions to target/extensions
+        // Copy all NARs from src/test/resources/extensions to <temporary directory>/extensions
         final File extensionsDir = new File(EXTENSIONS_DIR);
         final Path narAutoLoadDir = tempDir.resolve(NAR_AUTOLOAD_DIR);
         final File[] extensions = extensionsDir.listFiles();

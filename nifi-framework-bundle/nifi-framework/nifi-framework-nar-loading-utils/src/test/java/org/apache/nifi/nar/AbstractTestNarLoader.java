@@ -26,11 +26,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,9 +72,10 @@ public abstract class AbstractTestNarLoader {
                     .collect(Collectors.joining("\n"));
         }
 
-        final Path newPropertiesFile = tempDir.resolve(originalPropertiesFile.getFileName());
-        Files.writeString(newPropertiesFile, modifiedPropertiesFileContent);
-        properties = NiFiProperties.createBasicNiFiProperties(newPropertiesFile.toString(), Collections.emptyMap());
+        final Reader modifiedPropertiesFileContentReader = new StringReader(modifiedPropertiesFileContent);
+        final Properties additionalProperties = new Properties();
+        additionalProperties.load(modifiedPropertiesFileContentReader);
+        properties = NiFiProperties.createBasicNiFiProperties(originalPropertiesFile.toString(), additionalProperties);
 
         // Unpack NARs
         systemBundle = SystemBundle.create(properties);
