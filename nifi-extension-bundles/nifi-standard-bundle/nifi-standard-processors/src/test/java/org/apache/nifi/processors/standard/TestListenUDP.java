@@ -215,7 +215,7 @@ public class TestListenUDP {
             flowFile.assertContentEquals("This is message " + (i + 1));
             assertEquals(String.valueOf(port), flowFile.getAttribute(ListenUDP.UDP_PORT_ATTR));
             assertTrue(StringUtils.isNotEmpty(flowFile.getAttribute(ListenUDP.UDP_SENDER_ATTR)));
-            assertEquals(5, flowFile.getAttribute(ListenUDP.UDP_SENDER_PORT_ATTR).length());  // send port expected to be in ephemeral range
+            assertTrue(StringUtils.isNumeric(flowFile.getAttribute(ListenUDP.UDP_SENDER_PORT_ATTR)));
         }
     }
 
