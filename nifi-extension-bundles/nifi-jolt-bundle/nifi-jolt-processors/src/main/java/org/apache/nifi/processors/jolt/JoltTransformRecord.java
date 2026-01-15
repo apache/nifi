@@ -21,6 +21,8 @@ import io.joltcommunity.jolt.JoltTransform;
 import io.joltcommunity.jolt.Transform;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -28,6 +30,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -70,6 +73,13 @@ import java.util.stream.Stream;
         @WritesAttribute(attribute = "record.count", description = "The number of records in an outgoing FlowFile"),
         @WritesAttribute(attribute = "mime.type", description = "The MIME Type that the configured Record Writer indicates is appropriate"),
 })
+@Restricted(
+        restrictions = {
+                @Restriction(
+                        requiredPermission = RequiredPermission.EXECUTE_CODE,
+                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+        }
+)
 @CapabilityDescription("Applies a JOLT specification to each record in the FlowFile payload. A new FlowFile is created "
         + "with transformed content and is routed to the 'success' relationship. If the transform "
         + "fails, the original FlowFile is routed to the 'failure' relationship.")
