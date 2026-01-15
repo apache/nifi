@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.MockFlowFileRecord;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueSize;
@@ -69,6 +71,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -288,6 +291,11 @@ public class TestWriteAheadFlowFileRepository {
             }
 
             @Override
+            public DropFlowFileSummary dropFlowFiles(Predicate<FlowFile> predicate) {
+                return new DropFlowFileSummary(0, 0L);
+            }
+
+            @Override
             public ListFlowFileStatus listFlowFiles(String requestIdentifier, int maxResults) {
                 return null;
             }
@@ -314,7 +322,7 @@ public class TestWriteAheadFlowFileRepository {
             @Override
             public QueueDiagnostics getQueueDiagnostics() {
                 final FlowFileQueueSize size = new FlowFileQueueSize(size().getObjectCount(), size().getByteCount(), 0, 0, 0, 0, 0);
-                return new StandardQueueDiagnostics(new StandardLocalQueuePartitionDiagnostics(size, false, false), Collections.emptyList());
+                return new StandardQueueDiagnostics(new StandardLocalQueuePartitionDiagnostics(size, false, false, new QueueSize(0, 0), new QueueSize(0, 0)), Collections.emptyList());
             }
 
             @Override
@@ -684,6 +692,126 @@ public class TestWriteAheadFlowFileRepository {
         repo2.close();
     }
 
+    @Test
+    public void testSelectiveDropWithSwappedFlowFilesAndRecovery() throws IOException {
+        final Path path = Paths.get("target/test-repo");
+        if (Files.exists(path)) {
+            FileUtils.deleteFile(path.toFile(), true);
+        }
+
+        final ResourceClaimManager claimManager = new StandardResourceClaimManager();
+        final TestQueueProvider queueProvider = new TestQueueProvider();
+        final Connection connection = Mockito.mock(Connection.class);
+        when(connection.getIdentifier()).thenReturn("selective-drop-test");
+        when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
+
+        final MockFlowFileSwapManager swapMgr = new MockFlowFileSwapManager();
+        final FlowFileQueue queue = new StandardFlowFileQueue("selective-drop-test", null, null, null, swapMgr, null, 10000, "0 sec", 0L, "0 B");
+        when(connection.getFlowFileQueue()).thenReturn(queue);
+        queueProvider.addConnection(connection);
+
+        final List<FlowFileRecord> allFlowFiles = new ArrayList<>();
+        final String originalSwapLocation;
+        final String newSwapLocation;
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(claimManager);
+            repo.loadFlowFiles(queueProvider);
+
+            for (int i = 0; i < 20; i++) {
+                final FlowFileRecord flowFile = new StandardFlowFileRecord.Builder()
+                        .id(i + 1)
+                        .addAttribute("uuid", UUID.randomUUID().toString())
+                        .addAttribute("index", String.valueOf(i))
+                        .size(i)
+                        .build();
+
+                final StandardRepositoryRecord record = new StandardRepositoryRecord(queue);
+                record.setWorking(flowFile, false);
+                record.setDestination(queue);
+                repo.updateRepository(Collections.singletonList(record));
+                allFlowFiles.add(flowFile);
+            }
+
+            final List<FlowFileRecord> flowFilesToSwap = new ArrayList<>();
+            for (int i = 10; i < 20; i++) {
+                flowFilesToSwap.add(allFlowFiles.get(i));
+            }
+            originalSwapLocation = swapMgr.swapOut(flowFilesToSwap, queue, null);
+            repo.swapFlowFilesOut(flowFilesToSwap, queue, originalSwapLocation);
+
+            final List<RepositoryRecord> selectiveDropRecords = new ArrayList<>();
+
+            for (int i = 0; i < 5; i++) {
+                final FlowFileRecord ff = allFlowFiles.get(i);
+                final StandardRepositoryRecord dropRecord = new StandardRepositoryRecord(queue, ff);
+                dropRecord.markForDelete();
+                selectiveDropRecords.add(dropRecord);
+            }
+
+            for (int i = 10; i < 15; i++) {
+                final FlowFileRecord ff = allFlowFiles.get(i);
+                final StandardRepositoryRecord dropRecord = new StandardRepositoryRecord(queue, ff);
+                dropRecord.markForDelete();
+                selectiveDropRecords.add(dropRecord);
+            }
+
+            final List<FlowFileRecord> remainingSwapped = new ArrayList<>();
+            for (int i = 15; i < 20; i++) {
+                remainingSwapped.add(allFlowFiles.get(i));
+            }
+            newSwapLocation = swapMgr.swapOut(remainingSwapped, queue, null);
+
+            for (final FlowFileRecord ff : remainingSwapped) {
+                final StandardRepositoryRecord swapRecord = new StandardRepositoryRecord(queue, ff, newSwapLocation);
+                swapRecord.setDestination(queue);
+                selectiveDropRecords.add(swapRecord);
+            }
+
+            final StandardRepositoryRecord swapFileRenamedRecord = new StandardRepositoryRecord(queue);
+            swapFileRenamedRecord.setSwapFileRenamed(originalSwapLocation, newSwapLocation);
+            selectiveDropRecords.add(swapFileRenamedRecord);
+
+            repo.updateRepository(selectiveDropRecords);
+
+            swapMgr.deleteSwapFile(originalSwapLocation);
+        }
+
+        final List<FlowFileRecord> recoveredFlowFiles = new ArrayList<>();
+        final ResourceClaimManager recoveryClaimManager = new StandardResourceClaimManager();
+
+        final Connection recoveryConnection = Mockito.mock(Connection.class);
+        when(recoveryConnection.getIdentifier()).thenReturn("selective-drop-test");
+        when(recoveryConnection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
+
+        final FlowFileQueue recoveryQueue = Mockito.mock(FlowFileQueue.class);
+        when(recoveryQueue.getIdentifier()).thenReturn("selective-drop-test");
+        doAnswer(invocation -> {
+            recoveredFlowFiles.add((FlowFileRecord) invocation.getArguments()[0]);
+            return null;
+        }).when(recoveryQueue).put(any(FlowFileRecord.class));
+
+        when(recoveryConnection.getFlowFileQueue()).thenReturn(recoveryQueue);
+
+        final TestQueueProvider recoveryQueueProvider = new TestQueueProvider();
+        recoveryQueueProvider.addConnection(recoveryConnection);
+
+        try (final WriteAheadFlowFileRepository repo = new WriteAheadFlowFileRepository(niFiProperties)) {
+            repo.initialize(recoveryClaimManager);
+            repo.loadFlowFiles(recoveryQueueProvider);
+
+            assertEquals(5, recoveredFlowFiles.size());
+
+            for (final FlowFileRecord ff : recoveredFlowFiles) {
+                final int index = Integer.parseInt(ff.getAttribute("index"));
+                assertTrue(index >= 5 && index < 10, "Expected active FlowFiles with index 5-9, but found index " + index);
+            }
+
+            assertFalse(repo.isValidSwapLocationSuffix(originalSwapLocation), "Original swap location should not be valid after selective drop");
+            assertTrue(repo.isValidSwapLocationSuffix(newSwapLocation), "New swap location should be valid after selective drop");
+        }
+    }
+
     private static class TestQueueProvider implements QueueProvider {
 
         private List<Connection> connectionList = new ArrayList<>();
@@ -795,6 +923,13 @@ public class TestWriteAheadFlowFileRepository {
         @Override
         public void purge() {
             this.swappedRecords.clear();
+        }
+
+        @Override
+        public void deleteSwapFile(final String swapLocation) {
+            for (final Map<String, List<FlowFileRecord>> swapMap : swappedRecords.values()) {
+                swapMap.remove(swapLocation);
+            }
         }
 
         @Override

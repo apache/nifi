@@ -29,4 +29,14 @@ public interface LocalQueuePartitionDiagnostics {
     boolean isAnyActiveFlowFilePenalized();
 
     boolean isAllActiveFlowFilesPenalized();
+
+    /**
+     * @return the QueueSize representing the penalized FlowFiles (count and total content size)
+     */
+    QueueSize getPenalizedQueueSize();
+
+    /**
+     * @return the total QueueSize across all swap files (count and total content size)
+     */
+    QueueSize getTotalSwapFileQueueSize();
 }

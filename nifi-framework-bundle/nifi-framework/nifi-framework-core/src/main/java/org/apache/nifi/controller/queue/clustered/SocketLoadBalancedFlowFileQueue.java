@@ -22,6 +22,7 @@ import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.queue.AbstractFlowFileQueue;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
@@ -62,6 +63,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.swap.StandardSwapSummary;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
@@ -91,6 +93,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue implements LoadBalancedFlowFileQueue {
@@ -1101,6 +1104,32 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             }
         } finally {
             partitionReadLock.unlock();
+        }
+    }
+
+    @Override
+    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        lock();
+        try {
+            int totalDroppedCount = 0;
+            long totalDroppedBytes = 0L;
+
+            for (final QueuePartition partition : queuePartitions) {
+                final DropFlowFileSummary partitionSummary = partition.dropFlowFiles(predicate);
+                totalDroppedCount += partitionSummary.getDroppedCount();
+                totalDroppedBytes += partitionSummary.getDroppedBytes();
+                adjustSize(-partitionSummary.getDroppedCount(), -partitionSummary.getDroppedBytes());
+            }
+
+            // Also drop from the rebalancing partition
+            final DropFlowFileSummary rebalanceSummary = rebalancingPartition.dropFlowFiles(predicate);
+            totalDroppedCount += rebalanceSummary.getDroppedCount();
+            totalDroppedBytes += rebalanceSummary.getDroppedBytes();
+            adjustSize(-rebalanceSummary.getDroppedCount(), -rebalanceSummary.getDroppedBytes());
+
+            return new DropFlowFileSummary(totalDroppedCount, totalDroppedBytes);
+        } finally {
+            unlock();
         }
     }
 

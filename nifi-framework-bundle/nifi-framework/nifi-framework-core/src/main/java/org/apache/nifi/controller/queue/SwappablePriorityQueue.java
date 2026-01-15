@@ -43,6 +43,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,13 +53,15 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
 public class SwappablePriorityQueue {
     private static final Logger logger = LoggerFactory.getLogger(SwappablePriorityQueue.class);
-    private static final int SWAP_RECORD_POLL_SIZE = 10_000;
+    private static final int MAX_SWAP_RECORD_POLL_SIZE = 10_000;
     private static final int MAX_EXPIRED_RECORDS_PER_ITERATION = 10_000;
 
     private final int swapThreshold;
+    private final int swapRecordPollSize;
     private final FlowFileSwapManager swapManager;
     private final EventReporter eventReporter;
     private final FlowFileQueue flowFileQueue;
@@ -74,7 +77,7 @@ public class SwappablePriorityQueue {
     // We keep an "active queue" and a "swap queue" that both are able to hold records in heap. When
     // FlowFiles are added to this FlowFileQueue, we first check if we are in "swap mode" and if so
     // we add to the 'swap queue' instead of the 'active queue'. The code would be much simpler if we
-    // eliminated the 'swap queue' and instead just used the active queue and swapped out the 10,000
+    // eliminated the 'swap queue' and instead just used the active queue and swapped out the
     // lowest priority FlowFiles from that. However, doing that would cause problems with the ordering
     // of FlowFiles. If we swap out some FlowFiles, and then allow a new FlowFile to be written to the
     // active queue, then we would end up processing the newer FlowFile before the swapped FlowFile. By
@@ -95,6 +98,7 @@ public class SwappablePriorityQueue {
         final DropFlowFileAction dropAction, final String swapPartitionName) {
         this.swapManager = swapManager;
         this.swapThreshold = swapThreshold;
+        this.swapRecordPollSize = Math.min(MAX_SWAP_RECORD_POLL_SIZE, swapThreshold);
 
         this.activeQueue = new PriorityQueue<>(20, new QueuePrioritizer(Collections.emptyList()));
         this.swapQueue = new ArrayList<>();
@@ -133,10 +137,34 @@ public class SwappablePriorityQueue {
     public LocalQueuePartitionDiagnostics getQueueDiagnostics() {
         readLock.lock();
         try {
-            final boolean anyPenalized = !activeQueue.isEmpty() && activeQueue.peek().isPenalized();
-            final boolean allPenalized = anyPenalized && activeQueue.stream().anyMatch(FlowFileRecord::isPenalized);
+            int penalizedCount = 0;
+            long penalizedBytes = 0;
+            for (final FlowFileRecord flowFile : activeQueue) {
+                if (flowFile.isPenalized()) {
+                    penalizedCount++;
+                    penalizedBytes += flowFile.getSize();
+                }
+            }
 
-            return new StandardLocalQueuePartitionDiagnostics(getFlowFileQueueSize(), anyPenalized, allPenalized);
+            final boolean anyPenalized = penalizedCount > 0;
+            final boolean allPenalized = anyPenalized && penalizedCount == activeQueue.size();
+            final QueueSize penalizedQueueSize = new QueueSize(penalizedCount, penalizedBytes);
+
+            int totalSwapFlowFiles = 0;
+            long totalSwapBytes = 0;
+            for (final String swapLocation : swapLocations) {
+                try {
+                    final SwapSummary summary = swapManager.getSwapSummary(swapLocation);
+                    final QueueSize queueSize = summary.getQueueSize();
+                    totalSwapFlowFiles += queueSize.getObjectCount();
+                    totalSwapBytes += queueSize.getByteCount();
+                } catch (final IOException e) {
+                    logger.warn("Unable to read swap file summary for {}: {}", swapLocation, e.getMessage());
+                }
+            }
+            final QueueSize totalSwapFileQueueSize = new QueueSize(totalSwapFlowFiles, totalSwapBytes);
+
+            return new StandardLocalQueuePartitionDiagnostics(getFlowFileQueueSize(), anyPenalized, allPenalized, penalizedQueueSize, totalSwapFileQueueSize);
         } finally {
             readLock.unlock("getQueueDiagnostics");
         }
@@ -159,16 +187,16 @@ public class SwappablePriorityQueue {
      * This method MUST be called with the write lock held
      */
     private void writeSwapFilesIfNecessary() {
-        if (swapQueue.size() < SWAP_RECORD_POLL_SIZE) {
+        if (swapQueue.size() < swapRecordPollSize) {
             return;
         }
 
         migrateSwapToActive();
-        if (swapQueue.size() < SWAP_RECORD_POLL_SIZE) {
+        if (swapQueue.size() < swapRecordPollSize) {
             return;
         }
 
-        final int numSwapFiles = swapQueue.size() / SWAP_RECORD_POLL_SIZE;
+        final int numSwapFiles = swapQueue.size() / swapRecordPollSize;
 
         int originalSwapQueueCount = swapQueue.size();
         long originalSwapQueueBytes = 0L;
@@ -191,9 +219,9 @@ public class SwappablePriorityQueue {
             long totalSwapQueueDatesThisIteration = 0L;
             long minQueueDateThisIteration = Long.MAX_VALUE;
 
-            // Create a new swap file for the next SWAP_RECORD_POLL_SIZE records
-            final List<FlowFileRecord> toSwap = new ArrayList<>(SWAP_RECORD_POLL_SIZE);
-            for (int j = 0; j < SWAP_RECORD_POLL_SIZE; j++) {
+            // Create a new swap file for the next swapRecordPollSize records
+            final List<FlowFileRecord> toSwap = new ArrayList<>(swapRecordPollSize);
+            for (int j = 0; j < swapRecordPollSize; j++) {
                 final FlowFileRecord flowFile = tempQueue.poll();
                 toSwap.add(flowFile);
                 bytesSwappedThisIteration += flowFile.getSize();
@@ -901,7 +929,209 @@ public class SwappablePriorityQueue {
         }
     }
 
+    /**
+     * Performs a selective drop of FlowFiles that match the given predicate. This method:
+     * 1. Filters the active queue and swap queue, collecting matched FlowFiles
+     * 2. For each swap file, peeks to deserialize FlowFiles, filters them, and writes remaining
+     *    FlowFiles to a new swap file (if any remain)
+     * 3. Returns a SelectiveDropResult containing all dropped FlowFiles and swap location updates
+     *
+     * Note: This method does NOT update the FlowFile Repository or Provenance Repository.
+     * The caller is responsible for updating the repositories after this method returns.
+     *
+     * @param predicate the predicate to determine which FlowFiles to drop
+     * @return a SelectiveDropResult containing dropped FlowFiles and swap location updates
+     * @throws IOException if an error occurs while reading or writing swap files
+     */
+    public SelectiveDropResult dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        final List<FlowFileRecord> droppedFlowFiles = new ArrayList<>();
+        final Map<String, String> swapLocationUpdates = new LinkedHashMap<>();
 
+        writeLock.lock();
+        try {
+            // Process swap files FIRST - this is done first because it can throw IOException.
+            // By processing swap files first, we avoid modifying in-memory state if swap file operations fail.
+            // We use a two-phase approach: first create all new swap files, then if all succeed, update state.
+
+            // Phase 1: Process all swap files and create new ones as needed
+            // Track what we need to do for each swap file
+            final List<SwapFileDropResult> swapFileResults = new ArrayList<>();
+            final List<String> newlyCreatedSwapFiles = new ArrayList<>();
+
+            try {
+                for (final String swapLocation : swapLocations) {
+                    final SwapFileDropResult result = processSwapFileForDrop(swapLocation, predicate);
+                    if (result != null) {
+                        swapFileResults.add(result);
+                        if (result.newSwapLocation() != null) {
+                            newlyCreatedSwapFiles.add(result.newSwapLocation());
+                        }
+                    }
+                }
+            } catch (final IOException ioe) {
+                // Failed to process swap files - delete all newly created swap files and throw exception
+                logger.error("Failed to process swap files during selective drop; rolling back all changes", ioe);
+                for (final String newSwapFile : newlyCreatedSwapFiles) {
+                    try {
+                        swapManager.deleteSwapFile(newSwapFile);
+                        logger.debug("Deleted newly created swap file {} during rollback", newSwapFile);
+                    } catch (final Exception deleteException) {
+                        logger.warn("Failed to delete newly created swap file {} during rollback", newSwapFile, deleteException);
+                    }
+                }
+                throw ioe;
+            }
+
+            // Phase 2: All swap file operations succeeded - now update state
+            for (final SwapFileDropResult result : swapFileResults) {
+                final String oldSwapLocation = result.oldSwapLocation();
+                final String newSwapLocation = result.newSwapLocation();
+
+                swapLocationUpdates.put(oldSwapLocation, newSwapLocation);
+                swapLocations.remove(oldSwapLocation);
+
+                if (newSwapLocation != null) {
+                    // Some FlowFiles remain in new swap file
+                    swapLocations.add(newSwapLocation);
+                    incrementSwapQueueSize(-result.droppedFlowFiles().size(), -result.droppedBytes(), 0);
+
+                    // Update metrics for the new swap location
+                    minQueueDateInSwapLocation.put(newSwapLocation, result.remainingMinQueueDate());
+                    totalQueueDateInSwapLocation.put(newSwapLocation, result.remainingTotalQueueDate());
+
+                    logger.debug("Selective drop removed {} FlowFiles from swap file {}, wrote remaining to {}",
+                        result.droppedFlowFiles().size(), oldSwapLocation, newSwapLocation);
+                } else {
+                    // All FlowFiles were dropped - swap file count decreases
+                    incrementSwapQueueSize(-result.droppedFlowFiles().size(), -result.droppedBytes(), -1);
+                    logger.debug("Selective drop removed all {} FlowFiles from swap file {}", result.droppedFlowFiles().size(), oldSwapLocation);
+                }
+
+                // Remove metrics for the old swap location
+                minQueueDateInSwapLocation.remove(oldSwapLocation);
+                totalQueueDateInSwapLocation.remove(oldSwapLocation);
+
+                droppedFlowFiles.addAll(result.droppedFlowFiles());
+            }
+
+            // Filter the active queue
+            final Queue<FlowFileRecord> newActiveQueue = new PriorityQueue<>(Math.max(20, activeQueue.size()), new QueuePrioritizer(getPriorities()));
+            int droppedFromActiveCount = 0;
+            long droppedFromActiveBytes = 0L;
+
+            for (final FlowFileRecord flowFile : activeQueue) {
+                if (predicate.test(flowFile)) {
+                    droppedFlowFiles.add(flowFile);
+                    droppedFromActiveCount++;
+                    droppedFromActiveBytes += flowFile.getSize();
+                } else {
+                    newActiveQueue.add(flowFile);
+                }
+            }
+            activeQueue = newActiveQueue;
+            if (droppedFromActiveCount > 0) {
+                incrementActiveQueueSize(-droppedFromActiveCount, -droppedFromActiveBytes);
+                logger.debug("Selective drop removed {} FlowFiles ({} bytes) from active queue", droppedFromActiveCount, droppedFromActiveBytes);
+            }
+
+            // Filter the swap queue
+            final List<FlowFileRecord> newSwapQueue = new ArrayList<>();
+            int droppedFromSwapQueueCount = 0;
+            long droppedFromSwapQueueBytes = 0L;
+
+            for (final FlowFileRecord flowFile : swapQueue) {
+                if (predicate.test(flowFile)) {
+                    droppedFlowFiles.add(flowFile);
+                    droppedFromSwapQueueCount++;
+                    droppedFromSwapQueueBytes += flowFile.getSize();
+                } else {
+                    newSwapQueue.add(flowFile);
+                }
+            }
+            swapQueue = newSwapQueue;
+            if (droppedFromSwapQueueCount > 0) {
+                incrementSwapQueueSize(-droppedFromSwapQueueCount, -droppedFromSwapQueueBytes, 0);
+                logger.debug("Selective drop removed {} FlowFiles ({} bytes) from swap queue", droppedFromSwapQueueCount, droppedFromSwapQueueBytes);
+            }
+
+            // Update swap mode if we've drained all queues
+            if (swapQueue.isEmpty() && swapLocations.isEmpty()) {
+                swapMode = false;
+            }
+
+            updateTopPenaltyExpiration();
+
+            logger.info("Selective drop completed for queue {}: dropped {} FlowFiles ({} bytes)",
+                getQueueIdentifier(), droppedFlowFiles.size(), droppedFlowFiles.stream().mapToLong(FlowFileRecord::getSize).sum());
+
+            return new SelectiveDropResult(droppedFlowFiles, swapLocationUpdates);
+        } finally {
+            writeLock.unlock("Selective Drop FlowFiles");
+        }
+    }
+
+    /**
+     * Processes a single swap file for selective drop, filtering FlowFiles based on the predicate.
+     * If any FlowFiles match the predicate, a new swap file is created with the remaining FlowFiles
+     * (or the swap file is marked for deletion if all FlowFiles match).
+     *
+     * @param swapLocation the location of the swap file to process
+     * @param predicate the predicate to determine which FlowFiles to drop
+     * @return a SwapFileDropResult if any FlowFiles were dropped, or null if no changes are needed
+     * @throws IOException if an error occurs reading or writing swap files
+     */
+    private SwapFileDropResult processSwapFileForDrop(final String swapLocation, final Predicate<FlowFile> predicate) throws IOException {
+        final SwapContents swapContents;
+        try {
+            swapContents = swapManager.peek(swapLocation, flowFileQueue);
+        } catch (final IncompleteSwapFileException isfe) {
+            logger.warn("Failed to read swap file {} due to incomplete file; some FlowFiles may not be filtered", swapLocation);
+            if (eventReporter != null) {
+                eventReporter.reportEvent(Severity.WARNING, "Selective Drop", "Failed to read swap file " + swapLocation +
+                    " because the file was incomplete. Some FlowFiles may not be filtered.");
+            }
+            return null;
+        }
+
+        final List<FlowFileRecord> swappedFlowFiles = swapContents.getFlowFiles();
+        final List<FlowFileRecord> remainingFlowFiles = new ArrayList<>();
+        final List<FlowFileRecord> droppedFromThisSwapFile = new ArrayList<>();
+        long droppedFromSwapFileBytes = 0L;
+        long remainingMinQueueDate = Long.MAX_VALUE;
+        long remainingTotalQueueDate = 0L;
+
+        for (final FlowFileRecord flowFile : swappedFlowFiles) {
+            if (predicate.test(flowFile)) {
+                droppedFromThisSwapFile.add(flowFile);
+                droppedFromSwapFileBytes += flowFile.getSize();
+            } else {
+                remainingFlowFiles.add(flowFile);
+                remainingMinQueueDate = Math.min(remainingMinQueueDate, flowFile.getLastQueueDate());
+                remainingTotalQueueDate += flowFile.getLastQueueDate();
+            }
+        }
+
+        if (droppedFromThisSwapFile.isEmpty()) {
+            return null;
+        }
+
+        if (remainingFlowFiles.isEmpty()) {
+            // All FlowFiles matched - swap file will be deleted
+            return new SwapFileDropResult(swapLocation, null, droppedFromThisSwapFile, droppedFromSwapFileBytes, 0L, 0L);
+        }
+
+        // Some FlowFiles remain - write to new swap file
+        final String newSwapLocation = swapManager.swapOut(remainingFlowFiles, flowFileQueue, swapPartitionName);
+        return new SwapFileDropResult(swapLocation, newSwapLocation, droppedFromThisSwapFile,
+            droppedFromSwapFileBytes, remainingMinQueueDate, remainingTotalQueueDate);
+    }
+
+    /**
+     * Holds the result of processing a single swap file during selective drop.
+     */
+    private record SwapFileDropResult(String oldSwapLocation, String newSwapLocation, List<FlowFileRecord> droppedFlowFiles,
+                                      long droppedBytes, long remainingMinQueueDate, long remainingTotalQueueDate) {
+    }
 
     public SwapSummary recoverSwappedFlowFiles() {
         int swapFlowFileCount = 0;

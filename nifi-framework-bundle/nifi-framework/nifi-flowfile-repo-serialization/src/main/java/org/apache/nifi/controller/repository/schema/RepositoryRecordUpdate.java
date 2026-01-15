@@ -21,7 +21,6 @@ import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.repository.schema.NamedValue;
 import org.apache.nifi.repository.schema.Record;
 import org.apache.nifi.repository.schema.RecordSchema;
-import org.wali.UpdateType;
 
 public class RepositoryRecordUpdate implements Record {
     private final RecordSchema schema;
@@ -40,17 +39,17 @@ public class RepositoryRecordUpdate implements Record {
     @Override
     public Object getFieldValue(final String fieldName) {
         if (RepositoryRecordSchema.REPOSITORY_RECORD_UPDATE_V2.equals(fieldName)) {
-            String actionType = (String) fieldMap.getFieldValue(RepositoryRecordSchema.ACTION_TYPE);
-            if (RepositoryRecordType.CONTENTMISSING.name().equals(actionType)) {
-                actionType = RepositoryRecordType.DELETE.name();
-            }
-            final UpdateType updateType = UpdateType.valueOf(actionType);
+            final String actionType = (String) fieldMap.getFieldValue(RepositoryRecordSchema.ACTION_TYPE);
+            final RepositoryRecordType recordType = RepositoryRecordType.valueOf(actionType);
 
-            final String actionName = switch (updateType) {
+            final String actionName = switch (recordType) {
                 case CREATE, UPDATE -> RepositoryRecordSchema.CREATE_OR_UPDATE_ACTION;
-                case DELETE -> RepositoryRecordSchema.DELETE_ACTION;
+                case DELETE, CONTENTMISSING -> RepositoryRecordSchema.DELETE_ACTION;
                 case SWAP_IN -> RepositoryRecordSchema.SWAP_IN_ACTION;
                 case SWAP_OUT -> RepositoryRecordSchema.SWAP_OUT_ACTION;
+                case SWAP_FILE_DELETED -> RepositoryRecordSchema.SWAP_FILE_DELETED_ACTION;
+                case SWAP_FILE_RENAMED -> RepositoryRecordSchema.SWAP_FILE_RENAMED_ACTION;
+                default -> throw new IllegalArgumentException("Unknown record type: " + recordType);
             };
 
             return new NamedValue(actionName, fieldMap);

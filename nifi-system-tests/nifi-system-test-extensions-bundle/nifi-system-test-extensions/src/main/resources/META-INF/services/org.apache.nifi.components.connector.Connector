@@ -22,3 +22,4 @@ org.apache.nifi.connectors.tests.system.GatedDataQueuingConnector
 org.apache.nifi.connectors.tests.system.NestedProcessGroupConnector
 org.apache.nifi.connectors.tests.system.NopConnector
 org.apache.nifi.connectors.tests.system.ParameterContextConnector
+org.apache.nifi.connectors.tests.system.SelectiveDropConnector

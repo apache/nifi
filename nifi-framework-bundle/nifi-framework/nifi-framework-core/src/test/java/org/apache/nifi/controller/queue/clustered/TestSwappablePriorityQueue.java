@@ -24,6 +24,7 @@ import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.SelectiveDropResult;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.events.EventReporter;
@@ -45,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -549,24 +551,26 @@ public class TestSwappablePriorityQueue {
     @Test
     public void testSwapInWhenThresholdIsLessThanSwapSize() {
         // create a queue where the swap threshold is less than 10k
+        // With threshold of 1000, swapRecordPollSize will also be 1000 (min of 10000 and threshold)
         queue = new SwappablePriorityQueue(swapManager, 1000, eventReporter, flowFileQueue, dropAction, null);
 
         for (int i = 1; i <= 20000; i++) {
             queue.put(new MockFlowFileRecord());
         }
 
-        assertEquals(1, swapManager.swappedOut.size());
+        // With swapRecordPollSize = 1000, we expect 19 swap files (19,000 FlowFiles)
+        assertEquals(19, swapManager.swappedOut.size());
         queue.put(new MockFlowFileRecord());
-        assertEquals(1, swapManager.swappedOut.size());
+        assertEquals(19, swapManager.swappedOut.size());
 
         final Set<FlowFileRecord> exp = new HashSet<>();
 
         // At this point there should be:
         // 1k flow files in the active queue
-        // 9,001 flow files in the swap queue
-        // 10k flow files swapped to disk
+        // 1 flow file in the swap queue
+        // 19k flow files swapped to disk (19 swap files with 1k each)
 
-        for (int i = 0; i < 999; i++) { //
+        for (int i = 0; i < 999; i++) {
             final FlowFileRecord flowFile = queue.poll(exp, 500000);
             assertNotNull(flowFile);
             assertEquals(1, queue.getQueueDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
@@ -584,13 +588,13 @@ public class TestSwappablePriorityQueue {
         assertEquals(0, swapManager.swapInCalledCount);
         assertEquals(0, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
 
-        assertEquals(1, swapManager.swapOutCalledCount);
+        assertEquals(19, swapManager.swapOutCalledCount);
 
-        assertNotNull(queue.poll(exp, 500000)); // this should trigger a swap-in of 10,000 records, and then pull 1 off the top.
+        assertNotNull(queue.poll(exp, 500000)); // this should trigger a swap-in of 1,000 records, and then pull 1 off the top.
         assertEquals(1, swapManager.swapInCalledCount);
-        assertEquals(9999, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(999, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
 
-        assertTrue(swapManager.swappedOut.isEmpty());
+        assertEquals(18, swapManager.swappedOut.size());
 
         queue.poll(exp, 500000);
     }
@@ -674,6 +678,100 @@ public class TestSwappablePriorityQueue {
         assertEquals(2, swapManager.swapInCalledCount);
     }
 
+    @Test
+    @Timeout(120)
+    public void testSelectiveDropFromActiveQueue() throws IOException {
+        final Predicate<FlowFile> evenSizePredicate = flowFile -> flowFile.getSize() % 2 == 0;
+
+        for (int i = 0; i < 100; i++) {
+            queue.put(new MockFlowFileRecord(i));
+        }
+        assertEquals(100, queue.size().getObjectCount());
+
+        final SelectiveDropResult result = queue.dropFlowFiles(evenSizePredicate);
+
+        assertEquals(50, result.getDroppedCount());
+        assertEquals(50, queue.size().getObjectCount());
+
+        final Set<FlowFileRecord> expired = new HashSet<>();
+        for (int i = 0; i < 50; i++) {
+            final FlowFileRecord flowFile = queue.poll(expired, 0L);
+            assertNotNull(flowFile);
+            assertEquals(1, flowFile.getSize() % 2);
+        }
+        assertNull(queue.poll(expired, 0L));
+    }
+
+    @Test
+    @Timeout(120)
+    public void testSelectiveDropFromSwapQueue() throws IOException {
+        final Predicate<FlowFile> evenSizePredicate = flowFile -> flowFile.getSize() % 2 == 0;
+
+        for (int i = 0; i < 15000; i++) {
+            queue.put(new MockFlowFileRecord(i));
+        }
+        assertEquals(15000, queue.size().getObjectCount());
+        assertEquals(10000, queue.getQueueDiagnostics().getActiveQueueSize().getObjectCount());
+
+        final SelectiveDropResult result = queue.dropFlowFiles(evenSizePredicate);
+
+        assertEquals(7500, result.getDroppedCount());
+        assertEquals(7500, queue.size().getObjectCount());
+    }
+
+    @Test
+    @Timeout(120)
+    public void testSelectiveDropFromSwapFile() throws IOException {
+        final Predicate<FlowFile> evenSizePredicate = flowFile -> flowFile.getSize() % 2 == 0;
+
+        for (int i = 0; i < 30000; i++) {
+            queue.put(new MockFlowFileRecord(i));
+        }
+        assertEquals(30000, queue.size().getObjectCount());
+        assertEquals(2, swapManager.swappedOut.size());
+
+        final SelectiveDropResult result = queue.dropFlowFiles(evenSizePredicate);
+
+        assertEquals(15000, result.getDroppedCount());
+        assertEquals(15000, queue.size().getObjectCount());
+        assertEquals(2, result.getSwapLocationUpdates().size());
+    }
+
+    @Test
+    @Timeout(120)
+    public void testSelectiveDropRemovesEntireSwapFileWhenAllMatch() throws IOException {
+        final Predicate<FlowFile> allMatch = flowFile -> true;
+
+        for (int i = 0; i < 30000; i++) {
+            queue.put(new MockFlowFileRecord(i));
+        }
+        assertEquals(30000, queue.size().getObjectCount());
+        assertEquals(2, swapManager.swappedOut.size());
+
+        final SelectiveDropResult result = queue.dropFlowFiles(allMatch);
+
+        assertEquals(30000, result.getDroppedCount());
+        assertEquals(0, queue.size().getObjectCount());
+
+        long nullNewLocations = result.getSwapLocationUpdates().values().stream().filter(v -> v == null).count();
+        assertEquals(2, nullNewLocations);
+    }
+
+    @Test
+    @Timeout(120)
+    public void testSelectiveDropWithNoMatches() throws IOException {
+        final Predicate<FlowFile> noMatch = flowFile -> false;
+
+        for (int i = 0; i < 100; i++) {
+            queue.put(new MockFlowFileRecord(i));
+        }
+        assertEquals(100, queue.size().getObjectCount());
+
+        final SelectiveDropResult result = queue.dropFlowFiles(noMatch);
+
+        assertEquals(0, result.getDroppedCount());
+        assertEquals(100, queue.size().getObjectCount());
+    }
 
     @Test
     @Timeout(5)
@@ -751,6 +849,7 @@ public class TestSwappablePriorityQueue {
     // To truly test this we need to get both the in-memory swap queue and swap "on disk" involved.
     public void testLastQueueDateMetrics() throws IOException {
         Set<FlowFileRecord> flowFileRecords = new HashSet<>(11001);
+        // With threshold of 1000, swapRecordPollSize will also be 1000
         queue = new SwappablePriorityQueue(swapManager, 1000, eventReporter, flowFileQueue, dropAction, "testGetMinLastQueueDate");
         long minQueueDate = Long.MAX_VALUE;
         long totalQueueDate = 0L;
@@ -764,10 +863,11 @@ public class TestSwappablePriorityQueue {
         }
 
         // Assert the queue has a max of active, in-memory swap, and on-disk swap
+        // With swapRecordPollSize = 1000, we have 10 swap files (10,000 FlowFiles) + 1 in swap queue + 1,000 in active
         assertEquals(1000, queue.getActiveFlowFiles().size());
         assertEquals(10001, queue.getFlowFileQueueSize().getSwappedCount());
-        assertEquals(1, queue.getFlowFileQueueSize().getSwapFileCount());
-        assertEquals(10000, swapManager.getSwapSummary(swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").get(0)).getQueueSize().getObjectCount());
+        assertEquals(10, queue.getFlowFileQueueSize().getSwapFileCount());
+        assertEquals(1000, swapManager.getSwapSummary(swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").get(0)).getQueueSize().getObjectCount());
 
         // Ensure that the min and totals are correct
         long now = System.currentTimeMillis();
@@ -778,11 +878,13 @@ public class TestSwappablePriorityQueue {
         List<FlowFileRecord> polledRecords = queue.poll(1000, Collections.emptySet(), -1);
         polledRecords.addAll(queue.poll(2, Collections.emptySet(), -1));
 
-        // Assert that the lone swap file was recovered into memory and that all numbers are as we still expect them to be.
-        assertEquals(9998, queue.getActiveFlowFiles().size());
-        assertEquals(1, queue.getFlowFileQueueSize().getSwappedCount());
-        assertEquals(0, queue.getFlowFileQueueSize().getSwapFileCount());
-        assertTrue(swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").isEmpty());
+        // Assert that one swap file was recovered into memory and that all numbers are as we still expect them to be.
+        // After polling 1,002: 1,000 active polled, then swap-in of 1,000 (from first swap file), then 2 more polled
+        // So: 998 active, 1 in swap queue, 9 swap files remaining
+        assertEquals(998, queue.getActiveFlowFiles().size());
+        assertEquals(9001, queue.getFlowFileQueueSize().getSwappedCount());
+        assertEquals(9, queue.getFlowFileQueueSize().getSwapFileCount());
+        assertEquals(9, swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").size());
 
         // Ensure that the min and total are still correct
         flowFileRecords.removeAll(polledRecords);
