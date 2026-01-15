@@ -17,6 +17,10 @@
 
 package org.apache.nifi.components.connector.facades.standalone;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationContext;
@@ -39,10 +43,15 @@ import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class StandaloneControllerServiceFacade implements ControllerServiceFacade {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+
     private final ControllerServiceNode controllerServiceNode;
     private final VersionedControllerService versionedControllerService;
     private final ParameterContext parameterContext;
@@ -161,12 +170,49 @@ public class StandaloneControllerServiceFacade implements ControllerServiceFacad
 
     @Override
     public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments) throws InvocationFailedException {
+        final Map<String, String> jsonArguments = serializeArgumentsToJson(arguments);
         final ConfigurationContext configurationContext = componentContextProvider.createConfigurationContext(controllerServiceNode, parameterContext);
-        return controllerServiceNode.invokeConnectorMethod(methodName, arguments, configurationContext);
+        final String jsonResult = controllerServiceNode.invokeConnectorMethod(methodName, jsonArguments, configurationContext);
+        if (jsonResult == null) {
+            return null;
+        }
+
+        try {
+            return OBJECT_MAPPER.readValue(jsonResult, Object.class);
+        } catch (final JsonProcessingException e) {
+            throw new InvocationFailedException("Failed to deserialize return value from Connector Method '" + methodName + "'", e);
+        }
     }
 
     @Override
     public <T> T invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final Class<T> returnType) throws InvocationFailedException {
-        return returnType.cast(invokeConnectorMethod(methodName, arguments));
+        final Map<String, String> jsonArguments = serializeArgumentsToJson(arguments);
+        final ConfigurationContext configurationContext = componentContextProvider.createConfigurationContext(controllerServiceNode, parameterContext);
+        final String jsonResult = controllerServiceNode.invokeConnectorMethod(methodName, jsonArguments, configurationContext);
+        if (jsonResult == null) {
+            return null;
+        }
+
+        try {
+            return OBJECT_MAPPER.readValue(jsonResult, returnType);
+        } catch (final JsonProcessingException e) {
+            throw new InvocationFailedException("Failed to deserialize return value from Connector Method '" + methodName + "'", e);
+        }
+    }
+
+    private Map<String, String> serializeArgumentsToJson(final Map<String, Object> arguments) throws InvocationFailedException {
+        final Map<String, String> jsonArguments = new HashMap<>();
+        for (final Map.Entry<String, Object> entry : arguments.entrySet()) {
+            if (entry.getValue() == null) {
+                jsonArguments.put(entry.getKey(), null);
+            } else {
+                try {
+                    jsonArguments.put(entry.getKey(), OBJECT_MAPPER.writeValueAsString(entry.getValue()));
+                } catch (final JsonProcessingException e) {
+                    throw new InvocationFailedException("Failed to serialize argument '" + entry.getKey() + "' to JSON", e);
+                }
+            }
+        }
+        return jsonArguments;
     }
 }
