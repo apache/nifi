@@ -27,6 +27,7 @@ import com.box.sdkgen.schemas.files.Files;
 import com.box.sdkgen.schemas.folder.FolderPathCollectionField;
 import com.box.sdkgen.schemas.folderfull.FolderFull;
 import com.box.sdkgen.schemas.foldermini.FolderMini;
+import com.box.sdkgen.schemas.item.Item;
 import com.box.sdkgen.schemas.items.Items;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.provenance.ProvenanceEventType;
@@ -76,10 +77,10 @@ public class PutBoxFileTest extends AbstractBoxFileTest implements FileListingTe
     protected FolderFull mockSubfolder2Full;
 
     @Mock
-    protected FolderMini mockSubfolder1Info;
+    protected Item mockSubfolder1Item;
 
     @Mock
-    protected FolderMini mockSubfolder2Info;
+    protected Item mockSubfolder2Item;
 
     @Override
     @BeforeEach
@@ -136,22 +137,24 @@ public class PutBoxFileTest extends AbstractBoxFileTest implements FileListingTe
         setupMockFolderInfo(SUBFOLDER1_ID, "sub1", mockSubfolder1Full);
         setupMockFolderInfo(SUBFOLDER2_ID, "sub2", mockSubfolder2Full);
 
-        // Mock subfolder1Info and subfolder2Info
-        lenient().when(mockSubfolder1Info.getName()).thenReturn("sub1");
-        lenient().when(mockSubfolder1Info.getId()).thenReturn(SUBFOLDER1_ID);
-        lenient().when(mockSubfolder2Info.getName()).thenReturn("sub2");
-        lenient().when(mockSubfolder2Info.getId()).thenReturn(SUBFOLDER2_ID);
+        // Mock subfolder Item objects that wrap FolderFull
+        lenient().when(mockSubfolder1Item.isFolderFull()).thenReturn(true);
+        lenient().when(mockSubfolder1Item.getFolderFull()).thenReturn(mockSubfolder1Full);
+        lenient().when(mockSubfolder1Item.getName()).thenReturn("sub1");
+        lenient().when(mockSubfolder2Item.isFolderFull()).thenReturn(true);
+        lenient().when(mockSubfolder2Item.getFolderFull()).thenReturn(mockSubfolder2Full);
+        lenient().when(mockSubfolder2Item.getName()).thenReturn("sub2");
 
         // Mock folder items query - root folder contains sub1
         Items rootItems = mock(Items.class);
-        List rootEntries = new ArrayList<>();
-        rootEntries.add(mockSubfolder1Info);
+        List<Item> rootEntries = new ArrayList<>();
+        rootEntries.add(mockSubfolder1Item);
         doReturn(rootEntries).when(rootItems).getEntries();
 
         // Mock folder items query - sub1 contains sub2
         Items sub1Items = mock(Items.class);
-        List sub1Entries = new ArrayList<>();
-        sub1Entries.add(mockSubfolder2Info);
+        List<Item> sub1Entries = new ArrayList<>();
+        sub1Entries.add(mockSubfolder2Item);
         doReturn(sub1Entries).when(sub1Items).getEntries();
 
         doAnswer(invocation -> {

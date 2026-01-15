@@ -85,6 +85,7 @@ public class ListBoxFileMetadataInstancesTest extends AbstractBoxFileTest implem
         doReturn(metadatas).when(mockFileMetadataManager).getFileMetadata(anyString());
 
         testRunner.setProperty(ListBoxFileMetadataInstances.FILE_ID, TEST_FILE_ID);
+        testRunner.setProperty(ListBoxFileMetadataInstances.FETCH_FULL_METADATA, "false");
         testRunner.enqueue(new byte[0]);
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(ListBoxFileMetadataInstances.REL_SUCCESS, 1);

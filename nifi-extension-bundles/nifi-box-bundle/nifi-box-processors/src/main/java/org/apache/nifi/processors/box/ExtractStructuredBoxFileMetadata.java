@@ -255,7 +255,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
     }
 
     AiExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
-                                                                              final String fileId) {
+                                                                                 final String fileId) {
         final AiItemBase fileItem = new AiItemBase.Builder(fileId)
                 .type(AiItemBaseTypeField.FILE)
                 .build();
@@ -274,7 +274,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
     }
 
     AiExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final RecordReader recordReader,
-                                                                            final String fileId) throws IOException, MalformedRecordException {
+                                                                               final String fileId) throws IOException, MalformedRecordException {
         final List<AiExtractStructuredFieldsField> fields = parseFieldsFromRecords(recordReader);
 
         final AiItemBase fileItem = new AiItemBase.Builder(fileId)

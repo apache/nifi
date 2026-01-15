@@ -18,7 +18,9 @@ package org.apache.nifi.processors.box;
 
 import com.box.sdkgen.box.errors.BoxAPIError;
 import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.filemetadata.GetFileMetadataByIdScope;
 import com.box.sdkgen.schemas.metadata.Metadata;
+import com.box.sdkgen.schemas.metadatafull.MetadataFull;
 import com.box.sdkgen.schemas.metadatas.Metadatas;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -52,6 +54,7 @@ import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_CODE_DESC;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE_DESC;
+import static org.apache.nifi.processors.box.utils.BoxMetadataUtils.processBoxMetadataInstance;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"box", "storage", "metadata", "instances", "templates"})
@@ -77,6 +80,16 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor FETCH_FULL_METADATA = new PropertyDescriptor.Builder()
+            .name("Fetch Full Metadata")
+            .description("When enabled, makes an additional API call for each metadata instance to retrieve full metadata "
+                    + "including custom field values. When disabled, only basic metadata fields ($parent, $template, $scope, $version) "
+                    + "are returned. Enabling this may increase API calls but provides complete metadata information.")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile containing the metadata instances records will be routed to this relationship upon successful processing.")
@@ -100,7 +113,8 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BOX_CLIENT_SERVICE,
-            FILE_ID
+            FILE_ID,
+            FETCH_FULL_METADATA
     );
 
     private volatile BoxClient boxClient;
@@ -130,6 +144,7 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final boolean fetchFullMetadata = context.getProperty(FETCH_FULL_METADATA).asBoolean();
 
         try {
             final Metadatas metadatas = getFileMetadata(fileId);
@@ -147,16 +162,26 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
             for (final Metadata metadata : metadatas.getEntries()) {
                 final Map<String, Object> instanceFields = new HashMap<>();
                 final String templateName = metadata.getTemplate();
+                final String scope = metadata.getScope();
 
                 if (templateName != null) {
                     templateNames.add(templateName);
                 }
 
-                // Add standard metadata fields
-                instanceFields.put("$parent", metadata.getParent());
-                instanceFields.put("$template", templateName);
-                instanceFields.put("$scope", metadata.getScope());
-                instanceFields.put("$version", metadata.getVersion());
+                if (fetchFullMetadata && templateName != null && scope != null) {
+                    // Fetch full metadata with all custom fields
+                    final GetFileMetadataByIdScope metadataScope = "global".equalsIgnoreCase(scope)
+                            ? GetFileMetadataByIdScope.GLOBAL
+                            : GetFileMetadataByIdScope.ENTERPRISE;
+                    final MetadataFull fullMetadata = getFileMetadataById(fileId, metadataScope, templateName);
+                    processBoxMetadataInstance(fileId, scope, templateName, fullMetadata, instanceFields);
+                } else {
+                    // Add only basic metadata fields
+                    instanceFields.put("$parent", metadata.getParent());
+                    instanceFields.put("$template", templateName);
+                    instanceFields.put("$scope", scope);
+                    instanceFields.put("$version", metadata.getVersion());
+                }
 
                 instanceList.add(instanceFields);
             }
@@ -213,5 +238,17 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
      */
     Metadatas getFileMetadata(final String fileId) {
         return boxClient.getFileMetadata().getFileMetadata(fileId);
+    }
+
+    /**
+     * Returns full metadata for a specific template on a file.
+     *
+     * @param fileId      The ID of the file.
+     * @param scope       The scope of the metadata.
+     * @param templateKey The template key of the metadata.
+     * @return The full metadata for the file.
+     */
+    MetadataFull getFileMetadataById(final String fileId, final GetFileMetadataByIdScope scope, final String templateKey) {
+        return boxClient.getFileMetadata().getFileMetadataById(fileId, scope, templateKey);
     }
 }

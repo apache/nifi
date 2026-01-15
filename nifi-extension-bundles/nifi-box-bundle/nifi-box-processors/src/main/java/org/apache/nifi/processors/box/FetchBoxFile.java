@@ -39,6 +39,7 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
@@ -105,6 +106,8 @@ public class FetchBoxFile extends AbstractBoxProcessor {
             FILE_ID
     );
 
+    private static final List<String> FILE_INFO_FIELDS = List.of("id", "name", "size", "modified_at", "path_collection");
+
     private volatile BoxClient boxClient;
 
     @Override
@@ -154,12 +157,12 @@ public class FetchBoxFile extends AbstractBoxProcessor {
     private FlowFile fetchFile(String fileId, ProcessSession session, FlowFile flowFile) {
         try (InputStream inputStream = boxClient.getDownloads().downloadFile(fileId)) {
             flowFile = session.importFrom(inputStream, flowFile);
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new ProcessException("Failed to download file from Box", e);
         }
 
         final GetFileByIdQueryParams queryParams = new GetFileByIdQueryParams.Builder()
-                .fields(List.of("id", "name", "size", "modified_at", "path_collection"))
+                .fields(FILE_INFO_FIELDS)
                 .build();
         final FileFull fileInfo = boxClient.getFiles().getFileById(fileId, queryParams);
         flowFile = session.putAllAttributes(flowFile, BoxFileUtils.createAttributeMap(fileInfo));

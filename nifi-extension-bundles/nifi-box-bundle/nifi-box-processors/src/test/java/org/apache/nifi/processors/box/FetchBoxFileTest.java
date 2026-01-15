@@ -122,7 +122,7 @@ public class FetchBoxFileTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(FetchBoxFile.REL_FAILURE, 1);
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFile.REL_FAILURE);
         final MockFlowFile ff0 = flowFiles.getFirst();
-        ff0.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Failed to download file from Box");
+        ff0.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Download failed");
         assertNoProvenanceEvent();
     }
 

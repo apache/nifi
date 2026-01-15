@@ -19,6 +19,9 @@ package org.apache.nifi.processors.box;
 import com.box.sdkgen.box.errors.BoxAPIError;
 import com.box.sdkgen.client.BoxClient;
 import com.box.sdkgen.managers.files.GetFileByIdQueryParams;
+import com.box.sdkgen.networking.fetchoptions.FetchOptions;
+import com.box.sdkgen.networking.fetchoptions.ResponseFormat;
+import com.box.sdkgen.networking.fetchresponse.FetchResponse;
 import com.box.sdkgen.schemas.filefull.FileFull;
 import com.box.sdkgen.schemas.filefull.FileFullRepresentationsEntriesContentField;
 import com.box.sdkgen.schemas.filefull.FileFullRepresentationsEntriesField;
@@ -46,10 +49,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.InputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -171,18 +170,15 @@ public class FetchBoxFileRepresentation extends AbstractBoxProcessor implements 
                 return;
             }
 
-            // Download the representation content
+            // Download the representation content using Box SDK's network client
+            final FetchOptions fetchOptions = new FetchOptions.Builder(representationUrl, "GET")
+                    .responseFormat(ResponseFormat.BINARY)
+                    .build();
+            final FetchResponse response = boxClient.makeRequest(fetchOptions);
+
             flowFile = session.write(flowFile, outputStream -> {
-                try {
-                    HttpClient client = HttpClient.newHttpClient();
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create(representationUrl))
-                            .GET()
-                            .build();
-                    HttpResponse<InputStream> response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
-                    try (InputStream is = response.body()) {
-                        is.transferTo(outputStream);
-                    }
+                try (InputStream is = response.getContent()) {
+                    is.transferTo(outputStream);
                 } catch (Exception e) {
                     throw new ProcessException("Failed to download representation content", e);
                 }

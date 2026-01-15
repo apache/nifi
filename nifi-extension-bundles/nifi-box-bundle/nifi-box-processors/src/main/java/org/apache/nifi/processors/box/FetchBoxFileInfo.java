@@ -123,6 +123,12 @@ public class FetchBoxFileInfo extends AbstractBoxProcessor {
             FILE_ID
     );
 
+    private static final List<String> FILE_INFO_FIELDS = List.of(
+            "name", "description", "size", "created_at", "modified_at",
+            "owned_by", "parent", "etag", "sha1", "item_status", "sequence_id", "path_collection",
+            "content_created_at", "content_modified_at", "trashed_at", "purged_at", "shared_link"
+    );
+
     private volatile BoxClient boxClient;
 
     @Override
@@ -182,9 +188,7 @@ public class FetchBoxFileInfo extends AbstractBoxProcessor {
                                        final ProcessSession session,
                                        final FlowFile flowFile) {
         final GetFileByIdQueryParams queryParams = new GetFileByIdQueryParams.Builder()
-                .fields(List.of("name", "description", "size", "created_at", "modified_at",
-                        "owned_by", "parent", "etag", "sha1", "item_status", "sequence_id", "path_collection",
-                        "content_created_at", "content_modified_at", "trashed_at", "purged_at", "shared_link"))
+                .fields(FILE_INFO_FIELDS)
                 .build();
 
         final FileFull fileInfo = boxClient.getFiles().getFileById(fileId, queryParams);

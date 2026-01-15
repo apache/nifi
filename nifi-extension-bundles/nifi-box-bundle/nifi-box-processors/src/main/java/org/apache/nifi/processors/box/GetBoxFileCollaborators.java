@@ -246,15 +246,11 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
                                       final Set<String> allowedRoles,
                                       final Set<String> allowedStatuses,
                                       final Map<String, List<String>> attributeValues) {
-        int count = 0;
-
         if (collaborations.getEntries() == null) {
-            return count;
+            return 0;
         }
 
         for (final Collaboration collab : collaborations.getEntries()) {
-            count++;
-
             final String status = collab.getStatus() != null ? collab.getStatus().getValue().toLowerCase() : "unknown";
             final String role = collab.getRole() != null ? collab.getRole().getValue().toLowerCase() : "unknown";
 
@@ -268,7 +264,7 @@ public class GetBoxFileCollaborators extends AbstractBoxProcessor {
             processCollaboration(collab, status, role, allowedRoles != null && allowedStatuses != null, attributeValues);
         }
 
-        return count;
+        return collaborations.getEntries().size();
     }
 
     /**
