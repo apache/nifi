@@ -29,6 +29,7 @@ public interface EventFactory<E extends Event> {
      * The key in the metadata map for the sender.
      */
     String SENDER_KEY = "sender";
+    String SENDER_PORT_KEY = "senderPort";
 
     /**
      * Creates an event for the given data and metadata.

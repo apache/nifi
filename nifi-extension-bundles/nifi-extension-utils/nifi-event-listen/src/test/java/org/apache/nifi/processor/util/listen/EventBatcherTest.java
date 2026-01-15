@@ -73,8 +73,8 @@ public class EventBatcherTest {
     public void testGetBatches() throws InterruptedException {
         String sender1 = new InetSocketAddress(0).toString();
         String sender2 = new InetSocketAddress(2).toString();
-        final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1);
-        final Map<String, String> sender2Metadata = EventFactoryUtil.createMapWithSender(sender2);
+        final Map<String, String> sender1Metadata = EventFactoryUtil.createMapWithSender(sender1, 0);
+        final Map<String, String> sender2Metadata = EventFactoryUtil.createMapWithSender(sender2, 2);
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
         events.put(eventFactory.create(MESSAGE_DATA_1.getBytes(StandardCharsets.UTF_8), sender1Metadata));
