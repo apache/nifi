@@ -27,13 +27,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Map;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -110,15 +109,17 @@ public abstract class AbstractTestNarLoader {
 
     @AfterEach
     public void cleanUp() throws IOException {
-        try (Stream<Path> walk = Files.walk(tempDir)) {
-            walk.sorted(Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.delete(path);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+        deleteRecursivelyWithDirectoryStream(tempDir);
+    }
+
+    private void deleteRecursivelyWithDirectoryStream(Path path) throws IOException {
+        if (Files.isDirectory(path)) {
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(path)) {
+                for (Path subPath : ds) {
+                    deleteRecursivelyWithDirectoryStream(subPath); // Recursive call
+                }
+            }
         }
+        Files.delete(path); // Delete the file or now-empty directory
     }
 }
