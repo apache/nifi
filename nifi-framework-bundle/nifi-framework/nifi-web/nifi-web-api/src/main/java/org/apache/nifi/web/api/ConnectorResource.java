@@ -86,6 +86,8 @@ import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.SearchResultsEntity;
@@ -104,6 +106,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -128,6 +131,7 @@ public class ConnectorResource extends ApplicationResource {
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
     private FlowResource flowResource;
+    private ControllerServiceResource controllerServiceResource;
     private UploadRequestReplicator uploadRequestReplicator;
 
     private final RequestManager<VerifyConnectorConfigStepRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
@@ -1412,6 +1416,76 @@ public class ConnectorResource extends ApplicationResource {
     }
 
     /**
+     * Retrieves all the controller services in the specified process group within a connector.
+     *
+     * @param connectorId The id of the connector
+     * @param processGroupId The process group id within the connector's hierarchy
+     * @param includeAncestorGroups Whether to include ancestor process groups
+     * @param includeDescendantGroups Whether to include descendant process groups
+     * @param includeReferences Whether to include services' referencing components in the response
+     * @return A controllerServicesEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{connectorId}/flow/process-groups/{processGroupId}/controller-services")
+    @Operation(
+            summary = "Gets all controller services for a process group within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ControllerServicesEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Read - /connectors/{uuid}")
+            },
+            description = "Returns the controller services for the specified process group within the connector's hierarchy. The processGroupId can be " +
+                    "obtained from the managedProcessGroupId field of the ConnectorDTO for the root process group, or from child process " +
+                    "groups within the flow."
+    )
+    public Response getControllerServicesFromConnectorProcessGroup(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("connectorId") final String connectorId,
+            @Parameter(description = "The process group id.", required = true)
+            @PathParam("processGroupId") final String processGroupId,
+            @Parameter(description = "Whether or not to include parent/ancestor process groups")
+            @QueryParam("includeAncestorGroups")
+            @DefaultValue("true") final boolean includeAncestorGroups,
+            @Parameter(description = "Whether or not to include descendant process groups")
+            @QueryParam("includeDescendantGroups")
+            @DefaultValue("false") final boolean includeDescendantGroups,
+            @Parameter(description = "Whether or not to include services' referencing components in the response")
+            @QueryParam("includeReferencingComponents")
+            @DefaultValue("true") final boolean includeReferences) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access to the connector
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the controller services for the specified process group within the connector's hierarchy
+        final Set<ControllerServiceEntity> controllerServices = serviceFacade.getConnectorControllerServices(
+                connectorId, processGroupId, includeAncestorGroups, includeDescendantGroups, includeReferences);
+        controllerServiceResource.populateRemainingControllerServiceEntitiesContent(controllerServices);
+
+        // create the response entity
+        final ControllerServicesEntity entity = new ControllerServicesEntity();
+        entity.setCurrentTime(new Date());
+        entity.setControllerServices(controllerServices);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
      * Retrieves the status for the process group managed by the specified connector.
      *
      * @param id The id of the connector
@@ -1708,6 +1782,11 @@ public class ConnectorResource extends ApplicationResource {
     @Autowired
     public void setFlowResource(final FlowResource flowResource) {
         this.flowResource = flowResource;
+    }
+
+    @Autowired
+    public void setControllerServiceResource(final ControllerServiceResource controllerServiceResource) {
+        this.controllerServiceResource = controllerServiceResource;
     }
 
     @Autowired(required = false)

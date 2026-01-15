@@ -224,6 +224,9 @@ public interface NiFiServiceFacade {
 
     ProcessGroupStatusEntity getConnectorProcessGroupStatus(String id, Boolean recursive);
 
+    Set<ControllerServiceEntity> getConnectorControllerServices(String connectorId, String processGroupId, boolean includeAncestorGroups,
+                                                                boolean includeDescendantGroups, boolean includeReferencingComponents);
+
     void verifyCanVerifyConnectorConfigurationStep(String connectorId, String configurationStepName);
 
     List<ConfigVerificationResultDTO> performConnectorConfigurationStepVerification(String connectorId, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);

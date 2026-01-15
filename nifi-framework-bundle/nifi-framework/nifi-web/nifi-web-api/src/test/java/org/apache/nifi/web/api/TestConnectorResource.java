@@ -36,6 +36,8 @@ import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
+import org.apache.nifi.web.api.entity.ControllerServiceEntity;
+import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.SecretsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
@@ -49,6 +51,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -91,6 +94,9 @@ public class TestConnectorResource {
     @Mock
     private FlowResource flowResource;
 
+    @Mock
+    private ControllerServiceResource controllerServiceResource;
+
     private static final String CONNECTOR_ID = "test-connector-id";
     private static final String CONNECTOR_NAME = "Test Connector";
     private static final String CONNECTOR_TYPE = "TestConnectorType";
@@ -116,6 +122,7 @@ public class TestConnectorResource {
 
         connectorResource.setServiceFacade(serviceFacade);
         connectorResource.setFlowResource(flowResource);
+        connectorResource.setControllerServiceResource(controllerServiceResource);
         connectorResource.httpServletRequest = httpServletRequest;
         connectorResource.properties = properties;
         connectorResource.uriInfo = uriInfo;
@@ -382,6 +389,33 @@ public class TestConnectorResource {
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade, never()).getConnectorFlow(anyString(), anyString(), eq(false));
+    }
+
+    @Test
+    public void testGetControllerServicesFromConnectorProcessGroup() {
+        final Set<ControllerServiceEntity> controllerServices = Set.of();
+        when(serviceFacade.getConnectorControllerServices(CONNECTOR_ID, PROCESS_GROUP_ID, true, false, true)).thenReturn(controllerServices);
+
+        try (Response response = connectorResource.getControllerServicesFromConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, true, false, true)) {
+            assertEquals(200, response.getStatus());
+            final ControllerServicesEntity entity = (ControllerServicesEntity) response.getEntity();
+            assertEquals(controllerServices, entity.getControllerServices());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorControllerServices(CONNECTOR_ID, PROCESS_GROUP_ID, true, false, true);
+        verify(controllerServiceResource).populateRemainingControllerServiceEntitiesContent(controllerServices);
+    }
+
+    @Test
+    public void testGetControllerServicesFromConnectorProcessGroupNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+                connectorResource.getControllerServicesFromConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, true, false, true));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getConnectorControllerServices(anyString(), anyString(), eq(true), eq(false), eq(true));
     }
 
     private ConnectorEntity createConnectorEntity() {
