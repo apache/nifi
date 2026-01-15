@@ -419,7 +419,9 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private void updateRepository(final Collection<RepositoryRecord> records, final boolean sync) throws IOException {
         for (final RepositoryRecord record : records) {
             if (record.getType() != RepositoryRecordType.DELETE && record.getType() != RepositoryRecordType.CONTENTMISSING
-                    && record.getType() != RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS && record.getDestination() == null) {
+                    && record.getType() != RepositoryRecordType.CLEANUP_TRANSIENT_CLAIMS
+                    && record.getType() != RepositoryRecordType.SWAP_FILE_DELETED && record.getType() != RepositoryRecordType.SWAP_FILE_RENAMED
+                    && record.getDestination() == null) {
                 throw new IllegalArgumentException("Record " + record + " has no destination and Type is " + record.getType());
             }
         }
@@ -482,6 +484,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                 final String swapLocation = record.getSwapLocation();
                 swapLocationsRemoved.add(swapLocation);
                 swapLocationsAdded.remove(swapLocation);
+            } else if (record.getType() == RepositoryRecordType.SWAP_FILE_DELETED) {
+                final String swapLocation = record.getSwapLocation();
+                swapLocationsRemoved.add(swapLocation);
+                swapLocationsAdded.remove(swapLocation);
+            } else if (record.getType() == RepositoryRecordType.SWAP_FILE_RENAMED) {
+                final String originalSwapLocation = record.getOriginalSwapLocation();
+                final String newSwapLocation = record.getSwapLocation();
+                swapLocationsRemoved.add(originalSwapLocation);
+                swapLocationsAdded.remove(originalSwapLocation);
+                swapLocationsAdded.add(newSwapLocation);
+                swapLocationsRemoved.remove(newSwapLocation);
             }
         }
 
@@ -637,7 +650,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
         for (final FlowFileRecord swapRecord : swapRecords) {
             final StandardRepositoryRecord repoRecord = new StandardRepositoryRecord(queue, swapRecord);
-            repoRecord.setSwapLocation(swapLocation);   // set the swap file to indicate that it's being swapped in.
+            repoRecord.setSwapLocation(swapLocation, RepositoryRecordType.SWAP_IN);
             repoRecord.setDestination(queue);
 
             repoRecords.add(repoRecord);
@@ -715,6 +728,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         final Set<String> recoveredSwapLocations = wal.getRecoveredSwapLocations();
         synchronized (this.swapLocationSuffixes) {
             recoveredSwapLocations.forEach(loc -> this.swapLocationSuffixes.add(normalizeSwapLocation(loc)));
+
+            for (final SerializedRepositoryRecord record : recordList) {
+                final RepositoryRecordType recordType = record.getType();
+                if (recordType == RepositoryRecordType.SWAP_FILE_DELETED) {
+                    this.swapLocationSuffixes.remove(normalizeSwapLocation(record.getSwapLocation()));
+                } else if (recordType == RepositoryRecordType.SWAP_FILE_RENAMED) {
+                    this.swapLocationSuffixes.remove(normalizeSwapLocation(record.getOriginalSwapLocation()));
+                    this.swapLocationSuffixes.add(normalizeSwapLocation(record.getSwapLocation()));
+                }
+            }
+
             logger.debug("Recovered {} Swap Files: {}", swapLocationSuffixes.size(), swapLocationSuffixes);
         }
 
@@ -729,6 +753,11 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         int numFlowFilesMissingQueue = 0;
         long maxId = 0;
         for (final SerializedRepositoryRecord record : recordList) {
+            final RepositoryRecordType recordType = record.getType();
+            if (recordType == RepositoryRecordType.SWAP_FILE_DELETED || recordType == RepositoryRecordType.SWAP_FILE_RENAMED) {
+                continue;
+            }
+
             final long recordId = serdeFactory.getRecordIdentifier(record);
             if (recordId > maxId) {
                 maxId = recordId;

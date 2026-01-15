@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.web.connector.authorization;
 
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceHierarchy;
@@ -26,8 +27,11 @@ import org.apache.nifi.components.connector.components.ProcessorFacade;
 import org.apache.nifi.components.connector.components.StatelessGroupLifecycle;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flowfile.FlowFile;
 
+import java.io.IOException;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -140,6 +144,12 @@ public class AuthorizingProcessGroupFacade implements ProcessGroupFacade {
     public ProcessGroupLifecycle getLifecycle() {
         authContext.authorizeRead();
         return new AuthorizingProcessGroupLifecycle(delegate.getLifecycle(), authContext);
+    }
+
+    @Override
+    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        authContext.authorizeWrite();
+        return delegate.dropFlowFiles(predicate);
     }
 }
 
