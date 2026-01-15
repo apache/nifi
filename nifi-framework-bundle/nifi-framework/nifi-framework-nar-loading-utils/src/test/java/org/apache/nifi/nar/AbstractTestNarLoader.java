@@ -27,7 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
+import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -109,10 +109,18 @@ public abstract class AbstractTestNarLoader {
 
     @AfterEach
     public void cleanUp() throws IOException {
-        deleteRecursivelyWithDirectoryStream(tempDir);
+        for (Bundle bundle : narClassLoaders.getBundles()) {
+            final ClassLoader classLoader = bundle.getClassLoader();
+
+            if (classLoader instanceof URLClassLoader) {
+                ((URLClassLoader) classLoader).close();
+            }
+        }
+
+        //deleteRecursivelyWithDirectoryStream(tempDir);
     }
 
-    private void deleteRecursivelyWithDirectoryStream(Path path) throws IOException {
+    /*private void deleteRecursivelyWithDirectoryStream(Path path) throws IOException {
         if (Files.isDirectory(path)) {
             try (DirectoryStream<Path> ds = Files.newDirectoryStream(path)) {
                 for (Path subPath : ds) {
@@ -121,5 +129,5 @@ public abstract class AbstractTestNarLoader {
             }
         }
         Files.delete(path); // Delete the file or now-empty directory
-    }
+    }*/
 }
