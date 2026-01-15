@@ -89,7 +89,7 @@ public class Kafka3ConnectionServiceBaseIT {
     // This Base class executes its tests with Ssl off and Sasl off.
     // There are subclasses which execute these same tests and enable Ssl or Sasl
 
-    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0"; // December 2024
+    public static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.6"; // January 2026
 
     private static final String DYNAMIC_PROPERTY_KEY_PUBLISH = "delivery.timeout.ms";
     private static final String DYNAMIC_PROPERTY_VALUE_PUBLISH = "60000";

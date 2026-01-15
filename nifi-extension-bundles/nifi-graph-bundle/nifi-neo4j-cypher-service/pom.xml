@@ -20,7 +20,7 @@
 
     <properties>
         <neo4j.driver.version>6.0.2</neo4j.driver.version>
-        <neo4j.docker.version>2025.09</neo4j.docker.version>
+        <neo4j.docker.version>2025.11</neo4j.docker.version>
     </properties>
 
     <dependencies>
