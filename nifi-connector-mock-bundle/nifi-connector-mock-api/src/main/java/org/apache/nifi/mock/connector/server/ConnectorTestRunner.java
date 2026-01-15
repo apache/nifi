@@ -18,12 +18,15 @@
 package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 
 import java.io.Closeable;
+import java.io.File;
+import java.io.InputStream;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +52,10 @@ public interface ConnectorTestRunner extends Closeable {
     ConnectorConfigVerificationResult verifyConfiguration(String stepName, StepConfiguration configurationOverrides);
 
     void addSecret(String name, String value);
+
+    AssetReference addAsset(File file);
+
+    AssetReference addAsset(String assetName, InputStream contents);
 
     void startConnector();
 

@@ -18,6 +18,8 @@
 package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.asset.Asset;
+import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -25,6 +27,7 @@ import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
@@ -58,7 +61,9 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolationsManager;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -263,6 +268,30 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     @Override
     public SecretReference createSecretReference(final String secretName) {
         return new SecretReference(ConnectorTestRunner.SECRET_PROVIDER_ID, ConnectorTestRunner.SECRET_PROVIDER_NAME, secretName, secretName);
+    }
+
+    @Override
+    public AssetReference addAsset(final File file) {
+        final AssetManager assetManager = flowController.getConnectorAssetManager();
+
+        try (final InputStream inputStream = new FileInputStream(file)) {
+            final Asset asset = assetManager.createAsset(CONNECTOR_ID, file.getName(), inputStream);
+            return new AssetReference(Set.of(asset.getIdentifier()));
+        } catch (final IOException e) {
+            throw new RuntimeException("Failed to add asset from file: " + file.getAbsolutePath(), e);
+        }
+    }
+
+    @Override
+    public AssetReference addAsset(final String assetName, final InputStream contents) {
+        final AssetManager assetManager = flowController.getConnectorAssetManager();
+
+        try {
+            final Asset asset = assetManager.createAsset(CONNECTOR_ID, assetName, contents);
+            return new AssetReference(Set.of(asset.getIdentifier()));
+        } catch (final IOException e) {
+            throw new RuntimeException("Failed to add asset: " + assetName, e);
+        }
     }
 
     @Override
