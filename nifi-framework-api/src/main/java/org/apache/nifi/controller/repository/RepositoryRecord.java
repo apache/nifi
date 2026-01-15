@@ -83,6 +83,14 @@ public interface RepositoryRecord {
     String getSwapLocation();
 
     /**
+     * @return For SWAP_FILE_RENAMED records, provides the original swap location before the rename.
+     * For other record types, returns <code>null</code>.
+     */
+    default String getOriginalSwapLocation() {
+        return null;
+    }
+
+    /**
      * @return a List of Content Claims that are "transient," meaning that they existed only for the
      *         life of the Process Session in which they were created and should not be persisted.
      */

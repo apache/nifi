@@ -696,6 +696,9 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
 
     @Test
     public void testUnnecessaryProcessorsAndConnectionsRemoved() throws NiFiClientException, IOException, InterruptedException {
+        // We make assertions about the number of components in the flow so make sure that we start with an empty flow.
+        destroyFlow();
+
         final ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorSchedulingPeriod(generate, "10 mins");
 
@@ -723,16 +726,10 @@ public class FlowSynchronizationIT extends NiFiSystemIT {
         // Redirect client to send requests to Node 2.
         switchClientToNode(2);
 
-        waitFor(() -> {
-            final ProcessGroupFlowEntity flow = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getProcessGroup("root");
-            final FlowDTO flowDto = flow.getProcessGroupFlow().getFlow();
-
-            if (flowDto.getProcessors().size() != 1) {
-                return false;
-            }
-
-            return flowDto.getConnections().isEmpty();
-        });
+        final ProcessGroupFlowEntity flow = getNifiClient().getFlowClient(DO_NOT_REPLICATE).getProcessGroup("root");
+        final FlowDTO flowDto = flow.getProcessGroupFlow().getFlow();
+        assertEquals(1, flowDto.getProcessors().size());
+        assertEquals(Collections.emptySet(), flowDto.getConnections());
     }
 
     @Test

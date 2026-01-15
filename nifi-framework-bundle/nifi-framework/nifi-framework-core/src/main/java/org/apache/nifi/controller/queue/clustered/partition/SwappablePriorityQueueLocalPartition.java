@@ -18,19 +18,22 @@
 package org.apache.nifi.controller.queue.clustered.partition;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
-import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.SelectiveDropResult;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.SwapSummary;
+import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 
@@ -40,6 +43,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 /**
  * A Local Queue Partition that whose implementation is based on the use of a {@link SwappablePriorityQueue}.
@@ -155,6 +159,16 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     @Override
     public void dropFlowFiles(final DropFlowFileRequest dropRequest, final String requestor) {
         priorityQueue.dropFlowFiles(dropRequest, requestor);
+    }
+
+    @Override
+    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        final SelectiveDropResult result = priorityQueue.dropFlowFiles(predicate);
+        return new DropFlowFileSummary(result.getDroppedCount(), result.getDroppedBytes());
+    }
+
+    public SelectiveDropResult dropFlowFilesSelective(final Predicate<FlowFile> predicate) throws IOException {
+        return priorityQueue.dropFlowFiles(predicate);
     }
 
     @Override

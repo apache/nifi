@@ -24,7 +24,11 @@ public abstract class RepositoryRecordSerde implements SerDe<SerializedRepositor
 
     @Override
     public Long getRecordIdentifier(final SerializedRepositoryRecord record) {
-        return record.getFlowFileRecord().getId();
+        final FlowFileRecord flowFileRecord = record.getFlowFileRecord();
+        if (flowFileRecord == null) {
+            return null;
+        }
+        return flowFileRecord.getId();
     }
 
     @Override
@@ -35,6 +39,8 @@ public abstract class RepositoryRecordSerde implements SerDe<SerializedRepositor
             case UPDATE -> UpdateType.UPDATE;
             case SWAP_OUT -> UpdateType.SWAP_OUT;
             case SWAP_IN -> UpdateType.SWAP_IN;
+            case SWAP_FILE_DELETED -> UpdateType.SWAP_FILE_DELETED;
+            case SWAP_FILE_RENAMED -> UpdateType.SWAP_FILE_RENAMED;
             default -> null;
         };
     }
@@ -42,5 +48,10 @@ public abstract class RepositoryRecordSerde implements SerDe<SerializedRepositor
     @Override
     public String getLocation(final SerializedRepositoryRecord record) {
         return record.getSwapLocation();
+    }
+
+    @Override
+    public String getOriginalLocation(final SerializedRepositoryRecord record) {
+        return record.getOriginalSwapLocation();
     }
 }

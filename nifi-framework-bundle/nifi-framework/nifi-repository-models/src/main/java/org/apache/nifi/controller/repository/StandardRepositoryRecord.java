@@ -36,6 +36,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     private final FlowFileRecord originalFlowFileRecord;
     private final FlowFileQueue originalQueue;
     private String swapLocation;
+    private String originalSwapLocation;
     private final Map<String, String> originalAttributes;
     private Map<String, String> updatedAttributes = null;
     private List<ContentClaim> transientClaims;
@@ -104,11 +105,24 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         return swapLocation;
     }
 
-    public void setSwapLocation(final String swapLocation) {
-        this.swapLocation = swapLocation;
-        if (type != RepositoryRecordType.SWAP_OUT) {
-            setType(RepositoryRecordType.SWAP_IN); // we are swapping in a new record
+    public void setSwapLocation(final String swapLocation, final RepositoryRecordType swapType) {
+        if (swapType != RepositoryRecordType.SWAP_IN && swapType != RepositoryRecordType.SWAP_OUT
+                && swapType != RepositoryRecordType.SWAP_FILE_DELETED && swapType != RepositoryRecordType.SWAP_FILE_RENAMED) {
+            throw new IllegalArgumentException("swapType must be one of SWAP_IN, SWAP_OUT, SWAP_FILE_DELETED, or SWAP_FILE_RENAMED but was " + swapType);
         }
+        this.swapLocation = swapLocation;
+        setType(swapType);
+    }
+
+    @Override
+    public String getOriginalSwapLocation() {
+        return originalSwapLocation;
+    }
+
+    public void setSwapFileRenamed(final String originalSwapLocation, final String newSwapLocation) {
+        this.originalSwapLocation = originalSwapLocation;
+        this.swapLocation = newSwapLocation;
+        setType(RepositoryRecordType.SWAP_FILE_RENAMED);
     }
 
     @Override
@@ -239,7 +253,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
             return;
         }
 
-        if (this.type == RepositoryRecordType.CREATE) {
+        if (this.type == RepositoryRecordType.CREATE && getCurrent() != null) {
             // Because we don't copy updated attributes to `this.updatedAttributes` for CREATE records, we need to ensure
             // that if a record is changed from CREATE to anything else that we do properly update the `this.updatedAttributes` field.
             this.updatedAttributes = new HashMap<>(getCurrent().getAttributes());

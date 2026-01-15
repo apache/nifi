@@ -174,6 +174,11 @@ public class MockSwapManager implements FlowFileSwapManager {
     }
 
     @Override
+    public void deleteSwapFile(final String swapLocation) throws IOException {
+        swappedOut.remove(swapLocation);
+    }
+
+    @Override
     public String getQueueIdentifier(final String swapLocation) {
         return null;
     }
