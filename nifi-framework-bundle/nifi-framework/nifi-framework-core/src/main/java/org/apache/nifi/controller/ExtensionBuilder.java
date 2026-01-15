@@ -564,7 +564,7 @@ public class ExtensionBuilder {
         // If an instance class loader has been created for this connector, remove it because it's no longer necessary.
         extensionManager.removeInstanceClassLoader(identifier);
 
-        return new StandardConnectorNode(
+        final ConnectorNode connectorNode = new StandardConnectorNode(
             identifier,
             flowController.getFlowManager(),
             extensionManager,
@@ -578,7 +578,13 @@ public class ExtensionBuilder {
             connectorValidationTrigger,
             true
         );
-    }
+
+        // Initialize the ghost connector so that it can be properly configured during flow synchronization
+        final FrameworkConnectorInitializationContext initContext = createConnectorInitializationContext(managedProcessGroup, componentLog);
+        connectorNode.initializeConnector(initContext);
+
+        return connectorNode;
+   }
 
     private void initializeDefaultValues(final Connector connector, final FrameworkFlowContext flowContext) {
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), identifier)) {
