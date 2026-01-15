@@ -59,8 +59,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -80,36 +78,18 @@ public class TestFileSystemRepository {
 
     private FileSystemRepository repository = null;
     private StandardResourceClaimManager claimManager = null;
+    private Path originalNifiPropertiesFile;
     private Path rootFile;
-    private Path modifiedNifiPropertiesFile;
     private NiFiProperties nifiProperties;
 
     @BeforeEach
     public void setup() throws IOException {
-        final Path originalNifiPropertiesFile = Paths.get("src/test/resources/conf/nifi.properties");
-        String modifiedNifiPropertiesContent;
-
-        try (Stream<String> lines = Files.lines(originalNifiPropertiesFile)) {
-            modifiedNifiPropertiesContent = lines.filter(line -> line.startsWith(NiFiProperties.REPOSITORY_CONTENT_PREFIX)
-                                 ||
-                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_ENABLED)
-                                 ||
-                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_MAX_RETENTION_PERIOD)
-                                 ||
-                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE)
-                                 ||
-                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_BACK_PRESSURE_PERCENTAGE)
-                                 ||
-                                 line.startsWith(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY))
-                                .map(line -> line.replaceFirst("\\./target", tempDir.toString()))
-                                .collect(Collectors.joining("\n"));
-        }
-
-        modifiedNifiPropertiesFile = tempDir.resolve(originalNifiPropertiesFile.getFileName());
-        Files.writeString(modifiedNifiPropertiesFile, modifiedNifiPropertiesContent);
-        nifiProperties = NiFiProperties.createBasicNiFiProperties(modifiedNifiPropertiesFile.toString());
-        repository = new FileSystemRepository(nifiProperties);
+        originalNifiPropertiesFile = Paths.get("src/test/resources/conf/nifi.properties");
         rootFile = tempDir.resolve("content_repository");
+        final String contentRepositoryDirectory = NiFiProperties.REPOSITORY_CONTENT_PREFIX.concat("default");
+        final Map<String, String> additionalProperties = Map.of(contentRepositoryDirectory, rootFile.toString());
+        nifiProperties = NiFiProperties.createBasicNiFiProperties(originalNifiPropertiesFile.toString(), additionalProperties);
+        repository = new FileSystemRepository(nifiProperties);
         claimManager = new StandardResourceClaimManager();
         repository.initialize(new StandardContentRepositoryContext(claimManager, EventReporter.NO_OP));
         repository.purge();
@@ -354,7 +334,7 @@ public class TestFileSystemRepository {
     @Test
     public void testBogusFile() throws IOException {
         repository.shutdown();
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, modifiedNifiPropertiesFile.toString());
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, originalNifiPropertiesFile.toString());
 
         Path bogus = rootFile.resolve("bogus");
         try {
