@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.controller;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.Restricted;
@@ -142,7 +146,9 @@ import java.util.stream.Stream;
 public class StandardProcessorNode extends ProcessorNode implements Connectable {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessorNode.class);
-
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
 
     public static final TimeUnit DEFAULT_TIME_UNIT = TimeUnit.MILLISECONDS;
     public static final String DEFAULT_YIELD_PERIOD = "1 sec";
@@ -1952,31 +1958,36 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final ProcessContext processContext) throws InvocationFailedException {
+    public String invokeConnectorMethod(final String methodName, final Map<String, String> jsonArguments, final ProcessContext processContext) throws InvocationFailedException {
         final ConfigurableComponent component = getComponent();
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), component.getClass(), getIdentifier())) {
             final Method implementationMethod = discoverConnectorMethod(component.getClass(), methodName);
             final MethodArgument[] methodArguments = getConnectorMethodArguments(methodName, implementationMethod, component);
             final List<Object> argumentValues = new ArrayList<>();
+
             for (final MethodArgument methodArgument : methodArguments) {
-                final Object argumentValue = arguments.get(methodArgument.name());
                 if (ProcessContext.class.equals(methodArgument.type())) {
                     continue;
                 }
 
-                if (argumentValue == null && methodArgument.required()) {
+                final String jsonValue = jsonArguments.get(methodArgument.name());
+                if (jsonValue == null && methodArgument.required()) {
                     throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the required argument '"
                         + methodArgument.name() + "' was not provided");
                 }
 
-                if (argumentValue != null && !(methodArgument.type().isAssignableFrom(argumentValue.getClass()))) {
-                    throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the argument '"
-                        + methodArgument.name() + "' is of type " + argumentValue.getClass().getName() + " defined by " + argumentValue.getClass().getClassLoader()
-                        + " but the method expects type " + methodArgument.type().getName() + " defined by " + methodArgument.type().getClassLoader());
+                if (jsonValue == null) {
+                    argumentValues.add(null);
+                } else {
+                    try {
+                        final Object argumentValue = OBJECT_MAPPER.readValue(jsonValue, methodArgument.type());
+                        argumentValues.add(argumentValue);
+                    } catch (final JsonProcessingException e) {
+                        throw new InvocationFailedException("Failed to deserialize argument '" + methodArgument.name() + "' as type " + methodArgument.type().getName() +
+                                                            " for Connector Method '" + methodName + "' on " + this, e);
+                    }
                 }
-
-                argumentValues.add(argumentValue);
             }
 
             // Inject ProcessContext if the method signature supports it
@@ -1990,7 +2001,14 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
             try {
                 implementationMethod.setAccessible(true);
-                return implementationMethod.invoke(component, argumentValues.toArray());
+                final Object result = implementationMethod.invoke(component, argumentValues.toArray());
+                if (result == null) {
+                    return null;
+                }
+
+                return OBJECT_MAPPER.writeValueAsString(result);
+            } catch (final JsonProcessingException e) {
+                throw new InvocationFailedException("Failed to serialize return value for Connector Method '" + methodName + "' on " + this, e);
             } catch (final Exception e) {
                 throw new InvocationFailedException(e);
             }
