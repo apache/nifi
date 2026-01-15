@@ -3731,18 +3731,10 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
-        serviceNodes.addAll(targetProcessGroup.getControllerServices(false));
+        serviceNodes.addAll(targetProcessGroup.getControllerServices(includeAncestorGroups));
 
         if (includeDescendantGroups) {
             serviceNodes.addAll(targetProcessGroup.findAllControllerServices());
-        }
-
-        if (includeAncestorGroups) {
-            ProcessGroup parent = targetProcessGroup.getParent();
-            while (parent != null && !parent.getIdentifier().equals(managedProcessGroup.getParent().getIdentifier())) {
-                serviceNodes.addAll(parent.getControllerServices(false));
-                parent = parent.getParent();
-            }
         }
 
         return serviceNodes.stream()
