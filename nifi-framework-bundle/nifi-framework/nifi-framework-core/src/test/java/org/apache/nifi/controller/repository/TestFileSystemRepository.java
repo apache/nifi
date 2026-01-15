@@ -97,7 +97,7 @@ public class TestFileSystemRepository {
 
     @AfterEach
     public void shutdown() throws IOException {
-        repository.shutdown();
+        repository.cleanup();
     }
 
     @Test
