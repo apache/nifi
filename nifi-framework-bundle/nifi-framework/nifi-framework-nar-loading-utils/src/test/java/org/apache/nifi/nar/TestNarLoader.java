@@ -52,7 +52,7 @@ public class TestNarLoader extends AbstractTestNarLoader {
 
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(narAutoLoadDir)) {
             final List<File> narFiles = new ArrayList<>();
-            for(Path entry : directoryStream) {
+            for (Path entry : directoryStream) {
                 narFiles.add(entry.toFile());
             }
 

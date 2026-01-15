@@ -22,6 +22,7 @@ import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -30,7 +31,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -105,4 +108,17 @@ public abstract class AbstractTestNarLoader {
                 NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
     }
 
+    @AfterEach
+    public void cleanUp() throws IOException {
+        try (Stream<Path> walk = Files.walk(tempDir)) {
+            walk.sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.delete(path);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        }
+    }
 }
