@@ -37,7 +37,7 @@ import java.util.Properties;
 
 public abstract class AbstractKafkaBaseIT {
 
-    protected static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.0"; // December 2024
+    protected static final String IMAGE_NAME = "confluentinc/cp-kafka:7.8.6"; // January 2026
 
     protected static final Integer MESSAGE_MAX_BYTES = 2097152;
 

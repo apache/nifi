@@ -33,7 +33,7 @@ language governing permissions and limitations under the License. -->
     </modules>
 
     <properties>
-        <elasticsearch.client.version>9.2.3</elasticsearch.client.version>
+        <elasticsearch.client.version>9.2.4</elasticsearch.client.version>
     </properties>
 
     <dependencyManagement>
@@ -108,7 +108,7 @@ language governing permissions and limitations under the License. -->
         <profile>
             <id>elasticsearch8</id>
             <properties>
-                <elasticsearch_docker_image>8.19.5</elasticsearch_docker_image>
+                <elasticsearch_docker_image>8.19.10</elasticsearch_docker_image>
             </properties>
         </profile>
         <profile>
