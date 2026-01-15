@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.controller.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
@@ -106,6 +110,9 @@ import java.util.stream.Collectors;
 public class StandardControllerServiceNode extends AbstractComponentNode implements ControllerServiceNode {
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardControllerServiceNode.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
 
     private static final long INCREMENTAL_VALIDATION_DELAY_MS = 1000;
     private static final Duration MAXIMUM_DELAY = Duration.ofMinutes(10);
@@ -917,37 +924,40 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
     }
 
-    // TODO: Refactor, this is the same between ProcessorNode / ControllerServiceNode except for getComponentState
     @Override
-    public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final ConfigurationContext configurationContext) throws InvocationFailedException {
+    public String invokeConnectorMethod(final String methodName, final Map<String, String> jsonArguments, final ConfigurationContext configurationContext) throws InvocationFailedException {
         final ConfigurableComponent component = getComponent();
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), component.getClass(), getIdentifier())) {
             final Method implementationMethod = discoverConnectorMethod(component.getClass(), methodName);
             final MethodArgument[] methodArguments = getConnectorMethodArguments(methodName, implementationMethod, component);
             final List<Object> argumentValues = new ArrayList<>();
+
             for (final MethodArgument methodArgument : methodArguments) {
-                final Object argumentValue = arguments.get(methodArgument.name());
                 if (ConfigurationContext.class.equals(methodArgument.type())) {
                     continue;
                 }
 
-                if (argumentValue == null && methodArgument.required()) {
+                final String jsonValue = jsonArguments.get(methodArgument.name());
+                if (jsonValue == null && methodArgument.required()) {
                     throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the required argument '"
                                                        + methodArgument.name() + "' was not provided");
                 }
 
-                if (argumentValue != null && !(methodArgument.type().isAssignableFrom(argumentValue.getClass()))) {
-                    throw new IllegalArgumentException("Cannot invoke Connector Method '" + methodName + "' on " + this + " because the argument '"
-                                                       + methodArgument.name() + "' is of type " + argumentValue.getClass().getName() + " defined by " + argumentValue.getClass().getClassLoader()
-                                                       + " but the method expects type " + methodArgument.type().getName() + " defined by " + methodArgument.type().getClassLoader());
+                if (jsonValue == null) {
+                    argumentValues.add(null);
+                } else {
+                    try {
+                        final Object argumentValue = OBJECT_MAPPER.readValue(jsonValue, methodArgument.type());
+                        argumentValues.add(argumentValue);
+                    } catch (final JsonProcessingException e) {
+                        throw new InvocationFailedException("Failed to deserialize argument '" + methodArgument.name() + "' as type " + methodArgument.type().getName()
+                                                            + " for Connector Method '" + methodName + "' on " + this, e);
+                    }
                 }
-
-                argumentValues.add(argumentValue);
             }
 
             // Inject ConfigurationContext if the method signature supports it
-            // TODO: Can we move away from Maps and instead just use reflection to get the arguments directly?
             final Class<?>[] argumentTypes = implementationMethod.getParameterTypes();
             if (argumentTypes.length > 0 && ConfigurationContext.class.isAssignableFrom(argumentTypes[0])) {
                 argumentValues.addFirst(configurationContext);
@@ -958,7 +968,14 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
             try {
                 implementationMethod.setAccessible(true);
-                return implementationMethod.invoke(component, argumentValues.toArray());
+                final Object result = implementationMethod.invoke(component, argumentValues.toArray());
+                if (result == null) {
+                    return null;
+                }
+
+                return OBJECT_MAPPER.writeValueAsString(result);
+            } catch (final JsonProcessingException e) {
+                throw new InvocationFailedException("Failed to serialize return value for Connector Method '" + methodName + "' on " + this, e);
             } catch (final Exception e) {
                 throw new InvocationFailedException(e);
             }

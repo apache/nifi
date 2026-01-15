@@ -63,3 +63,4 @@ org.apache.nifi.processors.tests.system.WriteFlowFileCountToFile
 org.apache.nifi.processors.tests.system.WriteLifecycleEvents
 org.apache.nifi.processors.tests.system.WriteToFile
 org.apache.nifi.processors.tests.system.YieldSource
+org.apache.nifi.processors.tests.system.Calculate

@@ -17,6 +17,10 @@
 
 package org.apache.nifi.components.connector.facades.standalone;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationContext;
@@ -41,10 +45,15 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.ProcessContext;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class StandaloneProcessorFacade implements ProcessorFacade {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+
     private final ProcessorNode processorNode;
     private final VersionedProcessor versionedProcessor;
     private final ParameterContext parameterContext;
@@ -169,12 +178,51 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
 
     @Override
     public Object invokeConnectorMethod(final String methodName, final Map<String, Object> arguments) throws InvocationFailedException {
+        final Map<String, String> jsonArguments = serializeArgumentsToJson(arguments);
         final ProcessContext processContext = componentContextProvider.createProcessContext(processorNode, parameterContext);
-        return processorNode.invokeConnectorMethod(methodName, arguments, processContext);
+        final String jsonResult = processorNode.invokeConnectorMethod(methodName, jsonArguments, processContext);
+        if (jsonResult == null) {
+            return null;
+        }
+
+        try {
+            return OBJECT_MAPPER.readValue(jsonResult, Object.class);
+        } catch (final JsonProcessingException e) {
+            throw new InvocationFailedException("Failed to deserialize return value from Connector Method '" + methodName + "'", e);
+        }
     }
 
     @Override
     public <T> T invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final Class<T> returnType) throws InvocationFailedException {
-        return returnType.cast(invokeConnectorMethod(methodName, arguments));
+        final Map<String, String> jsonArguments = serializeArgumentsToJson(arguments);
+        final ProcessContext processContext = componentContextProvider.createProcessContext(processorNode, parameterContext);
+        final String jsonResult = processorNode.invokeConnectorMethod(methodName, jsonArguments, processContext);
+        if (jsonResult == null) {
+            return null;
+        }
+
+        try {
+            return OBJECT_MAPPER.readValue(jsonResult, returnType);
+        } catch (final JsonProcessingException e) {
+            throw new InvocationFailedException("Failed to deserialize return value from Connector Method '" + methodName + "'", e);
+        }
+    }
+
+    private Map<String, String> serializeArgumentsToJson(final Map<String, Object> arguments) throws InvocationFailedException {
+        final Map<String, String> jsonArguments = new HashMap<>();
+
+        for (final Map.Entry<String, Object> entry : arguments.entrySet()) {
+            if (entry.getValue() == null) {
+                jsonArguments.put(entry.getKey(), null);
+            } else {
+                try {
+                    jsonArguments.put(entry.getKey(), OBJECT_MAPPER.writeValueAsString(entry.getValue()));
+                } catch (final JsonProcessingException e) {
+                    throw new InvocationFailedException("Failed to serialize argument '" + entry.getKey() + "' to JSON", e);
+                }
+            }
+        }
+
+        return jsonArguments;
     }
 }
