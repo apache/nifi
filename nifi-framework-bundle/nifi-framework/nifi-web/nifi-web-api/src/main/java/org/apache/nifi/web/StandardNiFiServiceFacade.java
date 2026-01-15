@@ -3722,6 +3722,28 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public Set<ControllerServiceEntity> getConnectorControllerServices(final String connectorId, final String processGroupId,
+            final boolean includeAncestorGroups, final boolean includeDescendantGroups, final boolean includeReferencingComponents) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
+        final ProcessGroup managedProcessGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessGroup targetProcessGroup = managedProcessGroup.findProcessGroup(processGroupId);
+        if (targetProcessGroup == null) {
+            throw new ResourceNotFoundException("Process Group with ID " + processGroupId + " was not found within Connector " + connectorId);
+        }
+
+        final Set<ControllerServiceNode> serviceNodes = new HashSet<>();
+        serviceNodes.addAll(targetProcessGroup.getControllerServices(includeAncestorGroups));
+
+        if (includeDescendantGroups) {
+            serviceNodes.addAll(targetProcessGroup.findAllControllerServices());
+        }
+
+        return serviceNodes.stream()
+                .map(serviceNode -> createControllerServiceEntity(serviceNode, includeReferencingComponents))
+                .collect(Collectors.toSet());
+    }
+
+    @Override
     public void verifyCanVerifyConnectorConfigurationStep(final String connectorId, final String configurationStepName) {
         connectorDAO.verifyCanVerifyConfigurationStep(connectorId, configurationStepName);
     }
