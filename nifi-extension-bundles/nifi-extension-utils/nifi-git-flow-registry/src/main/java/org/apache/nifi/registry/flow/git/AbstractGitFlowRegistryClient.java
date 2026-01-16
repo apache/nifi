@@ -346,7 +346,26 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final String branch = snapshotMetadata.getBranch();
         final FlowLocation flowLocation = new FlowLocation(snapshotMetadata.getBranch(), snapshotMetadata.getBucketIdentifier(), snapshotMetadata.getFlowIdentifier());
         final String filePath = getSnapshotFilePath(flowLocation);
-        final String previousSha = repositoryClient.getContentSha(filePath, branch).orElse(null);
+
+        // Capture the expected version before any modifications - this is the commit SHA the user believes they are committing on top of
+        final String expectedVersion = snapshotMetadata.getVersion();
+
+        // Get the current version (latest commit SHA) from the repository
+        final List<GitCommit> commits = repositoryClient.getCommits(filePath, branch);
+        final String currentVersion = commits.isEmpty() ? null : commits.getFirst().id();
+
+        // Get the blob SHA needed for the Git API to update the file
+        final String currentBlobSha = repositoryClient.getContentSha(filePath, branch).orElse(null);
+
+        // Check for version conflict: if the user expects a specific version but it doesn't match the current version in the repository,
+        // another user may have committed changes in the meantime. Reject the commit unless FORCE_COMMIT is specified.
+        if (expectedVersion != null && currentVersion != null && !expectedVersion.equals(currentVersion) && action != RegisterAction.FORCE_COMMIT) {
+            throw new FlowRegistryException("""
+                    Version conflict detected for flow [%s] in bucket [%s] on branch [%s].
+                    Expected version [%s] but the current version in the repository is [%s].
+                    Another user may have committed changes. Please check for a newer version and try again."""
+                    .formatted(flowLocation.getFlowId(), flowLocation.getBucketId(), branch, expectedVersion, currentVersion));
+        }
 
         final String snapshotComments = snapshotMetadata.getComments();
         final String commitMessage = StringUtils.isBlank(snapshotComments) ? DEFAULT_FLOW_SNAPSHOT_MESSAGE_FORMAT.formatted(flowLocation.getFlowId()) : snapshotComments;
@@ -406,7 +425,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .path(filePath)
                 .content(flowSnapshotSerializer.serialize(flowSnapshot))
                 .message(commitMessage)
-                .existingContentSha(previousSha)
+                .existingContentSha(currentBlobSha)
                 .build();
 
         final String createContentCommitSha = repositoryClient.createContent(createContentRequest);
