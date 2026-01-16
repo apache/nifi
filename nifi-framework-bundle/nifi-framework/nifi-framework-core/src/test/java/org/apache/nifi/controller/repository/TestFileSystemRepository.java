@@ -97,7 +97,7 @@ public class TestFileSystemRepository {
 
     @AfterEach
     public void shutdown() throws IOException {
-        repository.cleanup();
+        repository.shutdown();
     }
 
     @Test
@@ -357,6 +357,7 @@ public class TestFileSystemRepository {
         assertEquals(1, repository.getClaimantCount(claim));
     }
 
+    //@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Cannot delete a created file as there is some lock on the created file")
     @Test
     public void testReadClaimThenWriteThenReadMore() throws IOException {
         final ContentClaim claim = repository.create(false);
