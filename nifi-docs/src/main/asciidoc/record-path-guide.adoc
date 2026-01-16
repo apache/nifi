@@ -1409,3 +1409,102 @@ only of white space (spaces, tabs, carriage returns, and new-line characters).
 | `/name[isBlank(/details/phase)]` | John Doe
 | `/name[isBlank(.)]` | <returns no results>
 |==============================================================================
+
+[[math_functions]]
+== Math Functions
+
+Math functions accept the following number types:
+
+- Byte
+- Short
+- Integer
+- Long
+- Float
+- Double
+
+The following non-number types are also accepted if they can be coerced to a number:
+
+- String
+- Date
+
+Unless otherwise specified, the calculated result is either a Long or Double:
+
+- If any argument is a Float or Double, the result is a Double
+- Otherwise, the result is a Long
+
+Math functions do not handle overflow.
+
+Examples below use the schema:
+
+```
+{
+    "type": "record",
+    "name": "logs",
+    "fields": [
+        { "name": "flags", "type": "byte" },
+        { "name": "seq", "type" : "short"},
+        { "name": "txns", "type" : "int"},
+        { "name": "timestamp", "type" : "long"},
+        { "name": "temp", "type" : "float"},
+        { "name": "load", "type" : "double"},
+        { "name": "timestampMillis", "type" : "string"},
+        { "name": "date", "type" : "date"},
+    ]
+}
+```
+
+and the record:
+
+```
+{
+    "flags" : 7,
+    "seq": 1024,
+    "txns": 125000,
+    "timestamp": 1768967368,
+    "temp": 55.0,
+    "load": 5.67,
+    "timestampMillis": "1768967368000",
+    "date": "2026-01-21",
+}
+```
+
+
+=== toNumber
+
+Coerces a String or Date value to a number. If the argument is already a number it is returned unmodified, preserving the original type.
+
+|==============================================================================
+| RecordPath | Return value
+| `toNumber(456)` | 456
+| `toNumber(/flags)` | 7
+| `toNumber(/load)` | 5.67
+| `toNumber('7.89')` | 7.89
+| `toNumber(/timestampMillis)` | 1768967368000
+| `toNumber(/date)` | 1768953600000
+|==============================================================================
+
+=== multiply
+
+Calculates the product of two numbers.
+
+|==============================================================================
+| RecordPath | Return value
+| `multiply(2, 2)` | 4
+| `multiply('2.0', 2)` | 4.0
+| `multiply(/flags, 2)` | 14
+| `multiply(2, /temp)` | 110.0
+| `multiply(/load, /temp)` | 311.85
+|==============================================================================
+
+=== divide
+
+Calculates the quotient of two numbers.
+
+|==============================================================================
+| RecordPath | Return value
+| `divide(2, 2)` | 1
+| `divide(3, 2)` | 1
+| `divide(3, '2.0')` | 1.5
+| `divide(/txns, /temp)` | 2272.7272727272725
+| `divide(/timestampMillis, 300000)` | 5896557
+|==============================================================================
