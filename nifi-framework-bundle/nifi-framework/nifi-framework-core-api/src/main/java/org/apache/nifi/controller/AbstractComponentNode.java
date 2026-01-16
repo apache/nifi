@@ -892,7 +892,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
-        Throwable failureCause = null;
+        Throwable failureCause;
 
         try {
             if (!sensitiveDynamicPropertyNames.get().isEmpty() && !isSupportsSensitiveDynamicProperties()) {
