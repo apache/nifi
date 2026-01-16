@@ -357,7 +357,8 @@ public class TestFileSystemRepository {
         assertEquals(1, repository.getClaimantCount(claim));
     }
 
-    //@DisabledOnOs(value = OS.WINDOWS, disabledReason = "Cannot delete a created file as there is some lock on the created file")
+    @DisabledOnOs(value = OS.WINDOWS,
+            disabledReason = "JUnit 5 tempDir cannot be deleted since there is a file in the content repository which cannot be deleted.")
     @Test
     public void testReadClaimThenWriteThenReadMore() throws IOException {
         final ContentClaim claim = repository.create(false);
