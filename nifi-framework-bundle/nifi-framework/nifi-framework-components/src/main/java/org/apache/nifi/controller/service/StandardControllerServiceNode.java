@@ -653,16 +653,16 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                 final ValidationStatus validationStatus = validationState.getStatus();
                 if (validationStatus == ValidationStatus.VALID) {
                     LOG.debug("Enabling {} proceeding after performing validation", serviceNode);
-                } else if (completeExceptionallyOnFailure) {
-                    final Collection<ValidationResult> errors = validationState.getValidationErrors();
-                    final String message = "Enabling %s failed: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors);
-                    future.completeExceptionally(new IllegalStateException(message));
                 } else {
+                    final Collection<ValidationResult> errors = validationState.getValidationErrors();
+                    if (completeExceptionallyOnFailure) {
+                        future.completeExceptionally(new IllegalStateException("Enabling %s failed: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors)));
+                    }
+
                     final long selectedValidationDelay = getDelay(validationDelay, INCREMENTAL_VALIDATION_DELAY_MS);
 
                     // Log warning on repeated validation rescheduling
                     if (selectedValidationDelay > MAXIMUM_DELAY.toMillis()) {
-                        final Collection<ValidationResult> errors = validationState.getValidationErrors();
                         LOG.warn("Validation rescheduled in {} ms for {} Errors {}", selectedValidationDelay, serviceNode, errors);
                     }
 
@@ -670,10 +670,8 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                         scheduler.schedule(this, selectedValidationDelay, TimeUnit.MILLISECONDS);
                         LOG.debug("Validation rescheduled in {} ms for {}", selectedValidationDelay, serviceNode);
                     } catch (final RejectedExecutionException e) {
-                        LOG.error("Validation rescheduling rejected for {}", serviceNode, e);
-                        final Collection<ValidationResult> errors = validationState.getValidationErrors();
-                        final String message = "Enabling %s rejected: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors);
-                        future.completeExceptionally(new IllegalStateException(message));
+                        LOG.debug("Validation rescheduling rejected for {}", serviceNode, e);
+                        future.completeExceptionally(new IllegalStateException("Enabling %s rejected: Validation Status [%s] Errors %s".formatted(serviceNode, validationStatus, errors)));
                     }
                     // Enable command rescheduled or rejected
                     return;
@@ -787,7 +785,6 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
         return future;
     }
-
 
     private void invokeDisable(ConfigurationContext configContext) {
         final ControllerService controllerService = getControllerServiceImplementation();

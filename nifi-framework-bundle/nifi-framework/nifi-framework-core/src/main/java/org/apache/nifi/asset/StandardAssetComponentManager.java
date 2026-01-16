@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +97,63 @@ public class StandardAssetComponentManager implements AssetComponentManager {
 
         final Set<ControllerServiceNode> disabledControllerServices = new HashSet<>();
         controllerServicesReferencingParameters.forEach(controllerServiceNode -> disableControllerService(controllerServiceNode, disabledControllerServices, stoppedProcessors));
+
+        // Start/enable the components that were previously stopped/disabled
+        enableControllerServices(disabledControllerServices);
+        stoppedProcessors.forEach(this::startProcessor);
+        stoppedStatelessProcessGroups.forEach(ProcessGroup::startProcessing);
+    }
+
+    @Override
+    public void restartReferencingComponents(final Collection<Asset> assets) {
+        if (assets == null || assets.isEmpty()) {
+            return;
+        }
+
+        final ParameterContextManager parameterContextManager = flowManager.getParameterContextManager();
+
+        // Collect unique components across all assets
+        final Set<ProcessorNode> allProcessorsReferencingParameters = new HashSet<>();
+        final Set<ControllerServiceNode> allControllerServicesReferencingParameters = new HashSet<>();
+        final Set<ProcessGroup> allAffectedStatelessGroups = new HashSet<>();
+
+        for (final Asset asset : assets) {
+            final ParameterContext parameterContext = parameterContextManager.getParameterContext(asset.getParameterContextIdentifier());
+            if (parameterContext == null) {
+                logger.warn("Parameter context [{}] not found for asset [{}]", asset.getParameterContextIdentifier(), asset.getName());
+                continue;
+            }
+
+            // Determine which parameters reference the given asset
+            final Set<Parameter> parametersReferencingAsset = getParametersReferencingAsset(parameterContext, asset);
+            if (parametersReferencingAsset.isEmpty()) {
+                logger.info("Asset [{}] is not referenced by any parameters in ParameterContext [{}]", asset.getName(), parameterContext.getIdentifier());
+                continue;
+            }
+
+            // Collect processors, controller services, and stateless PGs that reference a parameter that references the asset
+            allProcessorsReferencingParameters.addAll(getProcessorsReferencingParameters(parameterContext, parametersReferencingAsset));
+            allControllerServicesReferencingParameters.addAll(getControllerServicesReferencingParameters(parameterContext, parametersReferencingAsset));
+            allAffectedStatelessGroups.addAll(getAffectedStatelessGroups(parameterContext));
+        }
+
+        logger.info("Found {} unique stateless groups, {} unique processors, and {} unique controller services referencing {} assets",
+                allAffectedStatelessGroups.size(), allProcessorsReferencingParameters.size(), allControllerServicesReferencingParameters.size(), assets.size());
+
+        if (allProcessorsReferencingParameters.isEmpty() && allControllerServicesReferencingParameters.isEmpty() && allAffectedStatelessGroups.isEmpty()) {
+            logger.info("No components found referencing any of the {} assets", assets.size());
+            return;
+        }
+
+        // Stop/disable the impacted components
+        final Set<ProcessGroup> stoppedStatelessProcessGroups = new HashSet<>();
+        allAffectedStatelessGroups.forEach(processGroup -> stopProcessGroup(processGroup, stoppedStatelessProcessGroups));
+
+        final Set<ProcessorNode> stoppedProcessors = new HashSet<>();
+        allProcessorsReferencingParameters.forEach(processorNode -> stopProcessors(processorNode, stoppedProcessors));
+
+        final Set<ControllerServiceNode> disabledControllerServices = new HashSet<>();
+        allControllerServicesReferencingParameters.forEach(controllerServiceNode -> disableControllerService(controllerServiceNode, disabledControllerServices, stoppedProcessors));
 
         // Start/enable the components that were previously stopped/disabled
         enableControllerServices(disabledControllerServices);
