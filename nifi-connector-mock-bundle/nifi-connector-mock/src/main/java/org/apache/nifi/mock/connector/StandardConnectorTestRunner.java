@@ -20,6 +20,7 @@ package org.apache.nifi.mock.connector;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.SecretReference;
@@ -163,6 +164,16 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
     @Override
     public void addSecret(final String name, final String value) {
         mockServer.addSecret(name, value);
+    }
+
+    @Override
+    public AssetReference addAsset(final File file) {
+        return mockServer.addAsset(file);
+    }
+
+    @Override
+    public AssetReference addAsset(final String assetName, final InputStream contents) {
+        return mockServer.addAsset(assetName, contents);
     }
 
     @Override
