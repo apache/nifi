@@ -65,7 +65,7 @@ import java.util.stream.Stream;
         restrictions = {
                 @Restriction(
                         requiredPermission = RequiredPermission.EXECUTE_CODE,
-                        explanation = "Provides operator the ability to execute arbitrary code assuming all permissions that NiFi has.")
+                        explanation = "Enables configuration of custom code for Jolt Transforms")
         }
 )
 @CapabilityDescription("Applies a list of Jolt specifications to either the FlowFile JSON content or a specified FlowFile JSON attribute. "
