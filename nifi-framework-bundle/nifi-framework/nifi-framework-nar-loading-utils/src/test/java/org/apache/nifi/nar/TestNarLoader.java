@@ -67,6 +67,8 @@ public class TestNarLoader extends AbstractTestNarLoader {
             assertEquals(1, extensionManager.getExtensions(Processor.class).size());
             assertEquals(1, extensionManager.getExtensions(ControllerService.class).size());
             assertEquals(0, extensionManager.getExtensions(ReportingTask.class).size());
+
+            narLoader.unload(narLoadResult.getLoadedBundles());
         }
     }
 

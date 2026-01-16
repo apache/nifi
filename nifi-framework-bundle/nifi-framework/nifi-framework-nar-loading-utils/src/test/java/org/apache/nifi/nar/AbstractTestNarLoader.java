@@ -22,7 +22,6 @@ import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -104,10 +103,5 @@ public abstract class AbstractTestNarLoader {
                     }
                 },
                 NarUnpackMode.UNPACK_INDIVIDUAL_JARS);
-    }
-
-    @AfterEach
-    public void cleanUp() {
-        narLoader.unload(narClassLoaders.getBundles());
     }
 }
