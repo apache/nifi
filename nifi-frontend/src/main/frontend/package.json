@@ -67,7 +67,7 @@
         "@angular-eslint/eslint-plugin-template": "20.7.0",
         "@angular-eslint/template-parser": "20.7.0",
         "@angular/build": "20.3.12",
-        "@angular/cli": "~20.3.0",
+        "@angular/cli": "~21.1.0",
         "@angular/compiler-cli": "20.3.16",
         "@happy-dom/jest-environment": "^20.0.0",
         "@nx/angular": "21.6.10",
