@@ -140,8 +140,20 @@ public class ParameterProviderSecretsManager implements SecretsManager {
             return null;
         }
 
-        // No Provider found by ID, search by Provider Name
-        final String providerName = secretReference.getProviderName();
+        // No Provider found by ID, extract Provider Name so we can search by it.
+        // If not explicitly provided, extract from FQN, if it is provided.
+        String providerName = secretReference.getProviderName();
+        if (providerName == null) {
+            final String fqn = secretReference.getFullyQualifiedName();
+            if (fqn != null) {
+                final int dotIndex = fqn.indexOf('.');
+                if (dotIndex > 0) {
+                    providerName = fqn.substring(0, dotIndex);
+                }
+            }
+        }
+
+        // Search by Provider Name
         if (providerName != null) {
             for (final SecretProvider provider : providers) {
                 if (providerName.equals(provider.getProviderName())) {
