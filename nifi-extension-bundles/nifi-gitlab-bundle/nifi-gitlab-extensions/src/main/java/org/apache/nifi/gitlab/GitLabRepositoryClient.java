@@ -27,6 +27,7 @@ import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.gitlab4j.api.CommitsApi;
 import org.gitlab4j.api.GitLabApi;
 import org.gitlab4j.api.GitLabApiException;
@@ -43,6 +44,7 @@ import org.gitlab4j.api.models.RepositoryFile;
 import org.gitlab4j.api.models.TreeItem;
 import org.gitlab4j.models.Constants;
 import org.gitlab4j.models.Constants.Encoding;
+import org.glassfish.jersey.client.ClientProperties;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,12 +54,17 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
 
 /**
  * Implementation of {@link GitRepositoryClient} for GitLab.
@@ -88,6 +95,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
     private final int connectTimeout;
     private final int readTimeout;
+    private final SSLContextProvider sslContextProvider;
 
     private final GitLabApi gitLab;
     private final boolean canRead;
@@ -110,8 +118,17 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
         connectTimeout = builder.connectTimeout;
         readTimeout = builder.readTimeout;
+        sslContextProvider = builder.sslContextProvider;
 
-        gitLab = new GitLabApi(apiVersion, apiUrl, tokenType, authToken);
+        // Configure client properties for SSL context if provided
+        final Map<String, Object> clientConfigProperties = new HashMap<>();
+        if (sslContextProvider != null) {
+            // Jersey client property for SSL context supplier
+            final Supplier<SSLContext> sslContextSupplier = () -> sslContextProvider.createContext();
+            clientConfigProperties.put(ClientProperties.SSL_CONTEXT_SUPPLIER, sslContextSupplier);
+        }
+
+        gitLab = new GitLabApi(apiVersion, apiUrl, tokenType, authToken, null, clientConfigProperties);
         gitLab.setRequestTimeout(builder.connectTimeout, builder.readTimeout);
         gitLab.setDefaultPerPage(DEFAULT_ITEMS_PER_PAGE);
 
@@ -378,6 +395,12 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         connection.setRequestProperty(PRIVATE_TOKEN_HEADER, gitLab.getAuthToken());
         connection.setConnectTimeout(connectTimeout);
         connection.setReadTimeout(readTimeout);
+
+        // Configure SSL context for HTTPS connections
+        if (sslContextProvider != null && connection instanceof HttpsURLConnection httpsConnection) {
+            httpsConnection.setSSLSocketFactory(sslContextProvider.createContext().getSocketFactory());
+        }
+
         return connection;
     }
 
@@ -455,6 +478,7 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
         private int connectTimeout;
         private int readTimeout;
         private ComponentLog logger;
+        private SSLContextProvider sslContextProvider;
 
         public Builder clientId(final String clientId) {
             this.clientId = clientId;
@@ -508,6 +532,11 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
 
         public Builder logger(final ComponentLog logger) {
             this.logger = logger;
+            return this;
+        }
+
+        public Builder sslContext(final SSLContextProvider sslContextProvider) {
+            this.sslContextProvider = sslContextProvider;
             return this;
         }
 

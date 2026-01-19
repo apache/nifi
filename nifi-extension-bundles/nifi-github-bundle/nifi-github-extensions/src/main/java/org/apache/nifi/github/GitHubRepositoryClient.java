@@ -21,11 +21,13 @@ package org.apache.nifi.github;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import okhttp3.OkHttpClient;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentUpdateResponse;
@@ -42,6 +44,7 @@ import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 import org.kohsuke.github.connector.GitHubConnectorResponse;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -117,6 +120,14 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
                 logger.error("GitHub API request failed with status code: {}, message: {}", connectorResponse.statusCode(), message);
             }
         });
+
+        // Configure OkHttp connector with SSL context if provided
+        if (builder.sslContextProvider != null) {
+            final OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                    .sslSocketFactory(builder.sslContextProvider.createContext().getSocketFactory(), builder.sslContextProvider.createTrustManager())
+                    .build();
+            gitHubBuilder.withConnector(new OkHttpGitHubConnector(okHttpClient));
+        }
 
         gitHub = gitHubBuilder.build();
 
@@ -511,6 +522,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         private String appPrivateKey;
         private String appId;
         private ComponentLog logger;
+        private SSLContextProvider sslContextProvider;
 
         public Builder apiUrl(final String apiUrl) {
             this.apiUrl = apiUrl;
@@ -553,6 +565,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         public Builder logger(final ComponentLog logger) {
             this.logger = logger;
+            return this;
+        }
+
+        public Builder sslContext(final SSLContextProvider sslContextProvider) {
+            this.sslContextProvider = sslContextProvider;
             return this;
         }
 
