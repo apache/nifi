@@ -399,6 +399,34 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     }
 
     /**
+     * Gets the blob SHA for the given path at a specific commit.
+     * This is used for atomic commit operations where we need the blob SHA at the
+     * user's expected version, not the current version.
+     *
+     * @param path the path to the content
+     * @param commitSha the commit SHA
+     * @return blob SHA for the given file at the specified commit, or empty optional
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    @Override
+    public Optional<String> getContentShaAtCommit(final String path, final String commitSha) throws IOException, FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting content SHA for [{}] at commit [{}] in repo [{}] ", resolvedPath, commitSha, repository.getName());
+
+        return execute(() -> {
+            try {
+                final GHContent ghContent = repository.getFileContent(resolvedPath, commitSha);
+                return Optional.of(ghContent.getSha());
+            } catch (final FileNotFoundException e) {
+                logger.debug("Unable to get content SHA for [{}] at commit [{}] because content does not exist", resolvedPath, commitSha);
+                return Optional.empty();
+            }
+        });
+    }
+
+    /**
      * Deletes the contents for the given file on the given branch.
      *
      * @param filePath the file path to delete

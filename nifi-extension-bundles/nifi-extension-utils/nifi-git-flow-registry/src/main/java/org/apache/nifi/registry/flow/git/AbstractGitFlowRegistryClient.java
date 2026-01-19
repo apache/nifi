@@ -354,9 +354,6 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         final List<GitCommit> commits = repositoryClient.getCommits(filePath, branch);
         final String currentVersion = commits.isEmpty() ? null : commits.getFirst().id();
 
-        // Get the blob SHA needed for the Git API to update the file
-        final String currentBlobSha = repositoryClient.getContentSha(filePath, branch).orElse(null);
-
         // Check for version conflict: if the user expects a specific version but it doesn't match the current version in the repository,
         // another user may have committed changes in the meantime. Reject the commit unless FORCE_COMMIT is specified.
         if (expectedVersion != null && currentVersion != null && !expectedVersion.equals(currentVersion) && action != RegisterAction.FORCE_COMMIT) {
@@ -365,6 +362,17 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                     Expected version [%s] but the current version in the repository is [%s].
                     Another user may have committed changes. Please check for a newer version and try again."""
                     .formatted(flowLocation.getFlowId(), flowLocation.getBucketId(), branch, expectedVersion, currentVersion));
+        }
+
+        // For atomic commit operations, we need:
+        // - existingContentSha: the blob SHA at the expected version (for GitHub which uses blob SHAs)
+        // - expectedCommitSha: the commit SHA the user expects (for GitLab, Bitbucket, Azure DevOps which use commit SHAs)
+        // If expectedVersion is provided, use the blob SHA at that commit; otherwise use the current blob SHA
+        final String existingBlobSha;
+        if (expectedVersion != null) {
+            existingBlobSha = repositoryClient.getContentShaAtCommit(filePath, expectedVersion).orElse(null);
+        } else {
+            existingBlobSha = repositoryClient.getContentSha(filePath, branch).orElse(null);
         }
 
         final String snapshotComments = snapshotMetadata.getComments();
@@ -425,7 +433,8 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
                 .path(filePath)
                 .content(flowSnapshotSerializer.serialize(flowSnapshot))
                 .message(commitMessage)
-                .existingContentSha(currentBlobSha)
+                .existingContentSha(existingBlobSha)
+                .expectedCommitSha(expectedVersion)
                 .build();
 
         final String createContentCommitSha = repositoryClient.createContent(createContentRequest);

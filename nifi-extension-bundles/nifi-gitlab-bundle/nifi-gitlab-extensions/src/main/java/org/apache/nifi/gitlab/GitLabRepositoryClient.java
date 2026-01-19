@@ -236,6 +236,13 @@ public class GitLabRepositoryClient implements GitRepositoryClient {
             commitAction.setFilePath(resolvedPath);
             commitAction.setEncoding(Encoding.BASE64);
 
+            // Set the expected commit SHA for atomic operation - GitLab will reject if the file
+            // has been modified since this commit
+            final String expectedCommitSha = request.getExpectedCommitSha();
+            if (expectedCommitSha != null) {
+                commitAction.setLastCommitId(expectedCommitSha);
+            }
+
             // Encode content to Base64
             final String encodedContent = Base64.getEncoder().encodeToString(request.getContent().getBytes(StandardCharsets.UTF_8));
             commitAction.setContent(encodedContent);

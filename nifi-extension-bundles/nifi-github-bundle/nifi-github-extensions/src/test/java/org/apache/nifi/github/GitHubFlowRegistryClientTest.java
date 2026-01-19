@@ -244,8 +244,8 @@ public class GitHubFlowRegistryClientTest {
         final GitCommit newerCommit = new GitCommit("new-commit-sha-67890", "author", "message", Instant.now());
         doReturn(List.of(newerCommit)).when(repositoryClient).getCommits(any(), any());
 
-        // Mock blob SHA for the Git API
-        doReturn(Optional.of("blob-sha")).when(repositoryClient).getContentSha(any(), any());
+        // Mock blob SHA at the expected commit for atomic operation
+        doReturn(Optional.of("blob-sha-at-expected-commit")).when(repositoryClient).getContentShaAtCommit(any(), any());
 
         // Mock the content retrieval for the existing snapshot
         doReturn(new ByteArrayInputStream(new byte[0])).when(repositoryClient).getContentFromBranch(any(), any());
