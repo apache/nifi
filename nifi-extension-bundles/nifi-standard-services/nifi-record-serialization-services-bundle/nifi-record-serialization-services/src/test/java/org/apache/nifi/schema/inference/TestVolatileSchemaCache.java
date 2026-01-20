@@ -24,11 +24,14 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -99,5 +102,20 @@ public class TestVolatileSchemaCache {
 
         assertEquals(new SimpleRecordSchema(stringFields), cache.getSchema(firstId).get());
         assertEquals(new SimpleRecordSchema(intFields), cache.getSchema(secondId).get());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final VolatileSchemaCache service = new VolatileSchemaCache();
+        final Map<String, String> expectedRenamed = Map.of("max-cache-size", VolatileSchemaCache.MAX_SIZE.getName());
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }

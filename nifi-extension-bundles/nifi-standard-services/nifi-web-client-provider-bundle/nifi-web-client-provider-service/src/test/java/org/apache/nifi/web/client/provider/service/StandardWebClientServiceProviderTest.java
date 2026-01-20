@@ -29,7 +29,9 @@ import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.security.ssl.StandardTrustManagerBuilder;
 import org.apache.nifi.ssl.SSLContextProvider;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.client.api.HttpResponseEntity;
@@ -54,6 +56,7 @@ import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
+import java.util.Map;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.X509TrustManager;
@@ -237,6 +240,27 @@ class StandardWebClientServiceProviderTest {
         final String proxyAuthorization = proxyAuthorizationRequest.getHeaders().get(PROXY_AUTHORIZATION_HEADER);
         final String credentials = Credentials.basic(username, password);
         assertEquals(credentials, proxyAuthorization);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("connect-timeout", StandardWebClientServiceProvider.CONNECT_TIMEOUT.getName()),
+                Map.entry("read-timeout", StandardWebClientServiceProvider.READ_TIMEOUT.getName()),
+                Map.entry("write-timeout", StandardWebClientServiceProvider.WRITE_TIMEOUT.getName()),
+                Map.entry("redirect-handling-strategy", StandardWebClientServiceProvider.REDIRECT_HANDLING_STRATEGY.getName()),
+                Map.entry("ssl-context-service", StandardWebClientServiceProvider.SSL_CONTEXT_SERVICE.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        provider.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private void assertGetUriCompleted(final WebClientService webClientService) throws InterruptedException {

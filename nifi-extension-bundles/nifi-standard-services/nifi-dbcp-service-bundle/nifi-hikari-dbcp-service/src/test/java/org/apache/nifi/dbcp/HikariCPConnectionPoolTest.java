@@ -21,7 +21,9 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.ControllerServiceConfiguration;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
@@ -34,6 +36,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -207,5 +210,32 @@ public class HikariCPConnectionPoolTest {
         assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, secondResult.getOutcome(), secondResult.getExplanation());
 
         assertFalse(resultsFound.hasNext());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("hikaricp-connection-url", HikariCPConnectionPool.DATABASE_URL.getName()),
+                Map.entry("hikaricp-driver-classname", HikariCPConnectionPool.DB_DRIVERNAME.getName()),
+                Map.entry("hikaricp-driver-locations", HikariCPConnectionPool.DB_DRIVER_LOCATION.getName()),
+                Map.entry("hikaricp-username", HikariCPConnectionPool.DB_USER.getName()),
+                Map.entry("hikaricp-password", HikariCPConnectionPool.DB_PASSWORD.getName()),
+                Map.entry("hikaricp-max-wait-time", HikariCPConnectionPool.MAX_WAIT_TIME.getName()),
+                Map.entry("hikaricp-max-total-conns", HikariCPConnectionPool.MAX_TOTAL_CONNECTIONS.getName()),
+                Map.entry("hikaricp-validation-query", HikariCPConnectionPool.VALIDATION_QUERY.getName()),
+                Map.entry("hikaricp-min-idle-conns", HikariCPConnectionPool.MIN_IDLE.getName()),
+                Map.entry("hikaricp-max-conn-lifetime", HikariCPConnectionPool.MAX_CONN_LIFETIME.getName()),
+                Map.entry("hikaricp-kerberos-user-service", HikariCPConnectionPool.KERBEROS_USER_SERVICE.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        final HikariCPConnectionPool hikariCPConnectionPool = new HikariCPConnectionPool();
+        hikariCPConnectionPool.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }

@@ -20,9 +20,12 @@ import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.util.db.JdbcProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +44,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -136,6 +141,29 @@ class TestDatabaseRecordLookupService {
         final Optional<Record> lookupFound = lookupService.lookup(coordinates);
 
         assertTrue(lookupFound.isPresent());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("dbrecord-lookup-value-columns", DatabaseRecordLookupService.LOOKUP_VALUE_COLUMNS.getName()),
+                Map.entry(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, DEFAULT_PRECISION.getName()),
+                Map.entry(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, DEFAULT_SCALE.getName()),
+                Map.entry("dbrecord-lookup-dbcp-service", AbstractDatabaseLookupService.DBCP_SERVICE.getName()),
+                Map.entry("dbrecord-lookup-table-name", AbstractDatabaseLookupService.TABLE_NAME.getName()),
+                Map.entry("dbrecord-lookup-key-column", AbstractDatabaseLookupService.LOOKUP_KEY_COLUMN.getName()),
+                Map.entry("dbrecord-lookup-cache-size", AbstractDatabaseLookupService.CACHE_SIZE.getName()),
+                Map.entry("dbrecord-lookup-clear-cache-on-enabled", AbstractDatabaseLookupService.CLEAR_CACHE_ON_ENABLED.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        lookupService.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private void setConnection() throws SQLException {

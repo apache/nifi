@@ -69,7 +69,7 @@ public class AvroRecordSetWriter extends SchemaRegistryRecordSetWriter implement
         LZO
     }
 
-    private static final PropertyDescriptor COMPRESSION_FORMAT = new Builder()
+    static final PropertyDescriptor COMPRESSION_FORMAT = new Builder()
         .name("Compression Format")
         .description("Compression type to use when writing Avro files. Default is None.")
         .allowableValues(CodecType.values())
