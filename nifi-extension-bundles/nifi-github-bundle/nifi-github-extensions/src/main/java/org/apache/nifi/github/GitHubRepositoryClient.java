@@ -21,7 +21,6 @@ package org.apache.nifi.github;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import okhttp3.OkHttpClient;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
@@ -43,12 +42,13 @@ import org.kohsuke.github.PagedIterator;
 import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 import org.kohsuke.github.connector.GitHubConnectorResponse;
+import org.kohsuke.github.extras.HttpClientGitHubConnector;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
-import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.http.HttpClient;
 import java.security.PrivateKey;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -121,12 +121,12 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
             }
         });
 
-        // Configure OkHttp connector with SSL context if provided
+        // Configure HttpClient connector with SSL context if provided
         if (builder.sslContextProvider != null) {
-            final OkHttpClient okHttpClient = new OkHttpClient.Builder()
-                    .sslSocketFactory(builder.sslContextProvider.createContext().getSocketFactory(), builder.sslContextProvider.createTrustManager())
+            final HttpClient httpClient = HttpClient.newBuilder()
+                    .sslContext(builder.sslContextProvider.createContext())
                     .build();
-            gitHubBuilder.withConnector(new OkHttpGitHubConnector(okHttpClient));
+            gitHubBuilder.withConnector(new HttpClientGitHubConnector(httpClient));
         }
 
         gitHub = gitHubBuilder.build();
