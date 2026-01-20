@@ -50,10 +50,12 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void initialize(final ConnectorRepositoryInitializationContext context) {
+        logger.debug("Initializing ConnectorRepository");
         this.extensionManager = context.getExtensionManager();
         this.requestReplicator = context.getRequestReplicator();
         this.secretsManager = context.getSecretsManager();
         this.assetRepository = new StandardConnectorAssetRepository(context.getAssetManager());
+        logger.debug("Successfully initialized ConnectorRepository");
     }
 
     @Override
@@ -64,10 +66,12 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void restoreConnector(final ConnectorNode connector) {
         addConnector(connector);
+        logger.debug("Successfully restored {}", connector);
     }
 
     @Override
     public void removeConnector(final String connectorId) {
+        logger.debug("Removing {}", connectorId);
         final ConnectorNode connectorNode = connectors.get(connectorId);
         if (connectorNode == null) {
             throw new IllegalStateException("No connector found with ID " + connectorId);
@@ -106,6 +110,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void applyUpdate(final ConnectorNode connector, final ConnectorUpdateContext context) throws FlowUpdateException {
+        logger.debug("Applying update to {}", connector);
         final ConnectorState initialDesiredState = connector.getDesiredState();
 
         // Transition the connector's state to PREPARING_FOR_UPDATE before starting the background process.
@@ -119,6 +124,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     private void updateConnector(final ConnectorNode connector, final ConnectorState initialDesiredState, final ConnectorUpdateContext context) {
+        logger.debug("Updating {}", connector);
         try {
             // Perform whatever preparation is necessary for the update. Default implementation is to stop the connector.
             connector.prepareForUpdate();
@@ -147,17 +153,17 @@ public class StandardConnectorRepository implements ConnectorRepository {
             // If the initial desired state was RUNNING, start the connector again. Otherwise, stop it.
             // We don't simply leave it be as the prepareForUpdate / update may have changed the state of some components.
             if (initialDesiredState == ConnectorState.RUNNING) {
-                logger.info("Connector {} has been successfully updated; starting Connector to resume initial state", connector);
+                logger.info("{} has been successfully updated; starting to resume initial state", connector);
                 connector.start(lifecycleExecutor);
             } else {
-                logger.info("Connector {} has been successfully updated; stopping Connector to resume initial state", connector);
+                logger.info("{} has been successfully updated; stopping to resume initial state", connector);
                 connector.stop(lifecycleExecutor);
             }
 
             // We've updated the state of the connector so save flow again
             context.saveFlow();
         } catch (final Exception e) {
-            logger.error("Failed to apply connector update for {}", connector, e);
+            logger.error("Failed to apply update for {}", connector, e);
             connector.abortUpdate(e);
         }
     }
@@ -194,18 +200,22 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void configureConnector(final ConnectorNode connector, final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
         connector.setConfiguration(stepName, configuration);
+        logger.info("Successfully configured {} for step {}", connector, stepName);
     }
 
     @Override
     public void inheritConfiguration(final ConnectorNode connector, final List<VersionedConfigurationStep> activeFlowConfiguration,
                 final List<VersionedConfigurationStep> workingFlowConfiguration, final Bundle flowContextBundle) throws FlowUpdateException {
 
+        logger.debug("Inheriting configuration for {}", connector);
         connector.transitionStateForUpdating();
         connector.prepareForUpdate();
 
         try {
             connector.inheritConfiguration(activeFlowConfiguration, workingFlowConfiguration, flowContextBundle);
+            logger.debug("Successfully inherited configuration for {}", connector);
         } catch (final Exception e) {
+            logger.error("Failed to inherit configuration for {}", connector, e);
             connector.abortUpdate(e);
             throw e;
         }
