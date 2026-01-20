@@ -56,6 +56,7 @@ import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
 import org.apache.nifi.registry.flow.git.serialize.FlowSnapshotSerializer;
 import org.apache.nifi.registry.flow.git.serialize.JacksonFlowSnapshotSerializer;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
@@ -111,6 +112,13 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
             .required(true)
             .build();
 
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+            .name("SSL Context Service")
+            .description("SSL Context Service provides trusted certificates and client certificates for TLS communication.")
+            .required(false)
+            .identifiesControllerService(SSLContextProvider.class)
+            .build();
+
     static final String DEFAULT_BUCKET_NAME = "default";
     static final String DEFAULT_BUCKET_KEEP_FILE_PATH = DEFAULT_BUCKET_NAME + "/.keep";
     static final String DEFAULT_BUCKET_KEEP_FILE_CONTENT = "Do Not Delete";
@@ -140,6 +148,7 @@ public abstract class AbstractGitFlowRegistryClient extends AbstractFlowRegistry
         combinedPropertyDescriptors.add(REPOSITORY_PATH);
         combinedPropertyDescriptors.add(DIRECTORY_FILTER_EXCLUDE);
         combinedPropertyDescriptors.add(PARAMETER_CONTEXT_VALUES);
+        combinedPropertyDescriptors.add(SSL_CONTEXT_SERVICE);
         propertyDescriptors = Collections.unmodifiableList(combinedPropertyDescriptors);
 
         flowSnapshotSerializer = createFlowSnapshotSerializer();
