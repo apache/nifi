@@ -22,6 +22,7 @@ org.apache.nifi.cs.tests.system.StandardCountService
 org.apache.nifi.cs.tests.system.StandardSleepService
 org.apache.nifi.cs.tests.system.MigratePropertiesCountService
 org.apache.nifi.cs.tests.system.MigrationService
+org.apache.nifi.cs.tests.system.ModifyClasspathService
 org.apache.nifi.cs.tests.system.MockCSVReader
 org.apache.nifi.cs.tests.system.MockCSVWriter
 org.apache.nifi.cs.tests.system.VerifyLocalClusterStateService

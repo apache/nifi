@@ -70,6 +70,11 @@ public class ServiceStateTransition {
     public boolean enable(final ControllerServiceReference controllerServiceReference) {
         writeLock.lock();
         try {
+            if (state == ControllerServiceState.ENABLED) {
+                logger.debug("{} is already enabled", controllerServiceNode);
+                return true;
+            }
+
             if (state != ControllerServiceState.ENABLING) {
                 logger.debug("{} cannot be transitioned to enabled because it's not currently ENABLING but rather {}", controllerServiceNode, state);
                 return false;
