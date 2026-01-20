@@ -165,9 +165,11 @@ public class StandardConnectorNode implements ConnectorNode {
                                             + "; it must be UPDATING.");
         }
 
+        logger.debug("Preparing {} for update", this);
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().prepareForUpdate(workingFlowContext, activeFlowContext);
             stateTransition.setCurrentState(ConnectorState.UPDATING);
+            logger.debug("Successfully prepared {} for update", this);
         } catch (final Throwable t) {
             logger.error("Failed to prepare update for {}", this, t);
 
@@ -185,6 +187,7 @@ public class StandardConnectorNode implements ConnectorNode {
     public void inheritConfiguration(final List<VersionedConfigurationStep> activeConfig, final List<VersionedConfigurationStep> workingConfig,
                 final Bundle flowContextBundle) throws FlowUpdateException {
 
+        logger.debug("Inheriting configuration for {}", this);
         final MutableConnectorConfigurationContext configurationContext = createConfigurationContext(activeConfig);
         final FrameworkFlowContext inheritContext = flowContextFactory.createWorkingFlowContext(identifier,
             connectorDetails.getComponentLog(), configurationContext, flowContextBundle);
@@ -197,6 +200,8 @@ public class StandardConnectorNode implements ConnectorNode {
             final StepConfiguration stepConfig = createStepConfiguration(step);
             setConfiguration(step.getName(), stepConfig);
         }
+
+        logger.debug("Successfully inherited configuration for {}", this);
     }
 
     private StepConfiguration createStepConfiguration(final VersionedConfigurationStep step) {
@@ -282,6 +287,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
         stateTransition.setCurrentState(ConnectorState.UPDATED);
         stateTransition.setDesiredState(ConnectorState.UPDATED);
+        logger.info("Successfully applied update for {}", this);
     }
 
     private void destroyWorkingContext() {
@@ -308,6 +314,7 @@ public class StandardConnectorNode implements ConnectorNode {
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             getConnector().abortUpdate(workingFlowContext, cause);
         }
+        logger.debug("Aborted update for {}", this);
     }
 
     @Override
@@ -323,6 +330,7 @@ public class StandardConnectorNode implements ConnectorNode {
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), getIdentifier())) {
             logger.debug("Notifying {} of configuration change for configuration step {}", this, stepName);
             connector.onConfigurationStepConfigured(stepName, workingFlowContext);
+            logger.debug("Successfully set configuration for step {} on {}", stepName, this);
         } catch (final FlowUpdateException e) {
             throw e;
         } catch (final Exception e) {
@@ -439,6 +447,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public Future<Void> drainFlowFiles() {
+        logger.debug("Draining FlowFiles for {}", this);
         requireStopped("drain FlowFiles", ConnectorState.DRAINING);
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
@@ -448,7 +457,12 @@ public class StandardConnectorNode implements ConnectorNode {
 
             final CompletableFuture<Void> stateUpdateFuture = drainFuture.whenComplete((result, failureCause) -> {
                 drainFutureRef.set(null);
-                logger.info("Successfully drained FlowFiles from {}; ensuring all components are stopped.", this);
+
+                if (failureCause == null) {
+                    logger.info("Successfully drained FlowFiles for {}", this);
+                } else {
+                    logger.error("Failed to drain FlowFiles for {}", this, failureCause);
+                }
 
                 try {
                     connectorDetails.getConnector().stop(activeFlowContext);
@@ -462,6 +476,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
             return stateUpdateFuture;
         } catch (final Throwable t) {
+            logger.error("Failed to drain FlowFiles for {}", this, t);
             stateTransition.setCurrentState(ConnectorState.STOPPED);
             throw t;
         }
@@ -493,15 +508,25 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public Future<Void> purgeFlowFiles(final String requestor) {
+        logger.debug("Purging FlowFiles for {}", this);
         requireStopped("purge FlowFiles", ConnectorState.PURGING);
 
         try {
             final String dropRequestId = UUID.randomUUID().toString();
             final DropFlowFileStatus status = activeFlowContext.getManagedProcessGroup().dropAllFlowFiles(dropRequestId, requestor);
             final CompletableFuture<Void> future = status.getCompletionFuture();
-            final CompletableFuture<Void> stateUpdateFuture = future.whenComplete((result, failureCause) -> stateTransition.setCurrentState(ConnectorState.STOPPED));
+            final CompletableFuture<Void> stateUpdateFuture = future.whenComplete((result, failureCause) -> {
+                stateTransition.setCurrentState(ConnectorState.STOPPED);
+
+                if (failureCause == null) {
+                    logger.info("Successfully purged FlowFiles for {}", this);
+                } else {
+                    logger.error("Failed to purge FlowFiles for {}", this, failureCause);
+                }
+            });
             return stateUpdateFuture;
         } catch (final Throwable t) {
+            logger.error("Failed to purge FlowFiles for {}", this, t);
             stateTransition.setCurrentState(ConnectorState.STOPPED);
             throw t;
         }
@@ -525,6 +550,7 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private void stopComponent(final FlowEngine scheduler, final CompletableFuture<Void> stopCompleteFuture) {
+        logger.debug("Stopping component for {}", this);
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
             connectorDetails.getConnector().stop(activeFlowContext);
         } catch (final Exception e) {
@@ -535,6 +561,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
         stateTransition.setCurrentState(ConnectorState.STOPPED);
         stopCompleteFuture.complete(null);
+        logger.info("Successfully stopped {}", this);
 
         final ConnectorState desiredState = getDesiredState();
         if (desiredState == ConnectorState.RUNNING) {
@@ -544,6 +571,7 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private void startComponent(final ScheduledExecutorService scheduler, final CompletableFuture<Void> startCompleteFuture) {
+        logger.debug("Starting component for {}", this);
         final ConnectorState desiredState = getDesiredState();
         if (desiredState != ConnectorState.RUNNING) {
             logger.info("Will not start {} because the desired state is no longer RUNNING but is now {}", this, desiredState);
@@ -560,6 +588,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
         stateTransition.setCurrentState(ConnectorState.RUNNING);
         startCompleteFuture.complete(null);
+        logger.info("Successfully started {}", this);
     }
 
 
@@ -638,6 +667,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void initializeConnector(final FrameworkConnectorInitializationContext initializationContext) {
+        logger.debug("Initializing {}", this);
         this.initializationContext = initializationContext;
 
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
@@ -645,10 +675,12 @@ public class StandardConnectorNode implements ConnectorNode {
         }
 
         recreateWorkingFlowContext();
+        logger.info("Successfully initialized {}", this);
     }
 
     @Override
     public void loadInitialFlow() throws FlowUpdateException {
+        logger.debug("Loading initial flow for {}", this);
         if (initializationContext == null) {
             throw new IllegalStateException("Cannot load initial flow because " + this + " has not been initialized yet.");
         }
@@ -717,6 +749,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final StepConfiguration configurationOverrides) {
+        logger.debug("Verifying configuration step {} for {}", stepName, this);
         final List<SecretReference> invalidSecretRefs = new ArrayList<>();
         final List<AssetReference> invalidAssetRefs = new ArrayList<>();
         final Map<String, String> resolvedPropertyOverrides = resolvePropertyReferences(configurationOverrides, invalidSecretRefs, invalidAssetRefs);
@@ -774,6 +807,7 @@ public class StandardConnectorNode implements ConnectorNode {
                 results.addAll(invalidConfigResults);
             }
 
+            logger.debug("Completed verification of configuration step {} for {}", stepName, this);
             return results;
         }
     }
@@ -877,6 +911,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public List<ConfigVerificationResult> verify() {
+        logger.debug("Verifying {}", this);
         final List<ConfigVerificationResult> results = new ArrayList<>();
 
         final ValidationState state = performValidation();
@@ -891,6 +926,7 @@ public class StandardConnectorNode implements ConnectorNode {
                 .explanation("There are " + validationFailureExplanations.size() + " validation failures: " + validationFailureExplanations)
                 .build());
 
+            logger.debug("Completed verification for {} with validation failures", this);
             return results;
         }
 
@@ -898,6 +934,7 @@ public class StandardConnectorNode implements ConnectorNode {
             results.addAll(getConnector().verify(workingFlowContext));
         }
 
+        logger.debug("Completed verification for {}", this);
         return results;
     }
 
@@ -937,6 +974,7 @@ public class StandardConnectorNode implements ConnectorNode {
     @Override
     public void discardWorkingConfiguration() {
         recreateWorkingFlowContext();
+        logger.debug("Discarded working configuration for {}", this);
     }
 
     @Override
@@ -1173,6 +1211,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public ValidationState performValidation() {
+        logger.debug("Performing validation for {}", this);
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
 
             final ConnectorValidationContext validationContext = createValidationContext(activeFlowContext);
@@ -1213,6 +1252,7 @@ public class StandardConnectorNode implements ConnectorNode {
             }
 
             validationState.set(resultState);
+            logger.debug("Validation completed for {} with status {}", this, resultState.getStatus());
             return resultState;
         }
     }
