@@ -1,0 +1,13 @@
+[
+  {
+    "operation": "shift",
+    "spec": {
+      "test_field": {
+        "": "TRASH",
+        "*": {
+          "$": "value.test_field"
+        }
+      }
+    }
+  }
+]
