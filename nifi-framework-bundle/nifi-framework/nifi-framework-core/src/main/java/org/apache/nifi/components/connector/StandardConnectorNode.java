@@ -809,7 +809,6 @@ public class StandardConnectorNode implements ConnectorNode {
         final ValidationState state = performValidation();
         if (state.getStatus() == ValidationStatus.INVALID) {
             final List<String> validationFailureExplanations = state.getValidationErrors().stream()
-                .filter(result -> !result.isValid())
                 .map(ValidationResult::getExplanation)
                 .toList();
 
@@ -913,7 +912,6 @@ public class StandardConnectorNode implements ConnectorNode {
             } else {
                 allowed = false;
                 reason = "Connector is not valid: " + validationResults.stream()
-                    .filter(result -> !result.isValid())
                     .map(ValidationResult::getExplanation)
                     .collect(Collectors.joining("; "));
             }
