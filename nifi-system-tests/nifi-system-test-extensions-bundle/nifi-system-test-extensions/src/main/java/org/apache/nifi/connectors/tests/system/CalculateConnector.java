@@ -170,7 +170,7 @@ public class CalculateConnector extends AbstractConnector {
         final Bundle bundle = new Bundle();
         bundle.setGroup("org.apache.nifi");
         bundle.setArtifact("nifi-system-test-extensions-nar");
-        bundle.setVersion("2.7.0-SNAPSHOT");
+        bundle.setVersion("2.8.0-SNAPSHOT");
 
         final VersionedProcessor processor = new VersionedProcessor();
         processor.setIdentifier("calculate-processor-id");

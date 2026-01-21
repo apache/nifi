@@ -545,7 +545,7 @@ public class TestFlowResource {
         entity.setFromTimestamp(Instant.now());
         // components is null, so clearBulletins will gather all authorized components
 
-        when(niFiProperties.isNode()).thenReturn(false);
+        when(properties.isNode()).thenReturn(false);
         resource.httpServletRequest = new MockHttpServletRequest();
 
         // Capture the function passed to filterComponents (called 3 times)

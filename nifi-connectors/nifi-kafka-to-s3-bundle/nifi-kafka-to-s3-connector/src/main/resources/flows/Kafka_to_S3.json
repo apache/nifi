@@ -24,7 +24,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-standard-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "max-bin-age": "#{Merge Latency}",
@@ -154,7 +154,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-kafka-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "Topics": "#{Topic Names}",
@@ -345,7 +345,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-aws-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "FullControl User List": "${s3.permissions.full.users}",
@@ -758,7 +758,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-record-serialization-services-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "Schema Branch": null,
@@ -898,7 +898,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],
@@ -916,7 +916,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-record-serialization-services-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "Schema Branch": null,
@@ -1032,7 +1032,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],
@@ -1050,7 +1050,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-record-serialization-services-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "Schema Branch": null,
@@ -1190,7 +1190,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],
@@ -1208,7 +1208,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-record-serialization-services-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "Schema Branch": null,
@@ -1284,7 +1284,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],
@@ -1302,7 +1302,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-aws-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "Assume Role STS Region": "us-west-2",
@@ -1463,7 +1463,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-aws-service-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           },
           {
@@ -1471,7 +1471,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-aws-service-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],
@@ -1489,7 +1489,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-record-serialization-services-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "Schema Branch": null,
@@ -1653,7 +1653,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],
@@ -1671,7 +1671,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-confluent-platform-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "SSL Context Service": null,
@@ -1747,7 +1747,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],
@@ -1765,7 +1765,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-confluent-platform-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {},
         "propertyDescriptors": {},
@@ -1775,7 +1775,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-standard-services-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],
@@ -1793,7 +1793,7 @@
         "bundle": {
           "group": "org.apache.nifi",
           "artifact": "nifi-kafka-3-service-nar",
-          "version": "2.7.0-SNAPSHOT"
+          "version": "2.8.0-SNAPSHOT"
         },
         "properties": {
           "ack.wait.time": "10 sec",
@@ -1917,7 +1917,7 @@
             "bundle": {
               "group": "org.apache.nifi",
               "artifact": "nifi-kafka-service-api-nar",
-              "version": "2.7.0-SNAPSHOT"
+              "version": "2.8.0-SNAPSHOT"
             }
           }
         ],

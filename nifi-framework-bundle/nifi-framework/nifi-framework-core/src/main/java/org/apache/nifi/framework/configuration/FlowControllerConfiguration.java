@@ -476,7 +476,7 @@ public class FlowControllerConfiguration {
 
     @Bean
     public AssetSynchronizer parameterContextAssetSynchronizer() throws Exception {
-        return new StandardAssetSynchronizer(flowController(), clusterCoordinator, webClientService(), properties);
+        return new StandardAssetSynchronizer(flowController(), clusterCoordinator, webClientService(), properties, affectedComponentManager());
     }
 
     /**
