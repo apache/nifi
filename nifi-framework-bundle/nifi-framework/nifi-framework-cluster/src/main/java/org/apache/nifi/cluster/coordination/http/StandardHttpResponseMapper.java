@@ -24,13 +24,13 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ClearBulletinsEndpoin
 import org.apache.nifi.cluster.coordination.http.endpoints.ClearBulletinsForGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ComponentStateEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionStatusEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorFlowEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorPropertyGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorPropertyGroupNamesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorsEndpointMerger;
-import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionStatusEndpointMerger;
-import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerBulletinsEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerConfigurationEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerEndpointMerger;

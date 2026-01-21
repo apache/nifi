@@ -76,7 +76,7 @@ public class KafkaTopicsStep {
 
     public static final ConfigurationStep KAFKA_TOPICS_STEP = new ConfigurationStep.Builder()
         .name(STEP_NAME)
-        .description("Kafka topics to consume from." )
+        .description("Kafka topics to consume from.")
         .propertyGroups(List.of(
             KAFKA_TOPICS_GROUP
         ))
