@@ -28,6 +28,7 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.http.HttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.StandardHttpResponseMapper;
 import org.apache.nifi.cluster.coordination.http.endpoints.ConnectionEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ControllerServiceEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowRegistryClientEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FunnelEndpointMerger;
@@ -37,7 +38,6 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ParameterProviderEndp
 import org.apache.nifi.cluster.coordination.http.endpoints.PortEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ProcessorEndpointMerger;
-import org.apache.nifi.cluster.coordination.http.endpoints.ConnectorEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.RemoteProcessGroupEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpointMerger;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;

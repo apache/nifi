@@ -3537,7 +3537,9 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
         final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
             final ConnectorNode node = connectorDAO.getConnector(connectorDTO.getId());
-            if (connectorDTO.getName() != null) node.setName(connectorDTO.getName());
+            if (connectorDTO.getName() != null) {
+                node.setName(connectorDTO.getName());
+            }
 
             controllerFacade.save();
 

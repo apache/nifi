@@ -19,10 +19,9 @@ package org.apache.nifi.components.connector.secrets;
 
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.SecretReference;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
-
-import org.apache.nifi.components.validation.ValidationStatus;
 
 import java.util.ArrayList;
 import java.util.Comparator;
