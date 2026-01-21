@@ -809,7 +809,6 @@ public class StandardConnectorNode implements ConnectorNode {
         final ValidationState state = performValidation();
         if (state.getStatus() == ValidationStatus.INVALID) {
             final List<String> validationFailureExplanations = state.getValidationErrors().stream()
-                .filter(result -> !result.isValid())
                 .map(ValidationResult::getExplanation)
                 .toList();
 
@@ -894,6 +893,7 @@ public class StandardConnectorNode implements ConnectorNode {
         if (currentState == ConnectorState.UPDATED || currentState == ConnectorState.UPDATE_FAILED) {
             return !hasActiveThread(getActiveFlowContext().getManagedProcessGroup());
         }
+
         return false;
     }
 
@@ -905,8 +905,16 @@ public class StandardConnectorNode implements ConnectorNode {
             allowed = false;
             reason = "Connector is not stopped";
         } else {
-            allowed = true;
-            reason = null;
+            final Collection<ValidationResult> validationResults = getValidationErrors();
+            if (validationResults.isEmpty()) {
+                allowed = true;
+                reason = null;
+            } else {
+                allowed = false;
+                reason = "Connector is not valid: " + validationResults.stream()
+                    .map(ValidationResult::getExplanation)
+                    .collect(Collectors.joining("; "));
+            }
         }
 
         return new StandardConnectorAction("START", "Start the connector", allowed, reason);
@@ -954,24 +962,14 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private ConnectorAction createPurgeFlowFilesAction(final boolean stopped, final boolean dataQueued) {
-        final boolean allowed;
-        final String reason;
-
-        if (!stopped) {
-            allowed = false;
-            reason = "Connector must be stopped";
-        } else if (!dataQueued) {
-            allowed = false;
-            reason = "No data is queued";
-        } else {
-            allowed = true;
-            reason = null;
-        }
-
-        return new StandardConnectorAction("PURGE_FLOWFILES", "Purge all FlowFiles from the connector, dropping all data without processing it", allowed, reason);
+        return createDataQueuedAction(stopped, dataQueued, "PURGE_FLOWFILES", "Purge all FlowFiles from the connector, dropping all data without processing it");
     }
 
     private ConnectorAction createDrainFlowFilesAction(final boolean stopped, final boolean dataQueued) {
+        return createDataQueuedAction(stopped, dataQueued, "DRAIN_FLOWFILES", "Process data that is currently in the flow but do not ingest any additional data");
+    }
+
+    private static ConnectorAction createDataQueuedAction(final boolean stopped, final boolean dataQueued, final String actionName, final String description) {
         final boolean allowed;
         final String reason;
 
@@ -986,7 +984,7 @@ public class StandardConnectorNode implements ConnectorNode {
             reason = null;
         }
 
-        return new StandardConnectorAction("DRAIN_FLOWFILES", "Process data that is currently in the flow but do not ingest any additional data", allowed, reason);
+        return new StandardConnectorAction(actionName, description, allowed, reason);
     }
 
     private ConnectorAction createApplyUpdatesAction(final ConnectorState currentState) {

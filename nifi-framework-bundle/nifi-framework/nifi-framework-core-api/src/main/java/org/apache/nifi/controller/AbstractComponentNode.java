@@ -869,13 +869,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public ValidationState performValidation(final ValidationContext validationContext) {
-        final Collection<ValidationResult> results;
+        final Collection<ValidationResult> allResults;
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), getIdentifier())) {
-            results = computeValidationErrors(validationContext);
+            allResults = computeValidationErrors(validationContext);
         }
 
-        final ValidationStatus status = results.isEmpty() ? ValidationStatus.VALID : ValidationStatus.INVALID;
-        final ValidationState validationState = new ValidationState(status, results);
+        final Collection<ValidationResult> invalidResults = allResults.isEmpty() ? Collections.emptyList()
+                : allResults.stream().filter(result -> !result.isValid()).toList();
+        final ValidationStatus status = invalidResults.isEmpty() ? ValidationStatus.VALID : ValidationStatus.INVALID;
+        final ValidationState validationState = new ValidationState(status, invalidResults);
         return validationState;
     }
 
@@ -894,7 +896,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
-        Throwable failureCause = null;
+        Throwable failureCause;
 
         try {
             if (!sensitiveDynamicPropertyNames.get().isEmpty() && !isSupportsSensitiveDynamicProperties()) {
