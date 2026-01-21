@@ -47,7 +47,7 @@ public class DataQueuingConnector extends AbstractConnector {
         final Bundle bundle = new Bundle();
         bundle.setGroup("org.apache.nifi");
         bundle.setArtifact("nifi-system-test-extensions-nar");
-        bundle.setVersion("2.7.0-SNAPSHOT");
+        bundle.setVersion("2.8.0-SNAPSHOT");
 
         final VersionedProcessor generate = createVersionedProcessor("gen-1", "1234", "GenerateFlowFile",
             "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle, Map.of("File Size", "1 KB"), ScheduledState.RUNNING);
