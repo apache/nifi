@@ -28,6 +28,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ComponentBundleLookup;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorDetails;
@@ -149,6 +150,7 @@ public class ExtensionBuilder {
     private ConnectorStateTransition connectorStateTransition;
     private FrameworkConnectorInitializationContextBuilder connectorInitializationContextBuilder;
     private ConnectorValidationTrigger connectorValidationTrigger;
+    private ComponentBundleLookup componentBundleLookup;
 
     public ExtensionBuilder type(final String type) {
         this.type = type;
@@ -287,17 +289,21 @@ public class ExtensionBuilder {
         return this;
     }
 
-   public ProcessorNode buildProcessor() {
-       requireNonNull(identifier, "Processor ID");
-       requireNonNull(type, "Processor Type");
-       requireNonNull(bundleCoordinate, "Bundle Coordinate");
-       requireNonNull(extensionManager, "Extension Manager");
-       requireNonNull(serviceProvider, "Controller Service Provider");
-       requireNonNull(nodeTypeProvider, "Node Type Provider");
-       requireNonNull(reloadComponent, "Reload Component");
-       requireNonNull(verifiableComponentFactory, "Verifiable Component Factory");
+    public ExtensionBuilder componentBundleLookup(final ComponentBundleLookup componentBundleLookup) {
+        this.componentBundleLookup = componentBundleLookup;
+        return this;
+    }
 
-       boolean creationSuccessful = true;
+    public ProcessorNode buildProcessor() {
+        requireNonNull(identifier, "Processor ID");
+        requireNonNull(type, "Processor Type");
+        requireNonNull(bundleCoordinate, "Bundle Coordinate");
+        requireNonNull(extensionManager, "Extension Manager");
+        requireNonNull(serviceProvider, "Controller Service Provider");
+        requireNonNull(nodeTypeProvider, "Node Type Provider");
+        requireNonNull(reloadComponent, "Reload Component");
+
+        boolean creationSuccessful = true;
         final StandardLoggingContext loggingContext = new StandardLoggingContext();
         LoggableComponent<Processor> loggableComponent;
         try {
@@ -584,7 +590,7 @@ public class ExtensionBuilder {
         connectorNode.initializeConnector(initContext);
 
         return connectorNode;
-   }
+    }
 
     private void initializeDefaultValues(final Connector connector, final FrameworkFlowContext flowContext) {
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connector.getClass(), identifier)) {
@@ -615,6 +621,7 @@ public class ExtensionBuilder {
             .componentLog(componentLog)
             .secretsManager(flowController.getConnectorRepository().getSecretsManager())
             .assetManager(flowController.getConnectorAssetManager())
+            .componentBundleLookup(componentBundleLookup)
             .build();
     }
 
