@@ -22,6 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -31,12 +32,12 @@ import org.apache.nifi.processor.util.file.transfer.PermissionDeniedException;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.mockito.stubbing.Answer;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -92,7 +93,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
         assertFalse(proc.isClosed);
-        runner.getFlowFilesForRelationship(FetchFileTransfer.REL_SUCCESS).get(0).assertContentEquals("world");
+        runner.getFlowFilesForRelationship(FetchFileTransfer.REL_SUCCESS).getFirst().assertContentEquals("world");
     }
 
     @Test
@@ -102,7 +103,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
         assertFalse(proc.isClosed);
-        MockFlowFile transferredFlowFile = runner.getFlowFilesForRelationship(FetchFileTransfer.REL_SUCCESS).get(0);
+        MockFlowFile transferredFlowFile = runner.getFlowFilesForRelationship(FetchFileTransfer.REL_SUCCESS).getFirst();
         transferredFlowFile.assertContentEquals("world");
         transferredFlowFile.assertAttributeExists(CoreAttributes.PATH.key());
         transferredFlowFile.assertAttributeEquals(CoreAttributes.PATH.key(), "./here/is/my/path");
@@ -115,7 +116,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_NOT_FOUND, 1);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
-        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().get(0);
+        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
         assertEquals(FetchFileTransfer.REL_NOT_FOUND.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
     }
 
@@ -127,7 +128,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_PERMISSION_DENIED, 1);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
-        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().get(0);
+        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
         assertEquals(FetchFileTransfer.REL_PERMISSION_DENIED.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
     }
 
@@ -167,7 +168,7 @@ public class TestFetchFTP {
         runner.run(1, false, false);
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_COMMS_FAILURE, 1);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
-        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().get(0);
+        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
         assertEquals(FetchFileTransfer.REL_COMMS_FAILURE.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
 
         assertTrue(proc.isClosed);
@@ -185,6 +186,7 @@ public class TestFetchFTP {
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_SUCCESS, 1);
 
         proc.fileContents.containsKey("/moved/hello.txt");
+        runner.getLogger().warn("Keys in fileContents is {}", proc.fileContents.keySet());
         assertEquals(1, proc.fileContents.size());
     }
 
@@ -258,6 +260,17 @@ public class TestFetchFTP {
         assertTrue(proc.fileContents.containsKey("hello.txt"));
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName(),
+                FetchFileTransfer.OLD_FILE_NOT_FOUND_LOG_LEVEL_PROPERTY_NAME, FetchFileTransfer.FILE_NOT_FOUND_LOG_LEVEL.getName(),
+                ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 
     private static class TestableFetchFTP extends FetchFTP {
         private boolean allowAccess = true;
@@ -273,8 +286,9 @@ public class TestFetchFTP {
 
         private TestableFetchFTP() throws IOException {
             when(mockFtpClient.retrieveFileStream(anyString()))
-                .then((Answer) invocationOnMock -> {
-                    byte[] content = fileContents.get(invocationOnMock.getArgument(0));
+                .then(invocationOnMock -> {
+                    String key = invocationOnMock.getArgument(0);
+                    byte[] content = fileContents.get(key);
                     if (content == null) {
                         throw new FileNotFoundException();
                     }
@@ -282,7 +296,6 @@ public class TestFetchFTP {
                 });
             when(mockFtpClient.login(anyString(), anyString())).thenReturn(true);
             when(mockFtpClient.setFileType(anyInt())).thenReturn(true);
-
         }
 
         public void addContent(final String filename, final byte[] content) {

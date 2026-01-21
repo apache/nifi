@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockSessionFactory;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -376,7 +377,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
-        // Set partition size to 0 so we can see that the flow file gets all rows
+        // Set partition size to 0, so we can see that the flow file gets all rows
         runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "0");
 
         runner.run();
@@ -396,7 +397,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.setIncomingConnection(false);
         runner.setProperty(GenerateTableFetch.COLUMN_NAMES, "ID,BUCKET");
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
-        // Set partition size to 0 so we can see that the flow file gets all rows
+        // Set partition size to 0, so we can see that the flow file gets all rows
         runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "1");
         runner.setProperty(GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS, "false");
 
@@ -427,7 +428,7 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         runner.setProperty(GenerateTableFetch.TABLE_NAME, "TEST_QUERY_DB_TABLE");
         runner.setIncomingConnection(false);
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID, BUCKET");
-        // Set partition size to 1 so we can compare flow files to records
+        // Set partition size to 1, so we can compare flow files to records
         runner.setProperty(GenerateTableFetch.PARTITION_SIZE, "1");
 
         runner.run();
@@ -1096,6 +1097,22 @@ class TestGenerateTableFetch extends AbstractDatabaseConnectionServiceTest {
         assertResultsFound(query, 1);
 
         runner.clearTransferState();
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("db-fetch-db-type", AbstractDatabaseFetchProcessor.DB_TYPE.getName()),
+                Map.entry("db-fetch-where-clause", AbstractDatabaseFetchProcessor.WHERE_CLAUSE.getName()),
+                Map.entry("db-fetch-sql-query", AbstractDatabaseFetchProcessor.SQL_QUERY.getName()),
+                Map.entry("gen-table-fetch-partition-size", GenerateTableFetch.PARTITION_SIZE.getName()),
+                Map.entry("gen-table-column-for-val-partitioning", GenerateTableFetch.COLUMN_FOR_VALUE_PARTITIONING.getName()),
+                Map.entry("gen-table-output-flowfile-on-zero-results", GenerateTableFetch.OUTPUT_EMPTY_FLOWFILE_ON_ZERO_RESULTS.getName()),
+                Map.entry("gen-table-custom-orderby-column", GenerateTableFetch.CUSTOM_ORDERBY_COLUMN.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void assertResultsFound(final String query, final int results) throws SQLException {

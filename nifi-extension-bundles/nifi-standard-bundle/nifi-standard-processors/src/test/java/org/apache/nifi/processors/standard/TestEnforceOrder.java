@@ -19,8 +19,10 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -30,11 +32,15 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestEnforceOrder {
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(EnforceOrder.class);
+    }
 
     @Test
     public void testDefaultPropertyValidation() {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         // Default values should not be valid.
         runner.assertNotValid();
 
@@ -45,8 +51,6 @@ public class TestEnforceOrder {
 
     @Test
     public void testCustomPropertyValidation() {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         // Set required properties.
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.assertValid();
@@ -65,9 +69,25 @@ public class TestEnforceOrder {
         runner.assertValid();
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("group-id", EnforceOrder.GROUP_IDENTIFIER.getName()),
+                Map.entry("order-attribute", EnforceOrder.ORDER_ATTRIBUTE.getName()),
+                Map.entry("initial-order", EnforceOrder.INITIAL_ORDER.getName()),
+                Map.entry("maximum-order", EnforceOrder.MAX_ORDER.getName()),
+                Map.entry("wait-timeout", EnforceOrder.WAIT_TIMEOUT.getName()),
+                Map.entry("inactive-timeout", EnforceOrder.INACTIVE_TIMEOUT.getName()),
+                Map.entry("batch-count", EnforceOrder.BATCH_COUNT.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 
     private static class Ordered {
         private final Map<String, String> map = new HashMap<>();
+
         private Ordered(final int index) {
             map.put("index", String.valueOf(index));
         }
@@ -89,15 +109,13 @@ public class TestEnforceOrder {
             return map;
         }
 
-        private static MockFlowFile enqueue(final TestRunner runner, final String group, final int index) {
-            return runner.enqueue(group + "." + index, i(group, index).map());
+        private static void enqueue(final TestRunner runner, final String group, final int index) {
+            runner.enqueue(group + "." + index, i(group, index).map());
         }
     }
 
     @Test
     public void testSort() {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.assertValid();
@@ -117,8 +135,6 @@ public class TestEnforceOrder {
 
     @Test
     public void testDuplicatedOrder() {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
@@ -147,8 +163,6 @@ public class TestEnforceOrder {
 
     @Test
     public void testNoGroupIdentifier() {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
@@ -173,8 +187,6 @@ public class TestEnforceOrder {
 
     @Test
     public void testIllegalOrderValue() {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
@@ -200,8 +212,6 @@ public class TestEnforceOrder {
 
     @Test
     public void testInitialOrderValue() {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.setProperty(EnforceOrder.INITIAL_ORDER, "${index.start}");
@@ -244,8 +254,6 @@ public class TestEnforceOrder {
 
     @Test
     public void testMaxOrder() {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${fragment.identifier}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
@@ -279,8 +287,6 @@ public class TestEnforceOrder {
 
     @Test
     public void testWaitOvertakeSkip() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
@@ -372,13 +378,10 @@ public class TestEnforceOrder {
         skipped.get(0).assertAttributeExists(EnforceOrder.ATTR_DETAIL);
         skipped.get(1).assertContentEquals("a.4");
         skipped.get(1).assertAttributeExists(EnforceOrder.ATTR_DETAIL);
-
     }
 
     @Test
     public void testCleanInactiveGroups() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");
@@ -426,13 +429,10 @@ public class TestEnforceOrder {
         runner.assertAllFlowFilesTransferred(EnforceOrder.REL_WAIT, 1);
         final List<MockFlowFile> waiting = runner.getFlowFilesForRelationship(EnforceOrder.REL_WAIT);
         waiting.getFirst().assertContentEquals("b.2");
-
     }
 
     @Test
-    public void testClearOldProperties() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(EnforceOrder.class);
-
+    public void testClearOldProperties() {
         runner.setProperty(EnforceOrder.GROUP_IDENTIFIER, "${group}");
         runner.setProperty(EnforceOrder.ORDER_ATTRIBUTE, "index");
         runner.setProperty(EnforceOrder.INITIAL_ORDER, "1");

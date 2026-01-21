@@ -27,9 +27,11 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.file.transfer.FileInfo;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processor.util.list.ListProcessorTestWatcher;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeAll;
@@ -57,6 +59,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -890,11 +893,34 @@ public class TestListFile {
         assertEquals(2, runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS).size());
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("track-performance", ListFile.TRACK_PERFORMANCE.getName()),
+                Map.entry("max-performance-metrics", ListFile.MAX_TRACKED_FILES.getName()),
+                Map.entry("max-operation-time", ListFile.MAX_DISK_OPERATION_TIME.getName()),
+                Map.entry("max-listing-time", ListFile.MAX_LISTING_TIME.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListedEntityTracker.TRACKING_STATE_CACHE.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListedEntityTracker.TRACKING_TIME_WINDOW.getName()),
+                Map.entry(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListedEntityTracker.INITIAL_LISTING_TARGET.getName()),
+                Map.entry(ListedEntityTracker.OLD_NODE_IDENTIFIER_PROPERTY_NAME, ListedEntityTracker.NODE_IDENTIFIER.getName()),
+                Map.entry("target-system-timestamp-precision", AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION.getName()),
+                Map.entry("listing-strategy", AbstractListProcessor.LISTING_STRATEGY.getName()),
+                Map.entry("record-writer", AbstractListProcessor.RECORD_WRITER.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of("Distributed Cache Service");
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
+    }
+
     /*
      * HFS+, default for OS X, only has granularity to one second, accordingly, we go back in time to establish consistent test cases
      *
      * Provides "now" minus 1 second in millis
-    */
+     */
     private static long getTestModifiedTime() {
         final long nowMillis = System.currentTimeMillis();
         // Subtract a second to avoid possible rounding issues

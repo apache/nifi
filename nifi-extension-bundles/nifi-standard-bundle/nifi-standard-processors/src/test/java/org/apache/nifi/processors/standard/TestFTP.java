@@ -18,13 +18,16 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.file.transfer.FetchFileTransfer;
 import org.apache.nifi.processor.util.file.transfer.PutFileTransfer;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -45,6 +48,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -74,7 +78,7 @@ public class TestFTP {
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    public void tearDown() {
         fakeFtpServer.stop();
     }
 
@@ -221,8 +225,21 @@ public class TestFTP {
 
         runner.run();
 
-        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(GetFTP.REL_SUCCESS).get(0);
+        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(GetFTP.REL_SUCCESS).getFirst();
         retrievedFile.assertContentEquals("Just some random test test test chocolate");
+    }
+
+    @Test
+    void testGetFtpMigrateProperties() {
+        TestRunner runner = TestRunners.newTestRunner(GetFTP.class);
+        final Map<String, String> expectedRenamed = Map.of(
+                FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName(),
+                FTPTransfer.OLD_FOLLOW_SYMLINK_PROPERTY_NAME, FTPTransfer.FOLLOW_SYMLINK.getName(),
+                ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     @Test
@@ -254,7 +271,7 @@ public class TestFTP {
 
         runner.run();
 
-        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).get(0);
+        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).getFirst();
         retrievedFile.assertContentEquals("Just some random test test test chocolate");
     }
 
@@ -294,6 +311,29 @@ public class TestFTP {
 
         runner.assertAllFlowFilesTransferred(FetchFTP.REL_PERMISSION_DENIED);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
+    }
+
+    @Test
+    void testListFtpMigrateProperties() {
+        TestRunner runner = TestRunners.newTestRunner(ListFTP.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName()),
+                Map.entry(FTPTransfer.OLD_FOLLOW_SYMLINK_PROPERTY_NAME, FTPTransfer.FOLLOW_SYMLINK.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListedEntityTracker.TRACKING_STATE_CACHE.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListedEntityTracker.TRACKING_TIME_WINDOW.getName()),
+                Map.entry(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListedEntityTracker.INITIAL_LISTING_TARGET.getName()),
+                Map.entry("target-system-timestamp-precision", AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION.getName()),
+                Map.entry("listing-strategy", AbstractListProcessor.LISTING_STRATEGY.getName()),
+                Map.entry("record-writer", AbstractListProcessor.RECORD_WRITER.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of("Distributed Cache Service", "Proxy Type", "Proxy Host",
+                "Proxy Port", "Http Proxy Username", "Http Proxy Password");
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     @Test
@@ -348,7 +388,7 @@ public class TestFTP {
         runner.run();
 
         runner.assertTransferCount(FetchFTP.REL_SUCCESS, 1);
-        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).get(0);
+        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).getFirst();
         retrievedFile.assertContentEquals("Just some random test test test chocolate");
     }
 
@@ -380,7 +420,7 @@ public class TestFTP {
         runner.run();
 
         runner.assertTransferCount(FetchFTP.REL_SUCCESS, 1);
-        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).get(0);
+        final MockFlowFile retrievedFile = runner.getFlowFilesForRelationship(FetchFTP.REL_SUCCESS).getFirst();
         runner.assertAllFlowFilesContainAttribute("ftp.remote.host");
         runner.assertAllFlowFilesContainAttribute("ftp.remote.port");
         runner.assertAllFlowFilesContainAttribute("ftp.listing.user");
@@ -391,5 +431,21 @@ public class TestFTP {
         runner.assertAllFlowFilesContainAttribute(ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE);
         retrievedFile.assertAttributeEquals("ftp.listing.user", username);
         retrievedFile.assertAttributeEquals("filename", "randombytes-2");
+    }
+
+    @Test
+    void testPutFtpMigrateProperties() {
+        final TestRunner runner = TestRunners.newTestRunner(PutFTP.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(FTPTransfer.OBSOLETE_UTF8_ENCODING, FTPTransfer.UTF8_ENCODING.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of("Proxy Type", "Proxy Host",
+                "Proxy Port", "Http Proxy Username", "Http Proxy Password");
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 }

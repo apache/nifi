@@ -20,8 +20,10 @@ import org.apache.nifi.lookup.SimpleKeyValueLookupService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -33,21 +35,26 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestTransformXml {
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(TransformXml.class);
+    }
 
     @Test
     public void testStylesheetNotFound() {
-        final TestRunner controller = TestRunners.newTestRunner(TransformXml.class);
-        controller.setProperty(TransformXml.XSLT_FILE_NAME, "/no/path/to/math.xsl");
-        controller.assertNotValid();
+        runner.setProperty(TransformXml.XSLT_FILE_NAME, "/no/path/to/math.xsl");
+        runner.assertNotValid();
     }
 
     @Test
     public void testNonXmlContent() {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
 
         final Map<String, String> attributes = new HashMap<>();
@@ -56,13 +63,12 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
-        final MockFlowFile original = runner.getFlowFilesForRelationship(TransformXml.REL_FAILURE).get(0);
+        final MockFlowFile original = runner.getFlowFilesForRelationship(TransformXml.REL_FAILURE).getFirst();
         original.assertContentEquals("not xml");
     }
 
     @Test
     public void testTransformMath() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test for mod");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
 
@@ -71,7 +77,7 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
         final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
 
         transformed.assertContentEquals(expectedContent);
@@ -79,7 +85,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformCsv() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/tokens.xsl");
         runner.setProperty("uuid_0", "${uuid_0}");
         runner.setProperty("uuid_1", "${uuid_1}");
@@ -105,7 +110,7 @@ public class TestTransformXml {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-            final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+            final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
             final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/tokens.xml")));
 
             transformed.assertContentEquals(expectedContent);
@@ -114,7 +119,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformExpressionLanguage() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test for mod");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "${xslt.path}");
 
@@ -124,7 +128,7 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
         final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
 
         transformed.assertContentEquals(expectedContent);
@@ -132,7 +136,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformNoCache() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test for mod");
         runner.setProperty(TransformXml.CACHE_SIZE, "0");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
@@ -140,7 +143,7 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
         final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
 
         transformed.assertContentEquals(expectedContent);
@@ -148,7 +151,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformBothControllerFileNotValid() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/math.xsl");
 
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
@@ -163,15 +165,12 @@ public class TestTransformXml {
 
     @Test
     public void testTransformNoneControllerFileNotValid() {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.CACHE_SIZE, "0");
         runner.assertNotValid();
     }
 
     @Test
     public void testTransformControllerNoKey() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
-
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.setProperty(service, "key1", "value1");
@@ -184,8 +183,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformWithController() throws IOException, InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
-
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.setProperty(service, "math", "<xsl:stylesheet version=\"2.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">"
@@ -209,7 +206,7 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
         final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
 
         transformed.assertContentEquals(expectedContent);
@@ -217,8 +214,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformWithXsltNotFoundInController() throws IOException, InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
-
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.enableControllerService(service);
@@ -238,8 +233,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformWithControllerNoCache() throws IOException, InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
-
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.setProperty(service, "math", "<xsl:stylesheet version=\"2.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\" xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">"
@@ -264,7 +257,7 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
         final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/math.html"))).trim();
 
         transformed.assertContentEquals(expectedContent);
@@ -272,7 +265,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformSecureProcessingEnabledXmlWithEntity() {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/doc-node.xsl");
         runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
 
@@ -281,7 +273,7 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
 
         final String expected = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><doc xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>";
         transformed.assertContentEquals(expected);
@@ -289,7 +281,6 @@ public class TestTransformXml {
 
     @Test
     public void testTransformSecureProcessingEnabledXslWithEntity() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/doctype-entity-file-uri.xsl");
         runner.setProperty(TransformXml.INDENT_OUTPUT, Boolean.FALSE.toString());
 
@@ -297,14 +288,13 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
 
         transformed.assertContentEquals("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
     }
 
     @Test
     public void testNonMatchingTemplateTag() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test for mod");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/nonMatchingEndTag.xsl");
 
@@ -314,13 +304,12 @@ public class TestTransformXml {
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
         MockComponentLog logger = runner.getLogger();
         assertFalse(logger.getErrorMessages().isEmpty());
-        String firstMessage = logger.getErrorMessages().get(0).getMsg();
+        String firstMessage = logger.getErrorMessages().getFirst().getMsg();
         assertTrue(firstMessage.contains("xsl:template"));
     }
 
     @Test
     public void testMessageTerminate() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test message terminate");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/employeeMessageTerminate.xsl");
 
@@ -330,13 +319,12 @@ public class TestTransformXml {
         runner.assertAllFlowFilesTransferred(TransformXml.REL_FAILURE);
         MockComponentLog logger = runner.getLogger();
         assertFalse(logger.getErrorMessages().isEmpty());
-        String firstMessage = logger.getErrorMessages().get(0).getMsg();
+        String firstMessage = logger.getErrorMessages().getFirst().getMsg();
         assertTrue(firstMessage.contains("xsl:message"));
     }
 
     @Test
     public void testMessageNonTerminate() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new TransformXml());
         runner.setProperty("header", "Test message non terminate");
         runner.setProperty(TransformXml.XSLT_FILE_NAME, "src/test/resources/TestTransformXml/employeeMessageNonTerminate.xsl");
 
@@ -344,12 +332,29 @@ public class TestTransformXml {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(TransformXml.REL_SUCCESS);
-        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).get(0);
+        final MockFlowFile transformed = runner.getFlowFilesForRelationship(TransformXml.REL_SUCCESS).getFirst();
         final String expectedContent = new String(Files.readAllBytes(Paths.get("src/test/resources/TestTransformXml/employee.html")));
 
         transformed.assertContentEquals(expectedContent);
         MockComponentLog logger = runner.getLogger();
         assertTrue(logger.getErrorMessages().isEmpty());
         assertTrue(logger.getWarnMessages().isEmpty());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("xslt-controller", TransformXml.XSLT_CONTROLLER.getName()),
+                Map.entry("xslt-controller-key", TransformXml.XSLT_CONTROLLER_KEY.getName()),
+                Map.entry("XSLT Lookup key", TransformXml.XSLT_CONTROLLER_KEY.getName()),
+                Map.entry("indent-output", TransformXml.INDENT_OUTPUT.getName()),
+                Map.entry("secure-processing", TransformXml.SECURE_PROCESSING.getName()),
+                Map.entry("cache-size", TransformXml.CACHE_SIZE.getName()),
+                Map.entry("cache-ttl-after-last-access", TransformXml.CACHE_TTL_AFTER_LAST_ACCESS.getName()),
+                Map.entry("XSLT file name", TransformXml.XSLT_FILE_NAME.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

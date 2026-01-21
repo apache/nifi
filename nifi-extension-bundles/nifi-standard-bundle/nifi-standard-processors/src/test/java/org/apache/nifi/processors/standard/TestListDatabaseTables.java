@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +28,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -158,6 +160,23 @@ class TestListDatabaseTables extends AbstractDatabaseConnectionServiceTest {
         Thread.sleep(500);
         runner.run();
         runner.assertTransferCount(ListDatabaseTables.REL_SUCCESS, 2);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("list-db-tables-db-connection", ListDatabaseTables.DBCP_SERVICE.getName()),
+                Map.entry("list-db-tables-catalog", ListDatabaseTables.CATALOG.getName()),
+                Map.entry("list-db-tables-schema-pattern", ListDatabaseTables.SCHEMA_PATTERN.getName()),
+                Map.entry("list-db-tables-name-pattern", ListDatabaseTables.TABLE_NAME_PATTERN.getName()),
+                Map.entry("list-db-tables-types", ListDatabaseTables.TABLE_TYPES.getName()),
+                Map.entry("list-db-include-count", ListDatabaseTables.INCLUDE_COUNT.getName()),
+                Map.entry("list-db-refresh-interval", ListDatabaseTables.REFRESH_INTERVAL.getName()),
+                Map.entry("record-writer", ListDatabaseTables.RECORD_WRITER.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void createTables() throws SQLException {

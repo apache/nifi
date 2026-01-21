@@ -322,7 +322,6 @@ public class TransformXml extends AbstractProcessor {
     public void migrateProperties(PropertyConfiguration config) {
         config.renameProperty("xslt-controller", XSLT_CONTROLLER.getName());
         OBSOLETE_XSLT_CONTROLLER_KEY_PROPERTY_NAMES.forEach(obsoletePropertyName -> config.renameProperty(obsoletePropertyName, XSLT_CONTROLLER_KEY.getName()));
-        config.renameProperty("xslt-controller-key", XSLT_CONTROLLER_KEY.getName());
         config.renameProperty("indent-output", INDENT_OUTPUT.getName());
         config.renameProperty("secure-processing", SECURE_PROCESSING.getName());
         config.renameProperty("cache-size", CACHE_SIZE.getName());

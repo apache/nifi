@@ -420,7 +420,7 @@ public class DeduplicateRecord extends AbstractProcessor {
                 final RecordSetWriter nonDuplicatesWriter = writerFactory
                         .createWriter(getLogger(), writerFactory.getSchema(flowFile.getAttributes(), reader.getSchema()), nonDupeStream, nonDuplicatesFlowFile);
                 final RecordSetWriter duplicatesWriter = writerFactory
-                        .createWriter(getLogger(), writerFactory.getSchema(flowFile.getAttributes(), reader.getSchema()), dupeStream, duplicatesFlowFile);
+                        .createWriter(getLogger(), writerFactory.getSchema(flowFile.getAttributes(), reader.getSchema()), dupeStream, duplicatesFlowFile)
         ) {
             final FilterWrapper filter = getFilter(context);
 

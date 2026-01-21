@@ -23,6 +23,7 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,15 +40,12 @@ public class TestDeduplicateRecord {
 
     private TestRunner runner;
     private MockRecordParser reader;
-    private MockRecordWriter writer;
 
     @BeforeEach
     public void setup() throws InitializationException {
         runner = TestRunners.newTestRunner(DeduplicateRecord.class);
-
-        // RECORD_READER, RECORD_WRITER
         reader = new MockRecordParser();
-        writer = new MockRecordWriter("header", false);
+        final MockRecordWriter writer = new MockRecordWriter("header", false);
 
         runner.addControllerService("reader", reader);
         runner.enableControllerService(reader);
@@ -367,6 +365,26 @@ public class TestDeduplicateRecord {
         doCountTests(0, 1, 1, 1, 1, 3);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("record-reader", DeduplicateRecord.RECORD_READER.getName()),
+                Map.entry("record-writer", DeduplicateRecord.RECORD_WRITER.getName()),
+                Map.entry("deduplication-strategy", DeduplicateRecord.DEDUPLICATION_STRATEGY.getName()),
+                Map.entry("distributed-map-cache", DeduplicateRecord.DISTRIBUTED_MAP_CACHE.getName()),
+                Map.entry("cache-identifier", DeduplicateRecord.CACHE_IDENTIFIER.getName()),
+                Map.entry("put-cache-identifier", DeduplicateRecord.PUT_CACHE_IDENTIFIER.getName()),
+                Map.entry("include-zero-record-flowfiles", DeduplicateRecord.INCLUDE_ZERO_RECORD_FLOWFILES.getName()),
+                Map.entry("record-hashing-algorithm", DeduplicateRecord.RECORD_HASHING_ALGORITHM.getName()),
+                Map.entry("filter-type", DeduplicateRecord.FILTER_TYPE.getName()),
+                Map.entry("filter-capacity-hint", DeduplicateRecord.FILTER_CAPACITY_HINT.getName()),
+                Map.entry("bloom-filter-certainty", DeduplicateRecord.BLOOM_FILTER_FPP.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     void doCountTests(int failure, int original, int duplicates, int notDuplicates, int notDupeCount, int dupeCount) {
         runner.assertTransferCount(DeduplicateRecord.REL_FAILURE, failure);
         runner.assertTransferCount(DeduplicateRecord.REL_ORIGINAL, original);
@@ -375,12 +393,12 @@ public class TestDeduplicateRecord {
 
         List<MockFlowFile> duplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_DUPLICATE);
         if (duplicateFlowFile != null) {
-            assertEquals(String.valueOf(dupeCount), duplicateFlowFile.get(0).getAttribute(DeduplicateRecord.RECORD_COUNT_ATTRIBUTE));
+            assertEquals(String.valueOf(dupeCount), duplicateFlowFile.getFirst().getAttribute(DeduplicateRecord.RECORD_COUNT_ATTRIBUTE));
         }
 
         List<MockFlowFile> nonDuplicateFlowFile = runner.getFlowFilesForRelationship(DeduplicateRecord.REL_NON_DUPLICATE);
         if (nonDuplicateFlowFile != null) {
-            assertEquals(String.valueOf(notDupeCount), nonDuplicateFlowFile.get(0).getAttribute(DeduplicateRecord.RECORD_COUNT_ATTRIBUTE));
+            assertEquals(String.valueOf(notDupeCount), nonDuplicateFlowFile.getFirst().getAttribute(DeduplicateRecord.RECORD_COUNT_ATTRIBUTE));
         }
     }
 

@@ -417,7 +417,7 @@ public class PartitionRecord extends AbstractProcessor {
                 }
 
                 // There exists a single value that is scalar. Create attribute using the property name as the attribute name
-                final String attributeValue = DataTypeUtils.toString(value, (String) null);
+                final String attributeValue = DataTypeUtils.toString(value, null);
                 attributes.put(entry.getKey(), attributeValue);
             }
 

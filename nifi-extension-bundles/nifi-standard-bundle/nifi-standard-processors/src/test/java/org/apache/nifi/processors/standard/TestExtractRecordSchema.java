@@ -22,8 +22,10 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
@@ -32,14 +34,21 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 public class TestExtractRecordSchema {
 
     static final Path NAME_AGE_SCHEMA_PATH = Paths.get("src/test/resources/TestExtractRecordSchema/name_age_schema.avsc");
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(ExtractRecordSchema.class);
+    }
 
     @Test
     public void testSuccessfulExtraction() throws Exception {
         final MockRecordParser readerService = new MockRecordParser();
-        final TestRunner runner = TestRunners.newTestRunner(ExtractRecordSchema.class);
         runner.addControllerService("reader", readerService);
         runner.enableControllerService(readerService);
         runner.setProperty(ExtractRecordSchema.RECORD_READER, "reader");
@@ -55,7 +64,7 @@ public class TestExtractRecordSchema {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExtractRecordSchema.REL_SUCCESS, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ExtractRecordSchema.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ExtractRecordSchema.REL_SUCCESS).getFirst();
 
         final String expectedAttributeValue = new String(Files.readAllBytes(NAME_AGE_SCHEMA_PATH));
         out.assertAttributeEquals(ExtractRecordSchema.SCHEMA_ATTRIBUTE_NAME, expectedAttributeValue);
@@ -64,7 +73,6 @@ public class TestExtractRecordSchema {
     @Test
     public void testNoSchema() throws Exception {
         final MockRecordParser readerService = new MockRecordParserSchemaNotFound();
-        final TestRunner runner = TestRunners.newTestRunner(ExtractRecordSchema.class);
         runner.addControllerService("reader", readerService);
         runner.enableControllerService(readerService);
         runner.setProperty(ExtractRecordSchema.RECORD_READER, "reader");
@@ -73,9 +81,20 @@ public class TestExtractRecordSchema {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ExtractRecordSchema.REL_FAILURE, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(ExtractRecordSchema.REL_FAILURE).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ExtractRecordSchema.REL_FAILURE).getFirst();
 
         out.assertAttributeEquals("record.error.message", "org.apache.nifi.schema.access.SchemaNotFoundException Thrown");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "record-reader", ExtractRecordSchema.RECORD_READER.getName(),
+                "cache-size", ExtractRecordSchema.SCHEMA_CACHE_SIZE.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private static class MockRecordParserSchemaNotFound extends MockRecordParser {

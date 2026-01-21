@@ -35,6 +35,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,12 +60,11 @@ public class TestLookupRecord {
     private TestRunner runner;
     private MapLookup lookupService;
     private MockRecordParser recordReader;
-    private MockRecordWriter recordWriter;
 
     @BeforeEach
     public void setup() throws InitializationException {
         recordReader = new MockRecordParser();
-        recordWriter = new MockRecordWriter(null, false);
+        MockRecordWriter recordWriter = new MockRecordWriter(null, false);
         lookupService = new MapLookup();
 
         runner = TestRunners.newTestRunner(LookupRecord.class);
@@ -394,8 +394,7 @@ public class TestLookupRecord {
         attrs.put("schema.name", "person");
         attrs.put("something_something", "test");
 
-        Map<String, Object> expected = new HashMap<>();
-        expected.putAll(attrs);
+        Map<String, Object> expected = new HashMap<>(attrs);
 
         lookupService.setExpectedContext(expected);
 
@@ -407,7 +406,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -424,7 +423,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -447,7 +446,7 @@ public class TestLookupRecord {
 
         runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
         runner.assertTransferCount(LookupRecord.REL_UNMATCHED, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
 
         out.assertAttributeEquals("record.count", "1");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -461,7 +460,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).getFirst();
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -480,12 +479,12 @@ public class TestLookupRecord {
         runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
         runner.assertTransferCount(LookupRecord.REL_UNMATCHED, 1);
 
-        final MockFlowFile matched = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile matched = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
         matched.assertAttributeEquals("record.count", "2");
         matched.assertAttributeEquals("mime.type", "text/plain");
         matched.assertContentEquals("John Doe,48,Soccer\nJimmy Doe,14,Football\n");
 
-        final MockFlowFile unmatched = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        final MockFlowFile unmatched = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).getFirst();
         unmatched.assertAttributeEquals("record.count", "1");
         unmatched.assertAttributeEquals("mime.type", "text/plain");
         unmatched.assertContentEquals("Jane Doe,47,\n");
@@ -503,7 +502,7 @@ public class TestLookupRecord {
         runner.assertTransferCount(LookupRecord.REL_FAILURE, 0);
         runner.assertTransferCount(LookupRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile matched = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        final MockFlowFile matched = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).getFirst();
         matched.assertAttributeEquals("record.count", "3");
         matched.assertAttributeEquals("mime.type", "text/plain");
         matched.assertContentEquals("John Doe,48,\nJane Doe,47,Soccer\nJimmy Doe,14,Football\n");
@@ -522,7 +521,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -537,7 +536,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).getFirst();
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -552,7 +551,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_FAILURE, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_FAILURE).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_FAILURE).getFirst();
         out.assertAttributeNotExists("record.count");
         out.assertContentEquals("");
     }
@@ -569,7 +568,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -589,7 +588,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).getFirst();
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
@@ -645,7 +644,7 @@ public class TestLookupRecord {
         runner.enqueue("");
         runner.run();
 
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
         out.assertContentEquals("John Doe,48,basketball,soccer\n");
     }
 
@@ -687,7 +686,7 @@ public class TestLookupRecord {
         runner.enqueue("");
         runner.run();
 
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
 
         // We can't be sure of the order of the fields in the record, so we allow either 'least' or 'favorite' to be first
         final String outputContents = new String(out.toByteArray());
@@ -733,7 +732,7 @@ public class TestLookupRecord {
         runner.enqueue("");
         runner.run();
 
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
 
         // We can't be sure of the order of the fields in the record, so we allow either 'least' or 'favorite' to be first
         final String outputContents = new String(out.toByteArray());
@@ -778,7 +777,7 @@ public class TestLookupRecord {
         runner.enqueue("");
         runner.run();
 
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).getFirst();
         out.assertContentEquals("John Doe,48,soccer,basketball\nJane Doe,47\n");
     }
 
@@ -820,7 +819,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).getFirst();
         out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output.json").toPath());
     }
 
@@ -874,7 +873,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).getFirst();
         out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-empty-array.json").toPath());
     }
 
@@ -910,11 +909,11 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertTransferCount(LookupRecord.REL_UNMATCHED, 1);
-        final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        final MockFlowFile outUnmatched = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).getFirst();
         outUnmatched.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-missing-unmatched.json").toPath());
 
         runner.assertTransferCount(LookupRecord.REL_MATCHED, 1);
-        final MockFlowFile outMatched = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).get(0);
+        final MockFlowFile outMatched = runner.getFlowFilesForRelationship(LookupRecord.REL_MATCHED).getFirst();
         outMatched.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-missing-matched.json").toPath());
     }
 
@@ -955,7 +954,7 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_UNMATCHED).getFirst();
         out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output-unmatched.json").toPath());
     }
 
@@ -970,6 +969,23 @@ public class TestLookupRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(LookupRecord.REL_MATCHED, 1);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("record-reader", LookupRecord.RECORD_READER.getName()),
+                Map.entry("record-writer", LookupRecord.RECORD_WRITER.getName()),
+                Map.entry("lookup-service", LookupRecord.LOOKUP_SERVICE.getName()),
+                Map.entry("result-contents", LookupRecord.RESULT_CONTENTS.getName()),
+                Map.entry("routing-strategy", LookupRecord.ROUTING_STRATEGY.getName()),
+                Map.entry("record-update-strategy", LookupRecord.REPLACEMENT_STRATEGY.getName()),
+                Map.entry("result-record-path", LookupRecord.RESULT_RECORD_PATH.getName()),
+                Map.entry("record-path-lookup-miss-result-cache-size", LookupRecord.CACHE_SIZE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private static class MapLookup extends AbstractControllerService implements StringLookupService {

@@ -231,6 +231,20 @@ class TestIdentifyMimeType {
         assertEquals(expectedExtension, extension, "Expected " + file + " to have extension " + expectedExtension + ", but it was " + extension);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "use-filename-in-detection", IdentifyMimeType.USE_FILENAME_IN_DETECTION.getName(),
+                "config-strategy", IdentifyMimeType.CONFIG_STRATEGY.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of("config-file", "config-body");
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
+    }
+
     private static Stream<Arguments> replaceWithConfigFileData() {
         final Map<String, String> expectedMimeTypes = new HashMap<>();
         expectedMimeTypes.put("1.7z", "application/octet-stream");

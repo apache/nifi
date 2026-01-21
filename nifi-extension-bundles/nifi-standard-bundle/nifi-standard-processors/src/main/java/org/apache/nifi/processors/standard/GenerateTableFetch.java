@@ -83,16 +83,18 @@ import java.util.stream.IntStream;
 @InputRequirement(Requirement.INPUT_ALLOWED)
 @Tags({"sql", "select", "jdbc", "query", "database", "fetch", "generate"})
 @SeeAlso({QueryDatabaseTable.class, ExecuteSQL.class, ListDatabaseTables.class})
-@CapabilityDescription("Generates SQL select queries that fetch \"pages\" of rows from a table. The partition size property, along with the table's row count, "
-        + "determine the size and number of pages and generated FlowFiles. In addition, incremental fetching can be achieved by setting Maximum-Value Columns, "
-        + "which causes the processor to track the columns' maximum values, thus only fetching rows whose columns' values exceed the observed maximums. This "
-        + "processor is intended to be run on the Primary Node only.\n\n"
-        + "This processor can accept incoming connections; the behavior of the processor is different whether incoming connections are provided:\n"
-        + "  - If no incoming connection(s) are specified, the processor will generate SQL queries on the specified processor schedule. Expression Language is supported for many "
-        + "fields, but no FlowFile attributes are available. However the properties will be evaluated using the Environment/System properties.\n"
-        + "  - If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed.\n"
-        + "  - If incoming connection(s) are specified and a FlowFile is available to a processor task, the FlowFile's attributes may be used in Expression Language for such fields "
-        + "as Table Name and others. However, the Max-Value Columns and Columns to Return fields must be empty or refer to columns that are available in each specified table.")
+@CapabilityDescription("""
+        Generates SQL select queries that fetch "pages" of rows from a table. The partition size property, along with the table's row count, \
+        determine the size and number of pages and generated FlowFiles. In addition, incremental fetching can be achieved by setting Maximum-Value Columns, \
+        which causes the processor to track the columns' maximum values, thus only fetching rows whose columns' values exceed the observed maximums. This \
+        processor is intended to be run on the Primary Node only.
+
+        This processor can accept incoming connections; the behavior of the processor is different whether incoming connections are provided:
+          - If no incoming connection(s) are specified, the processor will generate SQL queries on the specified processor schedule. Expression Language is supported for many \
+        fields, but no FlowFile attributes are available. However the properties will be evaluated using the Environment/System properties.
+          - If incoming connection(s) are specified and no FlowFile is available to a processor task, no work will be performed.
+          - If incoming connection(s) are specified and a FlowFile is available to a processor task, the FlowFile's attributes may be used in Expression Language for such fields \
+        as Table Name and others. However, the Max-Value Columns and Columns to Return fields must be empty or refer to columns that are available in each specified table.""")
 @Stateful(scopes = Scope.CLUSTER, description = "After performing a query on the specified table, the maximum values for "
         + "the specified column(s) will be retained for use in future executions of the query. This allows the Processor "
         + "to fetch only those records that have max values greater than the retained values. This can be used for "
@@ -253,7 +255,7 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
-        // Fetch the column/table info once (if the table name and max value columns are not dynamic). Otherwise do the setup later
+        // Fetch the column/table info once (if the table name and max value columns are not dynamic). Otherwise, do the setup later
         if (!isDynamicTableName && !isDynamicMaxValues && !setupComplete.get()) {
             super.setup(context);
         }

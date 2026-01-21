@@ -16,8 +16,10 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -26,35 +28,47 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestUpdateCounter {
+    private TestRunner runner;
 
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(new UpdateCounter());
+    }
 
     @Test
     public void testwithFileName() {
-        final TestRunner firstrunner = TestRunners.newTestRunner(new UpdateCounter());
-        firstrunner.setProperty(UpdateCounter.COUNTER_NAME, "firewall");
-        firstrunner.setProperty(UpdateCounter.DELTA, "1");
+        runner.setProperty(UpdateCounter.COUNTER_NAME, "firewall");
+        runner.setProperty(UpdateCounter.DELTA, "1");
         Map<String, String> attributes = new HashMap<>();
-        firstrunner.enqueue("", attributes);
-        firstrunner.run();
-        firstrunner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
+        runner.enqueue("", attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
     }
 
     @Test
     public void testExpressionLanguage() {
-
-        final TestRunner firstrunner = TestRunners.newTestRunner(new UpdateCounter());
-        firstrunner.setProperty(UpdateCounter.COUNTER_NAME, "${filename}");
-        firstrunner.setProperty(UpdateCounter.DELTA, "${num}");
+        runner.setProperty(UpdateCounter.COUNTER_NAME, "${filename}");
+        runner.setProperty(UpdateCounter.DELTA, "${num}");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("filename", "test");
         attributes.put("num", "40");
 
-        firstrunner.enqueue(new byte[0], attributes);
-        firstrunner.run();
-        Long counter = firstrunner.getCounterValue("test");
-        assertEquals(java.util.Optional.ofNullable(counter), java.util.Optional.ofNullable(40L));
-        firstrunner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        Long counter = runner.getCounterValue("test");
+        assertEquals(java.util.Optional.ofNullable(counter), java.util.Optional.of(40L));
+        runner.assertAllFlowFilesTransferred(UpdateCounter.SUCCESS, 1);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "counter-name", UpdateCounter.COUNTER_NAME.getName(),
+                "delta", UpdateCounter.DELTA.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 }
