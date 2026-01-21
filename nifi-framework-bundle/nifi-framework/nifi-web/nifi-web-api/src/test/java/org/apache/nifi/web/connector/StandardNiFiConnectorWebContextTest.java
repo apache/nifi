@@ -17,9 +17,6 @@
 package org.apache.nifi.web.connector;
 
 import org.apache.nifi.authorization.AccessDeniedException;
-import org.apache.nifi.components.connector.Connector;
-import org.apache.nifi.web.ConnectorWebMethod;
-import org.apache.nifi.web.ConnectorWebMethod.AccessType;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.AuthorizationRequest;
 import org.apache.nifi.authorization.AuthorizationResult;
@@ -29,8 +26,11 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
+import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.web.ConnectorWebMethod;
+import org.apache.nifi.web.ConnectorWebMethod.AccessType;
 import org.apache.nifi.web.NiFiConnectorWebContext.ConnectorWebContext;
 import org.apache.nifi.web.connector.authorization.AuthorizingFlowContext;
 import org.apache.nifi.web.dao.ConnectorDAO;

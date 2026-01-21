@@ -298,7 +298,7 @@ public final class ResourceFactory {
         }
     };
 
-    private final static Resource CONNECTORS_RESOURCE = new Resource() {
+    private static final Resource CONNECTORS_RESOURCE = new Resource() {
 
         @Override
         public String getIdentifier() {

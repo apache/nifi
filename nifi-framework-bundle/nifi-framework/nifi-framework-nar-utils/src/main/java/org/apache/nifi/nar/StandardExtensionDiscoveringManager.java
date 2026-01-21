@@ -29,6 +29,7 @@ import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.components.ClassloaderIsolationKeyProvider;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
@@ -55,7 +56,6 @@ import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.nifi.components.connector.Connector;
 
 import java.io.BufferedReader;
 import java.io.File;
