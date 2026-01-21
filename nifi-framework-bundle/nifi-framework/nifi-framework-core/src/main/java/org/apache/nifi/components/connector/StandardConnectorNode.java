@@ -41,9 +41,13 @@ import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConfigurationStep;
 import org.apache.nifi.flow.VersionedConnectorValueReference;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
@@ -95,6 +99,7 @@ public class StandardConnectorNode implements ConnectorNode {
     private final ConnectorValidationTrigger validationTrigger;
     private final boolean extensionMissing;
     private volatile boolean triggerValidation = true;
+    private final AtomicReference<CompletableFuture<Void>> drainFutureRef = new AtomicReference<>();
 
     private volatile FrameworkFlowContext workingFlowContext;
 
@@ -398,6 +403,7 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public Future<Void> stop(final FlowEngine scheduler) {
+        logger.info("Stopping {}", this);
         final CompletableFuture<Void> stopCompleteFuture = new CompletableFuture<>();
 
         stateTransition.setDesiredState(ConnectorState.STOPPED);
@@ -406,7 +412,7 @@ public class StandardConnectorNode implements ConnectorNode {
         while (!stateUpdated) {
             final ConnectorState currentState = getCurrentState();
             if (currentState == ConnectorState.STOPPED) {
-                logger.debug("{} is already {}; will not attempt to stop", this, currentState);
+                logger.info("{} is already stopped.", this);
                 stopCompleteFuture.complete(null);
                 return stopCompleteFuture;
             }
@@ -430,12 +436,52 @@ public class StandardConnectorNode implements ConnectorNode {
         requireStopped("drain FlowFiles", ConnectorState.DRAINING);
 
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, connectorDetails.getConnector().getClass(), getIdentifier())) {
-            final CompletableFuture<Void> future = connectorDetails.getConnector().drainFlowFiles(activeFlowContext);
-            final CompletableFuture<Void> stateUpdateFuture = future.whenComplete((result, failureCause) -> stateTransition.setCurrentState(ConnectorState.STOPPED));
+            getComponentLog().info("Draining FlowFiles from {}", this);
+            final CompletableFuture<Void> drainFuture = connectorDetails.getConnector().drainFlowFiles(activeFlowContext);
+            drainFutureRef.set(drainFuture);
+
+            final CompletableFuture<Void> stateUpdateFuture = drainFuture.whenComplete((result, failureCause) -> {
+                drainFutureRef.set(null);
+                logger.info("Successfully drained FlowFiles from {}; ensuring all components are stopped.", this);
+
+                try {
+                    connectorDetails.getConnector().stop(activeFlowContext);
+                } catch (final Exception e) {
+                    logger.warn("Failed to stop {} after draining FlowFiles", this, e);
+                }
+
+                stateTransition.setCurrentState(ConnectorState.STOPPED);
+                logger.info("All components of {} are now stopped after draining FlowFiles.", this);
+            });
+
             return stateUpdateFuture;
         } catch (final Throwable t) {
             stateTransition.setCurrentState(ConnectorState.STOPPED);
             throw t;
+        }
+    }
+
+    @Override
+    public void cancelDrainFlowFiles() {
+        final Future<Void> future = this.drainFutureRef.getAndSet(null);
+        if (future == null) {
+            logger.debug("No active drain to cancel for {}; drain may have already completed", this);
+            return;
+        }
+
+        future.cancel(true);
+        logger.info("Cancelled draining of FlowFiles for {}", this);
+    }
+
+    @Override
+    public void verifyCancelDrainFlowFiles() throws IllegalStateException {
+        final ConnectorState state = getCurrentState();
+
+        // Allow if we're currently draining or if we're stopped; if stopped the cancel drain action will be a no-op
+        // but we don't want to throw an IllegalStateException in that case because doing so would mean that if one
+        // node in the cluster is stopped while another is draining we cannot cancel the drain.
+        if (state != ConnectorState.DRAINING && state != ConnectorState.STOPPED) {
+            throw new IllegalStateException("Cannot cancel draining of FlowFiles for " + this + " because its current state is " + state + "; it must be DRAINING.");
         }
     }
 
@@ -610,11 +656,32 @@ public class StandardConnectorNode implements ConnectorNode {
             logger.info("{} has no initial flow to load", this);
         } else {
             logger.info("Loading initial flow for {}", this);
+            // Update all RUNNING components to ENABLED before applying the initial flow so that components
+            // are not started before being configured.
+            stopComponents(initialFlow.getFlowContents());
             initializationContext.updateFlow(activeFlowContext, initialFlow);
         }
 
         resetValidationState();
         recreateWorkingFlowContext();
+    }
+
+    private void stopComponents(final VersionedProcessGroup group) {
+        for (final VersionedProcessor processor : group.getProcessors()) {
+            if (processor.getScheduledState() == ScheduledState.RUNNING) {
+                processor.setScheduledState(ScheduledState.ENABLED);
+            }
+        }
+
+        for (final VersionedControllerService service : group.getControllerServices()) {
+            if (service.getScheduledState() == ScheduledState.RUNNING) {
+                service.setScheduledState(ScheduledState.ENABLED);
+            }
+        }
+
+        for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+            stopComponents(childGroup);
+        }
     }
 
     private void recreateWorkingFlowContext() {
@@ -879,6 +946,7 @@ public class StandardConnectorNode implements ConnectorNode {
         actions.add(createDiscardWorkingConfigAction());
         actions.add(createPurgeFlowFilesAction(stopped, dataQueued));
         actions.add(createDrainFlowFilesAction(stopped, dataQueued));
+        actions.add(createCancelDrainFlowFilesAction(currentState == ConnectorState.DRAINING));
         actions.add(createApplyUpdatesAction(currentState));
         actions.add(createDeleteAction(stopped, dataQueued));
 
@@ -985,6 +1053,15 @@ public class StandardConnectorNode implements ConnectorNode {
         }
 
         return new StandardConnectorAction(actionName, description, allowed, reason);
+    }
+
+    private ConnectorAction createCancelDrainFlowFilesAction(final boolean draining) {
+        if (draining) {
+            return new StandardConnectorAction("CANCEL_DRAIN_FLOWFILES", "Cancel the ongoing drain of FlowFiles", true, null);
+        }
+
+        return new StandardConnectorAction("CANCEL_DRAIN_FLOWFILES", "Cancel the ongoing drain of FlowFiles", false,
+            "Connector is not currently draining FlowFiles");
     }
 
     private ConnectorAction createApplyUpdatesAction(final ConnectorState currentState) {

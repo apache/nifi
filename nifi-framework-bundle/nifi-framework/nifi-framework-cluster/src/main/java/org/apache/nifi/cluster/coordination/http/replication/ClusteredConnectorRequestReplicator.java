@@ -24,11 +24,13 @@ import jakarta.ws.rs.core.Response.StatusType;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.Entity;
 
 import java.io.IOException;
 import java.net.URI;
@@ -55,14 +57,26 @@ public class ClusteredConnectorRequestReplicator implements ConnectorRequestRepl
     public ConnectorState getState(final String connectorId) throws IOException {
         final RequestReplicator requestReplicator = getRequestReplicator();
         final NiFiUser nodeUser = getNodeUser();
-        final AsyncClusterResponse asyncResponse = requestReplicator.replicate(nodeUser, GET, URI.create(replicationScheme + "://localhost/nifi-api/connectors/" + connectorId), Map.of(), Map.of());
+        final URI uri = URI.create(replicationScheme + "://localhost/nifi-api/connectors/" + connectorId);
+        final AsyncClusterResponse asyncResponse = requestReplicator.replicate(nodeUser, GET, uri, Map.of(), Map.of());
+
         try {
-            final Response response = asyncResponse.awaitMergedResponse().getClientResponse();
+            final NodeResponse mergedNodeResponse = asyncResponse.awaitMergedResponse();
+            final Response response = mergedNodeResponse.getClientResponse();
             verifyResponse(response.getStatusInfo(), connectorId);
 
-            final ConnectorEntity connectorEntity = response.readEntity(ConnectorEntity.class);
-            final String stateName = connectorEntity.getComponent().getState();
+            // Use the merged/updated entity if available, otherwise fall back to reading from the raw response.
+            // The updatedEntity contains the properly merged state from all nodes, while readEntity() would
+            // only return the state from whichever single node was selected as the "client response".
+            final ConnectorEntity connectorEntity;
+            final Entity updatedEntity = mergedNodeResponse.getUpdatedEntity();
+            if (updatedEntity instanceof ConnectorEntity mergedConnectorEntity) {
+                connectorEntity = mergedConnectorEntity;
+            } else {
+                connectorEntity = response.readEntity(ConnectorEntity.class);
+            }
 
+            final String stateName = connectorEntity.getComponent().getState();
             try {
                 return ConnectorState.valueOf(stateName);
             } catch (final IllegalArgumentException e) {

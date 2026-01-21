@@ -45,6 +45,12 @@ public interface ConnectorDAO {
 
     void stopConnector(String id);
 
+    void drainFlowFiles(String id);
+
+    void cancelDrainFlowFiles(String id);
+
+    void verifyCancelDrainFlowFile(String id);
+
     void updateConnectorConfigurationStep(String id, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);
 
     void applyConnectorUpdate(String id, ConnectorUpdateContext updateContext);

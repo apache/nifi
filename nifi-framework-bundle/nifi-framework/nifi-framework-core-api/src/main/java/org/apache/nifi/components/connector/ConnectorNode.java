@@ -200,6 +200,18 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     Future<Void> drainFlowFiles();
 
     /**
+     * Cancels the draining of FlowFiles that is currently in progress.
+     * @throws IllegalStateException if the Connector is not currently draining FlowFiles
+     */
+    void cancelDrainFlowFiles();
+
+    /**
+     * Verifies that the Connector can cancel draining FlowFiles.
+     * @throws IllegalStateException if not in a state where draining FlowFiles can be cancelled
+     */
+    void verifyCancelDrainFlowFiles() throws IllegalStateException;
+
+    /**
      * Purges all FlowFiles from the Connector, immediately dropping the data.
      *
      * @param requestor the user requesting the purge. This will be recorded in the associated provenance DROP events.

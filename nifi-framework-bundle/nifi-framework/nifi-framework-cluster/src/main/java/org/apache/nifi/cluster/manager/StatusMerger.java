@@ -43,6 +43,7 @@ import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusPredictionsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.FlowAnalysisRuleStatusDTO;
@@ -1081,6 +1082,20 @@ public class StatusMerger {
         if (ValidationStatus.VALIDATING.name().equalsIgnoreCase(toMerge.getValidationStatus())) {
             target.setValidationStatus(ValidationStatus.VALIDATING.name());
         } else if (ValidationStatus.INVALID.name().equalsIgnoreCase(toMerge.getRunStatus())) {
+            target.setValidationStatus(ValidationStatus.INVALID.name());
+        }
+    }
+
+    public static void merge(final ConnectorStatusDTO target, final ConnectorStatusDTO toMerge) {
+        if (target == null || toMerge == null) {
+            return;
+        }
+
+        target.setActiveThreadCount(target.getActiveThreadCount() + toMerge.getActiveThreadCount());
+
+        if (ValidationStatus.VALIDATING.name().equalsIgnoreCase(toMerge.getValidationStatus())) {
+            target.setValidationStatus(ValidationStatus.VALIDATING.name());
+        } else if (ValidationStatus.INVALID.name().equalsIgnoreCase(toMerge.getValidationStatus())) {
             target.setValidationStatus(ValidationStatus.INVALID.name());
         }
     }

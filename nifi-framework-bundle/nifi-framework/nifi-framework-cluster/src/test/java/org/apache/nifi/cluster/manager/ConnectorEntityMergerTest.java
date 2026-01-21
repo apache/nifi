@@ -25,6 +25,7 @@ import org.apache.nifi.web.api.dto.ConnectorPropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.junit.jupiter.api.Test;
@@ -130,6 +131,22 @@ class ConnectorEntityMergerTest {
         assertEquals(2, config.getConfigurationStepConfigurations().size());
     }
 
+    @Test
+    void testMergeConnectorStatusValidationStatusPriority() {
+        final ConnectorEntity clientEntity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALID");
+        final ConnectorEntity node1Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALIDATING");
+        final ConnectorEntity node2Entity = createConnectorEntityWithStatus("connector1", "RUNNING", 1, "VALID");
+
+        final Map<NodeIdentifier, ConnectorEntity> entityMap = new HashMap<>();
+        entityMap.put(getNodeIdentifier("client", 8000), clientEntity);
+        entityMap.put(getNodeIdentifier("node1", 8001), node1Entity);
+        entityMap.put(getNodeIdentifier("node2", 8002), node2Entity);
+
+        ConnectorEntityMerger.merge(clientEntity, entityMap);
+
+        assertEquals("VALIDATING", clientEntity.getStatus().getValidationStatus());
+    }
+
     private NodeIdentifier getNodeIdentifier(final String id, final int port) {
         return new NodeIdentifier(id, "localhost", port, "localhost", port + 1, "localhost", port + 2, port + 3, true);
     }
@@ -149,6 +166,19 @@ class ConnectorEntityMergerTest {
         entity.setComponent(dto);
         entity.setRevision(createNewRevision());
         entity.setPermissions(permissions);
+
+        return entity;
+    }
+
+    private ConnectorEntity createConnectorEntityWithStatus(final String id, final String state, final int activeThreadCount, final String validationStatus) {
+        final ConnectorEntity entity = createConnectorEntity(id, state);
+
+        final ConnectorStatusDTO status = new ConnectorStatusDTO();
+        status.setId(id);
+        status.setRunStatus(state);
+        status.setActiveThreadCount(activeThreadCount);
+        status.setValidationStatus(validationStatus);
+        entity.setStatus(status);
 
         return entity;
     }

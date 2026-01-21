@@ -128,6 +128,24 @@ public class StandardConnectorDAO implements ConnectorDAO {
     }
 
     @Override
+    public void drainFlowFiles(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        connector.drainFlowFiles();
+    }
+
+    @Override
+    public void cancelDrainFlowFiles(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        connector.cancelDrainFlowFiles();
+    }
+
+    @Override
+    public void verifyCancelDrainFlowFile(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        connector.verifyCancelDrainFlowFiles();
+    }
+
+    @Override
     public void updateConnectorConfigurationStep(final String id, final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepDto) {
         final ConnectorNode connector = getConnector(id);
 

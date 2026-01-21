@@ -52,6 +52,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -509,6 +510,33 @@ public class TestStandardConnectorNode {
         assertEquals(ConnectorState.STOPPED, connectorNode.getDesiredState());
     }
 
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    public void testCancelDrainFlowFilesInterruptsConnector() throws Exception {
+        final BusyLoopDrainConnector busyLoopConnector = new BusyLoopDrainConnector();
+        final StandardConnectorNode connectorNode = createConnectorNode(busyLoopConnector);
+
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+
+        connectorNode.drainFlowFiles();
+
+        assertTrue(busyLoopConnector.awaitDrainStarted(2, TimeUnit.SECONDS));
+        assertEquals(ConnectorState.DRAINING, connectorNode.getCurrentState());
+
+        Thread.sleep(1000);
+
+        assertEquals(ConnectorState.DRAINING, connectorNode.getCurrentState());
+        assertFalse(busyLoopConnector.wasInterrupted());
+        assertFalse(busyLoopConnector.wasStopCalled());
+
+        connectorNode.cancelDrainFlowFiles();
+
+        assertTrue(busyLoopConnector.awaitDrainCompleted(2, TimeUnit.SECONDS));
+        assertTrue(busyLoopConnector.wasInterrupted());
+        assertTrue(busyLoopConnector.wasStopCalled());
+        assertEquals(ConnectorState.STOPPED, connectorNode.getCurrentState());
+    }
+
     private StandardConnectorNode createConnectorNode() throws FlowUpdateException {
         final SleepingConnector sleepingConnector = new SleepingConnector(Duration.ofMillis(1));
         return createConnectorNode(sleepingConnector);
@@ -724,6 +752,96 @@ public class TestStandardConnectorNode {
         @Override
         public CompletableFuture<Void> drainFlowFiles(final FlowContext flowContext) {
             return drainCompletionFuture;
+        }
+    }
+
+    /**
+     * Test connector that uses a busy loop for draining that never completes naturally,
+     * but can be interrupted via cancellation.
+     */
+    private static class BusyLoopDrainConnector extends AbstractConnector {
+        private volatile boolean interrupted = false;
+        private volatile boolean stopCalled = false;
+        private final AtomicReference<Thread> drainThreadRef = new AtomicReference<>();
+        private final CountDownLatch drainStartedLatch = new CountDownLatch(1);
+        private final CountDownLatch drainCompletedLatch = new CountDownLatch(1);
+
+        @Override
+        public VersionedExternalFlow getInitialFlow() {
+            return null;
+        }
+
+        @Override
+        public void prepareForUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        public List<ConfigurationStep> getConfigurationSteps() {
+            return List.of();
+        }
+
+        @Override
+        public void applyUpdate(final FlowContext workingContext, final FlowContext activeContext) {
+        }
+
+        @Override
+        protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
+        }
+
+        @Override
+        public List<ConfigVerificationResult> verifyConfigurationStep(final String stepName, final Map<String, String> overrides, final FlowContext flowContext) {
+            return List.of();
+        }
+
+        @Override
+        public void stop(final FlowContext activeContext) {
+            stopCalled = true;
+        }
+
+        @Override
+        public CompletableFuture<Void> drainFlowFiles(final FlowContext flowContext) {
+            final CompletableFuture<Void> future = new CompletableFuture<>();
+
+            final Thread drainThread = new Thread(() -> {
+                drainStartedLatch.countDown();
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        // Busy loop that never completes naturally
+                    }
+                } finally {
+                    interrupted = Thread.currentThread().isInterrupted();
+                    drainCompletedLatch.countDown();
+                }
+            });
+
+            drainThreadRef.set(drainThread);
+
+            future.whenComplete((result, throwable) -> {
+                final Thread thread = drainThreadRef.get();
+                if (thread != null) {
+                    thread.interrupt();
+                }
+            });
+
+            drainThread.start();
+
+            return future;
+        }
+
+        public boolean awaitDrainStarted(final long timeout, final TimeUnit unit) throws InterruptedException {
+            return drainStartedLatch.await(timeout, unit);
+        }
+
+        public boolean awaitDrainCompleted(final long timeout, final TimeUnit unit) throws InterruptedException {
+            return drainCompletedLatch.await(timeout, unit);
+        }
+
+        public boolean wasInterrupted() {
+            return interrupted;
+        }
+
+        public boolean wasStopCalled() {
+            return stopCalled;
         }
     }
 

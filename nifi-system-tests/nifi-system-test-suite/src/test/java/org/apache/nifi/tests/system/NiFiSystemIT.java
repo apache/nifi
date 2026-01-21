@@ -468,6 +468,29 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         logger.info("Queue Count for Connection {} is now {}", connectionId, queueSize);
     }
 
+    protected void waitForConnectorMinQueueCount(final String connectorId, final int minQueueSize) throws InterruptedException {
+        logger.info("Waiting for Queue Count of at least {} in Connector {}", minQueueSize, connectorId);
+
+        waitFor(() -> {
+            try {
+                final ProcessGroupStatusEntity statusEntity = getNifiClient().getConnectorClient().getStatus(connectorId, true);
+                final int currentSize = statusEntity.getProcessGroupStatus().getAggregateSnapshot().getFlowFilesQueued();
+                logEverySecond("Current Queue Size for Connector {} = {}, Waiting for at least {}", connectorId, currentSize, minQueueSize);
+                return currentSize >= minQueueSize;
+            } catch (final Exception e) {
+                logger.error("Failed to get connector queue count", e);
+                return false;
+            }
+        });
+
+        logger.info("Queue Count for Connector {} is now at least {}", connectorId, minQueueSize);
+    }
+
+    protected int getConnectorQueuedFlowFileCount(final String connectorId) throws NiFiClientException, IOException {
+        final ProcessGroupStatusEntity statusEntity = getNifiClient().getConnectorClient().getStatus(connectorId, true);
+        return statusEntity.getProcessGroupStatus().getAggregateSnapshot().getFlowFilesQueued();
+    }
+
     private void waitForQueueCountToMatch(final String connectionId, final Predicate<Integer> test, final String queueSizeDescription) throws InterruptedException {
         waitFor(() -> {
             final ConnectionStatusEntity statusEntity = getConnectionStatus(connectionId);

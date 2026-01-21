@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -107,11 +106,14 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void applyUpdate(final ConnectorNode connector, final ConnectorUpdateContext context) throws FlowUpdateException {
         final ConnectorState initialDesiredState = connector.getDesiredState();
+        logger.info("Applying update to Connector {}", connector);
 
         // Transition the connector's state to PREPARING_FOR_UPDATE before starting the background process.
         // This allows us to ensure that if we poll and see the state in the same state it was in before that
         // we know the update has already completed (successfully or otherwise).
+        logger.debug("Transitioning {} to PREPARING_FOR_UPDATE state before applying update", connector);
         connector.transitionStateForUpdating();
+        logger.debug("{} is now in PREPARING_FOR_UPDATE state", connector);
 
         // Update connector in a background thread. This will handle transitioning the Connector state appropriately
         // so that it's clear when the update has completed.
@@ -121,28 +123,24 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private void updateConnector(final ConnectorNode connector, final ConnectorState initialDesiredState, final ConnectorUpdateContext context) {
         try {
             // Perform whatever preparation is necessary for the update. Default implementation is to stop the connector.
+            logger.debug("Preparing {} for update", connector);
             connector.prepareForUpdate();
 
             // Wait for Connector State to become UPDATING
+            logger.debug("Waiting for {} to transition to UPDATING state", connector);
             waitForState(connector, Set.of(ConnectorState.UPDATING), Set.of(ConnectorState.PREPARING_FOR_UPDATE));
 
             // Apply the update to the connector.
+            logger.info("{} has now completed preparations for update; applying update now", connector);
             connector.applyUpdate();
+            logger.info("{} has successfully applied update", connector);
 
             // Now that the update has been applied, save the flow so that the updated configuration is persisted.
             context.saveFlow();
 
-            // Wait for Connector State to become UPDATED, or to revert to the initial desired state because, depending upon timing,
-            // other nodes may have already seen the transition to UPDATED and moved the connector back to the initial desired state.
-            final Set<ConnectorState> desirableStates = new HashSet<>();
-            desirableStates.add(initialDesiredState);
-            desirableStates.add(ConnectorState.UPDATED);
-            if (initialDesiredState == ConnectorState.RUNNING) {
-                desirableStates.add(ConnectorState.STARTING);
-            } else if (initialDesiredState == ConnectorState.STOPPED) {
-                desirableStates.add(ConnectorState.STOPPING);
-            }
-            waitForState(connector, desirableStates, Set.of(ConnectorState.UPDATING));
+            // Wait for all nodes to complete the update.
+            waitForState(connector, Set.of(ConnectorState.UPDATED), Set.of(ConnectorState.UPDATING));
+            logger.info("{} has successfully completed update on all nodes", connector);
 
             // If the initial desired state was RUNNING, start the connector again. Otherwise, stop it.
             // We don't simply leave it be as the prepareForUpdate / update may have changed the state of some components.
