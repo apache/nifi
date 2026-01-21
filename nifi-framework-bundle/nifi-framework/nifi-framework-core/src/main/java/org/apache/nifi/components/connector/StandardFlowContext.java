@@ -28,6 +28,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.util.Collections;
+import java.util.HashMap;
 
 public class StandardFlowContext implements FrameworkFlowContext {
     private final ProcessGroup managedProcessGroup;
@@ -76,6 +77,10 @@ public class StandardFlowContext implements FrameworkFlowContext {
 
     @Override
     public void updateFlow(final VersionedExternalFlow versionedExternalFlow, final AssetManager assetManager) throws FlowUpdateException {
+        if (versionedExternalFlow.getParameterContexts() == null) {
+            versionedExternalFlow.setParameterContexts(new HashMap<>());
+        }
+
         final String parameterContextName = managedProcessGroup.getParameterContext().getName();
         updateParameterContext(versionedExternalFlow.getFlowContents(), parameterContextName);
 
