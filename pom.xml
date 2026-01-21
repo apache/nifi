@@ -206,6 +206,7 @@
         <pmd.version>7.20.0</pmd.version>
         <checkstyle.version>13.0.0</checkstyle.version>
         <testcontainers.version>2.0.3</testcontainers.version>
+        <jacoco.version>0.8.14</jacoco.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -821,7 +822,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.14</version>
+                    <version>${jacoco.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>io.swagger.core.v3</groupId>
