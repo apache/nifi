@@ -28,6 +28,7 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ComponentBundleLookup;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorDetails;
@@ -147,6 +148,7 @@ public class ExtensionBuilder {
    private ConnectorStateTransition connectorStateTransition;
    private FrameworkConnectorInitializationContextBuilder connectorInitializationContextBuilder;
    private ConnectorValidationTrigger connectorValidationTrigger;
+   private ComponentBundleLookup componentBundleLookup;
 
    public ExtensionBuilder type(final String type) {
        this.type = type;
@@ -280,6 +282,12 @@ public class ExtensionBuilder {
        this.connectorValidationTrigger = connectorValidationTrigger;
        return this;
    }
+
+   public ExtensionBuilder componentBundleLookup(final ComponentBundleLookup componentBundleLookup) {
+       this.componentBundleLookup = componentBundleLookup;
+       return this;
+   }
+
 
    public ProcessorNode buildProcessor() {
        requireNonNull(identifier, "Processor ID");
@@ -605,6 +613,7 @@ public class ExtensionBuilder {
            .componentLog(componentLog)
            .secretsManager(flowController.getConnectorRepository().getSecretsManager())
            .assetManager(flowController.getConnectorAssetManager())
+           .componentBundleLookup(componentBundleLookup)
            .build();
    }
 
