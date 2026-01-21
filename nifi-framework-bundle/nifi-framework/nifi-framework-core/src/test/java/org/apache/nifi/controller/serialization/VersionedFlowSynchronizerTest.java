@@ -18,6 +18,7 @@ package org.apache.nifi.controller.serialization;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SnippetManager;
@@ -51,6 +52,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -278,5 +280,9 @@ class VersionedFlowSynchronizerTest {
         when(flowController.getEncryptor()).thenReturn(encryptor);
         when(flowController.createVersionedComponentStateLookup(any())).thenReturn(stateLookup);
         when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+
+        final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
+        when(connectorRepository.getConnectors()).thenReturn(Collections.emptyList());
+        when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
     }
 }
