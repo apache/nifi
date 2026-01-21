@@ -33,5 +33,7 @@ public interface FrameworkConnectorInitializationContextBuilder {
 
     FrameworkConnectorInitializationContextBuilder secretsManager(SecretsManager secretsManager);
 
+    FrameworkConnectorInitializationContextBuilder componentBundleLookup(ComponentBundleLookup bundleLookup);
+
     FrameworkConnectorInitializationContext build();
 }
