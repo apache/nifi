@@ -210,6 +210,14 @@ public interface NiFiServiceFacade {
 
     ConnectorEntity scheduleConnector(Revision revision, String id, ScheduledState state);
 
+    void verifyDrainConnector(String id);
+
+    ConnectorEntity drainConnector(Revision revision, String id);
+
+    void verifyCancelConnectorDrain(String id);
+
+    ConnectorEntity cancelConnectorDrain(Revision revision, String id);
+
     ConfigurationStepNamesEntity getConnectorConfigurationSteps(String id);
 
     ConfigurationStepEntity getConnectorConfigurationStep(String id, String configurationStepName);

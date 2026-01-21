@@ -81,6 +81,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.Secret;
 import org.apache.nifi.components.connector.secrets.AuthorizableSecret;
@@ -3595,6 +3596,62 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 case STOPPED -> connectorDAO.stopConnector(id);
                 default -> throw new IllegalArgumentException("Unsupported scheduled state for Connector: " + state);
             }
+            controllerFacade.save();
+
+            final ConnectorNode node = connectorDAO.getConnector(id);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions);
+    }
+
+    @Override
+    public void verifyDrainConnector(final String id) {
+        final ConnectorNode connector = connectorDAO.getConnector(id);
+        final ConnectorState currentState = connector.getCurrentState();
+        if (currentState != ConnectorState.STOPPED) {
+            throw new IllegalStateException("Cannot drain FlowFiles for Connector " + id + " because it is not currently stopped. Current state: " + currentState);
+        }
+    }
+
+    @Override
+    public ConnectorEntity drainConnector(final Revision revision, final String id) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.drainFlowFiles(id);
+            controllerFacade.save();
+
+            final ConnectorNode node = connectorDAO.getConnector(id);
+            final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
+            final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
+            return new StandardRevisionUpdate<>(dto, lastMod);
+        });
+
+        final ConnectorNode node = connectorDAO.getConnector(snapshot.getComponent().getId());
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(node);
+        final PermissionsDTO operatePermissions = dtoFactory.createPermissionsDto(new OperationAuthorizable(node));
+        return entityFactory.createConnectorEntity(snapshot.getComponent(), dtoFactory.createRevisionDTO(snapshot.getLastModification()), permissions, operatePermissions);
+    }
+
+    @Override
+    public void verifyCancelConnectorDrain(final String id) {
+        connectorDAO.verifyCancelDrainFlowFile(id);
+    }
+
+    @Override
+    public ConnectorEntity cancelConnectorDrain(final Revision revision, final String id) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final RevisionClaim claim = new StandardRevisionClaim(revision);
+
+        final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
+            connectorDAO.cancelDrainFlowFiles(id);
             controllerFacade.save();
 
             final ConnectorNode node = connectorDAO.getConnector(id);

@@ -17,6 +17,7 @@
 package org.apache.nifi.cluster.manager;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
@@ -26,7 +27,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ConnectorEntityMerger {
-
     /**
      * Merges the ConnectorEntity responses.
      *
@@ -43,6 +43,16 @@ public class ConnectorEntityMerger {
         }
 
         mergeDtos(clientDto, dtoMap);
+
+        mergeStatus(clientEntity, entityMap);
+    }
+
+    private static void mergeStatus(final ConnectorEntity clientEntity, final Map<NodeIdentifier, ConnectorEntity> entityMap) {
+        for (final ConnectorEntity nodeEntity : entityMap.values()) {
+            if (nodeEntity != clientEntity && nodeEntity != null) {
+                StatusMerger.merge(clientEntity.getStatus(), nodeEntity.getStatus());
+            }
+        }
     }
 
     private static void mergeDtos(final ConnectorDTO clientDto, final Map<NodeIdentifier, ConnectorDTO> dtoMap) {
@@ -89,13 +99,16 @@ public class ConnectorEntityMerger {
         if (state == null) {
             return 0;
         }
-        return switch (state) {
-            case "UPDATE_FAILED" -> 6;
-            case "PREPARING_FOR_UPDATE" -> 5;
-            case "UPDATING" -> 4;
-            case "UPDATED" -> 3;
-            case "STARTING", "STOPPING" -> 2;
-            default -> 1; // RUNNING, STOPPED, DISABLED
+
+        final ConnectorState connectorState = ConnectorState.valueOf(state);
+        return switch (connectorState) {
+            case UPDATE_FAILED -> 7;
+            case PREPARING_FOR_UPDATE -> 6;
+            case UPDATING -> 5;
+            case DRAINING, PURGING -> 4;
+            case UPDATED -> 3;
+            case STARTING, STOPPING -> 2;
+            default -> 1; // RUNNING, STOPPED
         };
     }
 

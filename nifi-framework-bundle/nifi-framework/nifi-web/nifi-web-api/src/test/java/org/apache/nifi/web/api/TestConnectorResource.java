@@ -412,10 +412,70 @@ public class TestConnectorResource {
         doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
 
         assertThrows(AccessDeniedException.class, () ->
-                connectorResource.getControllerServicesFromConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, true, false, true));
+            connectorResource.getControllerServicesFromConnectorProcessGroup(CONNECTOR_ID, PROCESS_GROUP_ID, true, false, true));
 
         verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
         verify(serviceFacade, never()).getConnectorControllerServices(anyString(), anyString(), eq(true), eq(false), eq(true));
+    }
+
+    @Test
+    public void testInitiateDrain() {
+        final ConnectorEntity requestEntity = createConnectorEntity();
+        final ConnectorEntity responseEntity = createConnectorEntity();
+        responseEntity.getComponent().setState("DRAINING");
+
+        when(serviceFacade.drainConnector(any(Revision.class), eq(CONNECTOR_ID))).thenReturn(responseEntity);
+
+        try (Response response = connectorResource.initiateDrain(CONNECTOR_ID, requestEntity)) {
+            assertEquals(200, response.getStatus());
+            assertEquals(responseEntity, response.getEntity());
+        }
+
+        verify(serviceFacade).verifyDrainConnector(CONNECTOR_ID);
+        verify(serviceFacade).drainConnector(any(Revision.class), eq(CONNECTOR_ID));
+    }
+
+    @Test
+    public void testInitiateDrainNotAuthorized() {
+        final ConnectorEntity requestEntity = createConnectorEntity();
+
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+            connectorResource.initiateDrain(CONNECTOR_ID, requestEntity));
+
+        verify(serviceFacade, never()).verifyDrainConnector(anyString());
+        verify(serviceFacade, never()).drainConnector(any(Revision.class), anyString());
+    }
+
+    @Test
+    public void testInitiateDrainWithNullEntity() {
+        assertThrows(IllegalArgumentException.class, () ->
+            connectorResource.initiateDrain(CONNECTOR_ID, null));
+
+        verify(serviceFacade, never()).drainConnector(any(Revision.class), anyString());
+    }
+
+    @Test
+    public void testInitiateDrainWithNullRevision() {
+        final ConnectorEntity requestEntity = createConnectorEntity();
+        requestEntity.setRevision(null);
+
+        assertThrows(IllegalArgumentException.class, () ->
+            connectorResource.initiateDrain(CONNECTOR_ID, requestEntity));
+
+        verify(serviceFacade, never()).drainConnector(any(Revision.class), anyString());
+    }
+
+    @Test
+    public void testInitiateDrainWithMismatchedId() {
+        final ConnectorEntity requestEntity = createConnectorEntity();
+        requestEntity.setId("different-id");
+
+        assertThrows(IllegalArgumentException.class, () ->
+            connectorResource.initiateDrain(CONNECTOR_ID, requestEntity));
+
+        verify(serviceFacade, never()).drainConnector(any(Revision.class), anyString());
     }
 
     private ConnectorEntity createConnectorEntity() {

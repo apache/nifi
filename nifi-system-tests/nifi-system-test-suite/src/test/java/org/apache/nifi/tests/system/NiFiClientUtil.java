@@ -406,6 +406,16 @@ public class NiFiClientUtil {
         }
     }
 
+    public void startConnector(final ConnectorEntity connectorEntity) throws NiFiClientException, IOException, InterruptedException {
+        startConnector(connectorEntity.getId());
+    }
+
+    public void startConnector(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        getConnectorClient().startConnector(entity);
+        waitForConnectorState(connectorId, ConnectorState.RUNNING);
+    }
+
     public void stopConnector(final ConnectorEntity connectorEntity) throws NiFiClientException, IOException, InterruptedException {
         stopConnector(connectorEntity.getId());
     }
@@ -435,6 +445,20 @@ public class NiFiClientUtil {
 
             Thread.sleep(100L);
         }
+    }
+
+    public ConnectorEntity drainConnector(final String connectorId) throws NiFiClientException, IOException {
+        final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        return getConnectorClient().drainConnector(entity);
+    }
+
+    public ConnectorEntity cancelDrain(final String connectorId) throws NiFiClientException, IOException {
+        final ConnectorEntity entity = getConnectorClient().getConnector(connectorId);
+        return getConnectorClient().cancelDrain(entity);
+    }
+
+    public void waitForConnectorDraining(final String connectorId) throws NiFiClientException, IOException, InterruptedException {
+        waitForConnectorState(connectorId, ConnectorState.DRAINING);
     }
 
     public ParameterProviderEntity createParameterProvider(final String simpleTypeName) throws NiFiClientException, IOException {
