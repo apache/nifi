@@ -100,9 +100,6 @@ public class CalculateConnector extends AbstractConnector {
         private Calculation calculation;
         private int result;
 
-        public CalculatedResult() {
-        }
-
         public Calculation getCalculation() {
             return calculation;
         }

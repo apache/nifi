@@ -27,12 +27,14 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.connector.ComponentBundleLookup;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorStateTransition;
 import org.apache.nifi.components.connector.FlowContextFactory;
 import org.apache.nifi.components.connector.ProcessGroupFactory;
+import org.apache.nifi.components.connector.StandardComponentBundleLookup;
 import org.apache.nifi.components.connector.StandardConnectorConfigurationContext;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
@@ -764,6 +766,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final ProcessGroupFactory processGroupFactory = groupId -> createProcessGroup(groupId, id);
         final FlowContextFactory flowContextFactory = new FlowControllerFlowContextFactory(flowController, managedRootGroup, activeConfigurationContext, processGroupFactory);
+        final ComponentBundleLookup componentBundleLookup = new StandardComponentBundleLookup(extensionManager);
 
         final ConnectorNode connectorNode = new ExtensionBuilder()
             .identifier(id)
@@ -777,6 +780,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .connectorStateTransition(stateTransition)
             .connectorInitializationContextBuilder(flowController.getConnectorRepository().createInitializationContextBuilder())
             .connectorValidationTrigger(flowController.getConnectorValidationTrigger())
+            .componentBundleLookup(componentBundleLookup)
             .buildConnector(firstTimeAdded);
 
         // Establish the Connector as the parent authorizable of the managed root group

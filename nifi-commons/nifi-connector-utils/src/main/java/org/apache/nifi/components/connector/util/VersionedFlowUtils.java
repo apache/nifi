@@ -19,12 +19,14 @@ package org.apache.nifi.components.connector.util;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.nifi.components.connector.ComponentBundleLookup;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
+import org.apache.nifi.flow.VersionedConfigurableExtension;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
@@ -362,5 +364,215 @@ public class VersionedFlowUtils {
         for (final VersionedProcessGroup childGroup : processGroup.getProcessGroups()) {
             removeUnreferencedControllerServices(childGroup, referencedServiceIds);
         }
+    }
+
+    /**
+     * Updates all processors and controller services in the given process group (and its child groups)
+     * to use the latest available bundle version. See {@link #getLatest(List)} for details on how
+     * version comparison is performed.
+     *
+     * @param processGroup the process group containing components to update
+     * @param componentBundleLookup the lookup used to find available bundles for each component type
+     */
+    public static void updateToLatestBundles(final VersionedProcessGroup processGroup, final ComponentBundleLookup componentBundleLookup) {
+        for (final VersionedProcessor processor : processGroup.getProcessors()) {
+            updateToLatestBundle(processor, componentBundleLookup);
+        }
+
+        for (final VersionedControllerService service : processGroup.getControllerServices()) {
+            updateToLatestBundle(service, componentBundleLookup);
+        }
+
+        for (final VersionedProcessGroup childGroup : processGroup.getProcessGroups()) {
+            updateToLatestBundles(childGroup, componentBundleLookup);
+        }
+    }
+
+    /**
+     * Updates the given processor to use the latest available bundle version.
+     * See {@link #getLatest(List)} for details on how version comparison is performed.
+     *
+     * @param processor the processor to update
+     * @param componentBundleLookup the lookup used to find available bundles for the processor type
+     */
+    public static void updateToLatestBundle(final VersionedProcessor processor, final ComponentBundleLookup componentBundleLookup) {
+        final Bundle latest = getLatestBundle(processor, componentBundleLookup);
+        processor.setBundle(latest);
+    }
+
+    /**
+     * Updates the given controller service to use the latest available bundle version.
+     * See {@link #getLatest(List)} for details on how version comparison is performed.
+     *
+     * @param service the controller service to update
+     * @param componentBundleLookup the lookup used to find available bundles for the service type
+     */
+    public static void updateToLatestBundle(final VersionedControllerService service, final ComponentBundleLookup componentBundleLookup) {
+        final Bundle latest = getLatestBundle(service, componentBundleLookup);
+        service.setBundle(latest);
+    }
+
+    private static Bundle getLatestBundle(final VersionedConfigurableExtension versionedComponent, final ComponentBundleLookup componentBundleLookup) {
+        final String type = versionedComponent.getType();
+        final List<Bundle> bundles = componentBundleLookup.getAvailableBundles(type);
+        final List<Bundle> includingExisting = new ArrayList<>(bundles);
+        if (versionedComponent.getBundle() != null && !includingExisting.contains(versionedComponent.getBundle())) {
+            includingExisting.add(versionedComponent.getBundle());
+        }
+
+        return getLatest(includingExisting);
+    }
+
+    /**
+     * Returns the bundle with the latest version from the given list.
+     *
+     * <p>Version comparison follows these rules:</p>
+     * <ol>
+     *   <li>Versions are split by dots (e.g., "2.1.0" becomes ["2", "1", "0"]).
+     *       This also supports calendar-date formats (e.g., "2026.01.01").</li>
+     *   <li>Each part is compared numerically when possible; numeric parts are considered
+     *       newer than non-numeric parts (e.g., "2.0.0" &gt; "2.0.next")</li>
+     *   <li>When base versions are equal, qualifiers are compared with the following precedence
+     *       (highest to lowest):
+     *       <ul>
+     *         <li>Release (no qualifier)</li>
+     *         <li>RC (Release Candidate) - e.g., "-RC1", "-RC2"</li>
+     *         <li>M (Milestone) - e.g., "-M1", "-M2"</li>
+     *         <li>Other/unknown qualifiers</li>
+     *         <li>SNAPSHOT</li>
+     *       </ul>
+     *   </li>
+     *   <li>Within the same qualifier type, numeric suffixes are compared
+     *       (e.g., "2.0.0-RC2" &gt; "2.0.0-RC1", "2.0.0-M4" &gt; "2.0.0-M1")</li>
+     * </ol>
+     *
+     * <p>Examples of version ordering (highest to lowest):</p>
+     * <ul>
+     *   <li>2.0.0 &gt; 2.0.0-RC2 &gt; 2.0.0-RC1 &gt; 2.0.0-M4 &gt; 2.0.0-M1 &gt; 2.0.0-SNAPSHOT</li>
+     *   <li>2.1.0-SNAPSHOT &gt; 2.0.0 (higher base version wins)</li>
+     *   <li>2026.01.01 &gt; 2025.12.31 (calendar-date format)</li>
+     * </ul>
+     *
+     * @param bundles the list of bundles to compare
+     * @return the bundle with the latest version, or null if the list is empty
+     */
+    public static Bundle getLatest(final List<Bundle> bundles) {
+        Bundle latest = null;
+        for (final Bundle bundle : bundles) {
+            if (latest == null || compareVersion(bundle.getVersion(), latest.getVersion()) > 0) {
+                latest = bundle;
+            }
+        }
+
+        return latest;
+    }
+
+    private static int compareVersion(final String v1, final String v2) {
+        final String baseVersion1 = getBaseVersion(v1);
+        final String baseVersion2 = getBaseVersion(v2);
+
+        final String[] parts1 = baseVersion1.split("\\.");
+        final String[] parts2 = baseVersion2.split("\\.");
+
+        final int length = Math.max(parts1.length, parts2.length);
+        for (int i = 0; i < length; i++) {
+            final String part1Str = i < parts1.length ? parts1[i] : "0";
+            final String part2Str = i < parts2.length ? parts2[i] : "0";
+
+            final int comparison = compareVersionPart(part1Str, part2Str);
+            if (comparison != 0) {
+                return comparison;
+            }
+        }
+
+        // Base versions are equal; compare qualifiers
+        final String qualifier1 = getQualifier(v1);
+        final String qualifier2 = getQualifier(v2);
+        return compareQualifiers(qualifier1, qualifier2);
+    }
+
+    private static int compareQualifiers(final String qualifier1, final String qualifier2) {
+        final int rank1 = getQualifierRank(qualifier1);
+        final int rank2 = getQualifierRank(qualifier2);
+
+        if (rank1 != rank2) {
+            return Integer.compare(rank1, rank2);
+        }
+
+        // Same qualifier type; compare numeric suffixes (e.g., RC2 > RC1, M4 > M3)
+        final int num1 = getQualifierNumber(qualifier1);
+        final int num2 = getQualifierNumber(qualifier2);
+        return Integer.compare(num1, num2);
+    }
+
+    private static int getQualifierRank(final String qualifier) {
+        if (qualifier == null || qualifier.isEmpty()) {
+            return 4;
+        } else if (qualifier.startsWith("RC")) {
+            return 3;
+        } else if (qualifier.startsWith("M")) {
+            return 2;
+        } else if (qualifier.equals("SNAPSHOT")) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+
+    private static int getQualifierNumber(final String qualifier) {
+        if (qualifier == null || qualifier.isEmpty()) {
+            return 0;
+        }
+
+        final StringBuilder digits = new StringBuilder();
+        for (int i = 0; i < qualifier.length(); i++) {
+            final char c = qualifier.charAt(i);
+            if (Character.isDigit(c)) {
+                digits.append(c);
+            }
+        }
+
+        if (digits.isEmpty()) {
+            return 0;
+        }
+
+        try {
+            return Integer.parseInt(digits.toString());
+        } catch (final NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private static String getQualifier(final String version) {
+        final int qualifierIndex = version.indexOf('-');
+        return qualifierIndex > 0 ? version.substring(qualifierIndex + 1) : null;
+    }
+
+    private static int compareVersionPart(final String part1, final String part2) {
+        final Integer num1 = parseVersionPart(part1);
+        final Integer num2 = parseVersionPart(part2);
+
+        if (num1 != null && num2 != null) {
+            return Integer.compare(num1, num2);
+        } else if (num1 != null) {
+            return 1;
+        } else if (num2 != null) {
+            return -1;
+        } else {
+            return part1.compareTo(part2);
+        }
+    }
+
+    private static Integer parseVersionPart(final String part) {
+        try {
+            return Integer.parseInt(part);
+        } catch (final NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static String getBaseVersion(final String version) {
+        final int qualifierIndex = version.indexOf('-');
+        return qualifierIndex > 0 ? version.substring(0, qualifierIndex) : version;
     }
 }
