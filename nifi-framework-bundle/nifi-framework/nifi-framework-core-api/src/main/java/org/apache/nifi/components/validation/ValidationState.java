@@ -20,14 +20,26 @@ package org.apache.nifi.components.validation;
 import org.apache.nifi.components.ValidationResult;
 
 import java.util.Collection;
+import java.util.Collections;
 
 public class ValidationState {
     private final ValidationStatus status;
     private final Collection<ValidationResult> validationErrors;
 
-    public ValidationState(final ValidationStatus status, final Collection<ValidationResult> validationErrors) {
+    public ValidationState(final ValidationStatus status, final Collection<ValidationResult> validationResults) {
         this.status = status;
-        this.validationErrors = validationErrors;
+        // Ensure that if we are provided any valid results, they are filtered out because we only want to store validation failures.
+        this.validationErrors = removeValidResults(validationResults);
+    }
+
+    private Collection<ValidationResult> removeValidResults(final Collection<ValidationResult> validationResults) {
+        if (validationResults.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return validationResults.stream()
+            .filter(vr -> !vr.isValid())
+            .toList();
     }
 
     public ValidationStatus getStatus() {
