@@ -21,6 +21,8 @@ import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.secrets.SecretProvider;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +39,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class StandardConnectorConfigurationContext implements MutableConnectorConfigurationContext, Cloneable {
+    private static final Logger logger = LoggerFactory.getLogger(StandardConnectorConfigurationContext.class);
+
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
@@ -205,6 +209,7 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
                 .ifPresent(resolvedAssetValues::add);
         }
 
+        logger.debug("Resolved {} to {}", assetReference, resolvedAssetValues);
         return new StringLiteralValue(String.join(",", resolvedAssetValues));
     }
 
@@ -260,6 +265,23 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
             }
 
             return ConfigurationUpdateResult.CHANGES_MADE;
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    @Override
+    public void resolvePropertyValues() {
+        writeLock.lock();
+        try {
+            for (final Map.Entry<String, StepConfiguration> entry : propertyConfigurations.entrySet()) {
+                final String stepName = entry.getKey();
+                final StepConfiguration stepConfig = entry.getValue();
+                final Map<String, ConnectorValueReference> stepProperties = stepConfig.getPropertyValues();
+
+                final StepConfiguration resolvedConfig = resolvePropertyValues(stepProperties);
+                this.resolvedPropertyConfigurations.put(stepName, resolvedConfig);
+            }
         } finally {
             writeLock.unlock();
         }

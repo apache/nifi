@@ -324,6 +324,9 @@
                         <exclude>src/test/resources/old-swap-file.swap</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/swap/444-old-swap-file.swap</exclude>
+                        <exclude>src/test/resources/colors.txt</exclude>
+                        <exclude>src/test/resources/TestRuntimeManifest/nifi-test-components-nar/META-INF/docs/steps/org.example.TestConnector/Another_Test_Step.md</exclude>
+                        <exclude>src/test/resources/TestRuntimeManifest/nifi-test-components-nar/META-INF/docs/steps/org.example.TestConnector/Test_Step.md</exclude>
                     </excludes>
                 </configuration>
             </plugin>
