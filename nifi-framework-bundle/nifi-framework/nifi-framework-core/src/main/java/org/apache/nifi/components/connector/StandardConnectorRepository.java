@@ -18,6 +18,7 @@
 package org.apache.nifi.components.connector;
 
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
+import org.apache.nifi.asset.Asset;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
@@ -30,10 +31,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class StandardConnectorRepository implements ConnectorRepository {
@@ -104,6 +108,33 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
+    public Future<Void> restartConnector(final ConnectorNode connector) {
+        final CompletableFuture<Void> restartCompleteFuture = new CompletableFuture<>();
+        restartConnector(connector, restartCompleteFuture);
+        return restartCompleteFuture;
+    }
+
+    private void restartConnector(final ConnectorNode connector, final CompletableFuture<Void> restartCompleteFuture) {
+        try {
+            final Future<Void> stopFuture = connector.stop(lifecycleExecutor);
+            stopFuture.get();
+
+            final Future<Void> startFuture = connector.start(lifecycleExecutor);
+            startFuture.get();
+
+            logger.info("Successfully restarted connector [{}]", connector.getIdentifier());
+            restartCompleteFuture.complete(null);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("Interrupted while restarting connector [{}]", connector.getIdentifier(), e);
+            restartCompleteFuture.completeExceptionally(e);
+        } catch (final ExecutionException e) {
+            logger.error("Failed to restart connector [{}]", connector.getIdentifier(), e.getCause());
+            restartCompleteFuture.completeExceptionally(e);
+        }
+    }
+
+    @Override
     public void applyUpdate(final ConnectorNode connector, final ConnectorUpdateContext context) throws FlowUpdateException {
         final ConnectorState initialDesiredState = connector.getDesiredState();
         logger.info("Applying update to Connector {}", connector);
@@ -117,7 +148,10 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         // Update connector in a background thread. This will handle transitioning the Connector state appropriately
         // so that it's clear when the update has completed.
-        lifecycleExecutor.submit(() -> updateConnector(connector, initialDesiredState, context));
+        lifecycleExecutor.submit(() -> {
+            updateConnector(connector, initialDesiredState, context);
+            cleanUpAssets(connector);
+        });
     }
 
     private void updateConnector(final ConnectorNode connector, final ConnectorState initialDesiredState, final ConnectorUpdateContext context) {
@@ -189,6 +223,41 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
     }
 
+    private void cleanUpAssets(final ConnectorNode connector) {
+        final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();
+        final ConnectorConfiguration activeConfiguration = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
+
+        final Set<String> referencedAssetIds = new HashSet<>();
+        for (final NamedStepConfiguration namedStepConfiguration : activeConfiguration.getNamedStepConfigurations()) {
+            final StepConfiguration stepConfiguration = namedStepConfiguration.configuration();
+            final Map<String, ConnectorValueReference> stepPropertyValues = stepConfiguration.getPropertyValues();
+            if (stepPropertyValues == null) {
+                continue;
+            }
+            for (final ConnectorValueReference valueReference : stepPropertyValues.values()) {
+                if (valueReference instanceof AssetReference assetReference) {
+                    referencedAssetIds.addAll(assetReference.getAssetIdentifiers());
+                }
+            }
+        }
+
+        logger.debug("Found {} assets referenced for Connector [{}]", referencedAssetIds.size(), connector.getIdentifier());
+
+        final ConnectorAssetRepository assetRepository = getAssetRepository();
+        final List<Asset> allConnectorAssets = assetRepository.getAssets(connector.getIdentifier());
+        for (final Asset asset : allConnectorAssets) {
+            final String assetId = asset.getIdentifier();
+            if (!referencedAssetIds.contains(assetId)) {
+                try {
+                    logger.info("Deleting unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier());
+                    assetRepository.deleteAsset(assetId);
+                } catch (final Exception e) {
+                    logger.warn("Unable to delete unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier(), e);
+                }
+            }
+        }
+    }
+
     @Override
     public void configureConnector(final ConnectorNode connector, final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
         connector.setConfiguration(stepName, configuration);
@@ -207,6 +276,12 @@ public class StandardConnectorRepository implements ConnectorRepository {
             connector.abortUpdate(e);
             throw e;
         }
+    }
+
+    @Override
+    public void discardWorkingConfiguration(final ConnectorNode connector) {
+        connector.discardWorkingConfiguration();
+        cleanUpAssets(connector);
     }
 
     @Override

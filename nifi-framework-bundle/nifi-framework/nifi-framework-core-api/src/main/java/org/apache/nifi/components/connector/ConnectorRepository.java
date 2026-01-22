@@ -76,12 +76,22 @@ public interface ConnectorRepository {
      */
     Future<Void> stopConnector(ConnectorNode connector);
 
+    /**
+     * Restarts the given Connector, managing any appropriate lifecycle events.
+     *
+     * @param connector the Connector to restart
+     * @return a CompletableFuture that will be completed when the Connector has restarted
+     */
+    Future<Void> restartConnector(ConnectorNode connector);
+
     void configureConnector(ConnectorNode connector, String stepName, StepConfiguration configuration) throws FlowUpdateException;
 
     void applyUpdate(ConnectorNode connector, ConnectorUpdateContext context) throws FlowUpdateException;
 
     void inheritConfiguration(ConnectorNode connector, List<VersionedConfigurationStep> activeFlowConfiguration,
         List<VersionedConfigurationStep> workingFlowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
+
+    void discardWorkingConfiguration(ConnectorNode connector);
 
     SecretsManager getSecretsManager();
 

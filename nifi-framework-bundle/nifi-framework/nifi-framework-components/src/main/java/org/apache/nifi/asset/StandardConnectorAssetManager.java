@@ -46,7 +46,7 @@ public class StandardConnectorAssetManager implements AssetManager {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorAssetManager.class);
 
     public static final String ASSET_STORAGE_LOCATION_PROPERTY = "directory";
-    public static final String DEFAULT_ASSET_STORAGE_LOCATION = "./connector-assets";
+    public static final String DEFAULT_ASSET_STORAGE_LOCATION = "./connector_assets";
 
     private volatile File assetStorageLocation;
     private final Map<String, Asset> assets = new ConcurrentHashMap<>();

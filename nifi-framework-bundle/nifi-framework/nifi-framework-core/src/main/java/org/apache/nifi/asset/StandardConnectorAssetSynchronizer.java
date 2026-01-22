@@ -22,6 +22,8 @@ import org.apache.nifi.client.NiFiRestApiRetryableException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.connector.ConnectorNode;
+import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.util.NiFiProperties;
@@ -37,8 +39,12 @@ import java.io.InputStream;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -55,6 +61,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
 
     private final AssetManager assetManager;
     private final FlowManager flowManager;
+    private final ConnectorRepository connectorRepository;
     private final ClusterCoordinator clusterCoordinator;
     private final WebClientService webClientService;
     private final NiFiProperties properties;
@@ -65,6 +72,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
                                               final NiFiProperties properties) {
         this.assetManager = flowController.getConnectorAssetManager();
         this.flowManager = flowController.getFlowManager();
+        this.connectorRepository = flowController.getConnectorRepository();
         this.clusterCoordinator = clusterCoordinator;
         this.webClientService = webClientService;
         this.properties = properties;
@@ -96,16 +104,43 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
         final List<ConnectorNode> connectors = flowManager.getAllConnectors();
         logger.info("Found {} connectors for synchronizing assets", connectors.size());
 
+        final Set<ConnectorNode> connectorsWithSynchronizedAssets = new HashSet<>();
         for (final ConnectorNode connector : connectors) {
             try {
-                synchronize(assetsRestApiClient, connector);
+                final boolean assetSynchronized = synchronize(assetsRestApiClient, connector);
+                if (assetSynchronized) {
+                    connectorsWithSynchronizedAssets.add(connector);
+                }
             } catch (final Exception e) {
                 logger.error("Failed to synchronize assets for connector [{}]", connector.getIdentifier(), e);
             }
         }
+
+        restartConnectorsWithSynchronizedAssets(connectorsWithSynchronizedAssets);
     }
 
-    private void synchronize(final AssetsRestApiClient assetsRestApiClient, final ConnectorNode connector) {
+    private void restartConnectorsWithSynchronizedAssets(final Set<ConnectorNode> connectorsWithSynchronizedAssets) {
+        for (final ConnectorNode connector : connectorsWithSynchronizedAssets) {
+            final ConnectorState currentState = connector.getDesiredState();
+            if (currentState == ConnectorState.RUNNING) {
+                logger.info("Restarting connector [{}] after asset synchronization", connector.getIdentifier());
+                try {
+                    final Future<Void> restartFuture = connectorRepository.restartConnector(connector);
+                    restartFuture.get();
+                    logger.info("Successfully restarted connector [{}] after asset synchronization", connector.getIdentifier());
+                } catch (final InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.error("Interrupted while restarting connector [{}] after asset synchronization", connector.getIdentifier(), e);
+                } catch (final ExecutionException e) {
+                    logger.error("Failed to restart connector [{}] after asset synchronization", connector.getIdentifier(), e.getCause());
+                }
+            } else {
+                logger.info("Connector [{}] is not running (state={}): skipping restart after asset synchronization", connector.getIdentifier(), currentState);
+            }
+        }
+    }
+
+    private boolean synchronize(final AssetsRestApiClient assetsRestApiClient, final ConnectorNode connector) {
         final String connectorId = connector.getIdentifier();
         final Map<String, Asset> existingAssets = assetManager.getAssets(connectorId).stream()
                 .collect(Collectors.toMap(Asset::getIdentifier, Function.identity()));
@@ -113,35 +148,41 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
         final AssetsEntity coordinatorAssetsEntity = listConnectorAssetsWithRetry(assetsRestApiClient, connectorId);
         if (coordinatorAssetsEntity == null) {
             logger.error("Timeout listing assets from cluster coordinator for connector [{}]", connectorId);
-            return;
+            return false;
         }
 
         final Collection<AssetEntity> coordinatorAssets = coordinatorAssetsEntity.getAssets();
         if (coordinatorAssets == null || coordinatorAssets.isEmpty()) {
             logger.info("Connector [{}] did not return any assets from the cluster coordinator", connectorId);
-            return;
+            return false;
         }
 
         logger.info("Connector [{}] returned {} assets from the cluster coordinator", connectorId, coordinatorAssets.size());
 
+        boolean assetSynchronized = false;
         for (final AssetEntity coordinatorAssetEntity : coordinatorAssets) {
             final AssetDTO coordinatorAsset = coordinatorAssetEntity.getAsset();
             final Asset matchingAsset = existingAssets.get(coordinatorAsset.getId());
             try {
-                synchronize(assetsRestApiClient, connectorId, coordinatorAsset, matchingAsset);
+                final boolean assetWasSynchronized = synchronize(assetsRestApiClient, connectorId, coordinatorAsset, matchingAsset);
+                if (assetWasSynchronized) {
+                    assetSynchronized = true;
+                }
             } catch (final Exception e) {
                 logger.error("Failed to synchronize asset [id={},name={}] for connector [{}]",
                         coordinatorAsset.getId(), coordinatorAsset.getName(), connectorId, e);
             }
         }
+        return assetSynchronized;
     }
 
-    private void synchronize(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final AssetDTO coordinatorAsset, final Asset matchingAsset) {
+    private boolean synchronize(final AssetsRestApiClient assetsRestApiClient, final String connectorId, final AssetDTO coordinatorAsset, final Asset matchingAsset) {
         final String assetId = coordinatorAsset.getId();
         final String assetName = coordinatorAsset.getName();
         if (matchingAsset == null || !matchingAsset.getFile().exists()) {
             logger.info("Synchronizing missing asset [id={},name={}] for connector [{}]", assetId, assetName, connectorId);
             synchronizeConnectorAssetWithRetry(assetsRestApiClient, connectorId, coordinatorAsset);
+            return true;
         } else {
             final String coordinatorAssetDigest = coordinatorAsset.getDigest();
             final String matchingAssetDigest = matchingAsset.getDigest().orElse(null);
@@ -149,8 +190,10 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
                 logger.info("Synchronizing asset [id={},name={}] with updated digest [{}] for connector [{}]",
                         assetId, assetName, coordinatorAssetDigest, connectorId);
                 synchronizeConnectorAssetWithRetry(assetsRestApiClient, connectorId, coordinatorAsset);
+                return true;
             } else {
                 logger.info("Coordinator asset [id={},name={}] found for connector [{}]: retrieval not required", assetId, assetName, connectorId);
+                return false;
             }
         }
     }

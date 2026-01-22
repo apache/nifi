@@ -42,6 +42,11 @@ public interface MutableConnectorConfigurationContext extends ConnectorConfigura
     ConfigurationUpdateResult replaceProperties(String stepName, StepConfiguration configuration);
 
     /**
+     * Resolves all existing property values.
+     */
+    void resolvePropertyValues();
+
+    /**
      * Converts this mutable configuration context to an immutable ConnectorConfiguration.
      * @return the ConnectorConfiguration
      */

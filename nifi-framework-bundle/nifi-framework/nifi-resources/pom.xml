@@ -121,6 +121,8 @@
         <!-- Asset Management properties -->
         <nifi.asset.manager.implementation>org.apache.nifi.asset.StandardAssetManager</nifi.asset.manager.implementation>
         <nifi.asset.manager.properties.directory>./assets</nifi.asset.manager.properties.directory>
+        <nifi.connector.asset.manager.implementation>org.apache.nifi.asset.StandardConnectorAssetManager</nifi.connector.asset.manager.implementation>
+        <nifi.connector.asset.manager.properties.directory>./connector_assets</nifi.connector.asset.manager.properties.directory>
 
         <!-- nifi.properties: web properties -->
         <nifi.web.http.host />
