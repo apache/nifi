@@ -15,26 +15,38 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.components.connector;
+package org.apache.nifi.components.connector.secrets;
 
-import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.controller.NodeTypeProvider;
-import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.events.EventReporter;
 
-public interface ConnectorRepositoryInitializationContext {
+import java.util.Map;
 
-    FlowManager getFlowManager();
+/**
+ * Provides context information for initializing a {@link SecretsProvider}.
+ */
+public interface SecretsProviderContext {
 
-    ExtensionManager getExtensionManager();
+    /**
+     * Returns the configuration properties for the secrets provider.
+     * These properties are typically specified in nifi.properties.
+     *
+     * @return the configuration properties
+     */
+    Map<String, String> getProperties();
 
-    SecretsManager getSecretsManager();
+    /**
+     * Returns the event reporter that can be used to report events and create bulletins.
+     *
+     * @return the event reporter
+     */
+    EventReporter getEventReporter();
 
-    AssetManager getAssetManager();
-
+    /**
+     * Returns the node type provider that provides information about the node's
+     * cluster status (e.g., whether it is clustered, primary, etc.).
+     *
+     * @return the node type provider
+     */
     NodeTypeProvider getNodeTypeProvider();
-
-    ConnectorRequestReplicator getRequestReplicator();
-
 }

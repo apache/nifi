@@ -97,7 +97,7 @@ public class VersionedDataflowMapper {
     private List<VersionedConnector> mapConnectors() {
         final List<VersionedConnector> connectors = new ArrayList<>();
 
-        for (final ConnectorNode connectorNode : flowController.getConnectorRepository().getConnectors()) {
+        for (final ConnectorNode connectorNode : flowController.getConnectorManager().getConnectors()) {
             final VersionedConnector versionedConnector = flowMapper.mapConnector(connectorNode);
             connectors.add(versionedConnector);
         }

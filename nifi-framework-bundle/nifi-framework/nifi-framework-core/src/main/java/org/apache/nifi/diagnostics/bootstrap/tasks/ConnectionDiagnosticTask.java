@@ -16,8 +16,8 @@
  */
 package org.apache.nifi.diagnostics.bootstrap.tasks;
 
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -59,8 +59,8 @@ public class ConnectionDiagnosticTask implements DiagnosticTask {
         captureConnectionDiagnostics(rootGroup, details);
 
         details.add("");
-        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
-        final List<ConnectorNode> connectors = connectorRepository != null ? connectorRepository.getConnectors() : List.of();
+        final ConnectorManager connectorManager = flowController.getConnectorManager();
+        final List<ConnectorNode> connectors = connectorManager != null ? connectorManager.getConnectors() : List.of();
         if (connectors.isEmpty()) {
             details.add("This instance has no Connectors.");
         } else {

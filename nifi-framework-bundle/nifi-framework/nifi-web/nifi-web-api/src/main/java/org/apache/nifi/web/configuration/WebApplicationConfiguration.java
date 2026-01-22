@@ -186,7 +186,7 @@ public class WebApplicationConfiguration {
         dtoFactory.setControllerServiceProvider(flowController.getControllerServiceProvider());
         dtoFactory.setEntityFactory(entityFactory());
         dtoFactory.setExtensionManager(extensionManager);
-        dtoFactory.setConnectorAssetRepository(flowController.getConnectorRepository().getAssetRepository());
+        dtoFactory.setConnectorAssetRepository(flowController.getConnectorManager().getAssetRepository());
         dtoFactory.setRuntimeManifestService(runtimeManifestService);
         return dtoFactory;
     }

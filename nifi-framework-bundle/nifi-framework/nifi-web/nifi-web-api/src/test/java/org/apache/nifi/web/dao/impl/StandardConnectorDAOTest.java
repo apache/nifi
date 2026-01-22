@@ -21,7 +21,7 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
@@ -60,7 +60,7 @@ class StandardConnectorDAOTest {
     private FlowController flowController;
 
     @Mock
-    private ConnectorRepository connectorRepository;
+    private ConnectorManager connectorManager;
 
     @Mock
     private ConnectorNode connectorNode;
@@ -89,8 +89,8 @@ class StandardConnectorDAOTest {
         connectorDAO = new StandardConnectorDAO();
         connectorDAO.setFlowController(flowController);
 
-        when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
-        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
+        when(flowController.getConnectorManager()).thenReturn(connectorManager);
+        when(connectorManager.getAssetRepository()).thenReturn(connectorAssetRepository);
 
         final MutableConnectorConfigurationContext configContext = mock(MutableConnectorConfigurationContext.class);
         when(configContext.toConnectorConfiguration()).thenReturn(mock(ConnectorConfiguration.class));
@@ -101,8 +101,8 @@ class StandardConnectorDAOTest {
 
     @Test
     void testApplyConnectorUpdate() throws Exception {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        when(connectorManager.getAssetRepository()).thenReturn(connectorAssetRepository);
         when(connectorNode.getActiveFlowContext()).thenReturn(frameworkFlowContext);
         when(frameworkFlowContext.getConfigurationContext()).thenReturn(configurationContext);
         when(configurationContext.toConnectorConfiguration()).thenReturn(connectorConfiguration);
@@ -112,84 +112,84 @@ class StandardConnectorDAOTest {
 
         connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext);
 
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
+        verify(connectorManager).getConnector(CONNECTOR_ID);
+        verify(connectorManager).applyUpdate(connectorNode, connectorUpdateContext);
     }
 
     @Test
     void testApplyConnectorUpdateWithNonExistentConnector() throws Exception {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(null);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(null);
 
         final ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class, () ->
             connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext)
         );
 
         assertEquals("Could not find Connector with ID " + CONNECTOR_ID, exception.getMessage());
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository, never()).applyUpdate(any(ConnectorNode.class), any(ConnectorUpdateContext.class));
+        verify(connectorManager).getConnector(CONNECTOR_ID);
+        verify(connectorManager, never()).applyUpdate(any(ConnectorNode.class), any(ConnectorUpdateContext.class));
     }
 
     @Test
     void testApplyConnectorUpdateWithFlowUpdateException() throws Exception {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        doThrow(new FlowUpdateException("Flow update failed")).when(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        doThrow(new FlowUpdateException("Flow update failed")).when(connectorManager).applyUpdate(connectorNode, connectorUpdateContext);
 
         final NiFiCoreException exception = assertThrows(NiFiCoreException.class, () ->
             connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext)
         );
 
         assertEquals("Failed to apply connector update: org.apache.nifi.components.connector.FlowUpdateException: Flow update failed", exception.getMessage());
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
+        verify(connectorManager).getConnector(CONNECTOR_ID);
+        verify(connectorManager).applyUpdate(connectorNode, connectorUpdateContext);
     }
 
     @Test
     void testApplyConnectorUpdateWithRuntimeException() throws Exception {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        doThrow(new RuntimeException("Test exception")).when(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        doThrow(new RuntimeException("Test exception")).when(connectorManager).applyUpdate(connectorNode, connectorUpdateContext);
 
         final NiFiCoreException exception = assertThrows(NiFiCoreException.class, () ->
             connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext)
         );
 
         assertEquals("Failed to apply connector update: java.lang.RuntimeException: Test exception", exception.getMessage());
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
+        verify(connectorManager).getConnector(CONNECTOR_ID);
+        verify(connectorManager).applyUpdate(connectorNode, connectorUpdateContext);
     }
 
     @Test
     void testApplyConnectorUpdateWithNullException() throws Exception {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
-        doThrow(new RuntimeException()).when(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        doThrow(new RuntimeException()).when(connectorManager).applyUpdate(connectorNode, connectorUpdateContext);
 
         final NiFiCoreException exception = assertThrows(NiFiCoreException.class, () ->
             connectorDAO.applyConnectorUpdate(CONNECTOR_ID, connectorUpdateContext)
         );
 
         assertEquals("Failed to apply connector update: java.lang.RuntimeException", exception.getMessage());
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
-        verify(connectorRepository).applyUpdate(connectorNode, connectorUpdateContext);
+        verify(connectorManager).getConnector(CONNECTOR_ID);
+        verify(connectorManager).applyUpdate(connectorNode, connectorUpdateContext);
     }
 
     @Test
     void testGetConnectorWithNonExistentId() {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(null);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(null);
 
         assertThrows(ResourceNotFoundException.class, () ->
             connectorDAO.getConnector(CONNECTOR_ID)
         );
 
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
+        verify(connectorManager).getConnector(CONNECTOR_ID);
     }
 
     @Test
     void testGetConnectorSuccess() {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
 
         final ConnectorNode result = connectorDAO.getConnector(CONNECTOR_ID);
 
         assertEquals(connectorNode, result);
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
+        verify(connectorManager).getConnector(CONNECTOR_ID);
     }
 
     @Test
@@ -198,7 +198,7 @@ class StandardConnectorDAOTest {
             new AllowableValue("value1", "Value 1", "First value"),
             new AllowableValue("value2", "Value 2", "Second value")
         );
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
         when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME)).thenReturn(expectedValues);
 
         final List<DescribedValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, null);
@@ -213,7 +213,7 @@ class StandardConnectorDAOTest {
         final List<DescribedValue> expectedValues = List.of(
             new AllowableValue("value1", "Value 1", "First value")
         );
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
         when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME)).thenReturn(expectedValues);
 
         final List<DescribedValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, "");
@@ -229,7 +229,7 @@ class StandardConnectorDAOTest {
         final List<DescribedValue> expectedValues = List.of(
             new AllowableValue("filtered-value", "Filtered Value", "Filtered result")
         );
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
         when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME, filter)).thenReturn(expectedValues);
 
         final List<DescribedValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, filter);
@@ -241,34 +241,34 @@ class StandardConnectorDAOTest {
 
     @Test
     void testFetchAllowableValuesWithNonExistentConnector() {
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(null);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(null);
 
         assertThrows(ResourceNotFoundException.class, () ->
             connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, null)
         );
 
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
+        verify(connectorManager).getConnector(CONNECTOR_ID);
     }
 
     @Test
     void testDeleteConnectorRemovesConnectorAndAssets() {
-        when(connectorRepository.getAssetRepository()).thenReturn(connectorAssetRepository);
+        when(connectorManager.getAssetRepository()).thenReturn(connectorAssetRepository);
 
         connectorDAO.deleteConnector(CONNECTOR_ID);
 
-        verify(connectorRepository).removeConnector(CONNECTOR_ID);
+        verify(connectorManager).removeConnector(CONNECTOR_ID);
         verify(connectorAssetRepository).deleteAssets(CONNECTOR_ID);
     }
 
     @Test
     void testDeleteConnectorDoesNotDeleteAssetsWhenRemovalFails() {
-        doThrow(new RuntimeException("Removal failed")).when(connectorRepository).removeConnector(CONNECTOR_ID);
+        doThrow(new RuntimeException("Removal failed")).when(connectorManager).removeConnector(CONNECTOR_ID);
 
         assertThrows(RuntimeException.class, () ->
             connectorDAO.deleteConnector(CONNECTOR_ID)
         );
 
-        verify(connectorRepository).removeConnector(CONNECTOR_ID);
+        verify(connectorManager).removeConnector(CONNECTOR_ID);
         verify(connectorAssetRepository, never()).deleteAssets(any());
     }
 
@@ -278,7 +278,7 @@ class StandardConnectorDAOTest {
         connectorDTO.setId(CONNECTOR_ID);
         connectorDTO.setType("org.apache.nifi.connector.TestConnector");
 
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
 
         final IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
             connectorDAO.verifyCreate(connectorDTO)
@@ -292,11 +292,11 @@ class StandardConnectorDAOTest {
         final ConnectorDTO connectorDTO = new ConnectorDTO();
         connectorDTO.setId(CONNECTOR_ID);
 
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(null);
+        when(connectorManager.getConnector(CONNECTOR_ID)).thenReturn(null);
 
         connectorDAO.verifyCreate(connectorDTO);
 
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
+        verify(connectorManager).getConnector(CONNECTOR_ID);
     }
 
     @Test
@@ -306,8 +306,7 @@ class StandardConnectorDAOTest {
 
         connectorDAO.verifyCreate(connectorDTO);
 
-        verify(connectorRepository, never()).getConnector(any());
+        verify(connectorManager, never()).getConnector(any());
     }
-
 }
 

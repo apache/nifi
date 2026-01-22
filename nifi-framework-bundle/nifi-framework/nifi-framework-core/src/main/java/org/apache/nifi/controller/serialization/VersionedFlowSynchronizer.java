@@ -29,7 +29,7 @@ import org.apache.nifi.cluster.protocol.StandardDataFlow;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.NamedStepConfiguration;
@@ -1033,33 +1033,33 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         // TODO: We need to delete any Connectors that are no longer part of the flow.
         //       This means we need to drain the Connector first, then stop it, then delete it. If unable to drain, we must fail...
         //              perhaps we need a DRAINING state? Or do we just delete it and drop the data?
-        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
+        final ConnectorManager connectorManager = flowController.getConnectorManager();
 
         final Set<String> proposedConnectorIds = new HashSet<>();
         if (dataflow.getConnectors() != null) {
             for (final VersionedConnector versionedConnector : dataflow.getConnectors()) {
                 proposedConnectorIds.add(versionedConnector.getInstanceIdentifier());
 
-                final ConnectorNode existingConnector = connectorRepository.getConnector(versionedConnector.getInstanceIdentifier());
+                final ConnectorNode existingConnector = connectorManager.getConnector(versionedConnector.getInstanceIdentifier());
                 if (existingConnector == null) {
                     logger.info("Connector {} of type {} with name {} is not in the current flow. Will add Connector.",
                         versionedConnector.getInstanceIdentifier(), versionedConnector.getType(), versionedConnector.getName());
 
-                    addConnector(versionedConnector, connectorRepository, flowController.getFlowManager());
+                    addConnector(versionedConnector, connectorManager, flowController.getFlowManager());
                 } else if (isConnectorConfigurationUpdated(existingConnector, versionedConnector)) {
                     logger.info("{} configuration has changed, updating configuration", existingConnector);
-                    updateConnector(versionedConnector, connectorRepository);
+                    updateConnector(versionedConnector, connectorManager);
                 } else {
                     logger.debug("{} configuration is up to date, no update necessary", existingConnector);
                 }
             }
         }
 
-        for (final ConnectorNode existingConnector : connectorRepository.getConnectors()) {
+        for (final ConnectorNode existingConnector : connectorManager.getConnectors()) {
             if (!proposedConnectorIds.contains(existingConnector.getIdentifier())) {
                 logger.info("Connector {} is no longer part of the proposed flow. Will remove Connector.", existingConnector);
-                connectorRepository.stopConnector(existingConnector);
-                connectorRepository.removeConnector(existingConnector.getIdentifier());
+                connectorManager.stopConnector(existingConnector);
+                connectorManager.removeConnector(existingConnector.getIdentifier());
             }
         }
     }
@@ -1150,16 +1150,16 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         };
     }
 
-    private void addConnector(final VersionedConnector versionedConnector, final ConnectorRepository connectorRepository, final FlowManager flowManager) {
+    private void addConnector(final VersionedConnector versionedConnector, final ConnectorManager connectorManager, final FlowManager flowManager) {
         final BundleCoordinate coordinate = createBundleCoordinate(extensionManager, versionedConnector.getBundle(), versionedConnector.getType());
         final ConnectorNode connectorNode = flowManager.createConnector(versionedConnector.getType(), versionedConnector.getInstanceIdentifier(), coordinate, false, true);
-        connectorRepository.restoreConnector(connectorNode);
-        updateConnector(versionedConnector, connectorRepository);
+        connectorManager.restoreConnector(connectorNode);
+        updateConnector(versionedConnector, connectorManager);
     }
 
 
-    private void updateConnector(final VersionedConnector versionedConnector, final ConnectorRepository connectorRepository) {
-        final ConnectorNode connectorNode = connectorRepository.getConnector(versionedConnector.getInstanceIdentifier());
+    private void updateConnector(final VersionedConnector versionedConnector, final ConnectorManager connectorManager) {
+        final ConnectorNode connectorNode = connectorManager.getConnector(versionedConnector.getInstanceIdentifier());
 
         connectorNode.setName(versionedConnector.getName());
 
@@ -1169,13 +1169,13 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         try {
             final List<VersionedConfigurationStep> activeFlowConfig = versionedConnector.getActiveFlowConfiguration();
             final List<VersionedConfigurationStep> workingFlowConfig = versionedConnector.getWorkingFlowConfiguration();
-            connectorRepository.inheritConfiguration(connectorNode, activeFlowConfig, workingFlowConfig, versionedConnector.getBundle());
+            connectorManager.inheritConfiguration(connectorNode, activeFlowConfig, workingFlowConfig, versionedConnector.getBundle());
 
             final ScheduledState desiredState = versionedConnector.getScheduledState();
             if (desiredState == ScheduledState.RUNNING) {
-                connectorRepository.startConnector(connectorNode);
+                connectorManager.startConnector(connectorNode);
             } else if (desiredState == ScheduledState.ENABLED) {
-                connectorRepository.stopConnector(connectorNode);
+                connectorManager.stopConnector(connectorNode);
             }
         } catch (final FlowUpdateException e) {
             throw new RuntimeException(connectorNode + " failed to inherit configuration", e);

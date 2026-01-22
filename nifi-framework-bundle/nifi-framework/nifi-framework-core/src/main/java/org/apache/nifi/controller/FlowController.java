@@ -49,12 +49,20 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.components.ClassLoaderAwarePythonBridge;
-import org.apache.nifi.components.connector.ConnectorRepository;
-import org.apache.nifi.components.connector.ConnectorRepositoryInitializationContext;
+import org.apache.nifi.components.connector.ConnectorManager;
+import org.apache.nifi.components.connector.ConnectorManagerInitializationContext;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
+import org.apache.nifi.components.connector.ConnectorLifecycleContext;
+import org.apache.nifi.components.connector.ConnectorLifecycleManager;
+import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorRepositoryContext;
 import org.apache.nifi.components.connector.ConnectorValidationTrigger;
-import org.apache.nifi.components.connector.StandardConnectorRepoInitializationContext;
-import org.apache.nifi.components.connector.StandardConnectorRepository;
+import org.apache.nifi.components.connector.FlowJsonConnectorRepository;
+import org.apache.nifi.components.connector.StandardConnectorLifecycleContext;
+import org.apache.nifi.components.connector.StandardConnectorLifecycleManager;
+import org.apache.nifi.components.connector.StandardConnectorManager;
+import org.apache.nifi.components.connector.StandardConnectorManagerInitializationContext;
+import org.apache.nifi.components.connector.StandardConnectorRepositoryContext;
 import org.apache.nifi.components.connector.StandardConnectorValidationTrigger;
 import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
@@ -160,6 +168,7 @@ import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.events.StandardEventReporter;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -276,7 +285,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     public static final String DEFAULT_SWAP_MANAGER_IMPLEMENTATION = "org.apache.nifi.controller.FileSystemSwapManager";
     public static final String DEFAULT_ASSET_MANAGER_IMPLEMENTATION = StandardAssetManager.class.getName();
     public static final String DEFAULT_CONNECTOR_ASSET_MANAGER_IMPLEMENTATION = StandardConnectorAssetManager.class.getName();
-    public static final String DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION = StandardConnectorRepository.class.getName();
+    public static final String DEFAULT_CONNECTOR_MANAGER_IMPLEMENTATION = StandardConnectorManager.class.getName();
+    public static final String DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION = FlowJsonConnectorRepository.class.getName();
+    public static final String DEFAULT_CONNECTOR_LIFECYCLE_MANAGER_IMPLEMENTATION = StandardConnectorLifecycleManager.class.getName();
     public static final String DEFAULT_SECRETS_MANAGER_IMPLEMENTATION = ParameterProviderSecretsManager.class.getName();
 
     public static final String GRACEFUL_SHUTDOWN_PERIOD = "nifi.flowcontroller.graceful.shutdown.seconds";
@@ -312,7 +323,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final StateManagerProvider stateManagerProvider;
     private final long systemStartTime = System.currentTimeMillis(); // time at which the node was started
     private final RevisionManager revisionManager;
-    private final ConnectorRepository connectorRepository;
+    private final ConnectorManager connectorManager;
 
     private final ConnectionLoadBalanceServer loadBalanceServer;
     private final NioAsyncLoadBalanceClientRegistry loadBalanceClientRegistry;
@@ -627,7 +638,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 controllerServiceProvider, new StandardControllerServiceApiLookup(extensionManager));
 
         final SecretsManager secretsManager = createSecretsManager(nifiProperties, extensionManager, flowManager);
-        connectorRepository = createConnectorRepository(nifiProperties, extensionManager, flowManager, connectorAssetManager, secretsManager, this, connectorRequestReplicator);
+        connectorManager = createConnectorManager(nifiProperties, extensionManager, flowManager, connectorAssetManager, secretsManager, this, connectorRequestReplicator, bulletinRepository);
 
         final PythonBridge rawPythonBridge = createPythonBridge(nifiProperties, controllerServiceProvider);
         final ClassLoader pythonBridgeClassLoader = rawPythonBridge.getClass().getClassLoader();
@@ -900,40 +911,99 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
     }
 
-    private static ConnectorRepository createConnectorRepository(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowManager flowManager,
-                final AssetManager assetManager, final SecretsManager secretsManager, final NodeTypeProvider nodeTypeProvider, final ConnectorRequestReplicator requestReplicator) {
+    private static ConnectorManager createConnectorManager(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowManager flowManager,
+                final AssetManager assetManager, final SecretsManager secretsManager, final NodeTypeProvider nodeTypeProvider, final ConnectorRequestReplicator requestReplicator,
+                final BulletinRepository bulletinRepository) {
 
-        final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_REPOSITORY_IMPLEMENTATION, DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION);
+        final String managerImplementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_MANAGER_IMPLEMENTATION, DEFAULT_CONNECTOR_MANAGER_IMPLEMENTATION);
 
         try {
-            // Discover implementations of Connector Repository. This is not done at startup because the ConnectorRepository class is not
-            // provided in the list of standard extension points. This is due to the fact that ConnectorRepository lives in the nifi-framework-core-api, and
-            // does not make sense to refactor it into some other module due to its dependencies, simply to allow it to be discovered at startup.
-            final Set<Class<?>> additionalExtensionTypes = Set.of(ConnectorRepository.class, SecretsManager.class);
+            // Discover implementations of Connector Manager, Repository, and Lifecycle Manager.
+            final Set<Class<?>> additionalExtensionTypes = Set.of(ConnectorManager.class, ConnectorRepository.class, ConnectorLifecycleManager.class, SecretsManager.class);
             extensionManager.discoverExtensions(extensionManager.getAllBundles(), additionalExtensionTypes, true);
-            final ConnectorRepository created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ConnectorRepository.class, properties);
 
-            final ConnectorRepositoryInitializationContext initializationContext = new StandardConnectorRepoInitializationContext(
+            // Create the pluggable ConnectorRepository
+            final ConnectorRepository connectorRepository = createConnectorRepository(properties, extensionManager, nodeTypeProvider, bulletinRepository);
+
+            // Create the pluggable ConnectorLifecycleManager
+            final ConnectorLifecycleManager lifecycleManager = createConnectorLifecycleManager(properties, extensionManager, nodeTypeProvider, connectorRepository, bulletinRepository);
+
+            // Create the internal ConnectorManager
+            final ConnectorManager created = NarThreadContextClassLoader.createInstance(extensionManager, managerImplementationClassName, ConnectorManager.class, properties);
+
+            final ConnectorManagerInitializationContext initializationContext = new StandardConnectorManagerInitializationContext(
                 flowManager,
                 extensionManager,
                 secretsManager,
                 assetManager,
                 nodeTypeProvider,
-                requestReplicator
+                requestReplicator,
+                connectorRepository,
+                lifecycleManager
             );
 
             synchronized (created) {
-                // Ensure that any NAR dependencies are available when we initialize the ConnectorRepository
-                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, created.getClass(), "connector-repository")) {
+                // Ensure that any NAR dependencies are available when we initialize the ConnectorManager
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, created.getClass(), "connector-manager")) {
                     created.initialize(initializationContext);
                 }
             }
 
-            LOG.info("Created Connector Repository of type {}", created.getClass().getSimpleName());
+            LOG.info("Created Connector Manager of type {}", created.getClass().getSimpleName());
 
             return created;
         } catch (final Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static ConnectorRepository createConnectorRepository(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager,
+                final NodeTypeProvider nodeTypeProvider, final BulletinRepository bulletinRepository) {
+
+        final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_REPOSITORY_IMPLEMENTATION, DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION);
+
+        try {
+            final ConnectorRepository repository = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ConnectorRepository.class, properties);
+
+            // Create the initialization context for the repository
+            final EventReporter eventReporter = new StandardEventReporter(bulletinRepository);
+            final ConnectorRepositoryContext repositoryContext = new StandardConnectorRepositoryContext(properties, nodeTypeProvider, eventReporter);
+
+            synchronized (repository) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, repository.getClass(), "connector-repository")) {
+                    repository.initialize(repositoryContext);
+                }
+            }
+
+            LOG.info("Created Connector Repository of type {}", repository.getClass().getSimpleName());
+            return repository;
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to create Connector Repository", e);
+        }
+    }
+
+    private static ConnectorLifecycleManager createConnectorLifecycleManager(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager,
+                final NodeTypeProvider nodeTypeProvider, final ConnectorRepository connectorRepository, final BulletinRepository bulletinRepository) {
+
+        final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_LIFECYCLE_MANAGER_IMPLEMENTATION, DEFAULT_CONNECTOR_LIFECYCLE_MANAGER_IMPLEMENTATION);
+
+        try {
+            final ConnectorLifecycleManager lifecycleManager = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ConnectorLifecycleManager.class, properties);
+
+            // Create the initialization context for the lifecycle manager
+            final EventReporter lifecycleEventReporter = new StandardEventReporter(bulletinRepository);
+            final ConnectorLifecycleContext lifecycleContext = new StandardConnectorLifecycleContext(properties, nodeTypeProvider, connectorRepository, lifecycleEventReporter);
+
+            synchronized (lifecycleManager) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, lifecycleManager.getClass(), "connector-lifecycle-manager")) {
+                    lifecycleManager.initialize(lifecycleContext);
+                }
+            }
+
+            LOG.info("Created Connector Lifecycle Manager of type {}", lifecycleManager.getClass().getSimpleName());
+            return lifecycleManager;
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to create Connector Lifecycle Manager", e);
         }
     }
 
@@ -964,8 +1034,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         }
     }
 
-    public ConnectorRepository getConnectorRepository() {
-        return connectorRepository;
+    public ConnectorManager getConnectorManager() {
+        return connectorManager;
     }
 
     private PythonBridge createPythonBridge(final NiFiProperties nifiProperties, final ControllerServiceProvider serviceProvider) {

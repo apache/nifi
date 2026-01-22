@@ -30,7 +30,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.connector.ComponentBundleLookup;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.components.connector.ConnectorStateTransition;
 import org.apache.nifi.components.connector.FlowContextFactory;
 import org.apache.nifi.components.connector.ProcessGroupFactory;
@@ -761,10 +761,10 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             parameterContextDescription, Collections.emptyMap(), Collections.emptyList(), null, referenceManager, false);
         managedRootGroup.setParameterContext(managedParameterContext);
 
-        final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
-        final ConnectorStateTransition stateTransition = connectorRepository.createStateTransition(type, id);
+        final ConnectorManager connectorManager = flowController.getConnectorManager();
+        final ConnectorStateTransition stateTransition = connectorManager.createStateTransition(type, id);
         final StandardConnectorConfigurationContext activeConfigurationContext = new StandardConnectorConfigurationContext(
-            flowController.getConnectorAssetManager(), flowController.getConnectorRepository().getSecretsManager());
+            flowController.getConnectorAssetManager(), flowController.getConnectorManager().getSecretsManager());
 
         final ProcessGroupFactory processGroupFactory = groupId -> createProcessGroup(groupId, id);
         final FlowContextFactory flowContextFactory = new FlowControllerFlowContextFactory(flowController, managedRootGroup, activeConfigurationContext, processGroupFactory);
@@ -780,7 +780,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .flowContextFactory(flowContextFactory)
             .flowController(flowController)
             .connectorStateTransition(stateTransition)
-            .connectorInitializationContextBuilder(flowController.getConnectorRepository().createInitializationContextBuilder())
+            .connectorInitializationContextBuilder(flowController.getConnectorManager().createInitializationContextBuilder())
             .connectorValidationTrigger(flowController.getConnectorValidationTrigger())
             .componentBundleLookup(componentBundleLookup)
             .buildConnector(firstTimeAdded);
@@ -806,9 +806,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
                 throw new ComponentLifeCycleException("Failed to invoke @OnAdded methods of " + connectorNode.getConnector(), e);
             }
 
-            flowController.getConnectorRepository().addConnector(connectorNode);
+            flowController.getConnectorManager().addConnector(connectorNode);
         } else {
-            flowController.getConnectorRepository().restoreConnector(connectorNode);
+            flowController.getConnectorManager().restoreConnector(connectorNode);
         }
 
         return connectorNode;
@@ -853,12 +853,12 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     @Override
     public List<ConnectorNode> getAllConnectors() {
-        return flowController.getConnectorRepository().getConnectors();
+        return flowController.getConnectorManager().getConnectors();
     }
 
     @Override
     public ConnectorNode getConnector(final String id) {
-        return flowController.getConnectorRepository().getConnector(id);
+        return flowController.getConnectorManager().getConnector(id);
     }
 
     @Override

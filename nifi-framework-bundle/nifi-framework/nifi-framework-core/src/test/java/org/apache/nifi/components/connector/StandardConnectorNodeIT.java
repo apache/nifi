@@ -119,18 +119,20 @@ public class StandardConnectorNodeIT {
     private StandardProcessScheduler processScheduler;
     private StandardFlowManager flowManager;
     private FlowEngine componentLifecycleThreadPool;
-    private ConnectorRepository connectorRepository;
+    private ConnectorManager connectorManager;
 
     @BeforeEach
     public void setup() {
         final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
         when(controllerServiceProvider.disableControllerServicesAsync(anyCollection())).thenReturn(CompletableFuture.completedFuture(null));
-        connectorRepository = new StandardConnectorRepository();
+        connectorManager = new StandardConnectorManager();
 
         final SecretsManager secretsManager = new ParameterProviderSecretsManager();
-        final ConnectorRepositoryInitializationContext repoInitContext = mock(ConnectorRepositoryInitializationContext.class);
+        final ConnectorManagerInitializationContext repoInitContext = mock(ConnectorManagerInitializationContext.class);
         when(repoInitContext.getSecretsManager()).thenReturn(secretsManager);
-        connectorRepository.initialize(repoInitContext);
+        when(repoInitContext.getConnectorRepository()).thenReturn(mock(ConnectorRepository.class));
+        when(repoInitContext.getConnectorLifecycleManager()).thenReturn(mock(ConnectorLifecycleManager.class));
+        connectorManager.initialize(repoInitContext);
 
         final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         final BulletinRepository bulletinRepository = mock(BulletinRepository.class);
@@ -159,7 +161,7 @@ public class StandardConnectorNodeIT {
         when(flowController.getBulletinRepository()).thenReturn(bulletinRepository);
         when(flowController.getLifecycleStateManager()).thenReturn(lifecycleStateManager);
         when(flowController.getFlowFileEventRepository()).thenReturn(mock(FlowFileEventRepository.class));
-        when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
+        when(flowController.getConnectorManager()).thenReturn(connectorManager);
         when(flowController.getValidationTrigger()).thenReturn(mock(ValidationTrigger.class));
         when(flowController.getConnectorValidationTrigger()).thenReturn(mock(ConnectorValidationTrigger.class));
 
@@ -261,7 +263,7 @@ public class StandardConnectorNodeIT {
         final DynamicFlowConnector flowConnector = (DynamicFlowConnector) connector;
         assertTrue(flowConnector.isInitialized());
 
-        assertEquals(List.of(connectorNode), connectorRepository.getConnectors());
+        assertEquals(List.of(connectorNode), connectorManager.getConnectors());
 
         final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
         assertEquals(3, rootGroup.getProcessGroups().size());
@@ -280,7 +282,7 @@ public class StandardConnectorNodeIT {
     private ConnectorNode initializeParameterConnector() {
         final ConnectorNode connectorNode = flowManager.createConnector(ParameterConnector.class.getName(), "parameter-connector", SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
         assertNotNull(connectorNode);
-        assertEquals(List.of(connectorNode), connectorRepository.getConnectors());
+        assertEquals(List.of(connectorNode), connectorManager.getConnectors());
 
         final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
         assertEquals(3, rootGroup.getProcessors().size());

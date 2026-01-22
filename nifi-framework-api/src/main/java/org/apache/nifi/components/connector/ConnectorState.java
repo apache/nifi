@@ -17,15 +17,57 @@
 
 package org.apache.nifi.components.connector;
 
+/**
+ * Represents the lifecycle state of a Connector.
+ */
 public enum ConnectorState {
+    /**
+     * The connector is in the process of starting.
+     */
     STARTING,
+
+    /**
+     * The connector is running and processing data.
+     */
     RUNNING,
+
+    /**
+     * The connector is in the process of stopping.
+     */
     STOPPING,
+
+    /**
+     * The connector is stopped and not processing data.
+     */
     STOPPED,
+
+    /**
+     * The connector is draining in-flight data before stopping.
+     */
     DRAINING,
+
+    /**
+     * The connector is purging all queued data.
+     */
     PURGING,
+
+    /**
+     * The connector is preparing to receive a configuration update.
+     */
     PREPARING_FOR_UPDATE,
+
+    /**
+     * The connector is being updated with new configuration.
+     */
     UPDATING,
+
+    /**
+     * The connector update failed.
+     */
     UPDATE_FAILED,
-    UPDATED;
+
+    /**
+     * The connector has been successfully updated.
+     */
+    UPDATED
 }

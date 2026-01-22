@@ -15,21 +15,22 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.mock.connector.server;
+package org.apache.nifi.components.connector;
 
-import org.apache.nifi.components.connector.FrameworkConnectorInitializationContextBuilder;
-import org.apache.nifi.components.connector.StandardConnectorRepository;
+/**
+ * Exception thrown when a connector lifecycle operation fails.
+ */
+public class ConnectorLifecycleException extends Exception {
 
-public class MockConnectorRepository extends StandardConnectorRepository {
-
-    private volatile MockExtensionMapper mockExtensionMapper;
-
-    public void setMockExtensionMapper(final MockExtensionMapper mapper) {
-        mockExtensionMapper = mapper;
+    public ConnectorLifecycleException(final String message) {
+        super(message);
     }
 
-    @Override
-    public FrameworkConnectorInitializationContextBuilder createInitializationContextBuilder() {
-        return new MockConnectorInitializationContext.Builder(mockExtensionMapper);
+    public ConnectorLifecycleException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
+
+    public ConnectorLifecycleException(final Throwable cause) {
+        super(cause);
     }
 }

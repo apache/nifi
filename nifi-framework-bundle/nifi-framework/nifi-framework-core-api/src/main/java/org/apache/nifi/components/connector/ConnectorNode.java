@@ -269,4 +269,21 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      * @return the list of available actions
      */
     List<ConnectorAction> getAvailableActions();
+
+    /**
+     * Syncs the working flow configuration from an external source. This method is called
+     * when the ConnectorRepository supports external modification and the persisted state
+     * has been updated outside of the NiFi REST API (e.g., by modifying files in S3 or
+     * records in a database).
+     *
+     * <p>
+     * This method updates only the working configuration; the active configuration
+     * (what's currently running) remains unchanged until an explicit applyUpdate() is called.
+     * </p>
+     *
+     * @param workingConfiguration the working configuration to sync
+     * @param flowContextBundle the bundle associated with the configuration
+     * @throws FlowUpdateException if unable to sync the working configuration
+     */
+    void syncWorkingConfiguration(List<VersionedConfigurationStep> workingConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
 }

@@ -958,6 +958,15 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
+    public void syncWorkingConfiguration(final List<VersionedConfigurationStep> workingConfiguration, final Bundle flowContextBundle) throws FlowUpdateException {
+        recreateWorkingFlowContext();
+        for (final VersionedConfigurationStep step : workingConfiguration) {
+            final StepConfiguration stepConfig = createStepConfiguration(step);
+            setConfiguration(step.getName(), stepConfig);
+        }
+    }
+
+    @Override
     public List<ConnectorAction> getAvailableActions() {
         final List<ConnectorAction> actions = new ArrayList<>();
         final ConnectorState currentState = getCurrentState();

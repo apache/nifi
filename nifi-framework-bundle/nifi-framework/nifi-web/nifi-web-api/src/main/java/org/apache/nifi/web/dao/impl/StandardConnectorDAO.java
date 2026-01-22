@@ -23,7 +23,7 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.ConnectorValueType;
@@ -72,12 +72,12 @@ public class StandardConnectorDAO implements ConnectorDAO {
         return flowController.getFlowManager();
     }
 
-    private ConnectorRepository getConnectorRepository() {
-        return flowController.getConnectorRepository();
+    private ConnectorManager getConnectorManager() {
+        return flowController.getConnectorManager();
     }
 
     private ConnectorAssetRepository getConnectorAssetRepository() {
-        return flowController.getConnectorRepository().getAssetRepository();
+        return flowController.getConnectorManager().getAssetRepository();
     }
 
     @Override
@@ -90,12 +90,12 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public boolean hasConnector(final String id) {
-        return getConnectorRepository().getConnector(id) != null;
+        return getConnectorManager().getConnector(id) != null;
     }
 
     @Override
     public ConnectorNode getConnector(final String id) {
-        final ConnectorNode connector = getConnectorRepository().getConnector(id);
+        final ConnectorNode connector = getConnectorManager().getConnector(id);
         if (connector == null) {
             throw new ResourceNotFoundException("Could not find Connector with ID " + id);
         }
@@ -104,33 +104,33 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public List<ConnectorNode> getConnectors() {
-        return getConnectorRepository().getConnectors();
+        return getConnectorManager().getConnectors();
     }
 
     @Override
     public ConnectorNode createConnector(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded, final boolean registerLogObserver) {
         final FlowManager flowManager = getFlowManager();
         final ConnectorNode connector = flowManager.createConnector(type, id, bundleCoordinate, firstTimeAdded, registerLogObserver);
-        getConnectorRepository().addConnector(connector);
+        getConnectorManager().addConnector(connector);
         return connector;
     }
 
     @Override
     public void deleteConnector(final String id) {
-        getConnectorRepository().removeConnector(id);
+        getConnectorManager().removeConnector(id);
         getConnectorAssetRepository().deleteAssets(id);
     }
 
     @Override
     public void startConnector(final String id) {
         final ConnectorNode connector = getConnector(id);
-        getConnectorRepository().startConnector(connector);
+        getConnectorManager().startConnector(connector);
     }
 
     @Override
     public void stopConnector(final String id) {
         final ConnectorNode connector = getConnector(id);
-        getConnectorRepository().stopConnector(connector);
+        getConnectorManager().stopConnector(connector);
     }
 
     @Override
@@ -179,7 +179,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
         // Update the connector configuration through the repository
         try {
-            getConnectorRepository().configureConnector(connector, configurationStepName, stepConfiguration);
+            getConnectorManager().configureConnector(connector, configurationStepName, stepConfiguration);
         } catch (final Exception e) {
             throw new IllegalStateException("Failed to update connector configuration: " + e, e);
         }
@@ -222,7 +222,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
     public void applyConnectorUpdate(final String id, final ConnectorUpdateContext updateContext) {
         final ConnectorNode connector = getConnector(id);
         try {
-            getConnectorRepository().applyUpdate(connector, updateContext);
+            getConnectorManager().applyUpdate(connector, updateContext);
         } catch (final Exception e) {
             throw new NiFiCoreException("Failed to apply connector update: " + e, e);
         }
@@ -231,7 +231,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
     @Override
     public void discardWorkingConfiguration(final String id) {
         final ConnectorNode connector = getConnector(id);
-        getConnectorRepository().discardWorkingConfiguration(connector);
+        getConnectorManager().discardWorkingConfiguration(connector);
     }
 
     @Override

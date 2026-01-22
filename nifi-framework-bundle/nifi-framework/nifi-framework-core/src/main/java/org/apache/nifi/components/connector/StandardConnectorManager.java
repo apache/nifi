@@ -34,14 +34,32 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-public class StandardConnectorRepository implements ConnectorRepository {
-    private static final Logger logger = LoggerFactory.getLogger(StandardConnectorRepository.class);
+/**
+ * <p>
+ * Standard implementation of {@link ConnectorManager} that manages connector runtime operations.
+ * This class orchestrates the pluggable {@link ConnectorRepository} and {@link ConnectorLifecycleManager}
+ * implementations while handling framework-specific concerns.
+ * </p>
+ *
+ * <p>
+ * The in-memory map of {@link ConnectorNode} instances is maintained here because {@code ConnectorNode}
+ * is a framework-internal type that cannot be exposed to third-party implementations. This class
+ * delegates to:
+ * </p>
+ * <ul>
+ *     <li>{@link ConnectorRepository} - for persistence of connector records</li>
+ *     <li>{@link ConnectorLifecycleManager} - for lifecycle coordination (future use)</li>
+ * </ul>
+ */
+public class StandardConnectorManager implements ConnectorManager {
+    private static final Logger logger = LoggerFactory.getLogger(StandardConnectorManager.class);
 
     private final Map<String, ConnectorNode> connectors = new ConcurrentHashMap<>();
     private final FlowEngine lifecycleExecutor = new FlowEngine(8, "NiFi Connector Lifecycle");
@@ -50,23 +68,46 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private volatile ConnectorRequestReplicator requestReplicator;
     private volatile SecretsManager secretsManager;
     private volatile ConnectorAssetRepository assetRepository;
+    private volatile ConnectorRepository connectorRepository;
+    private volatile ConnectorLifecycleManager connectorLifecycleManager;
 
     @Override
-    public void initialize(final ConnectorRepositoryInitializationContext context) {
+    public void initialize(final ConnectorManagerInitializationContext context) {
         this.extensionManager = context.getExtensionManager();
         this.requestReplicator = context.getRequestReplicator();
         this.secretsManager = context.getSecretsManager();
         this.assetRepository = new StandardConnectorAssetRepository(context.getAssetManager());
+        this.connectorRepository = context.getConnectorRepository();
+        this.connectorLifecycleManager = context.getConnectorLifecycleManager();
+
+        logger.info("Initialized StandardConnectorManager with ConnectorRepository={}, ConnectorLifecycleManager={}",
+                connectorRepository.getClass().getSimpleName(),
+                connectorLifecycleManager.getClass().getSimpleName());
     }
 
     @Override
-    public void addConnector(final ConnectorNode connector) {
-        connectors.put(connector.getIdentifier(), connector);
+    public synchronized void addConnector(final ConnectorNode connector) {
+        final String connectorId = connector.getIdentifier();
+        connectors.put(connectorId, connector);
+
+        // Persist the connector via the pluggable ConnectorRepository
+        try {
+            final PersistedConnectorRecord record = StandardPersistedConnectorRecord.fromConnectorNode(connector);
+            connectorRepository.save(record);
+            logger.debug("Persisted connector {} via ConnectorRepository", connectorId);
+        } catch (final IOException e) {
+            logger.error("Failed to persist connector {} via ConnectorRepository", connectorId, e);
+            // Note: We don't rollback the in-memory addition here because for the default
+            // FlowJsonConnectorRepository, the actual persistence happens via flow.json.gz
+        }
     }
 
     @Override
     public void restoreConnector(final ConnectorNode connector) {
-        addConnector(connector);
+        // When restoring, we just add to the in-memory map without re-persisting
+        // The connector is being restored from an existing persistence source
+        connectors.put(connector.getIdentifier(), connector);
+        logger.debug("Restored connector {} to in-memory map", connector.getIdentifier());
     }
 
     @Override
@@ -79,6 +120,14 @@ public class StandardConnectorRepository implements ConnectorRepository {
         connectorNode.verifyCanDelete();
         connectors.remove(connectorId);
 
+        // Delete from the pluggable ConnectorRepository
+        try {
+            connectorRepository.delete(connectorId);
+            logger.debug("Deleted connector {} from ConnectorRepository", connectorId);
+        } catch (final IOException e) {
+            logger.error("Failed to delete connector {} from ConnectorRepository", connectorId, e);
+        }
+
         final Class<?> taskClass = connectorNode.getConnector().getClass();
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, taskClass, connectorId)) {
             ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, connectorNode.getConnector());
@@ -89,7 +138,32 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public ConnectorNode getConnector(final String identifier) {
-        return connectors.get(identifier);
+        final ConnectorNode connector = connectors.get(identifier);
+        if (connector != null && connectorRepository.supportsExternalModification()) {
+            syncFromRepository(connector);
+        }
+        return connector;
+    }
+
+    /**
+     * Syncs the working configuration of a connector from the external repository.
+     * This is only called when the repository supports external modification, meaning
+     * the persisted state may have been changed outside of the NiFi REST API.
+     */
+    private void syncFromRepository(final ConnectorNode connector) {
+        final String connectorId = connector.getIdentifier();
+        try {
+            final Optional<PersistedConnectorRecord> recordOpt = connectorRepository.load(connectorId);
+            if (recordOpt.isPresent()) {
+                final PersistedConnectorRecord record = recordOpt.get();
+                connector.syncWorkingConfiguration(record.getWorkingConfiguration(), record.getFlowContextBundle());
+                logger.debug("Synced working configuration for connector {} from repository", connectorId);
+            }
+        } catch (final IOException e) {
+            logger.warn("Failed to sync connector {} from repository: {}", connectorId, e.getMessage());
+        } catch (final FlowUpdateException e) {
+            logger.warn("Failed to apply synced working configuration to connector {}: {}", connectorId, e.getMessage());
+        }
     }
 
     @Override
@@ -99,11 +173,13 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public Future<Void> startConnector(final ConnectorNode connector) {
+        logger.info("Starting connector {}", connector.getIdentifier());
         return connector.start(lifecycleExecutor);
     }
 
     @Override
     public Future<Void> stopConnector(final ConnectorNode connector) {
+        logger.info("Stopping connector {}", connector.getIdentifier());
         return connector.stop(lifecycleExecutor);
     }
 
@@ -136,6 +212,24 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void applyUpdate(final ConnectorNode connector, final ConnectorUpdateContext context) throws FlowUpdateException {
+        final String connectorId = connector.getIdentifier();
+
+        // If the repository supports external modification, ask it if it's safe to proceed with the update.
+        // This allows the repository to vote on whether the update should proceed, e.g., to ensure no concurrent
+        // modifications are happening or to acquire locks on the external storage.
+        if (connectorRepository.supportsExternalModification()) {
+            try {
+                final boolean canProceed = connectorRepository.prepareForUpdate(connectorId);
+                if (!canProceed) {
+                    throw new ConnectorUpdateRejectedException(connectorId,
+                            "Update rejected by ConnectorRepository. The connector may have been modified externally.");
+                }
+            } catch (final IOException e) {
+                throw new ConnectorUpdateRejectedException(connectorId,
+                        "Failed to prepare for update: " + e.getMessage(), e);
+            }
+        }
+
         final ConnectorState initialDesiredState = connector.getDesiredState();
         logger.info("Applying update to Connector {}", connector);
 
@@ -155,6 +249,8 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     private void updateConnector(final ConnectorNode connector, final ConnectorState initialDesiredState, final ConnectorUpdateContext context) {
+        final String connectorId = connector.getIdentifier();
+        boolean success = false;
         try {
             // Perform whatever preparation is necessary for the update. Default implementation is to stop the connector.
             logger.debug("Preparing {} for update", connector);
@@ -168,6 +264,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
             logger.info("{} has now completed preparations for update; applying update now", connector);
             connector.applyUpdate();
             logger.info("{} has successfully applied update", connector);
+
+            // Persist the updated state
+            persistConnector(connector);
 
             // Now that the update has been applied, save the flow so that the updated configuration is persisted.
             context.saveFlow();
@@ -186,11 +285,39 @@ public class StandardConnectorRepository implements ConnectorRepository {
                 connector.stop(lifecycleExecutor);
             }
 
+            // Persist the final state
+            persistConnector(connector);
+
             // We've updated the state of the connector so save flow again
             context.saveFlow();
+
+            success = true;
         } catch (final Exception e) {
             logger.error("Failed to apply connector update for {}", connector, e);
             connector.abortUpdate(e);
+        } finally {
+            // Notify the repository that the update has completed (success or failure).
+            // This allows the repository to release any locks acquired during prepareForUpdate.
+            if (connectorRepository.supportsExternalModification()) {
+                try {
+                    connectorRepository.completeUpdate(connectorId, success);
+                } catch (final IOException e) {
+                    logger.warn("Failed to complete update notification for connector {}: {}", connectorId, e.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Persists the current state of a connector via the ConnectorRepository.
+     */
+    private void persistConnector(final ConnectorNode connector) {
+        try {
+            final PersistedConnectorRecord record = StandardPersistedConnectorRecord.fromConnectorNode(connector);
+            connectorRepository.save(record);
+            logger.debug("Persisted connector {} state via ConnectorRepository", connector.getIdentifier());
+        } catch (final IOException e) {
+            logger.warn("Failed to persist connector {} via ConnectorRepository: {}", connector.getIdentifier(), e.getMessage());
         }
     }
 
@@ -230,14 +357,14 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         logger.debug("Found {} assets referenced for Connector [{}]", referencedAssetIds.size(), connector.getIdentifier());
 
-        final ConnectorAssetRepository assetRepository = getAssetRepository();
-        final List<Asset> allConnectorAssets = assetRepository.getAssets(connector.getIdentifier());
+        final ConnectorAssetRepository connectorAssetRepository = getAssetRepository();
+        final List<Asset> allConnectorAssets = connectorAssetRepository.getAssets(connector.getIdentifier());
         for (final Asset asset : allConnectorAssets) {
             final String assetId = asset.getIdentifier();
             if (!referencedAssetIds.contains(assetId)) {
                 try {
                     logger.info("Deleting unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier());
-                    assetRepository.deleteAsset(assetId);
+                    connectorAssetRepository.deleteAsset(assetId);
                 } catch (final Exception e) {
                     logger.warn("Unable to delete unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier(), e);
                 }
@@ -268,6 +395,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public void configureConnector(final ConnectorNode connector, final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
         connector.setConfiguration(stepName, configuration);
+
+        // Persist the configuration change
+        persistConnector(connector);
     }
 
     @Override
@@ -279,6 +409,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
         try {
             connector.inheritConfiguration(activeFlowConfiguration, workingFlowConfiguration, flowContextBundle);
+
+            // Persist the inherited configuration
+            persistConnector(connector);
         } catch (final Exception e) {
             connector.abortUpdate(e);
             throw e;
@@ -310,5 +443,23 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public ConnectorAssetRepository getAssetRepository() {
         return assetRepository;
+    }
+
+    /**
+     * Returns the pluggable ConnectorRepository. This is primarily for testing.
+     *
+     * @return the ConnectorRepository
+     */
+    public ConnectorRepository getConnectorRepository() {
+        return connectorRepository;
+    }
+
+    /**
+     * Returns the pluggable ConnectorLifecycleManager. This is primarily for testing.
+     *
+     * @return the ConnectorLifecycleManager
+     */
+    public ConnectorLifecycleManager getConnectorLifecycleManager() {
+        return connectorLifecycleManager;
     }
 }

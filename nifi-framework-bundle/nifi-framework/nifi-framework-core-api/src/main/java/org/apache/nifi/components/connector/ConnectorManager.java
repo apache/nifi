@@ -24,55 +24,82 @@ import org.apache.nifi.flow.VersionedConfigurationStep;
 import java.util.List;
 import java.util.concurrent.Future;
 
-public interface ConnectorRepository {
-
-    void initialize(ConnectorRepositoryInitializationContext context);
+/**
+ * <p>
+ * Internal interface that manages connector runtime operations and orchestrates
+ * the pluggable {@link org.apache.nifi.components.connector.ConnectorRepository} and
+ * {@link org.apache.nifi.components.connector.ConnectorLifecycleManager} implementations.
+ * </p>
+ *
+ * <p>
+ * This interface is internal to the NiFi framework and is not intended to be
+ * implemented by third parties. Third parties should instead implement the
+ * {@link org.apache.nifi.components.connector.ConnectorRepository} or
+ * {@link org.apache.nifi.components.connector.ConnectorLifecycleManager} interfaces
+ * in nifi-framework-api.
+ * </p>
+ */
+public interface ConnectorManager {
 
     /**
-     * Adds the given Connector to the Repository
+     * Initializes the ConnectorManager with the given context.
+     *
+     * @param context the initialization context
+     */
+    void initialize(ConnectorManagerInitializationContext context);
+
+    /**
+     * Adds the given Connector to the Manager.
+     *
      * @param connector the Connector to add
      */
     void addConnector(ConnectorNode connector);
 
     /**
-     * Restores a previously added Connector to the Repository on restart.
+     * Restores a previously added Connector to the Manager on restart.
      * This is differentiated from addConnector in that this method is not called
      * for newly created Connectors during the typical lifecycle of NiFi, but rather
-     * only to notify the Repository of Connectors that were present when NiFi was last shutdown.
+     * only to notify the Manager of Connectors that were present when NiFi was last shutdown.
      *
      * @param connector the Connector to restore
      */
     void restoreConnector(ConnectorNode connector);
 
     /**
-     * Removes the given Connector from the Repository
+     * Removes the given Connector from the Manager.
+     *
      * @param connectorId the identifier of the Connector to remove
      */
     void removeConnector(String connectorId);
 
     /**
-     * Gets the Connector with the given identifier
+     * Gets the Connector with the given identifier.
+     *
      * @param identifier the identifier of the Connector to get
      * @return the Connector with the given identifier, or null if no such Connector exists
      */
     ConnectorNode getConnector(String identifier);
 
     /**
-     * @return all Connectors in the Repository
+     * Returns all Connectors managed by this ConnectorManager.
+     *
+     * @return all Connectors
      */
     List<ConnectorNode> getConnectors();
 
     /**
      * Starts the given Connector, managing any appropriate lifecycle events.
+     *
      * @param connector the Connector to start
-     * @return a CompletableFuture that will be completed when the Connector has started
+     * @return a Future that will be completed when the Connector has started
      */
     Future<Void> startConnector(ConnectorNode connector);
 
     /**
      * Stops the given Connector, managing any appropriate lifecycle events.
+     *
      * @param connector the Connector to stop
-     * @return a CompletableFuture that will be completed when the Connector has stopped
+     * @return a Future that will be completed when the Connector has stopped
      */
     Future<Void> stopConnector(ConnectorNode connector);
 
@@ -80,19 +107,53 @@ public interface ConnectorRepository {
      * Restarts the given Connector, managing any appropriate lifecycle events.
      *
      * @param connector the Connector to restart
-     * @return a CompletableFuture that will be completed when the Connector has restarted
+     * @return a Future that will be completed when the Connector has restarted
      */
     Future<Void> restartConnector(ConnectorNode connector);
 
+    /**
+     * Configures a connector with the given step configuration.
+     *
+     * @param connector the Connector to configure
+     * @param stepName the name of the configuration step
+     * @param configuration the configuration for the step
+     * @throws FlowUpdateException if the configuration cannot be applied
+     */
     void configureConnector(ConnectorNode connector, String stepName, StepConfiguration configuration) throws FlowUpdateException;
 
+    /**
+     * Applies a pending update to a connector.
+     *
+     * @param connector the Connector to update
+     * @param context the update context providing persistence callbacks
+     * @throws FlowUpdateException if the update cannot be applied
+     */
     void applyUpdate(ConnectorNode connector, ConnectorUpdateContext context) throws FlowUpdateException;
 
+    /**
+     * Inherits configuration from a versioned flow into a connector.
+     *
+     * @param connector the Connector to update
+     * @param activeFlowConfiguration the active flow configuration to inherit
+     * @param workingFlowConfiguration the working flow configuration to inherit
+     * @param flowContextBundle the bundle associated with the configuration
+     * @throws FlowUpdateException if the configuration cannot be inherited
+     */
     void inheritConfiguration(ConnectorNode connector, List<VersionedConfigurationStep> activeFlowConfiguration,
-        List<VersionedConfigurationStep> workingFlowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
+                              List<VersionedConfigurationStep> workingFlowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
 
+    /**
+     * Discards the working configuration for a connector and reverts to the active configuration.
+     *
+     * @param connector the Connector to discard working configuration for
+     */
     void discardWorkingConfiguration(ConnectorNode connector);
 
+    /**
+     * Returns the SecretsManager for accessing secrets.
+     *
+     * @return the SecretsManager
+     */
     SecretsManager getSecretsManager();
 
     /**
@@ -104,7 +165,17 @@ public interface ConnectorRepository {
      */
     ConnectorStateTransition createStateTransition(String type, String id);
 
+    /**
+     * Creates a new builder for connector initialization contexts.
+     *
+     * @return a new initialization context builder
+     */
     FrameworkConnectorInitializationContextBuilder createInitializationContextBuilder();
 
+    /**
+     * Returns the ConnectorAssetRepository for managing connector assets.
+     *
+     * @return the ConnectorAssetRepository
+     */
     ConnectorAssetRepository getAssetRepository();
 }

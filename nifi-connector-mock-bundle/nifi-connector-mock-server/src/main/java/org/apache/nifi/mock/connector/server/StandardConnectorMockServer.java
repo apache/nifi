@@ -29,7 +29,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
@@ -82,7 +82,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     private FlowController flowController;
     private MockExtensionDiscoveringManager extensionManager;
     private ConnectorNode connectorNode;
-    private ConnectorRepository connectorRepository;
+    private ConnectorManager connectorManager;
     private FlowEngine flowEngine;
     private MockExtensionMapper mockExtensionMapper;
     private FlowFileTransferCounts initialFlowFileTransferCounts = new FlowFileTransferCounts(0L, 0L, 0L, 0L);
@@ -122,13 +122,13 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             throw new RuntimeException("Failed to initialize FlowFile Repository", e);
         }
 
-        connectorRepository = flowController.getConnectorRepository();
-        if (!(connectorRepository instanceof MockConnectorRepository)) {
-            throw new IllegalStateException("Connector Repository is not an instance of MockConnectorRepository");
+        connectorManager = flowController.getConnectorManager();
+        if (!(connectorManager instanceof MockConnectorManager)) {
+            throw new IllegalStateException("Connector Manager is not an instance of MockConnectorManager");
         }
 
         mockExtensionMapper = new MockExtensionMapper();
-        ((MockConnectorRepository) connectorRepository).setMockExtensionMapper(mockExtensionMapper);
+        ((MockConnectorManager) connectorManager).setMockExtensionMapper(mockExtensionMapper);
 
         flowEngine = new FlowEngine(4, "Connector Threads");
     }
@@ -257,7 +257,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public void addSecret(final String name, final String value) {
-        final SecretsManager secretsManager = connectorRepository.getSecretsManager();
+        final SecretsManager secretsManager = connectorManager.getSecretsManager();
         if (!(secretsManager instanceof final ConnectorTestRunnerSecretsManager testRunnerSecretsManager)) {
             throw new IllegalStateException("Secrets Manager is not an instance of ConnectorTestRunnerSecretsManager");
         }

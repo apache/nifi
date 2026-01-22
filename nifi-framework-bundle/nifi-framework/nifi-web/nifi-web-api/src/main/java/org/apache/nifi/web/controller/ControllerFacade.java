@@ -2051,7 +2051,7 @@ public class ControllerFacade implements Authorizable {
      * @return list of all secrets available from all secret providers
      */
     public List<Secret> getAllSecrets() {
-        return flowController.getConnectorRepository().getSecretsManager().getAllSecrets();
+        return flowController.getConnectorManager().getSecretsManager().getAllSecrets();
     }
 
     /*

@@ -22,7 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorInitializationContext;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.components.connector.ConnectorValidationTrigger;
 import org.apache.nifi.components.connector.StandardConnectorInitializationContext;
 import org.apache.nifi.components.connector.StandardConnectorStateTransition;
@@ -145,11 +145,11 @@ public class TestStandardFlowManager {
         final ConnectorValidationTrigger validationTrigger = mock(ConnectorValidationTrigger.class);
         when(flowController.getConnectorValidationTrigger()).thenReturn(validationTrigger);
 
-        final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
-        when(connectorRepository.createInitializationContextBuilder()).thenAnswer(
+        final ConnectorManager connectorManager = mock(ConnectorManager.class);
+        when(connectorManager.createInitializationContextBuilder()).thenAnswer(
             invocation -> new StandardConnectorInitializationContext.Builder());
-        when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
-        when(connectorRepository.createStateTransition(anyString(), anyString())).thenReturn(new StandardConnectorStateTransition("test component"));
+        when(flowController.getConnectorManager()).thenReturn(connectorManager);
+        when(connectorManager.createStateTransition(anyString(), anyString())).thenReturn(new StandardConnectorStateTransition("test component"));
 
         // Create the connector
         final String type = NopConnector.class.getName();

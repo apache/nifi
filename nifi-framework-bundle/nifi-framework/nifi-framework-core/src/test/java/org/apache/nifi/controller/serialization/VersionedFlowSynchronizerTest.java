@@ -18,7 +18,7 @@ package org.apache.nifi.controller.serialization;
 
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.connector.ConnectorRepository;
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.SnippetManager;
@@ -281,8 +281,8 @@ class VersionedFlowSynchronizerTest {
         when(flowController.createVersionedComponentStateLookup(any())).thenReturn(stateLookup);
         when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
 
-        final ConnectorRepository connectorRepository = mock(ConnectorRepository.class);
-        when(connectorRepository.getConnectors()).thenReturn(Collections.emptyList());
-        when(flowController.getConnectorRepository()).thenReturn(connectorRepository);
+        final ConnectorManager connectorManager = mock(ConnectorManager.class);
+        when(connectorManager.getConnectors()).thenReturn(Collections.emptyList());
+        when(flowController.getConnectorManager()).thenReturn(connectorManager);
     }
 }

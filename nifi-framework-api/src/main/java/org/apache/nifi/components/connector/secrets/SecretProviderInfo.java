@@ -15,25 +15,39 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.components.connector;
-
-import java.io.IOException;
+package org.apache.nifi.components.connector.secrets;
 
 /**
- * Provides a context for connector update operations. This interface is passed to the
- * {@link ConnectorManager#applyUpdate(ConnectorNode, ConnectorUpdateContext)} method
- * to enable the manager to trigger flow persistence at appropriate times during the
- * update process.
+ * Provides information about a secret provider (source) that is aggregated
+ * by a {@link SecretsProvider}.
  */
-public interface ConnectorUpdateContext {
+public interface SecretProviderInfo {
 
     /**
-     * Saves the current flow state. This is typically called after a connector update
-     * has been applied to persist the updated configuration to the flow file (flow.json.gz).
-     * In a clustered environment, this ensures that all nodes have a consistent view
-     * of the connector's configuration.
+     * Returns the unique identifier of the secret provider.
      *
-     * @throws IOException if an I/O error occurs during flow persistence
+     * @return the provider identifier
      */
-    void saveFlow() throws IOException;
+    String getIdentifier();
+
+    /**
+     * Returns the display name of the secret provider.
+     *
+     * @return the provider name
+     */
+    String getName();
+
+    /**
+     * Returns the type of the secret provider (e.g., "HashiCorp Vault", "AWS Secrets Manager").
+     *
+     * @return the provider type
+     */
+    String getType();
+
+    /**
+     * Returns a description of the secret provider.
+     *
+     * @return the provider description, or null if not available
+     */
+    String getDescription();
 }

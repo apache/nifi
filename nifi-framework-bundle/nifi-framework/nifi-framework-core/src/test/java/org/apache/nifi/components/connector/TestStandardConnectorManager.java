@@ -35,21 +35,36 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class TestStandardConnectorRepository {
+public class TestStandardConnectorManager {
+
+    private StandardConnectorManager createInitializedManager() {
+        return createInitializedManager(mock(AssetManager.class));
+    }
+
+    private StandardConnectorManager createInitializedManager(final AssetManager assetManager) {
+        final StandardConnectorManager manager = new StandardConnectorManager();
+        final ConnectorManagerInitializationContext initContext = mock(ConnectorManagerInitializationContext.class);
+        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
+        when(initContext.getAssetManager()).thenReturn(assetManager);
+        when(initContext.getConnectorRepository()).thenReturn(mock(ConnectorRepository.class));
+        when(initContext.getConnectorLifecycleManager()).thenReturn(mock(ConnectorLifecycleManager.class));
+        manager.initialize(initContext);
+        return manager;
+    }
 
     @Test
     public void testAddAndGetConnectors() {
-        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final StandardConnectorManager manager = createInitializedManager();
 
         final ConnectorNode connector1 = mock(ConnectorNode.class);
         final ConnectorNode connector2 = mock(ConnectorNode.class);
         when(connector1.getIdentifier()).thenReturn("connector-1");
         when(connector2.getIdentifier()).thenReturn("connector-2");
 
-        repository.addConnector(connector1);
-        repository.addConnector(connector2);
+        manager.addConnector(connector1);
+        manager.addConnector(connector2);
 
-        final List<ConnectorNode> connectors = repository.getConnectors();
+        final List<ConnectorNode> connectors = manager.getConnectors();
         assertEquals(2, connectors.size());
         assertTrue(connectors.contains(connector1));
         assertTrue(connectors.contains(connector2));
@@ -57,51 +72,46 @@ public class TestStandardConnectorRepository {
 
     @Test
     public void testRemoveConnector() {
-        final StandardConnectorRepository repository = new StandardConnectorRepository();
-
-        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
-        final ExtensionManager extensionManager = mock(ExtensionManager.class);
-        when(initContext.getExtensionManager()).thenReturn(extensionManager);
-        repository.initialize(initContext);
+        final StandardConnectorManager manager = createInitializedManager();
 
         final Connector mockConnector = mock(Connector.class);
         final ConnectorNode connector = mock(ConnectorNode.class);
         when(connector.getIdentifier()).thenReturn("connector-1");
         when(connector.getConnector()).thenReturn(mockConnector);
 
-        repository.addConnector(connector);
-        repository.removeConnector("connector-1");
+        manager.addConnector(connector);
+        manager.removeConnector("connector-1");
 
-        assertEquals(0, repository.getConnectors().size());
-        assertNull(repository.getConnector("connector-1"));
+        assertEquals(0, manager.getConnectors().size());
+        assertNull(manager.getConnector("connector-1"));
     }
 
     @Test
     public void testRestoreConnector() {
-        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final StandardConnectorManager manager = createInitializedManager();
 
         final ConnectorNode connector = mock(ConnectorNode.class);
         when(connector.getIdentifier()).thenReturn("connector-1");
 
-        repository.restoreConnector(connector);
-        assertEquals(1, repository.getConnectors().size());
-        assertEquals(connector, repository.getConnector("connector-1"));
+        manager.restoreConnector(connector);
+        assertEquals(1, manager.getConnectors().size());
+        assertEquals(connector, manager.getConnector("connector-1"));
     }
 
     @Test
     public void testGetConnectorsReturnsNewListInstances() {
-        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final StandardConnectorManager manager = createInitializedManager();
 
         final ConnectorNode connector1 = mock(ConnectorNode.class);
         final ConnectorNode connector2 = mock(ConnectorNode.class);
         when(connector1.getIdentifier()).thenReturn("connector-1");
         when(connector2.getIdentifier()).thenReturn("connector-2");
 
-        repository.addConnector(connector1);
-        repository.addConnector(connector2);
+        manager.addConnector(connector1);
+        manager.addConnector(connector2);
 
-        final List<ConnectorNode> connectors1 = repository.getConnectors();
-        final List<ConnectorNode> connectors2 = repository.getConnectors();
+        final List<ConnectorNode> connectors1 = manager.getConnectors();
+        final List<ConnectorNode> connectors2 = manager.getConnectors();
 
         assertEquals(2, connectors1.size());
         assertEquals(2, connectors2.size());
@@ -111,19 +121,19 @@ public class TestStandardConnectorRepository {
 
     @Test
     public void testAddConnectorWithDuplicateIdReplaces() {
-        final StandardConnectorRepository repository = new StandardConnectorRepository();
+        final StandardConnectorManager manager = createInitializedManager();
 
         final ConnectorNode connector1 = mock(ConnectorNode.class);
         final ConnectorNode connector2 = mock(ConnectorNode.class);
         when(connector1.getIdentifier()).thenReturn("same-id");
         when(connector2.getIdentifier()).thenReturn("same-id");
 
-        repository.addConnector(connector1);
-        repository.addConnector(connector2);
+        manager.addConnector(connector1);
+        manager.addConnector(connector2);
 
-        final List<ConnectorNode> connectors = repository.getConnectors();
+        final List<ConnectorNode> connectors = manager.getConnectors();
         assertEquals(1, connectors.size());
-        assertEquals(connector2, repository.getConnector("same-id"));
+        assertEquals(connector2, manager.getConnector("same-id"));
     }
 
     @Test
@@ -133,13 +143,8 @@ public class TestStandardConnectorRepository {
         final String workingAssetId = "working-asset-id";
         final String unreferencedAssetId = "unreferenced-asset-id";
 
-        final StandardConnectorRepository repository = new StandardConnectorRepository();
-
         final AssetManager assetManager = mock(AssetManager.class);
-        final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
-        when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
-        when(initContext.getAssetManager()).thenReturn(assetManager);
-        repository.initialize(initContext);
+        final StandardConnectorManager manager = createInitializedManager(assetManager);
 
         final Asset activeAsset = mock(Asset.class);
         when(activeAsset.getIdentifier()).thenReturn(activeAssetId);
@@ -184,8 +189,8 @@ public class TestStandardConnectorRepository {
 
         when(assetManager.getAssets(connectorId)).thenReturn(List.of(activeAsset, workingAsset, unreferencedAsset));
 
-        repository.addConnector(connector);
-        repository.discardWorkingConfiguration(connector);
+        manager.addConnector(connector);
+        manager.discardWorkingConfiguration(connector);
 
         verify(assetManager, never()).deleteAsset(activeAssetId);
         verify(assetManager, never()).deleteAsset(workingAssetId);

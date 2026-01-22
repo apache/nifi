@@ -23,26 +23,35 @@ import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.nar.ExtensionManager;
 
-public class StandardConnectorRepoInitializationContext implements ConnectorRepositoryInitializationContext {
+/**
+ * Standard implementation of {@link ConnectorManagerInitializationContext}.
+ */
+public class StandardConnectorManagerInitializationContext implements ConnectorManagerInitializationContext {
     private final FlowManager flowManager;
     private final ExtensionManager extensionManager;
     private final SecretsManager secretsManager;
     private final AssetManager assetManager;
     private final NodeTypeProvider nodeTypeProvider;
     private final ConnectorRequestReplicator requestReplicator;
+    private final ConnectorRepository connectorRepository;
+    private final ConnectorLifecycleManager connectorLifecycleManager;
 
-    public StandardConnectorRepoInitializationContext(final FlowManager flowManager,
-                                                     final ExtensionManager extensionManager,
-                                                     final SecretsManager secretsManager,
-                                                     final AssetManager assetManager,
-                                                     final NodeTypeProvider nodeTypeProvider,
-                                                     final ConnectorRequestReplicator requestReplicator) {
+    public StandardConnectorManagerInitializationContext(final FlowManager flowManager,
+                                                         final ExtensionManager extensionManager,
+                                                         final SecretsManager secretsManager,
+                                                         final AssetManager assetManager,
+                                                         final NodeTypeProvider nodeTypeProvider,
+                                                         final ConnectorRequestReplicator requestReplicator,
+                                                         final ConnectorRepository connectorRepository,
+                                                         final ConnectorLifecycleManager connectorLifecycleManager) {
         this.flowManager = flowManager;
         this.extensionManager = extensionManager;
         this.secretsManager = secretsManager;
         this.assetManager = assetManager;
         this.nodeTypeProvider = nodeTypeProvider;
         this.requestReplicator = requestReplicator;
+        this.connectorRepository = connectorRepository;
+        this.connectorLifecycleManager = connectorLifecycleManager;
     }
 
     @Override
@@ -73,5 +82,15 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
     @Override
     public ConnectorRequestReplicator getRequestReplicator() {
         return requestReplicator;
+    }
+
+    @Override
+    public ConnectorRepository getConnectorRepository() {
+        return connectorRepository;
+    }
+
+    @Override
+    public ConnectorLifecycleManager getConnectorLifecycleManager() {
+        return connectorLifecycleManager;
     }
 }

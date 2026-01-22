@@ -17,23 +17,29 @@
 
 package org.apache.nifi.components.connector;
 
-import java.io.IOException;
+import org.apache.nifi.flow.Bundle;
+
+import java.util.List;
+import java.util.Optional;
 
 /**
- * Provides a context for connector update operations. This interface is passed to the
- * {@link ConnectorManager#applyUpdate(ConnectorNode, ConnectorUpdateContext)} method
- * to enable the manager to trigger flow persistence at appropriate times during the
- * update process.
+ * Provides the ability to look up available bundles for a given component type.
  */
-public interface ConnectorUpdateContext {
+public interface ComponentBundleLookup {
 
     /**
-     * Saves the current flow state. This is typically called after a connector update
-     * has been applied to persist the updated configuration to the flow file (flow.json.gz).
-     * In a clustered environment, this ensures that all nodes have a consistent view
-     * of the connector's configuration.
+     * Returns the available bundles that provide the given component type.
      *
-     * @throws IOException if an I/O error occurs during flow persistence
+     * @param componentType the fully qualified class name of the component type
+     * @return the list of bundles that provide the component type
      */
-    void saveFlow() throws IOException;
+    List<Bundle> getAvailableBundles(String componentType);
+
+    /**
+     * Returns the latest version of a bundle that provides the given component type.
+     *
+     * @param componentType the fully qualified class name of the component type
+     * @return an Optional containing the latest bundle, or empty if no bundles are available
+     */
+    Optional<Bundle> getLatestBundle(String componentType);
 }

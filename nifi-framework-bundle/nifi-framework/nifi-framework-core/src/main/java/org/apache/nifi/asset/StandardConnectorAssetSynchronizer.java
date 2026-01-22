@@ -21,8 +21,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.client.NiFiRestApiRetryableException;
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.connector.ConnectorManager;
 import org.apache.nifi.components.connector.ConnectorNode;
-import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -61,7 +61,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
 
     private final AssetManager assetManager;
     private final FlowManager flowManager;
-    private final ConnectorRepository connectorRepository;
+    private final ConnectorManager connectorManager;
     private final ClusterCoordinator clusterCoordinator;
     private final WebClientService webClientService;
     private final NiFiProperties properties;
@@ -72,7 +72,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
                                               final NiFiProperties properties) {
         this.assetManager = flowController.getConnectorAssetManager();
         this.flowManager = flowController.getFlowManager();
-        this.connectorRepository = flowController.getConnectorRepository();
+        this.connectorManager = flowController.getConnectorManager();
         this.clusterCoordinator = clusterCoordinator;
         this.webClientService = webClientService;
         this.properties = properties;
@@ -125,7 +125,7 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
             if (currentState == ConnectorState.RUNNING) {
                 logger.info("Restarting connector [{}] after asset synchronization", connector.getIdentifier());
                 try {
-                    final Future<Void> restartFuture = connectorRepository.restartConnector(connector);
+                    final Future<Void> restartFuture = connectorManager.restartConnector(connector);
                     restartFuture.get();
                     logger.info("Successfully restarted connector [{}] after asset synchronization", connector.getIdentifier());
                 } catch (final InterruptedException e) {

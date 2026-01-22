@@ -139,8 +139,10 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String STATUS_REPOSITORY_QUESTDB_PERSIST_BATCH_SIZE = "nifi.status.repository.questdb.persist.batchsize";
     public static final String STATUS_REPOSITORY_QUESTDB_PERSIST_FREQUENCY = "nifi.status.repository.questdb.persist.frequency";
 
-    // Connector Repository properties
+    // Connector Manager properties
+    public static final String CONNECTOR_MANAGER_IMPLEMENTATION = "nifi.components.connectors.manager.implementation";
     public static final String CONNECTOR_REPOSITORY_IMPLEMENTATION = "nifi.components.connectors.repository.implementation";
+    public static final String CONNECTOR_LIFECYCLE_MANAGER_IMPLEMENTATION = "nifi.components.connectors.lifecycle.manager.implementation";
 
     // Secrets Manager properties
     public static final String SECRETS_MANAGER_IMPLEMENTATION = "nifi.secrets.manager.implementation";
