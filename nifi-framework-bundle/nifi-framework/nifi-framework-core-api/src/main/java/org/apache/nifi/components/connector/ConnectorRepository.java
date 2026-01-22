@@ -79,7 +79,7 @@ public interface ConnectorRepository {
     /**
      * Restarts the given Connector, managing any appropriate lifecycle events.
      *
-     * @param connector the Connector to stop
+     * @param connector the Connector to restart
      * @return a CompletableFuture that will be completed when the Connector has restarted
      */
     Future<Void> restartConnector(ConnectorNode connector);
