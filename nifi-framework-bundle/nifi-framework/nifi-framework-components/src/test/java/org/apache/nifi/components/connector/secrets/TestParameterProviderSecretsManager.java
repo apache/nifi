@@ -105,7 +105,7 @@ public class TestParameterProviderSecretsManager {
         when(node.fetchParameterValues(anyList())).thenAnswer(invocation -> {
             final List<String> requestedNames = invocation.getArgument(0);
             final List<Parameter> matchingParameters = parameterList.stream()
-                    .filter(p -> requestedNames.contains(groupName + "." + p.getDescriptor().getName()))
+                    .filter(p -> requestedNames.contains(name + "." + groupName + "." + p.getDescriptor().getName()))
                     .toList();
             if (matchingParameters.isEmpty()) {
                 return List.of();
@@ -128,15 +128,34 @@ public class TestParameterProviderSecretsManager {
     }
 
     private SecretReference createSecretReference(final String providerId, final String providerName, final String secretName) {
-        final String groupName = getGroupName(secretName);
-        return new SecretReference(providerId, providerName, secretName, groupName + "." + secretName);
+        final String effectiveProviderId = providerId != null ? providerId : getProviderIdFromName(providerName);
+        final String effectiveProviderName = getProviderNameFromId(effectiveProviderId);
+        final String groupName = getGroupNameForProvider(effectiveProviderId);
+        return new SecretReference(providerId, providerName, secretName, effectiveProviderName + "." + groupName + "." + secretName);
     }
 
-    private String getGroupName(final String secretName) {
-        if (secretName.equals(SECRET_1_NAME) || secretName.equals(SECRET_2_NAME)) {
+    private String getProviderIdFromName(final String providerName) {
+        if (PROVIDER_1_NAME.equals(providerName)) {
+            return PROVIDER_1_ID;
+        } else if (PROVIDER_2_NAME.equals(providerName)) {
+            return PROVIDER_2_ID;
+        }
+        return null;
+    }
+
+    private String getProviderNameFromId(final String providerId) {
+        if (PROVIDER_1_ID.equals(providerId)) {
+            return PROVIDER_1_NAME;
+        } else if (PROVIDER_2_ID.equals(providerId)) {
+            return PROVIDER_2_NAME;
+        }
+        return "Unknown Provider";
+    }
+
+    private String getGroupNameForProvider(final String providerId) {
+        if (PROVIDER_1_ID.equals(providerId)) {
             return GROUP_1_NAME;
         }
-
         return GROUP_2_NAME;
     }
 
