@@ -39,6 +39,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ScheduledState;
@@ -1177,6 +1178,7 @@ public class StandardConnectorNode implements ConnectorNode {
             final ConnectorValidationContext validationContext = createValidationContext(activeFlowContext);
 
             final List<ValidationResult> allResults = new ArrayList<>();
+            validateManagedFlowComponents(allResults);
             validatePropertyReferences(allResults);
 
             if (allResults.isEmpty()) {
@@ -1215,6 +1217,47 @@ public class StandardConnectorNode implements ConnectorNode {
         }
     }
 
+
+    private void validateManagedFlowComponents(final List<ValidationResult> results) {
+        final ProcessGroup managedProcessGroup = activeFlowContext.getManagedProcessGroup();
+
+        // Check for any missing / ghosted Processors
+        final Set<String> missingProcessors = new HashSet<>();
+        for (final ProcessorNode processor : managedProcessGroup.findAllProcessors()) {
+            if (processor.isExtensionMissing()) {
+                missingProcessors.add(getSimpleClassName(processor.getCanonicalClassName()) + " from NAR " + processor.getBundleCoordinate());
+            }
+        }
+
+        if (!missingProcessors.isEmpty()) {
+            results.add(new ValidationResult.Builder()
+                .subject("Missing Processors")
+                .valid(false)
+                .explanation("The following processors are missing: " + missingProcessors)
+                .build());
+        }
+
+        // Check for any missing / ghosted Controller Services
+        final Set<String> missingControllerServices = new HashSet<>();
+        for (final ControllerServiceNode controllerService : managedProcessGroup.findAllControllerServices()) {
+            if (controllerService.isExtensionMissing()) {
+                missingControllerServices.add(getSimpleClassName(controllerService.getCanonicalClassName()) + " from NAR " + controllerService.getBundleCoordinate());
+            }
+        }
+
+        if (!missingControllerServices.isEmpty()) {
+            results.add(new ValidationResult.Builder()
+                .subject("Missing Controller Services")
+                .valid(false)
+                .explanation("The following controller services are missing: " + missingControllerServices)
+                .build());
+        }
+    }
+
+    private static String getSimpleClassName(final String canonicalClassName) {
+        final int lastDot = canonicalClassName.lastIndexOf('.');
+        return lastDot < 0 ? canonicalClassName : canonicalClassName.substring(lastDot + 1);
+    }
 
     private void validatePropertyReferences(final List<ValidationResult> allResults) {
         final List<ConfigurationStep> configurationSteps = getConnector().getConfigurationSteps();
