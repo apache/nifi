@@ -30,7 +30,7 @@
     </modules>
 
     <properties>
-        <iotdb.sdk.version>2.0.5</iotdb.sdk.version>
+        <iotdb.sdk.version>2.0.6</iotdb.sdk.version>
     </properties>
 </project>
 
