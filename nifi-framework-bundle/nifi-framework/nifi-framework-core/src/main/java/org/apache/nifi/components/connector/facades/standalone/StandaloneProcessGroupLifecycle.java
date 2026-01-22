@@ -263,10 +263,10 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
 
         final CompletableFuture<Void> stopProcessorsFuture = stopProcessors();
 
-        return stopProcessorsFuture.thenCompose(ignored -> stopChildren())
+        return stopProcessorsFuture.thenCompose(voidValue -> stopChildren())
             .thenRun(this::stopPorts)
-            .thenCompose(ignored -> stopRemoteProcessGroups())
-            .thenRun(() -> disableControllerServices(ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS));
+            .thenCompose(voidValue -> stopRemoteProcessGroups())
+            .thenCompose(voidValue -> disableControllerServices(ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS));
     }
 
     private CompletableFuture<Void> stopChildren() {

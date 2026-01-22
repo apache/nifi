@@ -30,16 +30,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
 public class StandardConnectorRepository implements ConnectorRepository {
     private static final Logger logger = LoggerFactory.getLogger(StandardConnectorRepository.class);
 
-    private final Map<String, ConnectorNode> connectors = new HashMap<>();
+    private final Map<String, ConnectorNode> connectors = new ConcurrentHashMap<>();
     private final FlowEngine lifecycleExecutor = new FlowEngine(8, "NiFi Connector Lifecycle");
 
     private volatile ExtensionManager extensionManager;
@@ -56,7 +56,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
-    public synchronized void addConnector(final ConnectorNode connector) {
+    public void addConnector(final ConnectorNode connector) {
         connectors.put(connector.getIdentifier(), connector);
     }
 

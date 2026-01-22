@@ -371,33 +371,38 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private void start(final FlowEngine scheduler, final CompletableFuture<Void> startCompleteFuture) {
-        verifyCanStart();
+        try {
+            verifyCanStart();
 
-        stateTransition.setDesiredState(ConnectorState.RUNNING);
-        final ConnectorState currentState = getCurrentState();
+            stateTransition.setDesiredState(ConnectorState.RUNNING);
+            final ConnectorState currentState = getCurrentState();
 
-        switch (currentState) {
-            case STARTING -> {
-                logger.debug("{} is already starting; adding future to pending start futures", this);
-                stateTransition.addPendingStartFuture(startCompleteFuture);
+            switch (currentState) {
+                case STARTING -> {
+                    logger.debug("{} is already starting; adding future to pending start futures", this);
+                    stateTransition.addPendingStartFuture(startCompleteFuture);
+                }
+                case RUNNING -> {
+                    logger.debug("{} is already {}; will not attempt to start", this, currentState);
+                    startCompleteFuture.complete(null);
+                }
+                case STOPPING -> {
+                    // We have set the Desired State to RUNNING so when the Connector fully stops, it will be started again automatically
+                    logger.info("{} is currently stopping so will not trigger Connector to start until it has fully stopped", this);
+                    stateTransition.addPendingStartFuture(startCompleteFuture);
+                }
+                case STOPPED, PREPARING_FOR_UPDATE, UPDATED -> {
+                    stateTransition.setCurrentState(ConnectorState.STARTING);
+                    scheduler.schedule(() -> startComponent(scheduler, startCompleteFuture), 0, TimeUnit.SECONDS);
+                }
+                default -> {
+                    logger.warn("{} is in state {} and cannot be started", this, currentState);
+                    stateTransition.addPendingStartFuture(startCompleteFuture);
+                }
             }
-            case RUNNING -> {
-                logger.debug("{} is already {}; will not attempt to start", this, currentState);
-                startCompleteFuture.complete(null);
-            }
-            case STOPPING -> {
-                // We have set the Desired State to RUNNING so when the Connector fully stops, it will be started again automatically
-                logger.info("{} is currently stopping so will not trigger Connector to start until it has fully stopped", this);
-                stateTransition.addPendingStartFuture(startCompleteFuture);
-            }
-            case STOPPED, PREPARING_FOR_UPDATE, UPDATED -> {
-                stateTransition.setCurrentState(ConnectorState.STARTING);
-                scheduler.schedule(() -> startComponent(scheduler, startCompleteFuture), 0, TimeUnit.SECONDS);
-            }
-            default -> {
-                logger.warn("{} is in state {} and cannot be started", this, currentState);
-                stateTransition.addPendingStartFuture(startCompleteFuture);
-            }
+        } catch (final Exception e) {
+            logger.error("Failed to start {}", this, e);
+            startCompleteFuture.completeExceptionally(e);
         }
     }
 

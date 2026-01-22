@@ -85,7 +85,7 @@ public class StandardConnectorPropertyValue implements ConnectorPropertyValue {
             return Collections.emptyList();
         }
 
-        final String[] splits = rawValue.split(":");
+        final String[] splits = rawValue.split(",");
         final List<String> values = new ArrayList<>(splits.length);
         for (final String split : splits) {
             values.add(split.trim());
