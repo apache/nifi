@@ -154,7 +154,5 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
                 .anyMatch(a -> uploadedAssetId.equals(a.getAsset().getId()));
 
         assertTrue(assetStillPresent);
-
-        connectorClient.deleteConnector(connector);
     }
 }

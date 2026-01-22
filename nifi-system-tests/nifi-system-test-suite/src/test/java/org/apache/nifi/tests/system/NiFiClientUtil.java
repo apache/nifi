@@ -1469,6 +1469,14 @@ public class NiFiClientUtil {
         }
     }
 
+    public void deleteConnectors() throws NiFiClientException, IOException {
+        final ConnectorsEntity connectors = nifiClient.getFlowClient().getConnectors();
+        for (final ConnectorEntity connector : connectors.getConnectors()) {
+            connector.setDisconnectedNodeAcknowledged(true);
+            nifiClient.getConnectorClient().deleteConnector(connector);
+        }
+    }
+
     public void waitForControllerServiceRunStatus(final String id, final String requestedRunStatus) throws NiFiClientException, IOException {
         final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(2L);
         logger.info("Waiting for Controller Service {} to have a Run Status of {}", id, requestedRunStatus);

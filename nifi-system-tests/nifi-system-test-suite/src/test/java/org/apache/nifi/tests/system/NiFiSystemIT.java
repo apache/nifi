@@ -268,6 +268,7 @@ public abstract class NiFiSystemIT implements NiFiInstanceProvider {
         getClientUtil().deleteFlowAnalysisRules();
         getClientUtil().deleteParameterContexts();
         getClientUtil().deleteParameterProviders();
+        getClientUtil().deleteConnectors();
 
         logger.info("Finished destroyFlow");
     }
