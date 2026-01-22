@@ -452,7 +452,7 @@ public class PutCassandraRecordTest {
         recordReader.addRecord("Jane Doe", 47, 1L);
         recordReader.addRecord("Sally Doe", 47, 1L);
 
-        HashMap<String, String> attributes = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("cql.update.method", "Increment");
         attributes.put("cql.update.keys", "");
         testRunner.enqueue("", attributes);
@@ -482,7 +482,7 @@ public class PutCassandraRecordTest {
         recordReader.addRecord("Jane Doe", 47, 1L);
         recordReader.addRecord("Sally Doe", 47, 1L);
 
-        HashMap<String, String> attributes = new HashMap<>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("cql.update.method", ""); // empty attribute
 
         testRunner.enqueue("", attributes);

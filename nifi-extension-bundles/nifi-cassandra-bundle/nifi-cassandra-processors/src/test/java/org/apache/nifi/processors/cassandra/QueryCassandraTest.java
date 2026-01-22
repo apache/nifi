@@ -642,6 +642,7 @@ public class QueryCassandraTest {
             }
         }
 
+        @Override
         public void setExceptionToThrow(Exception e) {
             this.exceptionToThrow = e;
         }

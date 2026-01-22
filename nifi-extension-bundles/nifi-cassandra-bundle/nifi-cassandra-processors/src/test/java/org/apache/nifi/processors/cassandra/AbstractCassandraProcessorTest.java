@@ -312,6 +312,7 @@ public class AbstractCassandraProcessorTest {
         }
 
         @OnEnabled
+        @Override
         public void onEnabled(final ConfigurationContext context) {
             // Logic for initializing the mock if necessary
         }

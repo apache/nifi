@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.service;
 
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
@@ -28,11 +29,11 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.cassandra.CassandraSessionProviderService;
+import org.apache.nifi.cassandra.CompressionType;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -52,6 +53,20 @@ import javax.net.ssl.SSLContext;
 public class CassandraSessionProvider extends AbstractControllerService implements CassandraSessionProviderService {
 
     public static final int DEFAULT_CASSANDRA_PORT = 9042;
+
+    private static final String[] CONSISTENCY_LEVELS = {
+            ConsistencyLevel.ANY.name(),
+            ConsistencyLevel.ONE.name(),
+            ConsistencyLevel.TWO.name(),
+            ConsistencyLevel.THREE.name(),
+            ConsistencyLevel.QUORUM.name(),
+            ConsistencyLevel.ALL.name(),
+            ConsistencyLevel.LOCAL_ONE.name(),
+            ConsistencyLevel.LOCAL_QUORUM.name(),
+            ConsistencyLevel.EACH_QUORUM.name(),
+            ConsistencyLevel.SERIAL.name(),
+            ConsistencyLevel.LOCAL_SERIAL.name()
+    };
 
     // Common descriptors
     public static final PropertyDescriptor CONTACT_POINTS = new PropertyDescriptor.Builder()
@@ -110,31 +125,27 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .name("Consistency Level")
             .description("The strategy for how many replicas must respond before results are returned.")
             .required(true)
-            .allowableValues("ANY", "ONE", "TWO", "THREE", "QUORUM", "ALL",
-                    "LOCAL_ONE", "LOCAL_QUORUM", "EACH_QUORUM", "SERIAL", "LOCAL_SERIAL")
-            .defaultValue("QUORUM")
+            .allowableValues(CONSISTENCY_LEVELS)
+            .defaultValue(ConsistencyLevel.QUORUM.name())
             .build();
 
     static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
             .name("Compression Type")
-            .description("Enable compression at transport-level requests and responses")
+            .description("Enable compression at transport-level requests and responses. Snappy compression is not supported in Protocol V5.")
             .required(false)
-            .allowableValues("NONE", "LZ4", "SNAPPY")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("NONE")
+            .allowableValues(CompressionType.class)
+            .defaultValue(CompressionType.NONE.getValue())
             .build();
 
     static final PropertyDescriptor READ_TIMEOUT_MS = new PropertyDescriptor.Builder()
-        .name("read-timeout-ms")
-        .displayName("Read Timout (ms)")
+        .name("Read Timeout (ms)")
         .description("Read timeout (in milliseconds). 0 means no timeout. If no value is set, the underlying default will be used.")
         .required(false)
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .build();
 
     static final PropertyDescriptor CONNECT_TIMEOUT_MS = new PropertyDescriptor.Builder()
-        .name("connect-timeout-ms")
-        .displayName("Connect Timout (ms)")
+        .name("Connect Timeout (ms)")
         .description("Connection timeout (in milliseconds). 0 means no timeout. If no value is set, the underlying default will be used.")
         .required(false)
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
@@ -147,32 +158,25 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    private List<PropertyDescriptor> properties;
     private CqlSession cassandraSession;
-    private ConfigurationContext context;
 
-    @Override
-    public void init(final ControllerServiceInitializationContext context) {
-        List<PropertyDescriptor> props = new ArrayList<>();
-
-        props.add(CONTACT_POINTS);
-        props.add(CLIENT_AUTH);
-        props.add(CONSISTENCY_LEVEL);
-        props.add(COMPRESSION_TYPE);
-        props.add(KEYSPACE);
-        props.add(USERNAME);
-        props.add(PASSWORD);
-        props.add(PROP_SSL_CONTEXT_SERVICE);
-        props.add(READ_TIMEOUT_MS);
-        props.add(CONNECT_TIMEOUT_MS);
-        props.add(LOCAL_DATACENTER);
-
-        properties = props;
-    }
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            CONTACT_POINTS,
+            CLIENT_AUTH,
+            CONSISTENCY_LEVEL,
+            COMPRESSION_TYPE,
+            KEYSPACE,
+            USERNAME,
+            PASSWORD,
+            PROP_SSL_CONTEXT_SERVICE,
+            READ_TIMEOUT_MS,
+            CONNECT_TIMEOUT_MS,
+            LOCAL_DATACENTER
+    );
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return properties;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnEnabled
@@ -202,7 +206,6 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
     }
 
     void connectToCassandra(ConfigurationContext context) {
-        this.context = context;
         if (cassandraSession == null) {
             ComponentLog log = getLogger();
 
@@ -210,7 +213,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             final String keyspaceName = context.getProperty(KEYSPACE).getValue();
             final String username = context.getProperty(USERNAME).getValue();
             final String password = context.getProperty(PASSWORD).getValue();
-            final String compression = context.getProperty(COMPRESSION_TYPE).getValue();
+            final CompressionType compressionType = context.getProperty(COMPRESSION_TYPE).asAllowableValue(CompressionType.class);
 
             List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);
 
@@ -233,7 +236,9 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             String consistencyLevels = context.getProperty(CONSISTENCY_LEVEL)
                     .evaluateAttributeExpressions().getValue();
 
-            String driverCompression = "none";
+            String compressionValue = (compressionType != null)
+                    ? compressionType.getValue().toLowerCase()
+                    : CompressionType.NONE.getValue().toLowerCase();
 
             DriverConfigLoader loader = DriverConfigLoader.programmaticBuilder()
                     .withDuration(DefaultDriverOption.REQUEST_TIMEOUT,
@@ -241,7 +246,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
                     .withDuration(DefaultDriverOption.CONNECTION_INIT_QUERY_TIMEOUT,
                             connectTimeoutMs.map(Duration::ofMillis).orElse(Duration.ofSeconds(15)))
                     .withString(DefaultDriverOption.REQUEST_CONSISTENCY, consistencyLevels)
-                    .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, driverCompression)
+                    .withString(DefaultDriverOption.PROTOCOL_COMPRESSION, compressionValue)
                     .build();
 
             CqlSessionBuilder builder = CqlSession.builder()
@@ -264,7 +269,7 @@ public class CassandraSessionProvider extends AbstractControllerService implemen
             cassandraSession = builder.build();
 
             Metadata metadata = cassandraSession.getMetadata();
-            log.info("Connected to Cassandra session: {}", new Object[]{metadata.getClusterName()});
+            log.info("Connected to Cassandra session: {}", metadata.getClusterName());
         }
     }
 

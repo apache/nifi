@@ -24,6 +24,7 @@ import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -35,6 +36,7 @@ import org.testcontainers.cassandra.CassandraContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.net.InetSocketAddress;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -142,9 +144,8 @@ public class QueryCassandraIT {
         queryCassandraTestRunner.run();
         queryCassandraTestRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_SUCCESS, 1);
 
-        final var flowFiles = queryCassandraTestRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
-
-        final var resultFlowFile = flowFiles.get(0);
+        final List<MockFlowFile> flowFiles = queryCassandraTestRunner.getFlowFilesForRelationship(QueryCassandra.REL_SUCCESS);
+        final MockFlowFile resultFlowFile = flowFiles.get(0);
 
         resultFlowFile.assertAttributeEquals(QueryCassandra.RESULT_ROW_COUNT,
                 String.valueOf(LOAD_FLOW_FILE_SIZE * LOAD_FLOW_FILE_BATCH_SIZE));

@@ -65,11 +65,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -82,6 +79,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 
 @Tags({"cassandra", "cql", "select"})
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
@@ -163,8 +161,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .build();
 
     public static final PropertyDescriptor OUTPUT_BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("qdbt-output-batch-size")
-            .displayName("Output Batch Size")
+            .name("Output Batch Size")
             .description("The number of output FlowFiles to queue before committing the process session. When set to zero, the session will be committed when all result set rows "
                     + "have been processed and the output FlowFiles are ready for transfer to the downstream relationship. For large result sets, this can cause a large burst of FlowFiles "
                     + "to be transferred at the end of processor execution. If this property is set, then when the specified number of FlowFiles are ready for transfer, then the session will "
@@ -186,8 +183,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             .build();
 
     public static final PropertyDescriptor TIMESTAMP_FORMAT_PATTERN = new PropertyDescriptor.Builder()
-            .name("timestamp-format-pattern")
-            .displayName("Timestamp Format Pattern for JSON output")
+            .name("Timestamp Format Pattern for JSON output")
             .description("Pattern to use when converting timestamp fields to JSON. Note: the formatted timestamp will be in UTC timezone.")
             .required(true)
             .defaultValue("yyyy-MM-dd HH:mm:ssZ")
@@ -203,44 +199,38 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             })
             .build();
 
-    private static final List<PropertyDescriptor> propertyDescriptors;
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS =
+            Stream.concat(
+                    COMMON_PROPERTY_DESCRIPTORS.stream(),
+                    Stream.of(
+                            CQL_SELECT_QUERY,
+                            QUERY_TIMEOUT,
+                            FETCH_SIZE,
+                            MAX_ROWS_PER_FLOW_FILE,
+                            OUTPUT_BATCH_SIZE,
+                            OUTPUT_FORMAT,
+                            TIMESTAMP_FORMAT_PATTERN
+                    )
+            ).toList();
 
-    private static final Set<Relationship> relationships;
-
-    /*
-     * Will ensure that the list of property descriptors is build only once.
-     * Will also create a Set of relationships
-     */
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(CQL_SELECT_QUERY);
-        _propertyDescriptors.add(QUERY_TIMEOUT);
-        _propertyDescriptors.add(FETCH_SIZE);
-        _propertyDescriptors.add(MAX_ROWS_PER_FLOW_FILE);
-        _propertyDescriptors.add(OUTPUT_BATCH_SIZE);
-        _propertyDescriptors.add(OUTPUT_FORMAT);
-        _propertyDescriptors.add(TIMESTAMP_FORMAT_PATTERN);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
-
-        Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        _relationships.add(REL_RETRY);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_RETRY
+    );
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @OnScheduled
+    @Override
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
     }
@@ -432,14 +422,14 @@ public class QueryCassandra extends AbstractCassandraProcessor {
             }
         } catch (final ProcessException e) {
             if (context.hasIncomingConnection()) {
-                logger.error("Unable to execute CQL query {} due to {}; routing to failure", selectQuery, e);
+                logger.error("Unable to execute CQL query {}", selectQuery, e);
                 if (fileToProcess == null) {
                     fileToProcess = session.create();
                 }
                 fileToProcess = session.penalize(fileToProcess);
                 session.transfer(fileToProcess, REL_FAILURE);
             } else {
-                logger.error("Unable to execute CQL query {} due to {}", selectQuery, e);
+                logger.error("Unable to execute CQL query {}", selectQuery, e);
                 if (fileToProcess != null) {
                     session.remove(fileToProcess);
                 }
@@ -450,6 +440,7 @@ public class QueryCassandra extends AbstractCassandraProcessor {
     }
 
     @OnUnscheduled
+    @Override
     public void stop(ProcessContext context) {
         super.stop(context);
     }

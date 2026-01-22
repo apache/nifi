@@ -61,10 +61,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,6 +74,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 
 @SupportsBatching
@@ -104,7 +102,6 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
 
     public static final PropertyDescriptor STATEMENT_TIMEOUT = new PropertyDescriptor.Builder()
             .name("Max Wait Time")
-            .displayName("Max Wait Time")
             .description("The maximum amount of time allowed for a running CQL select query. Must be of format "
                     + "<duration> <TimeUnit> where <duration> is a non-negative integer and TimeUnit is a supported "
                     + "Time Unit, such as: nanos, millis, secs, mins, hrs, days. A value of zero means there is no limit. ")
@@ -115,18 +112,13 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
             .build();
 
     public static final PropertyDescriptor STATEMENT_CACHE_SIZE = new PropertyDescriptor.Builder()
-            .name("putcql-stmt-cache-size")
-            .displayName("Statement Cache Size")
+            .name("Statement Cache Size")
             .description("The maximum number of CQL Prepared Statements to cache. This can improve performance if many incoming flow files have the same CQL statement "
                     + "with different values for the parameters. If this property is set to zero, the cache is effectively disabled.")
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .build();
-
-    private static final List<PropertyDescriptor> propertyDescriptors;
-
-    private static final Set<Relationship> relationships;
 
     private static final Pattern CQL_TYPE_ATTRIBUTE_PATTERN = Pattern.compile("cql\\.args\\.(\\d+)\\.type");
 
@@ -139,35 +131,33 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
     @VisibleForTesting
     ConcurrentMap<String, PreparedStatement> statementCache;
 
-    /*
-     * Will ensure that the list of property descriptors is build only once.
-     * Will also create a Set of relationships
-     */
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(descriptors);
-        _propertyDescriptors.add(STATEMENT_TIMEOUT);
-        _propertyDescriptors.add(STATEMENT_CACHE_SIZE);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS =
+            Stream.concat(
+                    COMMON_PROPERTY_DESCRIPTORS.stream(),
+                    Stream.of(
+                            STATEMENT_TIMEOUT,
+                            STATEMENT_CACHE_SIZE
+                    )
+            ).toList();
 
-        Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        _relationships.add(REL_RETRY);
-        relationships = Collections.unmodifiableSet(_relationships);
-    }
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE,
+            REL_RETRY
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @OnScheduled
+    @Override
     public void onScheduled(final ProcessContext context) {
         super.onScheduled(context);
         final int statementCacheSize = context.getProperty(STATEMENT_CACHE_SIZE).asInteger();
@@ -250,8 +240,8 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
                 throw new ProcessException(e);
             }
 
-        } catch (AllNodesFailedException  ex) {
-            logger.error("All Cassandra nodes failed while executing the query");
+        } catch (AllNodesFailedException ex) {
+            logger.error("All Cassandra nodes failed while executing the query", ex);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_RETRY);
         } catch (QueryExecutionException qee) {
@@ -259,12 +249,13 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_RETRY);
         } catch (QueryValidationException qve) {
-            logger.error("The CQL statement {} is invalid; routing {} to failure", cql, flowFile, qve);
+            logger.error("The CQL statement is invalid; routing flowFile {} to failure", flowFile);
+            logger.debug("Invalid CQL statement: {}", cql, qve);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
-
         } catch (ProcessException e) {
-            logger.error("Unable to execute CQL statement {} for {}", cql, flowFile, e);
+            logger.error("Unable to execute CQL statement for flowFile {}", flowFile);
+            logger.debug("Failed CQL statement: {}", cql, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
@@ -454,6 +445,7 @@ public class PutCassandraQL extends AbstractCassandraProcessor {
     }
 
     @OnStopped
+    @Override
     public void stop(final ProcessContext context) {
         super.stop(context);
 

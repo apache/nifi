@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.cassandra;
 
 import com.datastax.oss.driver.api.core.AllNodesFailedException;
+import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import com.datastax.oss.driver.api.core.auth.AuthenticationException;
@@ -35,6 +36,7 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.cassandra.CassandraSessionProviderService;
+import org.apache.nifi.cassandra.CompressionType;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -72,10 +74,23 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
     public static final int DEFAULT_CASSANDRA_PORT = 9042;
 
+    private static final String[] CONSISTENCY_LEVELS = {
+            ConsistencyLevel.ANY.name(),
+            ConsistencyLevel.ONE.name(),
+            ConsistencyLevel.TWO.name(),
+            ConsistencyLevel.THREE.name(),
+            ConsistencyLevel.QUORUM.name(),
+            ConsistencyLevel.ALL.name(),
+            ConsistencyLevel.LOCAL_ONE.name(),
+            ConsistencyLevel.LOCAL_QUORUM.name(),
+            ConsistencyLevel.EACH_QUORUM.name(),
+            ConsistencyLevel.SERIAL.name(),
+            ConsistencyLevel.LOCAL_SERIAL.name()
+    };
+
     // Common descriptors
     static final PropertyDescriptor CONNECTION_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
-            .name("cassandra-connection-provider")
-            .displayName("Cassandra Connection Provider")
+            .name("Cassandra Connection Provider")
             .description("Specifies the Cassandra connection providing controller service to be used to connect to Cassandra cluster.")
             .required(false)
             .identifiesControllerService(CassandraSessionProviderService.class)
@@ -137,18 +152,16 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .name("Consistency Level")
             .description("The strategy for how many replicas must respond before results are returned.")
             .required(false)
-            .allowableValues("ANY", "ONE", "TWO", "THREE", "QUORUM", "ALL",
-                    "LOCAL_ONE", "LOCAL_QUORUM", "EACH_QUORUM", "SERIAL", "LOCAL_SERIAL")
-            .defaultValue("ONE")
+            .allowableValues(CONSISTENCY_LEVELS)
+            .defaultValue(ConsistencyLevel.ONE.name())
             .build();
 
     static final PropertyDescriptor COMPRESSION_TYPE = new PropertyDescriptor.Builder()
             .name("Compression Type")
-            .description("Enable compression at transport-level requests and responses")
+            .description("Enable compression at transport-level requests and responses. Snappy compression is not supported in Protocol V5.")
             .required(false)
-            .allowableValues("NONE", "LZ4", "SNAPPY")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .defaultValue("NONE")
+            .allowableValues(CompressionType.class)
+            .defaultValue(CompressionType.NONE.getValue())
             .build();
 
     static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -177,25 +190,24 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             .description("A FlowFile is transferred to this relationship if the operation failed.")
             .build();
 
-    static final Relationship REL_RETRY = new Relationship.Builder().name("retry")
+    static final Relationship REL_RETRY = new Relationship.Builder()
+            .name("retry")
             .description("A FlowFile is transferred to this relationship if the operation cannot be completed but attempting "
                     + "it again may succeed.")
             .build();
 
-    protected static List<PropertyDescriptor> descriptors = new ArrayList<>();
-
-    static {
-        descriptors.add(CONNECTION_PROVIDER_SERVICE);
-        descriptors.add(CONTACT_POINTS);
-        descriptors.add(KEYSPACE);
-        descriptors.add(PROP_SSL_CONTEXT_SERVICE);
-        descriptors.add(CLIENT_AUTH);
-        descriptors.add(USERNAME);
-        descriptors.add(PASSWORD);
-        descriptors.add(CONSISTENCY_LEVEL);
-        descriptors.add(COMPRESSION_TYPE);
-        descriptors.add(CHARSET);
-    }
+    protected static final List<PropertyDescriptor> COMMON_PROPERTY_DESCRIPTORS = List.of(
+            CONNECTION_PROVIDER_SERVICE,
+            CONTACT_POINTS,
+            KEYSPACE,
+            PROP_SSL_CONTEXT_SERVICE,
+            CLIENT_AUTH,
+            USERNAME,
+            PASSWORD,
+            CONSISTENCY_LEVEL,
+            COMPRESSION_TYPE,
+            CHARSET
+    );
 
     protected final AtomicReference<CqlSession> cassandraSession = new AtomicReference<>(null);
 
@@ -257,7 +269,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             final String keyspace = context.getProperty(KEYSPACE).getValue();
             final String username = context.getProperty(USERNAME).getValue();
             final String password = context.getProperty(PASSWORD).getValue();
-            final String compressionType = context.getProperty(COMPRESSION_TYPE).getValue();
+            final CompressionType compressionType = context.getProperty(COMPRESSION_TYPE).asAllowableValue(CompressionType.class);
 
             List<InetSocketAddress> contactPoints = getContactPoints(contactPointList);
 
@@ -271,10 +283,10 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
 
             ProgrammaticDriverConfigLoaderBuilder configBuilder = DriverConfigLoader.programmaticBuilder();
 
-            if (compressionType != null && !compressionType.trim().isEmpty()) {
+            if (compressionType != null && compressionType != CompressionType.NONE) {
                 configBuilder.withString(
                         DefaultDriverOption.PROTOCOL_COMPRESSION,
-                        compressionType.trim().toLowerCase()
+                        compressionType.name().toLowerCase()
                 );
             }
 
@@ -301,7 +313,7 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
             CqlSession session = builder.build();
             cassandraSession.set(session);
 
-            log.info("Connected to Cassandra cluster: {}", new Object[]{session.getMetadata().getClusterName()});
+            log.info("Connected to Cassandra cluster: {}", session.getMetadata().getClusterName());
         }
     }
 
@@ -383,41 +395,31 @@ public abstract class AbstractCassandraProcessor extends AbstractProcessor {
     static Class<?> getJavaClassForCassandraType(DataType type) {
         if (type.equals(DataTypes.ASCII) || type.equals(DataTypes.TEXT)) {
             return String.class;
-        }
-        if (type.equals(DataTypes.INT)) {
+        } else if (type.equals(DataTypes.INT)) {
             return Integer.class;
-        }
-        if (type.equals(DataTypes.BIGINT) || type.equals(DataTypes.COUNTER)) {
+        } else if (type.equals(DataTypes.BIGINT) || type.equals(DataTypes.COUNTER)) {
             return Long.class;
-        }
-        if (type.equals(DataTypes.BOOLEAN)) {
+        } else if (type.equals(DataTypes.BOOLEAN)) {
             return Boolean.class;
-        }
-        if (type.equals(DataTypes.FLOAT)) {
+        } else if (type.equals(DataTypes.FLOAT)) {
             return Float.class;
-        }
-        if (type.equals(DataTypes.DOUBLE)) {
+        } else if (type.equals(DataTypes.DOUBLE)) {
             return Double.class;
-        }
-        if (type.equals(DataTypes.VARINT) || type.equals(DataTypes.DECIMAL)) {
+        } else if (type.equals(DataTypes.VARINT) || type.equals(DataTypes.DECIMAL)) {
             return String.class;
-        }
-        if (type.equals(DataTypes.UUID) || type.equals(DataTypes.TIMEUUID)) {
+        } else if (type.equals(DataTypes.UUID) || type.equals(DataTypes.TIMEUUID)) {
             return java.util.UUID.class;
-        }
-        if (type.equals(DataTypes.TIMESTAMP)) {
+        } else if (type.equals(DataTypes.TIMESTAMP)) {
             return java.time.Instant.class;
-        }
-        if (type.equals(DataTypes.DATE)) {
+        } else if (type.equals(DataTypes.DATE)) {
             return java.time.LocalDate.class;
-        }
-        if (type.equals(DataTypes.TIME)) {
+        } else if (type.equals(DataTypes.TIME)) {
             return Long.class;
-        }
-        if (type.equals(DataTypes.BLOB)) {
+        } else if (type.equals(DataTypes.BLOB)) {
             return java.nio.ByteBuffer.class;
+        } else {
+            return Object.class;
         }
-        return Object.class;
     }
 
     /**

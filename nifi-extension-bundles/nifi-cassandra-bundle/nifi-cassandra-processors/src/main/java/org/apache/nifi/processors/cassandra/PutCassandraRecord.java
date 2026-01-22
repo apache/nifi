@@ -58,16 +58,12 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.util.StopWatch;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +71,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.lang.String.format;
 
@@ -126,8 +123,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
     static final String BATCH_STATEMENT_TYPE_ATTRIBUTE = "cql.batch.statement.type";
 
     static final PropertyDescriptor RECORD_READER_FACTORY = new PropertyDescriptor.Builder()
-            .name("put-cassandra-record-reader")
-            .displayName("Record Reader")
+            .name("Record Reader")
             .description("Specifies the type of Record Reader controller service to use for parsing the incoming data " +
                     "and determining the schema")
             .identifiesControllerService(RecordReaderFactory.class)
@@ -135,8 +131,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .build();
 
     static final PropertyDescriptor STATEMENT_TYPE = new PropertyDescriptor.Builder()
-            .name("put-cassandra-record-statement-type")
-            .displayName("Statement Type")
+            .name("Statement Type")
             .description("Specifies the type of CQL Statement to generate.")
             .required(true)
             .defaultValue(INSERT_TYPE.getValue())
@@ -144,8 +139,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .build();
 
     static final PropertyDescriptor UPDATE_METHOD = new PropertyDescriptor.Builder()
-            .name("put-cassandra-record-update-method")
-            .displayName("Update Method")
+            .name("Update Method")
             .description("Specifies the method to use to SET the values. This property is used if the Statement Type is " +
                     "UPDATE and ignored otherwise.")
             .required(false)
@@ -154,8 +148,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .build();
 
     static final PropertyDescriptor UPDATE_KEYS = new PropertyDescriptor.Builder()
-            .name("put-cassandra-record-update-keys")
-            .displayName("Update Keys")
+            .name("Update Keys")
             .description("A comma-separated list of column names that uniquely identifies a row in the database for UPDATE statements. "
                     + "If the Statement Type is UPDATE and this property is not set, the conversion to CQL will fail. "
                     + "This property is ignored if the Statement Type is not UPDATE.")
@@ -165,8 +158,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .build();
 
     static final PropertyDescriptor TABLE = new PropertyDescriptor.Builder()
-            .name("put-cassandra-record-table")
-            .displayName("Table name")
+            .name("Table Name")
             .description("The name of the Cassandra table to which the records have to be written.")
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
@@ -174,17 +166,15 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .build();
 
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("put-cassandra-record-batch-size")
-            .displayName("Batch size")
-            .description("Specifies the number of 'Insert statements' to be grouped together to execute as a batch (BatchStatement)")
+            .name("Batch Size")
+            .description("Specifies the number of 'Insert statements' to be grouped together to execute as a batch (BatchStatement).")
             .defaultValue("100")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .required(true)
             .build();
 
     static final PropertyDescriptor BATCH_STATEMENT_TYPE = new PropertyDescriptor.Builder()
-            .name("put-cassandra-record-batch-statement-type")
-            .displayName("Batch Statement Type")
+            .name("Batch Statement Type")
             .description("Specifies the type of 'Batch Statement' to be used.")
             .allowableValues(LOGGED_TYPE, UNLOGGED_TYPE, COUNTER_TYPE, BATCH_STATEMENT_TYPE_USE_ATTR_TYPE)
             .defaultValue(LOGGED_TYPE.getValue())
@@ -197,22 +187,33 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
             .defaultValue(ConsistencyLevel.SERIAL.name())
             .build();
 
-    private static final List<PropertyDescriptor> propertyDescriptors = Collections.unmodifiableList(Arrays.asList(
-            CONNECTION_PROVIDER_SERVICE, CONTACT_POINTS, KEYSPACE, TABLE, STATEMENT_TYPE, UPDATE_KEYS, UPDATE_METHOD, CLIENT_AUTH, USERNAME, PASSWORD,
-            RECORD_READER_FACTORY, BATCH_SIZE, CONSISTENCY_LEVEL, BATCH_STATEMENT_TYPE, PROP_SSL_CONTEXT_SERVICE));
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS =
+            Stream.concat(
+                    COMMON_PROPERTY_DESCRIPTORS.stream(),
+                    Stream.of(
+                            TABLE,
+                            STATEMENT_TYPE,
+                            UPDATE_KEYS,
+                            UPDATE_METHOD,
+                            RECORD_READER_FACTORY,
+                            BATCH_SIZE,
+                            BATCH_STATEMENT_TYPE
+                    )
+            ).toList();
 
-    private static final Set<Relationship> relationships = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
-    private static final Logger log = LoggerFactory.getLogger(PutCassandraRecord.class);
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            REL_SUCCESS,
+            REL_FAILURE
+    );
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTY_DESCRIPTORS;
     }
 
     @Override
     public Set<Relationship> getRelationships() {
-        return relationships;
+        return RELATIONSHIPS;
     }
 
     @Override
@@ -586,6 +587,7 @@ public class PutCassandraRecord extends AbstractCassandraProcessor {
     }
 
     @OnUnscheduled
+    @Override
     public void stop(ProcessContext context) {
         super.stop(context);
     }
