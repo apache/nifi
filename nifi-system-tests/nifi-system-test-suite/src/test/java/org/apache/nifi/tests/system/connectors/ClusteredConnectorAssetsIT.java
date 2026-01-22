@@ -17,10 +17,13 @@
 
 package org.apache.nifi.tests.system.connectors;
 
+import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiInstanceFactory;
 import org.apache.nifi.toolkit.client.ConnectorClient;
 import org.apache.nifi.toolkit.client.NiFiClientException;
 import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.web.api.dto.AssetReferenceDTO;
+import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -28,6 +31,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -83,14 +88,14 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
 
         assertTrue(assetFound);
 
-        // Check that the asset exists in the connector-assets directory for each node
+        // Check that the asset exists in the connector_assets directory for each node
         final File node1Dir = getNiFiInstance().getNodeInstance(1).getInstanceDirectory();
-        final File node1AssetsDir = new File(node1Dir, "connector-assets");
+        final File node1AssetsDir = new File(node1Dir, "connector_assets");
         final File node1ConnectorDir = new File(node1AssetsDir, connectorId);
         assertTrue(node1ConnectorDir.exists());
 
         final File node2Dir = getNiFiInstance().getNodeInstance(2).getInstanceDirectory();
-        final File node2AssetsDir = new File(node2Dir, "connector-assets");
+        final File node2AssetsDir = new File(node2Dir, "connector_assets");
         final File node2ConnectorDir = new File(node2AssetsDir, connectorId);
         assertTrue(node2ConnectorDir.exists());
 
@@ -102,7 +107,19 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
         assertNotNull(node2AssetIdDirs);
         assertEquals(1, node2AssetIdDirs.length);
 
-        // Stop node 2 and delete its connector-assets directory
+        // Configure the connector's "Test Asset" property to reference the uploaded asset
+        final ConnectorValueReferenceDTO assetValueReference = new ConnectorValueReferenceDTO();
+        assetValueReference.setValueType("ASSET_REFERENCE");
+        assetValueReference.setAssetReferences(List.of(new AssetReferenceDTO(uploadedAssetId)));
+        getClientUtil().configureConnectorWithReferences(connectorId, "Asset Configuration", Map.of("Test Asset", assetValueReference));
+
+        // Apply the updates to the connector
+        getClientUtil().applyConnectorUpdate(connector);
+
+        // Start the connector before disconnecting node 2
+        getClientUtil().startConnector(connectorId);
+
+        // Stop node 2 and delete its connector_assets directory
         disconnectNode(2);
         getNiFiInstance().getNodeInstance(2).stop();
 
@@ -112,8 +129,11 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
 
         // Start node 2 again and wait for it to rejoin the cluster
         getNiFiInstance().getNodeInstance(2).start(true);
-        reconnectNode(2);
         waitForAllNodesConnected();
+
+        // Verify that the connector state is RUNNING after node 2 rejoins
+        getClientUtil().waitForConnectorState(connectorId, ConnectorState.RUNNING);
+        getClientUtil().waitForValidConnector(connectorId);
 
         // Verify node 2 connector assets directory is recreated and contains the expected asset
         assertTrue(node2AssetsDir.exists());
@@ -134,7 +154,5 @@ public class ClusteredConnectorAssetsIT extends ConnectorAssetsIT {
                 .anyMatch(a -> uploadedAssetId.equals(a.getAsset().getId()));
 
         assertTrue(assetStillPresent);
-
-        connectorClient.deleteConnector(connector);
     }
 }
