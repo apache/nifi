@@ -851,29 +851,38 @@ export class LineageComponent implements OnInit {
             })
             .each(function (this: any, d: any) {
                 const label: any = d3.select(this);
+                const lines: string[] = [];
+
                 if (d.eventType === 'CONTENT_MODIFIED' || d.eventType === 'ATTRIBUTES_MODIFIED') {
-                    const lines: string[] = [];
                     if (d.eventType === 'CONTENT_MODIFIED') {
                         lines.push('CONTENT');
                     } else {
                         lines.push('ATTRIBUTES');
                     }
                     lines.push('MODIFIED');
-
-                    // append each line
-                    lines.forEach((line) => {
-                        label
-                            .append('tspan')
-                            .attr('x', '0')
-                            .attr('dy', '1.2em')
-                            .text(function () {
-                                return line;
-                            });
-                    });
-                    label.attr('transform', 'translate(10,-14)');
                 } else {
-                    label.text(d.eventType).attr('x', 10).attr('y', 4);
+                    lines.push(d.eventType);
                 }
+
+                // add component type if available
+                if (d.componentType) {
+                    lines.push(d.componentType);
+                }
+
+                // append each line
+                lines.forEach((line) => {
+                    label
+                        .append('tspan')
+                        .attr('x', '0')
+                        .attr('dy', '1.2em')
+                        .text(function () {
+                            return line;
+                        });
+                });
+
+                // adjust vertical position based on number of lines
+                const yOffset = lines.length > 1 ? -7 * lines.length : -4;
+                label.attr('transform', `translate(10,${yOffset})`);
             });
     }
 
