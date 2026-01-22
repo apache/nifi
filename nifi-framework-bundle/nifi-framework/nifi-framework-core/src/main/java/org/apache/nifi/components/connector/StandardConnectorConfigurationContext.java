@@ -152,17 +152,18 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
         try {
             final StepConfiguration existingConfig = propertyConfigurations.get(stepName);
             final Map<String, ConnectorValueReference> existingProperties = existingConfig != null ? existingConfig.getPropertyValues() : new HashMap<>();
-            if (Objects.equals(existingProperties, configuration.getPropertyValues())) {
-                return ConfigurationUpdateResult.NO_CHANGES;
-            }
-
             final Map<String, ConnectorValueReference> mergedProperties = new HashMap<>(existingProperties);
             mergedProperties.putAll(configuration.getPropertyValues());
 
             final StepConfiguration resolvedConfig = resolvePropertyValues(mergedProperties);
 
-            this.propertyConfigurations.put(stepName, new StepConfiguration(new HashMap<>(mergedProperties)));
-            this.resolvedPropertyConfigurations.put(stepName, resolvedConfig);
+            final StepConfiguration updatedStepConfig = new StepConfiguration(new HashMap<>(mergedProperties));
+            final StepConfiguration existingStepConfig = this.propertyConfigurations.put(stepName, updatedStepConfig);
+            final StepConfiguration existingResolvedStepConfig = this.resolvedPropertyConfigurations.put(stepName, resolvedConfig);
+
+            if (Objects.equals(existingStepConfig, updatedStepConfig) && Objects.equals(existingResolvedStepConfig, resolvedConfig)) {
+                return ConfigurationUpdateResult.NO_CHANGES;
+            }
 
             return ConfigurationUpdateResult.CHANGES_MADE;
         } finally {
@@ -231,6 +232,16 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
             }
         }
 
+        // Try to find by Fully Qualified Name prefix
+        final String fqn = secretReference.getFullyQualifiedName();
+        if (fqn != null) {
+            for (final SecretProvider provider : providers) {
+                if (fqn.startsWith(provider.getProviderName() + ".")) {
+                    return provider;
+                }
+            }
+        }
+
         return null;
     }
 
@@ -238,16 +249,15 @@ public class StandardConnectorConfigurationContext implements MutableConnectorCo
     public ConfigurationUpdateResult replaceProperties(final String stepName, final StepConfiguration configuration) {
         writeLock.lock();
         try {
-            final StepConfiguration existingConfig = propertyConfigurations.get(stepName);
-            final Map<String, ConnectorValueReference> existingProperties = existingConfig != null ? existingConfig.getPropertyValues() : new HashMap<>();
-            if (Objects.equals(existingProperties, configuration.getPropertyValues())) {
-                return ConfigurationUpdateResult.NO_CHANGES;
-            }
-
             final StepConfiguration resolvedConfig = resolvePropertyValues(configuration.getPropertyValues());
 
-            this.propertyConfigurations.put(stepName, new StepConfiguration(new HashMap<>(configuration.getPropertyValues())));
-            this.resolvedPropertyConfigurations.put(stepName, resolvedConfig);
+            final StepConfiguration updatedStepConfig = new StepConfiguration(new HashMap<>(configuration.getPropertyValues()));
+            final StepConfiguration existingStepConfig = this.propertyConfigurations.put(stepName, updatedStepConfig);
+            final StepConfiguration existingResolvedStepConfig = this.resolvedPropertyConfigurations.put(stepName, resolvedConfig);
+
+            if (Objects.equals(existingStepConfig, updatedStepConfig) && Objects.equals(existingResolvedStepConfig, resolvedConfig)) {
+                return ConfigurationUpdateResult.NO_CHANGES;
+            }
 
             return ConfigurationUpdateResult.CHANGES_MADE;
         } finally {
