@@ -127,7 +127,7 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         getClientUtil().waitForInvalidConnector(connector.getId());
 
         // Verify that using a Secret Reference to 'other' (value "other") should fail validation
-        final ConnectorValueReferenceDTO otherSecretRef = getClientUtil().createSecretValueReference(paramProvider.getId(), "other", "Parameters.other");
+        final ConnectorValueReferenceDTO otherSecretRef = getClientUtil().createSecretValueReference(paramProvider.getId(), "other", "PropertiesParameterProvider.Parameters.other");
         final Map<String, ConnectorValueReferenceDTO> otherSecretProperties = Map.of("Secret Property", otherSecretRef);
         verificationResults = getClientUtil().verifyConnectorStepConfigWithReferences(connector.getId(), "Ignored Step", otherSecretProperties);
         assertTrue(verificationResults.stream().anyMatch(result -> Outcome.FAILED.name().equals(result.getOutcome())));
@@ -138,7 +138,7 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         getClientUtil().waitForInvalidConnector(connector.getId());
 
         // Verify that using an invalid reference should fail validation
-        final ConnectorValueReferenceDTO invalidRef = getClientUtil().createSecretValueReference(paramProvider.getId(), "nonexistent", "Parameters.nonexistent");
+        final ConnectorValueReferenceDTO invalidRef = getClientUtil().createSecretValueReference(paramProvider.getId(), "nonexistent", "PropertiesParameterProvider.Parameters.nonexistent");
         final Map<String, ConnectorValueReferenceDTO> invalidSecretProperties = Map.of("Secret Property", invalidRef);
         verificationResults = getClientUtil().verifyConnectorStepConfigWithReferences(connector.getId(), "Ignored Step", invalidSecretProperties);
         assertTrue(verificationResults.stream().anyMatch(result -> Outcome.FAILED.name().equals(result.getOutcome())));
@@ -149,7 +149,7 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         getClientUtil().waitForInvalidConnector(connector.getId());
 
         // Verify that using a Secret Reference to 'supersecret' (value "supersecret") should pass validation
-        final ConnectorValueReferenceDTO supersecretRef = getClientUtil().createSecretValueReference(paramProvider.getId(), "supersecret", "Parameters.supersecret");
+        final ConnectorValueReferenceDTO supersecretRef = getClientUtil().createSecretValueReference(paramProvider.getId(), "supersecret", "PropertiesParameterProvider.Parameters.supersecret");
         final Map<String, ConnectorValueReferenceDTO> supersecretProperties = Map.of("Secret Property", supersecretRef);
         verificationResults = getClientUtil().verifyConnectorStepConfigWithReferences(connector.getId(), "Ignored Step", supersecretProperties);
         assertTrue(verificationResults.stream().allMatch(result -> Outcome.SUCCESSFUL.name().equals(result.getOutcome())));
