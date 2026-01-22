@@ -124,7 +124,9 @@ public class ConnectorValidationContextBridge implements ValidationContext {
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor propertyDescriptor) {
-        return newPropertyValue(propertyDescriptor.getName());
+        final String rawValue = rawValues.get(propertyDescriptor.getName());
+        final String effectiveValue = rawValue == null ? propertyDescriptor.getDefaultValue() : rawValue;
+        return newPropertyValue(effectiveValue);
     }
 
     @Override
