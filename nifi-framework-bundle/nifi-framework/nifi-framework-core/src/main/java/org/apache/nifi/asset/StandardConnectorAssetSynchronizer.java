@@ -125,10 +125,8 @@ public class StandardConnectorAssetSynchronizer implements AssetSynchronizer {
             if (currentState == ConnectorState.RUNNING) {
                 logger.info("Restarting connector [{}] after asset synchronization", connector.getIdentifier());
                 try {
-                    final Future<Void> stopFuture = connectorRepository.stopConnector(connector);
-                    stopFuture.get();
-                    final Future<Void> startFuture = connectorRepository.startConnector(connector);
-                    startFuture.get();
+                    final Future<Void> restartFuture = connectorRepository.restartConnector(connector);
+                    restartFuture.get();
                     logger.info("Successfully restarted connector [{}] after asset synchronization", connector.getIdentifier());
                 } catch (final InterruptedException e) {
                     Thread.currentThread().interrupt();

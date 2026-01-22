@@ -35,7 +35,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class StandardConnectorRepository implements ConnectorRepository {
@@ -103,6 +105,33 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public Future<Void> stopConnector(final ConnectorNode connector) {
         return connector.stop(lifecycleExecutor);
+    }
+
+    @Override
+    public Future<Void> restartConnector(final ConnectorNode connector) {
+        final CompletableFuture<Void> restartCompleteFuture = new CompletableFuture<>();
+        restartConnector(connector, restartCompleteFuture);
+        return restartCompleteFuture;
+    }
+
+    private void restartConnector(final ConnectorNode connector, final CompletableFuture<Void> restartCompleteFuture) {
+        try {
+            final Future<Void> stopFuture = connector.stop(lifecycleExecutor);
+            stopFuture.get();
+
+            final Future<Void> startFuture = connector.start(lifecycleExecutor);
+            startFuture.get();
+
+            logger.info("Successfully restarted connector [{}]", connector.getIdentifier());
+            restartCompleteFuture.complete(null);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("Interrupted while restarting connector [{}]", connector.getIdentifier(), e);
+            restartCompleteFuture.completeExceptionally(e);
+        } catch (final ExecutionException e) {
+            logger.error("Failed to restart connector [{}]", connector.getIdentifier(), e.getCause());
+            restartCompleteFuture.completeExceptionally(e);
+        }
     }
 
     @Override
