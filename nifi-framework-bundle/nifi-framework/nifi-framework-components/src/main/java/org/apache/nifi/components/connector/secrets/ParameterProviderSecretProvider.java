@@ -66,7 +66,7 @@ public class ParameterProviderSecretProvider implements SecretProvider {
             .providerName(getProviderName())
             .groupName(groupName)
             .name(descriptor.getName())
-            .fullyQualifiedName(groupName + "." + descriptor.getName())
+            .fullyQualifiedName(getProviderName() + "." + groupName + "." + descriptor.getName())
             .description(descriptor.getDescription())
             .value(parameter.getValue())
             .authorizable(parameterProvider)
