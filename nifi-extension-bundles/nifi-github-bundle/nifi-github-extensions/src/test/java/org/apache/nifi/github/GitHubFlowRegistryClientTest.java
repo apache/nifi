@@ -30,6 +30,7 @@ import org.apache.nifi.registry.flow.RegisterAction;
 import org.apache.nifi.registry.flow.RegisteredFlow;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshot;
 import org.apache.nifi.registry.flow.RegisteredFlowSnapshotMetadata;
+import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.serialize.FlowSnapshotSerializer;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,8 +41,11 @@ import org.mockito.ArgumentCaptor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,8 +54,11 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -177,6 +184,82 @@ public class GitHubFlowRegistryClientTest {
         assertNotNull(resultBucket);
         assertEquals(incomingMetadata.getBucketIdentifier(), resultBucket.getIdentifier());
         assertEquals(incomingMetadata.getBucketIdentifier(), resultBucket.getName());
+    }
+
+    @Test
+    public void testRegisterFlowSnapshotVersionConflict() throws IOException, FlowRegistryException {
+        setupClientConfigurationContextWithDefaults();
+
+        final RegisteredFlow incomingFlow = createIncomingRegisteredFlow();
+
+        final RegisteredFlowSnapshotMetadata incomingMetadata = new RegisteredFlowSnapshotMetadata();
+        incomingMetadata.setBranch(incomingFlow.getBranch());
+        incomingMetadata.setBucketIdentifier(incomingFlow.getBucketIdentifier());
+        incomingMetadata.setFlowIdentifier(incomingFlow.getIdentifier());
+        incomingMetadata.setComments("Unit test");
+        incomingMetadata.setTimestamp(System.currentTimeMillis());
+        // Set the expected version to an old commit SHA - simulating user has an outdated version
+        incomingMetadata.setVersion("old-commit-sha-12345");
+
+        final RegisteredFlowSnapshot incomingSnapshot = new RegisteredFlowSnapshot();
+        incomingSnapshot.setFlow(incomingFlow);
+        incomingSnapshot.setSnapshotMetadata(incomingMetadata);
+        incomingSnapshot.setFlowContents(new VersionedProcessGroup());
+
+        // Mock repository to return a different (newer) commit SHA than what the user expects
+        final GitCommit newerCommit = new GitCommit("new-commit-sha-67890", "author", "message", Instant.now());
+        doReturn(List.of(newerCommit)).when(repositoryClient).getCommits(any(), any());
+
+        // Attempting to commit should throw a FlowRegistryException due to version conflict
+        final FlowRegistryException exception = assertThrows(FlowRegistryException.class, () ->
+                flowRegistryClient.registerFlowSnapshot(clientConfigurationContext, incomingSnapshot, RegisterAction.COMMIT));
+
+        assertTrue(exception.getMessage().contains("Version conflict detected"));
+        assertTrue(exception.getMessage().contains("old-commit-sha-12345"));
+        assertTrue(exception.getMessage().contains("new-commit-sha-67890"));
+        assertTrue(exception.getMessage().contains("Please check for a newer version and try again"));
+    }
+
+    @Test
+    public void testRegisterFlowSnapshotVersionConflictWithForceCommit() throws IOException, FlowRegistryException {
+        setupClientConfigurationContextWithDefaults();
+
+        final RegisteredFlow incomingFlow = createIncomingRegisteredFlow();
+
+        final RegisteredFlowSnapshotMetadata incomingMetadata = new RegisteredFlowSnapshotMetadata();
+        incomingMetadata.setBranch(incomingFlow.getBranch());
+        incomingMetadata.setBucketIdentifier(incomingFlow.getBucketIdentifier());
+        incomingMetadata.setFlowIdentifier(incomingFlow.getIdentifier());
+        incomingMetadata.setComments("Unit test with force commit");
+        incomingMetadata.setTimestamp(System.currentTimeMillis());
+        // Set the expected version to an old commit SHA - simulating user has an outdated version
+        incomingMetadata.setVersion("old-commit-sha-12345");
+
+        final RegisteredFlowSnapshot incomingSnapshot = new RegisteredFlowSnapshot();
+        incomingSnapshot.setFlow(incomingFlow);
+        incomingSnapshot.setSnapshotMetadata(incomingMetadata);
+        incomingSnapshot.setFlowContents(new VersionedProcessGroup());
+
+        // Mock repository to return a different (newer) commit SHA than what the user expects
+        final GitCommit newerCommit = new GitCommit("new-commit-sha-67890", "author", "message", Instant.now());
+        doReturn(List.of(newerCommit)).when(repositoryClient).getCommits(any(), any());
+
+        // Mock blob SHA at the expected commit for atomic operation
+        doReturn(Optional.of("blob-sha-at-expected-commit")).when(repositoryClient).getContentShaAtCommit(any(), any());
+
+        // Mock the content retrieval for the existing snapshot
+        doReturn(new ByteArrayInputStream(new byte[0])).when(repositoryClient).getContentFromBranch(any(), any());
+        when(flowSnapshotSerializer.deserialize(any(InputStream.class))).thenReturn(incomingSnapshot);
+        when(flowSnapshotSerializer.serialize(any(RegisteredFlowSnapshot.class))).thenReturn("serialized content");
+
+        final String commitSha = "commitSha";
+        when(repositoryClient.createContent(any(GitCreateContentRequest.class))).thenReturn(commitSha);
+
+        // With FORCE_COMMIT, the operation should succeed despite version mismatch
+        final RegisteredFlowSnapshot resultSnapshot = flowRegistryClient.registerFlowSnapshot(
+                clientConfigurationContext, incomingSnapshot, RegisterAction.FORCE_COMMIT);
+
+        assertNotNull(resultSnapshot);
     }
 
     @Test

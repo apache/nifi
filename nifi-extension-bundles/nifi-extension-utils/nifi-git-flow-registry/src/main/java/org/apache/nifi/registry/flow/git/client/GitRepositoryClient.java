@@ -115,6 +115,23 @@ public interface GitRepositoryClient {
     Optional<String> getContentSha(String path, String branch) throws IOException, FlowRegistryException;
 
     /**
+     * Retrieves the blob SHA of the file at the given path from a specific commit.
+     * This is used for atomic commit operations where we need the blob SHA at the
+     * user's expected version, not the current version.
+     *
+     * @param path the path of the file
+     * @param commitSha the commit SHA to get the blob SHA from
+     * @return the blob SHA of the content at the specified commit, or empty if not found
+     * @throws IOException if an I/O error occurs
+     * @throws FlowRegistryException if a non-I/O error occurs
+     */
+    default Optional<String> getContentShaAtCommit(String path, String commitSha) throws IOException, FlowRegistryException {
+        // Default implementation returns empty to maintain backward compatibility.
+        // Implementations should override this to support atomic commit operations.
+        return Optional.empty();
+    }
+
+    /**
      * Creates a file in the repository based on the given request.
      *
      * @param request the request
