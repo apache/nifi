@@ -413,7 +413,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     @Override
     public Optional<String> getContentShaAtCommit(final String path, final String commitSha) throws IOException, FlowRegistryException {
         final String resolvedPath = getResolvedPath(path);
-        logger.debug("Getting content SHA for [{}] at commit [{}] in repo [{}] ", resolvedPath, commitSha, repository.getName());
+        logger.debug("Getting content SHA for [{}] at commit [{}] in repository [{}]", resolvedPath, commitSha, repository.getName());
 
         return execute(() -> {
             try {
