@@ -22,14 +22,11 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorAssetRepository;
-import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.ConnectorValueType;
-import org.apache.nifi.components.connector.FrameworkFlowContext;
-import org.apache.nifi.components.connector.NamedStepConfiguration;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
 import org.apache.nifi.components.connector.StringLiteralValue;
@@ -51,7 +48,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -198,7 +194,6 @@ public class StandardConnectorDAO implements ConnectorDAO {
         final ConnectorNode connector = getConnector(id);
         try {
             getConnectorRepository().applyUpdate(connector, updateContext);
-            cleanUpAssets(connector);
         } catch (final Exception e) {
             throw new NiFiCoreException("Failed to apply connector update: " + e, e);
         }
@@ -207,8 +202,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
     @Override
     public void discardWorkingConfiguration(final String id) {
         final ConnectorNode connector = getConnector(id);
-        connector.discardWorkingConfiguration();
-        cleanUpAssets(connector);
+        getConnectorRepository().discardWorkingConfiguration(connector);
     }
 
     @Override
@@ -255,41 +249,6 @@ public class StandardConnectorDAO implements ConnectorDAO {
     public Optional<Asset> getAsset(final String assetId) {
         final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
         return assetRepository.getAsset(assetId);
-    }
-
-    private void cleanUpAssets(final ConnectorNode connector) {
-        final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();
-        final ConnectorConfiguration activeConfiguration = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
-
-        final Set<String> referencedAssetIds = new HashSet<>();
-        for (final NamedStepConfiguration namedStepConfiguration : activeConfiguration.getNamedStepConfigurations()) {
-            final StepConfiguration stepConfiguration = namedStepConfiguration.configuration();
-            final Map<String, ConnectorValueReference> stepPropertyValues = stepConfiguration.getPropertyValues();
-            if (stepPropertyValues == null) {
-                continue;
-            }
-            for (final ConnectorValueReference valueReference : stepPropertyValues.values()) {
-                if (valueReference instanceof AssetReference assetReference) {
-                    referencedAssetIds.addAll(assetReference.getAssetIdentifiers());
-                }
-            }
-        }
-
-        logger.debug("Found {} assets referenced for Connector [{}]", referencedAssetIds.size(), connector.getIdentifier());
-
-        final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
-        final List<Asset> allConnectorAssets = assetRepository.getAssets(connector.getIdentifier());
-        for (final Asset asset : allConnectorAssets) {
-            final String assetId = asset.getIdentifier();
-            if (!referencedAssetIds.contains(assetId)) {
-                try {
-                    logger.info("Deleting unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier());
-                    assetRepository.deleteAsset(assetId);
-                } catch (final Exception e) {
-                    logger.warn("Unable to delete unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier(), e);
-                }
-            }
-        }
     }
 }
 

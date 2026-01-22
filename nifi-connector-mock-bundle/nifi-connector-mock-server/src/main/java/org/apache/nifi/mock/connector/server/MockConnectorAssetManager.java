@@ -41,7 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MockConnectorAssetManager implements AssetManager {
 
     private static final String ASSET_STORAGE_LOCATION_PROPERTY = "directory";
-    private static final String DEFAULT_ASSET_STORAGE_LOCATION = "target/mock-connector-assets";
+    private static final String DEFAULT_ASSET_STORAGE_LOCATION = "target/mock_connector_assets";
 
     private final Map<String, Asset> assets = new ConcurrentHashMap<>();
     private volatile File assetStorageLocation;

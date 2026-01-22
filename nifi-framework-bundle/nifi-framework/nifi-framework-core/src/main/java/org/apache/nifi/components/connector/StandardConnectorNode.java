@@ -373,11 +373,12 @@ public class StandardConnectorNode implements ConnectorNode {
 
     private void start(final FlowEngine scheduler, final CompletableFuture<Void> startCompleteFuture) {
         try {
+            stateTransition.setDesiredState(ConnectorState.RUNNING);
+            activeFlowContext.getConfigurationContext().resolvePropertyValues();
+
             verifyCanStart();
 
-            stateTransition.setDesiredState(ConnectorState.RUNNING);
             final ConnectorState currentState = getCurrentState();
-
             switch (currentState) {
                 case STARTING -> {
                     logger.debug("{} is already starting; adding future to pending start futures", this);
@@ -862,6 +863,8 @@ public class StandardConnectorNode implements ConnectorNode {
                 .map(File::getAbsolutePath)
                 .ifPresent(resolvedAssetValues::add);
         }
+
+        logger.debug("Resolved {} to {} for {}", assetReference, resolvedAssetValues, this);
         return String.join(",", resolvedAssetValues);
     }
 

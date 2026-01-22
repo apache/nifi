@@ -83,6 +83,8 @@ public interface ConnectorRepository {
     void inheritConfiguration(ConnectorNode connector, List<VersionedConfigurationStep> activeFlowConfiguration,
         List<VersionedConfigurationStep> workingFlowConfiguration, Bundle flowContextBundle) throws FlowUpdateException;
 
+    void discardWorkingConfiguration(ConnectorNode connector);
+
     SecretsManager getSecretsManager();
 
     /**
