@@ -1665,6 +1665,7 @@ public class ControllerFacade implements Authorizable {
         dto.setId(String.valueOf(event.getEventId()));
         dto.setEventId(event.getEventId());
         dto.setEventTime(new Date(event.getEventTime()));
+        dto.setEventTimeMillis(event.getEventTime());
         dto.setEventType(event.getEventType().name());
         dto.setFlowFileUuid(event.getFlowFileUuid());
         dto.setFileSize(FormatUtils.formatDataSize(event.getFileSize()));

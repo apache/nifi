@@ -262,9 +262,7 @@ export class ProvenanceEventTable implements AfterViewInit {
             let retVal = 0;
             switch (sort.active) {
                 case 'eventTime':
-                    // event ideas are increasing, so we can use this simple number for sorting purposes
-                    // since we don't surface the timestamp as millis
-                    retVal = this.nifiCommon.compareNumber(a.eventId, b.eventId);
+                    retVal = this.nifiCommon.compareNumber(a.eventTimeMillis, b.eventTimeMillis);
                     break;
                 case 'eventType':
                     retVal = this.nifiCommon.compareString(a.eventType, b.eventType);
