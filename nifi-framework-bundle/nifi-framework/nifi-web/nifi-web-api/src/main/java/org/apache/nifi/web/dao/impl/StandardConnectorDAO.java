@@ -36,6 +36,7 @@ import org.apache.nifi.web.NiFiCoreException;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.AssetReferenceDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
 import org.apache.nifi.web.api.dto.PropertyGroupConfigurationDTO;
 import org.apache.nifi.web.dao.ConnectorDAO;
@@ -76,6 +77,14 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     private ConnectorAssetRepository getConnectorAssetRepository() {
         return flowController.getConnectorRepository().getAssetRepository();
+    }
+
+    @Override
+    public void verifyCreate(final ConnectorDTO connectorDTO) {
+        final String id = connectorDTO.getId();
+        if (id != null && hasConnector(id)) {
+            throw new IllegalStateException("A Connector already exists with ID %s".formatted(id));
+        }
     }
 
     @Override

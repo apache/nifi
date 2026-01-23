@@ -544,4 +544,89 @@ public class TestConnectorResource {
         entity.setProcessGroupFlow(flowDTO);
         return entity;
     }
+
+    @Test
+    public void testCreateConnectorWithValidClientSpecifiedUuid() {
+        final String uppercaseUuid = "A1B2C3D4-E5F6-7890-ABCD-EF1234567890";
+        final String normalizedUuid = uppercaseUuid.toLowerCase();
+
+        final ConnectorEntity requestEntity = createConnectorEntity();
+        requestEntity.getComponent().setId(uppercaseUuid);
+        requestEntity.getComponent().setType(CONNECTOR_TYPE);
+        requestEntity.getRevision().setVersion(0L);
+
+        final ConnectorEntity responseEntity = createConnectorEntity();
+        responseEntity.getComponent().setId(normalizedUuid);
+
+        when(serviceFacade.createConnector(any(Revision.class), any(ConnectorDTO.class))).thenReturn(responseEntity);
+
+        try (Response response = connectorResource.createConnector(requestEntity)) {
+            assertEquals(201, response.getStatus());
+            final ConnectorEntity entity = (ConnectorEntity) response.getEntity();
+            assertEquals(normalizedUuid, entity.getComponent().getId());
+        }
+
+        verify(serviceFacade).verifyCreateConnector(any(ConnectorDTO.class));
+        verify(serviceFacade).createConnector(any(Revision.class), any(ConnectorDTO.class));
+    }
+
+    @Test
+    public void testCreateConnectorWithInvalidClientSpecifiedUuid() {
+        final String invalidId = "not-a-valid-uuid";
+
+        final ConnectorEntity requestEntity = createConnectorEntity();
+        requestEntity.getComponent().setId(invalidId);
+        requestEntity.getComponent().setType(CONNECTOR_TYPE);
+        requestEntity.getRevision().setVersion(0L);
+
+        final IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+            connectorResource.createConnector(requestEntity));
+
+        assertEquals("ID [" + invalidId + "] is not a valid UUID.", exception.getMessage());
+
+        verify(serviceFacade, never()).createConnector(any(Revision.class), any(ConnectorDTO.class));
+    }
+
+    @Test
+    public void testCreateConnectorWithNullEntity() {
+        assertThrows(IllegalArgumentException.class, () ->
+            connectorResource.createConnector(null));
+
+        verify(serviceFacade, never()).createConnector(any(Revision.class), any(ConnectorDTO.class));
+    }
+
+    @Test
+    public void testCreateConnectorWithNullComponent() {
+        final ConnectorEntity requestEntity = new ConnectorEntity();
+        requestEntity.setComponent(null);
+
+        assertThrows(IllegalArgumentException.class, () ->
+            connectorResource.createConnector(requestEntity));
+
+        verify(serviceFacade, never()).createConnector(any(Revision.class), any(ConnectorDTO.class));
+    }
+
+    @Test
+    public void testCreateConnectorWithInvalidRevision() {
+        final ConnectorEntity requestEntity = createConnectorEntity();
+        requestEntity.getComponent().setType(CONNECTOR_TYPE);
+        requestEntity.getRevision().setVersion(1L);
+
+        assertThrows(IllegalArgumentException.class, () ->
+            connectorResource.createConnector(requestEntity));
+
+        verify(serviceFacade, never()).createConnector(any(Revision.class), any(ConnectorDTO.class));
+    }
+
+    @Test
+    public void testCreateConnectorWithBlankType() {
+        final ConnectorEntity requestEntity = createConnectorEntity();
+        requestEntity.getComponent().setType("");
+        requestEntity.getRevision().setVersion(0L);
+
+        assertThrows(IllegalArgumentException.class, () ->
+            connectorResource.createConnector(requestEntity));
+
+        verify(serviceFacade, never()).createConnector(any(Revision.class), any(ConnectorDTO.class));
+    }
 }
