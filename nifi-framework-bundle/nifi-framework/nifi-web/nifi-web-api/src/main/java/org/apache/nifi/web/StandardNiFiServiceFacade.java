@@ -801,7 +801,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public void verifyCreateConnector(final ConnectorDTO connectorDTO) {
-        // For now, no additional verification on DTO here; creation will fail in DAO if invalid
+        connectorDAO.verifyCreate(connectorDTO);
     }
 
     @Override

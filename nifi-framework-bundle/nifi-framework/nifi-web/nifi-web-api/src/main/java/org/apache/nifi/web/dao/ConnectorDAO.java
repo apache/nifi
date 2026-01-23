@@ -23,6 +23,7 @@ import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
+import org.apache.nifi.web.api.dto.ConnectorDTO;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,6 +31,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ConnectorDAO {
+
+    void verifyCreate(ConnectorDTO connectorDTO);
 
     boolean hasConnector(String id);
 
