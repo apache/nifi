@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
+import com.azure.core.credential.TokenCredential;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.models.LastEnqueuedEventProperties;
 import com.azure.messaging.eventhubs.models.PartitionContext;
@@ -31,6 +32,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.MockFlowFile;
@@ -40,6 +42,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 import java.net.Proxy;
 import java.time.Instant;
@@ -66,6 +69,7 @@ public class GetAzureEventHubTest {
     private static final String POLICY_KEY = "POLICY-KEY";
     private static final String CONSUMER_GROUP = "$Default";
     private static final String EVENT_HUB_OAUTH_SERVICE_ID = "get-event-hub-oauth";
+    private static final String EVENT_HUB_IDENTITY_SERVICE_ID = "get-event-hub-identity";
     private static final Instant ENQUEUED_TIME = Instant.now();
     private static final long SEQUENCE_NUMBER = 32;
     private static final String OFFSET = "64";
@@ -170,6 +174,13 @@ public class GetAzureEventHubTest {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, EVENT_HUB_OAUTH_SERVICE_ID);
     }
 
+    private void configureEventHubIdentityTokenProvider() throws InitializationException {
+        final MockIdentityFederationTokenProvider provider = new MockIdentityFederationTokenProvider();
+        testRunner.addControllerService(EVENT_HUB_IDENTITY_SERVICE_ID, provider);
+        testRunner.enableControllerService(provider);
+        testRunner.setProperty(GetAzureEventHub.EVENT_HUB_IDENTITY_FEDERATION_TOKEN_PROVIDER, EVENT_HUB_IDENTITY_SERVICE_ID);
+    }
+
     @Test
     public void testPropertiesManagedIdentity() {
         testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
@@ -189,6 +200,19 @@ public class GetAzureEventHubTest {
         testRunner.assertNotValid();
 
         configureEventHubOAuthTokenProvider();
+
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testEventHubIdentityFederationRequiresTokenProvider() throws InitializationException {
+        testRunner.setProperty(GetAzureEventHub.EVENT_HUB_NAME, EVENT_HUB_NAME);
+        testRunner.setProperty(GetAzureEventHub.NAMESPACE, EVENT_HUB_NAMESPACE);
+        testRunner.setProperty(GetAzureEventHub.AUTHENTICATION_STRATEGY, AzureEventHubAuthenticationStrategy.IDENTITY_FEDERATION.getValue());
+
+        testRunner.assertNotValid();
+
+        configureEventHubIdentityTokenProvider();
 
         testRunner.assertValid();
     }
@@ -319,6 +343,14 @@ public class GetAzureEventHubTest {
             accessToken.setAccessToken("access-token");
             accessToken.setExpiresIn(TimeUnit.MINUTES.toSeconds(5));
             return accessToken;
+        }
+    }
+
+    private static class MockIdentityFederationTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
+        @Override
+        public TokenCredential getCredentials() {
+            return tokenRequestContext -> Mono.just(
+                    new com.azure.core.credential.AccessToken("access-token", java.time.OffsetDateTime.now().plusMinutes(5)));
         }
     }
 }

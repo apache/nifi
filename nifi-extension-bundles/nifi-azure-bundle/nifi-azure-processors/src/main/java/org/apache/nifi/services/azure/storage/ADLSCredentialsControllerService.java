@@ -28,6 +28,7 @@ import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 
 import java.util.List;
 import java.util.Map;
@@ -88,6 +89,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
             SERVICE_PRINCIPAL_CLIENT_SECRET,
+            AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE
     );
 
@@ -129,6 +131,12 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
             config.removeProperty(propNameUseManagedIdentity);
         }
+
+        // Migrate ACCESS_TOKEN credential type to IDENTITY_FEDERATION
+        config.getPropertyValue(CREDENTIALS_TYPE.getName())
+                .filter("ACCESS_TOKEN"::equals)
+                .ifPresent(value -> config.setProperty(CREDENTIALS_TYPE.getName(), AzureStorageCredentialsType.IDENTITY_FEDERATION.getValue()));
+
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
@@ -151,6 +159,12 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_SECRET, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientSecret, attributes);
+
+        if (context.getProperty(CREDENTIALS_TYPE).asAllowableValue(AzureStorageCredentialsType.class) == AzureStorageCredentialsType.IDENTITY_FEDERATION) {
+            final AzureIdentityFederationTokenProvider identityTokenProvider = context.getProperty(AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER)
+                    .asControllerService(AzureIdentityFederationTokenProvider.class);
+            credentialsBuilder.setIdentityTokenProvider(identityTokenProvider);
+        }
 
         credentialsBuilder.setProxyOptions(AzureStorageUtils.getProxyOptions(context));
 

@@ -53,12 +53,15 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
     public static AllowableValue SERVICE_PRINCIPAL = new AllowableValue("service-principal",
             "Service Principal",
             "Azure Active Directory Service Principal with Client ID / Client Secret of a registered application");
+    public static AllowableValue IDENTITY_FEDERATION = new AllowableValue("identity-federation",
+            "Identity Federation",
+            "Uses workload identity federation to obtain access tokens for Azure clients via an external identity token.");
     public static final PropertyDescriptor CREDENTIAL_CONFIGURATION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Credential Configuration Strategy")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .sensitive(false)
-            .allowableValues(DEFAULT_CREDENTIAL, MANAGED_IDENTITY, SERVICE_PRINCIPAL)
+            .allowableValues(DEFAULT_CREDENTIAL, MANAGED_IDENTITY, SERVICE_PRINCIPAL, IDENTITY_FEDERATION)
             .defaultValue(DEFAULT_CREDENTIAL)
             .build();
 
@@ -103,12 +106,21 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             .dependsOn(CREDENTIAL_CONFIGURATION_STRATEGY, SERVICE_PRINCIPAL)
             .build();
 
+    public static final PropertyDescriptor IDENTITY_FEDERATION_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("Identity Federation Token Provider")
+            .description("Controller Service that provides Azure credentials via workload identity federation.")
+            .identifiesControllerService(AzureIdentityFederationTokenProvider.class)
+            .required(true)
+            .dependsOn(CREDENTIAL_CONFIGURATION_STRATEGY, IDENTITY_FEDERATION)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             CREDENTIAL_CONFIGURATION_STRATEGY,
             MANAGED_IDENTITY_CLIENT_ID,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
-            SERVICE_PRINCIPAL_CLIENT_SECRET
+            SERVICE_PRINCIPAL_CLIENT_SECRET,
+            IDENTITY_FEDERATION_TOKEN_PROVIDER
     );
 
     private TokenCredential credentials;
@@ -133,6 +145,8 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
             credentials = getManagedIdentityCredential(context);
         } else if (SERVICE_PRINCIPAL.getValue().equals(configurationStrategy)) {
             credentials = getServicePrincipalCredential(context);
+        } else if (IDENTITY_FEDERATION.getValue().equals(configurationStrategy)) {
+            credentials = getIdentityFederationCredential(context);
         } else {
             final String errorMsg = String.format("Configuration Strategy [%s] not recognized", configurationStrategy);
             getLogger().error(errorMsg);
@@ -176,6 +190,12 @@ public class StandardAzureCredentialsControllerService extends AbstractControlle
                 .clientSecret(clientSecret)
                 .httpClient(getHttpClient())
                 .build();
+    }
+
+    private TokenCredential getIdentityFederationCredential(final ConfigurationContext context) {
+        final AzureIdentityFederationTokenProvider identityFederationTokenProvider = context.getProperty(IDENTITY_FEDERATION_TOKEN_PROVIDER)
+                .asControllerService(AzureIdentityFederationTokenProvider.class);
+        return identityFederationTokenProvider.getCredentials();
     }
 
     @Override
