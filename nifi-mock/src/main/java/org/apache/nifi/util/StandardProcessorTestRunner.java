@@ -581,6 +581,11 @@ public class StandardProcessorTestRunner implements TestRunner {
     }
 
     @Override
+    public List<Double> getGaugeValues(final String name) {
+        return sharedState.getGaugeValues(name);
+    }
+
+    @Override
     public int getRemovedCount() {
         int count = 0;
         for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {

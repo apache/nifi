@@ -34,6 +34,8 @@ import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.metrics.ComponentMetricReporter;
+import org.apache.nifi.controller.metrics.DefaultComponentMetricReporter;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
@@ -134,6 +136,7 @@ public class HeadlessNiFiServer implements NiFiServer {
             final FrameworkSslContextProvider sslContextProvider = new FrameworkSslContextProvider(props);
             final SSLContext sslContext = sslContextProvider.loadSslContext().orElse(null);
             final StateManagerProvider stateManagerProvider = StandardStateManagerProvider.create(props, sslContext, extensionManager, ParameterLookup.EMPTY);
+            final ComponentMetricReporter componentMetricReporter = new DefaultComponentMetricReporter();
 
             flowController = FlowController.createStandaloneInstance(
                     flowFileEventRepository,
@@ -141,6 +144,7 @@ public class HeadlessNiFiServer implements NiFiServer {
                     props,
                     authorizer,
                     auditService,
+                    componentMetricReporter,
                     encryptor,
                     bulletinRepository,
                     extensionManager,

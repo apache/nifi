@@ -23,6 +23,7 @@ import org.apache.nifi.provenance.ProvenanceReporter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -36,6 +37,7 @@ public class SharedSessionState {
     private final Processor processor;
     private final AtomicLong flowFileIdGenerator;
     private final ConcurrentMap<String, AtomicLong> counterMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, List<Double>> namedGaugeValues = new ConcurrentHashMap<>();
     // list of provenance events as they were in the provenance repository (events emitted with force=true or committed with the session)
     private final List<ProvenanceEventRecord> events = new ArrayList<>();
 
@@ -86,5 +88,17 @@ public class SharedSessionState {
     public Long getCounterValue(final String name) {
         final AtomicLong counterValue = counterMap.get(name);
         return counterValue == null ? null : counterValue.get();
+    }
+
+    public void recordGauge(final String name, final double value) {
+        namedGaugeValues.compute(name, (gaugeName, values) -> {
+            final List<Double> gaugeValues = Objects.requireNonNullElseGet(values, ArrayList::new);
+            gaugeValues.add(value);
+            return gaugeValues;
+        });
+    }
+
+    public List<Double> getGaugeValues(final String name) {
+        return namedGaugeValues.getOrDefault(name, List.of());
     }
 }

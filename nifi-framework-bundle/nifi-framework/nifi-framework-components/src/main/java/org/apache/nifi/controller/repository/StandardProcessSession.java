@@ -24,6 +24,8 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
+import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -55,6 +57,7 @@ import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.provenance.InternalProvenanceReporter;
 import org.apache.nifi.provenance.ProvenanceEventBuilder;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -80,6 +83,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
@@ -152,6 +156,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     private Map<String, Long> countersOnCommit;
     private Map<String, Long> immediateCounters;
+    private List<GaugeRecord> gaugeRecordsSessionCommitted;
+    private final ComponentMetricContext componentMetricContext;
 
     private final Set<String> removedFlowFiles = new HashSet<>();
     private final Set<String> createdFlowFiles = new HashSet<>(); // UUID of any FlowFile that was created in this session
@@ -206,6 +212,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         LOG.trace("Session {} created for {}", this, connectableDescription);
         processingStartTime = System.nanoTime();
         retryAttribute = "retryCount." + context.getConnectable().getIdentifier();
+
+        final Connectable connectable = context.getConnectable();
+        final Map<String, String> groupAttributes = connectable.getProcessGroup().getLoggingAttributes();
+        componentMetricContext = new ComponentMetricContext(connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
     }
 
     private void verifyTaskActive() {
@@ -669,6 +679,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             for (final Map.Entry<String, Long> entry : checkpoint.countersOnCommit.entrySet()) {
                 context.adjustCounter(entry.getKey(), entry.getValue());
+            }
+
+            for (final GaugeRecord gaugeRecord : checkpoint.gaugeRecordsSessionCommitted) {
+                context.recordGauge(gaugeRecord);
             }
 
             if (LOG.isDebugEnabled()) {
@@ -1419,6 +1433,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (immediateCounters != null) {
             immediateCounters.clear();
         }
+        if (gaugeRecordsSessionCommitted != null) {
+            gaugeRecordsSessionCommitted.clear();
+        }
 
         generatedProvenanceEvents.clear();
         forkEventBuilders.clear();
@@ -1837,6 +1854,24 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
+    public void recordGauge(final String name, final double value, final CommitTiming commitTiming) {
+        Objects.requireNonNull(name, "Gauge Name required");
+        Objects.requireNonNull(commitTiming, "Commit Timing required");
+
+        final Instant recorded = Instant.now();
+        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, recorded, componentMetricContext);
+
+        if (CommitTiming.NOW == commitTiming) {
+            context.recordGauge(gaugeRecord);
+        } else {
+            if (gaugeRecordsSessionCommitted == null) {
+                gaugeRecordsSessionCommitted = new ArrayList<>();
+            }
+            gaugeRecordsSessionCommitted.add(gaugeRecord);
+        }
+    }
+
+    @Override
     public void adjustCounter(final String name, final long delta, final boolean immediate) {
         // If we are adjusting the counter immediately, allow it even if the task is terminated. The contract states:
         // "the counter will be updated immediately, without regard to whether the session is committed or rolled back"
@@ -1858,21 +1893,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             counters = countersOnCommit;
         }
 
-        adjustCounter(name, delta, counters);
+        // Set current value or adjust when found
+        counters.compute(name, (currentName, currentValue) ->
+            currentValue == null ? delta : currentValue + delta
+        );
 
         if (immediate) {
             context.adjustCounter(name, delta);
         }
-    }
-
-    private void adjustCounter(final String name, final long delta, final Map<String, Long> map) {
-        Long curVal = map.get(name);
-        if (curVal == null) {
-            curVal = 0L;
-        }
-
-        final long newValue = curVal + delta;
-        map.put(name, newValue);
     }
 
     @Override
@@ -3887,6 +3915,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         private Map<String, Long> countersOnCommit;
         private Map<String, Long> immediateCounters;
 
+        private List<GaugeRecord> gaugeRecordsSessionCommitted;
+
         private Map<FlowFile, Path> deleteOnCommit;
         private Set<String> removedFlowFiles;
         private Set<String> createdFlowFiles;
@@ -3923,6 +3953,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             countersOnCommit = new HashMap<>();
             immediateCounters = new HashMap<>();
+            gaugeRecordsSessionCommitted = new ArrayList<>();
 
             deleteOnCommit = new HashMap<>();
             removedFlowFiles = new HashSet<>();
@@ -3956,6 +3987,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             this.connectionCounts = session.connectionCounts;
             this.countersOnCommit = session.countersOnCommit == null ? Collections.emptyMap() : session.countersOnCommit;
             this.immediateCounters = session.immediateCounters == null ? Collections.emptyMap() : session.immediateCounters;
+            this.gaugeRecordsSessionCommitted = session.gaugeRecordsSessionCommitted == null ? List.of() : session.gaugeRecordsSessionCommitted;
 
             this.deleteOnCommit = session.deleteOnCommit;
             this.removedFlowFiles = session.removedFlowFiles;

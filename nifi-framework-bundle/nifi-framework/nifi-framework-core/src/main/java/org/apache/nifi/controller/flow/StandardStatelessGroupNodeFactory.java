@@ -128,6 +128,7 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
             flowFileRepository,
             flowController.getFlowFileEventRepository(),
             flowController.getCounterRepository(),
+            flowController.getComponentMetricReporter(),
             flowController.getStateManagerProvider());
 
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
