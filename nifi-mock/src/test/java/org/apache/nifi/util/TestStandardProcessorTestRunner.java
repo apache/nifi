@@ -29,12 +29,11 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.reporting.InitializationException;
 import org.junit.jupiter.api.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +47,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestStandardProcessorTestRunner {
+
+    private static final String NAMED_GAUGE = "Processing Time";
+    private static final double NAMED_GAUGE_VALUE = 120.35;
 
     @Test
     public void testProcessContextPassedToOnStoppedMethods() {
@@ -108,6 +110,19 @@ public class TestStandardProcessorTestRunner {
     }
 
     @Test
+    public void testRecordGauge() {
+        final RecordGaugeProcessor processor = new RecordGaugeProcessor();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+
+        runner.run();
+
+        final List<Double> gaugeValues = runner.getGaugeValues(NAMED_GAUGE);
+        assertFalse(gaugeValues.isEmpty());
+        final Double firstValue = gaugeValues.getFirst();
+        assertEquals(NAMED_GAUGE_VALUE, firstValue);
+    }
+
+    @Test
     public void testNumThreads() {
         final ProcessorWithOnStop proc = new ProcessorWithOnStop();
         final TestRunner runner = TestRunners.newTestRunner(proc);
@@ -157,8 +172,7 @@ public class TestStandardProcessorTestRunner {
 
     @Test
     public void testControllerServiceUpdateShouldCallOnSetProperty() {
-        // Arrange
-        final ControllerService testService = new SimpleTestService();
+        final SimpleTestService testService = new SimpleTestService();
         final AddAttributeProcessor proc = new AddAttributeProcessor();
         final TestRunner runner = TestRunners.newTestRunner(proc);
         final String serviceIdentifier = "test";
@@ -170,12 +184,10 @@ public class TestStandardProcessorTestRunner {
             fail(e.getMessage());
         }
 
-        assertFalse(((SimpleTestService) testService).isOpmCalled(), "onPropertyModified has been called");
+        assertFalse(testService.isOpmCalled(), "onPropertyModified has been called");
 
-        // Act
         ValidationResult vr = runner.setProperty(testService, pdName, pdValue);
 
-        // Assert
         assertTrue(vr.isValid());
 
         ControllerServiceConfiguration csConf = ((MockProcessContext) runner.getProcessContext()).getConfiguration(serviceIdentifier);
@@ -183,7 +195,7 @@ public class TestStandardProcessorTestRunner {
         String retrievedPDValue = csConf.getProperties().get(propertyDescriptor);
 
         assertEquals(pdValue, retrievedPDValue);
-        assertTrue(((SimpleTestService) testService).isOpmCalled(), "onPropertyModified has not been called");
+        assertTrue(testService.isOpmCalled(), "onPropertyModified has not been called");
     }
 
     @Test
@@ -219,6 +231,13 @@ public class TestStandardProcessorTestRunner {
         runner.enableControllerService(testService);
         runner.assertValid(testService);
         runner.assertValid();
+    }
+
+    private static class RecordGaugeProcessor extends AbstractProcessor {
+        @Override
+        public void onTrigger(final ProcessContext context, final ProcessSession session) {
+            session.recordGauge(NAMED_GAUGE, NAMED_GAUGE_VALUE, CommitTiming.NOW);
+        }
     }
 
     private static class ProcessorWithOnStop extends AbstractProcessor {
@@ -260,10 +279,7 @@ public class TestStandardProcessorTestRunner {
 
         @Override
         protected void init(final ProcessorInitializationContext context) {
-            final Set<Relationship> relationships = new HashSet<>();
-            relationships.add(REL_SUCCESS);
-            relationships.add(REL_FAILURE);
-            this.relationships = Collections.unmodifiableSet(relationships);
+            this.relationships = Set.of(REL_SUCCESS, REL_FAILURE);
         }
 
         @Override
@@ -299,10 +315,7 @@ public class TestStandardProcessorTestRunner {
         private final Set<Relationship> relationships;
 
         public GoodProcessor() {
-            final Set<Relationship> r = new HashSet<>();
-            r.add(REL_SUCCESS);
-            r.add(REL_FAILURE);
-            relationships = Collections.unmodifiableSet(r);
+            relationships = Set.of(REL_SUCCESS, REL_FAILURE);
         }
 
         @Override
@@ -321,7 +334,7 @@ public class TestStandardProcessorTestRunner {
 
     private static class SimpleTestService extends AbstractControllerService {
         private final String PD_NAME = "name";
-        private PropertyDescriptor namePropertyDescriptor = new PropertyDescriptor.Builder()
+        private final PropertyDescriptor namePropertyDescriptor = new PropertyDescriptor.Builder()
                 .name(PD_NAME)
                 .displayName("Controller Service Name")
                 .required(false)
