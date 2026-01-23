@@ -19,7 +19,9 @@ package org.apache.nifi.lookup.db;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -130,6 +132,27 @@ class TestSimpleDatabaseLookupService {
         assertTrue(lookupFound.isPresent());
         assertEquals(LOOKUP_VALUE, lookupFound.get());
         assertPreparedStatementExpected();
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("lookup-value-column", SimpleDatabaseLookupService.LOOKUP_VALUE_COLUMN.getName()),
+                Map.entry("dbrecord-lookup-dbcp-service", AbstractDatabaseLookupService.DBCP_SERVICE.getName()),
+                Map.entry("dbrecord-lookup-table-name", AbstractDatabaseLookupService.TABLE_NAME.getName()),
+                Map.entry("dbrecord-lookup-key-column", AbstractDatabaseLookupService.LOOKUP_KEY_COLUMN.getName()),
+                Map.entry("dbrecord-lookup-cache-size", AbstractDatabaseLookupService.CACHE_SIZE.getName()),
+                Map.entry("dbrecord-lookup-clear-cache-on-enabled", AbstractDatabaseLookupService.CLEAR_CACHE_ON_ENABLED.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        lookupService.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private void setConnection() throws SQLException {

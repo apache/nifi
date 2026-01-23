@@ -28,6 +28,8 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -129,7 +131,7 @@ public class TestEmailRecordSink {
         assertNotNull(writeResult);
         assertEquals(2, writeResult.getRecordCount());
         assertEquals(1, messages.size());
-        assertEquals(expectedMessage, messages.get(0).getDataHandler().getContent());
+        assertEquals(expectedMessage, messages.getFirst().getDataHandler().getContent());
     }
 
     @Test
@@ -142,6 +144,35 @@ public class TestEmailRecordSink {
         assertTrue(runtimeException.getMessage().contains("localhost"));
         assertTrue(runtimeException.getMessage().contains("25"));
         assertEquals(exceptionMessage, runtimeException.getCause().getMessage());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("from", EmailRecordSink.FROM.getName()),
+                Map.entry("to", EmailRecordSink.TO.getName()),
+                Map.entry("cc", EmailRecordSink.CC.getName()),
+                Map.entry("bcc", EmailRecordSink.BCC.getName()),
+                Map.entry("subject", EmailRecordSink.SUBJECT.getName()),
+                Map.entry("smtp-hostname", EmailRecordSink.SMTP_HOSTNAME.getName()),
+                Map.entry("smtp-port", EmailRecordSink.SMTP_PORT.getName()),
+                Map.entry("smtp-auth", EmailRecordSink.SMTP_AUTH.getName()),
+                Map.entry("smtp-username", EmailRecordSink.SMTP_USERNAME.getName()),
+                Map.entry("smtp-password", EmailRecordSink.SMTP_PASSWORD.getName()),
+                Map.entry("smtp-starttls", EmailRecordSink.SMTP_STARTTLS.getName()),
+                Map.entry("smtp-ssl", EmailRecordSink.SMTP_SSL.getName()),
+                Map.entry("smtp-xmailer-header", EmailRecordSink.HEADER_XMAILER.getName()),
+                Map.entry("record-sink-record-writer", RecordSinkService.RECORD_WRITER_FACTORY.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        recordSink.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }
 

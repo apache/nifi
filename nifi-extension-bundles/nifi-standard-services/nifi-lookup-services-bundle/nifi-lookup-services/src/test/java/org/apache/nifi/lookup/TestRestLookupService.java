@@ -20,11 +20,14 @@ import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import mockwebserver3.RecordedRequest;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
+import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -237,6 +240,34 @@ class TestRestLookupService {
         String actualAuthorizationHeader = recordedRequest.getHeaders().get("Authorization");
         assertEquals("Bearer " + accessToken, actualAuthorizationHeader);
 
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("rest-lookup-url", RestLookupService.URL.getName()),
+                Map.entry("rest-lookup-record-reader", RestLookupService.RECORD_READER.getName()),
+                Map.entry("rest-lookup-record-path", RestLookupService.RECORD_PATH.getName()),
+                Map.entry("rest-lookup-ssl-context-service", RestLookupService.SSL_CONTEXT_SERVICE.getName()),
+                Map.entry("rest-lookup-authentication-strategy", RestLookupService.AUTHENTICATION_STRATEGY.getName()),
+                Map.entry("rest-lookup-oauth2-access-token-provider", RestLookupService.OAUTH2_ACCESS_TOKEN_PROVIDER.getName()),
+                Map.entry("rest-lookup-basic-auth-username", RestLookupService.PROP_BASIC_AUTH_USERNAME.getName()),
+                Map.entry("rest-lookup-basic-auth-password", RestLookupService.PROP_BASIC_AUTH_PASSWORD.getName()),
+                Map.entry("rest-lookup-digest-auth", RestLookupService.PROP_DIGEST_AUTH.getName()),
+                Map.entry("rest-lookup-connection-timeout", RestLookupService.PROP_CONNECT_TIMEOUT.getName()),
+                Map.entry("rest-lookup-read-timeout", RestLookupService.PROP_READ_TIMEOUT.getName()),
+                Map.entry("rest-lookup-response-handling-strategy", RestLookupService.RESPONSE_HANDLING_STRATEGY.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, RestLookupService.PROXY_CONFIGURATION_SERVICE.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        restLookupService.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private void assertRecordedRequestFound() throws InterruptedException {

@@ -24,8 +24,12 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -39,15 +43,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class TestDistributedMapCacheLookupService {
 
     static final Optional<String> EMPTY_STRING = Optional.empty();
+    private TestRunner runner;
+    private DistributedMapCacheLookupService service;
+
+    @BeforeEach
+    void setUp() throws InitializationException {
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        service = new DistributedMapCacheLookupService();
+        runner.addControllerService("lookup-service", service);
+    }
 
     @Test
     public void testDistributedMapCacheLookupService() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final DistributedMapCacheLookupService service = new DistributedMapCacheLookupService();
         final DistributedMapCacheClient client = new EphemeralMapCacheClientService();
-
         runner.addControllerService("client", client);
-        runner.addControllerService("lookup-service", service);
         runner.setProperty(service, DistributedMapCacheLookupService.PROP_DISTRIBUTED_CACHE_SERVICE, "client");
 
         runner.enableControllerService(client);
@@ -62,9 +71,26 @@ public class TestDistributedMapCacheLookupService {
         assertEquals(EMPTY_STRING, absent);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("distributed-map-cache-service", DistributedMapCacheLookupService.PROP_DISTRIBUTED_CACHE_SERVICE.getName()),
+                Map.entry("character-encoding", DistributedMapCacheLookupService.CHARACTER_ENCODING.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
+    }
+
     static final class EphemeralMapCacheClientService extends AbstractControllerService implements DistributedMapCacheClient {
 
-        private Map<String, String> map = new HashMap<>();
+        private final Map<String, String> map = new HashMap<>();
 
         @OnEnabled
         public void onEnabled(final ConfigurationContext context) {
@@ -91,7 +117,7 @@ public class TestDistributedMapCacheLookupService {
 
         @Override
         public <K, V> V getAndPutIfAbsent(final K key, final V value, final Serializer<K> keySerializer, final Serializer<V> valueSerializer,
-                final Deserializer<V> valueDeserializer) {
+                                          final Deserializer<V> valueDeserializer) {
             throw new UnsupportedOperationException("not implemented");
         }
 

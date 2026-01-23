@@ -16,12 +16,17 @@
  */
 package org.apache.nifi.lookup;
 
+import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,11 +35,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestXMLFileLookupService {
 
     static final Optional<String> EMPTY_STRING = Optional.empty();
+    private XMLFileLookupService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new XMLFileLookupService();
+    }
 
     @Test
     public void testXMLFileLookupService() throws InitializationException, LookupFailureException {
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final XMLFileLookupService service = new XMLFileLookupService();
 
         runner.addControllerService("xml-file-lookup-service", service);
         runner.setProperty(service, XMLFileLookupService.CONFIGURATION_FILE, "src/test/resources/test.xml");
@@ -64,7 +74,6 @@ public class TestXMLFileLookupService {
 
         // Arrange
         final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final XMLFileLookupService service = new XMLFileLookupService();
         runner.addControllerService("xml-file-lookup-service", service);
         runner.setProperty(service, XMLFileLookupService.CONFIGURATION_FILE, "src/test/resources/test-xxe.xml");
 
@@ -77,5 +86,21 @@ public class TestXMLFileLookupService {
             // Assert
             assertTrue(e.getMessage().contains("contained an external entity. To prevent XXE vulnerabilities, NiFi has external entity processing disabled."));
         }
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "configuration-file", CommonsConfigurationLookupService.CONFIGURATION_FILE.getName()
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }
