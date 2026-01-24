@@ -217,6 +217,15 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     }
 
     @Override
+    public void deleteSwapFile(final String swapLocation) throws IOException {
+        final File swapFile = new File(swapLocation);
+        if (swapFile.exists() && !swapFile.delete()) {
+            throw new IOException("Failed to delete swap file " + swapLocation);
+        }
+        logger.debug("Deleted swap file {}", swapLocation);
+    }
+
+    @Override
     public String getQueueIdentifier(final String swapLocation) {
         final String filename = swapLocation.contains("/") ? StringUtils.substringAfterLast(swapLocation, "/") : swapLocation;
         final String[] splits = filename.split("-");

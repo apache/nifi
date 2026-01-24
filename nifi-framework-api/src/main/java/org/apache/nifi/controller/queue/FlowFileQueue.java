@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.controller.queue;
 
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.status.FlowFileAvailability;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
 
@@ -27,6 +29,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 public interface FlowFileQueue {
 
@@ -216,6 +219,18 @@ public interface FlowFileQueue {
      *         request status exists with that identifier
      */
     DropFlowFileStatus cancelDropFlowFileRequest(String requestIdentifier);
+
+    /**
+     * Synchronously drops all FlowFiles in this queue that match the given predicate. This method filters
+     * FlowFiles in the active queue, swap queue, and any swapped-out swap files. The FlowFile Repository
+     * and Provenance Repository are updated atomically after all matching FlowFiles have been identified.
+     *
+     * @param predicate the predicate used to determine which FlowFiles should be dropped; FlowFiles for which
+     *                  the predicate returns <code>true</code> will be dropped
+     * @return a summary of the FlowFiles that were dropped, including the count and total size in bytes
+     * @throws IOException if an error occurs while reading or writing swap files
+     */
+    DropFlowFileSummary dropFlowFiles(Predicate<FlowFile> predicate) throws IOException;
 
     /**
      * <p>

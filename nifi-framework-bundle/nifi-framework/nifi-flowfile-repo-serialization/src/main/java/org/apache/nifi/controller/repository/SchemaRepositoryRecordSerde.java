@@ -44,9 +44,9 @@ import java.io.IOException;
 import java.util.Map;
 
 public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implements SerDe<SerializedRepositoryRecord> {
-    private static final int MAX_ENCODING_VERSION = 2;
+    private static final int MAX_ENCODING_VERSION = 3;
 
-    private final RecordSchema writeSchema = RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V2;
+    private final RecordSchema writeSchema = RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V3;
     private final RecordSchema contentClaimSchema = ContentClaimSchema.CONTENT_CLAIM_SCHEMA_V1;
 
     private final ResourceClaimManager resourceClaimManager;
@@ -76,11 +76,13 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
             case CONTENTMISSING, DELETE -> RepositoryRecordSchema.DELETE_SCHEMA_V2;
             case SWAP_IN -> RepositoryRecordSchema.SWAP_IN_SCHEMA_V2;
             case SWAP_OUT -> RepositoryRecordSchema.SWAP_OUT_SCHEMA_V2;
+            case SWAP_FILE_DELETED -> RepositoryRecordSchema.SWAP_FILE_DELETED_SCHEMA_V3;
+            case SWAP_FILE_RENAMED -> RepositoryRecordSchema.SWAP_FILE_RENAMED_SCHEMA_V3;
             default ->
                     throw new IllegalArgumentException("Received Repository Record with unknown Update Type: " + record.getType()); // won't happen.
         };
 
-        serializeRecord(record, out, schema, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V2);
+        serializeRecord(record, out, schema, RepositoryRecordSchema.REPOSITORY_RECORD_SCHEMA_V3);
     }
 
 
@@ -164,6 +166,8 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
             case SWAP_IN -> swapInRecord(record);
             case SWAP_OUT -> swapOutRecord(record);
             case UPDATE -> updateRecord(record);
+            case SWAP_FILE_DELETED -> swapFileDeletedRecord(record);
+            case SWAP_FILE_RENAMED -> swapFileRenamedRecord(record);
             default -> throw new IOException("Found unrecognized Update Type '" + actionType + "'");
         };
 
@@ -251,6 +255,30 @@ public class SchemaRepositoryRecordSerde extends RepositoryRecordSerde implement
         return new ReconstitutedSerializedRepositoryRecord.Builder()
             .flowFileRecord(flowFileRecord)
             .type(RepositoryRecordType.SWAP_OUT)
+            .swapLocation(swapLocation)
+            .queueIdentifier(queueId)
+            .build();
+    }
+
+    private SerializedRepositoryRecord swapFileDeletedRecord(final Record record) {
+        final String queueId = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.QUEUE_IDENTIFIER, FieldType.STRING, Repetition.EXACTLY_ONE));
+        final String swapLocation = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.SWAP_LOCATION, FieldType.STRING, Repetition.EXACTLY_ONE));
+
+        return new ReconstitutedSerializedRepositoryRecord.Builder()
+            .type(RepositoryRecordType.SWAP_FILE_DELETED)
+            .swapLocation(swapLocation)
+            .queueIdentifier(queueId)
+            .build();
+    }
+
+    private SerializedRepositoryRecord swapFileRenamedRecord(final Record record) {
+        final String queueId = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.QUEUE_IDENTIFIER, FieldType.STRING, Repetition.EXACTLY_ONE));
+        final String originalSwapLocation = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.ORIGINAL_SWAP_LOCATION, FieldType.STRING, Repetition.EXACTLY_ONE));
+        final String swapLocation = (String) record.getFieldValue(new SimpleRecordField(RepositoryRecordSchema.SWAP_LOCATION, FieldType.STRING, Repetition.EXACTLY_ONE));
+
+        return new ReconstitutedSerializedRepositoryRecord.Builder()
+            .type(RepositoryRecordType.SWAP_FILE_RENAMED)
+            .originalSwapLocation(originalSwapLocation)
             .swapLocation(swapLocation)
             .queueIdentifier(queueId)
             .build();

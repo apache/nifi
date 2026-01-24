@@ -18,6 +18,7 @@
 package org.apache.nifi.components.connector.facades.standalone;
 
 import org.apache.nifi.asset.AssetManager;
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceFacade;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceHierarchy;
@@ -37,11 +38,13 @@ import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -376,5 +379,24 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
     @Override
     public ProcessGroupLifecycle getLifecycle() {
         return lifecycle;
+    }
+
+    @Override
+    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        DropFlowFileSummary summary = new DropFlowFileSummary(0, 0);
+
+        // Drop from all connections in this group
+        for (final ConnectionFacade connection : getConnections()) {
+            final DropFlowFileSummary connectionSummary = connection.dropFlowFiles(predicate);
+            summary = summary.add(connectionSummary);
+        }
+
+        // Recursively drop from all child process groups
+        for (final ProcessGroupFacade childGroup : getProcessGroups()) {
+            final DropFlowFileSummary childSummary = childGroup.dropFlowFiles(predicate);
+            summary = summary.add(childSummary);
+        }
+
+        return summary;
     }
 }

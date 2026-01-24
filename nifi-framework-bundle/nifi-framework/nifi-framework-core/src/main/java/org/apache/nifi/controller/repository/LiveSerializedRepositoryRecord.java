@@ -55,6 +55,11 @@ public class LiveSerializedRepositoryRecord implements SerializedRepositoryRecor
     }
 
     @Override
+    public String getOriginalSwapLocation() {
+        return record.getOriginalSwapLocation();
+    }
+
+    @Override
     public FlowFileRecord getFlowFileRecord() {
         return record.getCurrent();
     }

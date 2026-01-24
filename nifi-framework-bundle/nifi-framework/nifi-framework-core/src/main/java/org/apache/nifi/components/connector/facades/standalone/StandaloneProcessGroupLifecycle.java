@@ -25,6 +25,7 @@ import org.apache.nifi.components.connector.components.StatelessGroupLifecycle;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.flow.ExecutionEngine;
@@ -193,6 +194,11 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
                 processor.performValidation();
             }
 
+            if (processor.getScheduledState() == ScheduledState.DISABLED) {
+                logger.debug("Not starting Processor {} because it is disabled", processor);
+                continue;
+            }
+
             startFutures.add(processGroup.startProcessor(processor, true));
         }
 
@@ -285,6 +291,12 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
         final Collection<ProcessorNode> processors = processGroup.getProcessors();
         final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
         for (final ProcessorNode processor : processors) {
+            final ScheduledState processorState = processor.getScheduledState();
+            if (processorState == ScheduledState.DISABLED || processorState == ScheduledState.STOPPED) {
+                logger.debug("Not stopping Processor {} because its state is {}", processor, processorState);
+                continue;
+            }
+
             final CompletableFuture<Void> stopFuture = processGroup.stopProcessor(processor);
             stopFutures.add(stopFuture);
         }

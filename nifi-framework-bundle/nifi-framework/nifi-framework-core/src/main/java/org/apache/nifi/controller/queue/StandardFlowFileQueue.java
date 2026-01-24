@@ -16,15 +16,19 @@
  */
 package org.apache.nifi.controller.queue;
 
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.repository.RepositoryRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.util.concurrency.TimedLock;
 
@@ -32,9 +36,11 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 
 /**
  * A FlowFileQueue is used to queue FlowFile objects that are awaiting further
@@ -210,6 +216,39 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
         queue.dropFlowFiles(dropRequest, requestor);
     }
 
+    @Override
+    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        lock();
+        try {
+            // Perform the selective drop on the queue, which returns the dropped FlowFiles and swap location updates
+            final SelectiveDropResult dropResult = queue.dropFlowFiles(predicate);
+
+            if (dropResult.getDroppedCount() == 0) {
+                return new DropFlowFileSummary(0, 0L);
+            }
+
+            // Create repository records for the dropped FlowFiles
+            final List<FlowFileRecord> droppedFlowFiles = dropResult.getDroppedFlowFiles();
+            final List<RepositoryRecord> repositoryRecords = createDeleteRepositoryRecords(droppedFlowFiles);
+
+            // Update the FlowFile Repository
+            getFlowFileRepository().updateRepository(repositoryRecords);
+
+            // Create and register provenance events
+            final List<ProvenanceEventRecord> provenanceEvents = createDropProvenanceEvents(droppedFlowFiles, "Selective drop by predicate");
+            getProvenanceRepository().registerEvents(provenanceEvents);
+
+            // Delete old swap files that were replaced
+            for (final Map.Entry<String, String> entry : dropResult.getSwapLocationUpdates().entrySet()) {
+                final String oldSwapLocation = entry.getKey();
+                swapManager.deleteSwapFile(oldSwapLocation);
+            }
+
+            return new DropFlowFileSummary(dropResult.getDroppedCount(), dropResult.getDroppedBytes());
+        } finally {
+            unlock();
+        }
+    }
 
     /**
      * Lock the queue so that other threads are unable to interact with the queue

@@ -392,12 +392,16 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
     }
 
     protected QueueSize drop(final List<FlowFileRecord> flowFiles, final String requestor) throws IOException {
+        return dropWithDetails(flowFiles, "FlowFile Queue emptied by " + requestor);
+    }
+
+    protected QueueSize dropWithDetails(final List<FlowFileRecord> flowFiles, final String details) throws IOException {
         // Create a Provenance Event and a FlowFile Repository record for each FlowFile
         final List<ProvenanceEventRecord> provenanceEvents = new ArrayList<>(flowFiles.size());
         final List<RepositoryRecord> flowFileRepoRecords = new ArrayList<>(flowFiles.size());
         long dropContentSize = 0L;
         for (final FlowFileRecord flowFile : flowFiles) {
-            provenanceEvents.add(createDropProvenanceEvent(flowFile, requestor));
+            provenanceEvents.add(createDropProvenanceEvent(flowFile, details));
             flowFileRepoRecords.add(createDeleteRepositoryRecord(flowFile));
             dropContentSize += flowFile.getSize();
         }
@@ -407,7 +411,31 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         return new QueueSize(flowFiles.size(), dropContentSize);
     }
 
-    private ProvenanceEventRecord createDropProvenanceEvent(final FlowFileRecord flowFile, final String requestor) {
+    protected FlowFileRepository getFlowFileRepository() {
+        return flowFileRepository;
+    }
+
+    protected ProvenanceEventRepository getProvenanceRepository() {
+        return provRepository;
+    }
+
+    protected List<RepositoryRecord> createDeleteRepositoryRecords(final List<FlowFileRecord> flowFiles) {
+        final List<RepositoryRecord> records = new ArrayList<>(flowFiles.size());
+        for (final FlowFileRecord flowFile : flowFiles) {
+            records.add(createDeleteRepositoryRecord(flowFile));
+        }
+        return records;
+    }
+
+    protected List<ProvenanceEventRecord> createDropProvenanceEvents(final List<FlowFileRecord> flowFiles, final String details) {
+        final List<ProvenanceEventRecord> events = new ArrayList<>(flowFiles.size());
+        for (final FlowFileRecord flowFile : flowFiles) {
+            events.add(createDropProvenanceEvent(flowFile, details));
+        }
+        return events;
+    }
+
+    private ProvenanceEventRecord createDropProvenanceEvent(final FlowFileRecord flowFile, final String details) {
         final ProvenanceEventBuilder builder = provRepository.eventBuilder();
         builder.fromFlowFile(flowFile);
         builder.setEventType(ProvenanceEventType.DROP);
@@ -415,7 +443,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
         builder.setComponentId(getIdentifier());
         builder.setComponentType("Connection");
         builder.setAttributes(flowFile.getAttributes(), Collections.emptyMap());
-        builder.setDetails("FlowFile Queue emptied by " + requestor);
+        builder.setDetails(details);
         builder.setSourceQueueIdentifier(getIdentifier());
 
         final ContentClaim contentClaim = flowFile.getContentClaim();
