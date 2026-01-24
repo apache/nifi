@@ -36,6 +36,7 @@ export interface LineageNode {
     clusterNodeIdentifier: string;
     type: string;
     eventType: string;
+    componentType?: string;
     millis: number;
     timestamp: string;
 }
