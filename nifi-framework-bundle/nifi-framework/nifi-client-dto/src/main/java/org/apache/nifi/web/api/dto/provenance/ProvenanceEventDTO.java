@@ -36,7 +36,6 @@ public class ProvenanceEventDTO {
     // in search results table
     private Long eventId;
     private Date eventTime;
-    private Long eventTimeMillis;
     private Long eventDuration;
     private Long lineageDuration;
     private String eventType;
@@ -122,19 +121,6 @@ public class ProvenanceEventDTO {
 
     public void setEventTime(Date eventTime) {
         this.eventTime = eventTime;
-    }
-
-    /**
-     * @return time the event occurred in milliseconds since epoch
-     */
-    @Schema(description = "The epoch timestamp of the event."
-    )
-    public Long getEventTimeMillis() {
-        return eventTimeMillis;
-    }
-
-    public void setEventTimeMillis(long eventTimeMillis) {
-        this.eventTimeMillis = eventTimeMillis;
     }
 
     /**

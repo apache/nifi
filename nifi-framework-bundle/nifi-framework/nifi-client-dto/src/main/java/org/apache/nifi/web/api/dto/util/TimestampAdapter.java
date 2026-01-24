@@ -29,7 +29,7 @@ import java.util.Date;
  */
 public class TimestampAdapter extends XmlAdapter<String, Date> {
 
-    private static final String DEFAULT_DATE_TIME_FORMAT = "MM/dd/yyyy HH:mm:ss.SSS z";
+    private static final String DEFAULT_DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS z";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_FORMAT).withZone(ZoneId.systemDefault());
 
     @Override
