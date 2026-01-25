@@ -16,38 +16,33 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.util.Map;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * A class responsible for writing metadata objects into a JSON array.
  */
 final class BoxMetadataJsonArrayWriter implements Closeable {
 
-    private final Writer writer;
+    private static final JsonFactory JSON_FACTORY = new JsonFactory();
+    private final JsonGenerator generator;
     private boolean hasBegun;
-    private boolean hasEntries;
     private boolean closed;
 
-    private BoxMetadataJsonArrayWriter(final Writer writer) {
-        this.writer = writer;
+    private BoxMetadataJsonArrayWriter(final JsonGenerator generator) {
+        this.generator = generator;
         this.hasBegun = false;
-        this.hasEntries = false;
         this.closed = false;
     }
 
     static BoxMetadataJsonArrayWriter create(final OutputStream outputStream) throws IOException {
-        final Writer writer = new OutputStreamWriter(outputStream, UTF_8);
-        return new BoxMetadataJsonArrayWriter(writer);
+        final JsonGenerator generator = JSON_FACTORY.createGenerator(outputStream);
+        return new BoxMetadataJsonArrayWriter(generator);
     }
 
     void write(final Map<String, Object> templateFields) throws IOException {
@@ -56,41 +51,26 @@ final class BoxMetadataJsonArrayWriter implements Closeable {
         }
 
         if (!hasBegun) {
-            beginArray();
+            generator.writeStartArray();
             hasBegun = true;
         }
 
-        if (hasEntries) {
-            writer.write(',');
-        }
-
-        final JsonObject json = toRecord(templateFields);
-        json.writeTo(writer);
-
-        hasEntries = true;
+        writeRecord(templateFields);
     }
 
-    private JsonObject toRecord(final Map<String, Object> templateFields) {
-        final JsonObject json = Json.object();
+    private void writeRecord(final Map<String, Object> templateFields) throws IOException {
+        generator.writeStartObject();
 
         for (Map.Entry<String, Object> entry : templateFields.entrySet()) {
             Object value = entry.getValue();
             if (value == null) {
-                json.add(entry.getKey(), Json.NULL);
+                generator.writeNullField(entry.getKey());
             } else {
-                json.add(entry.getKey(), Json.value(value.toString()));
+                generator.writeStringField(entry.getKey(), value.toString());
             }
         }
 
-        return json;
-    }
-
-    private void beginArray() throws IOException {
-        writer.write('[');
-    }
-
-    private void endArray() throws IOException {
-        writer.write(']');
+        generator.writeEndObject();
     }
 
     @Override
@@ -102,10 +82,11 @@ final class BoxMetadataJsonArrayWriter implements Closeable {
         closed = true;
 
         if (!hasBegun) {
-            beginArray();
+            generator.writeStartArray();
         }
-        endArray();
+        generator.writeEndArray();
 
-        writer.close();
+        generator.close();
     }
 }
+

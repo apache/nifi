@@ -120,36 +120,16 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
     }
 
     @Test
-    void validWhenCustomTimeoutsAreSet() {
-        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_ACTOR, BoxAppActor.SERVICE_ACCOUNT);
-        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_CONFIG_JSON, "{}");
-        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.CONNECT_TIMEOUT, "1 min");
-        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.READ_TIMEOUT, "10 sec");
-        testRunner.assertValid(testSubject);
-    }
-
-    @Test
-    void invalidWhenTimeoutsAreNotTimePeriods() {
-        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_ACTOR, BoxAppActor.SERVICE_ACCOUNT);
-        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.APP_CONFIG_JSON, "{}");
-        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.CONNECT_TIMEOUT, "not_a_time_period");
-        testRunner.setProperty(testSubject, JsonConfigBasedBoxClientService.READ_TIMEOUT, "1234");
-        testRunner.assertNotValid(testSubject);
-    }
-
-    @Test
     void testMigration() {
         final Map<String, String> propertyValues = Map.of(
-                JsonConfigBasedBoxClientService.ACCOUNT_ID.getName(), "account_id",
-                JsonConfigBasedBoxClientService.CONNECT_TIMEOUT.getName(), "1 min",
-                JsonConfigBasedBoxClientService.READ_TIMEOUT.getName(), "1234"
+                JsonConfigBasedBoxClientService.ACCOUNT_ID.getName(), "account_id"
         );
 
         final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
         final JsonConfigBasedBoxClientService jsonConfigBasedBoxClientService = new JsonConfigBasedBoxClientService();
         jsonConfigBasedBoxClientService.migrateProperties(configuration);
 
-        Map<String, String> expected = Map.ofEntries(
+        Map<String, String> expectedRenamed = Map.ofEntries(
                 Map.entry("box-account-id", JsonConfigBasedBoxClientService.ACCOUNT_ID.getName()),
                 Map.entry("app-config-file", JsonConfigBasedBoxClientService.APP_CONFIG_FILE.getName()),
                 Map.entry("app-config-json", JsonConfigBasedBoxClientService.APP_CONFIG_JSON.getName()),
@@ -159,6 +139,6 @@ public class JsonConfigBasedBoxClientServiceTestRunnerTest {
         final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
         final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
 
-        assertEquals(expected, propertiesRenamed);
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }

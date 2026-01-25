@@ -16,14 +16,16 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAI;
-import com.box.sdk.BoxAIExtractField;
-import com.box.sdk.BoxAIExtractFieldOption;
-import com.box.sdk.BoxAIExtractMetadataTemplate;
-import com.box.sdk.BoxAIExtractStructuredResponse;
-import com.box.sdk.BoxAIItem;
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.schemas.aiextractstructured.AiExtractStructured;
+import com.box.sdkgen.schemas.aiextractstructured.AiExtractStructuredFieldsField;
+import com.box.sdkgen.schemas.aiextractstructured.AiExtractStructuredFieldsOptionsField;
+import com.box.sdkgen.schemas.aiextractstructured.AiExtractStructuredMetadataTemplateField;
+import com.box.sdkgen.schemas.aiextractstructured.AiExtractStructuredMetadataTemplateTypeField;
+import com.box.sdkgen.schemas.aiextractstructuredresponse.AiExtractStructuredResponse;
+import com.box.sdkgen.schemas.aiitembase.AiItemBase;
+import com.box.sdkgen.schemas.aiitembase.AiItemBaseTypeField;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -51,7 +53,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -152,7 +153,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
 
     private static final String SCOPE = "enterprise";
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -168,7 +169,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -182,7 +183,7 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
         final ExtractionMethod extractionMethod = context.getProperty(EXTRACTION_METHOD).asAllowableValue(ExtractionMethod.class);
 
         try {
-            final BoxAIExtractStructuredResponse result;
+            final AiExtractStructuredResponse result;
             final Map<String, String> attributes = new HashMap<>();
             attributes.put("box.id", fileId);
             attributes.put("box.ai.extraction.method", extractionMethod.name());
@@ -229,12 +230,13 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
             session.getProvenanceReporter().modifyAttributes(flowFile, BoxFileUtils.BOX_URL + fileId);
             session.transfer(flowFile, REL_SUCCESS);
 
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        } catch (final BoxAPIError e) {
+            final int statusCode = e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0;
+            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(statusCode));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            if (e.getResponseCode() == 404) {
-                final String errorBody = e.getResponse();
-                if (errorBody != null && errorBody.contains("Specified Metadata Template not found")) {
+            if (statusCode == 404) {
+                final String errorMessage = e.getMessage();
+                if (errorMessage != null && errorMessage.contains("Specified Metadata Template not found")) {
                     getLogger().warn("Box metadata template was not found for extraction request.");
                     session.transfer(flowFile, REL_TEMPLATE_NOT_FOUND);
                 } else {
@@ -252,22 +254,42 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
         }
     }
 
-    BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
+    AiExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
                                                                                  final String fileId) {
-        final BoxAIExtractMetadataTemplate template = new BoxAIExtractMetadataTemplate(templateKey, SCOPE);
-        final BoxAIItem fileItem = new BoxAIItem(fileId, BoxAIItem.Type.FILE);
-        return BoxAI.extractMetadataStructured(boxAPIConnection, Collections.singletonList(fileItem), template);
+        final AiItemBase fileItem = new AiItemBase.Builder(fileId)
+                .type(AiItemBaseTypeField.FILE)
+                .build();
+
+        final AiExtractStructuredMetadataTemplateField template = new AiExtractStructuredMetadataTemplateField.Builder()
+                .templateKey(templateKey)
+                .scope(SCOPE)
+                .type(AiExtractStructuredMetadataTemplateTypeField.METADATA_TEMPLATE)
+                .build();
+
+        final AiExtractStructured requestBody = new AiExtractStructured.Builder(List.of(fileItem))
+                .metadataTemplate(template)
+                .build();
+
+        return boxClient.getAi().createAiExtractStructured(requestBody);
     }
 
-    BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final RecordReader recordReader,
+    AiExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final RecordReader recordReader,
                                                                                final String fileId) throws IOException, MalformedRecordException {
-        final List<BoxAIExtractField> fields = parseFieldsFromRecords(recordReader);
-        final BoxAIItem fileItem = new BoxAIItem(fileId, BoxAIItem.Type.FILE);
-        return BoxAI.extractMetadataStructured(boxAPIConnection, Collections.singletonList(fileItem), fields);
+        final List<AiExtractStructuredFieldsField> fields = parseFieldsFromRecords(recordReader);
+
+        final AiItemBase fileItem = new AiItemBase.Builder(fileId)
+                .type(AiItemBaseTypeField.FILE)
+                .build();
+
+        final AiExtractStructured requestBody = new AiExtractStructured.Builder(List.of(fileItem))
+                .fields(fields)
+                .build();
+
+        return boxClient.getAi().createAiExtractStructured(requestBody);
     }
 
-    private List<BoxAIExtractField> parseFieldsFromRecords(final RecordReader recordReader) throws IOException, MalformedRecordException {
-        final List<BoxAIExtractField> fields = new ArrayList<>();
+    private List<AiExtractStructuredFieldsField> parseFieldsFromRecords(final RecordReader recordReader) throws IOException, MalformedRecordException {
+        final List<AiExtractStructuredFieldsField> fields = new ArrayList<>();
         Record record;
         while ((record = recordReader.nextRecord()) != null) {
             final String key = record.getAsString("key");
@@ -280,15 +302,29 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
             final String displayName = record.getAsString("displayName");
             final String prompt = record.getAsString("prompt");
 
-            List<BoxAIExtractFieldOption> options = null;
+            final AiExtractStructuredFieldsField.Builder fieldBuilder = new AiExtractStructuredFieldsField.Builder(key);
+
+            if (type != null) {
+                fieldBuilder.type(type);
+            }
+            if (description != null) {
+                fieldBuilder.description(description);
+            }
+            if (displayName != null) {
+                fieldBuilder.displayName(displayName);
+            }
+            if (prompt != null) {
+                fieldBuilder.prompt(prompt);
+            }
+
             final Object optionsObj = record.getValue("options");
             if (optionsObj instanceof Iterable<?> iterable) {
-                options = new ArrayList<>();
+                final List<AiExtractStructuredFieldsOptionsField> options = new ArrayList<>();
                 for (Object option : iterable) {
                     if (option instanceof Record optionRecord) {
                         final String optionKey = optionRecord.getAsString("key");
                         if (optionKey != null && !optionKey.isBlank()) {
-                            options.add(new BoxAIExtractFieldOption(optionKey));
+                            options.add(new AiExtractStructuredFieldsOptionsField(optionKey));
                         } else {
                             getLogger().warn("Option record missing a valid 'key': {}", optionRecord);
                         }
@@ -296,8 +332,12 @@ public class ExtractStructuredBoxFileMetadata extends AbstractBoxProcessor {
                         getLogger().warn("Option is not a record: {}", option);
                     }
                 }
+                if (!options.isEmpty()) {
+                    fieldBuilder.options(options);
+                }
             }
-            fields.add(new BoxAIExtractField(type, description, displayName, key, options, prompt));
+
+            fields.add(fieldBuilder.build());
         }
         if (fields.isEmpty()) {
             throw new MalformedRecordException("No valid field records found in the input");

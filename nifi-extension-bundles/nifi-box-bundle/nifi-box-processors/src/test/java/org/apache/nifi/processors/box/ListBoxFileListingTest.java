@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxFolder;
+import com.box.sdkgen.client.BoxClient;
 import org.apache.nifi.box.controllerservices.BoxClientService;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.processor.ProcessContext;
@@ -25,46 +24,61 @@ import org.apache.nifi.util.EqualsWrapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static org.apache.nifi.util.EqualsWrapper.wrapList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 public class ListBoxFileListingTest implements FileListingTestTrait {
     private ListBoxFile testSubject;
 
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    @Mock
     private ProcessContext mockProcessContext;
     @Mock
     private BoxClientService mockBoxClientService;
     @Mock
     private PropertyValue mockBoxClientServicePropertyValue;
     @Mock
-    private BoxAPIConnection mockBoxAPIConnection;
+    private PropertyValue mockFolderIdPropertyValue;
     @Mock
-    private BoxFolder mockBoxFolder;
+    private PropertyValue mockRecursiveSearchPropertyValue;
+    @Mock
+    private PropertyValue mockMinAgePropertyValue;
+    @Mock
+    private BoxClient mockBoxClient;
 
     @BeforeEach
     void setUp() {
-        testSubject = new ListBoxFile() {
-            @Override
-            BoxFolder getFolder(String folderId) {
-                return mockBoxFolder;
-            }
-        };
+        testSubject = new ListBoxFile();
 
+        // Mock BOX_CLIENT_SERVICE property
         doReturn(mockBoxClientServicePropertyValue).when(mockProcessContext).getProperty(AbstractBoxProcessor.BOX_CLIENT_SERVICE);
         doReturn(mockBoxClientService).when(mockBoxClientServicePropertyValue).asControllerService(BoxClientService.class);
-        doReturn(mockBoxAPIConnection).when(mockBoxClientService).getBoxApiConnection();
+        doReturn(mockBoxClient).when(mockBoxClientService).getBoxClient();
+
+        // Mock FOLDER_ID property with proper chain
+        doReturn(mockFolderIdPropertyValue).when(mockProcessContext).getProperty(ListBoxFile.FOLDER_ID);
+        PropertyValue evaluatedFolderIdPropertyValue = mock(PropertyValue.class);
+        doReturn(evaluatedFolderIdPropertyValue).when(mockFolderIdPropertyValue).evaluateAttributeExpressions();
+        doReturn("testFolderId").when(evaluatedFolderIdPropertyValue).getValue();
+
+        // Mock RECURSIVE_SEARCH property
+        doReturn(mockRecursiveSearchPropertyValue).when(mockProcessContext).getProperty(ListBoxFile.RECURSIVE_SEARCH);
+        doReturn(false).when(mockRecursiveSearchPropertyValue).asBoolean();
+
+        // Mock MIN_AGE property
+        doReturn(mockMinAgePropertyValue).when(mockProcessContext).getProperty(ListBoxFile.MIN_AGE);
+        doReturn(0L).when(mockMinAgePropertyValue).asTimePeriod(TimeUnit.MILLISECONDS);
 
         testSubject.onScheduled(mockProcessContext);
     }
@@ -114,7 +128,7 @@ public class ListBoxFileListingTest implements FileListingTestTrait {
     }
 
     @Override
-    public BoxFolder getMockBoxFolder() {
-        return mockBoxFolder;
+    public BoxClient getMockBoxClient() {
+        return mockBoxClient;
     }
 }

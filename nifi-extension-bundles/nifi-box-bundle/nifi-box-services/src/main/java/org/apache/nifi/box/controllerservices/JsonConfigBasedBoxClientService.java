@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.box.controllerservices;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIException;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxConfig;
-import com.box.sdk.BoxDeveloperEditionAPIConnection;
+import com.box.sdkgen.box.errors.BoxSDKError;
+import com.box.sdkgen.box.jwtauth.BoxJWTAuth;
+import com.box.sdkgen.box.jwtauth.JWTConfig;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.networking.boxnetworkclient.BoxNetworkClient;
+import com.box.sdkgen.networking.network.NetworkSession;
+import com.box.sdkgen.networking.networkclient.NetworkClient;
+import com.box.sdkgen.networking.proxyconfig.ProxyConfig;
+import okhttp3.OkHttpClient;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -43,17 +47,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.Reader;
 import java.net.Proxy;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.FAILED;
 import static org.apache.nifi.components.ConfigVerificationResult.Outcome.SUCCESSFUL;
 
@@ -96,19 +96,19 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
         .build();
 
-    static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Connect Timeout")
-        .description("Maximum amount of time to wait before failing during initial socket connection.")
+        .description("The maximum time to wait when establishing a connection to Box API.")
         .required(true)
-        .defaultValue("10 secs")
+        .defaultValue("30 sec")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
-    static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor READ_TIMEOUT = new PropertyDescriptor.Builder()
         .name("Read Timeout")
-        .description("Maximum amount of time to wait before failing while reading socket responses.")
+        .description("The maximum time to wait for a response from Box API.")
         .required(true)
-        .defaultValue("30 secs")
+        .defaultValue("30 sec")
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
@@ -124,7 +124,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
         ProxyConfiguration.createProxyConfigPropertyDescriptor(PROXY_SPECS)
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -136,7 +136,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
 
         final List<ConfigVerificationResult> results = new ArrayList<>();
         try {
-            createBoxApiConnection(configurationContext);
+            createBoxClient(configurationContext);
             results.add(
                     new ConfigVerificationResult.Builder()
                             .verificationStepName("Authentication")
@@ -160,7 +160,7 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        boxAPIConnection = createBoxApiConnection(context);
+        boxClient = createBoxClient(context);
     }
 
     @Override
@@ -193,62 +193,74 @@ public class JsonConfigBasedBoxClientService extends AbstractControllerService i
     }
 
     @Override
-    public BoxAPIConnection getBoxApiConnection() {
-        return boxAPIConnection;
+    public BoxClient getBoxClient() {
+        return boxClient;
     }
 
-    private BoxAPIConnection createBoxApiConnection(ConfigurationContext context) {
+    private BoxClient createBoxClient(ConfigurationContext context) {
         final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
 
-        final BoxConfig boxConfig;
+        final JWTConfig jwtConfig;
         if (context.getProperty(APP_CONFIG_FILE).isSet()) {
             String appConfigFile = context.getProperty(APP_CONFIG_FILE).evaluateAttributeExpressions().getValue();
-            try (
-                Reader reader = new FileReader(appConfigFile)
-            ) {
-                boxConfig = BoxConfig.readFrom(reader);
-            } catch (FileNotFoundException e) {
-                throw new ProcessException("Couldn't find Box config file", e);
-            } catch (IOException e) {
-                throw new ProcessException("Couldn't read Box config file", e);
-            }
+            jwtConfig = JWTConfig.fromConfigFile(appConfigFile);
         } else {
             final String appConfig = context.getProperty(APP_CONFIG_JSON).evaluateAttributeExpressions().getValue();
-            boxConfig = BoxConfig.readFrom(appConfig);
+            jwtConfig = JWTConfig.fromConfigJsonString(appConfig);
         }
 
-        final BoxAPIConnection api;
-        try {
-            api = BoxDeveloperEditionAPIConnection.getAppEnterpriseConnection(boxConfig);
-        } catch (final BoxAPIResponseException e) {
-            if (boxConfig.getEnterpriseId().equals("0")) {
-                throw new BoxAPIException("Box API integration is not enabled for account, the account's enterprise ID cannot be 0", e);
-            } else {
-                throw e;
-            }
-        }
+        BoxJWTAuth auth = new BoxJWTAuth(jwtConfig);
 
         final BoxAppActor appActor = context.getProperty(APP_ACTOR).asAllowableValue(BoxAppActor.class);
         switch (appActor) {
-            case SERVICE_ACCOUNT -> api.asSelf();
+            case SERVICE_ACCOUNT -> {
+                // Default behavior - no additional action needed
+            }
             case IMPERSONATED_USER -> {
                 final String accountId = context.getProperty(ACCOUNT_ID).evaluateAttributeExpressions().getValue();
-                api.asUser(accountId);
+                auth = auth.withUserSubject(accountId);
+            }
+        }
+
+        final Duration connectTimeout = Duration.ofMillis(context.getProperty(CONNECT_TIMEOUT).asTimePeriod(java.util.concurrent.TimeUnit.MILLISECONDS));
+        final Duration readTimeout = Duration.ofMillis(context.getProperty(READ_TIMEOUT).asTimePeriod(java.util.concurrent.TimeUnit.MILLISECONDS));
+
+        final OkHttpClient okHttpClient = BoxNetworkClient.getDefaultOkHttpClientBuilder()
+                .connectTimeout(connectTimeout)
+                .readTimeout(readTimeout)
+                .build();
+        final NetworkClient networkClient = new BoxNetworkClient(okHttpClient);
+        final NetworkSession networkSession = new NetworkSession.Builder()
+                .networkClient(networkClient)
+                .build();
+
+        BoxClient client;
+        try {
+            client = new BoxClient.Builder(auth)
+                    .networkSession(networkSession)
+                    .build();
+        } catch (final BoxSDKError e) {
+            if (jwtConfig.getEnterpriseId() != null && jwtConfig.getEnterpriseId().equals("0")) {
+                throw new ProcessException("Box API integration is not enabled for account, the account's enterprise ID cannot be 0", e);
+            } else {
+                throw new ProcessException("Failed to create Box client: " + e.getMessage(), e);
             }
         }
 
         if (!Proxy.Type.DIRECT.equals(proxyConfiguration.getProxyType())) {
-            api.setProxy(proxyConfiguration.createProxy());
+            final String proxyUrl = "http://" + proxyConfiguration.getProxyServerHost() + ":" + proxyConfiguration.getProxyServerPort();
+            final ProxyConfig.Builder proxyConfigBuilder = new ProxyConfig.Builder(proxyUrl);
 
             if (proxyConfiguration.hasCredential()) {
-                api.setProxyBasicAuthentication(proxyConfiguration.getProxyUserName(), proxyConfiguration.getProxyUserPassword());
+                proxyConfigBuilder
+                    .username(proxyConfiguration.getProxyUserName())
+                    .password(proxyConfiguration.getProxyUserPassword());
             }
+
+            client = client.withProxy(proxyConfigBuilder.build());
         }
 
-        api.setConnectTimeout(context.getProperty(CONNECT_TIMEOUT).asTimePeriod(MILLISECONDS).intValue());
-        api.setReadTimeout(context.getProperty(READ_TIMEOUT).asTimePeriod(MILLISECONDS).intValue());
-
-        return api;
+        return client;
     }
 
     @Override

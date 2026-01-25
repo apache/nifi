@@ -16,14 +16,20 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFolder;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.box.errors.ResponseInfo;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.folders.FoldersManager;
+import com.box.sdkgen.managers.folders.GetFolderItemsQueryParams;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.items.Items;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
@@ -34,23 +40,23 @@ import java.util.Map;
 import static org.apache.nifi.processors.box.BoxFileAttributes.ERROR_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileListingTestTrait {
 
     private static final String RECORD_WRITER_ID = "record-writer";
 
+    @Mock
+    private FoldersManager mockFoldersManager;
+
     @Override
     @BeforeEach
     void setUp() throws Exception {
-        final ListBoxFileInfo testSubject = new ListBoxFileInfo() {
-            @Override
-            BoxFolder getFolder(final String folderId) {
-                return mockBoxFolder;
-            }
-        };
+        final ListBoxFileInfo testSubject = new ListBoxFileInfo();
 
         testRunner = TestRunners.newTestRunner(testSubject);
 
@@ -147,17 +153,14 @@ public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileList
     void testBoxAPIResponseException() {
         testRunner.setProperty(ListBoxFileInfo.FOLDER_ID, TEST_FOLDER_ID);
 
-        final BoxAPIResponseException apiException = new BoxAPIResponseException("API Error", 500, "Internal Server Error", null);
-        doThrow(apiException).when(mockBoxFolder).getChildren(
-                "id",
-                "name",
-                "item_status",
-                "size",
-                "created_at",
-                "modified_at",
-                "content_created_at",
-                "content_modified_at",
-                "path_collection");
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(500);
+        BoxAPIError apiException = mock(BoxAPIError.class);
+        when(apiException.getMessage()).thenReturn("API Error");
+        when(apiException.getResponseInfo()).thenReturn(mockResponseInfo);
+
+        when(mockFoldersManager.getFolderItems(anyString(), any(GetFolderItemsQueryParams.class))).thenThrow(apiException);
+        when(mockBoxClient.getFolders()).thenReturn(mockFoldersManager);
 
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
@@ -176,17 +179,14 @@ public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileList
     void testBoxAPIResponseExceptionNotFound() {
         testRunner.setProperty(ListBoxFileInfo.FOLDER_ID, TEST_FOLDER_ID);
 
-        final BoxAPIResponseException apiException = new BoxAPIResponseException("API Error", 404, "Not Found", null);
-        doThrow(apiException).when(mockBoxFolder).getChildren(
-                "id",
-                "name",
-                "item_status",
-                "size",
-                "created_at",
-                "modified_at",
-                "content_created_at",
-                "content_modified_at",
-                "path_collection");
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(404);
+        BoxAPIError apiException = mock(BoxAPIError.class);
+        when(apiException.getMessage()).thenReturn("API Error");
+        when(apiException.getResponseInfo()).thenReturn(mockResponseInfo);
+
+        when(mockFoldersManager.getFolderItems(anyString(), any(GetFolderItemsQueryParams.class))).thenThrow(apiException);
+        when(mockBoxClient.getFolders()).thenReturn(mockFoldersManager);
 
         final MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
@@ -202,27 +202,24 @@ public class ListBoxFileInfoTest extends AbstractBoxFileTest implements FileList
         notFoundFlowFile.assertAttributeExists(ERROR_MESSAGE);
     }
 
+    @SuppressWarnings("unchecked")
     private void mockMultipleFilesResponse() {
         List<String> pathParts = Arrays.asList("path", "to", "file");
 
-        doReturn(Arrays.asList(
-                createFileInfo(TEST_FILE_ID + "1", TEST_FILENAME + "1", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME),
-                createFileInfo(TEST_FILE_ID + "2", TEST_FILENAME + "2", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME),
-                createFileInfo(TEST_FILE_ID + "3", TEST_FILENAME + "3", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME)
-        )).when(mockBoxFolder).getChildren(
-                "id",
-                "name",
-                "item_status",
-                "size",
-                "created_at",
-                "modified_at",
-                "content_created_at",
-                "content_modified_at",
-                "path_collection");
+        FileFull file1 = createFileInfo(TEST_FILE_ID + "1", TEST_FILENAME + "1", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
+        FileFull file2 = createFileInfo(TEST_FILE_ID + "2", TEST_FILENAME + "2", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
+        FileFull file3 = createFileInfo(TEST_FILE_ID + "3", TEST_FILENAME + "3", pathParts, TEST_SIZE, CREATED_TIME, MODIFIED_TIME);
+
+        Items items = mock(Items.class);
+        List entries = List.of(file1, file2, file3);
+        when(items.getEntries()).thenReturn(entries);
+
+        when(mockFoldersManager.getFolderItems(anyString(), any(GetFolderItemsQueryParams.class))).thenReturn(items);
+        when(mockBoxClient.getFolders()).thenReturn(mockFoldersManager);
     }
 
     @Override
-    public BoxFolder getMockBoxFolder() {
-        return mockBoxFolder;
+    public BoxClient getMockBoxClient() {
+        return mockBoxClient;
     }
 }
