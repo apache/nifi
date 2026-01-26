@@ -287,6 +287,13 @@ public class EnrichGraphRecord extends AbstractGraphExecutor {
                             } else if (RecordFieldType.RECORD.equals(rawValueType)) {
                                 MapRecord mapRecord = (MapRecord) rawValue;
                                 dynamicPropertyMap.put(fieldName, mapRecord.toMap(true));
+                            } else if (RecordFieldType.STRING.equals(rawValueType)) {
+                                // Escape single quotes
+                                String stringValue = (String) rawValue;
+                                if (rawValue != null) {
+                                    stringValue = stringValue.replace('\'', '\\');
+                                    dynamicPropertyMap.put(fieldName, stringValue);
+                                }
                             } else {
                                 dynamicPropertyMap.put(fieldName, rawValue);
                             }
