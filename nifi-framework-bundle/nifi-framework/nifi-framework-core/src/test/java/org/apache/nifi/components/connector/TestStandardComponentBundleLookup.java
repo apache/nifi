@@ -27,10 +27,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,9 +55,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "1.2.0")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("1.2.0", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("1.2.0", latestBundle.get().getVersion());
         }
 
         @Test
@@ -67,9 +67,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "2.0.0")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("2.0.0", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("2.0.0", latestBundle.get().getVersion());
         }
 
         @Test
@@ -79,9 +79,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "1.0.1")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("1.0.1", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("1.0.1", latestBundle.get().getVersion());
         }
 
         @Test
@@ -91,9 +91,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "1.0")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("1.0.1", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("1.0.1", latestBundle.get().getVersion());
         }
 
         @Test
@@ -103,9 +103,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "1.0.0")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("1.0.0", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("1.0.0", latestBundle.get().getVersion());
         }
 
         @Test
@@ -115,15 +115,15 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "1.0.0")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("1.0.1-SNAPSHOT", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("1.0.1-SNAPSHOT", latestBundle.get().getVersion());
         }
 
         @Test
         void testEmptyList() {
             setupBundles();
-            assertNull(lookup.getLatestBundle(COMPONENT_TYPE));
+            assertTrue(lookup.getLatestBundle(COMPONENT_TYPE).isEmpty());
         }
 
         @Test
@@ -133,9 +133,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "4.0.next")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("4.0.0", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("4.0.0", latestBundle.get().getVersion());
         }
 
         @Test
@@ -145,9 +145,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "undefined")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("1.0.0", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("1.0.0", latestBundle.get().getVersion());
         }
 
         @Test
@@ -157,9 +157,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "unknown")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("unknown", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("unknown", latestBundle.get().getVersion());
         }
 
         @Test
@@ -173,9 +173,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "2.0.0")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("2.0.0", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("2.0.0", latestBundle.get().getVersion());
         }
 
         @Test
@@ -188,9 +188,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "2.0.0-RC2")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("2.0.0-RC2", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("2.0.0-RC2", latestBundle.get().getVersion());
         }
 
         @Test
@@ -201,9 +201,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "2.0.0-SNAPSHOT")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("2.0.0-M4", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("2.0.0-M4", latestBundle.get().getVersion());
         }
 
         @Test
@@ -213,9 +213,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "2026.01.01")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("2026.01.01", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("2026.01.01", latestBundle.get().getVersion());
         }
 
         @Test
@@ -225,9 +225,9 @@ public class TestStandardComponentBundleLookup {
                 createBundle("group", "artifact", "2026.01.01.451")
             );
 
-            final Bundle latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
-            assertNotNull(latestBundle);
-            assertEquals("2026.01.01.451", latestBundle.getVersion());
+            final Optional<Bundle> latestBundle = lookup.getLatestBundle(COMPONENT_TYPE);
+            assertTrue(latestBundle.isPresent());
+            assertEquals("2026.01.01.451", latestBundle.get().getVersion());
         }
 
         private void setupBundles(final org.apache.nifi.bundle.Bundle... bundles) {

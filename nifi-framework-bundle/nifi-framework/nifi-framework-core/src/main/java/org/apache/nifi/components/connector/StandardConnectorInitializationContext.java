@@ -134,11 +134,10 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
                 }
                 break;
             case RESOLVE_NEWEST_BUNDLE:
-                final Bundle latestBundle = componentBundleLookup.getLatestBundle(componentType);
-                if (latestBundle != null) {
+                componentBundleLookup.getLatestBundle(componentType).ifPresent(latestBundle -> {
                     componentLog.debug("Resolved bundle for {} from {} to {}", componentType, currentBundle, latestBundle);
                     bundleSetter.accept(latestBundle);
-                }
+                });
                 break;
             default:
                 break;

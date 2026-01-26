@@ -389,26 +389,32 @@ public class VersionedFlowUtils {
 
     /**
      * Updates the given processor to use the latest available bundle version.
+     * If no bundle is available, the processor's bundle is left unchanged.
      * See {@link ComponentBundleLookup#getLatestBundle(String)} for details on how version comparison is performed.
      *
      * @param processor the processor to update
      * @param componentBundleLookup the lookup used to find available bundles for the processor type
+     * @return true if the bundle was updated, false if no bundle was available
      */
-    public static void updateToLatestBundle(final VersionedProcessor processor, final ComponentBundleLookup componentBundleLookup) {
-        final Bundle latest = componentBundleLookup.getLatestBundle(processor.getType());
-        processor.setBundle(latest);
+    public static boolean updateToLatestBundle(final VersionedProcessor processor, final ComponentBundleLookup componentBundleLookup) {
+        final Optional<Bundle> latestBundle = componentBundleLookup.getLatestBundle(processor.getType());
+        latestBundle.ifPresent(processor::setBundle);
+        return latestBundle.isPresent();
     }
 
     /**
      * Updates the given controller service to use the latest available bundle version.
+     * If no bundle is available, the service's bundle is left unchanged.
      * See {@link ComponentBundleLookup#getLatestBundle(String)} for details on how version comparison is performed.
      *
      * @param service the controller service to update
      * @param componentBundleLookup the lookup used to find available bundles for the service type
+     * @return true if the bundle was updated, false if no bundle was available
      */
-    public static void updateToLatestBundle(final VersionedControllerService service, final ComponentBundleLookup componentBundleLookup) {
-        final Bundle latest = componentBundleLookup.getLatestBundle(service.getType());
-        service.setBundle(latest);
+    public static boolean updateToLatestBundle(final VersionedControllerService service, final ComponentBundleLookup componentBundleLookup) {
+        final Optional<Bundle> latestBundle = componentBundleLookup.getLatestBundle(service.getType());
+        latestBundle.ifPresent(service::setBundle);
+        return latestBundle.isPresent();
     }
 
 }

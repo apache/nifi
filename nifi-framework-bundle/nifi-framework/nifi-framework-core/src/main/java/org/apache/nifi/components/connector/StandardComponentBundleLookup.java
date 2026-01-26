@@ -22,6 +22,7 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 
 import java.util.List;
+import java.util.Optional;
 
 public class StandardComponentBundleLookup implements ComponentBundleLookup {
     private final ExtensionManager extensionManager;
@@ -39,10 +40,10 @@ public class StandardComponentBundleLookup implements ComponentBundleLookup {
     }
 
     @Override
-    public Bundle getLatestBundle(final String componentType) {
+    public Optional<Bundle> getLatestBundle(final String componentType) {
         final List<Bundle> availableBundles = getAvailableBundles(componentType);
         if (availableBundles.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         Bundle newest = null;
@@ -52,7 +53,7 @@ public class StandardComponentBundleLookup implements ComponentBundleLookup {
             }
         }
 
-        return newest;
+        return Optional.ofNullable(newest);
     }
 
     private int compareVersion(final String v1, final String v2) {

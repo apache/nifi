@@ -28,8 +28,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,7 +49,7 @@ public class TestVersionedFlowUtils {
             final VersionedProcessor processor = VersionedFlowUtils.addProcessor(group, PROCESSOR_TYPE, new Bundle("group", "artifact", "2.0.0"), "Test Processor", new Position(0, 0));
 
             final ComponentBundleLookup lookup = mock(ComponentBundleLookup.class);
-            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(new Bundle("group", "artifact", "3.0.0"));
+            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(Optional.of(new Bundle("group", "artifact", "3.0.0")));
 
             VersionedFlowUtils.updateToLatestBundles(group, lookup);
 
@@ -59,7 +62,7 @@ public class TestVersionedFlowUtils {
             final VersionedProcessor processor = VersionedFlowUtils.addProcessor(group, PROCESSOR_TYPE, new Bundle("group", "artifact", "2.0.0"), "Test Processor", new Position(0, 0));
 
             final ComponentBundleLookup lookup = mock(ComponentBundleLookup.class);
-            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(new Bundle("group", "artifact", "4.0.0"));
+            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(Optional.of(new Bundle("group", "artifact", "4.0.0")));
 
             VersionedFlowUtils.updateToLatestBundles(group, lookup);
 
@@ -72,7 +75,7 @@ public class TestVersionedFlowUtils {
             final VersionedControllerService service = VersionedFlowUtils.addControllerService(group, SERVICE_TYPE, new Bundle("group", "artifact", "1.5.0"), "Test Service");
 
             final ComponentBundleLookup lookup = mock(ComponentBundleLookup.class);
-            when(lookup.getLatestBundle(SERVICE_TYPE)).thenReturn(new Bundle("group", "artifact", "2.5.0"));
+            when(lookup.getLatestBundle(SERVICE_TYPE)).thenReturn(Optional.of(new Bundle("group", "artifact", "2.5.0")));
 
             VersionedFlowUtils.updateToLatestBundles(group, lookup);
 
@@ -86,11 +89,52 @@ public class TestVersionedFlowUtils {
             final VersionedProcessor nestedProcessor = VersionedFlowUtils.addProcessor(childGroup, PROCESSOR_TYPE, new Bundle("group", "artifact", "1.0.0"), "Nested Processor", new Position(0, 0));
 
             final ComponentBundleLookup lookup = mock(ComponentBundleLookup.class);
-            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(new Bundle("group", "artifact", "5.0.0"));
+            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(Optional.of(new Bundle("group", "artifact", "5.0.0")));
 
             VersionedFlowUtils.updateToLatestBundles(rootGroup, lookup);
 
             assertEquals("5.0.0", nestedProcessor.getBundle().getVersion());
+        }
+
+        @Test
+        void testEmptyOptionalDoesNotChangeBundle() {
+            final VersionedProcessGroup group = createProcessGroup();
+            final VersionedProcessor processor = VersionedFlowUtils.addProcessor(group, PROCESSOR_TYPE, new Bundle("group", "artifact", "2.0.0"), "Test Processor", new Position(0, 0));
+
+            final ComponentBundleLookup lookup = mock(ComponentBundleLookup.class);
+            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(Optional.empty());
+
+            VersionedFlowUtils.updateToLatestBundles(group, lookup);
+
+            assertEquals("2.0.0", processor.getBundle().getVersion());
+        }
+
+        @Test
+        void testUpdateToLatestBundleReturnsTrueWhenUpdated() {
+            final VersionedProcessGroup group = createProcessGroup();
+            final VersionedProcessor processor = VersionedFlowUtils.addProcessor(group, PROCESSOR_TYPE, new Bundle("group", "artifact", "2.0.0"), "Test Processor", new Position(0, 0));
+
+            final ComponentBundleLookup lookup = mock(ComponentBundleLookup.class);
+            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(Optional.of(new Bundle("group", "artifact", "3.0.0")));
+
+            final boolean updated = VersionedFlowUtils.updateToLatestBundle(processor, lookup);
+
+            assertTrue(updated);
+            assertEquals("3.0.0", processor.getBundle().getVersion());
+        }
+
+        @Test
+        void testUpdateToLatestBundleReturnsFalseWhenNotUpdated() {
+            final VersionedProcessGroup group = createProcessGroup();
+            final VersionedProcessor processor = VersionedFlowUtils.addProcessor(group, PROCESSOR_TYPE, new Bundle("group", "artifact", "2.0.0"), "Test Processor", new Position(0, 0));
+
+            final ComponentBundleLookup lookup = mock(ComponentBundleLookup.class);
+            when(lookup.getLatestBundle(PROCESSOR_TYPE)).thenReturn(Optional.empty());
+
+            final boolean updated = VersionedFlowUtils.updateToLatestBundle(processor, lookup);
+
+            assertFalse(updated);
+            assertEquals("2.0.0", processor.getBundle().getVersion());
         }
 
         private VersionedProcessGroup createProcessGroup() {

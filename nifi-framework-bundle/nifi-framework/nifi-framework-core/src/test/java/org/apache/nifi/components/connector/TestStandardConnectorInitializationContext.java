@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -233,7 +234,7 @@ public class TestStandardConnectorInitializationContext {
 
         final ComponentBundleLookup bundleLookup = mock(ComponentBundleLookup.class);
         when(bundleLookup.getAvailableBundles("org.apache.nifi.processors.standard.GenerateFlowFile")).thenReturn(List.of(createBundle("org.apache.nifi", "nifi-standard-nar", "1.0.0"), newestBundle));
-        when(bundleLookup.getLatestBundle("org.apache.nifi.processors.standard.GenerateFlowFile")).thenReturn(newestBundle);
+        when(bundleLookup.getLatestBundle("org.apache.nifi.processors.standard.GenerateFlowFile")).thenReturn(Optional.of(newestBundle));
 
         final VersionedProcessGroup group = createProcessGroupWithProcessor("GenerateFlowFile", "org.apache.nifi.processors.standard.GenerateFlowFile", unavailableBundle);
 
