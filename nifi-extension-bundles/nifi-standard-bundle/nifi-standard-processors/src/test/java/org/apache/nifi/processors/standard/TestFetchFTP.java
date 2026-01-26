@@ -27,8 +27,8 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.file.transfer.FetchFileTransfer;
-import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processor.util.file.transfer.FileInfo;
+import org.apache.nifi.processor.util.file.transfer.FileTransfer;
 import org.apache.nifi.processor.util.file.transfer.PermissionDeniedException;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
 import org.apache.nifi.util.MockFlowFile;
@@ -130,7 +130,6 @@ public class TestFetchFTP {
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_PERMISSION_DENIED, 1);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
         MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
-        assertEquals(FetchFileTransfer.REL_PERMISSION_DENIED.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
         assertEquals(FetchFileTransfer.FAILURE_REASON_PERMISSION_DENIED_READ, transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
     }
 
