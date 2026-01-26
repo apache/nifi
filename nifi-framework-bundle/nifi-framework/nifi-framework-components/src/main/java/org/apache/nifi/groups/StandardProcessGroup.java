@@ -1591,6 +1591,7 @@ public final class StandardProcessGroup implements ProcessGroup {
         aggregateDropFlowFileStatus.setState(null);
 
         AtomicBoolean processedAtLeastOne = new AtomicBoolean(false);
+        final List<CompletableFuture<Void>> completionFutures = new ArrayList<>();
 
         connections.stream()
             .map(Connection::getFlowFileQueue)
@@ -1598,10 +1599,21 @@ public final class StandardProcessGroup implements ProcessGroup {
             .forEach(additionalDropFlowFileStatus -> {
                 aggregate(aggregateDropFlowFileStatus, additionalDropFlowFileStatus);
                 processedAtLeastOne.set(true);
+                completionFutures.add(additionalDropFlowFileStatus.getCompletionFuture());
             });
 
         if (processedAtLeastOne.get()) {
             resultDropFlowFileStatus = aggregateDropFlowFileStatus;
+
+            // When all individual drop requests complete, mark the aggregate as complete
+            CompletableFuture.allOf(completionFutures.toArray(new CompletableFuture[0]))
+                .whenComplete((result, throwable) -> {
+                    if (throwable != null) {
+                        aggregateDropFlowFileStatus.setState(DropFlowFileState.FAILURE, throwable.getMessage());
+                    } else {
+                        aggregateDropFlowFileStatus.setState(DropFlowFileState.COMPLETE);
+                    }
+                });
         } else {
             resultDropFlowFileStatus = null;
         }
