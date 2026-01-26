@@ -32,6 +32,7 @@ import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
+import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
@@ -537,6 +538,59 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                 Files.copy(responseInputStream, assetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 return assetFile.toPath();
             }
+        });
+    }
+
+    @Override
+    public DropRequestEntity createPurgeRequest(final String connectorId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+
+        return executeAction("Error creating purge request for Connector " + connectorId, () -> {
+            final WebTarget target = connectorsTarget
+                .path("{id}/purge-requests")
+                .resolveTemplate("id", connectorId);
+
+            return getRequestBuilder(target).post(null, DropRequestEntity.class);
+        });
+    }
+
+    @Override
+    public DropRequestEntity getPurgeRequest(final String connectorId, final String purgeRequestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(purgeRequestId)) {
+            throw new IllegalArgumentException("Purge request id cannot be null or blank");
+        }
+
+        return executeAction("Error getting purge request for Connector " + connectorId, () -> {
+            final WebTarget target = connectorsTarget
+                .path("{id}/purge-requests/{purgeRequestId}")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("purgeRequestId", purgeRequestId);
+
+            return getRequestBuilder(target).get(DropRequestEntity.class);
+        });
+    }
+
+    @Override
+    public DropRequestEntity deletePurgeRequest(final String connectorId, final String purgeRequestId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(purgeRequestId)) {
+            throw new IllegalArgumentException("Purge request id cannot be null or blank");
+        }
+
+        return executeAction("Error deleting purge request for Connector " + connectorId, () -> {
+            final WebTarget target = connectorsTarget
+                .path("{id}/purge-requests/{purgeRequestId}")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("purgeRequestId", purgeRequestId);
+
+            return getRequestBuilder(target).delete(DropRequestEntity.class);
         });
     }
 }

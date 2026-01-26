@@ -1472,9 +1472,37 @@ public class NiFiClientUtil {
     public void deleteConnectors() throws NiFiClientException, IOException {
         final ConnectorsEntity connectors = nifiClient.getFlowClient().getConnectors();
         for (final ConnectorEntity connector : connectors.getConnectors()) {
+            purgeConnectorFlowFiles(connector.getId());
             connector.setDisconnectedNodeAcknowledged(true);
             nifiClient.getConnectorClient().deleteConnector(connector);
         }
+    }
+
+    public DropRequestEntity purgeConnectorFlowFiles(final String connectorId) throws NiFiClientException, IOException {
+        final ConnectorClient connectorClient = getConnectorClient();
+        final long maxTimestamp = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(1L);
+
+        DropRequestEntity requestEntity = connectorClient.createPurgeRequest(connectorId);
+        try {
+            while (requestEntity.getDropRequest().getPercentCompleted() < 100) {
+                if (System.currentTimeMillis() > maxTimestamp) {
+                    throw new IOException("Timed out waiting for Connector " + connectorId + " to purge FlowFiles");
+                }
+
+                try {
+                    Thread.sleep(50L);
+                } catch (final InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+
+                requestEntity = connectorClient.getPurgeRequest(connectorId, requestEntity.getDropRequest().getId());
+            }
+        } finally {
+            requestEntity = connectorClient.deletePurgeRequest(connectorId, requestEntity.getDropRequest().getId());
+        }
+
+        return requestEntity;
     }
 
     public void waitForControllerServiceRunStatus(final String id, final String requestedRunStatus) throws NiFiClientException, IOException {

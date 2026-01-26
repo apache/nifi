@@ -3860,6 +3860,16 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public void verifyPurgeConnectorFlowFiles(final String connectorId) {
+        connectorDAO.verifyPurgeFlowFiles(connectorId);
+    }
+
+    @Override
+    public void purgeConnectorFlowFiles(final String connectorId, final String requestor) {
+        connectorDAO.purgeFlowFiles(connectorId, requestor);
+    }
+
+    @Override
     public ReportingTaskEntity updateReportingTask(final Revision revision, final ReportingTaskDTO reportingTaskDTO) {
         // get the component, ensure we have access to it, and perform the update request
         final ReportingTaskNode reportingTask = reportingTaskDAO.getReportingTask(reportingTaskDTO.getId());

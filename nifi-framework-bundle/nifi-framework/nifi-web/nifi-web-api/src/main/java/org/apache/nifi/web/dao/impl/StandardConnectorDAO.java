@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @Repository
@@ -148,6 +149,25 @@ public class StandardConnectorDAO implements ConnectorDAO {
     public void verifyCancelDrainFlowFile(final String id) {
         final ConnectorNode connector = getConnector(id);
         connector.verifyCancelDrainFlowFiles();
+    }
+
+    @Override
+    public void verifyPurgeFlowFiles(final String id) {
+        final ConnectorNode connector = getConnector(id);
+        connector.verifyCanPurgeFlowFiles();
+    }
+
+    @Override
+    public void purgeFlowFiles(final String id, final String requestor) {
+        final ConnectorNode connector = getConnector(id);
+        try {
+            connector.purgeFlowFiles(requestor).get();
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Thread was interrupted while purging FlowFiles for Connector " + id, e);
+        } catch (final ExecutionException e) {
+            throw new IllegalStateException("Failed to purge FlowFiles for Connector " + id, e.getCause());
+        }
     }
 
     @Override
