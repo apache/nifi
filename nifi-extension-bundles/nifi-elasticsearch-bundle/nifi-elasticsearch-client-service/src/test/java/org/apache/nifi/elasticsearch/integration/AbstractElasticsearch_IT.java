@@ -19,7 +19,7 @@ package org.apache.nifi.elasticsearch.integration;
 import org.apache.nifi.elasticsearch.AuthorizationScheme;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
-import org.apache.nifi.elasticsearch.TestControllerServiceProcessor;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,10 +35,9 @@ abstract class AbstractElasticsearch_IT extends AbstractElasticsearchITBase {
 
     @BeforeEach
     void before() throws Exception {
-        runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new ElasticSearchClientServiceImpl();
         runner.addControllerService(CLIENT_SERVICE_NAME, service);
-        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, CLIENT_SERVICE_NAME);
 
         runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, elasticsearchHost);
         runner.setProperty(service, ElasticSearchClientService.CONNECT_TIMEOUT, "10000");

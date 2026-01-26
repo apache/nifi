@@ -17,6 +17,7 @@
 package org.apache.nifi.lookup;
 
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -33,7 +34,7 @@ public class TestSimpleKeyValueLookupService {
     public void testSimpleKeyValueLookupService() throws InitializationException {
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
 
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.setProperty(service, "key1", "value1");
         runner.setProperty(service, "key2", "value2");

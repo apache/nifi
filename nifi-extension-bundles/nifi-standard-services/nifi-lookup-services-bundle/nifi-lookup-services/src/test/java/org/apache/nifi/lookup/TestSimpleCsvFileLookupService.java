@@ -19,6 +19,7 @@ package org.apache.nifi.lookup;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -35,13 +36,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSimpleCsvFileLookupService {
 
-    static final Optional<String> EMPTY_STRING = Optional.empty();
     private TestRunner runner;
     private SimpleCsvFileLookupService service;
 
     @BeforeEach
     void setUp() throws InitializationException {
-        runner = TestRunners.newTestRunner(TestProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new SimpleCsvFileLookupService();
         runner.addControllerService("csv-file-lookup-service", service);
     }
@@ -67,7 +67,7 @@ public class TestSimpleCsvFileLookupService {
         assertEquals(Optional.of("this is property 2"), property2);
 
         final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
-        assertEquals(EMPTY_STRING, property3);
+        assertEquals(Optional.empty(), property3);
     }
 
     @Test

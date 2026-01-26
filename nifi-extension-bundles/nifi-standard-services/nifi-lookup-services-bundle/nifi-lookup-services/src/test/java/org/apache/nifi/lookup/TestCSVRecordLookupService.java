@@ -20,6 +20,7 @@ import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -40,7 +41,7 @@ public class TestCSVRecordLookupService {
 
     @BeforeEach
     void setUp() throws InitializationException {
-        runner = TestRunners.newTestRunner(TestProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new CSVRecordLookupService();
         runner.addControllerService("csv-record-lookup-service", service);
     }

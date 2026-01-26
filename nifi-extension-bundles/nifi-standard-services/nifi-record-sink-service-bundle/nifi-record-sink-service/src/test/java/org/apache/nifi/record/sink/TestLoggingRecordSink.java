@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -50,7 +51,7 @@ public class TestLoggingRecordSink {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         recordSink = new LoggingRecordSink();
         runner.addControllerService("log", recordSink);
 

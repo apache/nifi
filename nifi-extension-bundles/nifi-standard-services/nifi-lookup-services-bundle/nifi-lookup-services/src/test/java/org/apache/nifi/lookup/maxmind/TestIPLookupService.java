@@ -18,9 +18,9 @@
 package org.apache.nifi.lookup.maxmind;
 
 import com.maxmind.geoip2.DatabaseReader;
-import org.apache.nifi.lookup.TestProcessor;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -66,7 +66,7 @@ public class TestIPLookupService {
 
     @BeforeEach
     public void setUp() {
-        runner = TestRunners.newTestRunner(TestProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         testSubject = new IPLookupService() {
             @NotNull
             @Override
