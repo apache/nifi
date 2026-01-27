@@ -19,6 +19,7 @@ package org.apache.nifi.lookup;
 import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -34,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestXMLFileLookupService {
 
-    static final Optional<String> EMPTY_STRING = Optional.empty();
     private XMLFileLookupService service;
 
     @BeforeEach
@@ -44,7 +44,7 @@ public class TestXMLFileLookupService {
 
     @Test
     public void testXMLFileLookupService() throws InitializationException, LookupFailureException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         runner.addControllerService("xml-file-lookup-service", service);
         runner.setProperty(service, XMLFileLookupService.CONFIGURATION_FILE, "src/test/resources/test.xml");
@@ -66,14 +66,14 @@ public class TestXMLFileLookupService {
         assertEquals(Optional.of("this is property 3"), property3);
 
         final Optional<String> property4 = lookupService.lookup(Collections.singletonMap("key", "properties.property(3)"));
-        assertEquals(EMPTY_STRING, property4);
+        assertEquals(Optional.empty(), property4);
     }
 
     @Test
     public void testXXEProtection() throws InitializationException {
 
         // Arrange
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("xml-file-lookup-service", service);
         runner.setProperty(service, XMLFileLookupService.CONFIGURATION_FILE, "src/test/resources/test-xxe.xml");
 

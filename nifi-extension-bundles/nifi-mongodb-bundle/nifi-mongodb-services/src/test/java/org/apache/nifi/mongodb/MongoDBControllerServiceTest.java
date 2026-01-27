@@ -24,6 +24,7 @@ import com.mongodb.client.internal.MongoClientImpl;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -45,7 +46,7 @@ public class MongoDBControllerServiceTest {
 
     @BeforeEach
     public void setUp() throws Exception {
-        runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor    .class);
         service = new MongoDBControllerService();
         runner.addControllerService(IDENTIFIER, service);
     }
@@ -74,7 +75,7 @@ public class MongoDBControllerServiceTest {
     }
 
     @Test
-    public void testAllInUri_ScramSha256_WithDatabase() throws Exception {
+    public void testAllInUri_ScramSha256_WithDatabase() {
         final String uri = "mongodb://user1:pass1@localhost:27017/db1?authMechanism=SCRAM-SHA-256";
 
         runner.setProperty(service, MongoDBControllerService.URI, uri);
@@ -87,7 +88,7 @@ public class MongoDBControllerServiceTest {
     }
 
     @Test
-    public void testAllInUri_X509_WithUserInUri() throws Exception {
+    public void testAllInUri_X509_WithUserInUri() {
         final String uri = "mongodb://CN=uriUser@localhost:27017/?authMechanism=MONGODB-X509";
 
         runner.setProperty(service, MongoDBControllerService.URI, uri);
@@ -101,7 +102,7 @@ public class MongoDBControllerServiceTest {
     }
 
     @Test
-    public void testUriPlusUser_X509() throws Exception {
+    public void testUriPlusUser_X509() {
         final String uri = "mongodb://localhost:27017/?authMechanism=MONGODB-X509";
 
         runner.setProperty(service, MongoDBControllerService.URI, uri);
@@ -133,7 +134,7 @@ public class MongoDBControllerServiceTest {
     }
 
     @Test
-    public void testUriPlusUserPassword_ScramSha256() throws Exception {
+    public void testUriPlusUserPassword_ScramSha256() {
         final String uri = "mongodb://localhost:27017/db3?authMechanism=SCRAM-SHA-256";
 
         runner.setProperty(service, MongoDBControllerService.URI, uri);
@@ -148,7 +149,7 @@ public class MongoDBControllerServiceTest {
     }
 
     @Test
-    public void testUriPlusUserPassword_Plain() throws Exception {
+    public void testUriPlusUserPassword_Plain() {
         final String uri = "mongodb://localhost:27017/mydb?authMechanism=PLAIN";
 
         runner.setProperty(service, MongoDBControllerService.URI, uri);
@@ -163,7 +164,7 @@ public class MongoDBControllerServiceTest {
     }
 
     @Test
-    public void testUriPlusUserPassword_Aws() throws Exception {
+    public void testUriPlusUserPassword_Aws() {
         final String uri = "mongodb://localhost:27017/?authMechanism=MONGODB-AWS";
 
         runner.setProperty(service, MongoDBControllerService.URI, uri);
@@ -197,7 +198,7 @@ public class MongoDBControllerServiceTest {
     }
 
     @Test
-    public void testX509_PropertyOverridesUserInUri() throws Exception {
+    public void testX509_PropertyOverridesUserInUri() {
         final String uri = "mongodb://CN=uriPreferred@localhost:27017/?authMechanism=MONGODB-X509";
 
         runner.setProperty(service, MongoDBControllerService.URI, uri);

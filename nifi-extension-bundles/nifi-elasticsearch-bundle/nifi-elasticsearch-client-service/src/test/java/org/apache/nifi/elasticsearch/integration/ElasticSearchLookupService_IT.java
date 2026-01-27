@@ -17,7 +17,6 @@
 package org.apache.nifi.elasticsearch.integration;
 
 import org.apache.nifi.elasticsearch.ElasticSearchLookupService;
-import org.apache.nifi.elasticsearch.TestControllerServiceProcessor;
 import org.apache.nifi.elasticsearch.TestSchemaRegistry;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.record.path.FieldValue;
@@ -56,8 +55,6 @@ class ElasticSearchLookupService_IT extends AbstractElasticsearch_IT {
 
         lookupService = new ElasticSearchLookupService();
         runner.addControllerService(LOOKUP_SERVICE_NAME, lookupService);
-        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, CLIENT_SERVICE_NAME);
-        runner.setProperty(TestControllerServiceProcessor.LOOKUP_SERVICE, LOOKUP_SERVICE_NAME);
         runner.setProperty(lookupService, ElasticSearchLookupService.CLIENT_SERVICE, CLIENT_SERVICE_NAME);
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "user_details");
         setTypeOnLookupService();
