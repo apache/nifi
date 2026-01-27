@@ -19,6 +19,7 @@ package org.apache.nifi.connectors.tests.system;
 
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.connector.AbstractConnector;
+import org.apache.nifi.components.connector.BundleCompatibility;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
@@ -82,7 +83,7 @@ public class GatedDataQueuingConnector extends AbstractConnector {
         final Bundle bundle = new Bundle();
         bundle.setGroup("org.apache.nifi");
         bundle.setArtifact("nifi-system-test-extensions-nar");
-        bundle.setVersion("2.8.0-SNAPSHOT");
+        bundle.setVersion("2.8.0");
 
         final VersionedProcessor generate = createVersionedProcessor("gen-1", "1234", "GenerateFlowFile",
             "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle,
@@ -157,7 +158,7 @@ public class GatedDataQueuingConnector extends AbstractConnector {
             }
         }
 
-        getInitializationContext().updateFlow(activeFlowContext, flow);
+        getInitializationContext().updateFlow(activeFlowContext, flow, BundleCompatibility.RESOLVE_BUNDLE);
     }
 
     private VersionedProcessor createVersionedProcessor(final String identifier, final String groupIdentifier, final String name,
