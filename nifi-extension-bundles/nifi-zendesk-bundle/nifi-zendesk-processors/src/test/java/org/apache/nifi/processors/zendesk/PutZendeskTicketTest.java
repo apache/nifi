@@ -61,9 +61,6 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TY
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.processors.zendesk.AbstractZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
 import static org.apache.nifi.processors.zendesk.AbstractZendesk.REL_SUCCESS;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_EXPORT_METHOD;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_QUERY_START_TIMESTAMP;
-import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_RESOURCE;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.RECORD_READER;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_FAILURE;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
@@ -402,7 +399,7 @@ public class PutZendeskTicketTest {
         final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
         assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
-    
+
     class TestPutZendeskTicket extends PutZendeskTicket {
         @Override
         HttpUriBuilder uriBuilder(String resourcePath) {
