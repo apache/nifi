@@ -110,7 +110,14 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
         final ParameterContext sourceContext = sourceGroup.getParameterContext();
         if (sourceContext != null) {
             final ParameterContext duplicateParameterContext = flowController.getFlowManager().duplicateParameterContext(duplicateContextId, sourceContext);
-            destinationGroup.setParameterContext(duplicateParameterContext);
+            setParameterContexts(destinationGroup, duplicateParameterContext);
+        }
+    }
+
+    private void setParameterContexts(final ProcessGroup processGroup, final ParameterContext parameterContext) {
+        processGroup.setParameterContext(parameterContext);
+        for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
+            setParameterContexts(childGroup, parameterContext);
         }
     }
 }
