@@ -23,9 +23,9 @@ import org.apache.nifi.components.connector.components.ParameterContextFacade;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
-import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.ParameterContext;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -81,33 +81,32 @@ public class StandardFlowContext implements FrameworkFlowContext {
             versionedExternalFlow.setParameterContexts(new HashMap<>());
         }
 
-        final String parameterContextName = managedProcessGroup.getParameterContext().getName();
-        updateParameterContext(versionedExternalFlow.getFlowContents(), parameterContextName);
-
         try {
             managedProcessGroup.verifyCanUpdate(versionedExternalFlow, true, false);
         } catch (final IllegalStateException e) {
             throw new FlowUpdateException("Flow is not in a state that allows the requested updated", e);
         }
 
+        final ParameterContext managedGroupParameterContext = managedProcessGroup.getParameterContext();
         final VersionedExternalFlow withoutParameterContext = new VersionedExternalFlow();
         withoutParameterContext.setFlowContents(versionedExternalFlow.getFlowContents());
         withoutParameterContext.setParameterContexts(Collections.emptyMap());
-        managedProcessGroup.updateFlow(withoutParameterContext, managedProcessGroup.getIdentifier(), false, true, true);
+        managedProcessGroup.updateFlow(withoutParameterContext, managedProcessGroup.getIdentifier(), false, true, true, false);
+
+        updateParameterContext(managedProcessGroup, managedGroupParameterContext);
+        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
 
         final ConnectorParameterLookup parameterLookup = new ConnectorParameterLookup(versionedExternalFlow.getParameterContexts().values(), assetManager);
         getParameterContext().updateParameters(parameterLookup.getParameterValues());
 
-        rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
         parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
     }
 
-    private void updateParameterContext(final VersionedProcessGroup group, final String parameterContextName) {
-        group.setParameterContextName(parameterContextName);
-        if (group.getProcessGroups() != null) {
-            for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
-                updateParameterContext(childGroup, parameterContextName);
-            }
+    private void updateParameterContext(final ProcessGroup processGroup, final ParameterContext context) {
+        processGroup.setParameterContext(context);
+
+        for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
+            updateParameterContext(childGroup, context);
         }
     }
 

@@ -19,6 +19,8 @@ package org.apache.nifi.processors.tests.system;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -29,7 +31,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -40,9 +44,17 @@ public class UpdateContent extends AbstractProcessor {
         .name("Content")
         .displayName("Content")
         .description("Content to set")
-        .required(true)
+        .required(false)
         .addValidator(Validator.VALID)
-        .defaultValue("Default Content")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
+    static final PropertyDescriptor SENSITIVE_CONTENT = new Builder()
+        .name("Sensitive Content")
+        .displayName("Sensitive Content")
+        .description("Sensitive content to set (use for sensitive parameter references)")
+        .required(false)
+        .sensitive(true)
+        .addValidator(Validator.VALID)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     static final PropertyDescriptor UPDATE_STRATEGY = new Builder()
@@ -60,7 +72,23 @@ public class UpdateContent extends AbstractProcessor {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Arrays.asList(CONTENT, UPDATE_STRATEGY);
+        return Arrays.asList(CONTENT, SENSITIVE_CONTENT, UPDATE_STRATEGY);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
+        final List<ValidationResult> results = new ArrayList<>();
+        final boolean hasContent = context.getProperty(CONTENT).isSet();
+        final boolean hasSensitiveContent = context.getProperty(SENSITIVE_CONTENT).isSet();
+
+        if (hasContent == hasSensitiveContent) {
+            results.add(new ValidationResult.Builder()
+                .subject("Content")
+                .valid(false)
+                .explanation("Exactly one of 'Content' or 'Sensitive Content' must be set")
+                .build());
+        }
+        return results;
     }
 
     @Override
@@ -75,7 +103,12 @@ public class UpdateContent extends AbstractProcessor {
             return;
         }
 
-        final String content = context.getProperty(CONTENT).evaluateAttributeExpressions(flowFile).getValue();
+        final String content;
+        if (context.getProperty(CONTENT).isSet()) {
+            content = context.getProperty(CONTENT).evaluateAttributeExpressions(flowFile).getValue();
+        } else {
+            content = context.getProperty(SENSITIVE_CONTENT).evaluateAttributeExpressions(flowFile).getValue();
+        }
         final byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
 
         final String strategy = context.getProperty(UPDATE_STRATEGY).getValue();

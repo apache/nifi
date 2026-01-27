@@ -3853,7 +3853,7 @@ public final class StandardProcessGroup implements ProcessGroup {
 
     @Override
     public void updateFlow(final VersionedExternalFlow proposedSnapshot, final String componentIdSeed, final boolean verifyNotDirty, final boolean updateSettings,
-                           final boolean updateDescendantVersionedFlows) {
+                           final boolean updateDescendantVersionedFlows, final boolean updateParameterContexts) {
 
         final ComponentIdGenerator idGenerator = (proposedId, instanceId, destinationGroupId) -> generateUuid(proposedId, destinationGroupId, componentIdSeed);
         final VersionedComponentStateLookup stateLookup = VersionedComponentStateLookup.ENABLED_OR_DISABLED;
@@ -3869,6 +3869,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             .updateGroupSettings(updateSettings)
             .updateRpgUrls(false)
             .propertyDecryptor(value -> null)
+            .updateParameterContexts(updateParameterContexts)
             .build();
 
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()

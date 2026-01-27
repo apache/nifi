@@ -833,7 +833,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         versionedExternalFlow.setParameterProviders(Map.of());
         versionedExternalFlow.setParameterContexts(parameterContexts);
 
-        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true);
+        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true, true);
     }
 
     private void gatherParameterContexts(final ProcessGroup sourceGroup, final Map<String, ParameterContext> parameterContexts) {
