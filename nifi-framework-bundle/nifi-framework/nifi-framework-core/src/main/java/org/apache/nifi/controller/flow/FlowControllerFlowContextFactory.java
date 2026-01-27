@@ -104,7 +104,7 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
         versionedExternalFlow.setParameterProviders(Map.of());
         versionedExternalFlow.setParameterContexts(Map.of());
 
-        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true);
+        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true, false);
 
         final String duplicateContextId = UUID.nameUUIDFromBytes((destinationGroup.getIdentifier() + "-param-context").getBytes(StandardCharsets.UTF_8)).toString();
         final ParameterContext sourceContext = sourceGroup.getParameterContext();
