@@ -19,27 +19,35 @@ package org.apache.nifi.tests.system.connectors;
 
 import jakarta.ws.rs.NotFoundException;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.components.connector.BundleCompatibility;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.tests.system.NiFiSystemIT;
 import org.apache.nifi.toolkit.client.NiFiClientException;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorValueReferenceDTO;
+import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -210,5 +218,63 @@ public class ConnectorCrudIT extends NiFiSystemIT {
         } catch (final NiFiClientException e) {
             assertInstanceOf(NotFoundException.class, e.getCause());
         }
+    }
+
+    @Test
+    public void testBundleResolutionRequireExactBundle() throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorAndProcessor connectorAndProcessor = createBundleResolutionConnector(BundleCompatibility.REQUIRE_EXACT_BUNDLE);
+        final ProcessorDTO processor = connectorAndProcessor.processor();
+        assertTrue(processor.getExtensionMissing());
+
+        final BundleDTO bundle = processor.getBundle();
+        assertEquals("0.0.0-NONEXISTENT", bundle.getVersion());
+        assertEquals(Boolean.TRUE, processor.getExtensionMissing());
+
+        final ConnectorEntity connector = connectorAndProcessor.connector();
+        assertEquals("INVALID", connector.getComponent().getValidationStatus());
+        final Collection<String> validationErrors = connector.getComponent().getValidationErrors();
+        assertNotNull(validationErrors);
+        assertEquals(1, validationErrors.size());
+        final String validationError = validationErrors.iterator().next();
+        assertTrue(validationError.contains("missing"));
+    }
+
+    @Test
+    public void testBundleResolutionResolveBundle() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorDTO processor = createBundleResolutionConnector(BundleCompatibility.RESOLVE_BUNDLE).processor();
+        assertFalse(processor.getExtensionMissing());
+
+        final BundleDTO bundle = processor.getBundle();
+        assertNotEquals("0.0.0-NONEXISTENT", bundle.getVersion());
+    }
+
+    @Test
+    public void testBundleResolutionResolveNewestBundle() throws NiFiClientException, IOException, InterruptedException {
+        final ProcessorDTO processor = createBundleResolutionConnector(BundleCompatibility.RESOLVE_NEWEST_BUNDLE).processor();
+        assertFalse(processor.getExtensionMissing());
+
+        final BundleDTO bundle = processor.getBundle();
+        assertNotEquals("0.0.0-NONEXISTENT", bundle.getVersion());
+    }
+
+    private ConnectorAndProcessor createBundleResolutionConnector(final BundleCompatibility bundleCompatability) throws NiFiClientException, IOException, InterruptedException {
+        final ConnectorEntity connector = getClientUtil().createConnector("BundleResolutionConnector");
+        assertNotNull(connector);
+
+        getClientUtil().configureConnector(connector, "Bundle Resolution", Map.of("Bundle Compatability", bundleCompatability.name()));
+        getClientUtil().applyConnectorUpdate(connector);
+
+        final ConnectorEntity updatedConnector = getNifiClient().getConnectorClient().getConnector(connector.getId());
+        final ProcessGroupFlowEntity flowEntity = getNifiClient().getConnectorClient().getFlow(connector.getId());
+        final FlowDTO flowDto = flowEntity.getProcessGroupFlow().getFlow();
+        final Set<ProcessorEntity> processors = flowDto.getProcessors();
+
+        assertEquals(1, processors.size());
+
+        final ProcessorDTO processor = processors.iterator().next().getComponent();
+        return new ConnectorAndProcessor(updatedConnector, processor);
+    }
+
+    private record ConnectorAndProcessor(ConnectorEntity connector, ProcessorDTO processor) {
     }
 }

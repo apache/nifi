@@ -528,7 +528,7 @@ public class ConnectorResource extends ApplicationResource {
             @Parameter(
                     description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
-            @QueryParam(CLIENT_ID) final ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @Parameter(
                     description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
@@ -752,7 +752,7 @@ public class ConnectorResource extends ApplicationResource {
             @Parameter(
                     description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
-            @QueryParam(CLIENT_ID) final ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @Parameter(
                     description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )
@@ -1479,7 +1479,7 @@ public class ConnectorResource extends ApplicationResource {
             @Parameter(
                     description = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response."
             )
-            @QueryParam(CLIENT_ID) final ClientIdParameter clientId,
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) final ClientIdParameter clientId,
             @Parameter(
                     description = "Acknowledges that this node is disconnected to allow for mutable requests to proceed."
             )

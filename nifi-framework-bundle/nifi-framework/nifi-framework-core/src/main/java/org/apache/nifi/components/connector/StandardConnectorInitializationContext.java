@@ -20,9 +20,15 @@ package org.apache.nifi.components.connector;
 import org.apache.nifi.asset.AssetManager;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.secrets.SecretsManager;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.logging.ComponentLog;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 public class StandardConnectorInitializationContext implements FrameworkConnectorInitializationContext {
     private final String identifier;
@@ -33,7 +39,7 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
     private final ComponentBundleLookup componentBundleLookup;
 
 
-    private StandardConnectorInitializationContext(final Builder builder) {
+    protected StandardConnectorInitializationContext(final Builder builder) {
         this.identifier = builder.identifier;
         this.name = builder.name;
         this.componentLog = builder.componentLog;
@@ -73,12 +79,69 @@ public class StandardConnectorInitializationContext implements FrameworkConnecto
     }
 
     @Override
-    public void updateFlow(final FlowContext flowContext, final VersionedExternalFlow versionedExternalFlow) throws FlowUpdateException {
+    public void updateFlow(final FlowContext flowContext, final VersionedExternalFlow versionedExternalFlow,
+                           final BundleCompatibility bundleCompatability) throws FlowUpdateException {
         if (!(flowContext instanceof final FrameworkFlowContext frameworkFlowContext)) {
             throw new IllegalArgumentException("FlowContext is not an instance provided by the framework");
         }
 
+        resolveBundles(versionedExternalFlow.getFlowContents(), bundleCompatability);
         frameworkFlowContext.updateFlow(versionedExternalFlow, assetManager);
+    }
+
+    protected void resolveBundles(final VersionedProcessGroup group, final BundleCompatibility bundleCompatability) {
+        if (bundleCompatability == BundleCompatibility.REQUIRE_EXACT_BUNDLE) {
+            return;
+        }
+
+        if (group.getProcessors() != null) {
+            for (final VersionedProcessor processor : group.getProcessors()) {
+                resolveBundle(processor.getType(), processor.getBundle(), bundleCompatability, processor::setBundle);
+            }
+        }
+
+        if (group.getControllerServices() != null) {
+            for (final VersionedControllerService service : group.getControllerServices()) {
+                resolveBundle(service.getType(), service.getBundle(), bundleCompatability, service::setBundle);
+            }
+        }
+
+        if (group.getProcessGroups() != null) {
+            for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+                resolveBundles(childGroup, bundleCompatability);
+            }
+        }
+    }
+
+    private void resolveBundle(final String componentType, final Bundle currentBundle,
+                               final BundleCompatibility bundleCompatability, final Consumer<Bundle> bundleSetter) {
+        final List<Bundle> availableBundles = componentBundleLookup.getAvailableBundles(componentType);
+
+        if (availableBundles.contains(currentBundle)) {
+            return;
+        }
+
+        if (availableBundles.isEmpty()) {
+            return;
+        }
+
+        switch (bundleCompatability) {
+            case RESOLVE_BUNDLE:
+                if (availableBundles.size() == 1) {
+                    final Bundle resolvedBundle = availableBundles.getFirst();
+                    componentLog.debug("Resolved bundle for {} from {} to {}", componentType, currentBundle, resolvedBundle);
+                    bundleSetter.accept(resolvedBundle);
+                }
+                break;
+            case RESOLVE_NEWEST_BUNDLE:
+                componentBundleLookup.getLatestBundle(componentType).ifPresent(latestBundle -> {
+                    componentLog.debug("Resolved bundle for {} from {} to {}", componentType, currentBundle, latestBundle);
+                    bundleSetter.accept(latestBundle);
+                });
+                break;
+            default:
+                break;
+        }
     }
 
     private void updateParameterContext(final VersionedProcessGroup group, final String parameterContextName) {

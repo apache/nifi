@@ -17,82 +17,28 @@
 
 package org.apache.nifi.mock.connector.server;
 
-import org.apache.nifi.asset.AssetManager;
-import org.apache.nifi.components.connector.ComponentBundleLookup;
+import org.apache.nifi.components.connector.BundleCompatibility;
 import org.apache.nifi.components.connector.FlowUpdateException;
-import org.apache.nifi.components.connector.FrameworkConnectorInitializationContext;
-import org.apache.nifi.components.connector.FrameworkConnectorInitializationContextBuilder;
-import org.apache.nifi.components.connector.FrameworkFlowContext;
+import org.apache.nifi.components.connector.StandardConnectorInitializationContext;
 import org.apache.nifi.components.connector.components.FlowContext;
-import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
-import org.apache.nifi.logging.ComponentLog;
 
-public class MockConnectorInitializationContext implements FrameworkConnectorInitializationContext {
-
-    private final String identifier;
-    private final String name;
-    private final ComponentLog componentLog;
-    private final SecretsManager secretsManager;
-    private final AssetManager assetManager;
-    private final ComponentBundleLookup componentBundleLookup;
+public class MockConnectorInitializationContext extends StandardConnectorInitializationContext {
 
     private final MockExtensionMapper mockExtensionMapper;
 
-    private MockConnectorInitializationContext(final Builder builder) {
-        this.identifier = builder.identifier;
-        this.name = builder.name;
-        this.componentLog = builder.componentLog;
-        this.secretsManager = builder.secretsManager;
-        this.assetManager = builder.assetManager;
+    protected MockConnectorInitializationContext(final Builder builder) {
+        super(builder);
         this.mockExtensionMapper = builder.mockExtensionMapper;
-        this.componentBundleLookup = builder.componentBundleLookup;
-    }
-
-
-    @Override
-    public String getIdentifier() {
-        return identifier;
     }
 
     @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public ComponentLog getLogger() {
-        return componentLog;
-    }
-
-    @Override
-    public ComponentBundleLookup getComponentBundleLookup() {
-        return componentBundleLookup;
-    }
-
-    @Override
-    public SecretsManager getSecretsManager() {
-        return secretsManager;
-    }
-
-    @Override
-    public AssetManager getAssetManager() {
-        return assetManager;
-    }
-
-    @Override
-    public void updateFlow(final FlowContext flowContext, final VersionedExternalFlow versionedExternalFlow) throws FlowUpdateException {
-        if (!(flowContext instanceof final FrameworkFlowContext frameworkFlowContext)) {
-            throw new IllegalArgumentException("FlowContext is not an instance provided by the framework");
-        }
-
+    public void updateFlow(final FlowContext flowContext, final VersionedExternalFlow versionedExternalFlow,
+                           final BundleCompatibility bundleCompatability) throws FlowUpdateException {
         replaceMocks(versionedExternalFlow.getFlowContents());
-
-        // TODO: Probably should eliminate this method and instead move AssetManager to the FlowContext and add a method there
-        //       to update the flow.
-        frameworkFlowContext.updateFlow(versionedExternalFlow, assetManager);
+        super.updateFlow(flowContext, versionedExternalFlow, bundleCompatability);
     }
 
     private void replaceMocks(final VersionedProcessGroup group) {
@@ -109,69 +55,17 @@ public class MockConnectorInitializationContext implements FrameworkConnectorIni
         }
     }
 
-    private void updateParameterContext(final VersionedProcessGroup group, final String parameterContextName) {
-        group.setParameterContextName(parameterContextName);
-        if (group.getProcessGroups() != null) {
-            for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
-                updateParameterContext(childGroup, parameterContextName);
-            }
-        }
-    }
 
-
-    public static class Builder implements FrameworkConnectorInitializationContextBuilder {
+    public static class Builder extends StandardConnectorInitializationContext.Builder {
         private final MockExtensionMapper mockExtensionMapper;
-        private String identifier;
-        private String name;
-        private ComponentLog componentLog;
-        private SecretsManager secretsManager;
-        private AssetManager assetManager;
-        private ComponentBundleLookup componentBundleLookup;
 
         public Builder(final MockExtensionMapper mockExtensionMapper) {
             this.mockExtensionMapper = mockExtensionMapper;
         }
 
         @Override
-        public Builder identifier(final String identifier) {
-            this.identifier = identifier;
-            return this;
-        }
-
-        @Override
-        public Builder name(final String name) {
-            this.name = name;
-            return this;
-        }
-
-        @Override
-        public Builder componentLog(final ComponentLog componentLog) {
-            this.componentLog = componentLog;
-            return this;
-        }
-
-        @Override
-        public Builder secretsManager(final SecretsManager secretsManager) {
-            this.secretsManager = secretsManager;
-            return this;
-        }
-
-        @Override
-        public Builder componentBundleLookup(final ComponentBundleLookup bundleLookup) {
-            this.componentBundleLookup = bundleLookup;
-            return this;
-        }
-
-        @Override
-        public Builder assetManager(final AssetManager assetManager) {
-            this.assetManager = assetManager;
-            return this;
-        }
-
-        @Override
         public MockConnectorInitializationContext build() {
             return new MockConnectorInitializationContext(this);
         }
-
     }
 }
