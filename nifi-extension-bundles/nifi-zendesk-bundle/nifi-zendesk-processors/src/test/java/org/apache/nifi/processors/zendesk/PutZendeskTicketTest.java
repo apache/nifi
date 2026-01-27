@@ -26,6 +26,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
 import org.apache.nifi.web.client.api.HttpUriBuilder;
@@ -36,7 +37,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Map;
 
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_SUBDOMAIN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_COMMENT_BODY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_PRIORITY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_SUBJECT;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_USER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
@@ -50,6 +61,9 @@ import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_TICKET_TY
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_USER;
 import static org.apache.nifi.processors.zendesk.AbstractZendesk.RECORD_COUNT_ATTRIBUTE_NAME;
 import static org.apache.nifi.processors.zendesk.AbstractZendesk.REL_SUCCESS;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_EXPORT_METHOD;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_QUERY_START_TIMESTAMP;
+import static org.apache.nifi.processors.zendesk.GetZendesk.ZENDESK_RESOURCE;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.RECORD_READER;
 import static org.apache.nifi.processors.zendesk.PutZendeskTicket.REL_FAILURE;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
@@ -370,6 +384,25 @@ public class PutZendeskTicketTest {
         testRunner.assertTransferCount(REL_FAILURE, 1);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER, WEB_CLIENT_SERVICE_PROVIDER.getName()),
+                Map.entry(OBSOLETE_ZENDESK_SUBDOMAIN, ZENDESK_SUBDOMAIN.getName()),
+                Map.entry(OBSOLETE_ZENDESK_USER, ZENDESK_USER.getName()),
+                Map.entry(OBSOLETE_ZENDESK_AUTHENTICATION_TYPE, ZENDESK_AUTHENTICATION_TYPE.getName()),
+                Map.entry(OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL, ZENDESK_AUTHENTICATION_CREDENTIAL.getName()),
+                Map.entry("zendesk-record-reader", RECORD_READER.getName()),
+                Map.entry(OBSOLETE_ZENDESK_TICKET_COMMENT_BODY, PutZendeskTicket.TICKET_COMMENT_BODY.getName()),
+                Map.entry(OBSOLETE_ZENDESK_TICKET_SUBJECT, PutZendeskTicket.TICKET_SUBJECT.getName()),
+                Map.entry(OBSOLETE_ZENDESK_TICKET_PRIORITY, PutZendeskTicket.TICKET_PRIORITY.getName()),
+                Map.entry(OBSOLETE_ZENDESK_TICKET_TYPE, PutZendeskTicket.TICKET_TYPE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+    
     class TestPutZendeskTicket extends PutZendeskTicket {
         @Override
         HttpUriBuilder uriBuilder(String resourcePath) {

@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.processors.graph;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.graph.GraphClientService;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,22 +68,34 @@ public class TestExecuteGraphQuery {
         testExecute(1, 0, 1);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("graph-client-service", ExecuteGraphQuery.CLIENT_SERVICE.getName()),
+                Map.entry("graph-query", ExecuteGraphQuery.QUERY.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private void testExecute(int success, int failure, int original) throws Exception {
         runner.run(1, true, true);
         runner.assertTransferCount(ExecuteGraphQuery.REL_SUCCESS, success);
         runner.assertTransferCount(ExecuteGraphQuery.REL_FAILURE, failure);
         runner.assertTransferCount(ExecuteGraphQuery.REL_ORIGINAL, original);
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ExecuteGraphQuery.REL_SUCCESS);
-        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.LABELS_ADDED));
-        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.NODES_CREATED));
-        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.NODES_DELETED));
-        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.RELATIONS_CREATED));
-        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.RELATIONS_DELETED));
-        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.PROPERTIES_SET));
-        assertEquals("1", flowFiles.get(0).getAttribute(GraphClientService.ROWS_RETURNED));
-        byte[] raw = runner.getContentAsByteArray(flowFiles.get(0));
+        assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.LABELS_ADDED));
+        assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.NODES_CREATED));
+        assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.NODES_DELETED));
+        assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.RELATIONS_CREATED));
+        assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.RELATIONS_DELETED));
+        assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.PROPERTIES_SET));
+        assertEquals("1", flowFiles.getFirst().getAttribute(GraphClientService.ROWS_RETURNED));
+        byte[] raw = runner.getContentAsByteArray(flowFiles.getFirst());
         String str = new String(raw);
-        List<Map<String, Object>> parsed = new ObjectMapper().readValue(str, List.class);
+        List<Map<String, Object>> parsed = new ObjectMapper().readValue(str, new TypeReference<>() {
+        });
         assertNotNull(parsed);
         assertEquals(2, parsed.size());
         for (Map<String, Object> result : parsed) {

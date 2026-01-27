@@ -21,10 +21,9 @@ import com.splunk.ResponseMessage;
 import com.splunk.Service;
 import com.splunk.ServiceArgs;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -61,8 +60,7 @@ public class TestQuerySplunkIndexingStatus {
 
     private ArgumentCaptor<RequestMessage> request;
 
-    @BeforeEach
-    public void setUp() {
+    public void setUpMocks() {
         MockedQuerySplunkIndexingStatus processor = new MockedQuerySplunkIndexingStatus(service);
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(SplunkAPICall.SCHEME, "http");
@@ -74,13 +72,9 @@ public class TestQuerySplunkIndexingStatus {
         Mockito.when(service.send(path.capture(), request.capture())).thenReturn(response);
     }
 
-    @AfterEach
-    public void tearDown() {
-        testRunner.shutdown();
-    }
-
     @Test
     public void testRunSuccess() {
+        setUpMocks();
         // given
         final Map<Integer, Boolean> acks = new HashMap<>();
         acks.put(1, true);
@@ -104,6 +98,7 @@ public class TestQuerySplunkIndexingStatus {
 
     @Test
     public void testMoreIncomingFlowFileThanQueryLimit() {
+        setUpMocks();
         // given
         testRunner.setProperty(QuerySplunkIndexingStatus.MAX_QUERY_SIZE, "2");
         final Map<Integer, Boolean> acks = new HashMap<>();
@@ -125,6 +120,7 @@ public class TestQuerySplunkIndexingStatus {
 
     @Test
     public void testWhenFlowFileIsLackOfNecessaryAttributes() {
+        setUpMocks();
         // when
         testRunner.enqueue(EVENT);
         testRunner.run();
@@ -135,6 +131,7 @@ public class TestQuerySplunkIndexingStatus {
 
     @Test
     public void testWhenSplunkReturnsWithError() {
+        setUpMocks();
         // given
         givenSplunkReturnsWithFailure();
 
@@ -146,6 +143,21 @@ public class TestQuerySplunkIndexingStatus {
 
         // then
         testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_UNDETERMINED, 3);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        TestRunner testRunner = TestRunners.newTestRunner(QuerySplunkIndexingStatus.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("ttl", QuerySplunkIndexingStatus.TTL.getName()),
+                Map.entry("max-query-size", QuerySplunkIndexingStatus.MAX_QUERY_SIZE.getName()),
+                Map.entry("Port", SplunkAPICall.PORT.getName()),
+                Map.entry("Token", SplunkAPICall.TOKEN.getName()),
+                Map.entry("request-channel", SplunkAPICall.REQUEST_CHANNEL.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void givenSplunkReturns(final Map<Integer, Boolean> acks) {

@@ -18,11 +18,16 @@
 package org.apache.nifi.processors.email;
 
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestExtractEmailHeaders {
     String from = "Alice <alice@nifi.apache.org>";
@@ -32,11 +37,15 @@ public class TestExtractEmailHeaders {
     String hostName = "bermudatriangle";
 
     GenerateAttachment attachmentGenerator = new GenerateAttachment(from, to, subject, message, hostName);
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(ExtractEmailHeaders.class);
+    }
 
     @Test
     public void testValidEmailWithAttachments() {
-        final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
-
         byte[] withAttachment = attachmentGenerator.withAttachments(1);
 
         runner.enqueue(withAttachment);
@@ -47,15 +56,14 @@ public class TestExtractEmailHeaders {
 
         runner.assertQueueEmpty();
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS);
-        splits.get(0).assertAttributeEquals("email.headers.from.0", from);
-        splits.get(0).assertAttributeEquals("email.headers.to.0", to);
-        splits.get(0).assertAttributeEquals("email.headers.subject", subject);
-        splits.get(0).assertAttributeEquals("email.attachment_count", "1");
+        splits.getFirst().assertAttributeEquals("email.headers.from.0", from);
+        splits.getFirst().assertAttributeEquals("email.headers.to.0", to);
+        splits.getFirst().assertAttributeEquals("email.headers.subject", subject);
+        splits.getFirst().assertAttributeEquals("email.attachment_count", "1");
     }
 
     @Test
     public void testValidEmailWithoutAttachments() {
-        final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.setProperty(ExtractEmailHeaders.CAPTURED_HEADERS, "MIME-Version");
 
         byte[] simpleEmail = attachmentGenerator.simpleMessage(to);
@@ -69,10 +77,10 @@ public class TestExtractEmailHeaders {
 
         runner.assertQueueEmpty();
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS);
-        splits.get(0).assertAttributeEquals("email.headers.from.0", from);
-        splits.get(0).assertAttributeEquals("email.headers.to.0", to);
-        splits.get(0).assertAttributeEquals("email.attachment_count", "0");
-        splits.get(0).assertAttributeExists("email.headers.mime-version");
+        splits.getFirst().assertAttributeEquals("email.headers.from.0", from);
+        splits.getFirst().assertAttributeEquals("email.headers.to.0", to);
+        splits.getFirst().assertAttributeEquals("email.attachment_count", "0");
+        splits.getFirst().assertAttributeExists("email.headers.mime-version");
     }
 
     /**
@@ -82,7 +90,6 @@ public class TestExtractEmailHeaders {
      */
     @Test
     public void testValidEmailWithNoRecipients() {
-        final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.setProperty(ExtractEmailHeaders.CAPTURED_HEADERS, "MIME-Version");
 
         final byte[] message = attachmentGenerator.simpleMessage();
@@ -94,11 +101,11 @@ public class TestExtractEmailHeaders {
 
         runner.assertQueueEmpty();
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS);
-        splits.get(0).assertAttributeEquals("email.headers.from.0", from);
-        splits.get(0).assertAttributeExists("email.headers.mime-version");
-        splits.get(0).assertAttributeNotExists("email.headers.to");
-        splits.get(0).assertAttributeNotExists("email.headers.cc");
-        splits.get(0).assertAttributeNotExists("email.headers.bcc");
+        splits.getFirst().assertAttributeEquals("email.headers.from.0", from);
+        splits.getFirst().assertAttributeExists("email.headers.mime-version");
+        splits.getFirst().assertAttributeNotExists("email.headers.to");
+        splits.getFirst().assertAttributeNotExists("email.headers.cc");
+        splits.getFirst().assertAttributeNotExists("email.headers.bcc");
     }
 
     /**
@@ -109,7 +116,6 @@ public class TestExtractEmailHeaders {
      */
     @Test
     public void testNonStrictParsingPassesForInvalidAddresses() {
-        final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.setProperty(ExtractEmailHeaders.STRICT_PARSING, "false");
 
         final byte[] message = attachmentGenerator.simpleMessage("<>, Joe, \"\" <>");
@@ -123,9 +129,9 @@ public class TestExtractEmailHeaders {
         runner.assertQueueEmpty();
         final List<MockFlowFile> splits = runner.getFlowFilesForRelationship(ExtractEmailHeaders.REL_SUCCESS);
 
-        splits.get(0).assertAttributeEquals("email.headers.to.0", "");
-        splits.get(0).assertAttributeEquals("email.headers.to.1", "Joe");
-        splits.get(0).assertAttributeEquals("email.headers.to.2", "");
+        splits.getFirst().assertAttributeEquals("email.headers.to.0", "");
+        splits.getFirst().assertAttributeEquals("email.headers.to.1", "Joe");
+        splits.getFirst().assertAttributeEquals("email.headers.to.2", "");
     }
 
     /**
@@ -136,7 +142,6 @@ public class TestExtractEmailHeaders {
      */
     @Test
     public void testStrictParsingFailsForInvalidAddresses() {
-        final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.setProperty(ExtractEmailHeaders.STRICT_PARSING, "true");
 
         final byte[] message = attachmentGenerator.simpleMessage("<>, Joe, \"\" <>");
@@ -150,11 +155,21 @@ public class TestExtractEmailHeaders {
 
     @Test
     public void testInvalidEmail() {
-        final TestRunner runner = TestRunners.newTestRunner(new ExtractEmailHeaders());
         runner.enqueue("test test test chocolate".getBytes());
         runner.run();
 
         runner.assertTransferCount(ExtractEmailHeaders.REL_SUCCESS, 0);
         runner.assertTransferCount(ExtractEmailHeaders.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("CAPTURED_HEADERS", ExtractEmailHeaders.CAPTURED_HEADERS.getName()),
+                Map.entry("STRICT_ADDRESS_PARSING", ExtractEmailHeaders.STRICT_PARSING.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

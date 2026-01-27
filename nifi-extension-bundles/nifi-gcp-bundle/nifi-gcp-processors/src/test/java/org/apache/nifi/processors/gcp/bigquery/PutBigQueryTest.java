@@ -40,12 +40,15 @@ import org.apache.nifi.csv.CSVReader;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +65,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -230,9 +235,9 @@ public class PutBigQueryTest {
 
         int lastAppendSize = csvLineCount % appendRecordCount;
         if (lastAppendSize != 0) {
-            assertEquals(lastAppendSize, allValues.get(allValues.size() - 1).getSerializedRowsCount());
+            assertEquals(lastAppendSize, allValues.getLast().getSerializedRowsCount());
             for (int j = 0; j < lastAppendSize; j++) {
-                assertTrue(allValues.get(allValues.size() - 1).getSerializedRowsList().get(j).toString().contains(VALUE_PREFIX + ((expectedAppendCount - 1) * appendRecordCount + j)));
+                assertTrue(allValues.getLast().getSerializedRowsList().get(j).toString().contains(VALUE_PREFIX + ((expectedAppendCount - 1) * appendRecordCount + j)));
             }
         }
 
@@ -360,7 +365,7 @@ public class PutBigQueryTest {
 
         verify(streamWriter).append(protoRowsCaptor.capture(), offsetCaptor.capture());
         ProtoRows rows = protoRowsCaptor.getValue();
-        assertFalse(rows.getSerializedRowsList().get(0).toString().contains(unknownProperty));
+        assertFalse(rows.getSerializedRowsList().getFirst().toString().contains(unknownProperty));
 
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS);
     }
@@ -477,6 +482,35 @@ public class PutBigQueryTest {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PutBigQuery.REL_SUCCESS);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final TestRunner testRunner = TestRunners.newTestRunner(PutBigQuery.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("bigquery-api-endpoint", PutBigQuery.BIGQUERY_API_ENDPOINT.getName()),
+                Map.entry("bq.transfer.type", PutBigQuery.TRANSFER_TYPE.getName()),
+                Map.entry("bq.append.record.count", PutBigQuery.APPEND_RECORD_COUNT.getName()),
+                Map.entry("bq.record.reader", PutBigQuery.RECORD_READER.getName()),
+                Map.entry("bq.skip.invalid.rows", PutBigQuery.SKIP_INVALID_ROWS.getName()),
+                Map.entry("bq.dataset", AbstractBigQueryProcessor.DATASET.getName()),
+                Map.entry("bq.table.name", AbstractBigQueryProcessor.TABLE_NAME.getName()),
+                Map.entry("gcp-project-id", AbstractGCPProcessor.PROJECT_ID.getName()),
+                Map.entry("gcp-retry-count", AbstractGCPProcessor.RETRY_COUNT.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "gcp-proxy-host",
+                "gcp-proxy-port",
+                "gcp-proxy-user-name",
+                "gcp-proxy-user-password"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private void decorateWithRecordReader(TestRunner runner) throws InitializationException {

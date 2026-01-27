@@ -32,6 +32,7 @@ import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
@@ -564,6 +565,19 @@ public class ExecuteGroovyScriptTest {
                 "assert context.getProperties().find {k,v -> k.name == 'password'}.key.sensitive");
         runner.assertValid();
         runner.run();
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("groovyx-script-file", ExecuteGroovyScript.SCRIPT_FILE.getName()),
+                Map.entry("groovyx-script-body", ExecuteGroovyScript.SCRIPT_BODY.getName()),
+                Map.entry("groovyx-failure-strategy", ExecuteGroovyScript.FAIL_STRATEGY.getName()),
+                Map.entry("groovyx-additional-classpath", ExecuteGroovyScript.ADD_CLASSPATH.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private Map<String, String> map(String key, String value) {

@@ -29,6 +29,7 @@ import org.apache.nifi.processors.windows.event.log.jna.WEvtApi;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.MockSessionFactory;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -46,6 +47,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -241,6 +243,21 @@ public class ConsumeWindowsEventLogTest {
     @Test
     public void testGetRelationships() {
         assertEquals(ConsumeWindowsEventLog.RELATIONSHIPS, evtSubscribe.getRelationships());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final TestRunner testRunner = TestRunners.newTestRunner(ConsumeWindowsEventLog.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("channel", ConsumeWindowsEventLog.CHANNEL.getName()),
+                Map.entry("query", ConsumeWindowsEventLog.QUERY.getName()),
+                Map.entry("maxBuffer", ConsumeWindowsEventLog.MAX_BUFFER_SIZE.getName()),
+                Map.entry("maxQueue", ConsumeWindowsEventLog.MAX_EVENT_QUEUE_SIZE.getName()),
+                Map.entry("inactiveDurationToReconnect", ConsumeWindowsEventLog.INACTIVE_DURATION_TO_RECONNECT.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     public static List<WinNT.HANDLE> mockEventHandles(WEvtApi wEvtApi, Kernel32 kernel32, List<String> eventXmls) {

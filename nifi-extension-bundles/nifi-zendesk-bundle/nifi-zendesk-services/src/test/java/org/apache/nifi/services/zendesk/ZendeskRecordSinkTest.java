@@ -31,7 +31,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.client.StandardHttpUriBuilder;
@@ -49,6 +51,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_AUTHENTICATION_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_SUBDOMAIN;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_COMMENT_BODY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_PRIORITY;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_SUBJECT;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_TICKET_TYPE;
+import static org.apache.nifi.common.zendesk.ZendeskProperties.OBSOLETE_ZENDESK_USER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.WEB_CLIENT_SERVICE_PROVIDER;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_CREDENTIAL;
 import static org.apache.nifi.common.zendesk.ZendeskProperties.ZENDESK_AUTHENTICATION_TYPE;
@@ -187,16 +198,17 @@ public class ZendeskRecordSinkTest {
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
         String expectedBody =
-                "{\n" +
-                "  \"ticket\" : {\n" +
-                "    \"comment\" : {\n" +
-                "      \"body\" : \"This is a test comment body.\"\n" +
-                "    },\n" +
-                "    \"subject\" : \"Test subject\",\n" +
-                "    \"priority\" : \"High\",\n" +
-                "    \"type\" : \"Development\"\n" +
-                "  }\n" +
-                "}";
+                """
+                        {
+                          "ticket" : {
+                            "comment" : {
+                              "body" : "This is a test comment body."
+                            },
+                            "subject" : "Test subject",
+                            "priority" : "High",
+                            "type" : "Development"
+                          }
+                        }""";
 
         assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
@@ -225,19 +237,20 @@ public class ZendeskRecordSinkTest {
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
         String expectedBody =
-                "{\n" +
-                "  \"tickets\" : [ {\n" +
-                "    \"comment\" : {\n" +
-                "      \"body\" : \"This is a test comment body.\"\n" +
-                "    },\n" +
-                "    \"priority\" : \"High\"\n" +
-                "  }, {\n" +
-                "    \"comment\" : {\n" +
-                "      \"body\" : \"This is another test comment body.\"\n" +
-                "    },\n" +
-                "    \"priority\" : \"Low\"\n" +
-                "  } ]\n" +
-                "}";
+                """
+                        {
+                          "tickets" : [ {
+                            "comment" : {
+                              "body" : "This is a test comment body."
+                            },
+                            "priority" : "High"
+                          }, {
+                            "comment" : {
+                              "body" : "This is another test comment body."
+                            },
+                            "priority" : "Low"
+                          } ]
+                        }""";
 
         assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
@@ -268,21 +281,22 @@ public class ZendeskRecordSinkTest {
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
         String expectedBody =
-                "{\n" +
-                "  \"ticket\" : {\n" +
-                "    \"comment\" : {\n" +
-                "      \"body\" : \"This is a test comment body.\"\n" +
-                "    },\n" +
-                "    \"dp1\" : {\n" +
-                "      \"dp2\" : {\n" +
-                "        \"dp3\" : {\n" +
-                "          \"dynamicPropertyTarget2\" : \"This is a dynamic property 2\"\n" +
-                "        }\n" +
-                "      },\n" +
-                "      \"dynamicPropertyTarget1\" : \"This is a dynamic property 1\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
+                """
+                        {
+                          "ticket" : {
+                            "comment" : {
+                              "body" : "This is a test comment body."
+                            },
+                            "dp1" : {
+                              "dp2" : {
+                                "dp3" : {
+                                  "dynamicPropertyTarget2" : "This is a dynamic property 2"
+                                }
+                              },
+                              "dynamicPropertyTarget1" : "This is a dynamic property 1"
+                            }
+                          }
+                        }""";
 
         assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
@@ -313,21 +327,22 @@ public class ZendeskRecordSinkTest {
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
         String expectedBody =
-                "{\n" +
-                "  \"ticket\" : {\n" +
-                "    \"comment\" : {\n" +
-                "      \"body\" : \"This is a test comment body.\"\n" +
-                "    },\n" +
-                "    \"dp1\" : {\n" +
-                "      \"dp2\" : {\n" +
-                "        \"dp3\" : {\n" +
-                "          \"dynamicPropertyTarget2\" : \"Constant 2\"\n" +
-                "        }\n" +
-                "      },\n" +
-                "      \"dynamicPropertyTarget1\" : \"Constant 1\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
+                """
+                        {
+                          "ticket" : {
+                            "comment" : {
+                              "body" : "This is a test comment body."
+                            },
+                            "dp1" : {
+                              "dp2" : {
+                                "dp3" : {
+                                  "dynamicPropertyTarget2" : "Constant 2"
+                                }
+                              },
+                              "dynamicPropertyTarget1" : "Constant 1"
+                            }
+                          }
+                        }""";
 
         assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
     }
@@ -355,15 +370,43 @@ public class ZendeskRecordSinkTest {
         assertEquals(Collections.EMPTY_MAP, writeResult.getAttributes());
 
         String expectedBody =
-                "{\n" +
-                "  \"ticket\" : {\n" +
-                "    \"comment\" : {\n" +
-                "      \"body\" : \"This is a test comment body.\"\n" +
-                "    }\n" +
-                "  }\n" +
-                "}";
+                """
+                        {
+                          "ticket" : {
+                            "comment" : {
+                              "body" : "This is a test comment body."
+                            }
+                          }
+                        }""";
 
         assertEquals(OBJECT_MAPPER.readTree(expectedBody), OBJECT_MAPPER.readTree(recordedRequest.getBody().toByteArray()));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final ZendeskRecordSink service = new ZendeskRecordSink();
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(OBSOLETE_WEB_CLIENT_SERVICE_PROVIDER, WEB_CLIENT_SERVICE_PROVIDER.getName()),
+                Map.entry(OBSOLETE_ZENDESK_SUBDOMAIN, ZENDESK_SUBDOMAIN.getName()),
+                Map.entry(OBSOLETE_ZENDESK_USER, ZENDESK_USER.getName()),
+                Map.entry(OBSOLETE_ZENDESK_AUTHENTICATION_TYPE, ZENDESK_AUTHENTICATION_TYPE.getName()),
+                Map.entry(OBSOLETE_ZENDESK_AUTHENTICATION_CREDENTIAL, ZENDESK_AUTHENTICATION_CREDENTIAL.getName()),
+                Map.entry(OBSOLETE_ZENDESK_TICKET_COMMENT_BODY, ZENDESK_TICKET_COMMENT_BODY.getName()),
+                Map.entry(OBSOLETE_ZENDESK_TICKET_SUBJECT, ZENDESK_TICKET_SUBJECT.getName()),
+                Map.entry(OBSOLETE_ZENDESK_TICKET_PRIORITY, ZENDESK_TICKET_PRIORITY.getName()),
+                Map.entry(OBSOLETE_ZENDESK_TICKET_TYPE, ZENDESK_TICKET_TYPE.getName()),
+                Map.entry("cache-size", ZendeskRecordSink.CACHE_SIZE.getName()),
+                Map.entry("cache-expiration", ZendeskRecordSink.CACHE_EXPIRATION.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     class TestZendeskRecordSink extends ZendeskRecordSink {

@@ -26,6 +26,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -39,6 +40,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,8 +56,7 @@ public class TestCreateHadoopSequenceFile {
 
     @BeforeEach
     public void setUp() {
-        CreateHadoopSequenceFile proc = new CreateHadoopSequenceFile();
-        controller = TestRunners.newTestRunner(proc);
+        controller = TestRunners.newTestRunner(CreateHadoopSequenceFile.class);
     }
 
     @AfterEach
@@ -104,7 +105,7 @@ public class TestCreateHadoopSequenceFile {
         assertEquals(0, failedFlowFiles.size());
         assertEquals(3, successSeqFiles.size());
 
-        final byte[] data = successSeqFiles.iterator().next().toByteArray();
+        final byte[] data = successSeqFiles.getFirst().toByteArray();
 
         final String magicHeader = new String(data, 0, 3, StandardCharsets.UTF_8);
         assertEquals("SEQ", magicHeader);
@@ -128,10 +129,10 @@ public class TestCreateHadoopSequenceFile {
             controller.run();
             List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
             assertEquals(1, successSeqFiles.size());
-            final byte[] data = successSeqFiles.iterator().next().toByteArray();
+            final byte[] data = successSeqFiles.getFirst().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
             // and the file size should contain all of that plus headers, but the headers should only
-            // be a couple hundred bytes.
+            // be a couple of hundred bytes.
             assertTrue(data.length > 1000000);
             assertTrue(data.length < 1501000);
         }
@@ -146,10 +147,10 @@ public class TestCreateHadoopSequenceFile {
             controller.run();
             List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
             assertEquals(1, successSeqFiles.size());
-            final byte[] data = successSeqFiles.iterator().next().toByteArray();
+            final byte[] data = successSeqFiles.getFirst().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
             // and the file size should contain all of that plus headers, but the headers should only
-            // be a couple hundred bytes.
+            // be a couple of hundred bytes.
             assertTrue(data.length > 1000000);
             assertTrue(data.length < 1501000);
         }
@@ -165,10 +166,10 @@ public class TestCreateHadoopSequenceFile {
             controller.run();
             List<MockFlowFile> successSeqFiles = controller.getFlowFilesForRelationship(CreateHadoopSequenceFile.RELATIONSHIP_SUCCESS);
             assertEquals(1, successSeqFiles.size());
-            final byte[] data = successSeqFiles.iterator().next().toByteArray();
+            final byte[] data = successSeqFiles.getFirst().toByteArray();
             // Data should be greater than 1000000 because that's the size of 2 of our input files,
             // and the file size should contain all of that plus headers, but the headers should only
-            // be a couple hundred bytes.
+            // be a couple of hundred bytes.
             assertTrue(data.length > 1000000);
             assertTrue(data.length < 1501000);
         }
@@ -192,7 +193,7 @@ public class TestCreateHadoopSequenceFile {
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());
 
-        MockFlowFile ff = successSeqFiles.iterator().next();
+        MockFlowFile ff = successSeqFiles.getFirst();
         byte[] data = ff.toByteArray();
 
 
@@ -239,7 +240,7 @@ public class TestCreateHadoopSequenceFile {
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());
 
-        MockFlowFile ff = successSeqFiles.iterator().next();
+        MockFlowFile ff = successSeqFiles.getFirst();
         byte[] data = ff.toByteArray();
 
 
@@ -286,7 +287,7 @@ public class TestCreateHadoopSequenceFile {
         assertEquals(0, failedFlowFiles.size());
         assertEquals(1, successSeqFiles.size());
 
-        MockFlowFile ff = successSeqFiles.iterator().next();
+        MockFlowFile ff = successSeqFiles.getFirst();
         byte[] data = ff.toByteArray();
 
 
@@ -313,5 +314,27 @@ public class TestCreateHadoopSequenceFile {
         final int codecTypeStartIndex = blockCompressionIndex + 2;
 
         assertEquals(DefaultCodec.class.getCanonicalName(), new String(data, codecTypeStartIndex, codecTypeSize, StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("compression type", CreateHadoopSequenceFile.COMPRESSION_TYPE.getName()),
+                Map.entry("kerberos-user-service", AbstractHadoopProcessor.KERBEROS_USER_SERVICE.getName()),
+                Map.entry("Compression codec", AbstractHadoopProcessor.COMPRESSION_CODEC.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = controller.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "Kerberos Principal",
+                "Kerberos Password",
+                "Kerberos Keytab",
+                "kerberos-credentials-service",
+                "Kerberos Relogin Period"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 }

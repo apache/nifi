@@ -17,23 +17,21 @@
 
 package org.apache.nifi.processors.gcp.vision;
 
-import com.google.api.core.ApiFuture;
 import com.google.api.gax.longrunning.OperationFuture;
-import com.google.api.gax.longrunning.OperationSnapshot;
 import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesRequest;
 import com.google.cloud.vision.v1.AsyncBatchAnnotateFilesResponse;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import com.google.cloud.vision.v1.OperationMetadata;
 import org.apache.nifi.gcp.credentials.service.GCPCredentialsService;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,37 +39,30 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static org.apache.nifi.processors.gcp.util.GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.GCP_OPERATION_KEY;
 import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.REL_FAILURE;
 import static org.apache.nifi.processors.gcp.vision.AbstractGcpVisionProcessor.REL_SUCCESS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class StartGcpVisionAnnotateFilesOperationTest {
+    private static final Path FLOW_FILE_CONTENT = Paths.get("src/test/resources/vision/annotate-image.json");
     private TestRunner runner = null;
-    private static final Path FlowFileContent = Paths.get("src/test/resources/vision/annotate-image.json");
-    @Mock
-    private ImageAnnotatorClient vision;
-    @Captor
-    private ArgumentCaptor<AsyncBatchAnnotateFilesRequest> requestCaptor;
-    private String operationName = "operationName";
+
     @Mock
     private OperationFuture<AsyncBatchAnnotateFilesResponse, OperationMetadata> operationFuture;
     @Mock
-    private ApiFuture<OperationSnapshot> apiFuture;
-    @Mock
     private ImageAnnotatorClient mockVisionClient;
-    private GCPCredentialsService gcpCredentialsService;
-    @Mock
-    private OperationSnapshot operationSnapshot;
 
     @BeforeEach
     public void setUp() throws InitializationException {
-        gcpCredentialsService = new GCPCredentialsControllerService();
+        GCPCredentialsService gcpCredentialsService = new GCPCredentialsControllerService();
         StartGcpVisionAnnotateFilesOperation processor = new StartGcpVisionAnnotateFilesOperation() {
             @Override
             protected ImageAnnotatorClient getVisionClient() {
@@ -89,8 +80,9 @@ public class StartGcpVisionAnnotateFilesOperationTest {
     @Test
     public void testAnnotateFilesJob() throws ExecutionException, InterruptedException, IOException {
         when(mockVisionClient.asyncBatchAnnotateFilesAsync((AsyncBatchAnnotateFilesRequest) any())).thenReturn(operationFuture);
+        String operationName = "operationName";
         when(operationFuture.getName()).thenReturn(operationName);
-        runner.enqueue(FlowFileContent, Collections.emptyMap());
+        runner.enqueue(FLOW_FILE_CONTENT, Collections.emptyMap());
         runner.run();
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS);
@@ -100,8 +92,21 @@ public class StartGcpVisionAnnotateFilesOperationTest {
     @Test
     public void testAnnotateFilesJobFail() throws IOException {
         when(mockVisionClient.asyncBatchAnnotateFilesAsync((AsyncBatchAnnotateFilesRequest) any())).thenThrow(new RuntimeException("ServiceError"));
-        runner.enqueue(FlowFileContent, Collections.emptyMap());
+        runner.enqueue(FLOW_FILE_CONTENT, Collections.emptyMap());
         runner.run();
         runner.assertAllFlowFilesTransferred(REL_FAILURE);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("json-payload", StartGcpVisionAnnotateFilesOperation.JSON_PAYLOAD.getName()),
+                Map.entry("vision-feature-type", AbstractStartGcpVisionOperation.FEATURE_TYPE.getName()),
+                Map.entry("output-bucket", AbstractStartGcpVisionOperation.OUTPUT_BUCKET.getName()),
+                Map.entry(GoogleUtils.OLD_GCP_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, GCP_CREDENTIALS_PROVIDER_SERVICE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

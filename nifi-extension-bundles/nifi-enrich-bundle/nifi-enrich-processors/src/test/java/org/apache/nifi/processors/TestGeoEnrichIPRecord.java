@@ -17,11 +17,11 @@
 
 package org.apache.nifi.processors;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import org.apache.avro.Schema;
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -35,6 +35,7 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockSchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,9 +44,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.io.InputStream;
 import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,20 +71,15 @@ public class TestGeoEnrichIPRecord {
         runner = TestRunners.newTestRunner(new TestableGeoEnrichIPRecord());
         ControllerService reader = new JsonTreeReader();
         ControllerService writer = new JsonRecordSetWriter();
-        ControllerService registry = new MockSchemaRegistry();
+        MockSchemaRegistry registry = new MockSchemaRegistry();
         runner.addControllerService("reader", reader);
         runner.addControllerService("writer", writer);
         runner.addControllerService("registry", registry);
 
 
-        try (InputStream is = getClass().getResourceAsStream("/avro/record_schema.avsc")) {
-            String raw = IOUtils.toString(is, StandardCharsets.UTF_8);
-            RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
-            ((MockSchemaRegistry) registry).addSchema("record", parsed);
-
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
+        final String raw = Files.readString(Paths.get("src/test/resources/avro/record_schema.avsc"));
+        RecordSchema parsed = AvroTypeUtil.createSchema(new Schema.Parser().parse(raw));
+        registry.addSchema("record", parsed);
 
         runner.setProperty(reader, SchemaAccessUtils.SCHEMA_REGISTRY, "registry");
         runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_NAME_PROPERTY);
@@ -155,7 +151,7 @@ public class TestGeoEnrichIPRecord {
         byte[] raw = runner.getContentAsByteArray(ff);
         String content = new String(raw);
         ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> result = mapper.readValue(content, List.class);
+        List<Map<String, Object>> result = mapper.readValue(content, new TypeReference<>() { });
 
         assertNotNull(result);
         assertEquals(1, result.size());
@@ -170,6 +166,27 @@ public class TestGeoEnrichIPRecord {
         assertNotNull(geo.get("country_postal"));
         assertNotNull(geo.get("lat"));
         assertNotNull(geo.get("lon"));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final TestRunner runner = TestRunners.newTestRunner(GeoEnrichIPRecord.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("geo-enrich-ip-record-reader", GeoEnrichIPRecord.READER.getName()),
+                Map.entry("geo-enrich-ip-record-writer", GeoEnrichIPRecord.WRITER.getName()),
+                Map.entry("geo-enrich-ip-ip-record-path", GeoEnrichIPRecord.IP_RECORD_PATH.getName()),
+                Map.entry("geo-enrich-ip-split-found-not-found", GeoEnrichIPRecord.SPLIT_FOUND_NOT_FOUND.getName()),
+                Map.entry("geo-enrich-ip-city-record-path", GeoEnrichIPRecord.GEO_CITY.getName()),
+                Map.entry("geo-enrich-ip-latitude-record-path", GeoEnrichIPRecord.GEO_LATITUDE.getName()),
+                Map.entry("geo-enrich-ip-longitude-record-path", GeoEnrichIPRecord.GEO_LONGITUDE.getName()),
+                Map.entry("geo-enrich-ip-country-record-path", GeoEnrichIPRecord.GEO_COUNTRY.getName()),
+                Map.entry("geo-enrich-ip-country-iso-record-path", GeoEnrichIPRecord.GEO_COUNTRY_ISO.getName()),
+                Map.entry("geo-enrich-ip-country-postal-record-path", GeoEnrichIPRecord.GEO_POSTAL_CODE.getName()),
+                Map.entry("Geo Database File", AbstractEnrichIP.GEO_DATABASE_FILE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     class TestableGeoEnrichIPRecord extends GeoEnrichIPRecord {
@@ -190,6 +207,7 @@ public class TestGeoEnrichIPRecord {
                     LOG_LEVEL
             );
         }
+
         @Override
         @OnScheduled
         public void onScheduled(ProcessContext context) {
@@ -198,6 +216,7 @@ public class TestGeoEnrichIPRecord {
             writerFactory = context.getProperty(WRITER).asControllerService(RecordSetWriterFactory.class);
             splitOutput = context.getProperty(SPLIT_FOUND_NOT_FOUND).asBoolean();
         }
+
         @Override
         protected void loadDatabaseFile() {
             //  Do nothing, the mock database reader is used
