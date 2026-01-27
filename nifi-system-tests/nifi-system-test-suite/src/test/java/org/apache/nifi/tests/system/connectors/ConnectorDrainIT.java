@@ -151,7 +151,7 @@ public class ConnectorDrainIT extends NiFiSystemIT {
         logger.info("Sleeping for 2 seconds to verify connector remains in DRAINING state");
         Thread.sleep(2000L);
 
-        ConnectorEntity drainingConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
+        final ConnectorEntity drainingConnector = getNifiClient().getConnectorClient().getConnector(connectorId);
         logger.info("Connector state after 2 seconds: {}", drainingConnector.getComponent().getState());
         assertEquals(ConnectorState.DRAINING.name(), drainingConnector.getComponent().getState());
 
