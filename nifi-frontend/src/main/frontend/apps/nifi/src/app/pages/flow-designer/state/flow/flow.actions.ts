@@ -553,6 +553,11 @@ export const setSkipTransform = createAction(
     props<{ skipTransform: boolean }>()
 );
 
+export const setLeavingProcessGroupId = createAction(
+    `${CANVAS_PREFIX} Set Leaving Process Group Id`,
+    props<{ leavingProcessGroupId: string | null }>()
+);
+
 /**
  * allowTransition is a flag that can be set that indicates if a transition should be used when applying a transform.
  * By default, restoring the viewport or selecting/centering components will not use a transition unless explicitly
