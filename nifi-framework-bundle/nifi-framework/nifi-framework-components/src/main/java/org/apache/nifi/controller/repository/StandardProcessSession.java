@@ -24,7 +24,6 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
-import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.PollStrategy;
@@ -157,7 +156,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private Map<String, Long> countersOnCommit;
     private Map<String, Long> immediateCounters;
     private List<GaugeRecord> gaugeRecordsSessionCommitted;
-    private final ComponentMetricContext componentMetricContext;
 
     private final Set<String> removedFlowFiles = new HashSet<>();
     private final Set<String> createdFlowFiles = new HashSet<>(); // UUID of any FlowFile that was created in this session
@@ -212,10 +210,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         LOG.trace("Session {} created for {}", this, connectableDescription);
         processingStartTime = System.nanoTime();
         retryAttribute = "retryCount." + context.getConnectable().getIdentifier();
-
-        final Connectable connectable = context.getConnectable();
-        final Map<String, String> groupAttributes = connectable.getProcessGroup().getLoggingAttributes();
-        componentMetricContext = new ComponentMetricContext(connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
     }
 
     private void verifyTaskActive() {
@@ -1859,7 +1853,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         Objects.requireNonNull(commitTiming, "Commit Timing required");
 
         final Instant recorded = Instant.now();
-        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, recorded, componentMetricContext);
+        final GaugeRecord gaugeRecord = new GaugeRecord(name, value, recorded, context.getComponentMetricContext());
 
         if (CommitTiming.NOW == commitTiming) {
             context.recordGauge(gaugeRecord);

@@ -20,6 +20,7 @@ package org.apache.nifi.controller.repository;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
 import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
@@ -35,6 +36,8 @@ import java.util.function.Predicate;
 
 public interface RepositoryContext {
     Connectable getConnectable();
+
+    ComponentMetricContext getComponentMetricContext();
 
     Collection<Connection> getConnections(Relationship relationship);
 

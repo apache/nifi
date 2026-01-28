@@ -92,6 +92,11 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
         return connectable;
     }
 
+    @Override
+    public ComponentMetricContext getComponentMetricContext() {
+        return componentMetricContext;
+    }
+
     /**
      *
      * @param relationship relationship
