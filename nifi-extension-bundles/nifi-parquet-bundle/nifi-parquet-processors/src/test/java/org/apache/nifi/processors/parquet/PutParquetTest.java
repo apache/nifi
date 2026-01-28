@@ -28,6 +28,8 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parquet.utils.ParquetUtils;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.hadoop.AbstractHadoopProcessor;
+import org.apache.nifi.processors.hadoop.AbstractPutHDFSRecord;
 import org.apache.nifi.processors.hadoop.exception.FailureException;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -42,6 +44,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.parquet.avro.AvroParquetReader;
@@ -64,6 +67,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -135,7 +139,7 @@ public class PutParquetTest {
         final Path avroParquetFile = new Path(DIRECTORY + "/" + filename);
 
         // verify the successful flow file has the expected attributes
-        final MockFlowFile mockFlowFile = testRunner.getFlowFilesForRelationship(PutParquet.REL_SUCCESS).get(0);
+        final MockFlowFile mockFlowFile = testRunner.getFlowFilesForRelationship(PutParquet.REL_SUCCESS).getFirst();
         mockFlowFile.assertAttributeEquals(PutParquet.ABSOLUTE_HDFS_PATH_ATTRIBUTE, avroParquetFile.getParent().toString());
         mockFlowFile.assertAttributeEquals(CoreAttributes.FILENAME.key(), filename);
         mockFlowFile.assertAttributeEquals(PutParquet.RECORD_COUNT_ATTR, "100");
@@ -146,7 +150,7 @@ public class PutParquetTest {
         assertEquals(1, provEvents.size());
 
         // verify it was a SEND event with the correct URI
-        final ProvenanceEventRecord provEvent = provEvents.get(0);
+        final ProvenanceEventRecord provEvent = provEvents.getFirst();
         assertEquals(ProvenanceEventType.SEND, provEvent.getEventType());
         // If it runs with a real HDFS, the protocol will be "hdfs://", but with a local filesystem, just assert the filename.
         assertTrue(provEvent.getTransitUri().endsWith(DIRECTORY + "/" + filename));
@@ -641,5 +645,40 @@ public class PutParquetTest {
         assertEquals(numExpectedUsers, currUser);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final TestRunner runner = TestRunners.newTestRunner(PutParquet.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("remove-crc-files", PutParquet.REMOVE_CRC_FILES.getName()),
+                Map.entry(ParquetUtils.OLD_ROW_GROUP_SIZE_PROPERTY_NAME, ParquetUtils.ROW_GROUP_SIZE.getName()),
+                Map.entry(ParquetUtils.OLD_PAGE_SIZE_PROPERTY_NAME, ParquetUtils.PAGE_SIZE.getName()),
+                Map.entry(ParquetUtils.OLD_DICTIONARY_PAGE_SIZE_PROPERTY_NAME, ParquetUtils.DICTIONARY_PAGE_SIZE.getName()),
+                Map.entry(ParquetUtils.OLD_MAX_PADDING_SIZE_PROPERTY_NAME, ParquetUtils.MAX_PADDING_SIZE.getName()),
+                Map.entry(ParquetUtils.OLD_ENABLE_DICTIONARY_ENCODING_PROPERTY_NAME, ParquetUtils.ENABLE_DICTIONARY_ENCODING.getName()),
+                Map.entry(ParquetUtils.OLD_ENABLE_VALIDATION_PROPERTY_NAME, ParquetUtils.ENABLE_VALIDATION.getName()),
+                Map.entry(ParquetUtils.OLD_WRITER_VERSION_PROPERTY_NAME, ParquetUtils.WRITER_VERSION.getName()),
+                Map.entry(ParquetUtils.OLD_AVRO_ADD_LIST_ELEMENT_RECORDS_PROPERTY_NAME, ParquetUtils.AVRO_ADD_LIST_ELEMENT_RECORDS.getName()),
+                Map.entry("compression-type", AbstractPutHDFSRecord.COMPRESSION_TYPE.getName()),
+                Map.entry("overwrite", AbstractPutHDFSRecord.OVERWRITE.getName()),
+                Map.entry("permissions-umask", AbstractPutHDFSRecord.UMASK.getName()),
+                Map.entry("remote-owner", AbstractPutHDFSRecord.REMOTE_OWNER.getName()),
+                Map.entry("remote-group", AbstractPutHDFSRecord.REMOTE_GROUP.getName()),
+                Map.entry("record-reader", AbstractPutHDFSRecord.RECORD_READER.getName()),
+                Map.entry("kerberos-user-service", AbstractHadoopProcessor.KERBEROS_USER_SERVICE.getName()),
+                Map.entry("Compression codec", AbstractHadoopProcessor.COMPRESSION_CODEC.getName())
+        );
 
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "Kerberos Principal",
+                "Kerberos Password",
+                "Kerberos Keytab",
+                "kerberos-credentials-service",
+                "Kerberos Relogin Period"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
+    }
 }

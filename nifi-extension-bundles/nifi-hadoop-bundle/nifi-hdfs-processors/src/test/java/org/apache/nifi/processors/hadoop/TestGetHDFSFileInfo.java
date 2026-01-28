@@ -24,6 +24,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.hadoop.util.MockFileSystem;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,13 +32,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.JRE;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -74,21 +76,17 @@ public class TestGetHDFSFileInfo {
     @Test
     public void testInvalidBatchSizeWhenValueIsInvalid() {
         Arrays.asList("-1", "0", "someString").forEach(
-            inValidBatchSize -> {
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, inValidBatchSize, false);
-            }
+            inValidBatchSize -> testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, inValidBatchSize, false)
         );
     }
 
     @Test
     public void testValidBatchSize() {
         Arrays.asList("1", "2", "100").forEach(
-            validBatchSize -> {
-                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, validBatchSize, true);
-            }
+            validBatchSize -> testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, validBatchSize, true)
         );
 
-        Arrays.asList((String) null).forEach(
+        Collections.singletonList((String) null).forEach(
             nullBatchSize -> {
                 testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, nullBatchSize, true);
                 testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, nullBatchSize, true);
@@ -111,7 +109,7 @@ public class TestGetHDFSFileInfo {
         runner.setProperty(GetHDFSFileInfo.DESTINATION, destination);
         runner.setProperty(GetHDFSFileInfo.GROUPING, grouping);
         if (batchSize != null) {
-            runner.setProperty(GetHDFSFileInfo.BATCH_SIZE, "" + batchSize);
+            runner.setProperty(GetHDFSFileInfo.BATCH_SIZE, batchSize);
         }
 
         if (expectedValid) {
@@ -122,7 +120,7 @@ public class TestGetHDFSFileInfo {
     }
 
     @Test
-    public void testNoRunOnIncomingConnectionExists() throws InterruptedException {
+    public void testNoRunOnIncomingConnectionExists() {
 
         setFileSystemBasicTree(proc.fileSystem);
 
@@ -142,7 +140,7 @@ public class TestGetHDFSFileInfo {
     }
 
     @Test
-    public void testRunOnScheduleNoConnections() throws InterruptedException {
+    public void testRunOnScheduleNoConnections() {
 
         setFileSystemBasicTree(proc.fileSystem);
 
@@ -162,7 +160,7 @@ public class TestGetHDFSFileInfo {
     }
 
     @Test
-    public void testValidELFunction() throws InterruptedException {
+    public void testValidELFunction() {
 
         setFileSystemBasicTree(proc.fileSystem);
 
@@ -181,7 +179,7 @@ public class TestGetHDFSFileInfo {
 
         runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_ORIGINAL).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_ORIGINAL).getFirst();
         ProcessContext context = runner.getProcessContext();
 
         assertEquals(context.getProperty(GetHDFSFileInfo.FULL_PATH).evaluateAttributeExpressions(mff).getValue(), "/some/home/mydir");
@@ -191,7 +189,7 @@ public class TestGetHDFSFileInfo {
     }
 
     @Test
-    public void testRunWithConnections() throws InterruptedException {
+    public void testRunWithConnections() {
 
         setFileSystemBasicTree(proc.fileSystem);
 
@@ -210,14 +208,14 @@ public class TestGetHDFSFileInfo {
 
         runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 1);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_ORIGINAL).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_ORIGINAL).getFirst();
         ProcessContext context = runner.getProcessContext();
 
         assertEquals(context.getProperty(GetHDFSFileInfo.FULL_PATH).evaluateAttributeExpressions(mff).getValue(), "/some/home/mydir");
     }
 
     @Test
-    public void testRunWithIOException() throws InterruptedException {
+    public void testRunWithIOException() {
 
         setFileSystemBasicTree(proc.fileSystem);
         proc.fileSystem.addFileStatus(proc.fileSystem.newDir("/some/home/mydir"), proc.fileSystem.newFile("/some/home/mydir/exception_java.io.InterruptedIOException"));
@@ -236,7 +234,7 @@ public class TestGetHDFSFileInfo {
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 1);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_FAILURE).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_FAILURE).getFirst();
         mff.assertAttributeEquals("hdfs.status", "Failed due to: java.io.InterruptedIOException");
     }
 
@@ -263,7 +261,7 @@ public class TestGetHDFSFileInfo {
     }
 
     @Test
-    public void testRunWithPermissionsExceptionAttributes() throws InterruptedException {
+    public void testRunWithPermissionsExceptionAttributes() {
 
         setFileSystemBasicTree(proc.fileSystem);
         proc.fileSystem.addFileStatus(proc.fileSystem.newDir("/some/home/mydir/dir1"), proc.fileSystem.newDir("/some/home/mydir/dir1/list_exception_java.io.InterruptedIOException"));
@@ -305,12 +303,12 @@ public class TestGetHDFSFileInfo {
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).getFirst();
         mff.assertContentEquals(Paths.get("src/test/resources/TestGetHDFSFileInfo/testRunWithPermissionsExceptionContent.json"));
     }
 
     @Test
-    public void testObjectNotFound() throws InterruptedException {
+    public void testObjectNotFound() {
 
         setFileSystemBasicTree(proc.fileSystem);
 
@@ -330,7 +328,7 @@ public class TestGetHDFSFileInfo {
     }
 
     @Test
-    public void testRecursive() throws InterruptedException {
+    public void testRecursive() {
 
         setFileSystemBasicTree(proc.fileSystem);
 
@@ -369,7 +367,7 @@ public class TestGetHDFSFileInfo {
         runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
 
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).getFirst();
         mff.assertAttributeEquals("hdfs.objectName", "mydir");
         mff.assertAttributeEquals("hdfs.path", "/some/home");
         mff.assertAttributeEquals("hdfs.type", "directory");
@@ -388,7 +386,7 @@ public class TestGetHDFSFileInfo {
     }
 
     @Test
-    public void testRecursiveGroupNoneToAttributes() throws InterruptedException {
+    public void testRecursiveGroupNoneToAttributes() {
 
         setFileSystemBasicTree(proc.fileSystem);
 
@@ -691,12 +689,12 @@ public class TestGetHDFSFileInfo {
     @Test
     public void testBatchSizeWithDestContentGroupNoneBatchSize9() {
         testBatchSize("9", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 1);
-        checkContentSizes(Arrays.asList(9));
+        checkContentSizes(List.of(9));
     }
     @Test
     public void testBatchSizeWithDestContentGroupNoneBatchSize100() {
         testBatchSize("100", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 1);
-        checkContentSizes(Arrays.asList(9));
+        checkContentSizes(List.of(9));
     }
 
     private void testBatchSize(String batchSize, AllowableValue destination, AllowableValue grouping, int expectedNrTransferredToSuccess) {
@@ -721,17 +719,48 @@ public class TestGetHDFSFileInfo {
         runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("gethdfsfileinfo-full-path", GetHDFSFileInfo.FULL_PATH.getName()),
+                Map.entry("gethdfsfileinfo-recurse-subdirs", GetHDFSFileInfo.RECURSE_SUBDIRS.getName()),
+                Map.entry("gethdfsfileinfo-dir-filter", GetHDFSFileInfo.DIR_FILTER.getName()),
+                Map.entry("gethdfsfileinfo-file-filter", GetHDFSFileInfo.FILE_FILTER.getName()),
+                Map.entry("gethdfsfileinfo-file-exclude-filter", GetHDFSFileInfo.FILE_EXCLUDE_FILTER.getName()),
+                Map.entry("gethdfsfileinfo-ignore-dotted-dirs", GetHDFSFileInfo.IGNORE_DOTTED_DIRS.getName()),
+                Map.entry("gethdfsfileinfo-ignore-dotted-files", GetHDFSFileInfo.IGNORE_DOTTED_FILES.getName()),
+                Map.entry("gethdfsfileinfo-group", GetHDFSFileInfo.GROUPING.getName()),
+                Map.entry("gethdfsfileinfo-batch-size", GetHDFSFileInfo.BATCH_SIZE.getName()),
+                Map.entry("gethdfsfileinfo-destination", GetHDFSFileInfo.DESTINATION.getName()),
+                Map.entry("kerberos-user-service", AbstractHadoopProcessor.KERBEROS_USER_SERVICE.getName()),
+                Map.entry("Compression codec", AbstractHadoopProcessor.COMPRESSION_CODEC.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "Kerberos Principal",
+                "Kerberos Password",
+                "Kerberos Keytab",
+                "kerberos-credentials-service",
+                "Kerberos Relogin Period"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
+    }
+
     private void checkContentSizes(List<Integer> expectedNumberOfRecords) {
         List<Integer> actualNumberOfRecords = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).stream()
-            .map(MockFlowFile::toByteArray)
-            .map(String::new)
-            .map(
-                content -> Arrays.stream(content.split("\n"))
-                    .filter(line -> SINGLE_JSON_PATTERN.matcher(line).matches())
-                    .count()
-            )
-            .map(Long::intValue)
-            .collect(Collectors.toList());
+                .map(MockFlowFile::toByteArray)
+                .map(String::new)
+                .map(
+                        content -> Arrays.stream(content.split("\n"))
+                                .filter(line -> SINGLE_JSON_PATTERN.matcher(line).matches())
+                                .count()
+                )
+                .map(Long::intValue)
+                .collect(Collectors.toList());
 
         assertEquals(expectedNumberOfRecords, actualNumberOfRecords);
     }
@@ -771,7 +800,7 @@ public class TestGetHDFSFileInfo {
     }
 
 
-    private class GetHDFSFileInfoWithMockedFileSystem extends GetHDFSFileInfo {
+    private static class GetHDFSFileInfoWithMockedFileSystem extends GetHDFSFileInfo {
         private final MockFileSystem fileSystem = new MockFileSystem();
 
         public GetHDFSFileInfoWithMockedFileSystem() {
@@ -783,7 +812,7 @@ public class TestGetHDFSFileInfo {
         }
 
         @Override
-        protected FileSystem getFileSystem(final Configuration config) throws IOException {
+        protected FileSystem getFileSystem(final Configuration config) {
             return fileSystem;
         }
     }

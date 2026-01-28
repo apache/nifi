@@ -16,14 +16,20 @@
  */
 package org.apache.nifi.processors.gcp.credentials.service;
 
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processors.gcp.credentials.factory.AuthenticationStrategy;
 import org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
@@ -129,5 +135,25 @@ class GCPCredentialsControllerServiceMigrationTest {
 
         assertEquals(AuthenticationStrategy.APPLICATION_DEFAULT.getValue(),
                 configuration.getRawProperties().get(CredentialPropertyDescriptors.AUTHENTICATION_STRATEGY.getName()));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("application-default-credentials", LEGACY_USE_APPLICATION_DEFAULT_CREDENTIALS.getName()),
+                Map.entry("compute-engine-credentials", LEGACY_USE_COMPUTE_ENGINE_CREDENTIALS.getName()),
+                Map.entry("service-account-json-file", SERVICE_ACCOUNT_JSON_FILE.getName()),
+                Map.entry("service-account-json", SERVICE_ACCOUNT_JSON.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }

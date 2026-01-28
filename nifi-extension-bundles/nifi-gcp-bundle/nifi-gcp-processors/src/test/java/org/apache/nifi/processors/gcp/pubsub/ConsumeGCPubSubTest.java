@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.gcp.pubsub;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.gax.rpc.UnaryCallable;
 import com.google.cloud.pubsub.v1.stub.SubscriberStub;
@@ -28,51 +27,64 @@ import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.PullRequest;
 import com.google.pubsub.v1.PullResponse;
 import com.google.pubsub.v1.ReceivedMessage;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.processors.gcp.pubsub.consume.OutputStrategy;
 import org.apache.nifi.processors.gcp.pubsub.consume.ProcessingStrategy;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class ConsumeGCPubSubTest {
 
     private static final String SUBSCRIPTION = "my-subscription";
     private static final String PROJECT = "my-project";
     private static final String SUBSCRIPTION_FULL = "projects/" + PROJECT + "/subscriptions/" + SUBSCRIPTION;
 
+    @Mock
+    private UnaryCallable<PullRequest, PullResponse> callable;
+
+    @Mock
+    private UnaryCallable<AcknowledgeRequest, Empty> ackCallable;
+
+    @Mock
     private SubscriberStub subscriberMock;
+
+    @Mock
+    private PullResponse response;
+
+    @Mock
+    private GCPCredentialsControllerService controllerService;
+
     private TestRunner runner;
-    private List<ReceivedMessage> messages = new ArrayList<>();
-    private ObjectMapper mapper = new ObjectMapper();
+    private final List<ReceivedMessage> messages = new ArrayList<>();
+    private final ObjectMapper mapper = new ObjectMapper();
 
-    @BeforeEach
     void setRunner() throws InitializationException {
-        subscriberMock = mock(SubscriberStub.class);
-
-        UnaryCallable<PullRequest, PullResponse> callable = mock(UnaryCallable.class);
-        PullResponse response = mock(PullResponse.class);
-
         when(subscriberMock.pullCallable()).thenReturn(callable);
         when(callable.call(any())).thenReturn(response);
         when(response.getReceivedMessagesList()).thenReturn(messages);
 
-        UnaryCallable<AcknowledgeRequest, Empty> ackCallable = mock(UnaryCallable.class);
         when(subscriberMock.acknowledgeCallable()).thenReturn(ackCallable);
         when(ackCallable.call(any())).thenReturn(Empty.getDefaultInstance());
 
@@ -83,7 +95,12 @@ public class ConsumeGCPubSubTest {
             }
         });
 
-        runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, getCredentialsServiceId(runner));
+        final String controllerServiceId = GCPCredentialsControllerService.class.getSimpleName();
+        when(controllerService.getIdentifier()).thenReturn(controllerServiceId);
+        runner.addControllerService(controllerServiceId, controllerService);
+        runner.enableControllerService(controllerService);
+
+        runner.setProperty(ConsumeGCPubSub.GCP_CREDENTIALS_PROVIDER_SERVICE, controllerServiceId);
         runner.setProperty(ConsumeGCPubSub.PROJECT_ID, PROJECT);
         runner.setProperty(ConsumeGCPubSub.SUBSCRIPTION, SUBSCRIPTION);
 
@@ -92,11 +109,12 @@ public class ConsumeGCPubSubTest {
 
     @Test
     void testFlowFileStrategy() throws InitializationException {
+        setRunner();
         messages.add(createMessage("test1"));
         messages.add(createMessage("test2"));
         runner.run(1);
         runner.assertAllFlowFilesTransferred(ConsumeGCPubSub.REL_SUCCESS, 2);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals("test1");
         flowFile.assertAttributeExists(PubSubAttributes.MESSAGE_ID_ATTRIBUTE);
         flowFile.assertAttributeEquals(PubSubAttributes.SUBSCRIPTION_NAME_ATTRIBUTE, SUBSCRIPTION_FULL);
@@ -105,6 +123,7 @@ public class ConsumeGCPubSubTest {
 
     @Test
     void testDemarcatorStrategy() throws InitializationException {
+        setRunner();
         runner.setProperty(ConsumeGCPubSub.PROCESSING_STRATEGY, ProcessingStrategy.DEMARCATOR);
         runner.setProperty(ConsumeGCPubSub.MESSAGE_DEMARCATOR, "\n");
 
@@ -112,7 +131,7 @@ public class ConsumeGCPubSubTest {
         messages.add(createMessage("test2"));
         runner.run(1);
         runner.assertAllFlowFilesTransferred(ConsumeGCPubSub.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals("test1\ntest2\n");
         flowFile.assertAttributeNotExists(PubSubAttributes.MESSAGE_ID_ATTRIBUTE);
         flowFile.assertAttributeEquals(PubSubAttributes.SUBSCRIPTION_NAME_ATTRIBUTE, SUBSCRIPTION_FULL);
@@ -120,6 +139,7 @@ public class ConsumeGCPubSubTest {
 
     @Test
     void testRecordStrategyNoWrapper() throws InitializationException {
+        setRunner();
         runner.setProperty(ConsumeGCPubSub.PROCESSING_STRATEGY, ProcessingStrategy.RECORD);
 
         final JsonRecordSetWriter writer = new JsonRecordSetWriter();
@@ -141,12 +161,12 @@ public class ConsumeGCPubSubTest {
         runner.assertTransferCount(ConsumeGCPubSub.REL_SUCCESS, 1);
         runner.assertTransferCount(ConsumeGCPubSub.REL_PARSE_FAILURE, 2);
 
-        final MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).iterator().next();
+        final MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).getFirst();
         flowFileSuccess.assertContentEquals("[{\"foo\":\"foo1\"},{\"foo\":\"foo2\"}]");
         flowFileSuccess.assertAttributeNotExists(PubSubAttributes.MESSAGE_ID_ATTRIBUTE);
         flowFileSuccess.assertAttributeEquals(PubSubAttributes.SUBSCRIPTION_NAME_ATTRIBUTE, SUBSCRIPTION_FULL);
 
-        final MockFlowFile flowFileParseFailure = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_PARSE_FAILURE).iterator().next();
+        final MockFlowFile flowFileParseFailure = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_PARSE_FAILURE).getFirst();
         flowFileParseFailure.assertContentEquals("test2");
         flowFileParseFailure.assertAttributeExists(PubSubAttributes.MESSAGE_ID_ATTRIBUTE);
         flowFileParseFailure.assertAttributeEquals(PubSubAttributes.SUBSCRIPTION_NAME_ATTRIBUTE, SUBSCRIPTION_FULL);
@@ -154,7 +174,8 @@ public class ConsumeGCPubSubTest {
     }
 
     @Test
-    void testRecordStrategyWithWrapper() throws InitializationException, JsonMappingException, JsonProcessingException {
+    void testRecordStrategyWithWrapper() throws InitializationException, JsonProcessingException {
+        setRunner();
         runner.setProperty(ConsumeGCPubSub.PROCESSING_STRATEGY, ProcessingStrategy.RECORD);
         runner.setProperty(ConsumeGCPubSub.OUTPUT_STRATEGY, OutputStrategy.USE_WRAPPER);
 
@@ -209,17 +230,44 @@ public class ConsumeGCPubSubTest {
                   }
                 } ]""";
 
-        final MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).iterator().next();
+        final MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_SUCCESS).getFirst();
         final String content = flowFileSuccess.getContent();
         assertEquals(mapper.readTree(content), mapper.readTree(expected));
         flowFileSuccess.assertAttributeNotExists(PubSubAttributes.MESSAGE_ID_ATTRIBUTE);
         flowFileSuccess.assertAttributeEquals(PubSubAttributes.SUBSCRIPTION_NAME_ATTRIBUTE, SUBSCRIPTION_FULL);
 
-        final MockFlowFile flowFileParseFailure = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_PARSE_FAILURE).iterator().next();
+        final MockFlowFile flowFileParseFailure = runner.getFlowFilesForRelationship(ConsumeGCPubSub.REL_PARSE_FAILURE).getFirst();
         flowFileParseFailure.assertContentEquals("test2");
         flowFileParseFailure.assertAttributeExists(PubSubAttributes.MESSAGE_ID_ATTRIBUTE);
         flowFileParseFailure.assertAttributeEquals(PubSubAttributes.SUBSCRIPTION_NAME_ATTRIBUTE, SUBSCRIPTION_FULL);
         flowFileParseFailure.assertAttributeEquals("attKey", "attValue");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        TestRunner testRunner = TestRunners.newTestRunner(ConsumeGCPubSub.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("gcp-pubsub-subscription", ConsumeGCPubSub.SUBSCRIPTION.getName()),
+                Map.entry("gcp-pubsub-publish-batch-size", AbstractGCPubSubProcessor.BATCH_SIZE_THRESHOLD.getName()),
+                Map.entry("gcp-batch-bytes", AbstractGCPubSubProcessor.BATCH_BYTES_THRESHOLD.getName()),
+                Map.entry("gcp-pubsub-publish-batch-delay", AbstractGCPubSubProcessor.BATCH_DELAY_THRESHOLD.getName()),
+                Map.entry("api-endpoint", AbstractGCPubSubProcessor.API_ENDPOINT.getName()),
+                Map.entry("gcp-project-id", AbstractGCPProcessor.PROJECT_ID.getName()),
+                Map.entry("gcp-retry-count", AbstractGCPProcessor.RETRY_COUNT.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "gcp-proxy-host",
+                "gcp-proxy-port",
+                "gcp-proxy-user-name",
+                "gcp-proxy-user-password"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private ReceivedMessage createMessage(String content) {
@@ -232,14 +280,5 @@ public class ConsumeGCPubSubTest {
                         .build())
                 .setAckId("ackId")
                 .build();
-    }
-
-    private static String getCredentialsServiceId(final TestRunner runner) throws InitializationException {
-        final ControllerService controllerService = mock(GCPCredentialsControllerService.class);
-        final String controllerServiceId = GCPCredentialsControllerService.class.getSimpleName();
-        when(controllerService.getIdentifier()).thenReturn(controllerServiceId);
-        runner.addControllerService(controllerServiceId, controllerService);
-        runner.enableControllerService(controllerService);
-        return controllerServiceId;
     }
 }

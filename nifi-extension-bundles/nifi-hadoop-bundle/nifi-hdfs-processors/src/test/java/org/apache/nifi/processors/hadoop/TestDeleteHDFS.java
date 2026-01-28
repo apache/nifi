@@ -22,6 +22,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.ietf.jgss.GSSException;
@@ -33,6 +34,7 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,10 +73,10 @@ public class TestDeleteHDFS {
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(1, provenanceEvents.size());
-        assertEquals(ProvenanceEventType.REMOTE_INVOCATION, provenanceEvents.get(0).getEventType());
-        assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", provenanceEvents.get(0).getTransitUri());
+        assertEquals(ProvenanceEventType.REMOTE_INVOCATION, provenanceEvents.getFirst().getEventType());
+        assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", provenanceEvents.getFirst().getTransitUri());
 
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_SUCCESS).getFirst();
         assertEquals("hdfs://0.example.com:8020/some/path/to/file.txt", flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE));
 
     }
@@ -139,7 +141,7 @@ public class TestDeleteHDFS {
         runner.enqueue("foo", attributes);
         runner.run();
         runner.assertTransferCount(DeleteHDFS.REL_FAILURE, 1);
-        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_FAILURE).get(0);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(DeleteHDFS.REL_FAILURE).getFirst();
         assertEquals("file.txt", flowFile.getAttribute("hdfs.filename"));
         assertEquals("/some/path/to", flowFile.getAttribute("hdfs.path"));
         assertEquals("Permissions Error", flowFile.getAttribute("hdfs.error.message"));
@@ -315,5 +317,29 @@ public class TestDeleteHDFS {
         assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09/[01-04]").find());
         assertTrue(deleteHDFS.GLOB_MATCHER.reset("/data/for/0?/09/").find());
         assertFalse(deleteHDFS.GLOB_MATCHER.reset("/data/for/08/09").find());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final TestRunner runner = TestRunners.newTestRunner(DeleteHDFS.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("file_or_directory", DeleteHDFS.FILE_OR_DIRECTORY.getName()),
+                Map.entry("recursive", DeleteHDFS.RECURSIVE.getName()),
+                Map.entry("kerberos-user-service", AbstractHadoopProcessor.KERBEROS_USER_SERVICE.getName()),
+                Map.entry("Compression codec", AbstractHadoopProcessor.COMPRESSION_CODEC.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "Kerberos Principal",
+                "Kerberos Password",
+                "Kerberos Keytab",
+                "kerberos-credentials-service",
+                "Kerberos Relogin Period"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 }
