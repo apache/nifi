@@ -398,7 +398,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                         } catch (InterruptedException e) {
                             throw new ProtocolException("Could not complete offload request", e);
                         }
-                    }, "Offload Flow Files from Node");
+                    }, "Offload FlowFiles from Node");
                     t.setDaemon(true);
                     t.start();
 

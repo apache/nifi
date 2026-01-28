@@ -116,17 +116,17 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
-            .description("Flow Files that have been successfully processed are transferred to this relationship")
+            .description("FlowFiles that have been successfully processed are transferred to this relationship")
             .build();
 
     public static final Relationship REL_RETRY = new Relationship.Builder()
             .name("retry")
-            .description("Flow Files that could not be processed due to issues that can be retried are transferred to this relationship")
+            .description("FlowFiles that could not be processed due to issues that can be retried are transferred to this relationship")
             .build();
 
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
-            .description("Flow Files that could not be processed due to issue that cannot be retried are transferred to this relationship")
+            .description("FlowFiles that could not be processed due to issue that cannot be retried are transferred to this relationship")
             .build();
 
     public static final String RECORD_COUNT_ATTR = "record.count";
@@ -274,13 +274,13 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 // write to tempFile first and on success rename to destFile
                 final Path tempFile = new Path(directoryPath, "." + filenameValue) {
                     @Override
-                    public FileSystem getFileSystem(Configuration conf) throws IOException {
+                    public FileSystem getFileSystem(Configuration conf) {
                         return fileSystem;
                     }
                 };
                 final Path destFile = new Path(directoryPath, filenameValue) {
                     @Override
-                    public FileSystem getFileSystem(Configuration conf) throws IOException {
+                    public FileSystem getFileSystem(Configuration conf) {
                         return fileSystem;
                     }
                 };

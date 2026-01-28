@@ -164,7 +164,7 @@ public class DecryptContentPGP extends AbstractProcessor {
     }
 
     /**
-     * On Trigger decrypts Flow File contents using configured properties
+     * On Trigger decrypts FlowFile contents using configured properties
      *
      * @param context Process Context
      * @param session Process Session

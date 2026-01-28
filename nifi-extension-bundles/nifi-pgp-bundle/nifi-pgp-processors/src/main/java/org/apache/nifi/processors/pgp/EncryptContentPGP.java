@@ -181,7 +181,7 @@ public class EncryptContentPGP extends AbstractProcessor {
     }
 
     /**
-     * On Trigger encrypts Flow File contents using configured properties
+     * On Trigger encrypts FlowFile contents using configured properties
      *
      * @param context Process Context
      * @param session Process Session

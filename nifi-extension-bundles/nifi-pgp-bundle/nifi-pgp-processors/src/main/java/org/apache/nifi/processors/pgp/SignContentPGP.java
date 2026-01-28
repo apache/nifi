@@ -180,7 +180,7 @@ public class SignContentPGP extends AbstractProcessor {
     }
 
     /**
-     * On Trigger generates signatures for Flow File contents using private keys
+     * On Trigger generates signatures for FlowFile contents using private keys
      *
      * @param context Process Context
      * @param session Process Session

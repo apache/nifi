@@ -82,24 +82,24 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 })
 @WritesAttributes({
         @WritesAttribute(attribute = "executesql.row.count", description = "Contains the number of rows returned by the query. "
-                + "If 'Max Rows Per Flow File' is set, then this number will reflect the number of rows in the Flow File instead of the entire result set."),
+                + "If 'Max Rows Per FlowFile' is set, then this number will reflect the number of rows in the FlowFile instead of the entire result set."),
         @WritesAttribute(attribute = "executesql.query.duration", description = "Combined duration of the query execution time and fetch time in milliseconds. "
-                + "If 'Max Rows Per Flow File' is set, then this number will reflect only the fetch time for the rows in the Flow File instead of the entire result set."),
+                + "If 'Max Rows Per FlowFile' is set, then this number will reflect only the fetch time for the rows in the FlowFile instead of the entire result set."),
         @WritesAttribute(attribute = "executesql.query.executiontime", description = "Duration of the query execution time in milliseconds. "
-                + "This number will reflect the query execution time regardless of the 'Max Rows Per Flow File' setting."),
+                + "This number will reflect the query execution time regardless of the 'Max Rows Per FlowFile' setting."),
         @WritesAttribute(attribute = "executesql.query.fetchtime", description = "Duration of the result set fetch time in milliseconds. "
-                + "If 'Max Rows Per Flow File' is set, then this number will reflect only the fetch time for the rows in the Flow File instead of the entire result set."),
+                + "If 'Max Rows Per FlowFile' is set, then this number will reflect only the fetch time for the rows in the FlowFile instead of the entire result set."),
         @WritesAttribute(attribute = "executesql.resultset.index", description = "Assuming multiple result sets are returned, "
                 + "the zero based index of this result set."),
         @WritesAttribute(attribute = "executesql.error.message", description = "If processing an incoming flow file causes "
-                + "an Exception, the Flow File is routed to failure and this attribute is set to the exception message."),
-        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
+                + "an Exception, the FlowFile is routed to failure and this attribute is set to the exception message."),
+        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per FlowFile' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
-        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per Flow File' is set then this is the total number of  "
+        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per FlowFile' is set then this is the total number of  "
                 + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
                 + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet. If Output Batch Size is set, then this "
                 + "attribute will not be populated."),
-        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
+        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per FlowFile' is set then the position of this FlowFile in the list of "
                 + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced"),

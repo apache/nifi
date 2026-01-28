@@ -62,7 +62,7 @@ public abstract class AbstractPort implements Port {
     private static final Logger logger = LoggerFactory.getLogger(AbstractPort.class);
 
     public static final Relationship PORT_RELATIONSHIP = new Relationship.Builder()
-            .description("The relationship through which all Flow Files are transferred")
+            .description("The relationship through which all FlowFiles are transferred")
             .name("")
             .build();
 
