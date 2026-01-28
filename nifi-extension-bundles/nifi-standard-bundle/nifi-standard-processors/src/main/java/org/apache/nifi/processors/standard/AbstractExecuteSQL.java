@@ -81,6 +81,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .name("failure")
             .description("SQL query execution failed. Incoming FlowFile will be penalized and routed to this relationship")
             .build();
+    static final List<String> OBSOLETE_MAX_ROWS_PER_FLOW_FILE = List.of(
+            "esql-max-rows",
+            "Max Rows Per Flow File"
+    );
+
     protected Set<Relationship> relationships;
 
     public static final PropertyDescriptor DBCP_SERVICE = new PropertyDescriptor.Builder()
@@ -136,7 +141,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
-            .name("Max Rows Per Flow File")
+            .name("Max Rows Per FlowFile")
             .description("The maximum number of result rows that will be included in a single FlowFile. This will allow you to break up very large "
                     + "result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
             .defaultValue("0")
@@ -213,15 +218,15 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         config.renameProperty("sql-pre-query", SQL_PRE_QUERY.getName());
         config.renameProperty("SQL select query", SQL_QUERY.getName());
         config.renameProperty("sql-post-query", SQL_POST_QUERY.getName());
-        config.renameProperty("esql-max-rows", MAX_ROWS_PER_FLOW_FILE.getName());
         config.renameProperty("esql-output-batch-size", OUTPUT_BATCH_SIZE.getName());
         config.renameProperty("esql-fetch-size", FETCH_SIZE.getName());
         config.renameProperty("esql-auto-commit", AUTO_COMMIT.getName());
+        OBSOLETE_MAX_ROWS_PER_FLOW_FILE.forEach(obsoleteName -> config.renameProperty(obsoleteName, MAX_ROWS_PER_FLOW_FILE.getName()));
     }
 
     @OnScheduled
     public void setup(ProcessContext context) {
-        // If the query is not set, then an incoming flow file is needed. Otherwise fail the initialization
+        // If the query is not set, then an incoming flow file is needed. Otherwise, fail the initialization
         if (!context.getProperty(SQL_QUERY).isSet() && !context.hasIncomingConnection()) {
             final String errorString = "Either the Select Query must be specified or there must be an incoming connection "
                     + "providing flowfile(s) containing a SQL select query";
@@ -295,7 +300,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                 }
                 st.setQueryTimeout(queryTimeout); // timeout in seconds
 
-                // Execute pre-query, throw exception and cleanup Flow Files if fail
+                // Execute pre-query, throw exception and cleanup FlowFiles if fail
                 Pair<String, SQLException> failure = executeConfigStatements(con, preQueries);
                 if (failure != null) {
                     // In case of failure, assigning config query to "selectQuery" to follow current error handling
@@ -453,7 +458,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                     }
                 }
 
-                // Execute post-query, throw exception and cleanup Flow Files if fail
+                // Execute post-query, throw exception and cleanup FlowFiles if fail
                 failure = executeConfigStatements(con, postQueries);
                 if (failure != null) {
                     selectQuery = failure.getLeft();

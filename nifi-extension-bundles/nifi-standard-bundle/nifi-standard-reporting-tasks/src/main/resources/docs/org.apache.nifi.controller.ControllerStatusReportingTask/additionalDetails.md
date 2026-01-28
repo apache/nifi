@@ -24,7 +24,7 @@ following information is included (sorted by descending Processing Timing):
 * Processor ID
 * Processor Type
 * Run Status
-* Flow Files In (5 mins)
+* FlowFiles In (5 mins)
 * FlowFiles Out (5 mins)
 * Bytes Read from Disk (5 mins)
 * Bytes Written to Disk (5 mins)
@@ -37,7 +37,7 @@ For Connections, the following information is included (sorted by descending siz
 * Connection ID
 * Source Component Name
 * Destination Component Name
-* Flow Files In (5 mins)
+* FlowFiles In (5 mins)
 * FlowFiles Out (5 mins)
 * FlowFiles Queued
 

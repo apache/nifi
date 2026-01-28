@@ -17,7 +17,7 @@
 package org.apache.nifi.flowfile.attributes;
 
 /**
- * Enumeration of standard Flow File Media Types
+ * Enumeration of standard FlowFile Media Types
  */
 public enum StandardFlowFileMediaType implements FlowFileMediaType {
     VERSION_1("application/flowfile-v1"),

@@ -17,7 +17,7 @@
 package org.apache.nifi.flowfile.attributes;
 
 /**
- * Flow File Media Type Definition
+ * FlowFile Media Type Definition
  */
 public interface FlowFileMediaType {
     /**

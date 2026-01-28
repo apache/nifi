@@ -559,7 +559,7 @@ public class MonitorActivity extends AbstractProcessor {
         public void update(FlowFile flowFile) {
             final long now = nowMillis();
             if ((now - this.getLastActivity()) > syncPeriodMillis) {
-                this.forceSync(); // Immediate synchronization if Flow Files are infrequent, to mitigate false reports
+                this.forceSync(); // Immediate synchronization if FlowFiles are infrequent, to mitigate false reports
             }
             this.lastSuccessfulTransfer = now;
             if (saveAttributes) {

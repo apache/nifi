@@ -126,7 +126,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        //Remove Max Rows Per Flow File
+        //Remove Max Rows Per FlowFile
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
@@ -802,7 +802,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        //Remove Max Rows Per Flow File
+        //Remove Max Rows Per FlowFile
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
@@ -928,7 +928,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
         runner.assertAllFlowFilesTransferred(QueryDatabaseTableRecord.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        //Remove Max Rows Per Flow File
+        //Remove Max Rows Per FlowFile
         runner.setProperty(QueryDatabaseTableRecord.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
@@ -1048,6 +1048,7 @@ class QueryDatabaseTableRecordTest extends AbstractDatabaseConnectionServiceTest
                 Map.entry("db-fetch-where-clause", AbstractDatabaseFetchProcessor.WHERE_CLAUSE.getName()),
                 Map.entry("db-fetch-sql-query", AbstractDatabaseFetchProcessor.SQL_QUERY.getName()),
                 Map.entry("qdbt-max-rows", AbstractQueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE.getName()),
+                Map.entry("Max Rows Per Flow File", AbstractQueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE.getName()),
                 Map.entry("qdbt-output-batch-size", AbstractQueryDatabaseTable.OUTPUT_BATCH_SIZE.getName()),
                 Map.entry("qdbt-max-frags", AbstractQueryDatabaseTable.MAX_FRAGMENTS.getName()),
                 Map.entry("transaction-isolation-level", AbstractQueryDatabaseTable.TRANS_ISOLATION_LEVEL.getName()),

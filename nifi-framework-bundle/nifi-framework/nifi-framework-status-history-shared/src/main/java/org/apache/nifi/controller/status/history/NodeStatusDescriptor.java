@@ -100,13 +100,13 @@ public enum NodeStatusDescriptor {
             NodeStatus::getTimerDrivenThreads),
     FLOW_FILE_REPOSITORY_FREE_SPACE(
             "flowFileRepositoryFreeSpace",
-            "Flow File Repository Free Space",
+            "FlowFile Repository Free Space",
             "The usable space available for file repositories on the underlying storage mechanism",
             MetricDescriptor.Formatter.DATA_SIZE,
             NodeStatus::getFlowFileRepositoryFreeSpace),
     FLOW_FILE_REPOSITORY_USED_SPACE(
             "flowFileRepositoryUsedSpace",
-            "Flow File Repository Used Space",
+            "FlowFile Repository Used Space",
             "The space in use on the underlying storage mechanism.",
             MetricDescriptor.Formatter.DATA_SIZE,
             NodeStatus::getFlowFileRepositoryUsedSpace),

@@ -18,7 +18,7 @@
 ## Description:
 
 This Processor consumes email messages via IMAP protocol and sends the content of an email message as content of the
-Flow File. Content of the incoming email message is written as raw bytes to the content of the outgoing Flow File.
+FlowFile. Content of the incoming email message is written as raw bytes to the content of the outgoing FlowFile.
 
 Different email providers may require additional Java Mail properties which could be provided as dynamic properties. For
 example, below is a sample configuration for GMail:

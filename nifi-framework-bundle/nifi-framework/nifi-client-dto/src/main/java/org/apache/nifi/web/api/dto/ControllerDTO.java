@@ -129,11 +129,11 @@ public class ControllerDTO {
     }
 
     /**
-     * The Socket Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote instances, this will be null.
+     * The Socket Port on which this instance is listening for Remote Transfers of FlowFiles. If this instance is not configured to receive FlowFiles from remote instances, this will be null.
      *
-     * @return a integer between 1 and 65535, or null, if not configured for remote transfer
+     * @return an integer between 1 and 65535, or null, if not configured for remote transfer
      */
-    @Schema(description = "The Socket Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote "
+    @Schema(description = "The Socket Port on which this instance is listening for Remote Transfers of FlowFiles. If this instance is not configured to receive FlowFiles from remote "
                     + "instances, this will be null."
     )
     public Integer getRemoteSiteListeningPort() {
@@ -145,11 +145,11 @@ public class ControllerDTO {
     }
 
     /**
-     * The HTTP(S) Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote instances, this will be null.
+     * The HTTP(S) Port on which this instance is listening for Remote Transfers of FlowFiles. If this instance is not configured to receive FlowFiles from remote instances, this will be null.
      *
-     * @return a integer between 1 and 65535, or null, if not configured for remote transfer
+     * @return an integer between 1 and 65535, or null, if not configured for remote transfer
      */
-    @Schema(description = "The HTTP(S) Port on which this instance is listening for Remote Transfers of Flow Files. If this instance is not configured to receive Flow Files from remote "
+    @Schema(description = "The HTTP(S) Port on which this instance is listening for Remote Transfers of FlowFiles. If this instance is not configured to receive FlowFiles from remote "
                     + "instances, this will be null."
     )
     public Integer getRemoteSiteHttpListeningPort() {

@@ -663,6 +663,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
                 Map.entry("SQL select query", AbstractExecuteSQL.SQL_QUERY.getName()),
                 Map.entry("sql-post-query", AbstractExecuteSQL.SQL_POST_QUERY.getName()),
                 Map.entry("esql-max-rows", AbstractExecuteSQL.MAX_ROWS_PER_FLOW_FILE.getName()),
+                Map.entry("Max Rows Per Flow File", AbstractExecuteSQL.MAX_ROWS_PER_FLOW_FILE.getName()),
                 Map.entry("esql-output-batch-size", AbstractExecuteSQL.OUTPUT_BATCH_SIZE.getName()),
                 Map.entry("esql-fetch-size", AbstractExecuteSQL.FETCH_SIZE.getName()),
                 Map.entry("esql-auto-commit", AbstractExecuteSQL.AUTO_COMMIT.getName()),
