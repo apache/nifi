@@ -329,13 +329,10 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
             // Spring Integration 7 expects an evaluation context bean; register a lightweight one for the receiver
             final StaticListableBeanFactory beanFactory = new StaticListableBeanFactory();
             final StandardEvaluationContext evaluationContext = new StandardEvaluationContext();
+            final ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
             evaluationContext.setBeanResolver(new BeanFactoryResolver(beanFactory));
             beanFactory.addBean(IntegrationContextUtils.INTEGRATION_EVALUATION_CONTEXT_BEAN_NAME, evaluationContext);
-
-            try (ScheduledExecutorService scheduledExecutor = Executors.newSingleThreadScheduledExecutor()) {
-                beanFactory.addBean(IntegrationContextUtils.TASK_SCHEDULER_BEAN_NAME, new ConcurrentTaskScheduler(scheduledExecutor));
-            }
-
+            beanFactory.addBean(IntegrationContextUtils.TASK_SCHEDULER_BEAN_NAME, new ConcurrentTaskScheduler(scheduledExecutor));
             this.messageReceiver.setBeanFactory(beanFactory);
             this.messageReceiver.afterPropertiesSet();
 
