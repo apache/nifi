@@ -289,16 +289,17 @@ public class RemoteProcessGroupAuditor extends NiFiAuditor {
             }
 
             // determine the new executing state
-            boolean updatedTransmissionState = updatedRemoteProcessGroup.isTransmitting();
-
-            // determine if the running state has changed
-            if (transmissionState != updatedTransmissionState) {
+            // using isConfiguredToTransmit() as opposed to isTransmitting()
+            // to capture case where port is still in process of shutting down.
+            boolean updatedConfiguredToTransmitState = updatedRemoteProcessGroup.isConfiguredToTransmit();
+            // determine if the running state has been set to change
+            if (transmissionState != updatedConfiguredToTransmitState) {
                 // create a remote process group action
                 final FlowChangeAction remoteProcessGroupAction = createFlowChangeAction(timestamp,
                         updatedRemoteProcessGroup, remoteProcessGroupDetails);
 
                 // set the operation accordingly
-                if (updatedTransmissionState) {
+                if (updatedConfiguredToTransmitState) {
                     remoteProcessGroupAction.setOperation(Operation.Start);
                 } else {
                     remoteProcessGroupAction.setOperation(Operation.Stop);
