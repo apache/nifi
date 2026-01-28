@@ -19,8 +19,6 @@ package org.apache.nifi.minifi.bootstrap;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.bootstrap.BootstrapCommunicator;
-import org.apache.nifi.bootstrap.CommandResult;
 import org.apache.nifi.minifi.MiNiFiServer;
 import org.apache.nifi.minifi.commons.status.FlowStatusReport;
 import org.apache.nifi.minifi.status.StatusRequestException;
@@ -47,8 +45,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 
-import static org.apache.nifi.bootstrap.CommandResult.FAILURE;
-import static org.apache.nifi.bootstrap.CommandResult.SUCCESS;
+import static org.apache.nifi.minifi.bootstrap.CommandResult.FAILURE;
+import static org.apache.nifi.minifi.bootstrap.CommandResult.SUCCESS;
 
 public class BootstrapListener implements BootstrapCommunicator {
 

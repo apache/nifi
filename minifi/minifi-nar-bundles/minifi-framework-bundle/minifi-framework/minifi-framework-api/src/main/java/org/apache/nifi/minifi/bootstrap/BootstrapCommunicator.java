@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.bootstrap;
+package org.apache.nifi.minifi.bootstrap;
 
 import java.io.IOException;
 import java.io.OutputStream;
