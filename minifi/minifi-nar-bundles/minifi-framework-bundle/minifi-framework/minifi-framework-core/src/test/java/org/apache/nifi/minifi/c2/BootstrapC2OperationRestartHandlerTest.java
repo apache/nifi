@@ -17,10 +17,10 @@
 
 package org.apache.nifi.minifi.c2;
 
-import org.apache.nifi.bootstrap.BootstrapCommunicator;
-import org.apache.nifi.bootstrap.CommandResult;
 import org.apache.nifi.c2.protocol.api.C2Operation;
 import org.apache.nifi.c2.protocol.api.C2OperationState.OperationState;
+import org.apache.nifi.minifi.bootstrap.BootstrapCommunicator;
+import org.apache.nifi.minifi.bootstrap.CommandResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,11 +33,11 @@ import java.util.function.BiConsumer;
 
 import static java.lang.Thread.sleep;
 import static java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor;
-import static org.apache.nifi.bootstrap.CommandResult.FAILURE;
-import static org.apache.nifi.bootstrap.CommandResult.SUCCESS;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.FULLY_APPLIED;
 import static org.apache.nifi.c2.protocol.api.C2OperationState.OperationState.NOT_APPLIED;
 import static org.apache.nifi.c2.protocol.api.OperationType.START;
+import static org.apache.nifi.minifi.bootstrap.CommandResult.FAILURE;
+import static org.apache.nifi.minifi.bootstrap.CommandResult.SUCCESS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
