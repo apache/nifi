@@ -29,6 +29,7 @@ import org.apache.nifi.components.connector.facades.standalone.StandaloneParamet
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterContext;
@@ -40,6 +41,7 @@ import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class FlowControllerFlowContextFactory implements FlowContextFactory {
@@ -104,20 +106,26 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
         versionedExternalFlow.setParameterProviders(Map.of());
         versionedExternalFlow.setParameterContexts(Map.of());
 
-        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true, false);
-
         final String duplicateContextId = UUID.nameUUIDFromBytes((destinationGroup.getIdentifier() + "-param-context").getBytes(StandardCharsets.UTF_8)).toString();
+        final Optional<ParameterContext> duplicateParameterContextOptional;
         final ParameterContext sourceContext = sourceGroup.getParameterContext();
         if (sourceContext != null) {
             final ParameterContext duplicateParameterContext = flowController.getFlowManager().duplicateParameterContext(duplicateContextId, sourceContext);
-            setParameterContexts(destinationGroup, duplicateParameterContext);
+            duplicateParameterContextOptional = Optional.of(duplicateParameterContext);
+        } else {
+            duplicateParameterContextOptional = Optional.empty();
         }
+        destinationGroup.setParameterContext(duplicateParameterContextOptional.orElse(null));
+        updateParameterContextNames(versionedGroup, versionedGroup.getParameterContextName());
+        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true, false);
     }
 
-    private void setParameterContexts(final ProcessGroup processGroup, final ParameterContext parameterContext) {
-        processGroup.setParameterContext(parameterContext);
-        for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
-            setParameterContexts(childGroup, parameterContext);
+    private void updateParameterContextNames(final VersionedProcessGroup group, final String parameterContextName) {
+        group.setParameterContextName(parameterContextName);
+        if (group.getProcessGroups() != null) {
+            for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+                updateParameterContextNames(childGroup, parameterContextName);
+            }
         }
     }
 }
