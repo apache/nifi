@@ -94,6 +94,16 @@ import java.util.zip.InflaterInputStream;
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
 public class ModifyCompression extends AbstractProcessor {
 
+    public static final Relationship REL_SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFiles will be transferred to the success relationship on compression modification success")
+            .build();
+
+    public static final Relationship REL_FAILURE = new Relationship.Builder()
+            .name("failure")
+            .description("FlowFiles will be transferred to the failure relationship on compression modification errors")
+            .build();
+
     public static final PropertyDescriptor INPUT_COMPRESSION_STRATEGY = new PropertyDescriptor.Builder()
             .name("Input Compression Strategy")
             .description("The strategy to use for decompressing input FlowFiles")
@@ -136,21 +146,21 @@ public class ModifyCompression extends AbstractProcessor {
             .defaultValue(FilenameStrategy.UPDATED)
             .build();
 
-    public static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("FlowFiles will be transferred to the success relationship on compression modification success")
-            .build();
-
-    public static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("FlowFiles will be transferred to the failure relationship on compression modification errors")
+    public static final PropertyDescriptor UNKNOWN_MIME_TYPE_ROUTING = new PropertyDescriptor.Builder()
+            .name("Unknown MIME Type Routing")
+            .description("The relationship to send the flowfile to when the MIME type is unknown.")
+            .dependsOn(INPUT_COMPRESSION_STRATEGY, CompressionStrategy.MIME_TYPE_ATTRIBUTE)
+            .required(true)
+            .allowableValues(REL_SUCCESS.getName(), REL_FAILURE.getName())
+            .defaultValue(REL_FAILURE.getName())
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             INPUT_COMPRESSION_STRATEGY,
             OUTPUT_COMPRESSION_STRATEGY,
             OUTPUT_COMPRESSION_LEVEL,
-            OUTPUT_FILENAME_STRATEGY
+            OUTPUT_FILENAME_STRATEGY,
+            UNKNOWN_MIME_TYPE_ROUTING
     );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(
@@ -207,7 +217,10 @@ public class ModifyCompression extends AbstractProcessor {
             inputCompressionStrategy = compressionFormatMimeTypeMap.get(mimeType);
             if (inputCompressionStrategy == null) {
                 getLogger().info("Compression Strategy not found for MIME Type [{}] {}", mimeType, flowFile);
-                session.transfer(flowFile, REL_FAILURE);
+                final String unknownMimeTypeRouting = context.getProperty(UNKNOWN_MIME_TYPE_ROUTING).getValue();
+                final Relationship toRelationShip = REL_SUCCESS.getName().equals(unknownMimeTypeRouting) ? REL_SUCCESS : REL_FAILURE;
+
+                session.transfer(flowFile, toRelationShip);
                 return;
             }
         } else {
