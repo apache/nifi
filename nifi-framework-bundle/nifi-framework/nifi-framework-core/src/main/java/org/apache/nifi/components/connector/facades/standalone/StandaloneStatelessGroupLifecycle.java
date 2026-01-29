@@ -19,6 +19,7 @@ package org.apache.nifi.components.connector.facades.standalone;
 
 import org.apache.nifi.components.connector.components.StatelessGroupLifecycle;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNode;
 
@@ -35,11 +36,13 @@ public class StandaloneStatelessGroupLifecycle implements StatelessGroupLifecycl
 
     @Override
     public CompletableFuture<Void> start() {
+        statelessGroupNode.setDesiredState(ScheduledState.RUNNING);
         return processScheduler.startStatelessGroup(statelessGroupNode);
     }
 
     @Override
     public CompletableFuture<Void> stop() {
+        statelessGroupNode.setDesiredState(ScheduledState.STOPPED);
         return processScheduler.stopStatelessGroup(statelessGroupNode);
     }
 
