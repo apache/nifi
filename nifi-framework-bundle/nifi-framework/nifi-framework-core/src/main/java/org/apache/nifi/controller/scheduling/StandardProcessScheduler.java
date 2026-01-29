@@ -447,6 +447,12 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public synchronized CompletableFuture<Void> startStatelessGroup(final StatelessGroupNode groupNode) {
+        final ScheduledState initialState = groupNode.getDesiredState();
+        if (initialState != ScheduledState.RUNNING) {
+            LOG.warn("{} scheduled to run but its desired state is {}, not RUNNING; will not start the group", groupNode, initialState);
+            return CompletableFuture.failedFuture(new IllegalStateException("Attempted to start %s but its desired state is %s, not RUNNING".formatted(groupNode, initialState)));
+        }
+
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(groupNode), true, true);
         lifecycleState.setScheduled(true);
 
@@ -515,7 +521,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
                 }
             }
 
-            LOG.info("{} is no scheduled to run. Disabling {} Controller Services", groupNode.getProcessGroup(), allServices.size());
+            LOG.info("{} is no longer scheduled to run. Disabling {} Controller Services", groupNode.getProcessGroup(), allServices.size());
 
             // Cancel all service start futures, interrupting them if they are waiting
             for (final Future<?> serviceStartFuture : serviceStartFutures) {
