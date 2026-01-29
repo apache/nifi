@@ -31,9 +31,10 @@ public class PollingSummary extends PollingContext {
             final String groupId,
             final Collection<String> topics,
             final AutoOffsetReset autoOffsetReset,
+            final Integer partition,
             final Map<TopicPartitionSummary, OffsetSummary> offsets
     ) {
-        super(groupId, topics, autoOffsetReset);
+        super(groupId, topics, autoOffsetReset, partition);
         this.offsets = Objects.requireNonNull(offsets, "Offsets required");
     }
 
