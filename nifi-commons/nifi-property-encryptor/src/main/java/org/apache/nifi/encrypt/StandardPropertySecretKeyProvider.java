@@ -23,8 +23,6 @@ import org.apache.nifi.security.crypto.key.argon2.Argon2DerivedKeyParameterSpec;
 import org.apache.nifi.security.crypto.key.argon2.Argon2DerivedKeyProvider;
 import org.apache.nifi.security.crypto.key.pbkdf2.Pbkdf2DerivedKeyParameterSpec;
 import org.apache.nifi.security.crypto.key.pbkdf2.Pbkdf2DerivedKeyProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 import javax.crypto.SecretKey;
@@ -34,8 +32,6 @@ import javax.crypto.spec.SecretKeySpec;
  * Standard implementation of Property Secret Key Provider implementing supported Key Derivation Functions
  */
 class StandardPropertySecretKeyProvider implements PropertySecretKeyProvider {
-    private static final Logger LOGGER = LoggerFactory.getLogger(StandardPropertySecretKeyProvider.class);
-
     /** Standard Application Salt supporting deterministic encrypted property comparison */
     private static final byte[] APPLICATION_SALT = new byte[]{'N', 'i', 'F', 'i', ' ', 'S', 't', 'a', 't', 'i', 'c', ' ', 'S', 'a', 'l', 't'};
 
@@ -69,9 +65,6 @@ class StandardPropertySecretKeyProvider implements PropertySecretKeyProvider {
         if (password.length() < MINIMUM_PASSWORD_LENGTH) {
             throw new EncryptionException(PASSWORD_LENGTH_MESSAGE);
         }
-
-        final int keyLength = propertyEncryptionMethod.getKeyLength();
-        LOGGER.debug("Generating [{}-{}] Secret Key using [{}]", SECRET_KEY_ALGORITHM, keyLength, propertyEncryptionMethod.name());
 
         final DerivedKey derivedKey = getDerivedKey(propertyEncryptionMethod, password);
         return new SecretKeySpec(derivedKey.getEncoded(), SECRET_KEY_ALGORITHM);
