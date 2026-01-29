@@ -60,12 +60,27 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
             .required(true)
             .build();
 
+    static final PropertyDescriptor FAST_READER = new PropertyDescriptor.Builder()
+            .name("Enable Fast Read")
+            .description("""
+                    When enabled, the Avro library uses an optimized reader implementation that improves read performance
+                    by creating a detailed execution plan at initialization. However, this optimization can lead to
+                    significantly higher memory consumption, especially when using schema inference. If OutOfMemory errors
+                    occur during Avro processing, consider disabling this option.""")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
+            .defaultValue("true")
+            .required(true)
+            .build();
+
     private LoadingCache<String, Schema> compiledAvroSchemaCache;
+    private boolean fastReaderEnabled;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(CACHE_SIZE);
+        properties.add(FAST_READER);
         return properties;
     }
 
@@ -75,6 +90,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
         compiledAvroSchemaCache = Caffeine.newBuilder()
                 .maximumSize(cacheSize)
                 .build(schemaText -> new Schema.Parser().parse(schemaText));
+        fastReaderEnabled = context.getProperty(FAST_READER).asBoolean();
     }
 
     @Override
@@ -103,7 +119,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final String schemaAccessStrategy = getConfigurationContext().getProperty(getSchemaAccessStrategyDescriptor()).getValue();
         if (EMBEDDED_AVRO_SCHEMA.getValue().equals(schemaAccessStrategy)) {
-            return new AvroReaderWithEmbeddedSchema(in);
+            return new AvroReaderWithEmbeddedSchema(in, fastReaderEnabled);
         } else {
             final RecordSchema recordSchema = getSchema(variables, in, null);
 
@@ -123,7 +139,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
                 throw new SchemaNotFoundException("Failed to compile Avro Schema", e);
             }
 
-            return new AvroReaderWithExplicitSchema(in, recordSchema, avroSchema);
+            return new AvroReaderWithExplicitSchema(in, recordSchema, avroSchema, fastReaderEnabled);
         }
     }
 
