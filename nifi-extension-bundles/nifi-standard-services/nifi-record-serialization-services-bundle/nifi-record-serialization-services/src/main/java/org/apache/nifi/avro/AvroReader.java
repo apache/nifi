@@ -60,8 +60,8 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
             .required(true)
             .build();
 
-    static final PropertyDescriptor FAST_READER = new PropertyDescriptor.Builder()
-            .name("Enable Fast Read")
+    static final PropertyDescriptor FAST_READER_ENABLED = new PropertyDescriptor.Builder()
+            .name("Fast Reader Enabled")
             .description("""
                     When enabled, the Avro library uses an optimized reader implementation that improves read performance
                     by creating a detailed execution plan at initialization. However, this optimization can lead to
@@ -80,7 +80,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(CACHE_SIZE);
-        properties.add(FAST_READER);
+        properties.add(FAST_READER_ENABLED);
         return properties;
     }
 
@@ -90,7 +90,7 @@ public class AvroReader extends SchemaRegistryService implements RecordReaderFac
         compiledAvroSchemaCache = Caffeine.newBuilder()
                 .maximumSize(cacheSize)
                 .build(schemaText -> new Schema.Parser().parse(schemaText));
-        fastReaderEnabled = context.getProperty(FAST_READER).asBoolean();
+        fastReaderEnabled = context.getProperty(FAST_READER_ENABLED).asBoolean();
     }
 
     @Override
