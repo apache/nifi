@@ -22,7 +22,6 @@ import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ContentClaimWriteCache;
 import org.apache.nifi.controller.repository.metrics.PerformanceTracker;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.provenance.InternalProvenanceReporter;
 import org.apache.nifi.provenance.ProvenanceRepository;
@@ -39,7 +38,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -73,9 +71,6 @@ class StandardProcessSessionTest {
 
     @Mock
     Connectable connectable;
-
-    @Mock
-    ProcessGroup processGroup;
 
     @Mock
     ContentClaimWriteCache contentClaimWriteCache;
@@ -112,8 +107,6 @@ class StandardProcessSessionTest {
         when(repositoryContext.createContentClaimWriteCache(isA(PerformanceTracker.class))).thenReturn(contentClaimWriteCache);
         when(repositoryContext.getConnectable()).thenReturn(connectable);
         when(connectable.getIdentifier()).thenReturn(Connectable.class.getSimpleName());
-        when(connectable.getProcessGroup()).thenReturn(processGroup);
-        when(processGroup.getLoggingAttributes()).thenReturn(Map.of());
 
         session = new StandardProcessSession(repositoryContext, taskTermination, performanceTracker);
     }
