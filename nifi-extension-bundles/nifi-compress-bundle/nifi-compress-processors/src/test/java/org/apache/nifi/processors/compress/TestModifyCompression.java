@@ -394,11 +394,11 @@ class TestModifyCompression {
         runner.setProperty(ModifyCompression.INPUT_COMPRESSION_STRATEGY, CompressionStrategy.MIME_TYPE_ATTRIBUTE);
         runner.setProperty(ModifyCompression.OUTPUT_FILENAME_STRATEGY, FilenameStrategy.ORIGINAL);
 
-        if (toRelationship != null) {
+        if (toRelationship == null) {
+            expectedRelationship = ModifyCompression.REL_FAILURE;
+        } else {
             runner.setProperty(ModifyCompression.UNKNOWN_MIME_TYPE_ROUTING, toRelationship.getName());
             expectedRelationship = toRelationship;
-        } else {
-            expectedRelationship = ModifyCompression.REL_FAILURE;
         }
 
         runner.enqueue(getSamplePath("SampleFile.txt"), Map.of(CoreAttributes.MIME_TYPE.key(), "text/plain"));
