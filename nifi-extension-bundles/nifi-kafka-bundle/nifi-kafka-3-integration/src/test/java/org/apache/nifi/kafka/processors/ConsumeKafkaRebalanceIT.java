@@ -1,0 +1,270 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.kafka.processors;
+
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.AdminClientConfig;
+import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
+import org.apache.nifi.kafka.service.api.record.ByteRecord;
+import org.apache.nifi.kafka.service.consumer.Kafka3ConsumerService;
+import org.apache.nifi.kafka.service.consumer.Subscription;
+import org.apache.nifi.logging.ComponentLog;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
+/**
+ * Integration tests for verifying that ConsumeKafka correctly handles consumer group rebalances
+ * without causing duplicate message processing.
+ */
+class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
+
+    /**
+     * Tests that when onPartitionsRevoked is called (simulating rebalance), the consumer
+     * correctly commits offsets, and a subsequent consumer in the same group doesn't
+     * re-consume the same messages (no duplicates).
+     *
+     * This test:
+     * 1. Produces messages to a multi-partition topic
+     * 2. Consumer 1 polls and processes messages
+     * 3. Simulates rebalance by calling onPartitionsRevoked on Consumer 1
+     * 4. Consumer 2 joins and continues consuming from committed offsets
+     * 5. Verifies no duplicate messages were consumed
+     */
+    @Test
+    @Timeout(value = 60, unit = TimeUnit.SECONDS)
+    void testRebalanceDoesNotCauseDuplicates() throws Exception {
+        final String topic = "rebalance-test-" + UUID.randomUUID();
+        final String groupId = "rebalance-group-" + UUID.randomUUID();
+        final int numPartitions = 3;
+        final int messagesPerPartition = 20;
+        final int totalMessages = numPartitions * messagesPerPartition;
+
+        // Create topic with multiple partitions
+        createTopic(topic, numPartitions);
+
+        // Produce messages to all partitions
+        produceMessagesToTopic(topic, numPartitions, messagesPerPartition);
+
+        // Track consumed messages to detect duplicates
+        final Set<String> consumedMessages = new HashSet<>();
+        final AtomicInteger duplicateCount = new AtomicInteger(0);
+
+        final ComponentLog mockLog = mock(ComponentLog.class);
+
+        // Consumer 1: Poll some messages, then simulate rebalance
+        final Properties props1 = getConsumerProperties(groupId);
+        try (KafkaConsumer<byte[], byte[]> kafkaConsumer1 = new KafkaConsumer<>(props1)) {
+            final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
+            final Kafka3ConsumerService service1 = new Kafka3ConsumerService(mockLog, kafkaConsumer1, subscription);
+
+            // Poll about half the messages
+            int consumer1Count = 0;
+            int maxAttempts = 20;
+            while (consumer1Count < totalMessages / 2 && maxAttempts-- > 0) {
+                for (ByteRecord record : service1.poll(Duration.ofSeconds(2))) {
+                    final String messageId = record.getTopic() + "-" + record.getPartition() + "-" + record.getOffset();
+                    if (!consumedMessages.add(messageId)) {
+                        duplicateCount.incrementAndGet();
+                    }
+                    consumer1Count++;
+                }
+            }
+
+            // Simulate rebalance - this should commit the offsets
+            final Set<TopicPartition> assignment = kafkaConsumer1.assignment();
+            service1.onPartitionsRevoked(assignment);
+            service1.close();
+        }
+
+        // Consumer 2: Should continue from where Consumer 1 left off (no duplicates)
+        final Properties props2 = getConsumerProperties(groupId);
+        try (KafkaConsumer<byte[], byte[]> kafkaConsumer2 = new KafkaConsumer<>(props2)) {
+            final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
+            final Kafka3ConsumerService service2 = new Kafka3ConsumerService(mockLog, kafkaConsumer2, subscription);
+
+            // Poll remaining messages
+            int emptyPolls = 0;
+            while (emptyPolls < 5 && consumedMessages.size() < totalMessages) {
+                boolean hasRecords = false;
+                for (ByteRecord record : service2.poll(Duration.ofSeconds(2))) {
+                    hasRecords = true;
+                    final String messageId = record.getTopic() + "-" + record.getPartition() + "-" + record.getOffset();
+                    if (!consumedMessages.add(messageId)) {
+                        duplicateCount.incrementAndGet();
+                    }
+                }
+                if (!hasRecords) {
+                    emptyPolls++;
+                } else {
+                    emptyPolls = 0;
+                }
+            }
+
+            service2.close();
+        }
+
+        // Verify results
+        assertEquals(0, duplicateCount.get(),
+                "Expected no duplicate messages but found " + duplicateCount.get());
+        assertEquals(totalMessages, consumedMessages.size(),
+                "Expected to consume " + totalMessages + " unique messages but got " + consumedMessages.size());
+    }
+
+    /**
+     * Tests that offsets are committed during rebalance by simulating the onPartitionsRevoked callback.
+     * This test:
+     * 1. Creates a consumer and polls messages
+     * 2. Manually invokes onPartitionsRevoked (simulating what Kafka does during rebalance)
+     * 3. Verifies that offsets were committed to Kafka
+     */
+    @Test
+    @Timeout(value = 60, unit = TimeUnit.SECONDS)
+    void testOffsetsCommittedDuringRebalance() throws Exception {
+        final String topic = "rebalance-offset-test-" + UUID.randomUUID();
+        final String groupId = "rebalance-offset-group-" + UUID.randomUUID();
+
+        // Create topic with multiple partitions
+        createTopic(topic, 3);
+
+        // Produce some messages (10 per partition = 30 total)
+        final int messagesPerPartition = 10;
+        produceMessagesToTopic(topic, 3, messagesPerPartition);
+
+        final ComponentLog mockLog = mock(ComponentLog.class);
+
+        // Create consumer and poll messages
+        final Properties props = getConsumerProperties(groupId);
+        try (KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(props)) {
+            final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
+            final Kafka3ConsumerService service = new Kafka3ConsumerService(mockLog, kafkaConsumer, subscription);
+
+            // Poll messages until we have some
+            int polledCount = 0;
+            int maxAttempts = 20;
+            while (polledCount < 15 && maxAttempts-- > 0) {
+                for (ByteRecord ignored : service.poll(Duration.ofSeconds(2))) {
+                    polledCount++;
+                }
+            }
+
+            assertTrue(polledCount > 0, "Should have polled at least some messages");
+
+            // Get the current assignment before simulating rebalance
+            final Set<TopicPartition> assignment = kafkaConsumer.assignment();
+            assertFalse(assignment.isEmpty(), "Consumer should have partition assignments");
+
+            // Simulate rebalance by calling onPartitionsRevoked
+            // This is what Kafka calls when a rebalance occurs
+            service.onPartitionsRevoked(assignment);
+
+            // Close the service
+            service.close();
+        }
+
+        // Verify that offsets were committed by checking with a new consumer
+        try (KafkaConsumer<byte[], byte[]> verifyConsumer = new KafkaConsumer<>(getConsumerProperties(groupId))) {
+            final Set<TopicPartition> partitions = new HashSet<>();
+            for (int i = 0; i < 3; i++) {
+                partitions.add(new TopicPartition(topic, i));
+            }
+
+            final Map<TopicPartition, OffsetAndMetadata> committedOffsets = verifyConsumer.committed(partitions);
+
+            // At least some offsets should be committed
+            long totalCommitted = committedOffsets.values().stream()
+                    .filter(o -> o != null)
+                    .mapToLong(OffsetAndMetadata::offset)
+                    .sum();
+
+            assertTrue(totalCommitted > 0,
+                    "Expected offsets to be committed during onPartitionsRevoked, but total committed offset was " + totalCommitted);
+        }
+    }
+
+    /**
+     * Produces messages to a specific topic with a given number of partitions.
+     */
+    private void produceMessagesToTopic(final String topic, final int numPartitions, final int messagesPerPartition) throws Exception {
+        final Properties producerProps = new Properties();
+        producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
+        producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
+            for (int partition = 0; partition < numPartitions; partition++) {
+                for (int i = 0; i < messagesPerPartition; i++) {
+                    final String key = "key-" + partition + "-" + i;
+                    final String value = "value-" + partition + "-" + i;
+                    producer.send(new ProducerRecord<>(topic, partition, key, value)).get();
+                }
+            }
+        }
+    }
+
+    private void createTopic(final String topic, final int numPartitions) throws Exception {
+        final Properties adminProps = new Properties();
+        adminProps.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
+
+        try (Admin admin = Admin.create(adminProps)) {
+            final NewTopic newTopic = new NewTopic(topic, numPartitions, (short) 1);
+            admin.createTopics(Collections.singletonList(newTopic)).all().get(30, TimeUnit.SECONDS);
+        }
+
+        // Wait for topic to be fully created
+        Thread.sleep(1000);
+    }
+
+    private Properties getConsumerProperties(final String groupId) {
+        final Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaContainer.getBootstrapServers());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "100");
+        // Use shorter session timeout to speed up rebalance detection
+        props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000");
+        props.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, "3000");
+        return props;
+    }
+}
