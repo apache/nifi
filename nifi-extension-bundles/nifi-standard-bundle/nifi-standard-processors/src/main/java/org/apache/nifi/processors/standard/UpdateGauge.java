@@ -1,0 +1,120 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.standard;
+
+import org.apache.nifi.annotation.behavior.DefaultRunDuration;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SideEffectFree;
+import org.apache.nifi.annotation.behavior.SupportsBatching;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.metrics.CommitTiming;
+import org.apache.nifi.processor.util.StandardValidators;
+
+import java.util.List;
+import java.util.Set;
+
+@SideEffectFree
+@SupportsBatching(defaultDuration = DefaultRunDuration.TWENTY_FIVE_MILLIS)
+@InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@Tags({"gauge", "metrics", "instrumentation"})
+@CapabilityDescription(
+        """
+        Record the configured value of the named Gauge for each FlowFile processed.
+        Supports instrumentation, debugging, and troubleshooting using Expression Language with FlowFile attributes.
+        """
+)
+public class UpdateGauge extends AbstractProcessor {
+
+    static final PropertyDescriptor GAUGE_NAME = new PropertyDescriptor.Builder()
+            .name("Gauge Name")
+            .description("Name of the Gauge to be recorded for each FlowFile processed")
+            .required(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final PropertyDescriptor GAUGE_VALUE = new PropertyDescriptor.Builder()
+            .name("Gauge Value")
+            .description("Numeric value of the Gauge to be recorded for each FlowFile processed")
+            .required(true)
+            .addValidator(StandardValidators.NUMBER_VALIDATOR)
+            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    static final Relationship SUCCESS = new Relationship.Builder()
+            .name("success")
+            .description("FlowFile processing completed with Gauge Value recorded")
+            .build();
+
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
+            GAUGE_NAME,
+            GAUGE_VALUE
+    );
+
+    private static final Set<Relationship> RELATIONSHIPS = Set.of(
+            SUCCESS
+    );
+
+    private static final double NULL_GAUGE_VALUE = 0;
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
+    }
+
+    @Override
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        final FlowFile flowFile = session.get();
+        if (flowFile == null) {
+            return;
+        }
+
+        final String gaugeName = context.getProperty(GAUGE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        final PropertyValue gaugeValueProperty = context.getProperty(GAUGE_VALUE).evaluateAttributeExpressions(flowFile);
+        final double gaugeValue = getGaugeValue(gaugeValueProperty);
+
+        session.recordGauge(gaugeName, gaugeValue, CommitTiming.SESSION_COMMITTED);
+
+        session.transfer(flowFile, SUCCESS);
+    }
+
+    private double getGaugeValue(final PropertyValue gaugeValueProperty) {
+        try {
+            return gaugeValueProperty.asDouble();
+        } catch (final Exception e) {
+            getLogger().warn("Failed to read Gauge Value as number", e);
+            return NULL_GAUGE_VALUE;
+        }
+    }
+}
