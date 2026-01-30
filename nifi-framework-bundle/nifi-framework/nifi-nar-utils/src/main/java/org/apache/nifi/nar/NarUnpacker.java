@@ -207,8 +207,13 @@ public final class NarUnpacker {
 
             final Map<File, BundleCoordinate> unpackedNars = new HashMap<>(createUnpackedNarBundleCoordinateMap(extensionsWorkingDir));
 
+            long startTime = System.nanoTime();
             final ExtensionMapping extensionMapping = new ExtensionMapping();
+            logger.info("Started map extensions");
             mapExtensions(unpackedNars, extensionMapping);
+            long duration = System.nanoTime() - startTime;
+            logger.info("Completed map extensions in {} seconds ({} ns)", TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0, duration);
+
             populateExtensionMapping(extensionMapping, systemBundle.getBundleDetails().getCoordinate(), systemBundle.getBundleDetails().getWorkingDirectory());
 
             return extensionMapping;
