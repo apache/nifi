@@ -269,7 +269,6 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         }
 
         serviceNode.verifyCanEnable();
-        serviceNode.reloadAdditionalResourcesIfNecessary();
         return processScheduler.enableControllerService(serviceNode);
     }
 

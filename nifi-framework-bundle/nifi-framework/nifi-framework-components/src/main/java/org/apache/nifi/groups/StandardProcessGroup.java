@@ -1748,8 +1748,6 @@ public final class StandardProcessGroup implements ProcessGroup {
                 return CompletableFuture.completedFuture(null);
             }
 
-            processor.reloadAdditionalResourcesIfNecessary();
-
             return scheduler.startProcessor(processor, failIfStopping);
         } finally {
             readLock.unlock();
