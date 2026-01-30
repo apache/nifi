@@ -181,7 +181,6 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
         return disableControllerServices(serviceNodes);
     }
 
-    // TODO: Need a `startComponents` and `stopComponents` that includes Processors, Ports, Stateless Groups, etc.
     @Override
     public CompletableFuture<Void> startProcessors() {
         final Collection<ProcessorNode> processors = processGroup.getProcessors();
@@ -206,19 +205,25 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
         }
 
         final CompletableFuture<Void> enableServicesFuture = enableControllerServices(serviceReferenceScope, ControllerServiceReferenceHierarchy.DIRECT_SERVICES_ONLY);
-        final CompletableFuture<Void> enableAllComponents = enableServicesFuture.thenRun(this::startPorts)
-                .thenRun(this::startRemoteProcessGroups)
+        final CompletableFuture<Void> startAllComponents = enableServicesFuture.thenRunAsync(this::startPorts)
+                .thenRunAsync(this::startRemoteProcessGroups)
                 .thenCompose(v -> startProcessors());
 
         final List<CompletableFuture<Void>> childGroupFutures = new ArrayList<>();
         for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
-            final ProcessGroupLifecycle childLifecycle = childGroupLifecycleFactory.apply(childGroup.getIdentifier());
+            final String childGroupId = childGroup.getVersionedComponentId().orElse(null);
+            if (childGroupId == null) {
+                logger.warn("Encountered child Process Group {} without a Versioned Component ID. Skipping start of child group.", childGroup.getIdentifier());
+                continue;
+            }
+
+            final ProcessGroupLifecycle childLifecycle = childGroupLifecycleFactory.apply(childGroupId);
             final CompletableFuture<Void> childFuture = childLifecycle.start(serviceReferenceScope);
             childGroupFutures.add(childFuture);
         }
 
         final CompletableFuture<Void> compositeChildFutures = CompletableFuture.allOf(childGroupFutures.toArray(new CompletableFuture[0]));
-        return CompletableFuture.allOf(enableAllComponents, compositeChildFutures);
+        return CompletableFuture.allOf(startAllComponents, compositeChildFutures);
     }
 
     private void startPorts() {
@@ -264,7 +269,7 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
         final CompletableFuture<Void> stopProcessorsFuture = stopProcessors();
 
         return stopProcessorsFuture.thenCompose(voidValue -> stopChildren())
-            .thenRun(this::stopPorts)
+            .thenRunAsync(this::stopPorts)
             .thenCompose(voidValue -> stopRemoteProcessGroups())
             .thenCompose(voidValue -> disableControllerServices(ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS));
     }
@@ -272,7 +277,13 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     private CompletableFuture<Void> stopChildren() {
         final List<CompletableFuture<Void>> childGroupFutures = new ArrayList<>();
         for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
-            final ProcessGroupLifecycle childLifecycle = childGroupLifecycleFactory.apply(childGroup.getIdentifier());
+            final String childGroupId = childGroup.getVersionedComponentId().orElse(null);
+            if (childGroupId == null) {
+                logger.warn("Encountered child Process Group {} without a Versioned Component ID. Skipping stop of child group.", childGroup.getIdentifier());
+                continue;
+            }
+
+            final ProcessGroupLifecycle childLifecycle = childGroupLifecycleFactory.apply(childGroupId);
             final CompletableFuture<Void> childFuture = childLifecycle.stop();
             childGroupFutures.add(childFuture);
         }

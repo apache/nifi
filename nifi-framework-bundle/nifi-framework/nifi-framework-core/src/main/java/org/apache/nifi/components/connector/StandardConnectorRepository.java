@@ -224,22 +224,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     private void cleanUpAssets(final ConnectorNode connector) {
-        final FrameworkFlowContext activeFlowContext = connector.getActiveFlowContext();
-        final ConnectorConfiguration activeConfiguration = activeFlowContext.getConfigurationContext().toConnectorConfiguration();
-
         final Set<String> referencedAssetIds = new HashSet<>();
-        for (final NamedStepConfiguration namedStepConfiguration : activeConfiguration.getNamedStepConfigurations()) {
-            final StepConfiguration stepConfiguration = namedStepConfiguration.configuration();
-            final Map<String, ConnectorValueReference> stepPropertyValues = stepConfiguration.getPropertyValues();
-            if (stepPropertyValues == null) {
-                continue;
-            }
-            for (final ConnectorValueReference valueReference : stepPropertyValues.values()) {
-                if (valueReference instanceof AssetReference assetReference) {
-                    referencedAssetIds.addAll(assetReference.getAssetIdentifiers());
-                }
-            }
-        }
+        collectReferencedAssetIds(connector.getActiveFlowContext(), referencedAssetIds);
+        collectReferencedAssetIds(connector.getWorkingFlowContext(), referencedAssetIds);
 
         logger.debug("Found {} assets referenced for Connector [{}]", referencedAssetIds.size(), connector.getIdentifier());
 
@@ -253,6 +240,26 @@ public class StandardConnectorRepository implements ConnectorRepository {
                     assetRepository.deleteAsset(assetId);
                 } catch (final Exception e) {
                     logger.warn("Unable to delete unreferenced asset [id={},name={}] for connector [{}]", assetId, asset.getName(), connector.getIdentifier(), e);
+                }
+            }
+        }
+    }
+
+    private void collectReferencedAssetIds(final FrameworkFlowContext flowContext, final Set<String> referencedAssetIds) {
+        if (flowContext == null) {
+            return;
+        }
+
+        final ConnectorConfiguration configuration = flowContext.getConfigurationContext().toConnectorConfiguration();
+        for (final NamedStepConfiguration namedStepConfiguration : configuration.getNamedStepConfigurations()) {
+            final StepConfiguration stepConfiguration = namedStepConfiguration.configuration();
+            final Map<String, ConnectorValueReference> stepPropertyValues = stepConfiguration.getPropertyValues();
+            if (stepPropertyValues == null) {
+                continue;
+            }
+            for (final ConnectorValueReference valueReference : stepPropertyValues.values()) {
+                if (valueReference instanceof AssetReference assetReference) {
+                    referencedAssetIds.addAll(assetReference.getAssetIdentifiers());
                 }
             }
         }

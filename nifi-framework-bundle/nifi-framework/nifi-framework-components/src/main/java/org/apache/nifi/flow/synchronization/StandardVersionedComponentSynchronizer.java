@@ -450,7 +450,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             versionedParameterContexts.values().forEach(this::createParameterContextWithoutReferences);
         }
 
-        updateParameterContext(group, proposed, versionedParameterContexts, parameterProviderReferences, context.getComponentIdGenerator());
+        if (syncOptions.isUpdateParameterContexts()) {
+            updateParameterContext(group, proposed, versionedParameterContexts, parameterProviderReferences, context.getComponentIdGenerator());
+        }
 
         final FlowFileConcurrency flowFileConcurrency = proposed.getFlowFileConcurrency() == null ? FlowFileConcurrency.UNBOUNDED :
             FlowFileConcurrency.valueOf(proposed.getFlowFileConcurrency());
@@ -1385,6 +1387,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         destination.addProcessGroup(group);
 
+        // Connectors will have a single parameter context so if we are creating a group set the context of the parent process group.
+        if (connectorId != null) {
+            group.setParameterContext(destination.getParameterContext());
+        }
         synchronize(group, proposed, versionedParameterContexts, parameterProviderReferences, topLevelGroup, true);
 
         return group;
