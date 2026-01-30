@@ -27,9 +27,9 @@ import java.util.Date;
 /**
  * XmlAdapter for (un)marshalling a date/time.
  */
-public class TimestampAdapter extends XmlAdapter<String, Date> {
+public class ISO8601TimestampAdapter extends XmlAdapter<String, Date> {
 
-    private static final String DEFAULT_DATE_TIME_FORMAT = "MM/dd/yyyy HH:mm:ss.SSS z";
+    private static final String DEFAULT_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_FORMAT).withZone(ZoneId.systemDefault());
 
     @Override
