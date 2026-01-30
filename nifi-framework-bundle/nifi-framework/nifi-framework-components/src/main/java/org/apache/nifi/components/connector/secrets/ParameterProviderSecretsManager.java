@@ -22,6 +22,8 @@ import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -35,6 +37,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ParameterProviderSecretsManager implements SecretsManager {
+    private static final Logger logger = LoggerFactory.getLogger(ParameterProviderSecretsManager.class);
     private FlowManager flowManager;
 
     @Override
@@ -61,7 +64,12 @@ public class ParameterProviderSecretsManager implements SecretsManager {
     public Set<SecretProvider> getSecretProviders() {
         final Set<SecretProvider> providers = new HashSet<>();
         for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
-            if (parameterProviderNode.getValidationStatus() != ValidationStatus.VALID) {
+            ValidationStatus validationStatus = parameterProviderNode.getValidationStatus();
+            if (validationStatus != ValidationStatus.VALID) {
+                validationStatus = parameterProviderNode.performValidation();
+            }
+            if (validationStatus != ValidationStatus.VALID) {
+                logger.debug("Will not use Parameter Provider {} as a Secret Provider because it is not valid", parameterProviderNode.getName());
                 continue;
             }
 
@@ -88,6 +96,10 @@ public class ParameterProviderSecretsManager implements SecretsManager {
 
     @Override
     public Map<SecretReference, Secret> getSecrets(final Set<SecretReference> secretReferences) {
+        if (secretReferences.isEmpty()) {
+            return Map.of();
+        }
+
         // Partition secret references by Provider
         final Map<SecretProvider, Set<SecretReference>> referencesByProvider = new HashMap<>();
         for (final SecretReference secretReference : secretReferences) {

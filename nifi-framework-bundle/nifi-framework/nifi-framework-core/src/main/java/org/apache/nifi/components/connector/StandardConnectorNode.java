@@ -195,7 +195,7 @@ public class StandardConnectorNode implements ConnectorNode {
         // Configure the working config but do not apply
         for (final VersionedConfigurationStep step : workingConfig) {
             final StepConfiguration stepConfig = createStepConfiguration(step);
-            setConfiguration(step.getName(), stepConfig);
+            setConfiguration(step.getName(), stepConfig, true);
         }
     }
 
@@ -311,9 +311,13 @@ public class StandardConnectorNode implements ConnectorNode {
 
     @Override
     public void setConfiguration(final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        setConfiguration(stepName, configuration, false);
+    }
+
+    private void setConfiguration(final String stepName, final StepConfiguration configuration, final boolean forceOnConfigurationStepConfigured) throws FlowUpdateException {
         // Update properties and check if the configuration changed.
         final ConfigurationUpdateResult updateResult = workingFlowContext.getConfigurationContext().setProperties(stepName, configuration);
-        if (updateResult == ConfigurationUpdateResult.NO_CHANGES) {
+        if (updateResult == ConfigurationUpdateResult.NO_CHANGES && !forceOnConfigurationStepConfigured) {
             return;
         }
 

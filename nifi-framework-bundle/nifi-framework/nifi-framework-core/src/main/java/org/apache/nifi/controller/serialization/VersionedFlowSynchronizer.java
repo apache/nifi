@@ -424,14 +424,15 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 versionedExternalFlow.setParameterContexts(versionedParameterContextMap);
                 versionedExternalFlow.setFlowContents(versionedFlow.getRootGroup());
 
-                // Inherit Connectors first. Because Connectors are a bit different, in that updates could result in Exceptions being thrown,
+                // Inherit Parameter Providers and Connectors first. Because Connectors are a bit different, in that updates could result in Exceptions being thrown,
                 // due to the fact that they manipulate the flow, and changes can be aborted, we handle them first. This way, if there's any Exception,
                 // we can fail before updating parts of the flow that are not managed by Connectors.
+                // Because Connectors may depend on Parameter Providers, we need to ensure that we inherit Parameter Providers first.
+                inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritConnectors(controller, versionedFlow);
 
                 // Inherit controller-level components.
                 inheritControllerServices(controller, versionedFlow, affectedComponentSet);
-                inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
                 inheritFlowAnalysisRules(controller, versionedFlow, affectedComponentSet);
