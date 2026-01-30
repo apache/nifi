@@ -102,22 +102,25 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
             )
             .build();
 
-    static final PropertyDescriptor ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
-            .name("Endpoint Override URL")
-            .description("Endpoint URL to use instead of the AWS default including scheme, host, port, and path. " +
-                    "The AWS libraries select an endpoint URL based on the AWS region, but this property overrides " +
-                    "the selected endpoint URL, allowing use with other S3-compatible endpoints.")
-            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+    static final PropertyDescriptor ENDPOINT_URL = new PropertyDescriptor.Builder()
+            .name("Endpoint URL")
+            .description("""
+                Endpoint URL to use instead of the AWS default including scheme, host, port, and path.
+                The AWS libraries select an endpoint URL based on the AWS region, but this property overrides
+                the selected endpoint URL, allowing use with other S3-compatible endpoints.""")
             .required(false)
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor USE_PATH_STYLE_ACCESS = new PropertyDescriptor.Builder()
-            .name("Use Path Style Access")
-            .description("Path-style access can be enforced by setting this property to true. Set it to true if your endpoint does not support " +
-                    "virtual-hosted-style requests, only path-style requests.")
-            .allowableValues("true", "false")
+    static final PropertyDescriptor PATH_STYLE_ACCESS = new PropertyDescriptor.Builder()
+            .name("Path Style Access")
+            .description("""
+                Path-style access can be enforced by setting this property to true. Set it to true if the configured
+                endpoint does not support virtual-hosted-style requests, only path-style requests.""")
+            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
             .defaultValue(String.valueOf(S3FileIOProperties.PATH_STYLE_ACCESS_DEFAULT))
+            .required(true)
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -126,8 +129,8 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
             SECRET_ACCESS_KEY,
             SESSION_TOKEN,
             CLIENT_REGION,
-            ENDPOINT_OVERRIDE,
-            USE_PATH_STYLE_ACCESS
+            ENDPOINT_URL,
+            PATH_STYLE_ACCESS
     );
 
     private final Map<String, String> standardProperties = new ConcurrentHashMap<>();
@@ -179,11 +182,11 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
             }
         }
 
-        if (context.getProperty(ENDPOINT_OVERRIDE).isSet()) {
-            final String endpoint = context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue();
+        if (context.getProperty(ENDPOINT_URL).isSet()) {
+            final String endpoint = context.getProperty(ENDPOINT_URL).getValue();
             contextProperties.put(S3FileIOProperties.ENDPOINT, endpoint);
         }
-        final String pathStyleAccess = context.getProperty(USE_PATH_STYLE_ACCESS).getValue();
+        final String pathStyleAccess = context.getProperty(PATH_STYLE_ACCESS).getValue();
         contextProperties.put(S3FileIOProperties.PATH_STYLE_ACCESS, pathStyleAccess);
 
         // HttpURLConnection Client Type avoids additional dependencies
