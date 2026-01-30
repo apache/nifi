@@ -23,12 +23,13 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.Objects;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EventIteratorTest {
 
     @Test
-    void testCanCreateAndRetrieveUsingOfFactory() throws IOException{
+    void testCanCreateAndRetrieveUsingOfFactory() throws IOException {
         var event = TestUtil.createEvent();
         var eventIterator = EventIterator.of(event);
         var foundEvent = eventIterator.nextEvent();
@@ -44,7 +45,7 @@ class EventIteratorTest {
     }
 
     @Test
-    void testCanFilterEvents() throws IOException{
+    void testCanFilterEvents() throws IOException {
         var eventOne = TestUtil.createEvent();
         var eventTwo = TestUtil.createEvent();
 
