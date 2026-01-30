@@ -207,11 +207,10 @@ public final class NarUnpacker {
 
             final Map<File, BundleCoordinate> unpackedNars = new HashMap<>(createUnpackedNarBundleCoordinateMap(extensionsWorkingDir));
 
-            long startTime = System.nanoTime();
+            final long startTime = System.nanoTime();
             final ExtensionMapping extensionMapping = new ExtensionMapping();
-            logger.info("Started map extensions");
             mapExtensions(unpackedNars, extensionMapping);
-            long duration = System.nanoTime() - startTime;
+            final long duration = System.nanoTime() - startTime;
             logger.info("Completed map extensions in {} seconds ({} ns)", TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0, duration);
 
             populateExtensionMapping(extensionMapping, systemBundle.getBundleDetails().getCoordinate(), systemBundle.getBundleDetails().getWorkingDirectory());
@@ -261,7 +260,10 @@ public final class NarUnpacker {
         for (final Map.Entry<File, BundleCoordinate> entry : unpackedNars.entrySet()) {
             final File unpackedNar = entry.getKey();
             final BundleCoordinate bundleCoordinate = entry.getValue();
+            final long startTime = System.nanoTime();
             mapExtension(unpackedNar, bundleCoordinate, mapping);
+            final long duration = System.nanoTime() - startTime;
+            logger.debug("Completed map extension for bundle coordinate {} in {} seconds ({} ns)", bundleCoordinate, TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0, duration);
         }
     }
 
