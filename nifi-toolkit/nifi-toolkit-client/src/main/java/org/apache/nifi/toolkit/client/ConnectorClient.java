@@ -22,6 +22,7 @@ import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
+import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.VerifyConnectorConfigStepRequestEntity;
@@ -332,6 +333,38 @@ public interface ConnectorClient {
      * @throws IOException if an I/O error occurs
      */
     Path getAssetContent(String connectorId, String assetId, File outputDirectory) throws NiFiClientException, IOException;
+
+    /**
+     * Creates a request to purge all FlowFiles for the given connector.
+     *
+     * @param connectorId the connector ID
+     * @return the drop request entity containing the purge request status
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    DropRequestEntity createPurgeRequest(String connectorId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the status of a purge request for the given connector.
+     *
+     * @param connectorId the connector ID
+     * @param purgeRequestId the purge request ID
+     * @return the drop request entity containing the purge request status
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    DropRequestEntity getPurgeRequest(String connectorId, String purgeRequestId) throws NiFiClientException, IOException;
+
+    /**
+     * Deletes (cancels) a purge request for the given connector.
+     *
+     * @param connectorId the connector ID
+     * @param purgeRequestId the purge request ID
+     * @return the drop request entity containing the final purge request status
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    DropRequestEntity deletePurgeRequest(String connectorId, String purgeRequestId) throws NiFiClientException, IOException;
 
     /**
      * Indicates that mutable requests should indicate that the client has
