@@ -17,11 +17,13 @@
 
 package org.apache.nifi.provenance.store.iterator;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.TestUtil;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,36 +32,36 @@ class EventIteratorTest {
 
     @Test
     void testCanCreateAndRetrieveUsingOfFactory() throws IOException {
-        var event = TestUtil.createEvent();
-        var eventIterator = EventIterator.of(event);
-        var foundEvent = eventIterator.nextEvent();
+        ProvenanceEventRecord event = TestUtil.createEvent();
+        EventIterator eventIterator = EventIterator.of(event);
+        Optional<ProvenanceEventRecord> foundEvent = eventIterator.nextEvent();
         assertTrue(foundEvent.isPresent());
         assertEquals(foundEvent.get().getAttribute("uuid"), event.getAttribute("uuid"));
     }
 
     @Test
     void testEmptyReturnedWhenExhausted() throws IOException {
-        var eventIterator = EventIterator.of(TestUtil.createEvent());
+        EventIterator eventIterator = EventIterator.of(TestUtil.createEvent());
         assertTrue(eventIterator.nextEvent().isPresent());
         assertTrue(eventIterator.nextEvent().isEmpty());
     }
 
     @Test
     void testCanFilterEvents() throws IOException {
-        var eventOne = TestUtil.createEvent();
-        var eventTwo = TestUtil.createEvent();
+        ProvenanceEventRecord eventOne = TestUtil.createEvent();
+        ProvenanceEventRecord eventTwo = TestUtil.createEvent();
 
-        var eventIterator = EventIterator.of(eventOne, eventTwo);
+        EventIterator eventIterator = EventIterator.of(eventOne, eventTwo);
         // Filter out the first event
-        var filteredIterator  = eventIterator.filter((e) -> !Objects.equals(e.getAttribute("uuid"), eventOne.getAttribute("uuid")));
+        EventIterator filteredIterator  = eventIterator.filter((e) -> !Objects.equals(e.getAttribute("uuid"), eventOne.getAttribute("uuid")));
 
-        var foundEvent = filteredIterator.nextEvent().orElseThrow();
+        ProvenanceEventRecord foundEvent = filteredIterator.nextEvent().orElseThrow();
         assertEquals(foundEvent.getAttribute("uuid"), eventTwo.getAttribute("uuid"));
     }
 
     @Test
     void testEmptyFactoryIsEmpty() throws IOException {
-        var eventIterator = EventIterator.EMPTY;
+        EventIterator eventIterator = EventIterator.EMPTY;
         assertTrue(eventIterator.nextEvent().isEmpty());
     }
 }
