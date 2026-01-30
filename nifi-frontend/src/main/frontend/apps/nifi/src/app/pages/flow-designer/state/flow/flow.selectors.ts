@@ -166,6 +166,11 @@ export const selectDragging = createSelector(selectFlowState, (state: FlowState)
 
 export const selectSkipTransform = createSelector(selectFlowState, (state: FlowState) => state.skipTransform);
 
+export const selectLeavingProcessGroupId = createSelector(
+    selectFlowState,
+    (state: FlowState) => state.leavingProcessGroupId
+);
+
 export const selectAllowTransition = createSelector(selectFlowState, (state: FlowState) => state.allowTransition);
 
 export const selectFunnels = createSelector(
