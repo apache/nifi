@@ -441,6 +441,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         };
 
         LOG.info("Starting {}", procNode);
+
+        procNode.reloadAdditionalResourcesIfNecessary();
+
         procNode.start(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback, failIfStopping, scheduleActions);
         return future;
     }
@@ -886,6 +889,8 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         }
 
         LOG.info("Enabling {}", service);
+
+        service.reloadAdditionalResourcesIfNecessary();
 
         final List<CompletableFuture<Void>> futures = new ArrayList<>();
         final List<ControllerServiceNode> dependentServices = service.getRequiredControllerServices();
