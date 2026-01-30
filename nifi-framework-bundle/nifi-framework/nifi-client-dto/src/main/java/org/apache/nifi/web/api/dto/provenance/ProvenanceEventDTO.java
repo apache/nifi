@@ -19,7 +19,7 @@ package org.apache.nifi.web.api.dto.provenance;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
-import org.apache.nifi.web.api.dto.util.TimestampAdapter;
+import org.apache.nifi.web.api.dto.util.ISO8601TimestampAdapter;
 
 import java.util.Collection;
 import java.util.Date;
@@ -111,7 +111,7 @@ public class ProvenanceEventDTO {
     /**
      * @return time the event occurred
      */
-    @XmlJavaTypeAdapter(TimestampAdapter.class)
+    @XmlJavaTypeAdapter(ISO8601TimestampAdapter.class)
     @Schema(description = "The timestamp of the event.",
             type = "string"
     )
