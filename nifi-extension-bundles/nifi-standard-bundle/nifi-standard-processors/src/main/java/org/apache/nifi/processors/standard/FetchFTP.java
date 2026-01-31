@@ -97,6 +97,7 @@ public class FetchFTP extends FetchFileTransfer {
             COMPLETION_STRATEGY,
             MOVE_DESTINATION_DIR,
             MOVE_CREATE_DIRECTORY,
+            MOVE_CONFLICT_RESOLUTION,
             FTPTransfer.CONNECTION_TIMEOUT,
             FTPTransfer.DATA_TIMEOUT,
             FTPTransfer.USE_COMPRESSION,
