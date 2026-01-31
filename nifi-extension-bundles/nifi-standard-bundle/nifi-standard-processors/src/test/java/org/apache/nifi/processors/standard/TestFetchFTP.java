@@ -130,8 +130,6 @@ public class TestFetchFTP {
         runner.assertAllFlowFilesTransferred(FetchFileTransfer.REL_PERMISSION_DENIED, 1);
         runner.assertAllFlowFilesContainAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE);
         MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().getFirst();
-        assertEquals(FetchFileTransfer.REL_PERMISSION_DENIED.getName(), transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
-        MockFlowFile transferredFlowFile = runner.getPenalizedFlowFiles().get(0);
         assertEquals(FetchFileTransfer.FAILURE_REASON_PERMISSION_DENIED_READ, transferredFlowFile.getAttribute(FetchFileTransfer.FAILURE_REASON_ATTRIBUTE));
     }
 
