@@ -33,7 +33,7 @@ public interface EventIterator extends Closeable {
 
     EventIterator EMPTY = new EventIterator() {
         @Override
-        public void close() throws IOException {
+        public void close() {
         }
 
         @Override
@@ -46,16 +46,15 @@ public interface EventIterator extends Closeable {
         final Iterator<ProvenanceEventRecord> itr = Arrays.asList(events).iterator();
         return new EventIterator() {
             @Override
-            public void close() throws IOException {
+            public void close() {
             }
 
             @Override
             public Optional<ProvenanceEventRecord> nextEvent() {
-                return itr.hasNext() ? Optional.empty() : Optional.of(itr.next());
+                return itr.hasNext() ? Optional.of(itr.next()) : Optional.empty();
             }
         };
     }
-
 
     default EventIterator filter(Predicate<ProvenanceEventRecord> predicate) {
         final EventIterator self = this;
@@ -70,7 +69,7 @@ public interface EventIterator extends Closeable {
             public Optional<ProvenanceEventRecord> nextEvent() throws IOException {
                 while (true) {
                     Optional<ProvenanceEventRecord> next = self.nextEvent();
-                    if (!next.isPresent()) {
+                    if (next.isEmpty()) {
                         return next;
                     }
 
