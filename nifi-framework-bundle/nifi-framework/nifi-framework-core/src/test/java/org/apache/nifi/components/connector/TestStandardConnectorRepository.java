@@ -136,8 +136,6 @@ public class TestStandardConnectorRepository {
         final StandardConnectorRepository repository = new StandardConnectorRepository();
 
         final AssetManager assetManager = mock(AssetManager.class);
-        final ConnectorAssetRepository connectorAssetRepository = mock(ConnectorAssetRepository.class);
-
         final ConnectorRepositoryInitializationContext initContext = mock(ConnectorRepositoryInitializationContext.class);
         when(initContext.getExtensionManager()).thenReturn(mock(ExtensionManager.class));
         when(initContext.getAssetManager()).thenReturn(assetManager);

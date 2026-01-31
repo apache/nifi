@@ -28,8 +28,8 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parameter.ParameterContext;
 
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 
 public class StandardFlowContext implements FrameworkFlowContext {
     private final ProcessGroup managedProcessGroup;
@@ -89,18 +89,18 @@ public class StandardFlowContext implements FrameworkFlowContext {
         }
 
         final ParameterContext managedGroupParameterContext = managedProcessGroup.getParameterContext();
-        final VersionedExternalFlow withoutParameterContext = new VersionedExternalFlow();
-        withoutParameterContext.setFlowContents(versionedExternalFlow.getFlowContents());
-        withoutParameterContext.setParameterContexts(Collections.emptyMap());
-
         updateParameterContextNames(versionedExternalFlow.getFlowContents(), managedGroupParameterContext.getName());
-        managedProcessGroup.updateFlow(withoutParameterContext, managedProcessGroup.getIdentifier(), false, true, true, false);
+
+        final VersionedExternalFlow externalFlowWithResolvedParameters = new VersionedExternalFlow();
+        externalFlowWithResolvedParameters.setFlowContents(versionedExternalFlow.getFlowContents());
+        externalFlowWithResolvedParameters.setParameterContexts(Map.of());
+
+        managedProcessGroup.updateFlow(externalFlowWithResolvedParameters, managedProcessGroup.getIdentifier(), false, true, true);
 
         rootGroup = groupFacadeFactory.create(managedProcessGroup, connectorLog);
 
         final ConnectorParameterLookup parameterLookup = new ConnectorParameterLookup(versionedExternalFlow.getParameterContexts().values(), assetManager);
         getParameterContext().updateParameters(parameterLookup.getParameterValues());
-
         parameterContext = parameterContextFacadeFactory.create(managedProcessGroup);
     }
 

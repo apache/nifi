@@ -572,7 +572,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                                                final String componentIdSeed, final boolean verifyNotModified, final boolean updateSettings, final boolean updateDescendantVersionedFlows) {
 
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
-        group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows, true);
+        group.updateFlow(proposedSnapshot, componentIdSeed, verifyNotModified, updateSettings, updateDescendantVersionedFlows);
         group.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
 
         // process group being updated may not be versioned

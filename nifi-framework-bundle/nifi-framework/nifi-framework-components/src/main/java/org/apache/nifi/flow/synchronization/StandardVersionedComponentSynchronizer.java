@@ -450,9 +450,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             versionedParameterContexts.values().forEach(this::createParameterContextWithoutReferences);
         }
 
-        if (syncOptions.isUpdateParameterContexts()) {
-            updateParameterContext(group, proposed, versionedParameterContexts, parameterProviderReferences, context.getComponentIdGenerator());
-        }
+        updateParameterContext(group, proposed, versionedParameterContexts, parameterProviderReferences, context.getComponentIdGenerator());
 
         final FlowFileConcurrency flowFileConcurrency = proposed.getFlowFileConcurrency() == null ? FlowFileConcurrency.UNBOUNDED :
             FlowFileConcurrency.valueOf(proposed.getFlowFileConcurrency());
@@ -2149,35 +2147,40 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
     private void updateParameterContext(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
                                         final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
-        // Update the Parameter Context
+
+        // If proposed parameter context is null, set group's parameter context to null and we're done.
         final ParameterContext currentParamContext = group.getParameterContext();
         final String proposedParameterContextName = proposed.getParameterContextName();
-        if (proposedParameterContextName == null && currentParamContext != null) {
+        if (proposedParameterContextName == null) {
             group.setParameterContext(null);
-        } else if (proposedParameterContextName != null) {
-            final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
-            if (versionedParameterContext != null) {
-                createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
-                if (currentParamContext == null) {
-                    // Create a new Parameter Context based on the parameters provided
-                    final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
-                    final ParameterContext selectedParameterContext;
-                    if (contextByName == null) {
-                        final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(),
-                                versionedParameterContext.getName(), versionedParameterContext.getName());
-                        selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts,
-                                parameterProviderReferences, componentIdGenerator);
-                    } else {
-                        selectedParameterContext = contextByName;
-                        addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
-                    }
+            return;
+        }
 
-                    group.setParameterContext(selectedParameterContext);
-                } else {
-                    // Update the current Parameter Context so that it has any Parameters included in the proposed context
-                    addMissingConfiguration(versionedParameterContext, currentParamContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
-                }
+        // No versioned parameter context with a matching name. Nothing to do.
+        final VersionedParameterContext versionedParameterContext = versionedParameterContexts.get(proposedParameterContextName);
+        if (versionedParameterContext == null) {
+            return;
+        }
+
+        createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
+        if (currentParamContext == null) {
+            // Create a new Parameter Context based on the parameters provided
+            final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
+            final ParameterContext selectedParameterContext;
+            if (contextByName == null) {
+                final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(),
+                        versionedParameterContext.getName(), versionedParameterContext.getName());
+                selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts,
+                        parameterProviderReferences, componentIdGenerator);
+            } else {
+                selectedParameterContext = contextByName;
+                addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
             }
+
+            group.setParameterContext(selectedParameterContext);
+        } else {
+            // Update the current Parameter Context so that it has any Parameters included in the proposed context
+            addMissingConfiguration(versionedParameterContext, currentParamContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
         }
     }
 

@@ -88,6 +88,8 @@ import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.parameter.ParameterProvider;
+import org.apache.nifi.parameter.ParameterReferenceManager;
+import org.apache.nifi.parameter.StandardParameterReferenceManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
@@ -754,8 +756,9 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         final String paramContextId = UUID.nameUUIDFromBytes((id + "-parameter-context").getBytes(StandardCharsets.UTF_8)).toString();
         final String paramContextName = "Connector " + id + " Parameter Context";
         final String parameterContextDescription = "Implicit Parameter Context for Connector " + id;
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(() -> managedRootGroup);
         final ParameterContext managedParameterContext = createParameterContext(paramContextId, paramContextName,
-            parameterContextDescription, Collections.emptyMap(), Collections.emptyList(), null, false);
+            parameterContextDescription, Collections.emptyMap(), Collections.emptyList(), null, referenceManager, false);
         managedRootGroup.setParameterContext(managedParameterContext);
 
         final ConnectorRepository connectorRepository = flowController.getConnectorRepository();
@@ -833,7 +836,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         versionedExternalFlow.setParameterProviders(Map.of());
         versionedExternalFlow.setParameterContexts(parameterContexts);
 
-        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true, true);
+        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true);
     }
 
     private void gatherParameterContexts(final ProcessGroup sourceGroup, final Map<String, ParameterContext> parameterContexts) {

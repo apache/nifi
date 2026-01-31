@@ -608,7 +608,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (!propertyConfiguration.equals(propertyModComparisonValue)) {
             try {
                 final String oldValue = propertyModComparisonValue == null ? null : propertyModComparisonValue.getEffectiveValue(getParameterContext());
-                onPropertyModified(descriptor, oldValue, resolvedValue);
+                if (!Objects.equals(oldValue, resolvedValue)) {
+                    onPropertyModified(descriptor, oldValue, resolvedValue);
+                }
             } catch (final Exception e) {
                 // nothing really to do here...
                 logger.error("Failed to notify {} that property {} changed", this, descriptor, e);

@@ -31,7 +31,6 @@ public class FlowSynchronizationOptions {
     private final boolean updateSettings;
     private final boolean updateDescendantVersionedFlows;
     private final boolean updateRpgUrls;
-    private final boolean updateParameterContexts;
     private final Duration componentStopTimeout;
     private final ComponentStopTimeoutAction timeoutAction;
     private final ScheduledStateChangeListener scheduledStateChangeListener;
@@ -46,7 +45,6 @@ public class FlowSynchronizationOptions {
         this.updateSettings = builder.updateSettings;
         this.updateDescendantVersionedFlows = builder.updateDescendantVersionedFlows;
         this.updateRpgUrls = builder.updateRpgUrls;
-        this.updateParameterContexts = builder.updateParameterContexts;
         this.componentStopTimeout = builder.componentStopTimeout;
         this.timeoutAction = builder.timeoutAction;
         this.scheduledStateChangeListener = builder.scheduledStateChangeListener;
@@ -81,10 +79,6 @@ public class FlowSynchronizationOptions {
         return updateRpgUrls;
     }
 
-    public boolean isUpdateParameterContexts() {
-        return updateParameterContexts;
-    }
-
     public PropertyDecryptor getPropertyDecryptor() {
         return propertyDecryptor;
     }
@@ -113,7 +107,6 @@ public class FlowSynchronizationOptions {
         private boolean updateSettings = true;
         private boolean updateDescendantVersionedFlows = true;
         private boolean updateRpgUrls = false;
-        private boolean updateParameterContexts = true;
         private ScheduledStateChangeListener scheduledStateChangeListener;
         private PropertyDecryptor propertyDecryptor = value -> value;
         private Duration componentStopTimeout = Duration.ofSeconds(30);
@@ -192,17 +185,6 @@ public class FlowSynchronizationOptions {
          */
         public Builder updateRpgUrls(final boolean updateRpgUrls) {
             this.updateRpgUrls = updateRpgUrls;
-            return this;
-        }
-
-        /**
-         * Specifies whether or not Parameter Contexts should be updated when synchronizing a flow
-         *
-         * @param updateParameterContexts whether or not to update Parameter Contexts
-         * @return the builder
-         */
-        public Builder updateParameterContexts(final boolean updateParameterContexts) {
-            this.updateParameterContexts = updateParameterContexts;
             return this;
         }
 

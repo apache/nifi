@@ -946,10 +946,8 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @param updateSettings whether or not to update the process group's name and positions
      * @param updateDescendantVersionedFlows if a child/descendant Process Group is under Version Control, specifies whether or not to
      *            update the contents of that Process Group
-     * @param updateParameterContexts whether or not to update Parameter Contexts when synchronizing the flow
      */
-    void updateFlow(VersionedExternalFlow proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows,
-                    boolean updateParameterContexts);
+    void updateFlow(VersionedExternalFlow proposedSnapshot, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows);
 
     /**
      * Updates the Process Group to match the proposed flow
