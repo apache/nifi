@@ -22,6 +22,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.AbstractConnector;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.ConnectorConfigurationContext;
@@ -236,7 +237,7 @@ public class KafkaToS3 extends AbstractConnector {
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext flowContext) {
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext flowContext) {
         if (stepName.equals(KafkaTopicsStep.STEP_NAME) && propertyName.equals(KafkaTopicsStep.TOPIC_NAMES.getName())) {
             return createAllowableValues(getAvailableTopics(flowContext));
         } else if (stepName.equals(S3Step.S3_STEP_NAME) && propertyName.equals(S3Step.S3_REGION.getName())) {
@@ -246,11 +247,11 @@ public class KafkaToS3 extends AbstractConnector {
         return super.fetchAllowableValues(stepName, propertyName, flowContext);
     }
 
-    private List<AllowableValue> createAllowableValues(final List<String> values) {
+    private List<DescribedValue> createAllowableValues(final List<String> values) {
         return values.stream().map(this::createAllowableValue).collect(Collectors.toList());
     }
 
-    private AllowableValue createAllowableValue(final String value) {
+    private DescribedValue createAllowableValue(final String value) {
         return new AllowableValue(value, value, value);
     }
 

@@ -19,8 +19,8 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.components.validation.ValidationState;
@@ -72,9 +72,9 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
      */
     boolean isExtensionMissing();
 
-    List<AllowableValue> fetchAllowableValues(String stepName, String propertyName);
+    List<DescribedValue> fetchAllowableValues(String stepName, String propertyName);
 
-    List<AllowableValue> fetchAllowableValues(String stepName, String propertyName, String filter);
+    List<DescribedValue> fetchAllowableValues(String stepName, String propertyName, String filter);
 
     void initializeConnector(FrameworkConnectorInitializationContext initializationContext);
 

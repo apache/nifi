@@ -23,7 +23,6 @@ import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.DescribedValue;
@@ -617,7 +616,7 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName) {
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName) {
         if (workingFlowContext == null) {
             throw new IllegalStateException("Cannot fetch Allowable Values for %s.%s because %s is not being updated.".formatted(
                 stepName, propertyName, this));
@@ -629,7 +628,7 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final String filter) {
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName, final String filter) {
         if (workingFlowContext == null) {
             throw new IllegalStateException("Cannot fetch Allowable Values for %s.%s because %s is not being updated.".formatted(
                 stepName, propertyName, this));
@@ -1385,7 +1384,7 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     private List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext context) {
-        final List<AllowableValue> allowableValues;
+        final List<DescribedValue> allowableValues;
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
             allowableValues = getConnector().fetchAllowableValues(stepName, propertyName, activeFlowContext);
         }
@@ -1394,9 +1393,7 @@ public class StandardConnectorNode implements ConnectorNode {
             return Collections.emptyList();
         }
 
-        return allowableValues.stream()
-            .map(av -> (DescribedValue) av)
-            .toList();
+        return allowableValues;
     }
 
     @Override
