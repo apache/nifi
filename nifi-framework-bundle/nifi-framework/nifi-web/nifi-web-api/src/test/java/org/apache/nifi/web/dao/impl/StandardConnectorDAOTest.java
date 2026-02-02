@@ -17,6 +17,7 @@
 package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
@@ -193,14 +194,14 @@ class StandardConnectorDAOTest {
 
     @Test
     void testFetchAllowableValuesWithoutFilter() {
-        final List<AllowableValue> expectedValues = List.of(
+        final List<DescribedValue> expectedValues = List.of(
             new AllowableValue("value1", "Value 1", "First value"),
             new AllowableValue("value2", "Value 2", "Second value")
         );
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
         when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME)).thenReturn(expectedValues);
 
-        final List<AllowableValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, null);
+        final List<DescribedValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, null);
 
         assertEquals(expectedValues, result);
         verify(connectorNode).fetchAllowableValues(STEP_NAME, PROPERTY_NAME);
@@ -209,13 +210,13 @@ class StandardConnectorDAOTest {
 
     @Test
     void testFetchAllowableValuesWithEmptyFilter() {
-        final List<AllowableValue> expectedValues = List.of(
+        final List<DescribedValue> expectedValues = List.of(
             new AllowableValue("value1", "Value 1", "First value")
         );
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
         when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME)).thenReturn(expectedValues);
 
-        final List<AllowableValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, "");
+        final List<DescribedValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, "");
 
         assertEquals(expectedValues, result);
         verify(connectorNode).fetchAllowableValues(STEP_NAME, PROPERTY_NAME);
@@ -225,13 +226,13 @@ class StandardConnectorDAOTest {
     @Test
     void testFetchAllowableValuesWithFilter() {
         final String filter = "test-filter";
-        final List<AllowableValue> expectedValues = List.of(
+        final List<DescribedValue> expectedValues = List.of(
             new AllowableValue("filtered-value", "Filtered Value", "Filtered result")
         );
         when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
         when(connectorNode.fetchAllowableValues(STEP_NAME, PROPERTY_NAME, filter)).thenReturn(expectedValues);
 
-        final List<AllowableValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, filter);
+        final List<DescribedValue> result = connectorDAO.fetchAllowableValues(CONNECTOR_ID, STEP_NAME, PROPERTY_NAME, filter);
 
         assertEquals(expectedValues, result);
         verify(connectorNode).fetchAllowableValues(STEP_NAME, PROPERTY_NAME, filter);
