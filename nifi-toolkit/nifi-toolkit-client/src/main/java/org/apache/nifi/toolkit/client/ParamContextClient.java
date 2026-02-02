@@ -40,18 +40,6 @@ public interface ParamContextClient {
 
     ParameterContextUpdateRequestEntity updateParamContext(ParameterContextEntity paramContext) throws NiFiClientException, IOException;
 
-    /**
-     * Directly updates a Parameter Context using PUT (synchronous).
-     * This endpoint will fail if any component is running and referencing a Parameter in the Parameter Context.
-     * The async update-requests endpoint is typically preferred.
-     *
-     * @param paramContext the parameter context entity to update
-     * @return the updated parameter context entity
-     * @throws NiFiClientException if an error occurs
-     * @throws IOException if an I/O error occurs
-     */
-    ParameterContextEntity updateParamContextDirect(ParameterContextEntity paramContext) throws NiFiClientException, IOException;
-
     ParameterContextUpdateRequestEntity getParamContextUpdateRequest(String contextId, String updateRequestId) throws NiFiClientException, IOException;
 
     ParameterContextUpdateRequestEntity deleteParamContextUpdateRequest(String contextId, String updateRequestId) throws NiFiClientException, IOException;

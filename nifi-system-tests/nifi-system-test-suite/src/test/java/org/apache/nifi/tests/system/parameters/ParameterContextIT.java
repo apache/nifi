@@ -1109,33 +1109,6 @@ public class ParameterContextIT extends NiFiSystemIT {
         waitForStoppedProcessor(ingest.getId());
     }
 
-    /**
-     * Tests that the direct PUT endpoint rejects sensitive parameters with asset references,
-     * consistent with the async update-requests endpoint behavior.
-     */
-    @Test
-    public void testSensitiveParameterWithAssetReferenceShouldBeRejectedByDirectPut() throws NiFiClientException, IOException, InterruptedException {
-        // Create Parameter Context without any parameters initially
-        final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testSensitiveAssetReference", Collections.emptyMap());
-
-        // Create an asset in the parameter context
-        final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
-        final AssetEntity asset = createAsset(paramContext.getId(), assetFile);
-        final String assetId = asset.getAsset().getId();
-
-        // Fetch the latest parameter context to get the current revision
-        final ParameterContextEntity latestContext = getNifiClient().getParamContextClient().getParamContext(paramContext.getId(), false);
-
-        // The direct PUT endpoint should reject sensitive parameters with asset references,
-        // just like the async endpoint does.
-        final NiFiClientException exception = assertThrows(NiFiClientException.class, () -> {
-            getClientUtil().updateSensitiveParameterAssetReferencesDirect(latestContext, Map.of("sensitiveParam", List.of(assetId)));
-        }, "Direct PUT endpoint should reject sensitive parameters with asset references");
-
-        assertTrue(exception.getMessage().contains("Sensitive parameters may not reference Assets"),
-            "Expected rejection message about sensitive parameters not referencing assets, but got: " + exception.getMessage());
-    }
-
     private Map<String, Long> waitForCounter(final String context, final String counterName, final long expectedValue) throws NiFiClientException, IOException, InterruptedException {
         return getClientUtil().waitForCounter(context, counterName, expectedValue);
     }
