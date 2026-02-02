@@ -18,8 +18,8 @@ package org.apache.nifi.web.dao;
 
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
@@ -64,7 +64,7 @@ public interface ConnectorDAO {
 
     List<ConfigVerificationResult> verifyConfigurationStep(String id, String configurationStepName, ConfigurationStepConfigurationDTO configurationStepConfiguration);
 
-    List<AllowableValue> fetchAllowableValues(String id, String stepName, String propertyName, String filter);
+    List<DescribedValue> fetchAllowableValues(String id, String stepName, String propertyName, String filter);
 
     void verifyCreateAsset(String id);
 

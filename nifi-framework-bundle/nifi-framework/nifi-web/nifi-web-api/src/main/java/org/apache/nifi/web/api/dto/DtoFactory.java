@@ -63,6 +63,7 @@ import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -5490,7 +5491,7 @@ public final class DtoFactory {
      * @param allowableValue the allowable value
      * @return the DTO
      */
-    public AllowableValueDTO createAllowableValueDto(final AllowableValue allowableValue) {
+    public AllowableValueDTO createAllowableValueDto(final DescribedValue allowableValue) {
         if (allowableValue == null) {
             return null;
         }

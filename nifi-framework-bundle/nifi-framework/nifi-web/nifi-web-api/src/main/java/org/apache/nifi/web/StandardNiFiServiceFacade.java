@@ -72,9 +72,9 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.exception.IllegalNodeDeletionException;
 import org.apache.nifi.cluster.manager.exception.UnknownNodeException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationResult;
@@ -3827,7 +3827,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     public ConnectorPropertyAllowableValuesEntity getConnectorPropertyAllowableValues(final String connectorId,
             final String stepName, final String groupName, final String propertyName, final String filter) {
         // groupName is retained for REST API backward compatibility but is no longer used by the underlying API
-        final List<AllowableValue> allowableValues = connectorDAO.fetchAllowableValues(connectorId, stepName, propertyName, filter);
+        final List<DescribedValue> allowableValues = connectorDAO.fetchAllowableValues(connectorId, stepName, propertyName, filter);
 
         final List<AllowableValueEntity> allowableValueEntities = allowableValues.stream()
                 .map(av -> entityFactory.createAllowableValueEntity(dtoFactory.createAllowableValueDto(av), true))

@@ -17,8 +17,8 @@
 
 package org.apache.nifi.controller.flow;
 
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.Connector;
@@ -151,12 +151,12 @@ public class NopConnector implements Connector {
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext workingContext, final String filter) {
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext workingContext, final String filter) {
         return List.of();
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext workingContext) {
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext workingContext) {
         return List.of();
     }
 

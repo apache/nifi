@@ -19,6 +19,7 @@ package org.apache.nifi.components.connector;
 
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -103,7 +104,7 @@ public class DynamicAllowableValuesConnector extends AbstractConnector {
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext flowContext) {
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext flowContext) {
         if ("Colors".equals(stepName) && "First Primary Color".equals(propertyName)) {
             final Set<ProcessorFacade> processorFacades = flowContext.getRootGroup().getProcessors();
             if (!processorFacades.isEmpty()) {
@@ -115,6 +116,7 @@ public class DynamicAllowableValuesConnector extends AbstractConnector {
 
                     return fileValues.stream()
                         .map(AllowableValue::new)
+                        .map(DescribedValue.class::cast)
                         .toList();
                 } catch (final InvocationFailedException e) {
                     throw new RuntimeException("Failed to fetch allowable values from connector.", e);

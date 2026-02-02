@@ -18,8 +18,8 @@ package org.apache.nifi.web.dao.impl;
 
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorNode;
@@ -228,7 +228,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
     }
 
     @Override
-    public List<AllowableValue> fetchAllowableValues(final String id, final String stepName, final String propertyName, final String filter) {
+    public List<DescribedValue> fetchAllowableValues(final String id, final String stepName, final String propertyName, final String filter) {
         final ConnectorNode connector = getConnector(id);
         if (filter == null || filter.isEmpty()) {
             return connector.fetchAllowableValues(stepName, propertyName);
