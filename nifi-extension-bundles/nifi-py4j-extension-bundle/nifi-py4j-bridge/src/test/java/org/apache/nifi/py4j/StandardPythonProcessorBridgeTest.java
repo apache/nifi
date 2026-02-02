@@ -75,83 +75,83 @@ class StandardPythonProcessorBridgeTest {
 
     @Test
     void testCancelSetsFlag() {
-        assertFalse(bridge.isCancelled(), "Bridge should not be cancelled initially");
+        assertFalse(bridge.isCanceled(), "Bridge should not be canceled initially");
 
         bridge.cancel();
 
-        assertTrue(bridge.isCancelled(), "Bridge should be cancelled after cancel() is called");
+        assertTrue(bridge.isCanceled(), "Bridge should be canceled after cancel() is called");
     }
 
     @Test
-    void testCancelSetsLoadStateToCancelled() {
-        // Initially should be in some non-cancelled state
+    void testCancelSetsLoadStateToCanceled() {
+        // Initially should be in some non-canceled state
         LoadState initialState = bridge.getLoadState();
-        assertFalse(initialState == LoadState.CANCELLED, "Initial state should not be CANCELLED");
+        assertFalse(initialState == LoadState.CANCELED, "Initial state should not be CANCELED");
 
         bridge.cancel();
 
-        assertEquals(LoadState.CANCELLED, bridge.getLoadState(),
-                "Load state should be CANCELLED after cancel() is called");
+        assertEquals(LoadState.CANCELED, bridge.getLoadState(),
+                "Load state should be CANCELED after cancel() is called");
     }
 
     @Test
     void testCancelIsIdempotent() {
         bridge.cancel();
-        assertTrue(bridge.isCancelled());
-        assertEquals(LoadState.CANCELLED, bridge.getLoadState());
+        assertTrue(bridge.isCanceled());
+        assertEquals(LoadState.CANCELED, bridge.getLoadState());
 
         // Call cancel again - should not throw or change state
         bridge.cancel();
-        assertTrue(bridge.isCancelled());
-        assertEquals(LoadState.CANCELLED, bridge.getLoadState());
+        assertTrue(bridge.isCanceled());
+        assertEquals(LoadState.CANCELED, bridge.getLoadState());
 
         // And again
         bridge.cancel();
-        assertTrue(bridge.isCancelled());
-        assertEquals(LoadState.CANCELLED, bridge.getLoadState());
+        assertTrue(bridge.isCanceled());
+        assertEquals(LoadState.CANCELED, bridge.getLoadState());
     }
 
     @Test
-    void testIsCancelledReturnsFalseInitially() {
-        assertFalse(bridge.isCancelled(), "isCancelled() should return false before cancel() is called");
+    void testIsCanceledReturnsFalseInitially() {
+        assertFalse(bridge.isCanceled(), "isCanceled() should return false before cancel() is called");
     }
 
     @Test
-    void testIsCancelledReturnsTrueAfterCancel() {
+    void testIsCanceledReturnsTrueAfterCancel() {
         bridge.cancel();
-        assertTrue(bridge.isCancelled(), "isCancelled() should return true after cancel() is called");
+        assertTrue(bridge.isCanceled(), "isCanceled() should return true after cancel() is called");
     }
 
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     void testCancelFromDifferentThread() throws InterruptedException {
         final CountDownLatch cancelLatch = new CountDownLatch(1);
-        final AtomicBoolean cancelledFromThread = new AtomicBoolean(false);
+        final AtomicBoolean canceledFromThread = new AtomicBoolean(false);
 
         Thread cancelThread = new Thread(() -> {
             bridge.cancel();
-            cancelledFromThread.set(bridge.isCancelled());
+            canceledFromThread.set(bridge.isCanceled());
             cancelLatch.countDown();
         });
 
         cancelThread.start();
         assertTrue(cancelLatch.await(5, TimeUnit.SECONDS), "Cancel should complete within timeout");
-        assertTrue(cancelledFromThread.get(), "Bridge should be cancelled from another thread");
-        assertTrue(bridge.isCancelled(), "Bridge should be cancelled as seen from main thread");
+        assertTrue(canceledFromThread.get(), "Bridge should be canceled from another thread");
+        assertTrue(bridge.isCanceled(), "Bridge should be canceled as seen from main thread");
     }
 
     @Test
-    void testLoadStateTransitionsToCancelledOnCancel() {
+    void testLoadStateTransitionsToCanceledOnCancel() {
         // Get initial state
         LoadState beforeCancel = bridge.getLoadState();
 
         // Cancel
         bridge.cancel();
 
-        // Verify state changed to CANCELLED
+        // Verify state changed to CANCELED
         LoadState afterCancel = bridge.getLoadState();
-        assertEquals(LoadState.CANCELLED, afterCancel,
-                "Load state should transition to CANCELLED, was: " + beforeCancel);
+        assertEquals(LoadState.CANCELED, afterCancel,
+                "Load state should transition to CANCELED, was: " + beforeCancel);
     }
 
     @Test
@@ -187,7 +187,7 @@ class StandardPythonProcessorBridgeTest {
         }
 
         // Verify final state
-        assertTrue(bridge.isCancelled(), "Bridge should be cancelled");
-        assertEquals(LoadState.CANCELLED, bridge.getLoadState(), "Load state should be CANCELLED");
+        assertTrue(bridge.isCanceled(), "Bridge should be canceled");
+        assertEquals(LoadState.CANCELED, bridge.getLoadState(), "Load state should be CANCELED");
     }
 }

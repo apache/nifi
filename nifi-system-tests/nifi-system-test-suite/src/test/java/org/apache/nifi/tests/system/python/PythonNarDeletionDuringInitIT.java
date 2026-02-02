@@ -50,7 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Integration tests for Python NAR deletion during processor initialization.
  * These tests verify that:
  * 1. Force-deleting a NAR while a Python processor is initializing does not block indefinitely
- * 2. The processor initialization is properly cancelled when the NAR is deleted
+ * 2. The processor initialization is properly canceled when the NAR is deleted
  * 3. The system remains in a consistent state after the operation
  */
 public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
@@ -306,7 +306,7 @@ public class PythonNarDeletionDuringInitIT extends NiFiSystemIT {
     }
 
     /**
-     * Tests that the processor load state transitions correctly when initialization is cancelled.
+     * Tests that the processor load state transitions correctly when initialization is canceled.
      */
     @Test
     @Timeout(value = 120, unit = TimeUnit.SECONDS)

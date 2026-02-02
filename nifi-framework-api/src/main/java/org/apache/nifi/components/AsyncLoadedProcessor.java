@@ -31,7 +31,7 @@ public interface AsyncLoadedProcessor extends Processor {
      * This is typically called when the component is being removed or the NAR
      * containing the processor is being deleted while the processor is still initializing.
      *
-     * <p>After cancellation, the processor should transition to the {@link LoadState#CANCELLED} state.</p>
+     * <p>After cancellation, the processor should transition to the {@link LoadState#CANCELED} state.</p>
      *
      * <p>The default implementation does nothing, allowing implementations that don't support
      * cancellation to work without changes.</p>
@@ -54,10 +54,10 @@ public interface AsyncLoadedProcessor extends Processor {
         FINISHED_LOADING,
 
         /**
-         * Indicates that the processor initialization was cancelled before it could complete.
+         * Indicates that the processor initialization was canceled before it could complete.
          * This typically happens when the NAR containing the processor is deleted while
          * the processor is still initializing.
          */
-        CANCELLED
+        CANCELED
     }
 }

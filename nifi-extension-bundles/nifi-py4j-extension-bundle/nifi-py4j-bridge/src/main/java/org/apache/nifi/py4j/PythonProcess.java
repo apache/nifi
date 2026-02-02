@@ -330,8 +330,8 @@ public class PythonProcess {
 
         // Check if we've been shutdown before starting venv creation
         if (isShutdown()) {
-            logger.info("Not creating Python Virtual Environment because process is shutting down");
-            throw new IOException("Python process is shutting down, cannot create virtual environment");
+            logger.info("Not creating Python Virtual Environment for {} because process is shutting down", componentId);
+            throw new IOException("Python process %s is shutting down, cannot create virtual environment".formatted(componentId));
         }
 
         final File environmentCreationCompleteFile = new File(virtualEnvHome, "env-creation-complete.txt");
@@ -359,9 +359,9 @@ public class PythonProcess {
             // This allows the venv creation to be interrupted when the process is being shut down
             while (!venvProcess.waitFor(1, TimeUnit.SECONDS)) {
                 if (isShutdown()) {
-                    logger.info("Interrupting Python Virtual Environment creation due to shutdown");
+                    logger.info("Interrupting Python Virtual Environment creation for {} due to shutdown", componentId);
                     venvProcess.destroyForcibly();
-                    throw new IOException("Python process shutdown during virtual environment creation");
+                    throw new IOException("Python process %s shutdown during virtual environment creation".formatted(componentId));
                 }
             }
 
@@ -378,7 +378,7 @@ public class PythonProcess {
 
         // Check shutdown again before proceeding
         if (isShutdown()) {
-            throw new IOException("Python process shutdown after virtual environment creation");
+            throw new IOException("Python process %s shutdown after virtual environment creation".formatted(componentId));
         }
 
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
@@ -393,7 +393,7 @@ public class PythonProcess {
     private void installDebugPy() throws IOException {
         // Check if we've been shutdown before starting
         if (isShutdown()) {
-            logger.info("Not installing DebugPy because process is shutting down");
+            logger.info("Not installing DebugPy for {} because process is shutting down", componentId);
             return;
         }
 
@@ -411,7 +411,7 @@ public class PythonProcess {
             // Wait for pip install with periodic checks for shutdown
             while (!pipProcess.waitFor(1, TimeUnit.SECONDS)) {
                 if (isShutdown()) {
-                    logger.info("Interrupting DebugPy installation due to shutdown");
+                    logger.info("Interrupting DebugPy installation for {} due to shutdown", componentId);
                     pipProcess.destroyForcibly();
                     return;
                 }
