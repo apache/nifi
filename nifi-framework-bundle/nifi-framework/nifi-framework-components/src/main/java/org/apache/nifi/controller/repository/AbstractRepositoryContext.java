@@ -22,6 +22,10 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.metrics.ComponentMetricContext;
+import org.apache.nifi.controller.metrics.ComponentMetricReporter;
+import org.apache.nifi.controller.metrics.CounterRecord;
+import org.apache.nifi.controller.metrics.GaugeRecord;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.InternalProvenanceReporter;
@@ -31,10 +35,12 @@ import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.util.Connectables;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 
@@ -44,28 +50,51 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     private final FlowFileRepository flowFileRepo;
     private final FlowFileEventRepository flowFileEventRepo;
     private final CounterRepository counterRepo;
+    private final ComponentMetricReporter componentMetricReporter;
     private final ProvenanceEventRepository provenanceRepo;
     private final AtomicLong connectionIndex;
     private final StateManager stateManager;
+    private final ComponentMetricContext componentMetricContext;
 
-    public AbstractRepositoryContext(final Connectable connectable, final AtomicLong connectionIndex, final ContentRepository contentRepository,
-                                     final FlowFileRepository flowFileRepository, final FlowFileEventRepository flowFileEventRepository,
-                                     final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository,
-                                     final StateManager stateManager) {
+    private final String componentNameCounterContext;
+    private final String componentTypeCounterContext;
+
+    public AbstractRepositoryContext(
+            final Connectable connectable,
+            final AtomicLong connectionIndex,
+            final ContentRepository contentRepository,
+            final FlowFileRepository flowFileRepository,
+            final FlowFileEventRepository flowFileEventRepository,
+            final CounterRepository counterRepository,
+            final ComponentMetricReporter componentMetricReporter,
+            final ProvenanceEventRepository provenanceRepository,
+            final StateManager stateManager
+    ) {
         this.connectable = connectable;
-        contentRepo = contentRepository;
-        flowFileRepo = flowFileRepository;
-        flowFileEventRepo = flowFileEventRepository;
-        counterRepo = counterRepository;
-        provenanceRepo = provenanceRepository;
+        this.contentRepo = contentRepository;
+        this.flowFileRepo = flowFileRepository;
+        this.flowFileEventRepo = flowFileEventRepository;
+        this.counterRepo = counterRepository;
+        this.componentMetricReporter = componentMetricReporter;
+        this.provenanceRepo = provenanceRepository;
 
         this.connectionIndex = connectionIndex;
         this.stateManager = stateManager;
+        final Map<String, String> groupAttributes = connectable.getProcessGroup().getLoggingAttributes();
+        this.componentMetricContext = new ComponentMetricContext(connectable.getIdentifier(), connectable.getName(), connectable.getComponentType(), groupAttributes);
+
+        this.componentNameCounterContext = connectable.getName() + " (" + connectable.getIdentifier() + ")";
+        this.componentTypeCounterContext = "All " + connectable.getComponentType() + "'s";
     }
 
     @Override
     public Connectable getConnectable() {
         return connectable;
+    }
+
+    @Override
+    public ComponentMetricContext getComponentMetricContext() {
+        return componentMetricContext;
     }
 
     /**
@@ -133,11 +162,16 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
 
     @Override
     public void adjustCounter(final String name, final long delta) {
-        final String localContext = connectable.getName() + " (" + connectable.getIdentifier() + ")";
-        final String globalContext = "All " + connectable.getComponentType() + "'s";
+        counterRepo.adjustCounter(componentNameCounterContext, name, delta);
+        counterRepo.adjustCounter(componentTypeCounterContext, name, delta);
 
-        counterRepo.adjustCounter(localContext, name, delta);
-        counterRepo.adjustCounter(globalContext, name, delta);
+        final CounterRecord counterRecord = new CounterRecord(name, delta, Instant.now(), componentMetricContext);
+        componentMetricReporter.recordCounter(counterRecord);
+    }
+
+    @Override
+    public void recordGauge(final GaugeRecord gaugeRecord) {
+        componentMetricReporter.recordGauge(gaugeRecord);
     }
 
     @Override

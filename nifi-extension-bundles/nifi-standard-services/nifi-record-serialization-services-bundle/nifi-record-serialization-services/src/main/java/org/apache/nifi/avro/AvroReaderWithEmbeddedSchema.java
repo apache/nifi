@@ -19,6 +19,7 @@ package org.apache.nifi.avro;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.serialization.record.RecordSchema;
 
@@ -32,8 +33,14 @@ public class AvroReaderWithEmbeddedSchema extends AvroRecordReader {
     private final RecordSchema recordSchema;
 
     public AvroReaderWithEmbeddedSchema(final InputStream in) throws IOException {
+        this(in, true);
+    }
+
+    public AvroReaderWithEmbeddedSchema(final InputStream in, final boolean fastReaderEnabled) throws IOException {
         this.in = in;
-        dataFileStream = new DataFileStream<>(in, new NonCachingDatumReader<>());
+        final GenericData genericData = new GenericData();
+        genericData.setFastReaderEnabled(fastReaderEnabled);
+        dataFileStream = new DataFileStream<>(in, new NonCachingDatumReader<>(null, genericData));
         this.avroSchema = dataFileStream.getSchema();
         recordSchema = AvroTypeUtil.createSchema(avroSchema);
     }

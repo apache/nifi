@@ -28,20 +28,25 @@ import org.apache.nifi.avro.AvroReader;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.processors.gcp.credentials.service.GCPCredentialsControllerService;
 import org.apache.nifi.processors.gcp.pubsub.publish.MessageDerivationStrategy;
 import org.apache.nifi.processors.gcp.pubsub.publish.TrackedApiFutureCallback;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,8 +76,7 @@ public class PublishGCPubSubTest {
 
             @Override
             protected void addCallback(ApiFuture<String> apiFuture, ApiFutureCallback<? super String> callback, Executor executor) {
-                if (callback instanceof TrackedApiFutureCallback) {
-                    final TrackedApiFutureCallback apiFutureCallback = (TrackedApiFutureCallback) callback;
+                if (callback instanceof TrackedApiFutureCallback apiFutureCallback) {
                     if (throwable == null) {
                         apiFutureCallback.onSuccess(Long.toString(System.currentTimeMillis()));
                     } else {
@@ -126,7 +130,7 @@ public class PublishGCPubSubTest {
         runner.enqueue("text");
         runner.run(1);
         runner.assertAllFlowFilesTransferred(PublishGCPubSub.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishGCPubSub.REL_SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishGCPubSub.REL_SUCCESS).getFirst();
         assertNotNull(flowFile.getAttribute(PubSubAttributes.MESSAGE_ID_ATTRIBUTE));
     }
 
@@ -169,7 +173,7 @@ public class PublishGCPubSubTest {
                 getClass().getClassLoader().getResource("pubsub/records.avro"))));
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PublishGCPubSub.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishGCPubSub.REL_SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishGCPubSub.REL_SUCCESS).getFirst();
         assertEquals("3", flowFile.getAttribute(PubSubAttributes.RECORDS_ATTRIBUTE));
     }
 
@@ -186,7 +190,7 @@ public class PublishGCPubSubTest {
                 getClass().getClassLoader().getResource("pubsub/records.json"))));
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PublishGCPubSub.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishGCPubSub.REL_SUCCESS).iterator().next();
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship(PublishGCPubSub.REL_SUCCESS).getFirst();
         assertEquals("3", flowFile.getAttribute(PubSubAttributes.RECORDS_ATTRIBUTE));
     }
 
@@ -222,6 +226,33 @@ public class PublishGCPubSubTest {
                 getClass().getClassLoader().getResource("pubsub/records.json"))));
         runner.run(1, true, true);
         runner.assertAllFlowFilesTransferred(PublishGCPubSub.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        TestRunner testRunner = TestRunners.newTestRunner(PublishGCPubSub.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("gcp-pubsub-topic", PublishGCPubSub.TOPIC_NAME.getName()),
+                Map.entry("gcp-pubsub-publish-batch-size", AbstractGCPubSubProcessor.BATCH_SIZE_THRESHOLD.getName()),
+                Map.entry("gcp-batch-bytes", AbstractGCPubSubProcessor.BATCH_BYTES_THRESHOLD.getName()),
+                Map.entry("gcp-pubsub-publish-batch-delay", AbstractGCPubSubProcessor.BATCH_DELAY_THRESHOLD.getName()),
+                Map.entry("api-endpoint", AbstractGCPubSubProcessor.API_ENDPOINT.getName()),
+                Map.entry("gcp-project-id", AbstractGCPProcessor.PROJECT_ID.getName()),
+                Map.entry("gcp-retry-count", AbstractGCPProcessor.RETRY_COUNT.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "gcp-proxy-host",
+                "gcp-proxy-port",
+                "gcp-proxy-user-name",
+                "gcp-proxy-user-password"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private static String getCredentialsServiceId(final TestRunner runner) throws InitializationException {

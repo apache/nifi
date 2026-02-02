@@ -17,11 +17,10 @@
 package org.apache.nifi.websocket.jetty;
 
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.processor.Processor;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.Collection;
 
@@ -105,7 +104,7 @@ public class TestJettyWebSocketClient {
 
     @Test
     public void testCustomAuthHeader() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         final TestableJettyWebSocketClient testSubject = new TestableJettyWebSocketClient();
         runner.addControllerService("client", testSubject);
         runner.setProperty(testSubject, JettyWebSocketClient.WS_URI, "wss://localhost:9001/test");

@@ -24,6 +24,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.controller.LoggableComponent;
@@ -135,12 +136,13 @@ public class ComponentBuilder {
         final ProcessScheduler processScheduler = statelessEngine.getProcessScheduler();
         final ControllerServiceProvider controllerServiceProvider = statelessEngine.getControllerServiceProvider();
         final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
+        final VerifiableComponentFactory verifiableComponentFactory = statelessEngine.getVerifiableComponentFactory();
         final ExtensionManager extensionManager = statelessEngine.getExtensionManager();
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
         final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(controllerServiceProvider);
 
         final ProcessorNode procNode = new StandardProcessorNode(loggableProcessor, identifier, validationContextFactory, processScheduler, controllerServiceProvider,
-            reloadComponent, extensionManager, validationTrigger);
+            reloadComponent, verifiableComponentFactory, extensionManager, validationTrigger);
         loggingContext.setComponent(procNode);
 
         logger.info("Created Processor of type {} with identifier {}", type, identifier);
@@ -247,6 +249,7 @@ public class ComponentBuilder {
         final ControllerServiceProvider serviceProvider = statelessEngine.getControllerServiceProvider();
         final KerberosConfig kerberosConfig = statelessEngine.getKerberosConfig();
         final ReloadComponent reloadComponent = statelessEngine.getReloadComponent();
+        final VerifiableComponentFactory verifiableComponentFactory = statelessEngine.getVerifiableComponentFactory();
         final ValidationTrigger validationTrigger = statelessEngine.getValidationTrigger();
         final NodeTypeProvider nodeTypeProvider = new StatelessNodeTypeProvider();
 
@@ -298,7 +301,7 @@ public class ComponentBuilder {
 
             final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
-                identifier, validationContextFactory, serviceProvider, reloadComponent, extensionManager, validationTrigger);
+                identifier, validationContextFactory, serviceProvider, reloadComponent, verifiableComponentFactory, extensionManager, validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
             loggingContext.setComponent(serviceNode);
 

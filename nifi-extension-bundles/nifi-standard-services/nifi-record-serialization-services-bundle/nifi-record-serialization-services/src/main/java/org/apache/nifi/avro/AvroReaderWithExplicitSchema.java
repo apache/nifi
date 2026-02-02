@@ -19,6 +19,7 @@ package org.apache.nifi.avro;
 
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
+import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
@@ -42,15 +43,23 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     private DataFileStream<GenericRecord> dataFileStream;
 
     public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema) throws IOException {
+        this(in, recordSchema, avroSchema, true);
+    }
+
+    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema,
+                                        final boolean fastReaderEnabled) throws IOException {
         this.in = in;
         this.recordSchema = recordSchema;
 
-        datumReader = new NonCachingDatumReader<>(avroSchema);
+        final GenericData genericData = new GenericData();
+        genericData.setFastReaderEnabled(fastReaderEnabled);
+
+        datumReader = new NonCachingDatumReader<>(avroSchema, genericData);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         TeeInputStream teeInputStream = new TeeInputStream(in, baos);
         // Try to parse as a DataFileStream, if it works, glue the streams back together and delegate calls to the DataFileStream
         try {
-            dataFileStream = new DataFileStream<>(teeInputStream, new NonCachingDatumReader<>());
+            dataFileStream = new DataFileStream<>(teeInputStream, new NonCachingDatumReader<>(null, genericData));
         } catch (IOException ioe) {
             // Carry on, hopefully a raw Avro file
             // Need to be able to re-read the bytes read so far, and the InputStream passed in doesn't support reset. Use the TeeInputStream in
@@ -68,7 +77,7 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
             // Need to be able to re-read the bytes read so far, but we don't want to copy the input to a byte array anymore, so get rid of the TeeInputStream
             ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
             SequenceInputStream sis = new SequenceInputStream(bais, in);
-            dataFileStream = new DataFileStream<>(sis, new NonCachingDatumReader<>());
+            dataFileStream = new DataFileStream<>(sis, new NonCachingDatumReader<>(null, genericData));
         }
     }
 

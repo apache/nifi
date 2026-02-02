@@ -29,6 +29,7 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.client.provider.api.WebClientServiceProvider;
@@ -57,6 +58,7 @@ import static org.apache.nifi.processors.workday.GetWorkdayReport.RECORD_WRITER_
 import static org.apache.nifi.processors.workday.GetWorkdayReport.STATUS_CODE;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.SUCCESS;
 import static org.apache.nifi.processors.workday.GetWorkdayReport.WEB_CLIENT_SERVICE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -81,7 +83,7 @@ class GetWorkdayReportTest {
 
     @BeforeEach
     public void setRunner() throws IOException {
-        runner = TestRunners.newTestRunner(new GetWorkdayReport());
+        runner = TestRunners.newTestRunner(GetWorkdayReport.class);
         mockWebServer = new MockWebServer();
         mockWebServer.start();
     }
@@ -415,6 +417,17 @@ class GetWorkdayReportTest {
 
         Pattern basicAuthPattern = Pattern.compile("^Basic \\S+$");
         assertTrue(basicAuthPattern.matcher(authorization).matches(), "Basic Authentication not matched");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("record-reader", RECORD_READER_FACTORY.getName()),
+                Map.entry("record-writer", RECORD_WRITER_FACTORY.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private String getMockWebServerUrl() {

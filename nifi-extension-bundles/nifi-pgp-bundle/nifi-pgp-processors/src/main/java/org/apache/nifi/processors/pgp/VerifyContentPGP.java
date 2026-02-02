@@ -132,7 +132,7 @@ public class VerifyContentPGP extends AbstractProcessor {
     }
 
     /**
-     * On Trigger verifies signatures found in Flow File contents using configured properties
+     * On Trigger verifies signatures found in FlowFile contents using configured properties
      *
      * @param context Process Context
      * @param session Process Session

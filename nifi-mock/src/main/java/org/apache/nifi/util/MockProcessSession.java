@@ -32,6 +32,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.jupiter.api.Assertions;
@@ -77,6 +78,7 @@ public class MockProcessSession implements ProcessSession {
     private final Map<Long, MockFlowFile> originalVersions = new HashMap<>();
     private final SharedSessionState sharedState;
     private final Map<String, Long> counterMap = new HashMap<>();
+    private final Map<String, List<Double>> namedGaugeValues = new HashMap<>();
     private final Map<FlowFile, Integer> readRecursionSet = new HashMap<>();
     private final Set<FlowFile> writeRecursionSet = new HashSet<>();
     private final MockProvenanceReporter provenanceReporter;
@@ -152,6 +154,19 @@ public class MockProcessSession implements ProcessSession {
 
         counter = counter + delta;
         counterMap.put(name, counter);
+    }
+
+    @Override
+    public void recordGauge(final String name, final double value, final CommitTiming commitTiming) {
+        if (CommitTiming.NOW == commitTiming) {
+            sharedState.recordGauge(name, value);
+        } else {
+            namedGaugeValues.compute(name, (gaugeName, values) -> {
+                final List<Double> gaugeValues = Objects.requireNonNullElseGet(values, ArrayList::new);
+                gaugeValues.add(value);
+                return gaugeValues;
+            });
+        }
     }
 
     @Override
@@ -325,6 +340,14 @@ public class MockProcessSession implements ProcessSession {
 
         for (final Map.Entry<String, Long> entry : counterMap.entrySet()) {
             sharedState.adjustCounter(entry.getKey(), entry.getValue());
+        }
+
+        for (final Map.Entry<String, List<Double>> namedGaugeEntry : namedGaugeValues.entrySet()) {
+            final String name = namedGaugeEntry.getKey();
+            final List<Double> gaugeValues = namedGaugeEntry.getValue();
+            for (final Double gaugeValue : gaugeValues) {
+                sharedState.recordGauge(name, gaugeValue);
+            }
         }
 
         sharedState.addProvenanceEvents(provenanceReporter.getEvents());

@@ -39,6 +39,10 @@ public class NonCachingDatumReader<T> extends GenericDatumReader<T> {
         super(schema);
     }
 
+    public NonCachingDatumReader(final Schema schema, final GenericData data) {
+        super(schema, schema, data);
+    }
+
     @Override
     protected Object readString(final Object old, final Schema expected, final Decoder in) throws IOException {
         final Class<?> stringClass = findStringClass(expected);

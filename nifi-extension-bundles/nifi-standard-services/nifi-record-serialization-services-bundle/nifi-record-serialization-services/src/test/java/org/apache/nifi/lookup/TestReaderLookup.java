@@ -24,9 +24,9 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
-import org.apache.nifi.serialization.TestRecordReaderProcessor;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +56,7 @@ public class TestReaderLookup {
         recordReaderB = new MockRecordReaderFactory("B");
 
         readerLookup = new ReaderLookup();
-        runner = TestRunners.newTestRunner(TestRecordReaderProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         final String rrServiceAIdentifier = "rr-A";
         runner.addControllerService(rrServiceAIdentifier, recordReaderA);
@@ -105,7 +105,7 @@ public class TestReaderLookup {
     @Test
     public void testCustomValidateAtLeaseOneServiceDefined() throws InitializationException {
         // enable lookup service with no services registered, verify not valid
-        runner = TestRunners.newTestRunner(TestRecordReaderProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("rr-lookup", readerLookup);
         runner.assertNotValid(readerLookup);
 
@@ -120,7 +120,7 @@ public class TestReaderLookup {
 
     @Test
     public void testCustomValidateSelfReferenceNotAllowed() throws InitializationException {
-        runner = TestRunners.newTestRunner(TestRecordReaderProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("rr-lookup", readerLookup);
         runner.setProperty(readerLookup, "lookup", "lookup");
         runner.assertNotValid(readerLookup);

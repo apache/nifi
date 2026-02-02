@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -26,6 +27,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.nifi.processors.standard.RetryFlowFile.FAIL_ON_OVERWRITE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -138,7 +141,7 @@ public class TestRetryFlowFile {
 
     @Test
     public void testFailOnOverwrite() {
-        runner.setProperty(RetryFlowFile.FAIL_ON_OVERWRITE, "true");
+        runner.setProperty(FAIL_ON_OVERWRITE, "true");
         runner.enqueue("", Collections.singletonMap("flowfile.retries", "ZZAaa"));
         runner.run();
 
@@ -254,5 +257,19 @@ public class TestRetryFlowFile {
         runner.assertTransferCount(RetryFlowFile.RETRY, 0);
         runner.assertTransferCount(RetryFlowFile.RETRIES_EXCEEDED, 0);
         runner.assertTransferCount(RetryFlowFile.FAILURE, 1);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("retry-attribute", RetryFlowFile.RETRY_ATTRIBUTE.getName()),
+                Map.entry("maximum-retries", RetryFlowFile.MAXIMUM_RETRIES.getName()),
+                Map.entry("penalize-retries", RetryFlowFile.PENALIZE_RETRIED.getName()),
+                Map.entry("reuse-mode", RetryFlowFile.REUSE_MODE.getName()),
+                Map.entry("Fail on Non-numerical Overwrite", RetryFlowFile.FAIL_ON_OVERWRITE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

@@ -24,6 +24,8 @@ import org.apache.nifi.asset.StandardAssetManager;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.metrics.ComponentMetricReporter;
+import org.apache.nifi.controller.metrics.DefaultComponentMetricReporter;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.ContentRepositoryContext;
 import org.apache.nifi.controller.repository.CounterRepository;
@@ -207,6 +209,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             };
 
             final CounterRepository counterRepo = new StandardCounterRepository();
+            final ComponentMetricReporter componentMetricReporter = new DefaultComponentMetricReporter();
 
             final File krb5File = engineConfiguration.getKrb5File();
             final KerberosConfig kerberosConfig = new KerberosConfig(null, null, krb5File);
@@ -244,7 +247,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             flowFileRepo = new StatelessFlowFileRepository();
 
             final RepositoryContextFactory repositoryContextFactory = new StatelessRepositoryContextFactory(contentRepo, flowFileRepo, flowFileEventRepo,
-                counterRepo, stateManagerProvider);
+                counterRepo, componentMetricReporter, stateManagerProvider);
             final StatelessEngineInitializationContext statelessEngineInitializationContext = new StatelessEngineInitializationContext(controllerServiceProvider, flowManager, processContextFactory,
                 repositoryContextFactory);
 

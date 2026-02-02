@@ -21,11 +21,11 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.MapCacheClientService;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.exception.DeserializationException;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.security.cert.builder.StandardCertificateBuilder;
 import org.apache.nifi.security.ssl.EphemeralKeyStoreBuilder;
 import org.apache.nifi.security.ssl.StandardSslContextBuilder;
 import org.apache.nifi.ssl.SSLContextProvider;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -62,7 +62,7 @@ public class MapCacheServiceTlsTest {
 
     @BeforeAll
     public static void setServices() throws Exception {
-        runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         sslContextProvider = createSslContextService();
         runner.addControllerService(sslContextProvider.getIdentifier(), sslContextProvider);
         runner.enableControllerService(sslContextProvider);

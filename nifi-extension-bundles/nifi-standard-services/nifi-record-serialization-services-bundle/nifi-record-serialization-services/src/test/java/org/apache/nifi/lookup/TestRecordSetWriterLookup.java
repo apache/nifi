@@ -24,12 +24,12 @@ import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.TestRecordSetWriterProcessor;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +43,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestRecordSetWriterLookup {
     private final String DEFAULT_ATTRIBUTE_NAME = "recordsetwriter.name";
@@ -59,7 +60,7 @@ public class TestRecordSetWriterLookup {
         recordSetWriterB = new MockRecordSetWriterFactory("B");
 
         recordSetWriterLookup = new RecordSetWriterLookup();
-        runner = TestRunners.newTestRunner(TestRecordSetWriterProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         final String rrServiceAIdentifier = "rr-A";
         runner.addControllerService(rrServiceAIdentifier, recordSetWriterA);
@@ -83,6 +84,7 @@ public class TestRecordSetWriterLookup {
 
         RecordSchema recordSchema = recordSetWriterLookup.getSchema(attributes, null);
         assertNotNull(recordSchema);
+        assertTrue(recordSchema.getIdentifier().getName().isPresent());
         assertEquals(recordSetWriterA.name, recordSchema.getIdentifier().getName().get());
 
         MockRecordSetWriter writer = (MockRecordSetWriter) recordSetWriterLookup.createWriter(null, null, null, attributes);
@@ -129,7 +131,7 @@ public class TestRecordSetWriterLookup {
     @Test
     public void testCustomValidateAtLeaseOneServiceDefined() throws InitializationException {
         // enable lookup service with no services registered, verify not valid
-        runner = TestRunners.newTestRunner(TestRecordSetWriterProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("rr-lookup", recordSetWriterLookup);
         runner.assertNotValid(recordSetWriterLookup);
 
@@ -144,7 +146,7 @@ public class TestRecordSetWriterLookup {
 
     @Test
     public void testCustomValidateSelfReferenceNotAllowed() throws InitializationException {
-        runner = TestRunners.newTestRunner(TestRecordSetWriterProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService("rr-lookup", recordSetWriterLookup);
         runner.setProperty(recordSetWriterLookup, "lookup", "lookup");
         runner.assertNotValid(recordSetWriterLookup);
@@ -155,7 +157,7 @@ public class TestRecordSetWriterLookup {
      */
     private static class MockRecordSetWriterFactory extends AbstractControllerService implements RecordSetWriterFactory {
 
-        private String name;
+        private final String name;
 
         public MockRecordSetWriterFactory(String name) {
             this.name = name;
@@ -163,12 +165,12 @@ public class TestRecordSetWriterLookup {
 
 
         @Override
-        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
+        public RecordSchema getSchema(Map<String, String> variables, RecordSchema readSchema) {
             return new SimpleRecordSchema(SchemaIdentifier.builder().name(name).build());
         }
 
         @Override
-        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) throws SchemaNotFoundException, IOException {
+        public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) {
             return new MockRecordSetWriter(name);
         }
     }
@@ -182,22 +184,22 @@ public class TestRecordSetWriterLookup {
 
 
         @Override
-        public WriteResult write(RecordSet recordSet) throws IOException {
+        public WriteResult write(RecordSet recordSet) {
             return null;
         }
 
         @Override
-        public void beginRecordSet() throws IOException {
+        public void beginRecordSet() {
 
         }
 
         @Override
-        public WriteResult finishRecordSet() throws IOException {
+        public WriteResult finishRecordSet() {
             return null;
         }
 
         @Override
-        public WriteResult write(Record record) throws IOException {
+        public WriteResult write(Record record) {
             return null;
         }
 
@@ -207,12 +209,12 @@ public class TestRecordSetWriterLookup {
         }
 
         @Override
-        public void flush() throws IOException {
+        public void flush() {
 
         }
 
         @Override
-        public void close() throws IOException {
+        public void close() {
 
         }
     }

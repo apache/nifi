@@ -33,10 +33,12 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.bin.BinFiles;
 import org.apache.nifi.processor.util.bin.InsertionLocation;
 import org.apache.nifi.processors.standard.merge.AttributeStrategyUtil;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -94,7 +96,7 @@ public class TestMergeContent {
         assertEquals(1024 * 6, bundle.getSize());
 
         // Queue should not be empty because the first FlowFile will be transferred back to the input queue
-        // when we run out @OnStopped logic, since it won't be transferred to any bin.
+        // when we run our @OnStopped logic, since it won't be transferred to any bin.
         runner.assertQueueNotEmpty();
     }
 
@@ -618,8 +620,7 @@ public class TestMergeContent {
 
         Collection<ValidationResult> results = new HashSet<>();
         ProcessContext context = runner.getProcessContext();
-        if (context instanceof MockProcessContext) {
-            MockProcessContext mockContext = (MockProcessContext) context;
+        if (context instanceof MockProcessContext mockContext) {
             results = mockContext.validate();
         }
 
@@ -1479,4 +1480,17 @@ public class TestMergeContent {
         testRunner.enqueue("World!", attributes);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("mergecontent-metadata-strategy", MergeContent.METADATA_STRATEGY.getName()),
+                Map.entry("Header File", MergeContent.HEADER.getName()),
+                Map.entry("Footer File", MergeContent.FOOTER.getName()),
+                Map.entry("Demarcator File", MergeContent.DEMARCATOR.getName()),
+                Map.entry("Maximum number of Bins", BinFiles.MAX_BIN_COUNT.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 }

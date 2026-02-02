@@ -855,7 +855,7 @@ public class HandleHttpRequest extends AbstractProcessor implements ListenCompon
     }
 
     protected void handleFlowContentStreamingError(final ProcessSession session, final HttpRequestContainer container, final Optional<FlowFile> flowFile, final Exception e) {
-        // There may be many reasons which can produce an IOException on the HTTP stream and in some of them, eg.
+        // There may be many reasons which can produce an IOException on the HTTP stream and in some of them, e.g.
         // bad requests, the connection to the client is not closed. In order to address also these cases, we try
         // and answer with a BAD_REQUEST, which lets the client know that the request has not been correctly
         // processed and makes it aware that the connection can be closed.

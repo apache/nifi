@@ -20,13 +20,12 @@ import org.apache.commons.lang3.SerializationException;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.distributed.cache.client.SetCacheClientService;
 import org.apache.nifi.distributed.cache.server.SetCacheServer;
-import org.apache.nifi.processor.Processor;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -44,7 +43,7 @@ public class SetCacheServiceTest {
 
     @BeforeAll
     public static void setRunner() throws Exception {
-        runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         server = new SetCacheServer();
         runner.addControllerService(server.getClass().getName(), server);

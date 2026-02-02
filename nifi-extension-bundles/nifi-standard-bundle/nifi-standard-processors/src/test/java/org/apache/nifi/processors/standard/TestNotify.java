@@ -23,6 +23,7 @@ import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.processors.standard.WaitNotifyProtocol.Signal;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +70,7 @@ public class TestNotify {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(Notify.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).get(0).assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true");
+        runner.getFlowFilesForRelationship(Notify.REL_SUCCESS).getFirst().assertAttributeEquals(Notify.NOTIFIED_ATTRIBUTE_NAME, "true");
         runner.clearTransferState();
 
         final Signal signal = new WaitNotifyProtocol(service).getSignal("1");
@@ -357,7 +358,7 @@ public class TestNotify {
         public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
             verifyNotFail();
 
-            final AtomicCacheEntry entry = values.get(key);
+            final AtomicCacheEntry<?, ?, ?> entry = values.get(key);
             if (entry == null) {
                 return null;
             }
@@ -400,5 +401,18 @@ public class TestNotify {
         }
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("distributed-cache-service", Notify.DISTRIBUTED_CACHE_SERVICE.getName()),
+                Map.entry("release-signal-id", Notify.RELEASE_SIGNAL_IDENTIFIER.getName()),
+                Map.entry("signal-counter-name", Notify.SIGNAL_COUNTER_NAME.getName()),
+                Map.entry("signal-counter-delta", Notify.SIGNAL_COUNTER_DELTA.getName()),
+                Map.entry("signal-buffer-count", Notify.SIGNAL_BUFFER_COUNT.getName()),
+                Map.entry("attribute-cache-regex", Notify.ATTRIBUTE_CACHE_REGEX.getName())
+        );
 
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 }

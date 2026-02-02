@@ -360,7 +360,6 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
 
     @Override
     public void migrateProperties(PropertyConfiguration config) {
-        super.migrateProperties(config);
         config.renameProperty("sending-host", SENDING_HOST.getName());
         config.renameProperty("sending-host-port", SENDING_HOST_PORT.getName());
         config.renameProperty("record-reader", RECORD_READER.getName());

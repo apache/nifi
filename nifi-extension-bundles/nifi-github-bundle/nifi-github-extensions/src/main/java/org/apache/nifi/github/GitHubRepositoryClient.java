@@ -26,6 +26,7 @@ import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.client.GitCommit;
 import org.apache.nifi.registry.flow.git.client.GitCreateContentRequest;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
+import org.apache.nifi.ssl.SSLContextProvider;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHContentUpdateResponse;
@@ -41,11 +42,13 @@ import org.kohsuke.github.PagedIterator;
 import org.kohsuke.github.authorization.AppInstallationAuthorizationProvider;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 import org.kohsuke.github.connector.GitHubConnectorResponse;
+import org.kohsuke.github.extras.HttpClientGitHubConnector;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.http.HttpClient;
 import java.security.PrivateKey;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -117,6 +120,14 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
                 logger.error("GitHub API request failed with status code: {}, message: {}", connectorResponse.statusCode(), message);
             }
         });
+
+        // Configure HttpClient connector with SSL context if provided
+        if (builder.sslContextProvider != null) {
+            final HttpClient httpClient = HttpClient.newBuilder()
+                    .sslContext(builder.sslContextProvider.createContext())
+                    .build();
+            gitHubBuilder.withConnector(new HttpClientGitHubConnector(httpClient));
+        }
 
         gitHub = gitHubBuilder.build();
 
@@ -399,6 +410,34 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
     }
 
     /**
+     * Gets the blob SHA for the given path at a specific commit.
+     * This is used for atomic commit operations where we need the blob SHA at the
+     * user's expected version, not the current version.
+     *
+     * @param path the path to the content
+     * @param commitSha the commit SHA
+     * @return blob SHA for the given file at the specified commit, or empty optional
+     *
+     * @throws IOException if an I/O error happens calling GitHub
+     * @throws FlowRegistryException if a non I/O error happens calling GitHub
+     */
+    @Override
+    public Optional<String> getContentShaAtCommit(final String path, final String commitSha) throws IOException, FlowRegistryException {
+        final String resolvedPath = getResolvedPath(path);
+        logger.debug("Getting content SHA for [{}] at commit [{}] in repository [{}]", resolvedPath, commitSha, repository.getName());
+
+        return execute(() -> {
+            try {
+                final GHContent ghContent = repository.getFileContent(resolvedPath, commitSha);
+                return Optional.of(ghContent.getSha());
+            } catch (final FileNotFoundException e) {
+                logger.debug("Unable to get content SHA for [{}] at commit [{}] because content does not exist", resolvedPath, commitSha);
+                return Optional.empty();
+            }
+        });
+    }
+
+    /**
      * Deletes the contents for the given file on the given branch.
      *
      * @param filePath the file path to delete
@@ -511,6 +550,7 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
         private String appPrivateKey;
         private String appId;
         private ComponentLog logger;
+        private SSLContextProvider sslContextProvider;
 
         public Builder apiUrl(final String apiUrl) {
             this.apiUrl = apiUrl;
@@ -553,6 +593,11 @@ public class GitHubRepositoryClient implements GitRepositoryClient {
 
         public Builder logger(final ComponentLog logger) {
             this.logger = logger;
+            return this;
+        }
+
+        public Builder sslContext(final SSLContextProvider sslContextProvider) {
+            this.sslContextProvider = sslContextProvider;
             return this;
         }
 

@@ -111,12 +111,12 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
         final boolean showDeltas = context.getProperty(SHOW_DELTAS).asBoolean();
 
         connectionLineFormat = showDeltas ? CONNECTION_LINE_FORMAT_WITH_DELTA : CONNECTION_LINE_FORMAT_NO_DELTA;
-        connectionHeader = String.format(connectionLineFormat, "Connection ID", "Source", "Connection Name", "Destination", "Flow Files In", "Flow Files Out", "FlowFiles Queued");
+        connectionHeader = String.format(connectionLineFormat, "Connection ID", "Source", "Connection Name", "Destination", "FlowFiles In", "FlowFiles Out", "FlowFiles Queued");
         connectionBorderLine = createLine(connectionHeader);
 
         processorLineFormat = showDeltas ? PROCESSOR_LINE_FORMAT_WITH_DELTA : PROCESSOR_LINE_FORMAT_NO_DELTA;
-        processorHeader = String.format(processorLineFormat, "Processor Name", "Processor ID", "Processor Type", "Run Status", "Flow Files In",
-                "Flow Files Out", "Bytes Read", "Bytes Written", "Tasks", "Proc Time");
+        processorHeader = String.format(processorLineFormat, "Processor Name", "Processor ID", "Processor Type", "Run Status", "FlowFiles In",
+                "FlowFiles Out", "Bytes Read", "Bytes Written", "Tasks", "Proc Time");
         processorBorderLine = createLine(processorHeader);
 
         counterHeader = String.format(COUNTER_LINE_FORMAT, "Counter Context", "Counter Name", "Counter Value");

@@ -17,14 +17,15 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.LookupService;
 import org.apache.nifi.lookup.SimpleKeyValueLookupService;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -38,11 +39,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestLookupAttribute {
 
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(LookupAttribute.class);
+    }
+
     @Test
     public void testKeyValueLookupAttribute() throws InitializationException {
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
 
-        final TestRunner runner = TestRunners.newTestRunner(new LookupAttribute());
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.setProperty(service, "key1", "value1");
         runner.setProperty(service, "key2", "value2");
@@ -88,7 +95,6 @@ public class TestLookupAttribute {
     public void testLookupAttributeUnmatched() throws InitializationException {
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
 
-        final TestRunner runner = TestRunners.newTestRunner(new LookupAttribute());
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.setProperty(service, "key1", "value1");
         runner.setProperty(service, "key2", "value2");
@@ -120,7 +126,6 @@ public class TestLookupAttribute {
     public void testCustomValidateInvalidLookupService() throws InitializationException {
         final InvalidLookupService service = new InvalidLookupService();
 
-        final TestRunner runner = TestRunners.newTestRunner(new LookupAttribute());
         runner.addControllerService("invalid-lookup-service", service);
         runner.enableControllerService(service);
         runner.assertValid(service);
@@ -133,7 +138,6 @@ public class TestLookupAttribute {
     public void testCustomValidateMissingDynamicProps() throws InitializationException {
         final SimpleKeyValueLookupService service = new SimpleKeyValueLookupService();
 
-        final TestRunner runner = TestRunners.newTestRunner(new LookupAttribute());
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.enableControllerService(service);
         runner.assertValid(service);
@@ -143,9 +147,8 @@ public class TestLookupAttribute {
 
     @Test
     public void testLookupServicePassFlowfileAttributes() throws InitializationException {
-        final LookupService service = new TestService();
+        final LookupService<String> service = new TestService();
 
-        final TestRunner runner = TestRunners.newTestRunner(new LookupAttribute());
         runner.addControllerService("simple-key-value-lookup-service", service);
         runner.enableControllerService(service);
         runner.assertValid(service);
@@ -162,6 +165,17 @@ public class TestLookupAttribute {
         runner.assertAllFlowFilesTransferred(LookupAttribute.REL_MATCHED, 1);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("lookup-service", LookupAttribute.LOOKUP_SERVICE.getName()),
+                Map.entry("include-empty-values", LookupAttribute.INCLUDE_EMPTY_VALUES.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private static class InvalidLookupService extends AbstractControllerService implements StringLookupService {
         @Override
         public Optional<String> lookup(Map<String, Object> coordinates) {
@@ -176,7 +190,7 @@ public class TestLookupAttribute {
 
     static class TestService extends AbstractControllerService implements StringLookupService {
         @Override
-        public Optional<String> lookup(Map<String, Object> coordinates, Map<String, String> context) throws LookupFailureException {
+        public Optional<String> lookup(Map<String, Object> coordinates, Map<String, String> context) {
             assertNotNull(coordinates);
             assertNotNull(context);
             assertEquals(1, coordinates.size());

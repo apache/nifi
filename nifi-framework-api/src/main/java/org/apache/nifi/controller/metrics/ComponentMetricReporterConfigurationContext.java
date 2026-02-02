@@ -14,29 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.controller.metrics;
 
-package org.apache.nifi.bootstrap;
+import java.util.Optional;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.function.BiConsumer;
-
-public interface BootstrapCommunicator {
-
+/**
+ * Configuration Context with properties provided to Component Metric Reporter on initial configuration
+ */
+public interface ComponentMetricReporterConfigurationContext {
     /**
-     * Sends a command with specific arguments to the bootstrap process
+     * Get SSL Context when configured in application properties
      *
-     * @param command the command to send
-     * @param args    the args to send
-     * @return {@link CommandResult} of the command sent to Bootstrap
-     * @throws IOException exception in case of communication issue
+     * @return SSLContext or empty when not configured
      */
-    CommandResult sendCommand(String command, String... args) throws IOException;
+    Optional<SSLContext> getSSLContext();
 
     /**
-     * Register a handler for messages coming from bootstrap process
-     * @param command the command
-     * @param handler handler for the specific command
+     * Get Trust Manager when configured in application properties
+     *
+     * @return X509TrustManager or empty when not configured
      */
-    void registerMessageHandler(String command, BiConsumer<String[], OutputStream> handler);
+    Optional<X509TrustManager> getTrustManager();
 }

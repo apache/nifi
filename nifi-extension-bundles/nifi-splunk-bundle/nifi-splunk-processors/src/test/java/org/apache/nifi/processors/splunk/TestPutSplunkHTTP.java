@@ -24,10 +24,9 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -38,7 +37,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
@@ -59,10 +57,11 @@ public class TestPutSplunkHTTP {
             "    \"code\": 0,\n" +
             "    \"ackId\": " + ACK_ID + "\n" +
             "}";
-    private static final String FAILURE_RESPONSE = "{\n" +
-            "    \"text\": \"Failure\",\n" +
-            "    \"code\": 13\n" +
-            "}";
+    private static final String FAILURE_RESPONSE = """
+            {
+                "text": "Failure",
+                "code": 13
+            }""";
 
     @Mock
     private Service service;
@@ -79,8 +78,7 @@ public class TestPutSplunkHTTP {
     private MockedPutSplunkHTTP processor;
     private TestRunner testRunner;
 
-    @BeforeEach
-    public void setUp() {
+    public void setUpMocks() {
         processor = new MockedPutSplunkHTTP(service);
         testRunner = TestRunners.newTestRunner(processor);
         testRunner.setProperty(SplunkAPICall.SCHEME, "http");
@@ -90,13 +88,9 @@ public class TestPutSplunkHTTP {
         Mockito.when(service.send(path.capture(), request.capture())).thenReturn(response);
     }
 
-    @AfterEach
-    public void tearDown() {
-        testRunner.shutdown();
-    }
-
     @Test
-    public void testRunSuccess() throws Exception {
+    public void testRunSuccess() {
+        setUpMocks();
         // given
         givenSplunkReturnsWithSuccess();
 
@@ -106,7 +100,7 @@ public class TestPutSplunkHTTP {
 
         // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_SUCCESS, 1);
-        final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_SUCCESS).get(0);
+        final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_SUCCESS).getFirst();
 
         assertEquals(EVENT, outgoingFlowFile.getContent());
         assertEquals(ACK_ID, outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
@@ -116,7 +110,8 @@ public class TestPutSplunkHTTP {
     }
 
     @Test
-    public void testHappyPathWithCustomQueryParameters() throws Exception {
+    public void testHappyPathWithCustomQueryParameters() {
+        setUpMocks();
         // given
         testRunner.setProperty(PutSplunkHTTP.SOURCE, "test_source");
         testRunner.setProperty(PutSplunkHTTP.SOURCE_TYPE, "test?source?type");
@@ -132,7 +127,8 @@ public class TestPutSplunkHTTP {
     }
 
     @Test
-    public void testHappyPathWithCustomQueryParametersFromFlowFile() throws Exception {
+    public void testHappyPathWithCustomQueryParametersFromFlowFile() {
+        setUpMocks();
         // given
         testRunner.setProperty(PutSplunkHTTP.SOURCE, "${ff_source}");
         testRunner.setProperty(PutSplunkHTTP.SOURCE_TYPE, "${ff_source_type}");
@@ -167,7 +163,8 @@ public class TestPutSplunkHTTP {
     }
 
     @Test
-    public void testHappyPathWithContentType() throws Exception {
+    public void testHappyPathWithContentType() {
+        setUpMocks();
         // given
         testRunner.setProperty(PutSplunkHTTP.CONTENT_TYPE, "text/xml");
         givenSplunkReturnsWithSuccess();
@@ -182,7 +179,8 @@ public class TestPutSplunkHTTP {
     }
 
     @Test
-    public void testSplunkCallFailure() throws Exception {
+    public void testSplunkCallFailure() {
+        setUpMocks();
         // given
         givenSplunkReturnsWithFailure();
 
@@ -192,7 +190,7 @@ public class TestPutSplunkHTTP {
 
         // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_FAILURE, 1);
-        final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_FAILURE).get(0);
+        final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_FAILURE).getFirst();
 
         assertEquals(EVENT, outgoingFlowFile.getContent());
         assertNull(outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
@@ -202,7 +200,8 @@ public class TestPutSplunkHTTP {
     }
 
     @Test
-    public void testSplunkApplicationFailure() throws Exception {
+    public void testSplunkApplicationFailure() {
+        setUpMocks();
         // given
         givenSplunkReturnsWithApplicationFailure(403);
 
@@ -212,7 +211,7 @@ public class TestPutSplunkHTTP {
 
         // then
         testRunner.assertAllFlowFilesTransferred(PutSplunkHTTP.RELATIONSHIP_FAILURE, 1);
-        final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_FAILURE).get(0);
+        final MockFlowFile outgoingFlowFile = testRunner.getFlowFilesForRelationship(PutSplunkHTTP.RELATIONSHIP_FAILURE).getFirst();
 
         assertEquals(EVENT, outgoingFlowFile.getContent());
         assertNull(outgoingFlowFile.getAttribute("splunk.acknowledgement.id"));
@@ -221,27 +220,45 @@ public class TestPutSplunkHTTP {
         assertEquals("403", outgoingFlowFile.getAttribute("splunk.status.code"));
     }
 
+    @Test
+    void testMigrateProperties() {
+        TestRunner testRunner = TestRunners.newTestRunner(PutSplunkHTTP.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("source", PutSplunkHTTP.SOURCE.getName()),
+                Map.entry("source-type", PutSplunkHTTP.SOURCE_TYPE.getName()),
+                Map.entry("host", PutSplunkHTTP.HOST.getName()),
+                Map.entry("index", PutSplunkHTTP.INDEX.getName()),
+                Map.entry("character-set", PutSplunkHTTP.CHARSET.getName()),
+                Map.entry("content-type", PutSplunkHTTP.CONTENT_TYPE.getName()),
+                Map.entry("Port", SplunkAPICall.PORT.getName()),
+                Map.entry("Token", SplunkAPICall.TOKEN.getName()),
+                Map.entry("request-channel", SplunkAPICall.REQUEST_CHANNEL.getName())
+        );
 
-    private MockFlowFile givenFlowFile() throws UnsupportedEncodingException {
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
+    private MockFlowFile givenFlowFile() {
         final MockFlowFile result = new MockFlowFile(System.currentTimeMillis());
         result.setData(EVENT.getBytes(StandardCharsets.UTF_8));
         result.putAttributes(Collections.singletonMap("mime.type", "application/json"));
         return result;
     }
 
-    private void givenSplunkReturnsWithSuccess() throws Exception {
+    private void givenSplunkReturnsWithSuccess() {
         final InputStream inputStream = new ByteArrayInputStream(SUCCESS_RESPONSE.getBytes(StandardCharsets.UTF_8));
         Mockito.when(response.getStatus()).thenReturn(200);
         Mockito.when(response.getContent()).thenReturn(inputStream);
     }
 
-    private void givenSplunkReturnsWithFailure() throws Exception {
+    private void givenSplunkReturnsWithFailure() {
         final InputStream inputStream = new ByteArrayInputStream(FAILURE_RESPONSE.getBytes(StandardCharsets.UTF_8));
         Mockito.when(response.getStatus()).thenReturn(200);
         Mockito.when(response.getContent()).thenReturn(inputStream);
     }
 
-    private void givenSplunkReturnsWithApplicationFailure(int code) throws Exception {
+    private void givenSplunkReturnsWithApplicationFailure(int code) {
         final InputStream inputStream = new ByteArrayInputStream("non-json-content".getBytes(StandardCharsets.UTF_8));
         Mockito.when(response.getStatus()).thenReturn(code);
         Mockito.when(response.getContent()).thenReturn(inputStream);

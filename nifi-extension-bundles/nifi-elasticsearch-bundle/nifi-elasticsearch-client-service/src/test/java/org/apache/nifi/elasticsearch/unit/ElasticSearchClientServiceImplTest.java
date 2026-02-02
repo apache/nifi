@@ -20,10 +20,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.elasticsearch.AuthorizationScheme;
 import org.apache.nifi.elasticsearch.ElasticSearchClientService;
 import org.apache.nifi.elasticsearch.ElasticSearchClientServiceImpl;
-import org.apache.nifi.elasticsearch.TestControllerServiceProcessor;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.SSLContextProvider;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,10 +45,9 @@ class ElasticSearchClientServiceImplTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new ElasticSearchClientServiceImpl();
         runner.addControllerService("Client Service", service);
-        runner.setProperty(TestControllerServiceProcessor.CLIENT_SERVICE, "Client Service");
         runner.setProperty(service, ElasticSearchClientService.HTTP_HOSTS, HOST);
     }
 

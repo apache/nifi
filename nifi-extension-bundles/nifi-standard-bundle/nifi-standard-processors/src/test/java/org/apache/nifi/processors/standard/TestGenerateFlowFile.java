@@ -17,9 +17,13 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,10 +32,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Unit tests for the GenerateFlowFile processor.
  */
 public class TestGenerateFlowFile {
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(new GenerateFlowFile());
+    }
 
     @Test
     public void testGenerateCustomText() {
-        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "100MB");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
         runner.setProperty(GenerateFlowFile.CUSTOM_TEXT, "This is my custom text!");
@@ -39,14 +48,13 @@ public class TestGenerateFlowFile {
         runner.run();
 
         runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
-        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0);
+        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
         generatedFlowFile.assertContentEquals("This is my custom text!");
         generatedFlowFile.assertAttributeNotExists("mime.type");
     }
 
     @Test
     public void testInvalidCustomText() {
-        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "100MB");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_BINARY);
         runner.setProperty(GenerateFlowFile.CUSTOM_TEXT, "This is my custom text!");
@@ -59,7 +67,6 @@ public class TestGenerateFlowFile {
 
     @Test
     public void testDynamicPropertiesToAttributes() {
-        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
         runner.setProperty(GenerateFlowFile.MIME_TYPE, "application/text");
@@ -70,7 +77,7 @@ public class TestGenerateFlowFile {
         runner.run();
 
         runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
-        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0);
+        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
         generatedFlowFile.assertAttributeEquals("plain.dynamic.property", "Plain Value");
         generatedFlowFile.assertAttributeEquals("expression.dynamic.property", "Expression Value");
         generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
@@ -78,7 +85,6 @@ public class TestGenerateFlowFile {
 
     @Test
     public void testContextParametersToAttributes() {
-        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setParameterContextValue("context.parameter.property", "context.parameter.value");
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "1B");
         runner.setProperty(GenerateFlowFile.DATA_FORMAT, GenerateFlowFile.DATA_FORMAT_TEXT);
@@ -89,7 +95,7 @@ public class TestGenerateFlowFile {
         runner.run();
 
         runner.assertTransferCount(GenerateFlowFile.SUCCESS, 1);
-        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0);
+        MockFlowFile generatedFlowFile = runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).getFirst();
         generatedFlowFile.assertAttributeEquals("expression.context.parameter", "context.parameter.value");
         generatedFlowFile.assertAttributeEquals("mime.type", "application/text");
     }
@@ -97,7 +103,6 @@ public class TestGenerateFlowFile {
 
     @Test
     public void testExpressionLanguageSupport() {
-        TestRunner runner = TestRunners.newTestRunner(new GenerateFlowFile());
         runner.setProperty(GenerateFlowFile.FILE_SIZE, "${nextInt()}B");
         runner.setProperty(GenerateFlowFile.UNIQUE_FLOWFILES, "true");
         runner.setProperty(GenerateFlowFile.BATCH_SIZE, "2");
@@ -120,5 +125,16 @@ public class TestGenerateFlowFile {
         assertEquals(runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(0).getSize(), runner.getFlowFilesForRelationship(GenerateFlowFile.SUCCESS).get(1).getSize());
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "generate-ff-custom-text", GenerateFlowFile.CUSTOM_TEXT.getName(),
+                "character-set", GenerateFlowFile.CHARSET.getName(),
+                "mime-type", GenerateFlowFile.MIME_TYPE.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 
 }

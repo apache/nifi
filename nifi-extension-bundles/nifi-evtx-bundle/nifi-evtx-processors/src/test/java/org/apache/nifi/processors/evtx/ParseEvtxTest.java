@@ -29,6 +29,7 @@ import org.apache.nifi.processors.evtx.parser.MalformedChunkException;
 import org.apache.nifi.processors.evtx.parser.Record;
 import org.apache.nifi.processors.evtx.parser.bxml.RootNode;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.xml.processing.parsers.StandardDocumentProvider;
@@ -457,6 +458,17 @@ public class ParseEvtxTest {
     @Test
     public void testChunkBasedParseCorrectNumberOfFlowFilesFromAResizedFile() {
         testValidEvents(ParseEvtx.CHUNK, "3778_events_not_exported.evtx", 16);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final TestRunner testRunner = TestRunners.newTestRunner(ParseEvtx.class);
+        final Map<String, String> expectedRenamed = Map.of(
+                "granularity", ParseEvtx.GRANULARITY.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void testValidEvents(String granularity, String filename, int expectedCount) {

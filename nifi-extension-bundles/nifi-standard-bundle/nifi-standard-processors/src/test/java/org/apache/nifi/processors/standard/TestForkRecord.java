@@ -37,6 +37,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,10 +47,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestForkRecord {
 
@@ -277,8 +281,13 @@ public class TestForkRecord {
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst();
         mff.assertAttributeEquals("record.count", "4");
-        mff.assertContentEquals("header\n5,John Doe,123 My Street,My City,MS,11111,USA,4750.89,150.31\n6,John Doe,123 My Street,My City,MS,11111,USA,4750.89,-15.31\n"
-                + "7,John Doe,123 My Street,My City,MS,11111,USA,48212.38,36.78\n8,John Doe,123 My Street,My City,MS,11111,USA,48212.38,-21.34\n");
+        mff.assertContentEquals("""
+                header
+                5,John Doe,123 My Street,My City,MS,11111,USA,4750.89,150.31
+                6,John Doe,123 My Street,My City,MS,11111,USA,4750.89,-15.31
+                7,John Doe,123 My Street,My City,MS,11111,USA,48212.38,36.78
+                8,John Doe,123 My Street,My City,MS,11111,USA,48212.38,-21.34
+                """);
     }
 
     @Test
@@ -354,8 +363,13 @@ public class TestForkRecord {
 
         final MockFlowFile mff = runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst();
         mff.assertAttributeEquals("record.count", "4");
-        mff.assertContentEquals("header\n5,John Doe,123 My Street,My City,MS,11111,USA,4750.89,150.31\n6,John Doe,123 My Street,My City,MS,11111,USA,4750.89,-15.31\n"
-                + "7,John Doe,123 My Street,My City,MS,11111,USA,48212.38,36.78\n8,John Doe,123 My Street,My City,MS,11111,USA,48212.38,-21.34\n");
+        mff.assertContentEquals("""
+                header
+                5,John Doe,123 My Street,My City,MS,11111,USA,4750.89,150.31
+                6,John Doe,123 My Street,My City,MS,11111,USA,4750.89,-15.31
+                7,John Doe,123 My Street,My City,MS,11111,USA,48212.38,36.78
+                8,John Doe,123 My Street,My City,MS,11111,USA,48212.38,-21.34
+                """);
     }
 
     @Test
@@ -363,8 +377,9 @@ public class TestForkRecord {
         final JsonTreeReader jsonReader = new JsonTreeReader();
         runner.addControllerService("record-reader", jsonReader);
 
-        final String inputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestForkRecord/schema/schema.avsc")));
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/TestForkRecord/schema/schema.avsc")));
+        final Path schemaFile = Paths.get("src/test/resources/TestForkRecord/schema/schema.avsc");
+        final String inputSchemaText = new String(Files.readAllBytes(schemaFile));
+        final String outputSchemaText = new String(Files.readAllBytes(schemaFile));
 
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_TEXT, inputSchemaText);
@@ -372,6 +387,7 @@ public class TestForkRecord {
         runner.setProperty(ForkRecord.RECORD_READER, "record-reader");
 
         final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        final Path complexInputJson = Paths.get("src/test/resources/TestForkRecord/input/complex-input-json.json");
         runner.addControllerService("record-writer", jsonWriter);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
@@ -383,7 +399,7 @@ public class TestForkRecord {
         runner.setProperty(ForkRecord.MODE, ForkRecord.MODE_SPLIT);
 
         runner.setProperty("my-path", "/address");
-        runner.enqueue(Paths.get("src/test/resources/TestForkRecord/input/complex-input-json.json"));
+        runner.enqueue(complexInputJson);
         runner.run();
         runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
@@ -393,7 +409,7 @@ public class TestForkRecord {
 
         runner.clearTransferState();
         runner.setProperty("my-path", "/bankAccounts[*]/last5Transactions");
-        runner.enqueue(Paths.get("src/test/resources/TestForkRecord/input/complex-input-json.json"));
+        runner.enqueue(complexInputJson);
         runner.run();
         runner.assertTransferCount(ForkRecord.REL_ORIGINAL, 1);
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
@@ -463,8 +479,8 @@ public class TestForkRecord {
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
 
         final String expectedOutput = JsonUtil.getExpectedContent(Paths.get("src/test/resources/TestForkRecord/output/extract-bank-accounts-with-parents.json"));
-        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
-        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertAttributeEquals("record.count", "5");
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertContentEquals(expectedOutput);
     }
 
     @Test
@@ -493,8 +509,8 @@ public class TestForkRecord {
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
 
         final String expectedOutput = JsonUtil.getExpectedContent(Paths.get("src/test/resources/TestForkRecord/output/extract-address-without-parents.json"));
-        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
-        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertAttributeEquals("record.count", "5");
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertContentEquals(expectedOutput);
     }
 
     @Test
@@ -523,8 +539,21 @@ public class TestForkRecord {
         runner.assertTransferCount(ForkRecord.REL_FORK, 1);
 
         final String expectedOutput = JsonUtil.getExpectedContent(Paths.get("src/test/resources/TestForkRecord/output/extract-address-with-parents.json"));
-        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertAttributeEquals("record.count", "5");
-        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).get(0).assertContentEquals(expectedOutput);
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertAttributeEquals("record.count", "5");
+        runner.getFlowFilesForRelationship(ForkRecord.REL_FORK).getFirst().assertContentEquals(expectedOutput);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "record-reader", ForkRecord.RECORD_READER.getName(),
+                "record-writer", ForkRecord.RECORD_WRITER.getName(),
+                "fork-mode", ForkRecord.MODE.getName(),
+                "include-parent-fields", ForkRecord.INCLUDE_PARENT_FIELDS.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private class JsonRecordReader extends AbstractControllerService implements RecordReaderFactory {
@@ -549,7 +578,7 @@ public class TestForkRecord {
         }
     }
 
-    private class CustomRecordWriter extends MockRecordWriter {
+    private static class CustomRecordWriter extends MockRecordWriter {
 
         RecordSchema schema;
 

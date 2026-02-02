@@ -30,6 +30,8 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.parquet.ParquetTestUtils;
 import org.apache.nifi.parquet.utils.ParquetAttribute;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.hadoop.AbstractFetchHDFSRecord;
+import org.apache.nifi.processors.hadoop.AbstractHadoopProcessor;
 import org.apache.nifi.processors.hadoop.record.HDFSRecordReader;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -39,6 +41,7 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.parquet.avro.AvroParquetWriter;
@@ -62,6 +65,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.nifi.processors.hadoop.AbstractHadoopProcessor.HADOOP_FILE_URL_ATTRIBUTE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -135,7 +139,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, String.valueOf(USERS));
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
         assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
@@ -165,7 +169,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
         assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
@@ -194,7 +198,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
         assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
@@ -223,7 +227,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
         assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
@@ -253,7 +257,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
         assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
@@ -283,7 +287,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
         assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
@@ -314,7 +318,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.RECORD_COUNT_ATTR, "1");
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "text/plain");
         assertTrue(flowFile.getAttribute(HADOOP_FILE_URL_ATTRIBUTE).endsWith(DIRECTORY + "/" + parquetFile.getName()));
@@ -335,7 +339,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_FAILURE, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_FAILURE).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_FAILURE).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.FETCH_FAILURE_REASON_ATTR, "Can not create a Path from an empty string");
         flowFile.assertContentEquals("TRIGGER");
     }
@@ -351,7 +355,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_FAILURE, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_FAILURE).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_FAILURE).getFirst();
         flowFile.assertAttributeEquals(FetchParquet.FETCH_FAILURE_REASON_ATTR, "File " + filename + " does not exist");
         flowFile.assertContentEquals("TRIGGER");
     }
@@ -380,7 +384,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_RETRY, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_RETRY).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_RETRY).getFirst();
         flowFile.assertContentEquals("TRIGGER");
     }
 
@@ -415,7 +419,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_RETRY, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_RETRY).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_RETRY).getFirst();
         flowFile.assertContentEquals("TRIGGER");
     }
 
@@ -447,7 +451,7 @@ public class FetchParquetTest {
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_RETRY, 1);
 
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_RETRY).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(FetchParquet.REL_RETRY).getFirst();
         flowFile.assertContentEquals("TRIGGER");
     }
 
@@ -500,6 +504,30 @@ public class FetchParquetTest {
         testRunner.enqueue("TRIGGER", attributes);
         testRunner.run();
         testRunner.assertAllFlowFilesTransferred(FetchParquet.REL_SUCCESS, 1);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final TestRunner runner = TestRunners.newTestRunner(FetchParquet.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("filename", AbstractFetchHDFSRecord.FILENAME.getName()),
+                Map.entry("record-writer", AbstractFetchHDFSRecord.RECORD_WRITER.getName()),
+                Map.entry("kerberos-user-service", AbstractHadoopProcessor.KERBEROS_USER_SERVICE.getName()),
+                Map.entry("Compression codec", AbstractHadoopProcessor.COMPRESSION_CODEC.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "Kerberos Principal",
+                "Kerberos Password",
+                "Kerberos Keytab",
+                "kerberos-credentials-service",
+                "Kerberos Relogin Period"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     protected void verifyCSVRecords(String csvContent) {

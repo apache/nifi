@@ -71,7 +71,6 @@ public abstract class AbstractJettyWebSocketService extends AbstractWebSocketSer
 
     @Override
     public void migrateProperties(final PropertyConfiguration propertyConfiguration) {
-        super.migrateProperties(propertyConfiguration);
         propertyConfiguration.renameProperty("input-buffer-size", INPUT_BUFFER_SIZE.getName());
         propertyConfiguration.renameProperty("max-text-message-size", MAX_TEXT_MESSAGE_SIZE.getName());
         propertyConfiguration.renameProperty("max-binary-message-size", MAX_BINARY_MESSAGE_SIZE.getName());

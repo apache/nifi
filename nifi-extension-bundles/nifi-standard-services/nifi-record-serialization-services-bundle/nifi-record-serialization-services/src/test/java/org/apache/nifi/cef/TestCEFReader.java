@@ -33,6 +33,8 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MockSchemaRegistry;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,13 +45,21 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_BRANCH_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_NAME;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REFERENCE_READER;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_REGISTRY;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_TEXT;
+import static org.apache.nifi.schema.access.SchemaAccessUtils.SCHEMA_VERSION;
+import static org.apache.nifi.schema.inference.SchemaInferenceUtil.OBSOLETE_SCHEMA_CACHE;
+import static org.apache.nifi.schema.inference.SchemaInferenceUtil.SCHEMA_CACHE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -84,7 +94,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
         assertNumberOfResults(1);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES));
     }
 
     @Test
@@ -97,7 +107,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_HEADER_FIELDS_ONLY);
 
         assertNumberOfResults(1);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, Collections.singletonMap(TestCEFUtil.RAW_FIELD, TestCEFUtil.RAW_VALUE));
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES, Collections.singletonMap(TestCEFUtil.RAW_FIELD, TestCEFUtil.RAW_VALUE)));
     }
 
     @Test
@@ -109,7 +119,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
         assertNumberOfResults(1);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES));
     }
 
     @Test
@@ -121,7 +131,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
 
         assertNumberOfResults(1);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, "123"));
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, "123")));
     }
 
     @Test
@@ -155,7 +165,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_CUSTOM_EXTENSIONS);
 
         assertNumberOfResults(1);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, 123));
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, 123)));
     }
 
     @Test
@@ -167,7 +177,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_MULTIPLE_IDENTICAL_ROWS);
 
         assertNumberOfResults(3);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES));
     }
 
     @Test
@@ -179,7 +189,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_MULTIPLE_ROWS_WITH_EMPTY_ROWS);
 
         assertNumberOfResults(3);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES));
     }
 
     @Test
@@ -191,7 +201,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_MULTIPLE_ROWS_STARTING_WITH_EMPTY_ROW);
 
         assertNumberOfResults(3);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES));
     }
 
     @Test
@@ -203,7 +213,7 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EXTENSIONS);
 
         assertNumberOfResults(1);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES);
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES));
     }
 
     @Test
@@ -216,7 +226,36 @@ public class TestCEFReader {
         triggerProcessor(TestCEFUtil.INPUT_SINGLE_ROW_WITH_EMPTY_CUSTOM_EXTENSIONS);
 
         assertNumberOfResults(1);
-        assertFieldsAre(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, ""));
+        assertFieldsAre(List.of(TestCEFUtil.EXPECTED_HEADER_VALUES, TestCEFUtil.EXPECTED_EXTENSION_VALUES, Collections.singletonMap(TestCEFUtil.CUSTOM_EXTENSION_FIELD_NAME, "")));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        reader = new CEFReader();
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("inference-strategy", CEFReader.INFERENCE_STRATEGY.getName()),
+                Map.entry("raw-message-field", CEFReader.RAW_FIELD.getName()),
+                Map.entry("invalid-message-field", CEFReader.INVALID_FIELD.getName()),
+                Map.entry("datetime-representation", CEFReader.DATETIME_REPRESENTATION.getName()),
+                Map.entry("accept-empty-extensions", CEFReader.ACCEPT_EMPTY_EXTENSIONS.getName()),
+                Map.entry(OBSOLETE_SCHEMA_CACHE, SCHEMA_CACHE.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_ACCESS_STRATEGY_PROPERTY_NAME, SCHEMA_ACCESS_STRATEGY.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REGISTRY_PROPERTY_NAME, SCHEMA_REGISTRY.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_NAME_PROPERTY_NAME, SCHEMA_NAME.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_BRANCH_NAME_PROPERTY_NAME, SCHEMA_BRANCH_NAME.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_VERSION_PROPERTY_NAME, SCHEMA_VERSION.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_TEXT_PROPERTY_NAME, SCHEMA_TEXT.getName()),
+                Map.entry(SchemaAccessUtils.OLD_SCHEMA_REFERENCE_READER_PROPERTY_NAME, SCHEMA_REFERENCE_READER.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        reader.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private void setUpReader() throws InitializationException {
@@ -284,9 +323,9 @@ public class TestCEFReader {
         assertEquals(value, processor.getRecords().get(number).getValue(name));
     }
 
-    private void assertFieldsAre(final Map<String, Object>... fieldGroups) {
+    private void assertFieldsAre(final List<Map<String, Object>> fieldGroups) {
         final Map<String, Object> expectedFields = new HashMap<>();
-        Arrays.stream(fieldGroups).forEach(fieldGroup -> expectedFields.putAll(fieldGroup));
+        fieldGroups.forEach(expectedFields::putAll);
         processor.getRecords().forEach(r -> TestCEFUtil.assertFieldsAre(r, expectedFields));
     }
 

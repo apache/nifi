@@ -359,13 +359,22 @@ public class AzureDevOpsRepositoryClient implements GitRepositoryClient {
         final String branch = request.getBranch();
         final String message = request.getMessage();
         logger.debug("Creating content at path [{}] on branch [{}] in repo [{}]", path, branch, repoName);
-        // Get branch current commit id
-        final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
-                .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
-                .addQueryParameter(API, API_VERSION)
-                .build();
-        final JsonNode refResponse = executeGet(refUri);
-        final String oldObjectId = refResponse.get(JSON_FIELD_VALUE).get(0).get(JSON_FIELD_OBJECT_ID).asText();
+
+        // Use expectedCommitSha for atomic commit if provided, otherwise fetch current branch HEAD
+        // Azure DevOps will reject the push if oldObjectId doesn't match the current branch HEAD
+        final String oldObjectId;
+        final String expectedCommitSha = request.getExpectedCommitSha();
+        if (expectedCommitSha != null && !expectedCommitSha.isBlank()) {
+            oldObjectId = expectedCommitSha;
+        } else {
+            // Fall back to fetching current branch commit id
+            final URI refUri = getUriBuilder().addPathSegment(SEGMENT_REFS)
+                    .addQueryParameter(PARAM_FILTER, FILTER_HEADS_PREFIX + branch)
+                    .addQueryParameter(API, API_VERSION)
+                    .build();
+            final JsonNode refResponse = executeGet(refUri);
+            oldObjectId = refResponse.get(JSON_FIELD_VALUE).get(0).get(JSON_FIELD_OBJECT_ID).asText();
+        }
 
         final URI pushUri = getUriBuilder().addPathSegment(SEGMENT_PUSHES)
                 .addQueryParameter(API, API_VERSION)

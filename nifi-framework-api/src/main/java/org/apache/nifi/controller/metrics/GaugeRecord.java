@@ -14,10 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.nifi.controller.metrics;
 
-package org.apache.nifi.bootstrap;
+import java.time.Instant;
 
-public enum CommandResult {
-    FAILURE,
-    SUCCESS
+/**
+ * Single measurement for a named Gauge recorded during processing
+ *
+ * @param name Gauge Name
+ * @param value Gauge Value
+ * @param recorded Timestamp when the Processor recorded the Gauge value
+ * @param componentMetricContext Context for Component Metric record
+ */
+public record GaugeRecord(
+        String name,
+        double value,
+        Instant recorded,
+        ComponentMetricContext componentMetricContext
+) {
 }

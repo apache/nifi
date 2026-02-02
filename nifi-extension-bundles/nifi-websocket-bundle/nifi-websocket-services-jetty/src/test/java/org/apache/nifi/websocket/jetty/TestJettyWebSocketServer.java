@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.websocket.jetty;
 
-import org.apache.nifi.processor.Processor;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.websocket.api.Callback;
@@ -28,12 +30,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.URI;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class TestJettyWebSocketServer {
     private static final long TIMEOUT_SECONDS = 5;
@@ -45,11 +48,12 @@ public class TestJettyWebSocketServer {
     private static final int MAX_PORT = 65535;
 
     private TestRunner runner;
+    private JettyWebSocketServer server;
 
     @BeforeEach
     public void setRunner() {
-        final Processor processor = mock(Processor.class);
-        runner = TestRunners.newTestRunner(processor);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        server = new JettyWebSocketServer();
     }
 
     @AfterEach
@@ -59,7 +63,6 @@ public class TestJettyWebSocketServer {
 
     @Test
     public void testValidationHashLoginService() throws Exception {
-        final JettyWebSocketServer server = new JettyWebSocketServer();
         runner.addControllerService(IDENTIFIER, server);
         runner.setProperty(server, JettyWebSocketServer.PORT, Integer.toString(MAX_PORT));
         runner.setProperty(server, JettyWebSocketServer.LOGIN_SERVICE, JettyWebSocketServer.LOGIN_SERVICE_HASH.getValue());
@@ -69,7 +72,6 @@ public class TestJettyWebSocketServer {
 
     @Test
     public void testValidationSuccess() throws Exception {
-        final JettyWebSocketServer server = new JettyWebSocketServer();
         runner.addControllerService(IDENTIFIER, server);
         runner.setProperty(server, JettyWebSocketServer.PORT, Integer.toString(MAX_PORT));
         runner.assertValid(server);
@@ -77,9 +79,7 @@ public class TestJettyWebSocketServer {
 
     @Test
     public void testWebSocketConnect() throws Exception {
-
         final String identifier = JettyWebSocketServer.class.getSimpleName();
-        final JettyWebSocketServer server = new JettyWebSocketServer();
         runner.addControllerService(identifier, server);
         runner.setProperty(server, JettyWebSocketServer.PORT, "0");
         runner.enableControllerService(server);
@@ -106,6 +106,32 @@ public class TestJettyWebSocketServer {
             client.stop();
             runner.disableControllerService(server);
         }
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("listening-port", JettyWebSocketServer.PORT.getName()),
+                Map.entry("ssl-context-service", JettyWebSocketServer.SSL_CONTEXT_SERVICE.getName()),
+                Map.entry("client-authentication", JettyWebSocketServer.CLIENT_AUTH.getName()),
+                Map.entry("basic-auth", JettyWebSocketServer.BASIC_AUTH.getName()),
+                Map.entry("auth-path-spec", JettyWebSocketServer.AUTH_PATH_SPEC.getName()),
+                Map.entry("auth-roles", JettyWebSocketServer.AUTH_ROLES.getName()),
+                Map.entry("login-service", JettyWebSocketServer.LOGIN_SERVICE.getName()),
+                Map.entry("users-properties-file", JettyWebSocketServer.USERS_PROPERTIES_FILE.getName()),
+                Map.entry("input-buffer-size", AbstractJettyWebSocketService.INPUT_BUFFER_SIZE.getName()),
+                Map.entry("max-text-message-size", AbstractJettyWebSocketService.MAX_TEXT_MESSAGE_SIZE.getName()),
+                Map.entry("max-binary-message-size", AbstractJettyWebSocketService.MAX_BINARY_MESSAGE_SIZE.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        server.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private URI getWebSocketUri(final int port) {

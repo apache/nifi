@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processors.standard.hash.HashAlgorithm;
 import org.apache.nifi.processors.standard.hash.HashService;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,7 +72,7 @@ public class CryptographicHashContentTest {
             final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS);
 
             // Extract the generated attributes from the flowfile
-            MockFlowFile flowFile = successfulFlowfiles.get(0);
+            MockFlowFile flowFile = successfulFlowfiles.getFirst();
             String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeExists(hashAttribute);
             flowFile.assertAttributeEquals(hashAttribute, expectedContentHash);
@@ -104,7 +105,7 @@ public class CryptographicHashContentTest {
             final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS);
 
             // Extract the generated attributes from the flowfile
-            MockFlowFile flowFile = successfulFlowfiles.get(0);
+            MockFlowFile flowFile = successfulFlowfiles.getFirst();
             String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeExists(hashAttribute);
 
@@ -146,7 +147,7 @@ public class CryptographicHashContentTest {
             final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS);
 
             // Extract the generated attributes from the flowfile
-            MockFlowFile flowFile = successfulFlowfiles.get(0);
+            MockFlowFile flowFile = successfulFlowfiles.getFirst();
             String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeExists(hashAttribute);
             flowFile.assertAttributeEquals(hashAttribute, expectedContentHash);
@@ -179,7 +180,7 @@ public class CryptographicHashContentTest {
         final List<MockFlowFile> successfulFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_SUCCESS);
 
         // Extract the generated attributes from the flowfile
-        MockFlowFile flowFile = successfulFlowfiles.get(0);
+        MockFlowFile flowFile = successfulFlowfiles.getFirst();
         String hashAttribute = String.format("content_%s", algorithm.getName());
         flowFile.assertAttributeExists(hashAttribute);
 
@@ -216,9 +217,20 @@ public class CryptographicHashContentTest {
             final List<MockFlowFile> failedFlowfiles = runner.getFlowFilesForRelationship(CryptographicHashContent.REL_FAILURE);
 
             // Extract the generated attributes from the flowfile
-            MockFlowFile flowFile = failedFlowfiles.get(0);
+            MockFlowFile flowFile = failedFlowfiles.getFirst();
             String hashAttribute = String.format("content_%s", algorithm.getName());
             flowFile.assertAttributeNotExists(hashAttribute);
         }
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "fail_when_empty", CryptographicHashContent.FAIL_WHEN_EMPTY.getName(),
+                "hash_algorithm", CryptographicHashContent.HASH_ALGORITHM.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

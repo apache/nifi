@@ -597,9 +597,9 @@ public class PythonControllerInteractionIT {
         runner.assertTransferCount("large", 1);
         runner.assertTransferCount("failure", 0);
         final FlowFile largeOutputFlowFile = runner.getFlowFilesForRelationship("large").getFirst();
-        assertEquals(largeInputFlowFile.getId(), largeOutputFlowFile.getId(), "Large Transformed Flow File should be the same as inbound");
+        assertEquals(largeInputFlowFile.getId(), largeOutputFlowFile.getId(), "Large Transformed FlowFile should be the same as inbound");
         final FlowFile smallOutputFlowFile = runner.getFlowFilesForRelationship("small").getFirst();
-        assertEquals(smallInputFlowFile.getId(), smallOutputFlowFile.getId(), "Small Transformed Flow File should be the same as inbound");
+        assertEquals(smallInputFlowFile.getId(), smallOutputFlowFile.getId(), "Small Transformed FlowFile should be the same as inbound");
     }
 
     @Test

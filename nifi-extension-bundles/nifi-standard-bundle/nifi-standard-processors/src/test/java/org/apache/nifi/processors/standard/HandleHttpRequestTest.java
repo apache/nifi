@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -32,6 +33,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -120,6 +122,19 @@ class HandleHttpRequestTest {
         assertEquals(HttpURLConnection.HTTP_BAD_METHOD, responseCodeHolder.get());
 
         runner.run(1, true, false);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "parameters-to-attributes", HandleHttpRequest.PARAMETERS_TO_ATTRIBUTES.getName(),
+                "container-queue-size", HandleHttpRequest.CONTAINER_QUEUE_SIZE.getName(),
+                "multipart-request-max-size", HandleHttpRequest.MULTIPART_REQUEST_MAX_SIZE.getName(),
+                "multipart-read-buffer-size", HandleHttpRequest.MULTIPART_READ_BUFFER_SIZE.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private URL getUrl() {

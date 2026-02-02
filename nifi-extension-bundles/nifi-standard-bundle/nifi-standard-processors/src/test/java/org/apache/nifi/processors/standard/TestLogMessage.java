@@ -20,6 +20,7 @@ package org.apache.nifi.processors.standard;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -109,5 +110,17 @@ public class TestLogMessage {
     void testLogLevelCaseInsensitivity(LogMessage.MessageLogLevel logLevel) {
         runner.setProperty(LogMessage.LOG_LEVEL, logLevel.name().toUpperCase());
         runner.assertValid();
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("log-level", LogMessage.LOG_LEVEL.getName()),
+                Map.entry("log-prefix", LogMessage.LOG_PREFIX.getName()),
+                Map.entry("log-message", LogMessage.LOG_MESSAGE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.credentials.provider.service;
 
 import org.apache.nifi.processors.aws.credentials.provider.PropertiesCredentialsProvider;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,7 +38,7 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        runner = TestRunners.newTestRunner(MockAWSProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new AWSCredentialsProviderControllerService();
         runner.addControllerService("auth", service);
     }
@@ -70,7 +71,7 @@ public class TestAWSCredentialsProviderControllerServiceStrategies {
     }
 
     @Test
-    public void testAssumeRoleCredentials() throws Throwable {
+    public void testAssumeRoleCredentials() {
         runner.setProperty(service, AWSCredentialsProviderControllerService.CREDENTIALS_FILE, "src/test/resources/mock-aws-credentials.properties");
         runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_ARN, "BogusArn");
         runner.setProperty(service, AWSCredentialsProviderControllerService.ASSUME_ROLE_NAME, "BogusSession");

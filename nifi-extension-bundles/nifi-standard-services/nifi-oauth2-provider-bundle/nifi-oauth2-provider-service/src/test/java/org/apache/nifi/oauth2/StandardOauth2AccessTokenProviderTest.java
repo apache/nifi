@@ -32,8 +32,11 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.proxy.ProxyConfigurationService;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -103,8 +106,7 @@ public class StandardOauth2AccessTokenProviderTest {
     @Captor
     private ArgumentCaptor<Request> requestCaptor;
 
-    @BeforeEach
-    public void setUp() {
+    void mockSetup() {
         testSubject = new StandardOauth2AccessTokenProvider() {
             @Override
             protected OkHttpClient createHttpClient(ConfigurationContext context) {
@@ -135,6 +137,7 @@ public class StandardOauth2AccessTokenProviderTest {
     class WithEnabledControllerService {
         @BeforeEach
         public void setUp() {
+            mockSetup();
             testSubject.onEnabled(mockContext);
         }
 
@@ -631,6 +634,7 @@ public class StandardOauth2AccessTokenProviderTest {
 
     @Test
     public void testVerifySuccess() throws Exception {
+        mockSetup();
         Processor processor = new NoOpProcessor();
         TestRunner runner = TestRunners.newTestRunner(processor);
 
@@ -657,9 +661,9 @@ public class StandardOauth2AccessTokenProviderTest {
 
     @Test
     public void testVerifyError() throws Exception {
+        mockSetup();
         Processor processor = new NoOpProcessor();
         TestRunner runner = TestRunners.newTestRunner(processor);
-
         when(mockHttpClient.newCall(any(Request.class)).execute()).thenThrow(new IOException());
 
         final List<ConfigVerificationResult> results = ((VerifiableControllerService) testSubject).verify(
@@ -673,10 +677,42 @@ public class StandardOauth2AccessTokenProviderTest {
         assertEquals(FAILED, results.get(0).getOutcome());
     }
 
+    @Test
+    void testMigrateProperties() {
+        testSubject = new StandardOauth2AccessTokenProvider();
+
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("authorization-server-url", StandardOauth2AccessTokenProvider.AUTHORIZATION_SERVER_URL.getName()),
+                Map.entry("client-authentication-strategy", StandardOauth2AccessTokenProvider.CLIENT_AUTHENTICATION_STRATEGY.getName()),
+                Map.entry("grant-type", StandardOauth2AccessTokenProvider.GRANT_TYPE.getName()),
+                Map.entry("service-user-name", StandardOauth2AccessTokenProvider.USERNAME.getName()),
+                Map.entry("service-password", StandardOauth2AccessTokenProvider.PASSWORD.getName()),
+                Map.entry("refresh-token", StandardOauth2AccessTokenProvider.REFRESH_TOKEN.getName()),
+                Map.entry("client-id", StandardOauth2AccessTokenProvider.CLIENT_ID.getName()),
+                Map.entry("client-secret", StandardOauth2AccessTokenProvider.CLIENT_SECRET.getName()),
+                Map.entry("Client secret", StandardOauth2AccessTokenProvider.CLIENT_SECRET.getName()),
+                Map.entry("scope", StandardOauth2AccessTokenProvider.SCOPE.getName()),
+                Map.entry("resource", StandardOauth2AccessTokenProvider.RESOURCE.getName()),
+                Map.entry("audience", StandardOauth2AccessTokenProvider.AUDIENCE.getName()),
+                Map.entry("refresh-window", StandardOauth2AccessTokenProvider.REFRESH_WINDOW.getName()),
+                Map.entry("ssl-context-service", StandardOauth2AccessTokenProvider.SSL_CONTEXT_SERVICE.getName()),
+                Map.entry(ProxyConfigurationService.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyConfigurationService.PROXY_CONFIGURATION_SERVICE.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        testSubject.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
+    }
+
     private Response buildSuccessfulInitResponse() {
         return buildResponse(
                 HTTP_OK,
-            "{ \"access_token\":\"exists_but_value_irrelevant\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
+                "{ \"access_token\":\"exists_but_value_irrelevant\", \"expires_in\":\"0\", \"refresh_token\":\"not_checking_in_this_test\" }"
         );
     }
 

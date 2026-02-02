@@ -20,6 +20,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.metrics.ComponentMetricReporter;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -36,19 +37,26 @@ public class RepositoryContextFactory {
     private final FlowFileRepository flowFileRepo;
     private final FlowFileEventRepository flowFileEventRepo;
     private final CounterRepository counterRepo;
+    private final ComponentMetricReporter componentMetricReporter;
     private final ProvenanceRepository provenanceRepo;
     private final StateManagerProvider stateManagerProvider;
     private final long maxAppendableClaimBytes;
 
-    public RepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository,
-            final FlowFileEventRepository flowFileEventRepository, final CounterRepository counterRepository,
-            final ProvenanceRepository provenanceRepository, final StateManagerProvider stateManagerProvider,
-            final long maxAppendableClaimBytes) {
-
+    public RepositoryContextFactory(
+            final ContentRepository contentRepository,
+            final FlowFileRepository flowFileRepository,
+            final FlowFileEventRepository flowFileEventRepository,
+            final CounterRepository counterRepository,
+            final ComponentMetricReporter componentMetricReporter,
+            final ProvenanceRepository provenanceRepository,
+            final StateManagerProvider stateManagerProvider,
+            final long maxAppendableClaimBytes
+    ) {
         this.contentRepo = contentRepository;
         this.flowFileRepo = flowFileRepository;
         this.flowFileEventRepo = flowFileEventRepository;
         this.counterRepo = counterRepository;
+        this.componentMetricReporter = componentMetricReporter;
         this.provenanceRepo = provenanceRepository;
         this.stateManagerProvider = stateManagerProvider;
         this.maxAppendableClaimBytes = maxAppendableClaimBytes;
@@ -59,7 +67,18 @@ public class RepositoryContextFactory {
                 ? ((ProcessorNode) connectable).getProcessor().getClass()
                 : null;
         final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier(), componentClass);
-        return new StandardRepositoryContext(connectable, connectionIndex, contentRepo, flowFileRepo, flowFileEventRepo, counterRepo, provenanceRepo, stateManager, maxAppendableClaimBytes);
+        return new StandardRepositoryContext(
+                connectable,
+                connectionIndex,
+                contentRepo,
+                flowFileRepo,
+                flowFileEventRepo,
+                counterRepo,
+                componentMetricReporter,
+                provenanceRepo,
+                stateManager,
+                maxAppendableClaimBytes
+        );
     }
 
     public ContentRepository getContentRepository() {

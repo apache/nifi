@@ -76,6 +76,11 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     public static final String RESULT_TABLENAME = "tablename";
     public static final String RESULT_ROW_COUNT = "querydbtable.row.count";
 
+    static final List<String> OBSOLETE_MAX_ROWS_PER_FLOW_FILE = List.of(
+            "qdbt-max-rows",
+            "Max Rows Per Flow File"
+    );
+
     private static final AllowableValue TRANSACTION_READ_COMMITTED = new AllowableValue(
             String.valueOf(Connection.TRANSACTION_READ_COMMITTED),
             "TRANSACTION_READ_COMMITTED"
@@ -126,7 +131,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             .build();
 
     public static final PropertyDescriptor MAX_ROWS_PER_FLOW_FILE = new PropertyDescriptor.Builder()
-            .name("Max Rows Per Flow File")
+            .name("Max Rows Per FlowFile")
             .description("The maximum number of result rows that will be included in a single FlowFile. This will allow you to break up very large "
                     + "result sets into multiple FlowFiles. If the value specified is zero, then all rows are returned in a single FlowFile.")
             .defaultValue("0")
@@ -526,7 +531,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
     @Override
     public void migrateProperties(PropertyConfiguration config) {
         super.migrateProperties(config);
-        config.renameProperty("qdbt-max-rows", MAX_ROWS_PER_FLOW_FILE.getName());
+        OBSOLETE_MAX_ROWS_PER_FLOW_FILE.forEach(obsoleteName -> config.renameProperty(obsoleteName, MAX_ROWS_PER_FLOW_FILE.getName()));
         config.renameProperty("qdbt-output-batch-size", OUTPUT_BATCH_SIZE.getName());
         config.renameProperty("qdbt-max-frags", MAX_FRAGMENTS.getName());
         config.renameProperty("transaction-isolation-level", TRANS_ISOLATION_LEVEL.getName());

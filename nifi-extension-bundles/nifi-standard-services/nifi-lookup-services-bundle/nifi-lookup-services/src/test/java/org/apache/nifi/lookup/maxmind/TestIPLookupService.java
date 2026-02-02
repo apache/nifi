@@ -18,8 +18,10 @@
 package org.apache.nifi.lookup.maxmind;
 
 import com.maxmind.geoip2.DatabaseReader;
-import org.apache.nifi.lookup.TestProcessor;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.jetbrains.annotations.NotNull;
@@ -34,6 +36,7 @@ import java.net.InetAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,11 +66,11 @@ public class TestIPLookupService {
 
     @BeforeEach
     public void setUp() {
-        runner = TestRunners.newTestRunner(TestProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         testSubject = new IPLookupService() {
             @NotNull
             @Override
-            DatabaseReader createDatabaseReader(File dbFile) throws IOException {
+            DatabaseReader createDatabaseReader(File dbFile) {
                 return mockDatabaseReader;
             }
         };
@@ -196,5 +199,26 @@ public class TestIPLookupService {
         verify(mockDatabaseReader).tryAnonymousIp(any(InetAddress.class));
 
         assertEquals(Optional.empty(), lookupResult);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("database-file", IPLookupService.GEO_DATABASE_FILE.getName()),
+                Map.entry("lookup-city", IPLookupService.LOOKUP_CITY.getName()),
+                Map.entry("lookup-isp", IPLookupService.LOOKUP_ISP.getName()),
+                Map.entry("lookup-domain", IPLookupService.LOOKUP_DOMAIN.getName()),
+                Map.entry("lookup-connection-type", IPLookupService.LOOKUP_CONNECTION_TYPE.getName()),
+                Map.entry("lookup-anonymous-ip", IPLookupService.LOOKUP_ANONYMOUS_IP_INFO.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        testSubject.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }

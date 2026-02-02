@@ -22,6 +22,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.VerifiableControllerService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceLookup;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -43,7 +44,7 @@ public class MongoDBControllerServiceIT extends AbstractMongoIT {
 
     @BeforeEach
     public void before() throws Exception {
-        runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new MongoDBControllerService();
         runner.addControllerService(IDENTIFIER, service);
         runner.setProperty(service, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());
@@ -74,7 +75,7 @@ public class MongoDBControllerServiceIT extends AbstractMongoIT {
         );
 
         assertEquals(1, results.size());
-        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.get(0).getOutcome());
+        assertEquals(ConfigVerificationResult.Outcome.SUCCESSFUL, results.getFirst().getOutcome());
     }
 
     @Test
@@ -88,6 +89,6 @@ public class MongoDBControllerServiceIT extends AbstractMongoIT {
         );
 
         assertEquals(1, results.size());
-        assertEquals(ConfigVerificationResult.Outcome.FAILED, results.get(0).getOutcome());
+        assertEquals(ConfigVerificationResult.Outcome.FAILED, results.getFirst().getOutcome());
     }
 }
