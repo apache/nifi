@@ -19,8 +19,8 @@ package org.apache.nifi.processors.gcp.vision;
 
 import com.google.cloud.vision.v1p2beta1.AsyncBatchAnnotateFilesResponse;
 import com.google.protobuf.ByteString;
-import com.google.protobuf.GeneratedMessageV3;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.Message;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -35,7 +35,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 })
 public class GetGcpVisionAnnotateFilesOperationStatus extends AbstractGetGcpVisionAnnotateOperationStatus {
     @Override
-    protected GeneratedMessageV3 deserializeResponse(ByteString responseValue) throws InvalidProtocolBufferException {
+    protected Message deserializeResponse(ByteString responseValue) throws InvalidProtocolBufferException {
         return AsyncBatchAnnotateFilesResponse.parseFrom(responseValue);
     }
 }
