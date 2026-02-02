@@ -596,6 +596,19 @@ public class NiFiClientUtil {
         return entity;
     }
 
+    public ParameterEntity createSensitiveAssetReferenceParameterEntity(final String name, final List<String> referencedAssets) {
+        final ParameterDTO dto = new ParameterDTO();
+        dto.setName(name);
+        dto.setSensitive(true);
+        dto.setReferencedAssets(referencedAssets.stream().map(assetId -> new AssetReferenceDTO(assetId)).toList());
+        dto.setValue(null);
+        dto.setProvided(false);
+
+        final ParameterEntity entity = new ParameterEntity();
+        entity.setParameter(dto);
+        return entity;
+    }
+
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
         return createParameterContextEntity(name, description, parameters, Collections.emptyList(), null);
     }
@@ -745,6 +758,44 @@ public class NiFiClientUtil {
         entityUpdate.getComponent().setId(existingEntity.getComponent().getId());
 
         return nifiClient.getParamContextClient().updateParamContext(entityUpdate);
+    }
+
+    public ParameterContextUpdateRequestEntity updateSensitiveParameterAssetReferences(final ParameterContextEntity existingEntity, final Map<String, List<String>> assetReferences)
+                throws NiFiClientException, IOException {
+
+        final ParameterContextDTO component = existingEntity.getComponent();
+        final List<String> inheritedParameterContextIds = component.getInheritedParameterContexts() == null ? null :
+            component.getInheritedParameterContexts().stream().map(ParameterContextReferenceEntity::getId).collect(Collectors.toList());
+
+        final Set<ParameterEntity> parameterEntities = new HashSet<>();
+        assetReferences.forEach((paramName, references) -> parameterEntities.add(createSensitiveAssetReferenceParameterEntity(paramName, references)));
+        existingEntity.getComponent().setParameters(parameterEntities);
+
+        final ParameterContextEntity entityUpdate = createParameterContextEntity(existingEntity.getComponent().getName(), existingEntity.getComponent().getDescription(),
+            parameterEntities, inheritedParameterContextIds, null);
+        entityUpdate.setRevision(existingEntity.getRevision());
+        entityUpdate.getComponent().setId(existingEntity.getComponent().getId());
+
+        return nifiClient.getParamContextClient().updateParamContext(entityUpdate);
+    }
+
+    public ParameterContextEntity updateSensitiveParameterAssetReferencesDirect(final ParameterContextEntity existingEntity, final Map<String, List<String>> assetReferences)
+                throws NiFiClientException, IOException {
+
+        final ParameterContextDTO component = existingEntity.getComponent();
+        final List<String> inheritedParameterContextIds = component.getInheritedParameterContexts() == null ? null :
+            component.getInheritedParameterContexts().stream().map(ParameterContextReferenceEntity::getId).collect(Collectors.toList());
+
+        final Set<ParameterEntity> parameterEntities = new HashSet<>();
+        assetReferences.forEach((paramName, references) -> parameterEntities.add(createSensitiveAssetReferenceParameterEntity(paramName, references)));
+
+        final ParameterContextEntity entityUpdate = createParameterContextEntity(existingEntity.getComponent().getName(), existingEntity.getComponent().getDescription(),
+            parameterEntities, inheritedParameterContextIds, null);
+        entityUpdate.setId(existingEntity.getId());
+        entityUpdate.setRevision(existingEntity.getRevision());
+        entityUpdate.getComponent().setId(existingEntity.getComponent().getId());
+
+        return nifiClient.getParamContextClient().updateParamContextDirect(entityUpdate);
     }
 
     public void waitForParameterContextRequestToComplete(final String contextId, final String requestId) throws NiFiClientException, IOException, InterruptedException {

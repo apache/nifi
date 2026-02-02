@@ -144,6 +144,31 @@ public class JerseyParamContextClient extends AbstractJerseyClient implements Pa
     }
 
     @Override
+    public ParameterContextEntity updateParamContextDirect(final ParameterContextEntity paramContext)
+            throws NiFiClientException, IOException {
+        if (paramContext == null) {
+            throw new IllegalArgumentException("Parameter context entity cannot be null");
+        }
+
+        if (paramContext.getComponent() == null) {
+            throw new IllegalArgumentException("Parameter context DTO cannot be null");
+        }
+
+        final String paramContextId = paramContext.getComponent().getId();
+        if (StringUtils.isBlank(paramContextId)) {
+            throw new IllegalArgumentException("Parameter context id cannot be null or blank");
+        }
+
+        return executeAction("Error updating parameter context directly", () -> {
+            final WebTarget target = paramContextTarget.path("{id}")
+                    .resolveTemplate("id", paramContextId);
+            return getRequestBuilder(target).put(
+                    Entity.entity(paramContext, MediaType.APPLICATION_JSON),
+                    ParameterContextEntity.class);
+        });
+    }
+
+    @Override
     public ParameterContextUpdateRequestEntity getParamContextUpdateRequest(final String contextId, final String updateRequestId)
             throws NiFiClientException, IOException {
         if (StringUtils.isBlank(updateRequestId)) {
