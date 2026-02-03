@@ -2152,16 +2152,30 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 createMissingParameterProvider(versionedParameterContext, versionedParameterContext.getParameterProvider(), parameterProviderReferences, componentIdGenerator);
                 if (currentParamContext == null) {
                     // Create a new Parameter Context based on the parameters provided
-                    final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
                     final ParameterContext selectedParameterContext;
-                    if (contextByName == null) {
-                        final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(),
-                                versionedParameterContext.getName(), versionedParameterContext.getName());
-                        selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts,
-                                parameterProviderReferences, componentIdGenerator);
-                    } else {
-                        selectedParameterContext = contextByName;
+
+                    // First, check if the parent group has a parameter context that corresponds to the same
+                    // versioned parameter context. If so, we should use the parent's context to maintain
+                    // consistency within this flow instance. This is important during flow version upgrades
+                    // where new child process groups are added - they should use the same parameter context
+                    // as their parent, not a different one that happens to match by name.
+                    final ParameterContext parentParameterContext = findMatchingParentParameterContext(group, versionedParameterContext.getName());
+                    if (parentParameterContext != null) {
+                        selectedParameterContext = parentParameterContext;
+                        // Ensure the parent's context has all the parameters from the versioned context
                         addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
+                    } else {
+                        // Fall back to existing behavior: look up by name or create new
+                        final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
+                        if (contextByName == null) {
+                            final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(),
+                                    versionedParameterContext.getName(), versionedParameterContext.getName());
+                            selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts,
+                                    parameterProviderReferences, componentIdGenerator);
+                        } else {
+                            selectedParameterContext = contextByName;
+                            addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
+                        }
                     }
 
                     group.setParameterContext(selectedParameterContext);
@@ -2170,6 +2184,61 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     addMissingConfiguration(versionedParameterContext, currentParamContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
                 }
             }
+        }
+    }
+
+    /**
+     * Finds a parameter context from the parent group hierarchy that corresponds to the given versioned
+     * parameter context name. This is used to ensure that when a new child process group is added during
+     * a flow version upgrade, it uses the same parameter context as its parent (if they both reference
+     * the same parameter context in the versioned flow), rather than looking up by name globally which
+     * could result in using a different parameter context with the same base name.
+     *
+     * @param group the process group being updated
+     * @param versionedParameterContextName the name of the parameter context in the versioned flow
+     * @return the matching parent parameter context, or null if not found
+     */
+    private ParameterContext findMatchingParentParameterContext(final ProcessGroup group, final String versionedParameterContextName) {
+        ProcessGroup parent = group.getParent();
+        while (parent != null) {
+            final ParameterContext parentContext = parent.getParameterContext();
+            if (parentContext != null) {
+                // Check if the parent's context corresponds to the same versioned parameter context name.
+                // The parent's context name might be the exact name or have a suffix like " (1)", " (2)", etc.
+                // if it was created during an import with REPLACE strategy.
+                final String parentContextName = parentContext.getName();
+                if (parentContextName.equals(versionedParameterContextName)
+                        || isParameterContextNameWithSuffix(parentContextName, versionedParameterContextName)) {
+                    return parentContext;
+                }
+            }
+            parent = parent.getParent();
+        }
+        return null;
+    }
+
+    /**
+     * Checks if the given parameter context name is the versioned name with a numeric suffix.
+     * For example, "P (1)" or "P (2)" would match versioned name "P".
+     *
+     * @param contextName the actual parameter context name
+     * @param versionedName the parameter context name from the versioned flow
+     * @return true if contextName is versionedName with a suffix like " (n)"
+     */
+    private boolean isParameterContextNameWithSuffix(final String contextName, final String versionedName) {
+        if (!contextName.startsWith(versionedName + " (")) {
+            return false;
+        }
+        // Check if it ends with a closing parenthesis and the content between is a number
+        if (!contextName.endsWith(")")) {
+            return false;
+        }
+        final String suffix = contextName.substring(versionedName.length() + 2, contextName.length() - 1);
+        try {
+            Integer.parseInt(suffix);
+            return true;
+        } catch (final NumberFormatException e) {
+            return false;
         }
     }
 
