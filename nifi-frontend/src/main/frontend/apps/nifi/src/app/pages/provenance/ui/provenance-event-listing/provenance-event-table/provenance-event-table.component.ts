@@ -262,7 +262,8 @@ export class ProvenanceEventTable implements AfterViewInit {
             let retVal = 0;
             switch (sort.active) {
                 case 'eventTime':
-                    retVal = this.nifiCommon.compareString(a.eventTime, b.eventTime);
+                    // Compare Event Timestamp with ISO8601 formatting
+                    retVal = this.nifiCommon.compareString(a.eventTimestamp, b.eventTimestamp);
                     break;
                 case 'eventType':
                     retVal = this.nifiCommon.compareString(a.eventType, b.eventType);
