@@ -62,9 +62,9 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> startProcessors() {
+    public CompletableFuture<Void> startProcessors(final boolean recursive) {
         authContext.authorizeWrite();
-        return delegate.startProcessors();
+        return delegate.startProcessors(recursive);
     }
 
     @Override
@@ -80,9 +80,45 @@ public class AuthorizingProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> stopProcessors() {
+    public CompletableFuture<Void> stopProcessors(final boolean recursive) {
         authContext.authorizeWrite();
-        return delegate.stopProcessors();
+        return delegate.stopProcessors(recursive);
+    }
+
+    @Override
+    public CompletableFuture<Void> startPorts(final boolean recursive) {
+        authContext.authorizeWrite();
+        return delegate.startPorts(recursive);
+    }
+
+    @Override
+    public CompletableFuture<Void> stopPorts(final boolean recursive) {
+        authContext.authorizeWrite();
+        return delegate.stopPorts(recursive);
+    }
+
+    @Override
+    public CompletableFuture<Void> startRemoteProcessGroups(final boolean recursive) {
+        authContext.authorizeWrite();
+        return delegate.startRemoteProcessGroups(recursive);
+    }
+
+    @Override
+    public CompletableFuture<Void> stopRemoteProcessGroups(final boolean recursive) {
+        authContext.authorizeWrite();
+        return delegate.stopRemoteProcessGroups(recursive);
+    }
+
+    @Override
+    public CompletableFuture<Void> startStatelessGroups(final boolean recursive) {
+        authContext.authorizeWrite();
+        return delegate.startStatelessGroups(recursive);
+    }
+
+    @Override
+    public CompletableFuture<Void> stopStatelessGroups(final boolean recursive) {
+        authContext.authorizeWrite();
+        return delegate.stopStatelessGroups(recursive);
     }
 
     @Override

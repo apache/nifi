@@ -16,6 +16,7 @@
 org.apache.nifi.connectors.tests.system.AssetConnector
 org.apache.nifi.connectors.tests.system.BundleResolutionConnector
 org.apache.nifi.connectors.tests.system.CalculateConnector
+org.apache.nifi.connectors.tests.system.ComponentLifecycleConnector
 org.apache.nifi.connectors.tests.system.DataQueuingConnector
 org.apache.nifi.connectors.tests.system.GatedDataQueuingConnector
 org.apache.nifi.connectors.tests.system.NestedProcessGroupConnector

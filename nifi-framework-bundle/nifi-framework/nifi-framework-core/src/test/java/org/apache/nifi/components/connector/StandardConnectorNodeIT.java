@@ -496,7 +496,7 @@ public class StandardConnectorNodeIT {
     }
 
     @Test
-    public void testPurgeFlowFilesEmptiesQueues() throws FlowUpdateException, ExecutionException, InterruptedException, TimeoutException {
+    public void testPurgeFlowFilesEmptiesQueues() throws ExecutionException, InterruptedException, TimeoutException {
         final ConnectorNode connectorNode = initializeDynamicFlowConnector();
         final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
 
@@ -511,7 +511,7 @@ public class StandardConnectorNodeIT {
     }
 
     @Test
-    public void testPurgeFlowFilesMultipleQueues() throws FlowUpdateException, ExecutionException, InterruptedException, TimeoutException {
+    public void testPurgeFlowFilesMultipleQueues() throws ExecutionException, InterruptedException, TimeoutException {
         final ConnectorNode connectorNode = initializeDynamicFlowConnector();
         final ProcessGroup rootGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
 
@@ -544,7 +544,6 @@ public class StandardConnectorNodeIT {
 
         connectorNode.stop(componentLifecycleThreadPool);
     }
-
 
     private List<String> getConfigurationStepNames(final ConnectorNode connectorNode) {
         return connectorNode.getConfigurationSteps().stream()
