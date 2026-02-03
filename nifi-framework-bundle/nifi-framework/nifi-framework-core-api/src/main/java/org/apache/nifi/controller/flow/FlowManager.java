@@ -388,13 +388,16 @@ public interface FlowManager extends ParameterProviderLookup {
                                             List<String> inheritedContextIds, ParameterProviderConfiguration parameterProviderConfiguration);
 
     /**
-     * Creates a duplicate of the given ParameterContext with the provided id. This does not register the Parameter Context
-     * with the ParameterContextManager.
+     * Creates an empty Parameter Context with the given ID for the provided root process group. This Parameter Context is not
+     * registered with the ParameterContextManager.
+     *
      * @param id the id of the new ParameterContext
-     * @param source the ParameterContext to duplicate
+     * @param name the name of the new ParameterContext
+     * @param description the description of the new ParameterContext
+     * @param rootGroup the root process group
      * @return the duplicated ParameterContext
      */
-    ParameterContext duplicateParameterContext(String id, ParameterContext source);
+    ParameterContext createEmptyParameterContext(String id, String name, String description, ProcessGroup rootGroup);
 
     /**
      * Performs the given ParameterContext-related action, and then resolves all inherited ParameterContext references.

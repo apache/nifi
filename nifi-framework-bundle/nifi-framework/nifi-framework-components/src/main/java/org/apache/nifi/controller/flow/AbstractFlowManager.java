@@ -648,21 +648,24 @@ public abstract class AbstractFlowManager implements FlowManager {
                final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
                final ParameterProviderConfiguration parameterProviderConfiguration) {
 
-        return createParameterContext(id, name, description, parameters, inheritedContextIds, parameterProviderConfiguration, true);
+        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this::getRootGroup);
+        return createParameterContext(id, name, description, parameters, inheritedContextIds, parameterProviderConfiguration, referenceManager, true);
     }
 
     protected ParameterContext createParameterContext(final String id, final String name, final String description,
                 final Map<String, Parameter> parameters, final List<String> inheritedContextIds,
-                final ParameterProviderConfiguration parameterProviderConfiguration, final boolean register) {
+                final ParameterProviderConfiguration parameterProviderConfiguration, final ParameterReferenceManager referenceManager,
+                final boolean register) {
 
-        final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
+        if (register) {
+            final boolean namingConflict = parameterContextManager.getParameterContexts().stream()
                 .anyMatch(paramContext -> paramContext.getName().equals(name));
 
-        if (namingConflict) {
-            throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
+            if (namingConflict) {
+                throw new IllegalStateException("Cannot create Parameter Context with name '" + name + "' because a Parameter Context already exists with that name");
+            }
         }
 
-        final ParameterReferenceManager referenceManager = new StandardParameterReferenceManager(this::getRootGroup);
         final ParameterContext parameterContext = new StandardParameterContext.Builder()
                 .id(id)
                 .name(name)
@@ -693,19 +696,13 @@ public abstract class AbstractFlowManager implements FlowManager {
     }
 
     @Override
-    public ParameterContext duplicateParameterContext(final String id, final ParameterContext source) {
+    public ParameterContext createEmptyParameterContext(final String id, final String name, final String description, final ProcessGroup rootGroup) {
         final Map<String, Parameter> parameterMap = new HashMap<>();
-        for (final Parameter parameter : source.getParameters().values()) {
-            parameterMap.put(parameter.getDescriptor().getName(), parameter);
-        }
-
         final List<String> inheritedContextIds = new ArrayList<>();
-        for (final ParameterContext inherited : source.getInheritedParameterContexts()) {
-            inheritedContextIds.add(inherited.getIdentifier());
-        }
 
-        return createParameterContext(id, source.getName(), source.getDescription(),
-            parameterMap, inheritedContextIds, source.getParameterProviderConfiguration(), false);
+        final ParameterReferenceManager parameterReferenceManager = new StandardParameterReferenceManager(() -> rootGroup);
+        return createParameterContext(id, name, description,
+            parameterMap, inheritedContextIds, null, parameterReferenceManager, false);
     }
 
     @Override

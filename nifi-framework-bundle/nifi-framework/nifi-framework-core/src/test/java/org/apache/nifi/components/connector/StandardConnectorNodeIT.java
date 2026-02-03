@@ -22,6 +22,7 @@ import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.processors.CreateDummyFlowFile;
 import org.apache.nifi.components.connector.processors.DuplicateFlowFile;
 import org.apache.nifi.components.connector.processors.LogFlowFileContents;
+import org.apache.nifi.components.connector.processors.OnPropertyModifiedTracker;
 import org.apache.nifi.components.connector.processors.OverwriteFlowFile;
 import org.apache.nifi.components.connector.processors.TerminateFlowFile;
 import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsManager;
@@ -79,6 +80,7 @@ import org.apache.nifi.validation.RuleViolationsManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.File;
 import java.io.IOException;
@@ -316,6 +318,51 @@ public class StandardConnectorNodeIT {
         configure(connectorNode, connectorConfiguration);
 
         assertEquals("Hi.", parameterContext.getParameter("Text").orElseThrow().getValue());
+    }
+
+    @Test
+    @Timeout(10)
+    public void testOnPropertyModifiedCalledOnApplyUpdate() throws FlowUpdateException {
+        final ConnectorNode connectorNode = flowManager.createConnector(OnPropertyModifiedConnector.class.getName(),
+                "on-property-modified-connector", SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
+        assertNotNull(connectorNode);
+
+        final StepConfiguration initialConfig = new StepConfiguration(Map.of("Number Value", new StringLiteralValue("0")));
+        final NamedStepConfiguration initialStepConfig = new NamedStepConfiguration("Configuration", initialConfig);
+        configure(connectorNode, new ConnectorConfiguration(Set.of(initialStepConfig)));
+
+        final ProcessGroup activeGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessorNode processorNode = activeGroup.getProcessors().iterator().next();
+        final OnPropertyModifiedTracker tracker = (OnPropertyModifiedTracker) processorNode.getProcessor();
+
+        assertEquals(0, tracker.getPropertyChangeCount());
+
+        final StepConfiguration updatedConfig = new StepConfiguration(Map.of("Number Value", new StringLiteralValue("1")));
+        final NamedStepConfiguration updatedStepConfig = new NamedStepConfiguration("Configuration", updatedConfig);
+
+        connectorNode.setConfiguration("Configuration", updatedStepConfig.configuration());
+
+        final ProcessGroup workingGroup = connectorNode.getWorkingFlowContext().getManagedProcessGroup();
+        final ProcessorNode workingProcessorNode = workingGroup.getProcessors().iterator().next();
+        final OnPropertyModifiedTracker workingTracker = (OnPropertyModifiedTracker) workingProcessorNode.getProcessor();
+
+        assertEquals(1, workingTracker.getPropertyChangeCount());
+        assertEquals("0", workingTracker.getPropertyChanges().getFirst().oldValue());
+        assertEquals("1", workingTracker.getPropertyChanges().getFirst().newValue());
+
+        workingTracker.clearPropertyChanges();
+
+        connectorNode.transitionStateForUpdating();
+        connectorNode.prepareForUpdate();
+        connectorNode.applyUpdate();
+
+        assertEquals(1, tracker.getPropertyChangeCount());
+        assertEquals("0", tracker.getPropertyChanges().getFirst().oldValue());
+        assertEquals("1", tracker.getPropertyChanges().getFirst().newValue());
+
+        // Ensure that no parameter contexts are registered
+        final Set<ParameterContext> registeredContexts = flowManager.getParameterContextManager().getParameterContexts();
+        assertEquals(Set.of(), registeredContexts);
     }
 
     @Test

@@ -61,6 +61,23 @@ public class ConnectorParameterLookup implements ParameterLookup {
             .build();
     }
 
+    public VersionedParameterContext createVersionedParameterContext(final String name) {
+        final VersionedParameterContext context = new VersionedParameterContext();
+        context.setName(name);
+
+        final Set<VersionedParameter> versionedParameters = new HashSet<>();
+        for (final ParameterValue parameterValue : parameterValues) {
+            final VersionedParameter versionedParameter = new VersionedParameter();
+            versionedParameter.setName(parameterValue.getName());
+            versionedParameter.setValue(parameterValue.getValue());
+            versionedParameter.setSensitive(parameterValue.isSensitive());
+            versionedParameters.add(versionedParameter);
+        }
+
+        context.setParameters(versionedParameters);
+        return context;
+    }
+
     @Override
     public Optional<Parameter> getParameter(final String parameterName) {
         return Optional.ofNullable(parameters.get(parameterName));

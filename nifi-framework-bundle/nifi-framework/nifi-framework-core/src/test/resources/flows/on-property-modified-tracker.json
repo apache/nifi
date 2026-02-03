@@ -1,0 +1,98 @@
+{
+  "flowContents": {
+    "identifier": "on-property-modified-root",
+    "instanceIdentifier": "on-property-modified-instance",
+    "name": "OnPropertyModified Test Flow",
+    "comments": "",
+    "position": {
+      "x": 0.0,
+      "y": 0.0
+    },
+    "processGroups": [],
+    "remoteProcessGroups": [],
+    "processors": [
+      {
+        "identifier": "on-property-modified-tracker",
+        "instanceIdentifier": "on-property-modified-tracker-instance",
+        "name": "OnPropertyModifiedTracker",
+        "comments": "",
+        "position": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "type": "org.apache.nifi.components.connector.processors.OnPropertyModifiedTracker",
+        "bundle": {
+          "group": "default",
+          "artifact": "system",
+          "version": "unversioned"
+        },
+        "properties": {
+          "Configured Number": "#{CONFIGURED_NUMBER}"
+        },
+        "propertyDescriptors": {
+          "Configured Number": {
+            "name": "Configured Number",
+            "displayName": "Configured Number",
+            "identifiesControllerService": false,
+            "sensitive": false,
+            "dynamic": false
+          }
+        },
+        "style": {},
+        "schedulingPeriod": "1 min",
+        "schedulingStrategy": "TIMER_DRIVEN",
+        "executionNode": "ALL",
+        "penaltyDuration": "30 sec",
+        "yieldDuration": "1 sec",
+        "bulletinLevel": "WARN",
+        "runDurationMillis": 0,
+        "concurrentlySchedulableTaskCount": 1,
+        "autoTerminatedRelationships": ["success"],
+        "scheduledState": "ENABLED",
+        "retryCount": 10,
+        "retriedRelationships": [],
+        "backoffMechanism": "PENALIZE_FLOWFILE",
+        "maxBackoffPeriod": "10 mins",
+        "componentType": "PROCESSOR",
+        "groupIdentifier": "on-property-modified-root"
+      }
+    ],
+    "inputPorts": [],
+    "outputPorts": [],
+    "connections": [],
+    "labels": [],
+    "funnels": [],
+    "controllerServices": [],
+    "parameterContextName": "OnPropertyModifiedContext",
+    "defaultFlowFileExpiration": "0 sec",
+    "defaultBackPressureObjectThreshold": 10000,
+    "defaultBackPressureDataSizeThreshold": "1 GB",
+    "scheduledState": "ENABLED",
+    "executionEngine": "INHERITED",
+    "maxConcurrentTasks": 1,
+    "statelessFlowTimeout": "1 min",
+    "flowFileConcurrency": "UNBOUNDED",
+    "flowFileOutboundPolicy": "STREAM_WHEN_AVAILABLE",
+    "componentType": "PROCESS_GROUP"
+  },
+  "externalControllerServices": {},
+  "parameterContexts": {
+    "OnPropertyModifiedContext": {
+      "name": "OnPropertyModifiedContext",
+      "parameters": [
+        {
+          "name": "CONFIGURED_NUMBER",
+          "description": "",
+          "sensitive": false,
+          "provided": false,
+          "value": null
+        }
+      ],
+      "inheritedParameterContexts": [],
+      "componentType": "PARAMETER_CONTEXT"
+    }
+  },
+  "flowEncodingVersion": "1.0",
+  "parameterProviders": {},
+  "latest": false
+}
