@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller;
 
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.DropFlowFileState;
@@ -27,6 +28,8 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.RepositoryRecord;
+import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -58,19 +61,20 @@ public class TestStandardFlowFileQueue {
     private MockSwapManager swapManager = null;
     private StandardFlowFileQueue queue = null;
 
-    private Connection connection = null;
     private FlowFileRepository flowFileRepo = null;
     private ProvenanceEventRepository provRepo = null;
     private ProcessScheduler scheduler = null;
 
-    private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
+    private final List<ProvenanceEventRecord> provRecords = new ArrayList<>();
+    private final List<RepositoryRecord> repoRecords = new ArrayList<>();
 
     @BeforeEach
     @SuppressWarnings("unchecked")
-    public void setup() {
+    public void setup() throws Exception {
         provRecords.clear();
+        repoRecords.clear();
 
-        connection = Mockito.mock(Connection.class);
+        final Connection connection = Mockito.mock(Connection.class);
         Mockito.when(connection.getSource()).thenReturn(Mockito.mock(Connectable.class));
         Mockito.when(connection.getDestination()).thenReturn(Mockito.mock(Connectable.class));
 
@@ -88,6 +92,12 @@ public class TestStandardFlowFileQueue {
             }
             return null;
         }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
+
+        Mockito.doAnswer((Answer<Object>) invocation -> {
+            final Collection<RepositoryRecord> records = (Collection<RepositoryRecord>) invocation.getArguments()[0];
+            repoRecords.addAll(records);
+            return null;
+        }).when(flowFileRepo).updateRepository(Mockito.any(Collection.class));
 
         queue = new StandardFlowFileQueue("id", flowFileRepo, provRepo, scheduler, swapManager, null, 10000, "0 sec", 0L, "0 B");
         MockFlowFileRecord.resetIdGenerator();
@@ -338,24 +348,26 @@ public class TestStandardFlowFileQueue {
     @Test
     public void testSwapInWhenThresholdIsLessThanSwapSize() {
         // create a queue where the swap threshold is less than 10k
+        // With threshold of 1000, swapRecordPollSize will also be 1000 (min of 10000 and threshold)
         queue = new StandardFlowFileQueue("id", flowFileRepo, provRepo, scheduler, swapManager, null, 1000, "0 sec", 0L, "0 B");
 
         for (int i = 1; i <= 20000; i++) {
             queue.put(new MockFlowFileRecord());
         }
 
-        assertEquals(1, swapManager.swappedOut.size());
+        // With swapRecordPollSize = 1000, we expect 19 swap files (19,000 FlowFiles)
+        assertEquals(19, swapManager.swappedOut.size());
         queue.put(new MockFlowFileRecord());
-        assertEquals(1, swapManager.swappedOut.size());
+        assertEquals(19, swapManager.swappedOut.size());
 
         final Set<FlowFileRecord> exp = new HashSet<>();
 
         // At this point there should be:
         // 1k flow files in the active queue
-        // 9,001 flow files in the swap queue
-        // 10k flow files swapped to disk
+        // 1 flow file in the swap queue
+        // 19k flow files swapped to disk (19 swap files with 1k each)
 
-        for (int i = 0; i < 999; i++) { //
+        for (int i = 0; i < 999; i++) {
             final FlowFileRecord flowFile = queue.poll(exp);
             assertNotNull(flowFile);
             assertEquals(1, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getUnacknowledgedQueueSize().getObjectCount());
@@ -373,13 +385,13 @@ public class TestStandardFlowFileQueue {
         assertEquals(0, swapManager.swapInCalledCount);
         assertEquals(0, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
 
-        assertEquals(1, swapManager.swapOutCalledCount);
+        assertEquals(19, swapManager.swapOutCalledCount);
 
-        assertNotNull(queue.poll(exp)); // this should trigger a swap-in of 10,000 records, and then pull 1 off the top.
+        assertNotNull(queue.poll(exp)); // this should trigger a swap-in of 1,000 records, and then pull 1 off the top.
         assertEquals(1, swapManager.swapInCalledCount);
-        assertEquals(9999, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
+        assertEquals(999, queue.getQueueDiagnostics().getLocalQueuePartitionDiagnostics().getActiveQueueSize().getObjectCount());
 
-        assertTrue(swapManager.swappedOut.isEmpty());
+        assertEquals(18, swapManager.swappedOut.size());
 
         queue.poll(exp);
     }
@@ -611,5 +623,82 @@ public class TestStandardFlowFileQueue {
         queue.poll(1, Collections.emptySet());
 
         assertEquals(500, now - queue.getMinLastQueueDate());
+    }
+
+    @Test
+    public void testSelectiveDropCreatesDeleteRecords() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            queue.put(new MockFlowFileRecord(i));
+        }
+
+        final DropFlowFileSummary summary = queue.dropFlowFiles(ff -> ff.getSize() < 5);
+        assertEquals(5, summary.getDroppedCount());
+
+        final long deleteRecordCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.DELETE).count();
+        assertEquals(5, deleteRecordCount);
+
+        assertEquals(5, provRecords.size());
+        for (final ProvenanceEventRecord event : provRecords) {
+            assertEquals(ProvenanceEventType.DROP, event.getEventType());
+        }
+
+        assertEquals(5, queue.size().getObjectCount());
+    }
+
+    @Test
+    public void testSelectiveDropWithSwappedFlowFilesCreatesSwapFileRenamedRecords() throws Exception {
+        for (int i = 0; i < 20000; i++) {
+            queue.put(new MockFlowFileRecord(i % 10));
+        }
+
+        assertEquals(1, swapManager.swappedOut.size());
+
+        repoRecords.clear();
+
+        final DropFlowFileSummary summary = queue.dropFlowFiles(ff -> ff.getSize() < 5);
+        assertEquals(10000, summary.getDroppedCount());
+
+        final long deleteRecordCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.DELETE).count();
+        assertEquals(10000, deleteRecordCount);
+
+        final long swapFileRenamedCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.SWAP_FILE_RENAMED).count();
+        assertEquals(1, swapFileRenamedCount);
+
+        final RepositoryRecord swapRenamedRecord = repoRecords.stream()
+                .filter(r -> r.getType() == RepositoryRecordType.SWAP_FILE_RENAMED)
+                .findFirst()
+                .orElseThrow();
+        assertNotNull(swapRenamedRecord.getOriginalSwapLocation());
+        assertNotNull(swapRenamedRecord.getSwapLocation());
+
+        assertEquals(10000, queue.size().getObjectCount());
+    }
+
+    @Test
+    public void testSelectiveDropWithAllSwappedFlowFilesCreatesSwapFileDeletedRecords() throws Exception {
+        for (int i = 0; i < 20000; i++) {
+            queue.put(new MockFlowFileRecord(1));
+        }
+
+        assertEquals(1, swapManager.swappedOut.size());
+
+        repoRecords.clear();
+
+        final DropFlowFileSummary summary = queue.dropFlowFiles(ff -> ff.getSize() == 1);
+        assertEquals(20000, summary.getDroppedCount());
+
+        final long deleteRecordCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.DELETE).count();
+        assertEquals(20000, deleteRecordCount);
+
+        final long swapFileDeletedCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.SWAP_FILE_DELETED).count();
+        assertEquals(1, swapFileDeletedCount);
+
+        final RepositoryRecord swapDeletedRecord = repoRecords.stream()
+                .filter(r -> r.getType() == RepositoryRecordType.SWAP_FILE_DELETED)
+                .findFirst()
+                .orElseThrow();
+        assertNotNull(swapDeletedRecord.getSwapLocation());
+
+        assertEquals(0, queue.size().getObjectCount());
     }
 }

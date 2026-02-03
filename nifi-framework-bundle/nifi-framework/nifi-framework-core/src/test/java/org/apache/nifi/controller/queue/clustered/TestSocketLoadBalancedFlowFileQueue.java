@@ -30,12 +30,18 @@ import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceC
 import org.apache.nifi.controller.queue.clustered.partition.FlowFilePartitioner;
 import org.apache.nifi.controller.queue.clustered.partition.QueuePartition;
 import org.apache.nifi.controller.queue.clustered.partition.RoundRobinPartitioner;
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.RepositoryRecord;
+import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +53,7 @@ import org.mockito.stubbing.Answer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,9 +87,16 @@ public class TestSocketLoadBalancedFlowFileQueue {
     private List<NodeIdentifier> nodeIds;
     private int nodePort = 4096;
 
+    private List<RepositoryRecord> repoRecords = new ArrayList<>();
+    private List<ProvenanceEventRecord> provRecords = new ArrayList<>();
+
     @BeforeEach
-    public void setup() {
+    @SuppressWarnings("unchecked")
+    public void setup() throws Exception {
         MockFlowFileRecord.resetIdGenerator();
+        repoRecords.clear();
+        provRecords.clear();
+
         Connection connection = mock(Connection.class);
         when(connection.getIdentifier()).thenReturn("unit-test");
 
@@ -108,6 +122,21 @@ public class TestSocketLoadBalancedFlowFileQueue {
             clusterTopologyEventListener = invocation.getArgument(0);
             return null;
         }).when(clusterCoordinator).registerEventListener(Mockito.any(ClusterTopologyEventListener.class));
+
+        when(provRepo.eventBuilder()).thenReturn(new StandardProvenanceEventRecord.Builder());
+        doAnswer((Answer<Object>) invocation -> {
+            final Iterable<ProvenanceEventRecord> iterable = (Iterable<ProvenanceEventRecord>) invocation.getArguments()[0];
+            for (final ProvenanceEventRecord record : iterable) {
+                provRecords.add(record);
+            }
+            return null;
+        }).when(provRepo).registerEvents(Mockito.any(Iterable.class));
+
+        doAnswer((Answer<Object>) invocation -> {
+            final Collection<RepositoryRecord> records = (Collection<RepositoryRecord>) invocation.getArguments()[0];
+            repoRecords.addAll(records);
+            return null;
+        }).when(flowFileRepo).updateRepository(Mockito.any(Collection.class));
 
         final ProcessScheduler scheduler = mock(ProcessScheduler.class);
 
@@ -652,5 +681,91 @@ public class TestSocketLoadBalancedFlowFileQueue {
         public boolean isRebalanceOnFailure() {
             return false;
         }
+    }
+
+    @Test
+    public void testSelectiveDropCreatesDeleteRecordsAndProvenanceEvents() throws Exception {
+        for (int i = 0; i < 10; i++) {
+            queue.put(new MockFlowFileRecord(i));
+        }
+
+        final DropFlowFileSummary summary = queue.dropFlowFiles(ff -> ff.getSize() < 5);
+        assertEquals(5, summary.getDroppedCount());
+
+        final long deleteRecordCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.DELETE).count();
+        assertEquals(5, deleteRecordCount);
+
+        assertEquals(5, provRecords.size());
+        for (final ProvenanceEventRecord event : provRecords) {
+            assertEquals(ProvenanceEventType.DROP, event.getEventType());
+        }
+
+        assertEquals(5, queue.size().getObjectCount());
+    }
+
+    @Test
+    public void testSelectiveDropWithSwappedFlowFilesCreatesSwapFileRenamedRecords() throws Exception {
+        for (int i = 0; i < 20000; i++) {
+            queue.put(new MockFlowFileRecord(i % 10));
+        }
+
+        assertEquals(1, swapManager.swappedOut.size());
+
+        repoRecords.clear();
+        provRecords.clear();
+
+        final DropFlowFileSummary summary = queue.dropFlowFiles(ff -> ff.getSize() < 5);
+        assertEquals(10000, summary.getDroppedCount());
+
+        final long deleteRecordCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.DELETE).count();
+        assertEquals(10000, deleteRecordCount);
+
+        final long swapFileRenamedCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.SWAP_FILE_RENAMED).count();
+        assertEquals(1, swapFileRenamedCount);
+
+        final RepositoryRecord swapRenamedRecord = repoRecords.stream()
+                .filter(r -> r.getType() == RepositoryRecordType.SWAP_FILE_RENAMED)
+                .findFirst()
+                .orElseThrow();
+        assertNotNull(swapRenamedRecord.getOriginalSwapLocation());
+        assertNotNull(swapRenamedRecord.getSwapLocation());
+
+        assertEquals(10000, provRecords.size());
+        for (final ProvenanceEventRecord event : provRecords) {
+            assertEquals(ProvenanceEventType.DROP, event.getEventType());
+        }
+
+        assertEquals(10000, queue.size().getObjectCount());
+    }
+
+    @Test
+    public void testSelectiveDropWithAllSwappedFlowFilesCreatesSwapFileDeletedRecords() throws Exception {
+        for (int i = 0; i < 20000; i++) {
+            queue.put(new MockFlowFileRecord(1));
+        }
+
+        assertEquals(1, swapManager.swappedOut.size());
+
+        repoRecords.clear();
+        provRecords.clear();
+
+        final DropFlowFileSummary summary = queue.dropFlowFiles(ff -> ff.getSize() == 1);
+        assertEquals(20000, summary.getDroppedCount());
+
+        final long deleteRecordCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.DELETE).count();
+        assertEquals(20000, deleteRecordCount);
+
+        final long swapFileDeletedCount = repoRecords.stream().filter(r -> r.getType() == RepositoryRecordType.SWAP_FILE_DELETED).count();
+        assertEquals(1, swapFileDeletedCount);
+
+        final RepositoryRecord swapDeletedRecord = repoRecords.stream()
+                .filter(r -> r.getType() == RepositoryRecordType.SWAP_FILE_DELETED)
+                .findFirst()
+                .orElseThrow();
+        assertNotNull(swapDeletedRecord.getSwapLocation());
+
+        assertEquals(20000, provRecords.size());
+
+        assertEquals(0, queue.size().getObjectCount());
     }
 }

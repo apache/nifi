@@ -46,6 +46,14 @@ public interface SerializedRepositoryRecord {
     String getSwapLocation();
 
     /**
+     * @return For SWAP_FILE_RENAMED records, provides the original swap location before the rename.
+     * For other record types, returns <code>null</code>.
+     */
+    default String getOriginalSwapLocation() {
+        return null;
+    }
+
+    /**
      * @return FlowFile being encapsulated by this record
      */
     FlowFileRecord getFlowFileRecord();
