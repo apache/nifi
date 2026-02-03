@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,20 +57,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * The expectation is that the new Process Group B should be bound to P (1), the same
  * parameter context that its parent A2 uses.
  */
-public class ParameterContextPreservationIT extends NiFiSystemIT {
+class ParameterContextPreservationIT extends NiFiSystemIT {
     private static final Logger logger = LoggerFactory.getLogger(ParameterContextPreservationIT.class);
-    public static final String TEST_FLOWS_BUCKET = "test-flows";
+    static final String TEST_FLOWS_BUCKET = "test-flows";
 
     @Test
-    public void testNewProcessGroupUsesCorrectParameterContextDuringUpgrade() throws NiFiClientException, IOException, InterruptedException {
+    void testNewProcessGroupUsesCorrectParameterContextDuringUpgrade() throws NiFiClientException, IOException, InterruptedException {
         final FlowRegistryClientEntity clientEntity = registerClient();
         final NiFiClientUtil util = getClientUtil();
 
         // Step 1: Create Parameter Context "P" with param1
         final String paramContextName = "P";
-        final Map<String, String> params = new HashMap<>();
-        params.put("param1", "value1");
-        final ParameterContextEntity paramContextP = util.createParameterContext(paramContextName, params);
+        final ParameterContextEntity paramContextP = util.createParameterContext(paramContextName, Map.of("param1", "value1"));
 
         // Step 2: Create v1 - Process Group A with just a Processor X using param1
         final ProcessGroupEntity groupA = util.createProcessGroup("A", "root");

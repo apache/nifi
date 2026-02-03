@@ -92,6 +92,7 @@ import org.apache.nifi.migration.StandardControllerServiceFactory;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.parameter.ParameterContextNameUtils;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.parameter.ParameterReferenceManager;
@@ -2154,17 +2155,13 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                     // Create a new Parameter Context based on the parameters provided
                     final ParameterContext selectedParameterContext;
 
-                    // First, check if the parent group has a parameter context that corresponds to the same
+                    // Check if the parent group has a parameter context that corresponds to the same
                     // versioned parameter context. If so, we should use the parent's context to maintain
                     // consistency within this flow instance. This is important during flow version upgrades
                     // where new child process groups are added - they should use the same parameter context
                     // as their parent, not a different one that happens to match by name.
                     final ParameterContext parentParameterContext = findMatchingParentParameterContext(group, versionedParameterContext.getName());
-                    if (parentParameterContext != null) {
-                        selectedParameterContext = parentParameterContext;
-                        // Ensure the parent's context has all the parameters from the versioned context
-                        addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
-                    } else {
+                    if (parentParameterContext == null) {
                         // Fall back to existing behavior: look up by name or create new
                         final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
                         if (contextByName == null) {
@@ -2176,6 +2173,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                             selectedParameterContext = contextByName;
                             addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
                         }
+                    } else {
+                        selectedParameterContext = parentParameterContext;
+                        // Ensure the parent's context has all the parameters from the versioned context
+                        addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);
                     }
 
                     group.setParameterContext(selectedParameterContext);
@@ -2226,20 +2227,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
      * @return true if contextName is versionedName with a suffix like " (n)"
      */
     private boolean isParameterContextNameWithSuffix(final String contextName, final String versionedName) {
-        if (!contextName.startsWith(versionedName + " (")) {
-            return false;
-        }
-        // Check if it ends with a closing parenthesis and the content between is a number
-        if (!contextName.endsWith(")")) {
-            return false;
-        }
-        final String suffix = contextName.substring(versionedName.length() + 2, contextName.length() - 1);
-        try {
-            Integer.parseInt(suffix);
-            return true;
-        } catch (final NumberFormatException e) {
-            return false;
-        }
+        return ParameterContextNameUtils.isNameWithSuffix(contextName, versionedName);
     }
 
     private void createMissingParameterProvider(final VersionedParameterContext versionedParameterContext, final String parameterProviderId,
