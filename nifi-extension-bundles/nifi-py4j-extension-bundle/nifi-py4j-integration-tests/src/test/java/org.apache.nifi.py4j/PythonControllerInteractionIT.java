@@ -45,6 +45,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.condition.OS;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -212,7 +213,7 @@ public class PythonControllerInteractionIT {
         runner.run();
         runner.assertTransferCount("original", 1);
         runner.assertTransferCount("success", 1);
-        final MockFlowFile indent2Output = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile indent2Output = runner.getFlowFilesForRelationship("success").getFirst();
 
         // Validate its output
         assertNotNull(indent2Output.getAttribute("uuid"));
@@ -264,7 +265,7 @@ public class PythonControllerInteractionIT {
         runner.run();
         runner.assertTransferCount("original", 1);
         runner.assertTransferCount("success", 1);
-        runner.getFlowFilesForRelationship("success").get(0).assertContentEquals("Hola Mundo");
+        runner.getFlowFilesForRelationship("success").getFirst().assertContentEquals("Hola Mundo");
     }
 
     @Test
@@ -278,7 +279,7 @@ public class PythonControllerInteractionIT {
         runner.run();
         runner.assertTransferCount("original", 1);
         runner.assertTransferCount("success", 1);
-        final String content = runner.getFlowFilesForRelationship("success").get(0).getContent();
+        final String content = runner.getFlowFilesForRelationship("success").getFirst().getContent();
         final int resultNum = Integer.parseInt(content);
         assertTrue(resultNum >= 0);
         assertTrue(resultNum <= 1000);
@@ -301,7 +302,7 @@ public class PythonControllerInteractionIT {
 
         final List<String> dependencies = writeNumpyVersionDetails.getDependencies();
         assertEquals(1, dependencies.size());
-        assertEquals("numpy==1.25.0", dependencies.get(0));
+        assertEquals("numpy==1.25.0", dependencies.getFirst());
 
         // Setup
         final TestRunner runner = createFlowFileTransform("WriteNumpyVersion");
@@ -311,7 +312,7 @@ public class PythonControllerInteractionIT {
         runner.run();
         runner.assertTransferCount("original", 1);
         runner.assertTransferCount("success", 1);
-        runner.getFlowFilesForRelationship("success").get(0).assertContentEquals("1.25.0");
+        runner.getFlowFilesForRelationship("success").getFirst().assertContentEquals("1.25.0");
     }
 
 
@@ -331,7 +332,7 @@ public class PythonControllerInteractionIT {
         runner.assertTransferCount("original", 1);
         runner.assertTransferCount("success", 1);
 
-        final MockFlowFile output = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile output = runner.getFlowFilesForRelationship("success").getFirst();
         assertTrue(output.getContent().contains("123 My Street"));
     }
 
@@ -354,7 +355,7 @@ public class PythonControllerInteractionIT {
         runner.run();
         runner.assertTransferCount("original", 1);
         runner.assertTransferCount("success", 1);
-        runner.getFlowFilesForRelationship("success").get(0).assertContentEquals(originalMessage);
+        runner.getFlowFilesForRelationship("success").getFirst().assertContentEquals(originalMessage);
 
         // Wait a bit because some file systems only have second-precision timestamps so wait a little more than 1 second
         // (to account for imprecision of the Thread.sleep method) to ensure
@@ -372,7 +373,7 @@ public class PythonControllerInteractionIT {
         // Ensure that the output is correct
         runner.assertTransferCount("original", 1);
         runner.assertTransferCount("success", 1);
-        runner.getFlowFilesForRelationship("success").get(0).assertContentEquals(replacement);
+        runner.getFlowFilesForRelationship("success").getFirst().assertContentEquals(replacement);
     }
 
     private void replaceFileText(final File file, final String text, final String replacement) throws IOException {
@@ -421,7 +422,7 @@ public class PythonControllerInteractionIT {
         runnerV1.run();
         runnerV1.assertTransferCount("success", 1);
         runnerV1.assertTransferCount("original", 1);
-        runnerV1.getFlowFilesForRelationship("success").get(0).assertContentEquals("Hello, World");
+        runnerV1.getFlowFilesForRelationship("success").getFirst().assertContentEquals("Hello, World");
 
         // Create an instance of WriteMessage V2
         final TestRunner runnerV2 = createProcessor("WriteMessage", "0.0.2-SNAPSHOT");
@@ -432,7 +433,7 @@ public class PythonControllerInteractionIT {
         runnerV2.run();
         runnerV2.assertTransferCount("success", 1);
         runnerV2.assertTransferCount("original", 1);
-        runnerV2.getFlowFilesForRelationship("success").get(0).assertContentEquals("Hello, World 2");
+        runnerV2.getFlowFilesForRelationship("success").getFirst().assertContentEquals("Hello, World 2");
     }
 
     private void waitForValid(final TestRunner runner) {
@@ -466,7 +467,7 @@ public class PythonControllerInteractionIT {
         runner.assertTransferCount("success", 1);
 
         // Verify the results
-        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").getFirst();
         out.assertContentEquals("""
             [{"name":"Jane Doe","number":"8"}]""");
     }
@@ -484,7 +485,7 @@ public class PythonControllerInteractionIT {
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("original", 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").getFirst();
         final String expectedHash = DigestUtils.sha256Hex("value");
         out.assertContentEquals("[{\"foo\":\"foo\",\"my\":{\"example\":\"" + expectedHash + "\"}}]");
     }
@@ -501,7 +502,7 @@ public class PythonControllerInteractionIT {
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("original", 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").getFirst();
         out.assertContentEquals("[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]");
     }
 
@@ -517,7 +518,7 @@ public class PythonControllerInteractionIT {
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("original", 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").getFirst();
         out.assertContentEquals("[{\"foo\":\"foo\",\"my\":{\"example\":\"value\"}}]");
     }
 
@@ -533,7 +534,7 @@ public class PythonControllerInteractionIT {
 
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("original", 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").getFirst();
         final String expectedHash = DigestUtils.sha256Hex("7");
         out.assertContentEquals("[{\"count\":\"" + expectedHash + "\"}]");
     }
@@ -571,7 +572,7 @@ public class PythonControllerInteractionIT {
         // Verify the results
         runner.assertTransferCount("success", 1);
         runner.assertTransferCount("original", 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship("success").getFirst();
         out.assertContentEquals("""
             [{"name":"Jane Doe","father":{"name":"John Doe"}}]""");
     }
@@ -604,7 +605,7 @@ public class PythonControllerInteractionIT {
 
     @Test
     @Timeout(45)
-    @DisabledOnOs(org.junit.jupiter.api.condition.OS.WINDOWS) // Cannot run on windows because ExitAfterFourInvocations uses `kill -9` command
+    @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Cannot run on windows because ExitAfterFourInvocations uses `kill -9` command")
     public void testProcessRestarted() {
         final TestRunner runner = createFlowFileTransform("ExitAfterFourInvocations");
 
@@ -616,7 +617,7 @@ public class PythonControllerInteractionIT {
         assertThrows(Throwable.class, runner::run);
 
         // Run 2 additional times. Because the Python Process will have to be restarted, it may take a bit,
-        // so we keep trying until we succeed, relying on the 15 second timeout for the test to fail us if
+        // so we keep trying until we succeed, relying on the 15-second timeout for the test to fail us if
         // the Process doesn't get restarted in time.
         for (int i = 0; i < 2; i++) {
             while (true) {
@@ -719,7 +720,7 @@ public class PythonControllerInteractionIT {
         // The processor reads the state and adds the key-value pairs
         // to the FlowFile as attributes.
         stateManager.assertStateEquals(Map.of("state_key_1", "state_value_1"), Scope.CLUSTER);
-        final MockFlowFile flowFile = runner.getFlowFilesForRelationship("success").get(0);
+        final MockFlowFile flowFile = runner.getFlowFilesForRelationship("success").getFirst();
         flowFile.assertAttributeEquals("state_key_1", "state_value_1");
     }
 
@@ -731,7 +732,7 @@ public class PythonControllerInteractionIT {
 
         runner.run();
 
-        final Map finalState = Map.of("state_key_2", "state_value_2");
+        final Map<String, String> finalState = Map.of("state_key_2", "state_value_2");
         stateManager.assertStateEquals(finalState, Scope.CLUSTER);
         runner.assertTransferCount("success", 1);
     }
@@ -761,7 +762,7 @@ public class PythonControllerInteractionIT {
         runner.run();
 
         runner.assertTransferCount("success", 1);
-        runner.getFlowFilesForRelationship("success").get(0).assertAttributeEquals("exception_msg", "Set state failed");
+        runner.getFlowFilesForRelationship("success").getFirst().assertAttributeEquals("exception_msg", "Set state failed");
     }
 
     public interface StringLookupService extends ControllerService {
@@ -830,18 +831,14 @@ public class PythonControllerInteractionIT {
 
         final TestRunner runner = createProcessor(processorName);
 
-        propertiesWithValues.forEach((propertyName, propertyValue) -> {
-            runner.setProperty(propertyName, propertyValue);
-        });
+        propertiesWithValues.forEach(runner::setProperty);
 
         waitForValid(runner);
         runner.run();
 
-        relationshipsWithFlowFileCounts.forEach((relationship, count) -> {
-            runner.assertTransferCount(relationship, count);
-        });
+        relationshipsWithFlowFileCounts.forEach(runner::assertTransferCount);
 
-        final MockFlowFile output = runner.getFlowFilesForRelationship(expectedOuputRelationship).get(0);
+        final MockFlowFile output = runner.getFlowFilesForRelationship(expectedOuputRelationship).getFirst();
         output.assertContentEquals(expectedContent);
     }
 
@@ -883,7 +880,7 @@ public class PythonControllerInteractionIT {
 
     private MockStateManager initializeStateManager(TestRunner runner) throws IOException {
         final MockStateManager stateManager = runner.getStateManager();
-        final Map initialState = Map.of("state_key_1", "state_value_1");
+        final Map<String, String> initialState = Map.of("state_key_1", "state_value_1");
         stateManager.setState(initialState, Scope.CLUSTER);
         return stateManager;
     }
