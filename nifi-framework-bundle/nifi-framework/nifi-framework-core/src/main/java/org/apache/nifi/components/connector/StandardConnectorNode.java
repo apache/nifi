@@ -495,6 +495,19 @@ public class StandardConnectorNode implements ConnectorNode {
     }
 
     @Override
+    public void verifyCanPurgeFlowFiles() throws IllegalStateException {
+        final ConnectorState desiredState = getDesiredState();
+        if (desiredState != ConnectorState.STOPPED) {
+            throw new IllegalStateException("Cannot purge FlowFiles for " + this + " because its desired state is currently " + desiredState + "; it must be STOPPED.");
+        }
+
+        final ConnectorState currentState = getCurrentState();
+        if (currentState != ConnectorState.STOPPED) {
+            throw new IllegalStateException("Cannot purge FlowFiles for " + this + " because its current state is " + currentState + "; it must be STOPPED.");
+        }
+    }
+
+    @Override
     public Future<Void> purgeFlowFiles(final String requestor) {
         requireStopped("purge FlowFiles", ConnectorState.PURGING);
 
@@ -520,7 +533,7 @@ public class StandardConnectorNode implements ConnectorNode {
         while (!stateUpdated) {
             final ConnectorState currentState = getCurrentState();
             if (currentState != ConnectorState.STOPPED) {
-                throw new IllegalStateException("Cannot " + action + " for " + this + " because its current state is currently " + currentState + "; it must be STOPPED.");
+                throw new IllegalStateException("Cannot " + action + " for " + this + " because its current state is " + currentState + "; it must be STOPPED.");
             }
 
             stateUpdated = stateTransition.trySetCurrentState(ConnectorState.STOPPED, newState);
