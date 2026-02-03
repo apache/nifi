@@ -25,12 +25,15 @@ import org.apache.nifi.components.connector.ProcessGroupFacadeFactory;
 import org.apache.nifi.components.connector.ProcessGroupFactory;
 import org.apache.nifi.components.connector.StandardFlowContext;
 import org.apache.nifi.components.connector.components.FlowContextType;
+import org.apache.nifi.components.connector.components.ParameterContextFacade;
+import org.apache.nifi.components.connector.components.ParameterValue;
 import org.apache.nifi.components.connector.facades.standalone.StandaloneParameterContextFacade;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.mapping.ComponentIdLookup;
 import org.apache.nifi.registry.flow.mapping.FlowMappingOptions;
@@ -39,6 +42,8 @@ import org.apache.nifi.registry.flow.mapping.VersionedComponentFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -98,19 +103,38 @@ public class FlowControllerFlowContextFactory implements FlowContextFactory {
         final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(flowController.getExtensionManager(), flowMappingOptions);
         final InstantiatedVersionedProcessGroup versionedGroup = flowMapper.mapProcessGroup(sourceGroup, flowController.getControllerServiceProvider(),
             flowController.getFlowManager(), true);
-        final VersionedExternalFlow versionedExternalFlow = new VersionedExternalFlow();
-        versionedExternalFlow.setFlowContents(versionedGroup);
-        versionedExternalFlow.setExternalControllerServices(Map.of());
-        versionedExternalFlow.setParameterProviders(Map.of());
-        versionedExternalFlow.setParameterContexts(Map.of());
 
-        destinationGroup.updateFlow(versionedExternalFlow, componentIdSeed, false, true, true);
+        final String contextName = sourceGroup.getParameterContext().getName();
+
+        final VersionedExternalFlow externalFlowWithoutParameterContext = new VersionedExternalFlow();
+        externalFlowWithoutParameterContext.setFlowContents(versionedGroup);
+        externalFlowWithoutParameterContext.setParameterContexts(Map.of());
 
         final String duplicateContextId = UUID.nameUUIDFromBytes((destinationGroup.getIdentifier() + "-param-context").getBytes(StandardCharsets.UTF_8)).toString();
         final ParameterContext sourceContext = sourceGroup.getParameterContext();
-        if (sourceContext != null) {
-            final ParameterContext duplicateParameterContext = flowController.getFlowManager().duplicateParameterContext(duplicateContextId, sourceContext);
-            destinationGroup.setParameterContext(duplicateParameterContext);
+        final ParameterContext duplicateParameterContext = flowController.getFlowManager().createEmptyParameterContext(
+            duplicateContextId, contextName, sourceContext.getDescription(), destinationGroup);
+
+        destinationGroup.setParameterContext(duplicateParameterContext);
+        destinationGroup.updateFlow(externalFlowWithoutParameterContext, componentIdSeed, false, true, true);
+
+        final ParameterContextFacade contextFacade = new StandaloneParameterContextFacade(flowController, destinationGroup);
+        final List<ParameterValue> parameterValues = createParameterValues(sourceContext);
+        contextFacade.updateParameters(parameterValues);
+    }
+
+    private List<ParameterValue> createParameterValues(final ParameterContext context) {
+        final List<ParameterValue> parameterValues = new ArrayList<>();
+        for (final Parameter parameter : context.getParameters().values()) {
+            final ParameterValue.Builder parameterValueBuilder = new ParameterValue.Builder()
+                .name(parameter.getDescriptor().getName())
+                .sensitive(parameter.getDescriptor().isSensitive())
+                .value(parameter.getValue());
+
+            parameter.getReferencedAssets().forEach(parameterValueBuilder::addReferencedAsset);
+            parameterValues.add(parameterValueBuilder.build());
         }
+
+        return parameterValues;
     }
 }

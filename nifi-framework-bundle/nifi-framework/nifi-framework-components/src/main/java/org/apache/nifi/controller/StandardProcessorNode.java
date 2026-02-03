@@ -1672,10 +1672,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             if (validationStatus != ValidationStatus.VALID) {
                 LOG.debug("Cannot start {} because Processor is currently not valid; will try again after 5 seconds", StandardProcessorNode.this);
 
-                startupAttemptCount.incrementAndGet();
-                if (startupAttemptCount.get() == 240 || startupAttemptCount.get() % 7200 == 0) {
+                final long attempt = startupAttemptCount.getAndIncrement();
+                if (attempt % 7200 == 0) {
                     final ValidationState validationState = getValidationState();
-                    procLog.error("Encountering difficulty starting. (Validation State is {}: {}). Will continue trying to start.",
+                    procLog.warn("Encountering difficulty starting. (Validation State is {}: {}). Will continue trying to start.",
                             validationState, validationState.getValidationErrors());
                 }
 

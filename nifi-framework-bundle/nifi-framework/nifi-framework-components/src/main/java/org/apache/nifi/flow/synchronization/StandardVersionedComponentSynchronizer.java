@@ -1386,6 +1386,10 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
 
         destination.addProcessGroup(group);
 
+        // Connectors will have a single parameter context so if we are creating a group set the context of the parent process group.
+        if (connectorId != null) {
+            group.setParameterContext(destination.getParameterContext());
+        }
         synchronize(group, proposed, versionedParameterContexts, parameterProviderReferences, topLevelGroup, true);
 
         return group;
@@ -2143,7 +2147,7 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
     }
 
     private void updateParameterContext(final ProcessGroup group, final VersionedProcessGroup proposed, final Map<String, VersionedParameterContext> versionedParameterContexts,
-                                        final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
+        final Map<String, ParameterProviderReference> parameterProviderReferences, final ComponentIdGenerator componentIdGenerator) {
         // Update the Parameter Context
         final ParameterContext currentParamContext = group.getParameterContext();
         final String proposedParameterContextName = proposed.getParameterContextName();
@@ -2168,9 +2172,9 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                         final ParameterContext contextByName = getParameterContextByName(versionedParameterContext.getName());
                         if (contextByName == null) {
                             final String parameterContextId = componentIdGenerator.generateUuid(versionedParameterContext.getName(),
-                                    versionedParameterContext.getName(), versionedParameterContext.getName());
+                                versionedParameterContext.getName(), versionedParameterContext.getName());
                             selectedParameterContext = createParameterContext(versionedParameterContext, parameterContextId, versionedParameterContexts,
-                                    parameterProviderReferences, componentIdGenerator);
+                                parameterProviderReferences, componentIdGenerator);
                         } else {
                             selectedParameterContext = contextByName;
                             addMissingConfiguration(versionedParameterContext, selectedParameterContext, versionedParameterContexts, parameterProviderReferences, componentIdGenerator);

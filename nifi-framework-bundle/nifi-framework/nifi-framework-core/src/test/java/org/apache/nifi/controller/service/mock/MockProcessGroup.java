@@ -720,7 +720,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void updateFlow(VersionedExternalFlow proposedFlow, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVerisonedFlows) {
+    public void updateFlow(VersionedExternalFlow proposedFlow, String componentIdSeed, boolean verifyNotDirty, boolean updateSettings, boolean updateDescendantVersionedFlows) {
     }
 
     @Override
