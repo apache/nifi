@@ -137,6 +137,19 @@ public interface SerDe<T> {
     String getLocation(T record);
 
     /**
+     * Returns the original external location of the given record; this is used when a
+     * swap file is renamed. For {@link UpdateType#SWAP_FILE_RENAMED} records, this
+     * returns the original location before the rename, while {@link #getLocation(Object)}
+     * returns the new location after the rename.
+     *
+     * @param record to get original location of
+     * @return original location, or null if not applicable
+     */
+    default String getOriginalLocation(T record) {
+        return null;
+    }
+
+    /**
      * Returns the version that this SerDe will use when writing. This used used
      * when serializing/deserializing the edit logs so that if the version
      * changes, we are still able to deserialize old versions

@@ -21,13 +21,17 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.SelectiveDropResult;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 /**
  * Represents a portion of a FlowFile Queue such that a FlowFile Queue can be broken into
@@ -68,6 +72,15 @@ public interface QueuePartition {
      * @param requestor the user making the request
      */
     void dropFlowFiles(DropFlowFileRequest dropRequest, String requestor);
+
+    /**
+     * Drops all FlowFiles in this partition that match the given predicate.
+     *
+     * @param predicate the predicate used to determine which FlowFiles should be dropped
+     * @return a SelectiveDropResult containing the dropped FlowFiles and swap location updates
+     * @throws IOException if an error occurs while reading or writing swap files
+     */
+    SelectiveDropResult dropFlowFiles(Predicate<FlowFile> predicate) throws IOException;
 
     /**
      * Updates the prioritizers to use when queueing data
