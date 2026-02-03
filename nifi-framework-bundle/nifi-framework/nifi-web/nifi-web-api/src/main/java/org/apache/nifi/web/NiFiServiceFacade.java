@@ -251,6 +251,22 @@ public interface NiFiServiceFacade {
 
     Optional<Asset> getConnectorAsset(String assetId);
 
+    /**
+     * Verifies that the connector is in a state where FlowFiles can be purged.
+     *
+     * @param connectorId the connector ID
+     * @throws IllegalStateException if the connector is not in a state where FlowFiles can be purged
+     */
+    void verifyPurgeConnectorFlowFiles(String connectorId);
+
+    /**
+     * Purges all FlowFiles from the connector.
+     *
+     * @param connectorId the connector ID
+     * @param requestor the identity of the user requesting the purge (used for provenance events)
+     */
+    void purgeConnectorFlowFiles(String connectorId, String requestor);
+
     // ----------------------------------------
     // Synchronization methods
     // ----------------------------------------
