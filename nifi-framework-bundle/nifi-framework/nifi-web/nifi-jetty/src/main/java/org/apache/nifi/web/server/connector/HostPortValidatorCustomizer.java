@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.server.connector;
 
-import org.eclipse.jetty.http.BadMessageException;
+import org.eclipse.jetty.http.HttpException;
 import org.eclipse.jetty.http.HttpFields;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpURI;
@@ -68,7 +68,7 @@ public class HostPortValidatorCustomizer implements HttpConfiguration.Customizer
             if (PORT_NOT_SPECIFIED == port || localSocketAddressPort == port || validPorts.contains(port)) {
                 customized = request;
             } else {
-                throw new BadMessageException(HttpStatus.MISDIRECTED_REQUEST_421, MISDIRECTED_REQUEST_REASON);
+                throw new HttpException.RuntimeException(HttpStatus.MISDIRECTED_REQUEST_421, MISDIRECTED_REQUEST_REASON);
             }
         } else {
             customized = request;
