@@ -19,8 +19,10 @@ package org.apache.nifi.web.api.dto.provenance;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.xml.bind.annotation.XmlType;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import org.apache.nifi.web.api.dto.util.InstantAdapter;
 import org.apache.nifi.web.api.dto.util.TimestampAdapter;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -36,6 +38,7 @@ public class ProvenanceEventDTO {
     // in search results table
     private Long eventId;
     private Date eventTime;
+    private Instant eventTimestamp;
     private Long eventDuration;
     private Long lineageDuration;
     private String eventType;
@@ -121,6 +124,19 @@ public class ProvenanceEventDTO {
 
     public void setEventTime(Date eventTime) {
         this.eventTime = eventTime;
+    }
+
+    @XmlJavaTypeAdapter(InstantAdapter.class)
+    @Schema(
+            description = "Event Timestamp formatted using ISO8601",
+            type = "string"
+    )
+    public Instant getEventTimestamp() {
+        return eventTimestamp;
+    }
+
+    public void setEventTimestamp(final Instant eventTimestamp) {
+        this.eventTimestamp = eventTimestamp;
     }
 
     /**
