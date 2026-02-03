@@ -18,10 +18,10 @@
 package org.apache.nifi.controller.queue.clustered.partition;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.queue.SelectiveDropResult;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.flowfile.FlowFile;
@@ -77,10 +77,10 @@ public interface QueuePartition {
      * Drops all FlowFiles in this partition that match the given predicate.
      *
      * @param predicate the predicate used to determine which FlowFiles should be dropped
-     * @return a summary of the FlowFiles that were dropped
+     * @return a SelectiveDropResult containing the dropped FlowFiles and swap location updates
      * @throws IOException if an error occurs while reading or writing swap files
      */
-    DropFlowFileSummary dropFlowFiles(Predicate<FlowFile> predicate) throws IOException;
+    SelectiveDropResult dropFlowFiles(Predicate<FlowFile> predicate) throws IOException;
 
     /**
      * Updates the prioritizers to use when queueing data

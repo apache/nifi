@@ -18,7 +18,6 @@
 package org.apache.nifi.controller.queue.clustered.partition;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.queue.BlockingSwappablePriorityQueue;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
@@ -113,9 +112,8 @@ public class StandardRebalancingPartition implements RebalancingPartition {
     }
 
     @Override
-    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
-        final SelectiveDropResult result = queue.dropFlowFiles(predicate);
-        return new DropFlowFileSummary(result.getDroppedCount(), result.getDroppedBytes());
+    public SelectiveDropResult dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        return queue.dropFlowFiles(predicate);
     }
 
     @Override

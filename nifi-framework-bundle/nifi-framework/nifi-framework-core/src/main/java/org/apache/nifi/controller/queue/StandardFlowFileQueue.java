@@ -22,6 +22,8 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.RepositoryRecord;
+import org.apache.nifi.controller.repository.RepositoryRecordType;
+import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.status.FlowFileAvailability;
 import org.apache.nifi.events.EventReporter;
@@ -33,6 +35,7 @@ import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.util.concurrency.TimedLock;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -229,7 +232,21 @@ public class StandardFlowFileQueue extends AbstractFlowFileQueue implements Flow
 
             // Create repository records for the dropped FlowFiles
             final List<FlowFileRecord> droppedFlowFiles = dropResult.getDroppedFlowFiles();
-            final List<RepositoryRecord> repositoryRecords = createDeleteRepositoryRecords(droppedFlowFiles);
+            final List<RepositoryRecord> repositoryRecords = new ArrayList<>(createDeleteRepositoryRecords(droppedFlowFiles));
+
+            // Create repository records for swap file changes so the FlowFile Repository can track valid swap locations
+            for (final Map.Entry<String, String> entry : dropResult.getSwapLocationUpdates().entrySet()) {
+                final String oldSwapLocation = entry.getKey();
+                final String newSwapLocation = entry.getValue();
+
+                final StandardRepositoryRecord swapRecord = new StandardRepositoryRecord(this);
+                if (newSwapLocation == null) {
+                    swapRecord.setSwapLocation(oldSwapLocation, RepositoryRecordType.SWAP_FILE_DELETED);
+                } else {
+                    swapRecord.setSwapFileRenamed(oldSwapLocation, newSwapLocation);
+                }
+                repositoryRecords.add(swapRecord);
+            }
 
             // Update the FlowFile Repository
             getFlowFileRepository().updateRepository(repositoryRecords);

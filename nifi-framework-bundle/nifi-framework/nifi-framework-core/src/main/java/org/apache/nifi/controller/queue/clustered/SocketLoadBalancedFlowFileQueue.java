@@ -36,6 +36,7 @@ import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.QueueDiagnostics;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.queue.RemoteQueuePartitionDiagnostics;
+import org.apache.nifi.controller.queue.SelectiveDropResult;
 import org.apache.nifi.controller.queue.StandardQueueDiagnostics;
 import org.apache.nifi.controller.queue.SwappablePriorityQueue;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientRegistry;
@@ -56,6 +57,7 @@ import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.repository.RepositoryRecord;
+import org.apache.nifi.controller.repository.RepositoryRecordType;
 import org.apache.nifi.controller.repository.StandardRepositoryRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
@@ -1111,22 +1113,57 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
         lock();
         try {
-            int totalDroppedCount = 0;
-            long totalDroppedBytes = 0L;
+            final List<FlowFileRecord> allDroppedFlowFiles = new ArrayList<>();
+            final Map<String, String> allSwapLocationUpdates = new HashMap<>();
 
             for (final QueuePartition partition : queuePartitions) {
-                final DropFlowFileSummary partitionSummary = partition.dropFlowFiles(predicate);
-                totalDroppedCount += partitionSummary.getDroppedCount();
-                totalDroppedBytes += partitionSummary.getDroppedBytes();
-                adjustSize(-partitionSummary.getDroppedCount(), -partitionSummary.getDroppedBytes());
+                final SelectiveDropResult partitionResult = partition.dropFlowFiles(predicate);
+                allDroppedFlowFiles.addAll(partitionResult.getDroppedFlowFiles());
+                allSwapLocationUpdates.putAll(partitionResult.getSwapLocationUpdates());
+                adjustSize(-partitionResult.getDroppedCount(), -partitionResult.getDroppedBytes());
             }
 
             // Also drop from the rebalancing partition
-            final DropFlowFileSummary rebalanceSummary = rebalancingPartition.dropFlowFiles(predicate);
-            totalDroppedCount += rebalanceSummary.getDroppedCount();
-            totalDroppedBytes += rebalanceSummary.getDroppedBytes();
-            adjustSize(-rebalanceSummary.getDroppedCount(), -rebalanceSummary.getDroppedBytes());
+            final SelectiveDropResult rebalanceResult = rebalancingPartition.dropFlowFiles(predicate);
+            allDroppedFlowFiles.addAll(rebalanceResult.getDroppedFlowFiles());
+            allSwapLocationUpdates.putAll(rebalanceResult.getSwapLocationUpdates());
+            adjustSize(-rebalanceResult.getDroppedCount(), -rebalanceResult.getDroppedBytes());
 
+            if (allDroppedFlowFiles.isEmpty()) {
+                return new DropFlowFileSummary(0, 0L);
+            }
+
+            // Create repository records for the dropped FlowFiles
+            final List<RepositoryRecord> repositoryRecords = new ArrayList<>(createDeleteRepositoryRecords(allDroppedFlowFiles));
+
+            // Create repository records for swap file changes so the FlowFile Repository can track valid swap locations
+            for (final Map.Entry<String, String> entry : allSwapLocationUpdates.entrySet()) {
+                final String oldSwapLocation = entry.getKey();
+                final String newSwapLocation = entry.getValue();
+
+                final StandardRepositoryRecord swapRecord = new StandardRepositoryRecord(this);
+                if (newSwapLocation == null) {
+                    swapRecord.setSwapLocation(oldSwapLocation, RepositoryRecordType.SWAP_FILE_DELETED);
+                } else {
+                    swapRecord.setSwapFileRenamed(oldSwapLocation, newSwapLocation);
+                }
+                repositoryRecords.add(swapRecord);
+            }
+
+            // Update the FlowFile Repository
+            flowFileRepo.updateRepository(repositoryRecords);
+
+            // Create and register provenance events
+            final List<ProvenanceEventRecord> provenanceEvents = createDropProvenanceEvents(allDroppedFlowFiles, "Selective drop by predicate");
+            provRepo.registerEvents(provenanceEvents);
+
+            // Delete old swap files that were replaced
+            for (final String oldSwapLocation : allSwapLocationUpdates.keySet()) {
+                swapManager.deleteSwapFile(oldSwapLocation);
+            }
+
+            final int totalDroppedCount = allDroppedFlowFiles.size();
+            final long totalDroppedBytes = allDroppedFlowFiles.stream().mapToLong(FlowFileRecord::getSize).sum();
             return new DropFlowFileSummary(totalDroppedCount, totalDroppedBytes);
         } finally {
             unlock();

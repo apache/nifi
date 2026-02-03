@@ -18,7 +18,6 @@
 package org.apache.nifi.controller.queue.clustered.partition;
 
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
-import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.controller.queue.DropFlowFileAction;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -162,12 +161,7 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
     }
 
     @Override
-    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
-        final SelectiveDropResult result = priorityQueue.dropFlowFiles(predicate);
-        return new DropFlowFileSummary(result.getDroppedCount(), result.getDroppedBytes());
-    }
-
-    public SelectiveDropResult dropFlowFilesSelective(final Predicate<FlowFile> predicate) throws IOException {
+    public SelectiveDropResult dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
         return priorityQueue.dropFlowFiles(predicate);
     }
 
