@@ -200,6 +200,7 @@ public class StandardProcessSessionIT {
         when(connectable.getComponentType()).thenReturn("Unit Test Component");
         when(connectable.getBackoffMechanism()).thenReturn(BackoffMechanism.PENALIZE_FLOWFILE);
         when(connectable.getMaxBackoffPeriod()).thenReturn("1 sec");
+        when(connectable.getFlowFileActivity()).thenReturn(new ConnectableFlowFileActivity());
 
         Mockito.doAnswer((Answer<Set<Connection>>) invocation -> {
             final Object[] arguments = invocation.getArguments();

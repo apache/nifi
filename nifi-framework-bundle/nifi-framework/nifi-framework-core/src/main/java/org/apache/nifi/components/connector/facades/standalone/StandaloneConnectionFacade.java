@@ -17,10 +17,15 @@
 
 package org.apache.nifi.components.connector.facades.standalone;
 
+import org.apache.nifi.components.connector.DropFlowFileSummary;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flowfile.FlowFile;
+
+import java.io.IOException;
+import java.util.function.Predicate;
 
 public class StandaloneConnectionFacade implements ConnectionFacade {
     private final Connection connection;
@@ -45,5 +50,10 @@ public class StandaloneConnectionFacade implements ConnectionFacade {
     public void purge() {
         // TODO: Require arguments here
         connection.getFlowFileQueue().dropFlowFiles("User requested purge", "User");
+    }
+
+    @Override
+    public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
+        return connection.getFlowFileQueue().dropFlowFiles(predicate);
     }
 }

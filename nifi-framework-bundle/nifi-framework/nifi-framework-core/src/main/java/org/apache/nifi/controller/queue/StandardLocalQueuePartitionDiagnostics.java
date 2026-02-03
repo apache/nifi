@@ -21,11 +21,16 @@ public class StandardLocalQueuePartitionDiagnostics implements LocalQueuePartiti
     private final FlowFileQueueSize queueSize;
     private final boolean anyPenalized;
     private final boolean allPenalized;
+    private final QueueSize penalizedQueueSize;
+    private final QueueSize totalSwapFileQueueSize;
 
-    public StandardLocalQueuePartitionDiagnostics(final FlowFileQueueSize queueSize, final boolean anyPenalized, final boolean allPenalized) {
+    public StandardLocalQueuePartitionDiagnostics(final FlowFileQueueSize queueSize, final boolean anyPenalized, final boolean allPenalized,
+                                                   final QueueSize penalizedQueueSize, final QueueSize totalSwapFileQueueSize) {
         this.queueSize = queueSize;
         this.anyPenalized = anyPenalized;
         this.allPenalized = allPenalized;
+        this.penalizedQueueSize = penalizedQueueSize;
+        this.totalSwapFileQueueSize = totalSwapFileQueueSize;
     }
 
     @Override
@@ -56,5 +61,15 @@ public class StandardLocalQueuePartitionDiagnostics implements LocalQueuePartiti
     @Override
     public boolean isAllActiveFlowFilesPenalized() {
         return allPenalized;
+    }
+
+    @Override
+    public QueueSize getPenalizedQueueSize() {
+        return penalizedQueueSize;
+    }
+
+    @Override
+    public QueueSize getTotalSwapFileQueueSize() {
+        return totalSwapFileQueueSize;
     }
 }

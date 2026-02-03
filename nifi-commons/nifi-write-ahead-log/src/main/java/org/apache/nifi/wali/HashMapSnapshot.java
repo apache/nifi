@@ -175,14 +175,18 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
 
             switch (updateType) {
                 case DELETE:
-                    recordMap.remove(recordId);
+                    if (recordId != null) {
+                        recordMap.remove(recordId);
+                    }
                     break;
                 case SWAP_OUT:
                     final String location = serdeFactory.getLocation(record);
                     if (location == null) {
                         logger.error(logMessage, recordId, UpdateType.SWAP_OUT, "Swapped Out to", "lost");
                     } else {
-                        recordMap.remove(recordId);
+                        if (recordId != null) {
+                            recordMap.remove(recordId);
+                        }
                         this.swapLocations.add(location);
                     }
                     break;
@@ -193,10 +197,30 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
                     } else {
                         swapLocations.remove(swapLocation);
                     }
-                    recordMap.put(recordId, record);
+                    if (recordId != null) {
+                        recordMap.put(recordId, record);
+                    }
+                    break;
+                case SWAP_FILE_DELETED:
+                    final String deletedSwapLocation = serdeFactory.getLocation(record);
+                    if (deletedSwapLocation != null) {
+                        swapLocations.remove(deletedSwapLocation);
+                    }
+                    break;
+                case SWAP_FILE_RENAMED:
+                    final String originalLocation = serdeFactory.getOriginalLocation(record);
+                    final String newLocation = serdeFactory.getLocation(record);
+                    if (originalLocation != null) {
+                        swapLocations.remove(originalLocation);
+                    }
+                    if (newLocation != null) {
+                        swapLocations.add(newLocation);
+                    }
                     break;
                 default:
-                    recordMap.put(recordId, record);
+                    if (recordId != null) {
+                        recordMap.put(recordId, record);
+                    }
                     break;
             }
         }
@@ -209,6 +233,9 @@ public class HashMapSnapshot<T> implements WriteAheadSnapshot<T>, RecordLookup<T
 
     @Override
     public T lookup(final Object recordId) {
+        if (recordId == null) {
+            return null;
+        }
         return recordMap.get(recordId);
     }
 

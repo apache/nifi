@@ -18,9 +18,11 @@ package org.apache.nifi.tests.system;
 
 import org.apache.nifi.bootstrap.command.process.ManagementServerAddressProvider;
 import org.apache.nifi.bootstrap.command.process.ProcessBuilderProvider;
+import org.apache.nifi.bootstrap.command.process.ProcessHandleManagementServerAddressProvider;
 import org.apache.nifi.bootstrap.command.process.StandardManagementServerAddressProvider;
 import org.apache.nifi.bootstrap.command.process.StandardProcessBuilderProvider;
 import org.apache.nifi.bootstrap.configuration.ConfigurationProvider;
+import org.apache.nifi.bootstrap.configuration.ManagementServerPath;
 import org.apache.nifi.bootstrap.configuration.StandardConfigurationProvider;
 import org.apache.nifi.toolkit.client.NiFiClient;
 import org.apache.nifi.toolkit.client.NiFiClientConfig;
@@ -38,7 +40,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -448,11 +456,50 @@ public class SpawnedStandaloneNiFiInstanceFactory implements NiFiInstanceFactory
 
             if (process == null) {
                 logger.warn("NiFi instance is not running so will not capture diagnostics for {}", getInstanceDirectory());
+            } else {
+                captureDiagnostics(destinationDir);
             }
 
             final File causeFile = new File(destinationDir, "test-failure-stack-trace.txt");
             try (final PrintWriter printWriter = new PrintWriter(causeFile)) {
                 cause.printStackTrace(printWriter);
+            }
+        }
+
+        private void captureDiagnostics(final File destinationDir) {
+            final ProcessHandle processHandle = process.toHandle();
+            final ManagementServerAddressProvider addressProvider = new ProcessHandleManagementServerAddressProvider(processHandle);
+            final Optional<String> managementServerAddress = addressProvider.getAddress();
+
+            if (managementServerAddress.isEmpty()) {
+                logger.warn("Could not determine management server address for NiFi instance {}, will not capture diagnostics", getInstanceDirectory());
+                return;
+            }
+
+            final String diagnosticsUri = "http://%s%s?verbose=true".formatted(managementServerAddress.get(), ManagementServerPath.HEALTH_DIAGNOSTICS.getPath());
+            logger.info("Capturing diagnostics from {} for failed test", diagnosticsUri);
+
+            try (final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build()) {
+                final HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(diagnosticsUri))
+                        .timeout(Duration.ofSeconds(30))
+                        .GET()
+                        .build();
+
+                final HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                final int statusCode = response.statusCode();
+
+                if (statusCode == 200) {
+                    final File diagnosticsFile = new File(destinationDir, "diagnostics.txt");
+                    try (final FileWriter writer = new FileWriter(diagnosticsFile, StandardCharsets.UTF_8)) {
+                        writer.write(response.body());
+                    }
+                    logger.info("Diagnostics captured successfully to {}", diagnosticsFile.getAbsolutePath());
+                } else {
+                    logger.warn("Failed to capture diagnostics from {}. HTTP status: {}", diagnosticsUri, statusCode);
+                }
+            } catch (final Exception e) {
+                logger.warn("Failed to capture diagnostics from {}", diagnosticsUri, e);
             }
         }
 
