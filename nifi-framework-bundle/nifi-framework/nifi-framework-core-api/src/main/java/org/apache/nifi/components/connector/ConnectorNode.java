@@ -212,6 +212,12 @@ public interface ConnectorNode extends ComponentAuthorizable, VersionedComponent
     void verifyCancelDrainFlowFiles() throws IllegalStateException;
 
     /**
+     * Verifies that the Connector can have its FlowFiles purged.
+     * @throws IllegalStateException if not in a state where FlowFiles can be purged
+     */
+    void verifyCanPurgeFlowFiles() throws IllegalStateException;
+
+    /**
      * Purges all FlowFiles from the Connector, immediately dropping the data.
      *
      * @param requestor the user requesting the purge. This will be recorded in the associated provenance DROP events.
