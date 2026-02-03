@@ -44,6 +44,15 @@ public interface ConnectionDAO {
     Connection getConnection(String id);
 
     /**
+     * Gets the specified Connection, optionally including Connector-managed ProcessGroups in the search.
+     *
+     * @param id The connection id
+     * @param includeConnectorManaged Whether to search Connector-managed ProcessGroups
+     * @return The connection
+     */
+    Connection getConnection(String id, boolean includeConnectorManaged);
+
+    /**
      * Gets the specified flow file drop request.
      *
      * @param id The id of the connection

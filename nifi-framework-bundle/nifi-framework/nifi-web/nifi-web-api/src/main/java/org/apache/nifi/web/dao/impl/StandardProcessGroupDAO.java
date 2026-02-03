@@ -188,6 +188,11 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
+    public ProcessGroup getProcessGroup(String groupId, boolean includeConnectorManaged) {
+        return locateProcessGroup(flowController, groupId, includeConnectorManaged);
+    }
+
+    @Override
     public Set<ProcessGroup> getProcessGroups(final String parentGroupId, final ProcessGroupRecursivity processGroupRecursivity) {
         ProcessGroup group = locateProcessGroup(flowController, parentGroupId);
         if (processGroupRecursivity == ProcessGroupRecursivity.ALL_DESCENDANTS) {
@@ -616,7 +621,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public DropFlowFileStatus createDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId, true);
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         if (user == null) {
@@ -628,14 +633,14 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
 
     @Override
     public DropFlowFileStatus getDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId, true);
 
         return processGroup.getDropAllFlowFilesStatus(dropRequestId);
     }
 
     @Override
     public DropFlowFileStatus deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
-        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId, true);
 
         return processGroup.cancelDropAllFlowFiles(dropRequestId);
     }
