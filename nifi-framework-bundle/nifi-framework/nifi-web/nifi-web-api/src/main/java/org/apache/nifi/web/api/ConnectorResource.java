@@ -883,6 +883,10 @@ public class ConnectorResource extends ApplicationResource {
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.WRITE, user);
+        });
 
         final AsynchronousWebRequest<ConnectorEntity, Void> asyncRequest = purgeRequestManager.getRequest(PURGE_REQUEST_TYPE, purgeRequestId, user);
         final DropRequestEntity purgeRequestEntity = createPurgeRequestEntity(asyncRequest, connectorId, purgeRequestId);
@@ -925,6 +929,13 @@ public class ConnectorResource extends ApplicationResource {
         }
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // Make sure user has write access to the connector
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.WRITE, user);
+        });
+
         final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
         final boolean executionPhase = isExecutionPhase(httpServletRequest);
 
