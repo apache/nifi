@@ -116,9 +116,10 @@ public final class NarUnpacker {
                 }
             }
 
+            final long startTime = System.nanoTime();
+            logger.info("Expanding {} NAR files started", narFiles.size());
+
             if (!narFiles.isEmpty()) {
-                final long startTime = System.nanoTime();
-                logger.info("Expanding {} NAR files started", narFiles.size());
                 for (File narFile : narFiles) {
                     if (!narFile.canRead()) {
                         throw new IllegalStateException("Unable to read NAR file: " + narFile.getAbsolutePath());
@@ -199,21 +200,17 @@ public final class NarUnpacker {
                         }
                     }
                 }
-
-                final long duration = System.nanoTime() - startTime;
-                final double durationSeconds = TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0;
-                logger.info("Expanded {} NAR files in {} seconds ({} ns)", narFiles.size(), durationSeconds, duration);
             }
 
             final Map<File, BundleCoordinate> unpackedNars = new HashMap<>(createUnpackedNarBundleCoordinateMap(extensionsWorkingDir));
 
-            final long startTime = System.nanoTime();
             final ExtensionMapping extensionMapping = new ExtensionMapping();
             mapExtensions(unpackedNars, extensionMapping);
-            final long duration = System.nanoTime() - startTime;
-            logger.info("Completed map extensions in {} seconds ({} ns)", TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0, duration);
-
             populateExtensionMapping(extensionMapping, systemBundle.getBundleDetails().getCoordinate(), systemBundle.getBundleDetails().getWorkingDirectory());
+
+            final long duration = System.nanoTime() - startTime;
+            final double durationSeconds = TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0;
+            logger.info("Expanded {} NAR files in {} seconds ({} ns)", narFiles.size(), durationSeconds, duration);
 
             return extensionMapping;
         } catch (IOException e) {
@@ -260,10 +257,7 @@ public final class NarUnpacker {
         for (final Map.Entry<File, BundleCoordinate> entry : unpackedNars.entrySet()) {
             final File unpackedNar = entry.getKey();
             final BundleCoordinate bundleCoordinate = entry.getValue();
-            final long startTime = System.nanoTime();
             mapExtension(unpackedNar, bundleCoordinate, mapping);
-            final long duration = System.nanoTime() - startTime;
-            logger.debug("Completed map extension for bundle coordinate {} in {} seconds ({} ns)", bundleCoordinate, TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0, duration);
         }
     }
 
