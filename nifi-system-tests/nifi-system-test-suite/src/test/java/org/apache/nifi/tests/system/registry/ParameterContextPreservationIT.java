@@ -30,8 +30,6 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -58,8 +56,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * parameter context that its parent A2 uses.
  */
 class ParameterContextPreservationIT extends NiFiSystemIT {
-    private static final Logger logger = LoggerFactory.getLogger(ParameterContextPreservationIT.class);
-    static final String TEST_FLOWS_BUCKET = "test-flows";
+    private static final String TEST_FLOWS_BUCKET = "test-flows";
+    private static final String PARAMETER_CONTEXT_NAME = "P";
+    private static final String PARAMETER_NAME = "param1";
+    private static final String PARAMETER_VALUE = "value1";
+    private static final String PARAMETER_REFERENCE = "#{" + PARAMETER_NAME + "}";
+    private static final String GROUP_A_NAME = "A";
+    private static final String GROUP_B_NAME = "B";
+    private static final String FLOW_NAME = "FlowWithParameterContext";
+    private static final String PROCESSOR_TYPE = "GenerateFlowFile";
+    private static final String PROCESSOR_PROPERTY_TEXT = "Text";
+    private static final String RELATIONSHIP_SUCCESS = "success";
+    private static final String VERSION_1 = "1";
+    private static final String VERSION_2 = "2";
 
     @Test
     void testNewProcessGroupUsesCorrectParameterContextDuringUpgrade() throws NiFiClientException, IOException, InterruptedException {
@@ -67,35 +76,32 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         final NiFiClientUtil util = getClientUtil();
 
         // Step 1: Create Parameter Context "P" with param1
-        final String paramContextName = "P";
-        final ParameterContextEntity paramContextP = util.createParameterContext(paramContextName, Map.of("param1", "value1"));
+        final ParameterContextEntity paramContextP = util.createParameterContext(PARAMETER_CONTEXT_NAME, Map.of(PARAMETER_NAME, PARAMETER_VALUE));
 
         // Step 2: Create v1 - Process Group A with just a Processor X using param1
-        final ProcessGroupEntity groupA = util.createProcessGroup("A", "root");
+        final ProcessGroupEntity groupA = util.createProcessGroup(GROUP_A_NAME, "root");
         util.setParameterContext(groupA.getId(), paramContextP);
 
-        final ProcessorEntity processorX = util.createProcessor("GenerateFlowFile", groupA.getId());
-        util.updateProcessorProperties(processorX, Collections.singletonMap("Text", "#{param1}"));
-        util.setAutoTerminatedRelationships(processorX, "success");
+        final ProcessorEntity processorX = util.createProcessor(PROCESSOR_TYPE, groupA.getId());
+        util.updateProcessorProperties(processorX, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, PARAMETER_REFERENCE));
+        util.setAutoTerminatedRelationships(processorX, RELATIONSHIP_SUCCESS);
 
         // Save as v1
-        final VersionControlInformationEntity vciV1 = util.startVersionControl(groupA, clientEntity, TEST_FLOWS_BUCKET, "FlowWithParameterContext");
+        final VersionControlInformationEntity vciV1 = util.startVersionControl(groupA, clientEntity, TEST_FLOWS_BUCKET, FLOW_NAME);
         final String flowId = vciV1.getVersionControlInformation().getFlowId();
-        logger.info("Saved v1: Process Group A with Processor X");
 
         // Step 3: Create v2 - Add Process Group B inside A, also attached to P
-        final ProcessGroupEntity groupB = util.createProcessGroup("B", groupA.getId());
+        final ProcessGroupEntity groupB = util.createProcessGroup(GROUP_B_NAME, groupA.getId());
         util.setParameterContext(groupB.getId(), paramContextP);
 
         // Add a processor in B that uses param1
-        final ProcessorEntity processorInB = util.createProcessor("GenerateFlowFile", groupB.getId());
-        util.updateProcessorProperties(processorInB, Collections.singletonMap("Text", "#{param1}"));
-        util.setAutoTerminatedRelationships(processorInB, "success");
+        final ProcessorEntity processorInB = util.createProcessor(PROCESSOR_TYPE, groupB.getId());
+        util.updateProcessorProperties(processorInB, Collections.singletonMap(PROCESSOR_PROPERTY_TEXT, PARAMETER_REFERENCE));
+        util.setAutoTerminatedRelationships(processorInB, RELATIONSHIP_SUCCESS);
 
         // Save as v2
         final ProcessGroupEntity refreshedGroupA = getNifiClient().getProcessGroupClient().getProcessGroup(groupA.getId());
         util.saveFlowVersion(refreshedGroupA, clientEntity, vciV1);
-        logger.info("Saved v2: Added Process Group B inside A, attached to P");
 
         // Step 4: Clean up original flow
         final ProcessGroupEntity groupAForStopVc = getNifiClient().getProcessGroupClient().getProcessGroup(groupA.getId());
@@ -107,56 +113,43 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         final ParameterContextEntity contextToDelete = getNifiClient().getParamContextClient().getParamContext(paramContextP.getId(), false);
         getNifiClient().getParamContextClient().deleteParamContext(paramContextP.getId(),
                 String.valueOf(contextToDelete.getRevision().getVersion()));
-        logger.info("Cleaned up original flow and parameter context");
 
         // Step 5: Import v1 FIRST time - creates A1 with Parameter Context "P"
         final ProcessGroupEntity importedGroup1 = importFlowWithReplaceParameterContext(
-                "root", clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
+                clientEntity.getId(), flowId, VERSION_1);
 
         final ProcessGroupEntity fetchedGroup1 = getNifiClient().getProcessGroupClient().getProcessGroup(importedGroup1.getId());
         final String paramContextId1 = fetchedGroup1.getComponent().getParameterContext().getId();
-        final ParameterContextEntity paramContext1 = getNifiClient().getParamContextClient().getParamContext(paramContextId1, false);
-        logger.info("First import (A1): Parameter Context id={}, name={}", paramContextId1, paramContext1.getComponent().getName());
 
         // Step 6: Import v1 SECOND time - creates A2 with Parameter Context "P (1)"
         final ProcessGroupEntity importedGroup2 = importFlowWithReplaceParameterContext(
-                "root", clientEntity.getId(), TEST_FLOWS_BUCKET, flowId, "1");
+                clientEntity.getId(), flowId, VERSION_1);
 
         final ProcessGroupEntity fetchedGroup2 = getNifiClient().getProcessGroupClient().getProcessGroup(importedGroup2.getId());
         final String paramContextId2 = fetchedGroup2.getComponent().getParameterContext().getId();
-        final ParameterContextEntity paramContext2 = getNifiClient().getParamContextClient().getParamContext(paramContextId2, false);
-        logger.info("Second import (A2): Parameter Context id={}, name={}", paramContextId2, paramContext2.getComponent().getName());
 
         // Verify the two imports have DIFFERENT parameter contexts
         assertNotEquals(paramContextId1, paramContextId2,
                 "Second import should have a different parameter context");
-        logger.info("Verified: A1 uses '{}', A2 uses '{}'",
-                paramContext1.getComponent().getName(), paramContext2.getComponent().getName());
 
         // Step 7: Upgrade A2 from v1 to v2 (this adds Process Group B)
-        logger.info("Upgrading A2 from v1 to v2...");
-        util.changeFlowVersion(importedGroup2.getId(), "2");
-        logger.info("Upgrade complete");
+        util.changeFlowVersion(importedGroup2.getId(), VERSION_2);
 
         // Step 8: Verify the NEW Process Group B uses the CORRECT parameter context
         final ProcessGroupEntity upgradedGroup2 = getNifiClient().getProcessGroupClient().getProcessGroup(importedGroup2.getId());
         final String upgradedA2ParamContextId = upgradedGroup2.getComponent().getParameterContext().getId();
-        logger.info("After upgrade - A2 Parameter Context: id={}", upgradedA2ParamContextId);
 
         // A2 should still use P (1)
         assertEquals(paramContextId2, upgradedA2ParamContextId,
                 "After upgrade, A2 should still reference its original parameter context");
 
         // Get the newly added Process Group B
-        final ProcessGroupEntity newGroupB = getNestedProcessGroup(upgradedGroup2, "B");
+        final ProcessGroupEntity newGroupB = getNestedProcessGroup(upgradedGroup2, GROUP_B_NAME);
         assertNotNull(newGroupB, "Process Group B should exist after upgrade");
         assertNotNull(newGroupB.getComponent().getParameterContext(),
                 "Process Group B should have a parameter context assigned");
 
         final String groupBParamContextId = newGroupB.getComponent().getParameterContext().getId();
-        final ParameterContextEntity groupBParamContext = getNifiClient().getParamContextClient().getParamContext(groupBParamContextId, false);
-        logger.info("After upgrade - New Process Group B Parameter Context: id={}, name={}",
-                groupBParamContextId, groupBParamContext.getComponent().getName());
 
         // The NEW Process Group B should use the SAME parameter context as its parent A2 (P (1))
         assertEquals(paramContextId2, groupBParamContextId,
@@ -164,14 +157,12 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
     }
 
     private ProcessGroupEntity importFlowWithReplaceParameterContext(
-            final String parentGroupId,
             final String registryClientId,
-            final String bucketId,
             final String flowId,
             final String version) throws NiFiClientException, IOException {
 
         final VersionControlInformationDTO vci = new VersionControlInformationDTO();
-        vci.setBucketId(bucketId);
+        vci.setBucketId(TEST_FLOWS_BUCKET);
         vci.setFlowId(flowId);
         vci.setVersion(version);
         vci.setRegistryId(registryClientId);
@@ -183,7 +174,7 @@ class ParameterContextPreservationIT extends NiFiSystemIT {
         groupEntity.setComponent(processGroupDto);
         groupEntity.setRevision(getClientUtil().createNewRevision());
 
-        return getNifiClient().getProcessGroupClient().createProcessGroup(parentGroupId, groupEntity, false);
+        return getNifiClient().getProcessGroupClient().createProcessGroup("root", groupEntity, false);
     }
 
     private ProcessGroupEntity getNestedProcessGroup(ProcessGroupEntity parent, String name) throws NiFiClientException, IOException {
