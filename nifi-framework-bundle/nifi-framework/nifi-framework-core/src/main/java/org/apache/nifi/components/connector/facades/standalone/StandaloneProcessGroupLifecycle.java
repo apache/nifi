@@ -182,8 +182,8 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> startProcessors() {
-        final Collection<ProcessorNode> processors = processGroup.getProcessors();
+    public CompletableFuture<Void> startProcessors(final boolean recursive) {
+        final Collection<ProcessorNode> processors = recursive ? processGroup.findAllProcessors() : processGroup.getProcessors();
         final List<CompletableFuture<Void>> startFutures = new ArrayList<>();
         for (final ProcessorNode processor : processors) {
             // If Processor is not valid, perform validation again to ensure that the status is up to date.
@@ -192,7 +192,7 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
                 processor.performValidation();
             }
 
-            startFutures.add(processGroup.startProcessor(processor, true));
+            startFutures.add(processor.getProcessGroup().startProcessor(processor, true));
         }
 
         return CompletableFuture.allOf(startFutures.toArray(new CompletableFuture[0]));
@@ -204,74 +204,175 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
             return statelessGroupLifecycle.start();
         }
 
-        final CompletableFuture<Void> enableServicesFuture = enableControllerServices(serviceReferenceScope, ControllerServiceReferenceHierarchy.DIRECT_SERVICES_ONLY);
-        final CompletableFuture<Void> startAllComponents = enableServicesFuture.thenRunAsync(this::startPorts)
-                .thenRunAsync(this::startRemoteProcessGroups)
-                .thenCompose(v -> startProcessors());
+        final CompletableFuture<Void> result = new CompletableFuture<>();
 
-        final List<CompletableFuture<Void>> childGroupFutures = new ArrayList<>();
-        for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
+        Thread.startVirtualThread(() -> {
+            try {
+                enableControllerServices(serviceReferenceScope, ControllerServiceReferenceHierarchy.DIRECT_SERVICES_ONLY).get();
+                startPorts(false).get();
+                startRemoteProcessGroups(false).get();
+                startProcessors(false).get();
+
+                final List<CompletableFuture<Void>> childGroupFutures = new ArrayList<>();
+                for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
+                    final String childGroupId = childGroup.getVersionedComponentId().orElse(null);
+                    if (childGroupId == null) {
+                        logger.warn("Encountered child Process Group {} without a Versioned Component ID. Skipping start of child group.", childGroup.getIdentifier());
+                        continue;
+                    }
+
+                    final ProcessGroupLifecycle childLifecycle = childGroupLifecycleFactory.apply(childGroupId);
+                    childGroupFutures.add(childLifecycle.start(serviceReferenceScope));
+                }
+
+                CompletableFuture.allOf(childGroupFutures.toArray(new CompletableFuture[0])).get();
+                result.complete(null);
+            } catch (final Exception e) {
+                result.completeExceptionally(e);
+            }
+        });
+
+        return result;
+    }
+
+    @Override
+    public CompletableFuture<Void> startPorts(final boolean recursive) {
+        logger.debug("{} starting all ports", this);
+        final Collection<Port> inputPorts = recursive ? processGroup.findAllInputPorts() : processGroup.getInputPorts();
+        for (final Port inputPort : inputPorts) {
+            inputPort.getProcessGroup().startInputPort(inputPort);
+        }
+
+        final Collection<Port> outputPorts = recursive ? processGroup.findAllOutputPorts() : processGroup.getOutputPorts();
+        for (final Port outputPort : outputPorts) {
+            outputPort.getProcessGroup().startOutputPort(outputPort);
+        }
+
+        logger.info("{} started all ports", this);
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public CompletableFuture<Void> stopPorts(final boolean recursive) {
+        logger.debug("{} stopping all ports", this);
+
+        final Collection<Port> inputPorts = recursive ? processGroup.findAllInputPorts() : processGroup.getInputPorts();
+        for (final Port inputPort : inputPorts) {
+            inputPort.getProcessGroup().stopInputPort(inputPort);
+        }
+
+        final Collection<Port> outputPorts = recursive ? processGroup.findAllOutputPorts() : processGroup.getOutputPorts();
+        for (final Port outputPort : outputPorts) {
+            outputPort.getProcessGroup().stopOutputPort(outputPort);
+        }
+
+        logger.info("{} stopped all ports", this);
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public CompletableFuture<Void> startRemoteProcessGroups(final boolean recursive) {
+        logger.debug("{} starting all Remote Process Groups", this);
+
+        final Collection<RemoteProcessGroup> rpgs = recursive ? processGroup.findAllRemoteProcessGroups() : processGroup.getRemoteProcessGroups();
+        for (final RemoteProcessGroup rpg : rpgs) {
+            rpg.startTransmitting();
+        }
+
+        logger.info("{} started all Remote Process Groups", this);
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public CompletableFuture<Void> stopRemoteProcessGroups(final boolean recursive) {
+        logger.debug("{} stopping all Remote Process Groups", this);
+        final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
+
+        final Collection<RemoteProcessGroup> rpgs = recursive ? processGroup.findAllRemoteProcessGroups() : processGroup.getRemoteProcessGroups();
+        for (final RemoteProcessGroup rpg : rpgs) {
+            stopFutures.add(rpg.stopTransmitting());
+        }
+
+        logger.info("{} stopped all Remote Process Groups", this);
+        return CompletableFuture.allOf(stopFutures.toArray(new CompletableFuture[0]));
+    }
+
+    @Override
+    public CompletableFuture<Void> startStatelessGroups(final boolean recursive) {
+        logger.debug("{} starting all Stateless Process Groups", this);
+        final List<CompletableFuture<Void>> startFutures = new ArrayList<>();
+
+        final Collection<ProcessGroup> processGroups = processGroup.getProcessGroups();
+        for (final ProcessGroup childGroup : processGroups) {
             final String childGroupId = childGroup.getVersionedComponentId().orElse(null);
             if (childGroupId == null) {
-                logger.warn("Encountered child Process Group {} without a Versioned Component ID. Skipping start of child group.", childGroup.getIdentifier());
+                logger.warn("Encountered stateless child Process Group {} without a Versioned Component ID. Skipping start.", childGroup.getIdentifier());
                 continue;
             }
 
             final ProcessGroupLifecycle childLifecycle = childGroupLifecycleFactory.apply(childGroupId);
-            final CompletableFuture<Void> childFuture = childLifecycle.start(serviceReferenceScope);
-            childGroupFutures.add(childFuture);
+
+            if (childGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+                startFutures.add(childLifecycle.start(ControllerServiceReferenceScope.INCLUDE_REFERENCED_SERVICES_ONLY));
+            } else if (recursive) {
+                startFutures.add(childLifecycle.startStatelessGroups(true));
+            }
         }
 
-        final CompletableFuture<Void> compositeChildFutures = CompletableFuture.allOf(childGroupFutures.toArray(new CompletableFuture[0]));
-        return CompletableFuture.allOf(startAllComponents, compositeChildFutures);
+        logger.info("{} started all Stateless Process Groups", this);
+        return CompletableFuture.allOf(startFutures.toArray(new CompletableFuture[0]));
     }
 
-    private void startPorts() {
-        for (final Port inputPort : processGroup.getInputPorts()) {
-            processGroup.startInputPort(inputPort);
-        }
-        for (final Port outputPort : processGroup.getOutputPorts()) {
-            processGroup.startOutputPort(outputPort);
-        }
-    }
-
-    private void stopPorts() {
-        for (final Port inputPort : processGroup.getInputPorts()) {
-            processGroup.stopInputPort(inputPort);
-        }
-        for (final Port outputPort : processGroup.getOutputPorts()) {
-            processGroup.stopOutputPort(outputPort);
-        }
-    }
-
-    private void startRemoteProcessGroups() {
-        for (final RemoteProcessGroup rpg : processGroup.getRemoteProcessGroups()) {
-            rpg.startTransmitting();
-        }
-    }
-
-    private CompletableFuture<Void> stopRemoteProcessGroups() {
+    @Override
+    public CompletableFuture<Void> stopStatelessGroups(final boolean recursive) {
+        logger.debug("{} stopping all Stateless Process Groups", this);
         final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
 
-        for (final RemoteProcessGroup rpg : processGroup.getRemoteProcessGroups()) {
-            stopFutures.add(rpg.stopTransmitting());
+        for (final ProcessGroup childGroup : processGroup.getProcessGroups()) {
+            final String childGroupId = childGroup.getVersionedComponentId().orElse(null);
+            if (childGroupId == null) {
+                logger.warn("Encountered stateless child Process Group {} without a Versioned Component ID. Skipping stop.", childGroup.getIdentifier());
+                continue;
+            }
+
+            final ProcessGroupLifecycle childLifecycle = childGroupLifecycleFactory.apply(childGroupId);
+
+            if (childGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
+                stopFutures.add(childLifecycle.stop());
+            } else if (recursive) {
+                stopFutures.add(childLifecycle.stopStatelessGroups(true));
+            }
         }
 
+        logger.info("{} stopped all Stateless Process Groups", this);
         return CompletableFuture.allOf(stopFutures.toArray(new CompletableFuture[0]));
     }
 
     @Override
     public CompletableFuture<Void> stop() {
+        logger.debug("Stopping Process Group {}", processGroup.getIdentifier());
         if (processGroup.resolveExecutionEngine() == ExecutionEngine.STATELESS) {
             return statelessGroupLifecycle.stop();
         }
 
-        final CompletableFuture<Void> stopProcessorsFuture = stopProcessors();
+        final CompletableFuture<Void> result = new CompletableFuture<>();
 
-        return stopProcessorsFuture.thenCompose(voidValue -> stopChildren())
-            .thenRunAsync(this::stopPorts)
-            .thenCompose(voidValue -> stopRemoteProcessGroups())
-            .thenCompose(voidValue -> disableControllerServices(ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS));
+        Thread.startVirtualThread(() -> {
+            try {
+                stopProcessors(false).get();
+                stopChildren().get();
+                stopPorts(false).get();
+                stopRemoteProcessGroups(false).get();
+                disableControllerServices(ControllerServiceReferenceHierarchy.INCLUDE_CHILD_GROUPS).get();
+
+                logger.info("Stopped Process Group {}", processGroup.getIdentifier());
+                result.complete(null);
+            } catch (final Exception e) {
+                result.completeExceptionally(e);
+            }
+        });
+
+        return result;
     }
 
     private CompletableFuture<Void> stopChildren() {
@@ -292,11 +393,11 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
     }
 
     @Override
-    public CompletableFuture<Void> stopProcessors() {
-        final Collection<ProcessorNode> processors = processGroup.getProcessors();
+    public CompletableFuture<Void> stopProcessors(final boolean recursive) {
+        final Collection<ProcessorNode> processors = recursive ? processGroup.findAllProcessors() : processGroup.getProcessors();
         final List<CompletableFuture<Void>> stopFutures = new ArrayList<>();
         for (final ProcessorNode processor : processors) {
-            final CompletableFuture<Void> stopFuture = processGroup.stopProcessor(processor);
+            final CompletableFuture<Void> stopFuture = processor.getProcessGroup().stopProcessor(processor);
             stopFutures.add(stopFuture);
         }
 
@@ -317,5 +418,12 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
             total += getActiveThreadCount(childGroup);
         }
         return total;
+    }
+
+    @Override
+    public String toString() {
+        return "StandaloneProcessGroupLifecycle[" +
+            "processGroup=" + processGroup.getIdentifier() +
+            "]";
     }
 }
