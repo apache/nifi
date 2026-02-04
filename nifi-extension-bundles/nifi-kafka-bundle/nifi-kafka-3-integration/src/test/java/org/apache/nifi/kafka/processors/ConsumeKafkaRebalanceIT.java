@@ -19,6 +19,7 @@ package org.apache.nifi.kafka.processors;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -56,6 +58,9 @@ import static org.mockito.Mockito.mock;
  * without causing duplicate message processing.
  */
 class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
+
+    private static final int NUM_PARTITIONS = 3;
+    private static final int MESSAGES_PER_PARTITION = 20;
 
     /**
      * Tests that when onPartitionsRevoked is called (simulating rebalance), the consumer
@@ -74,29 +79,20 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
     void testRebalanceDoesNotCauseDuplicates() throws Exception {
         final String topic = "rebalance-test-" + UUID.randomUUID();
         final String groupId = "rebalance-group-" + UUID.randomUUID();
-        final int numPartitions = 3;
-        final int messagesPerPartition = 20;
-        final int totalMessages = numPartitions * messagesPerPartition;
+        final int totalMessages = NUM_PARTITIONS * MESSAGES_PER_PARTITION;
 
-        // Create topic with multiple partitions
-        createTopic(topic, numPartitions);
+        createTopic(topic, NUM_PARTITIONS);
+        produceMessagesToTopic(topic, NUM_PARTITIONS, MESSAGES_PER_PARTITION);
 
-        // Produce messages to all partitions
-        produceMessagesToTopic(topic, numPartitions, messagesPerPartition);
-
-        // Track consumed messages to detect duplicates
         final Set<String> consumedMessages = new HashSet<>();
         final AtomicInteger duplicateCount = new AtomicInteger(0);
-
         final ComponentLog mockLog = mock(ComponentLog.class);
 
-        // Consumer 1: Poll some messages, then simulate rebalance
         final Properties props1 = getConsumerProperties(groupId);
         try (KafkaConsumer<byte[], byte[]> kafkaConsumer1 = new KafkaConsumer<>(props1)) {
             final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
             final Kafka3ConsumerService service1 = new Kafka3ConsumerService(mockLog, kafkaConsumer1, subscription);
 
-            // Poll about half the messages
             int consumer1Count = 0;
             int maxAttempts = 20;
             while (consumer1Count < totalMessages / 2 && maxAttempts-- > 0) {
@@ -109,19 +105,16 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
                 }
             }
 
-            // Simulate rebalance - this should commit the offsets
             final Set<TopicPartition> assignment = kafkaConsumer1.assignment();
             service1.onPartitionsRevoked(assignment);
             service1.close();
         }
 
-        // Consumer 2: Should continue from where Consumer 1 left off (no duplicates)
         final Properties props2 = getConsumerProperties(groupId);
         try (KafkaConsumer<byte[], byte[]> kafkaConsumer2 = new KafkaConsumer<>(props2)) {
             final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
             final Kafka3ConsumerService service2 = new Kafka3ConsumerService(mockLog, kafkaConsumer2, subscription);
 
-            // Poll remaining messages
             int emptyPolls = 0;
             while (emptyPolls < 5 && consumedMessages.size() < totalMessages) {
                 boolean hasRecords = false;
@@ -142,7 +135,6 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             service2.close();
         }
 
-        // Verify results
         assertEquals(0, duplicateCount.get(),
                 "Expected no duplicate messages but found " + duplicateCount.get());
         assertEquals(totalMessages, consumedMessages.size(),
@@ -151,6 +143,7 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
 
     /**
      * Tests that offsets are committed during rebalance by simulating the onPartitionsRevoked callback.
+     *
      * This test:
      * 1. Creates a consumer and polls messages
      * 2. Manually invokes onPartitionsRevoked (simulating what Kafka does during rebalance)
@@ -161,23 +154,18 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
     void testOffsetsCommittedDuringRebalance() throws Exception {
         final String topic = "rebalance-offset-test-" + UUID.randomUUID();
         final String groupId = "rebalance-offset-group-" + UUID.randomUUID();
-
-        // Create topic with multiple partitions
-        createTopic(topic, 3);
-
-        // Produce some messages (10 per partition = 30 total)
         final int messagesPerPartition = 10;
-        produceMessagesToTopic(topic, 3, messagesPerPartition);
+
+        createTopic(topic, NUM_PARTITIONS);
+        produceMessagesToTopic(topic, NUM_PARTITIONS, messagesPerPartition);
 
         final ComponentLog mockLog = mock(ComponentLog.class);
-
-        // Create consumer and poll messages
         final Properties props = getConsumerProperties(groupId);
+
         try (KafkaConsumer<byte[], byte[]> kafkaConsumer = new KafkaConsumer<>(props)) {
             final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
             final Kafka3ConsumerService service = new Kafka3ConsumerService(mockLog, kafkaConsumer, subscription);
 
-            // Poll messages until we have some
             int polledCount = 0;
             int maxAttempts = 20;
             while (polledCount < 15 && maxAttempts-- > 0) {
@@ -188,28 +176,21 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
 
             assertTrue(polledCount > 0, "Should have polled at least some messages");
 
-            // Get the current assignment before simulating rebalance
             final Set<TopicPartition> assignment = kafkaConsumer.assignment();
             assertFalse(assignment.isEmpty(), "Consumer should have partition assignments");
 
-            // Simulate rebalance by calling onPartitionsRevoked
-            // This is what Kafka calls when a rebalance occurs
             service.onPartitionsRevoked(assignment);
-
-            // Close the service
             service.close();
         }
 
-        // Verify that offsets were committed by checking with a new consumer
         try (KafkaConsumer<byte[], byte[]> verifyConsumer = new KafkaConsumer<>(getConsumerProperties(groupId))) {
             final Set<TopicPartition> partitions = new HashSet<>();
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < NUM_PARTITIONS; i++) {
                 partitions.add(new TopicPartition(topic, i));
             }
 
             final Map<TopicPartition, OffsetAndMetadata> committedOffsets = verifyConsumer.committed(partitions);
 
-            // At least some offsets should be committed
             long totalCommitted = committedOffsets.values().stream()
                     .filter(o -> o != null)
                     .mapToLong(OffsetAndMetadata::offset)
@@ -247,10 +228,29 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
         try (Admin admin = Admin.create(adminProps)) {
             final NewTopic newTopic = new NewTopic(topic, numPartitions, (short) 1);
             admin.createTopics(Collections.singletonList(newTopic)).all().get(30, TimeUnit.SECONDS);
+            waitForTopicReady(admin, topic, numPartitions);
         }
+    }
 
-        // Wait for topic to be fully created
-        Thread.sleep(1000);
+    private void waitForTopicReady(final Admin admin, final String topic, final int expectedPartitions) throws Exception {
+        final long startTime = System.currentTimeMillis();
+        final long timeoutMillis = 30000;
+
+        while (System.currentTimeMillis() - startTime < timeoutMillis) {
+            try {
+                final Map<String, TopicDescription> descriptions = admin.describeTopics(Collections.singletonList(topic))
+                        .allTopicNames()
+                        .get(10, TimeUnit.SECONDS);
+                final TopicDescription description = descriptions.get(topic);
+                if (description != null && description.partitions().size() == expectedPartitions) {
+                    return;
+                }
+            } catch (ExecutionException ignored) {
+                // Topic not ready yet, continue polling
+            }
+            Thread.sleep(100);
+        }
+        throw new RuntimeException("Topic " + topic + " not ready after " + timeoutMillis + "ms");
     }
 
     private Properties getConsumerProperties(final String groupId) {

@@ -77,7 +77,6 @@ class Kafka3ConsumerServiceTest {
 
     @Test
     void testOnPartitionsRevokedCommitsUncommittedOffsets() {
-        // Arrange: Simulate polling records from two partitions
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
         final TopicPartition partition1 = new TopicPartition(TOPIC, PARTITION_1);
 
@@ -91,42 +90,32 @@ class Kafka3ConsumerServiceTest {
 
         when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
-        // Act: Poll records (this should track the offsets internally)
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
-        // Consume the iterator to ensure records are processed
         for (ByteRecord ignored : polledRecords) {
-            // Just iterate through
         }
 
-        // Act: Simulate rebalance - partitions being revoked
         final Collection<TopicPartition> revokedPartitions = List.of(partition0, partition1);
         consumerService.onPartitionsRevoked(revokedPartitions);
 
-        // Assert: Verify that offsets were committed for the revoked partitions
         verify(consumer).commitSync(offsetsCaptor.capture());
         final Map<TopicPartition, OffsetAndMetadata> committedOffsets = offsetsCaptor.getValue();
 
         assertEquals(2, committedOffsets.size());
-        // Offset should be record.offset + 1 (next offset to consume)
         assertEquals(6L, committedOffsets.get(partition0).offset());
         assertEquals(11L, committedOffsets.get(partition1).offset());
     }
 
     @Test
     void testOnPartitionsRevokedWithNoUncommittedOffsets() {
-        // Arrange: No records polled
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
 
-        // Act: Simulate rebalance without any prior polling
         consumerService.onPartitionsRevoked(List.of(partition0));
 
-        // Assert: No commit should be called since there are no uncommitted offsets
         verify(consumer, never()).commitSync(anyMap());
     }
 
     @Test
     void testOnPartitionsRevokedOnlyCommitsRevokedPartitions() {
-        // Arrange: Poll records from two partitions
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
         final TopicPartition partition1 = new TopicPartition(TOPIC, PARTITION_1);
 
@@ -140,16 +129,12 @@ class Kafka3ConsumerServiceTest {
 
         when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
-        // Act: Poll records
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
         for (ByteRecord ignored : polledRecords) {
-            // Just iterate through
         }
 
-        // Act: Only revoke partition 0, keep partition 1
         consumerService.onPartitionsRevoked(List.of(partition0));
 
-        // Assert: Only partition 0 should be committed
         verify(consumer).commitSync(offsetsCaptor.capture());
         final Map<TopicPartition, OffsetAndMetadata> committedOffsets = offsetsCaptor.getValue();
 
@@ -160,12 +145,11 @@ class Kafka3ConsumerServiceTest {
 
     @Test
     void testOnPartitionsRevokedTracksMaxOffset() {
-        // Arrange: Poll multiple records from same partition
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
 
         final ConsumerRecord<byte[], byte[]> record1 = createRecord(TOPIC, PARTITION_0, 5L);
         final ConsumerRecord<byte[], byte[]> record2 = createRecord(TOPIC, PARTITION_0, 7L);
-        final ConsumerRecord<byte[], byte[]> record3 = createRecord(TOPIC, PARTITION_0, 6L); // Out of order
+        final ConsumerRecord<byte[], byte[]> record3 = createRecord(TOPIC, PARTITION_0, 6L);
 
         final Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap = new HashMap<>();
         recordsMap.put(partition0, List.of(record1, record2, record3));
@@ -173,16 +157,12 @@ class Kafka3ConsumerServiceTest {
 
         when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
 
-        // Act: Poll records
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
         for (ByteRecord ignored : polledRecords) {
-            // Just iterate through
         }
 
-        // Act: Revoke partition
         consumerService.onPartitionsRevoked(List.of(partition0));
 
-        // Assert: Should commit max offset + 1 (7 + 1 = 8)
         verify(consumer).commitSync(offsetsCaptor.capture());
         final Map<TopicPartition, OffsetAndMetadata> committedOffsets = offsetsCaptor.getValue();
 
@@ -192,7 +172,6 @@ class Kafka3ConsumerServiceTest {
 
     @Test
     void testRollbackClearsUncommittedOffsets() {
-        // Arrange: Poll records
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
 
         final ConsumerRecord<byte[], byte[]> record0 = createRecord(TOPIC, PARTITION_0, 5L);
@@ -205,19 +184,13 @@ class Kafka3ConsumerServiceTest {
         when(consumer.assignment()).thenReturn(Collections.singleton(partition0));
         when(consumer.committed(any())).thenReturn(Collections.singletonMap(partition0, new OffsetAndMetadata(0L)));
 
-        // Act: Poll records
         final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
         for (ByteRecord ignored : polledRecords) {
-            // Just iterate through
         }
 
-        // Act: Rollback
         consumerService.rollback();
-
-        // Act: Now trigger rebalance
         consumerService.onPartitionsRevoked(List.of(partition0));
 
-        // Assert: No commit should happen because rollback cleared the uncommitted offsets
         verify(consumer, never()).commitSync(anyMap());
     }
 

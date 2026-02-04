@@ -163,14 +163,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
             return List.of();
         }
 
-        // Track the maximum offset for each partition to commit during rebalance
-        for (final ConsumerRecord<byte[], byte[]> record : consumerRecords) {
-            final TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
-            // Store offset + 1 because Kafka commits the next offset to consume
-            uncommittedOffsets.merge(topicPartition, record.offset() + 1, Math::max);
-        }
-
-        return new RecordIterable(consumerRecords);
+        return new RecordIterable(consumerRecords, uncommittedOffsets);
     }
 
     @Override
@@ -233,8 +226,9 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     private static class RecordIterable implements Iterable<ByteRecord> {
         private final Iterator<ByteRecord> records;
 
-        private RecordIterable(final Iterable<ConsumerRecord<byte[], byte[]>> consumerRecords) {
-            this.records = new RecordIterator(consumerRecords);
+        private RecordIterable(final Iterable<ConsumerRecord<byte[], byte[]>> consumerRecords,
+                               final Map<TopicPartition, Long> uncommittedOffsets) {
+            this.records = new RecordIterator(consumerRecords, uncommittedOffsets);
         }
 
         @Override
@@ -245,9 +239,12 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
 
     private static class RecordIterator implements Iterator<ByteRecord> {
         private final Iterator<ConsumerRecord<byte[], byte[]>> consumerRecords;
+        private final Map<TopicPartition, Long> uncommittedOffsets;
 
-        private RecordIterator(final Iterable<ConsumerRecord<byte[], byte[]>> records) {
+        private RecordIterator(final Iterable<ConsumerRecord<byte[], byte[]>> records,
+                               final Map<TopicPartition, Long> uncommittedOffsets) {
             this.consumerRecords = records.iterator();
+            this.uncommittedOffsets = uncommittedOffsets;
         }
 
         @Override
@@ -258,6 +255,12 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
         @Override
         public ByteRecord next() {
             final ConsumerRecord<byte[], byte[]> consumerRecord = consumerRecords.next();
+
+            // Track the offset for potential commit during rebalance
+            // Store offset + 1 because Kafka commits the next offset to consume
+            final TopicPartition topicPartition = new TopicPartition(consumerRecord.topic(), consumerRecord.partition());
+            uncommittedOffsets.merge(topicPartition, consumerRecord.offset() + 1, Math::max);
+
             final List<RecordHeader> recordHeaders = new ArrayList<>();
             consumerRecord.headers().forEach(header -> {
                 final RecordHeader recordHeader = new RecordHeader(header.key(), header.value());
