@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverter {
     private final Charset headerEncoding;
     private final Pattern headerNamePattern;
+    private final String headerNamePrefix;
     private final KeyEncoding keyEncoding;
     private final boolean commitOffsets;
     private final OffsetTracker offsetTracker;
@@ -41,12 +42,14 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
     public FlowFileStreamKafkaMessageConverter(
             final Charset headerEncoding,
             final Pattern headerNamePattern,
+            final String headerNamePrefix,
             final KeyEncoding keyEncoding,
             final boolean commitOffsets,
             final OffsetTracker offsetTracker,
             final String brokerUri) {
         this.headerEncoding = headerEncoding;
         this.headerNamePattern = headerNamePattern;
+        this.headerNamePrefix = headerNamePrefix;
         this.keyEncoding = keyEncoding;
         this.commitOffsets = commitOffsets;
         this.offsetTracker = offsetTracker;
@@ -68,7 +71,7 @@ public class FlowFileStreamKafkaMessageConverter implements KafkaMessageConverte
             }
 
             final Map<String, String> attributes = KafkaUtils.toAttributes(
-                    consumerRecord, keyEncoding, headerNamePattern, headerEncoding, commitOffsets);
+                    consumerRecord, keyEncoding, headerNamePattern, headerNamePrefix, headerEncoding, commitOffsets);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, brokerUri + "/" + consumerRecord.getTopic());
