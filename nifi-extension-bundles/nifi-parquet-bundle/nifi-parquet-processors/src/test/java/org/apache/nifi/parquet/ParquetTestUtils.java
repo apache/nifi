@@ -35,6 +35,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
@@ -97,21 +98,22 @@ public class ParquetTestUtils {
      * Creates a parquet file with timestamp_millis logical type for testing NIFI-15548.
      *
      * @param numRecords Number of records to create
+     * @param directory Directory where the parquet file will be created
      * @return The created parquet file
      * @throws IOException if file creation fails
      */
-    public static File createTimestampParquetFile(int numRecords) throws IOException {
+    public static File createTimestampParquetFile(int numRecords, File directory) throws IOException {
         // Create schema with timestamp_millis logical type
         final Schema timestampSchema = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
 
         final Schema recordSchema = Schema.createRecord("TimestampRecord", null, "test", false);
-        recordSchema.setFields(java.util.List.of(
+        recordSchema.setFields(List.of(
                 new Schema.Field("id", Schema.create(Schema.Type.INT)),
                 new Schema.Field("name", Schema.create(Schema.Type.STRING)),
                 new Schema.Field("created_at", timestampSchema)
         ));
 
-        final File parquetFile = new File("target/TestParquetReader-testTimestamp-" + System.currentTimeMillis());
+        final File parquetFile = new File(directory, "TestParquetReader-testTimestamp-" + System.currentTimeMillis());
 
         try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
             for (int i = 0; i < numRecords; i++) {
@@ -132,22 +134,23 @@ public class ParquetTestUtils {
      * The timestamp field is wrapped in a union with null.
      *
      * @param numRecords Number of records to create
+     * @param directory Directory where the parquet file will be created
      * @return The created parquet file
      * @throws IOException if file creation fails
      */
-    public static File createNullableTimestampParquetFile(int numRecords) throws IOException {
+    public static File createNullableTimestampParquetFile(int numRecords, File directory) throws IOException {
         // Create schema with nullable timestamp_millis logical type (union with null)
         final Schema timestampSchema = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
         final Schema nullableTimestampSchema = Schema.createUnion(Schema.create(Schema.Type.NULL), timestampSchema);
 
         final Schema recordSchema = Schema.createRecord("NullableTimestampRecord", null, "test", false);
-        recordSchema.setFields(java.util.List.of(
+        recordSchema.setFields(List.of(
                 new Schema.Field("id", Schema.create(Schema.Type.INT)),
                 new Schema.Field("name", Schema.create(Schema.Type.STRING)),
                 new Schema.Field("created_at", nullableTimestampSchema)
         ));
 
-        final File parquetFile = new File("target/TestParquetReader-testNullableTimestamp-" + System.currentTimeMillis());
+        final File parquetFile = new File(directory, "TestParquetReader-testNullableTimestamp-" + System.currentTimeMillis());
 
         try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
             for (int i = 0; i < numRecords; i++) {
@@ -168,10 +171,11 @@ public class ParquetTestUtils {
      * This tests: date, time-millis, time-micros, timestamp-millis, timestamp-micros.
      *
      * @param numRecords Number of records to create
+     * @param directory Directory where the parquet file will be created
      * @return The created parquet file
      * @throws IOException if file creation fails
      */
-    public static File createAllTemporalTypesParquetFile(int numRecords) throws IOException {
+    public static File createAllTemporalTypesParquetFile(int numRecords, File directory) throws IOException {
         // Create schemas for all temporal logical types
         final Schema dateSchema = LogicalTypes.date().addToSchema(Schema.create(Schema.Type.INT));
         final Schema timeMillisSchema = LogicalTypes.timeMillis().addToSchema(Schema.create(Schema.Type.INT));
@@ -180,7 +184,7 @@ public class ParquetTestUtils {
         final Schema timestampMicrosSchema = LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
 
         final Schema recordSchema = Schema.createRecord("AllTemporalTypesRecord", null, "test", false);
-        recordSchema.setFields(java.util.List.of(
+        recordSchema.setFields(List.of(
                 new Schema.Field("id", Schema.create(Schema.Type.INT)),
                 new Schema.Field("date_field", dateSchema),
                 new Schema.Field("time_millis_field", timeMillisSchema),
@@ -189,7 +193,7 @@ public class ParquetTestUtils {
                 new Schema.Field("timestamp_micros_field", timestampMicrosSchema)
         ));
 
-        final File parquetFile = new File("target/TestParquetReader-testAllTemporalTypes-" + System.currentTimeMillis());
+        final File parquetFile = new File(directory, "TestParquetReader-testAllTemporalTypes-" + System.currentTimeMillis());
 
         try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
             for (int i = 0; i < numRecords; i++) {
@@ -216,19 +220,20 @@ public class ParquetTestUtils {
      * Creates a parquet file with date logical type for testing.
      *
      * @param numRecords Number of records to create
+     * @param directory Directory where the parquet file will be created
      * @return The created parquet file
      * @throws IOException if file creation fails
      */
-    public static File createDateParquetFile(int numRecords) throws IOException {
+    public static File createDateParquetFile(int numRecords, File directory) throws IOException {
         final Schema dateSchema = LogicalTypes.date().addToSchema(Schema.create(Schema.Type.INT));
 
         final Schema recordSchema = Schema.createRecord("DateRecord", null, "test", false);
-        recordSchema.setFields(java.util.List.of(
+        recordSchema.setFields(List.of(
                 new Schema.Field("id", Schema.create(Schema.Type.INT)),
                 new Schema.Field("date_field", dateSchema)
         ));
 
-        final File parquetFile = new File("target/TestParquetReader-testDate-" + System.currentTimeMillis());
+        final File parquetFile = new File(directory, "TestParquetReader-testDate-" + System.currentTimeMillis());
 
         try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
             for (int i = 0; i < numRecords; i++) {
@@ -246,19 +251,20 @@ public class ParquetTestUtils {
      * Creates a parquet file with time-millis logical type for testing.
      *
      * @param numRecords Number of records to create
+     * @param directory Directory where the parquet file will be created
      * @return The created parquet file
      * @throws IOException if file creation fails
      */
-    public static File createTimeMillisParquetFile(int numRecords) throws IOException {
+    public static File createTimeMillisParquetFile(int numRecords, File directory) throws IOException {
         final Schema timeMillisSchema = LogicalTypes.timeMillis().addToSchema(Schema.create(Schema.Type.INT));
 
         final Schema recordSchema = Schema.createRecord("TimeMillisRecord", null, "test", false);
-        recordSchema.setFields(java.util.List.of(
+        recordSchema.setFields(List.of(
                 new Schema.Field("id", Schema.create(Schema.Type.INT)),
                 new Schema.Field("time_millis_field", timeMillisSchema)
         ));
 
-        final File parquetFile = new File("target/TestParquetReader-testTimeMillis-" + System.currentTimeMillis());
+        final File parquetFile = new File(directory, "TestParquetReader-testTimeMillis-" + System.currentTimeMillis());
 
         try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
             for (int i = 0; i < numRecords; i++) {
@@ -277,19 +283,20 @@ public class ParquetTestUtils {
      * Creates a parquet file with time-micros logical type for testing.
      *
      * @param numRecords Number of records to create
+     * @param directory Directory where the parquet file will be created
      * @return The created parquet file
      * @throws IOException if file creation fails
      */
-    public static File createTimeMicrosParquetFile(int numRecords) throws IOException {
+    public static File createTimeMicrosParquetFile(int numRecords, File directory) throws IOException {
         final Schema timeMicrosSchema = LogicalTypes.timeMicros().addToSchema(Schema.create(Schema.Type.LONG));
 
         final Schema recordSchema = Schema.createRecord("TimeMicrosRecord", null, "test", false);
-        recordSchema.setFields(java.util.List.of(
+        recordSchema.setFields(List.of(
                 new Schema.Field("id", Schema.create(Schema.Type.INT)),
                 new Schema.Field("time_micros_field", timeMicrosSchema)
         ));
 
-        final File parquetFile = new File("target/TestParquetReader-testTimeMicros-" + System.currentTimeMillis());
+        final File parquetFile = new File(directory, "TestParquetReader-testTimeMicros-" + System.currentTimeMillis());
 
         try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
             for (int i = 0; i < numRecords; i++) {
@@ -308,19 +315,20 @@ public class ParquetTestUtils {
      * Creates a parquet file with timestamp-micros logical type for testing.
      *
      * @param numRecords Number of records to create
+     * @param directory Directory where the parquet file will be created
      * @return The created parquet file
      * @throws IOException if file creation fails
      */
-    public static File createTimestampMicrosParquetFile(int numRecords) throws IOException {
+    public static File createTimestampMicrosParquetFile(int numRecords, File directory) throws IOException {
         final Schema timestampMicrosSchema = LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
 
         final Schema recordSchema = Schema.createRecord("TimestampMicrosRecord", null, "test", false);
-        recordSchema.setFields(java.util.List.of(
+        recordSchema.setFields(List.of(
                 new Schema.Field("id", Schema.create(Schema.Type.INT)),
                 new Schema.Field("timestamp_micros_field", timestampMicrosSchema)
         ));
 
-        final File parquetFile = new File("target/TestParquetReader-testTimestampMicros-" + System.currentTimeMillis());
+        final File parquetFile = new File(directory, "TestParquetReader-testTimestampMicros-" + System.currentTimeMillis());
 
         try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
             for (int i = 0; i < numRecords; i++) {
