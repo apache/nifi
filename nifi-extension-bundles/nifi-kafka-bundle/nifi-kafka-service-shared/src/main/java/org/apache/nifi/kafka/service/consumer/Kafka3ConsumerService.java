@@ -240,6 +240,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     private static class RecordIterator implements Iterator<ByteRecord> {
         private final Iterator<ConsumerRecord<byte[], byte[]>> consumerRecords;
         private final Map<TopicPartition, Long> uncommittedOffsets;
+        private TopicPartition currentTopicPartition;
 
         private RecordIterator(final Iterable<ConsumerRecord<byte[], byte[]>> records,
                                final Map<TopicPartition, Long> uncommittedOffsets) {
@@ -258,7 +259,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
 
             // Track the offset for potential commit during rebalance
             // Store offset + 1 because Kafka commits the next offset to consume
-            final TopicPartition topicPartition = new TopicPartition(consumerRecord.topic(), consumerRecord.partition());
+            final TopicPartition topicPartition = getTopicPartition(consumerRecord);
             uncommittedOffsets.merge(topicPartition, consumerRecord.offset() + 1, Math::max);
 
             final List<RecordHeader> recordHeaders = new ArrayList<>();
@@ -283,6 +284,15 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
                     value,
                     1
             );
+        }
+
+        private TopicPartition getTopicPartition(final ConsumerRecord<byte[], byte[]> consumerRecord) {
+            if (currentTopicPartition == null
+                    || !currentTopicPartition.topic().equals(consumerRecord.topic())
+                    || currentTopicPartition.partition() != consumerRecord.partition()) {
+                currentTopicPartition = new TopicPartition(consumerRecord.topic(), consumerRecord.partition());
+            }
+            return currentTopicPartition;
         }
     }
 }
