@@ -108,9 +108,7 @@ class Kafka3ConsumerServiceTest {
     @Test
     void testOnPartitionsRevokedWithNoUncommittedOffsets() {
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
-
         consumerService.onPartitionsRevoked(List.of(partition0));
-
         verify(consumer, never()).commitSync(anyMap());
     }
 
