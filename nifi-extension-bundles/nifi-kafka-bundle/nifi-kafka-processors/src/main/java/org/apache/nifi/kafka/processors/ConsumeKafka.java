@@ -210,6 +210,18 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .expressionLanguageSupported(NONE)
             .build();
 
+    static final PropertyDescriptor HEADER_NAME_PREFIX = new PropertyDescriptor.Builder()
+            .name("Header Name Prefix")
+            .description("""
+                    A prefix to apply to the FlowFile attribute name when writing Kafka Record Header values.
+                    This is useful to avoid conflicts with reserved FlowFile attribute names such as 'uuid'.
+                    For example, if set to 'kafka.header.', a Kafka header named 'uuid' would be written as 'kafka.header.uuid'.
+                    """)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(false)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE)
+            .build();
+
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
             .description("The Record Reader to use for incoming Kafka messages")
@@ -304,6 +316,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             HEADER_NAME_PATTERN,
             HEADER_ENCODING,
             PROCESSING_STRATEGY,
+            HEADER_NAME_PREFIX,
             RECORD_READER,
             RECORD_WRITER,
             OUTPUT_STRATEGY,
@@ -319,6 +332,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private volatile Charset headerEncoding;
     private volatile Pattern headerNamePattern;
+    private volatile String headerNamePrefix;
     private volatile ProcessingStrategy processingStrategy;
     private volatile KeyEncoding keyEncoding;
     private volatile OutputStrategy outputStrategy;
@@ -366,6 +380,11 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
         commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
         processingStrategy = context.getProperty(PROCESSING_STRATEGY).asAllowableValue(ProcessingStrategy.class);
+
+        // Only read HEADER_NAME_PREFIX when PROCESSING_STRATEGY is FLOW_FILE (property dependency)
+        headerNamePrefix = processingStrategy == ProcessingStrategy.FLOW_FILE
+                ? context.getProperty(HEADER_NAME_PREFIX).getValue()
+                : null;
         outputStrategy = processingStrategy == ProcessingStrategy.RECORD ? context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class) : null;
         keyFormat = (outputStrategy == OutputStrategy.USE_WRAPPER || outputStrategy == OutputStrategy.INJECT_METADATA)
                 ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class)
@@ -612,7 +631,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private void processInputFlowFile(final ProcessSession session, final OffsetTracker offsetTracker, final Iterator<ByteRecord> consumerRecords) {
         final KafkaMessageConverter converter = new FlowFileStreamKafkaMessageConverter(
-            headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, brokerUri);
+            headerEncoding, headerNamePattern, headerNamePrefix, keyEncoding, commitOffsets, offsetTracker, brokerUri);
         converter.toFlowFiles(session, consumerRecords);
     }
 

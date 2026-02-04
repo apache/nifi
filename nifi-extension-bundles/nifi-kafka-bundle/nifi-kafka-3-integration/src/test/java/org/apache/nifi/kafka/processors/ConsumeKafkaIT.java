@@ -116,6 +116,54 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
         flowFile.assertAttributeNotExists("ccc");
     }
 
+    @Test
+    void testProcessingStrategyFlowFileHeaderNamePrefix() throws InterruptedException, ExecutionException {
+        final String topic = UUID.randomUUID().toString();
+        final String groupId = topic.substring(0, topic.indexOf("-"));
+
+        runner.setProperty(ConsumeKafka.GROUP_ID, groupId);
+        runner.setProperty(ConsumeKafka.TOPICS, topic);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
+        runner.setProperty(ConsumeKafka.HEADER_NAME_PATTERN, ".*");
+        runner.setProperty(ConsumeKafka.HEADER_NAME_PREFIX, "kafka.header.");
+
+        runner.run(1, false, true);
+
+        final List<Header> headers = Arrays.asList(
+                new RecordHeader("uuid", "test-uuid-value".getBytes(StandardCharsets.UTF_8)),
+                new RecordHeader("filename", "test-filename".getBytes(StandardCharsets.UTF_8)),
+                new RecordHeader("custom", "custom-value".getBytes(StandardCharsets.UTF_8)));
+        produceOne(topic, 0, null, RECORD_VALUE, headers);
+        while (runner.getFlowFilesForRelationship("success").isEmpty()) {
+            runner.run(1, false, false);
+        }
+
+        runner.run(1, true, false);
+
+        final Iterator<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(ConsumeKafka.SUCCESS).iterator();
+        assertTrue(flowFiles.hasNext());
+
+        final MockFlowFile flowFile = flowFiles.next();
+        flowFile.assertContentEquals(RECORD_VALUE);
+        flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_TOPIC, topic);
+        flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_PARTITION, Integer.toString(FIRST_PARTITION));
+        flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_OFFSET, Long.toString(FIRST_OFFSET));
+        flowFile.assertAttributeExists(KafkaFlowFileAttribute.KAFKA_TIMESTAMP);
+        flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_HEADER_COUNT, "3");
+
+        // Verify headers are prefixed with "kafka.header."
+        flowFile.assertAttributeEquals("kafka.header.uuid", "test-uuid-value");
+        flowFile.assertAttributeEquals("kafka.header.filename", "test-filename");
+        flowFile.assertAttributeEquals("kafka.header.custom", "custom-value");
+
+        // Verify the Kafka header values did NOT overwrite the core FlowFile attributes
+        // Note: "uuid" and "filename" are core FlowFile attributes that always exist,
+        // but they should NOT contain the Kafka header values when prefix is used
+        flowFile.assertAttributeExists("uuid"); // Core attribute exists
+        flowFile.assertAttributeNotEquals("uuid", "test-uuid-value"); // But not with Kafka header value
+        flowFile.assertAttributeNotExists("custom"); // Non-core attributes should not exist without prefix
+    }
+
     /**
      * Test ability to specify a topic regular expression to query for messages.
      */
