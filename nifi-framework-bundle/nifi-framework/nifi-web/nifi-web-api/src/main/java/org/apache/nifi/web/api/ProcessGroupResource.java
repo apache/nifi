@@ -1072,6 +1072,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
             // Step 5: Resolve Bundle info
             serviceFacade.discoverCompatibleBundles(flowSnapshot.getFlowContents());
+            serviceFacade.discoverCompatibleBundles(flowSnapshot.getParameterProviders());
 
             // If there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
             unresolvedControllerServices.addAll(serviceFacade.resolveInheritedControllerServices(flowSnapshotContainer, groupId, NiFiUserUtils.getNiFiUser()));
@@ -2746,6 +2747,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         // resolve Bundle info
         serviceFacade.discoverCompatibleBundles(deserializedSnapshot.getFlowContents());
+        serviceFacade.discoverCompatibleBundles(deserializedSnapshot.getParameterProviders());
 
         // if there are any Controller Services referenced that are inherited from the parent group,
         // resolve those to point to the appropriate Controller Service, if we are able to.
@@ -2845,6 +2847,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         // resolve Bundle info
         serviceFacade.discoverCompatibleBundles(versionedFlowSnapshot.getFlowContents());
+        serviceFacade.discoverCompatibleBundles(versionedFlowSnapshot.getParameterProviders());
 
         // if there are any Controller Services referenced that are inherited from the parent group,
         // resolve those to point to the appropriate Controller Service, if we are able to.
@@ -2983,6 +2986,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         // resolve Bundle info
         serviceFacade.discoverCompatibleBundles(versionedProcessGroup);
+        serviceFacade.discoverCompatibleBundles(copyResponseEntity.getParameterProviders());
 
         // prep a pasted flow snapshot to attempt to resolve external services and referenced parameter providers
         final RegisteredFlowSnapshot pastedFlowSnapshot = new RegisteredFlowSnapshot();
