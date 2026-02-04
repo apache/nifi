@@ -22,3 +22,5 @@ org.apache.nifi.components.connector.processors.OverwriteFlowFile
 org.apache.nifi.components.connector.processors.TerminateFlowFile
 org.apache.nifi.components.connector.processors.LogFlowFileContents
 org.apache.nifi.components.connector.processors.ExposeFileValues
+org.apache.nifi.components.connector.processors.Sleep
+org.apache.nifi.components.connector.processors.OnPropertyModifiedTracker
