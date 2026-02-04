@@ -43,9 +43,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Kafka 3 Consumer Service implementation with Object Pooling for subscribed Kafka Consumers
@@ -148,13 +150,27 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
             final String topic = topics.next();
             partitionStates = consumer.partitionsFor(topic)
                 .stream()
-                .map(partitionInfo -> new PartitionState(partitionInfo.topic(), partitionInfo.partition()))
-                .collect(Collectors.toList());
+                .map(partitionInfo -> new PartitionState(
+                        partitionInfo.topic(),
+                        partitionInfo.partition()))
+                .collect(toList());
         } else {
             partitionStates = Collections.emptyList();
         }
 
         return partitionStates;
+    }
+
+    @Override
+    public OptionalLong currentLag(final TopicPartitionSummary topicPartitionSummary) {
+        final TopicPartition topicPartition = new TopicPartition(topicPartitionSummary.getTopic(), topicPartitionSummary.getPartition());
+        try {
+            return consumer.currentLag(topicPartition);
+        } catch (final IllegalStateException e) {
+            // this case can be pretty common during rebalancing or before first poll call
+            componentLog.debug("Unable to fetch current lag for partition {}-{}: {}", topicPartitionSummary.getTopic(), topicPartitionSummary.getPartition(), e.getMessage());
+            return OptionalLong.empty();
+        }
     }
 
     @Override
