@@ -56,7 +56,7 @@ public class ClusteredParameterContextIT extends ParameterContextIT {
     public void testSynchronizeAssets() throws NiFiClientException, IOException, InterruptedException {
         waitForAllNodesConnected();
 
-        final Map<String, String> paramValues = Map.of("name", "foo", "fileToIngest", "");
+        final Map<String, String> paramValues = Map.of("name", "foo", "fileToIngest", "", "anotherFileToIngest", "");
         final ParameterContextEntity paramContext = getClientUtil().createParameterContext("testSynchronizeAssets", paramValues);
 
         // Set the Parameter Context on the root Process Group
@@ -67,12 +67,12 @@ public class ClusteredParameterContextIT extends ParameterContextIT {
         getClientUtil().updateProcessorProperties(ingest, Map.of("Filename", "#{fileToIngest}", "Delete File", "false"));
         getClientUtil().updateProcessorSchedulingPeriod(ingest, "10 mins");
 
-        // Create an asset and update the parameter to reference the asset
+        // Create an asset and update both parameters to reference the same asset
         final File assetFile = new File("src/test/resources/sample-assets/helloworld.txt");
         final AssetEntity asset = createAsset(paramContext.getId(), assetFile);
 
         final ParameterContextUpdateRequestEntity referenceAssetUpdateRequest = getClientUtil().updateParameterAssetReferences(
-                paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId())));
+                paramContext, Map.of("fileToIngest", List.of(asset.getAsset().getId()), "anotherFileToIngest", List.of(asset.getAsset().getId())));
         getClientUtil().waitForParameterContextRequestToComplete(paramContext.getId(), referenceAssetUpdateRequest.getRequest().getRequestId());
 
         final ProcessorEntity terminate = getClientUtil().createProcessor("TerminateFlowFile");

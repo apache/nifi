@@ -134,7 +134,7 @@ public class StandardAssetSynchronizer implements AssetSynchronizer {
         final Map<String, Asset> existingAssets = parameterContext.getParameters().values().stream()
                 .map(Parameter::getReferencedAssets)
                 .flatMap(Collection::stream)
-                .collect(Collectors.toMap(Asset::getIdentifier, Function.identity()));
+                .collect(Collectors.toMap(Asset::getIdentifier, Function.identity(), (existing, replacement) -> existing));
 
         if (existingAssets.isEmpty()) {
             logger.info("Parameter context [{}] does not contain any assets to synchronize", parameterContext.getIdentifier());
