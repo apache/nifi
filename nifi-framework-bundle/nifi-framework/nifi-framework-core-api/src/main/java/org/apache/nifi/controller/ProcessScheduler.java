@@ -253,6 +253,17 @@ public interface ProcessScheduler {
     CompletableFuture<Void> enableControllerService(ControllerServiceNode service);
 
     /**
+     * Enables the Controller Service using the provided ConfigurationContext instead of deriving
+     * the context from the service's current configuration. This allows enabling a service with
+     * temporary/override property values.
+     *
+     * @param service the controller service to enable
+     * @param configurationContext the configuration context to use when enabling the service
+     * @return a CompletableFuture that completes when the service has been enabled
+     */
+    CompletableFuture<Void> enableControllerService(ControllerServiceNode service, ConfigurationContext configurationContext);
+
+    /**
      * Disables all of the given Controller Services in the order provided by the List
      * @param services the controller services to disable
      */
