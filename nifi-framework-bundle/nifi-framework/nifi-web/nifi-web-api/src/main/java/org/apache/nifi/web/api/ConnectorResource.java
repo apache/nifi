@@ -2241,20 +2241,30 @@ public class ConnectorResource extends ApplicationResource {
             }
         }
 
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connector = lookup.getConnector(connectorId);
-            connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-        });
+        final ConnectorEntity requestConnectorEntity = new ConnectorEntity();
+        requestConnectorEntity.setId(connectorId);
 
-        serviceFacade.verifyCanClearConnectorProcessorState(connectorId, processorId);
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                lookup -> {
+                    final Authorizable connector = lookup.getConnector(connectorId);
+                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanClearConnectorProcessorState(connectorId, processorId),
+                (connectorEntity) -> {
+                    // clear state
+                    final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
+                    final ComponentStateDTO state = serviceFacade.clearConnectorProcessorState(connectorEntity.getId(), processorId, expectedState);
 
-        final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
-        final ComponentStateDTO state = serviceFacade.clearConnectorProcessorState(connectorId, processorId, expectedState);
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
+                    entity.setComponentState(state);
 
-        final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setComponentState(state);
-
-        return generateOkResponse(entity).build();
+                    // generate the response
+                    return generateOkResponse(entity).build();
+                }
+        );
     }
 
     // -----------------
@@ -2350,20 +2360,30 @@ public class ConnectorResource extends ApplicationResource {
             }
         }
 
-        serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connector = lookup.getConnector(connectorId);
-            connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
-        });
+        final ConnectorEntity requestConnectorEntity = new ConnectorEntity();
+        requestConnectorEntity.setId(connectorId);
 
-        serviceFacade.verifyCanClearConnectorControllerServiceState(connectorId, controllerServiceId);
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                lookup -> {
+                    final Authorizable connector = lookup.getConnector(connectorId);
+                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanClearConnectorControllerServiceState(connectorId, controllerServiceId),
+                (connectorEntity) -> {
+                    // clear state
+                    final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
+                    final ComponentStateDTO state = serviceFacade.clearConnectorControllerServiceState(connectorEntity.getId(), controllerServiceId, expectedState);
 
-        final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
-        final ComponentStateDTO state = serviceFacade.clearConnectorControllerServiceState(connectorId, controllerServiceId, expectedState);
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
+                    entity.setComponentState(state);
 
-        final ComponentStateEntity entity = new ComponentStateEntity();
-        entity.setComponentState(state);
-
-        return generateOkResponse(entity).build();
+                    // generate the response
+                    return generateOkResponse(entity).build();
+                }
+        );
     }
 
     // -----------------
