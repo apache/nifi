@@ -1164,7 +1164,7 @@ public class AvroTypeUtil {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
                     // Handle both Integer (legacy) and LocalTime (newer Avro libraries)
                     if (value instanceof LocalTime localTime) {
-                        return new Time(localTime.toNanoOfDay() / 1_000_000);
+                        return Time.valueOf(localTime);
                     }
                     return new Time((int) value);
                 }
@@ -1181,7 +1181,7 @@ public class AvroTypeUtil {
                 if (LOGICAL_TYPE_TIME_MICROS.equals(logicalName)) {
                     // Handle both Long (legacy) and LocalTime (newer Avro libraries)
                     if (value instanceof LocalTime localTime) {
-                        return new Time(localTime.toNanoOfDay() / 1_000_000);
+                        return Time.valueOf(localTime);
                     }
                     return new Time(TimeUnit.MICROSECONDS.toMillis((long) value));
                 } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalName)) {
