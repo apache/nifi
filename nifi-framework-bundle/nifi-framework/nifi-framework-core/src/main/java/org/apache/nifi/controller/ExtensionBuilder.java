@@ -516,7 +516,7 @@ public class ExtensionBuilder {
             connector = createConnector();
         } catch (final Exception e) {
             logger.error("Could not create Connector of type {} from {} for ID {} due to: {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e.getMessage(), e);
-            return createGhostConnectorNode(connectorsAuthorizable);
+            return createGhostConnectorNode(connectorsAuthorizable, e);
         }
 
         final String componentType = connector.getClass().getSimpleName();
@@ -545,7 +545,7 @@ public class ExtensionBuilder {
             connectorNode.initializeConnector(initContext);
         } catch (final Exception e) {
             logger.error("Could not initialize Connector of type {} from {} for ID {}; creating \"Ghost\" implementation", type, bundleCoordinate, identifier, e);
-            return createGhostConnectorNode(connectorsAuthorizable);
+            return createGhostConnectorNode(connectorsAuthorizable, e);
         }
 
         if (loadInitialFlow) {
@@ -553,15 +553,15 @@ public class ExtensionBuilder {
                 connectorNode.loadInitialFlow();
             } catch (final Exception e) {
                 logger.error("Failed to load initial flow for {}; creating \"Ghost\" implementation", connectorNode, e);
-                return createGhostConnectorNode(connectorsAuthorizable);
+                return createGhostConnectorNode(connectorsAuthorizable, e);
             }
         }
 
         return connectorNode;
     }
 
-    private ConnectorNode createGhostConnectorNode(final Authorizable connectorsAuthorizable) {
-        final GhostConnector ghostConnector = new GhostConnector(identifier, type);
+    private ConnectorNode createGhostConnectorNode(final Authorizable connectorsAuthorizable, final Exception cause) {
+        final GhostConnector ghostConnector = new GhostConnector(identifier, type, cause);
         final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
         final String componentType = "(Missing) " + simpleClassName;
         final ComponentLog componentLog = new SimpleProcessLogger(identifier, ghostConnector, new StandardLoggingContext());
