@@ -882,7 +882,18 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         return enableControllerService(service, true);
     }
 
+    @Override
+    public CompletableFuture<Void> enableControllerService(final ControllerServiceNode service, final ConfigurationContext configurationContext) {
+        return enableControllerService(service, true, configurationContext);
+    }
+
     private CompletableFuture<Void> enableControllerService(final ControllerServiceNode service, final boolean completeFutureExceptionally) {
+        return enableControllerService(service, completeFutureExceptionally, null);
+    }
+
+    private CompletableFuture<Void> enableControllerService(final ControllerServiceNode service, final boolean completeFutureExceptionally,
+            final ConfigurationContext configurationContext) {
+
         if (service.isActive()) {
             LOG.debug("{} is already active, so not enabling it again", service);
             return CompletableFuture.completedFuture(null);
@@ -897,10 +908,11 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         for (final ControllerServiceNode dependentService : dependentServices) {
             // Enable Controller Service but if it fails, do not complete the future Exceptionally. This allows us to wait up until the
             // timeout for the service to enable, even if it needs to retry in order to do so.
-            futures.add(enableControllerService(dependentService, completeFutureExceptionally));
+            // Note: dependent services always use their own configuration, not the provided configurationContext
+            futures.add(enableControllerService(dependentService, completeFutureExceptionally, null));
         }
 
-        futures.add(service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, completeFutureExceptionally));
+        futures.add(service.enable(this.componentLifeCycleThreadPool, this.administrativeYieldMillis, completeFutureExceptionally, configurationContext));
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
