@@ -18,6 +18,7 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterGroup;
@@ -26,6 +27,7 @@ import org.apache.nifi.parameter.ParameterProvider;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -99,4 +101,12 @@ public interface ParameterProviderNode extends ComponentNode {
      * @return a list of results indicating whether the given configuration is valid
      */
     List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, ExtensionManager extensionManager);
+
+    /**
+     * Migrates the configuration of the Parameter Provider, allowing properties to be renamed, removed, or reconfigured.
+     *
+     * @param originalPropertyValues the original property values prior to migration
+     * @param controllerServiceFactory factory for creating controller services during migration
+     */
+    void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory controllerServiceFactory);
 }

@@ -23,6 +23,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.migration.PropertyConfiguration;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
@@ -238,6 +239,12 @@ public class BitbucketFlowRegistryClient extends AbstractGitFlowRegistryClient {
         }
 
         return validationResults;
+    }
+
+    @Override
+    public void migrateProperties(final PropertyConfiguration config) {
+        // NIFI-14968 removed the "Bitbucket API Version" property when adding Bitbucket Data Center support
+        config.removeProperty("Bitbucket API Version");
     }
 
     @Override
