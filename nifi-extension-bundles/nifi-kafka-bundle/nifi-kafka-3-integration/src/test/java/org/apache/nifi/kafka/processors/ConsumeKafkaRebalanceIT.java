@@ -107,6 +107,8 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
 
             final Set<TopicPartition> assignment = kafkaConsumer1.assignment();
             service1.onPartitionsRevoked(assignment);
+            // Simulate processor committing offsets after successful session commit
+            service1.commitOffsetsForRevokedPartitions();
             service1.close();
         }
 
@@ -142,12 +144,13 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
     }
 
     /**
-     * Tests that offsets are committed during rebalance by simulating the onPartitionsRevoked callback.
+     * Tests that offsets can be committed after rebalance when processor calls commitOffsetsForRevokedPartitions.
      *
      * This test:
      * 1. Creates a consumer and polls messages
      * 2. Manually invokes onPartitionsRevoked (simulating what Kafka does during rebalance)
-     * 3. Verifies that offsets were committed to Kafka
+     * 3. Calls commitOffsetsForRevokedPartitions (simulating processor committing after session commit)
+     * 4. Verifies that offsets were committed to Kafka
      */
     @Test
     @Timeout(value = 60, unit = TimeUnit.SECONDS)
@@ -180,6 +183,8 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
             assertFalse(assignment.isEmpty(), "Consumer should have partition assignments");
 
             service.onPartitionsRevoked(assignment);
+            // Simulate processor committing offsets after successful session commit
+            service.commitOffsetsForRevokedPartitions();
             service.close();
         }
 
@@ -197,8 +202,93 @@ class ConsumeKafkaRebalanceIT extends AbstractConsumeKafkaIT {
                     .sum();
 
             assertTrue(totalCommitted > 0,
-                    "Expected offsets to be committed during onPartitionsRevoked, but total committed offset was " + totalCommitted);
+                    "Expected offsets to be committed after commitOffsetsForRevokedPartitions, but total committed offset was " + totalCommitted);
         }
+    }
+
+    /**
+     * Tests that records are NOT lost when a rebalance occurs before processing is complete.
+     *
+     * This test simulates the scenario where:
+     * 1. Consumer polls and iterates through records (tracking offsets internally)
+     * 2. Rebalance occurs (onPartitionsRevoked called) BEFORE the processor commits its session
+     * 3. Consumer "fails" (simulating crash or processing failure) without committing offsets
+     * 4. New consumer joins with the same group
+     * 5. The new consumer receives the same records since they were never successfully processed
+     */
+    @Test
+    @Timeout(value = 60, unit = TimeUnit.SECONDS)
+    void testNoDataLossWhenRebalanceOccursBeforeProcessingComplete() throws Exception {
+        final String topic = "dataloss-test-" + UUID.randomUUID();
+        final String groupId = "dataloss-group-" + UUID.randomUUID();
+        final int messagesPerPartition = 10;
+        final int totalMessages = NUM_PARTITIONS * messagesPerPartition;
+
+        createTopic(topic, NUM_PARTITIONS);
+        produceMessagesToTopic(topic, NUM_PARTITIONS, messagesPerPartition);
+
+        final ComponentLog mockLog = mock(ComponentLog.class);
+        int recordsPolledByFirstConsumer = 0;
+
+        // Consumer 1: Poll and iterate records, then rebalance occurs, but processing "fails"
+        final Properties props1 = getConsumerProperties(groupId);
+        try (KafkaConsumer<byte[], byte[]> kafkaConsumer1 = new KafkaConsumer<>(props1)) {
+            final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
+            final Kafka3ConsumerService service1 = new Kafka3ConsumerService(mockLog, kafkaConsumer1, subscription);
+
+            // Poll and iterate through records - this tracks offsets internally
+            int maxAttempts = 20;
+            while (recordsPolledByFirstConsumer < totalMessages && maxAttempts-- > 0) {
+                for (ByteRecord ignored : service1.poll(Duration.ofSeconds(2))) {
+                    recordsPolledByFirstConsumer++;
+                }
+            }
+
+            assertTrue(recordsPolledByFirstConsumer > 0, "First consumer should have polled some records");
+
+            // Simulate rebalance occurring before processor commits its session
+            final Set<TopicPartition> assignment = kafkaConsumer1.assignment();
+            assertFalse(assignment.isEmpty(), "Consumer should have partition assignments");
+            service1.onPartitionsRevoked(assignment);
+
+            // DO NOT call any "commit" or "process" method - simulating that the processor
+            // never completed processing (e.g., session commit failed, process crashed, etc.)
+
+            service1.close();
+        }
+
+        // Consumer 2: Should receive the SAME records because processing was never completed
+        int recordsPolledBySecondConsumer = 0;
+        final Properties props2 = getConsumerProperties(groupId);
+        try (KafkaConsumer<byte[], byte[]> kafkaConsumer2 = new KafkaConsumer<>(props2)) {
+            final Subscription subscription = new Subscription(groupId, Collections.singletonList(topic), AutoOffsetReset.EARLIEST);
+            final Kafka3ConsumerService service2 = new Kafka3ConsumerService(mockLog, kafkaConsumer2, subscription);
+
+            // Poll for records - if no data loss, we should get the same records again
+            int emptyPolls = 0;
+            while (emptyPolls < 5) {
+                boolean hasRecords = false;
+                for (ByteRecord ignored : service2.poll(Duration.ofSeconds(2))) {
+                    hasRecords = true;
+                    recordsPolledBySecondConsumer++;
+                }
+                if (!hasRecords) {
+                    emptyPolls++;
+                } else {
+                    emptyPolls = 0;
+                }
+            }
+
+            service2.close();
+        }
+
+        // Records should NOT be lost - the second consumer should receive
+        // at least the records that were polled by the first consumer but never processed
+        assertTrue(recordsPolledBySecondConsumer >= recordsPolledByFirstConsumer,
+                "Data loss detected! First consumer polled " + recordsPolledByFirstConsumer +
+                " records but second consumer only received " + recordsPolledBySecondConsumer +
+                " records. Expected second consumer to receive at least " + recordsPolledByFirstConsumer +
+                " records since processing was never completed.");
     }
 
     /**

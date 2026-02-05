@@ -435,11 +435,22 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 final Iterator<ByteRecord> consumerRecords = consumerService.poll(maxWaitDuration).iterator();
                 if (!consumerRecords.hasNext()) {
                     getLogger().trace("No Kafka Records consumed: {}", pollingContext);
+                    // Check if a rebalance occurred during poll - if so, break to commit what we have
+                    if (consumerService.hasRevokedPartitions()) {
+                        getLogger().debug("Rebalance detected with revoked partitions, breaking to commit session");
+                        break;
+                    }
                     continue;
                 }
 
                 recordsReceived = true;
                 processConsumerRecords(context, session, offsetTracker, consumerRecords);
+
+                // Check if a rebalance occurred during poll - if so, break to commit what we have
+                if (consumerService.hasRevokedPartitions()) {
+                    getLogger().debug("Rebalance detected with revoked partitions, breaking to commit session");
+                    break;
+                }
 
                 if (maxUncommittedSizeConfigured) {
                     // Stop consuming before reaching Max Uncommitted Time when exceeding Max Uncommitted Size
@@ -460,8 +471,20 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             }
         }
 
-        if (!recordsReceived) {
+        if (!recordsReceived && !consumerService.hasRevokedPartitions()) {
             getLogger().trace("No Kafka Records consumed, re-queuing consumer");
+            consumerServices.offer(consumerService);
+            return;
+        }
+
+        // If no records received but we have revoked partitions, we still need to commit their offsets
+        if (!recordsReceived && consumerService.hasRevokedPartitions()) {
+            getLogger().debug("No records received but rebalance occurred, committing offsets for revoked partitions");
+            try {
+                consumerService.commitOffsetsForRevokedPartitions();
+            } catch (final Exception e) {
+                getLogger().warn("Failed to commit offsets for revoked partitions", e);
+            }
             consumerServices.offer(consumerService);
             return;
         }
@@ -485,6 +508,12 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 });
             }
 
+            // After successful session commit, also commit offsets for any partitions that were revoked during rebalance
+            if (consumerService.hasRevokedPartitions()) {
+                getLogger().debug("Committing offsets for partitions revoked during rebalance");
+                consumerService.commitOffsetsForRevokedPartitions();
+            }
+
             consumerServices.offer(consumerService);
             getLogger().debug("Committed offsets for Kafka Consumer Service");
         } catch (final Exception e) {
@@ -496,6 +525,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private void rollback(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final ProcessSession session) {
         if (!consumerService.isClosed()) {
             try {
+                // Clear any pending revoked partitions since we're rolling back
+                consumerService.clearRevokedPartitions();
                 consumerService.rollback();
                 consumerServices.offer(consumerService);
                 getLogger().debug("Rolled back offsets for Kafka Consumer Service");

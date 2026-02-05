@@ -37,7 +37,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -46,9 +45,9 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.regex.Pattern;
-
-import static java.util.stream.Collectors.toList;
+import java.util.stream.Collectors;
 
 /**
  * Kafka 3 Consumer Service implementation with Object Pooling for subscribed Kafka Consumers
@@ -59,6 +58,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     private final Consumer<byte[], byte[]> consumer;
     private final Subscription subscription;
     private final Map<TopicPartition, Long> uncommittedOffsets = new ConcurrentHashMap<>();
+    private final Set<TopicPartition> revokedPartitions = new CopyOnWriteArraySet<>();
     private volatile boolean closed = false;
 
     public Kafka3ConsumerService(final ComponentLog componentLog, final Consumer<byte[], byte[]> consumer, final Subscription subscription) {
@@ -85,23 +85,17 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     public void onPartitionsRevoked(final Collection<TopicPartition> partitions) {
         componentLog.info("Kafka revoked the following Partitions from this consumer: {}", partitions);
 
-        // Commit pending offsets for revoked partitions before losing ownership
-        final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
+        // Store revoked partitions for the processor to handle after committing its session.
+        // We do NOT commit offsets here to avoid data loss - the processor must commit its
+        // session first, then call commitOffsetsForRevokedPartitions().
         for (final TopicPartition partition : partitions) {
-            final Long offset = uncommittedOffsets.remove(partition);
-            if (offset != null) {
-                offsetsToCommit.put(partition, new OffsetAndMetadata(offset));
+            if (uncommittedOffsets.containsKey(partition)) {
+                revokedPartitions.add(partition);
             }
         }
 
-        if (!offsetsToCommit.isEmpty()) {
-            try {
-                consumer.commitSync(offsetsToCommit);
-                componentLog.info("Committed offsets during rebalance for partitions: {}", offsetsToCommit);
-            } catch (final Exception e) {
-                componentLog.warn("Failed to commit offsets during rebalance, rolling back", e);
-                rollback(new HashSet<>(partitions));
-            }
+        if (!revokedPartitions.isEmpty()) {
+            componentLog.info("Partitions revoked with uncommitted offsets, pending processor commit: {}", revokedPartitions);
         }
     }
 
@@ -131,6 +125,8 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
 
         // Clear tracked offsets for rolled back partitions
         partitions.forEach(uncommittedOffsets::remove);
+        // Clear any revoked partitions that are being rolled back
+        revokedPartitions.removeAll(partitions);
 
         try {
             final Map<TopicPartition, OffsetAndMetadata> metadataMap = consumer.committed(partitions);
@@ -179,7 +175,7 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
                 .map(partitionInfo -> new PartitionState(
                         partitionInfo.topic(),
                         partitionInfo.partition()))
-                .collect(toList());
+                .collect(Collectors.toList());
         } else {
             partitionStates = Collections.emptyList();
         }
@@ -203,6 +199,53 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     public void close() {
         closed = true;
         consumer.close();
+    }
+
+    @Override
+    public boolean hasRevokedPartitions() {
+        return !revokedPartitions.isEmpty();
+    }
+
+    @Override
+    public Collection<PartitionState> getRevokedPartitions() {
+        return revokedPartitions.stream()
+                .map(tp -> new PartitionState(tp.topic(), tp.partition()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void commitOffsetsForRevokedPartitions() {
+        if (revokedPartitions.isEmpty()) {
+            return;
+        }
+
+        final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
+        for (final TopicPartition partition : revokedPartitions) {
+            final Long offset = uncommittedOffsets.remove(partition);
+            if (offset != null) {
+                offsetsToCommit.put(partition, new OffsetAndMetadata(offset));
+            }
+        }
+
+        if (!offsetsToCommit.isEmpty()) {
+            try {
+                consumer.commitSync(offsetsToCommit);
+                componentLog.info("Committed offsets for revoked partitions after processor commit: {}", offsetsToCommit);
+            } catch (final Exception e) {
+                componentLog.warn("Failed to commit offsets for revoked partitions", e);
+            }
+        }
+
+        revokedPartitions.clear();
+    }
+
+    @Override
+    public void clearRevokedPartitions() {
+        // Remove the uncommitted offsets for revoked partitions without committing
+        for (final TopicPartition partition : revokedPartitions) {
+            uncommittedOffsets.remove(partition);
+        }
+        revokedPartitions.clear();
     }
 
     private Map<TopicPartition, OffsetAndMetadata> getOffsets(final PollingSummary pollingSummary) {

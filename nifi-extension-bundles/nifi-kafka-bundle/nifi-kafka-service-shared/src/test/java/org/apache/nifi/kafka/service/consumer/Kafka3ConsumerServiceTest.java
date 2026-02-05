@@ -44,6 +44,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.never;
@@ -76,7 +77,7 @@ class Kafka3ConsumerServiceTest {
     }
 
     @Test
-    void testOnPartitionsRevokedCommitsUncommittedOffsets() {
+    void testOnPartitionsRevokedStoresPartitionsForLaterCommit() {
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
         final TopicPartition partition1 = new TopicPartition(TOPIC, PARTITION_1);
 
@@ -94,8 +95,37 @@ class Kafka3ConsumerServiceTest {
         for (ByteRecord ignored : polledRecords) {
         }
 
+        assertFalse(consumerService.hasRevokedPartitions());
+
         final Collection<TopicPartition> revokedPartitions = List.of(partition0, partition1);
         consumerService.onPartitionsRevoked(revokedPartitions);
+
+        assertTrue(consumerService.hasRevokedPartitions());
+        assertEquals(2, consumerService.getRevokedPartitions().size());
+        verify(consumer, never()).commitSync(anyMap());
+    }
+
+    @Test
+    void testCommitOffsetsForRevokedPartitions() {
+        final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
+        final TopicPartition partition1 = new TopicPartition(TOPIC, PARTITION_1);
+
+        final ConsumerRecord<byte[], byte[]> record0 = createRecord(TOPIC, PARTITION_0, 5L);
+        final ConsumerRecord<byte[], byte[]> record1 = createRecord(TOPIC, PARTITION_1, 10L);
+
+        final Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap = new HashMap<>();
+        recordsMap.put(partition0, List.of(record0));
+        recordsMap.put(partition1, List.of(record1));
+        final ConsumerRecords<byte[], byte[]> consumerRecords = createConsumerRecords(recordsMap);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
+
+        final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
+        for (ByteRecord ignored : polledRecords) {
+        }
+
+        consumerService.onPartitionsRevoked(List.of(partition0, partition1));
+        consumerService.commitOffsetsForRevokedPartitions();
 
         verify(consumer).commitSync(offsetsCaptor.capture());
         final Map<TopicPartition, OffsetAndMetadata> committedOffsets = offsetsCaptor.getValue();
@@ -103,17 +133,19 @@ class Kafka3ConsumerServiceTest {
         assertEquals(2, committedOffsets.size());
         assertEquals(6L, committedOffsets.get(partition0).offset());
         assertEquals(11L, committedOffsets.get(partition1).offset());
+        assertFalse(consumerService.hasRevokedPartitions());
     }
 
     @Test
     void testOnPartitionsRevokedWithNoUncommittedOffsets() {
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
         consumerService.onPartitionsRevoked(List.of(partition0));
+        assertFalse(consumerService.hasRevokedPartitions());
         verify(consumer, never()).commitSync(anyMap());
     }
 
     @Test
-    void testOnPartitionsRevokedOnlyCommitsRevokedPartitions() {
+    void testOnPartitionsRevokedOnlyTracksPartitionsWithUncommittedOffsets() {
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
         final TopicPartition partition1 = new TopicPartition(TOPIC, PARTITION_1);
 
@@ -132,6 +164,7 @@ class Kafka3ConsumerServiceTest {
         }
 
         consumerService.onPartitionsRevoked(List.of(partition0));
+        consumerService.commitOffsetsForRevokedPartitions();
 
         verify(consumer).commitSync(offsetsCaptor.capture());
         final Map<TopicPartition, OffsetAndMetadata> committedOffsets = offsetsCaptor.getValue();
@@ -142,7 +175,7 @@ class Kafka3ConsumerServiceTest {
     }
 
     @Test
-    void testOnPartitionsRevokedTracksMaxOffset() {
+    void testCommitOffsetsForRevokedPartitionsTracksMaxOffset() {
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
 
         final ConsumerRecord<byte[], byte[]> record1 = createRecord(TOPIC, PARTITION_0, 5L);
@@ -160,6 +193,7 @@ class Kafka3ConsumerServiceTest {
         }
 
         consumerService.onPartitionsRevoked(List.of(partition0));
+        consumerService.commitOffsetsForRevokedPartitions();
 
         verify(consumer).commitSync(offsetsCaptor.capture());
         final Map<TopicPartition, OffsetAndMetadata> committedOffsets = offsetsCaptor.getValue();
@@ -169,7 +203,7 @@ class Kafka3ConsumerServiceTest {
     }
 
     @Test
-    void testRollbackClearsUncommittedOffsets() {
+    void testRollbackClearsRevokedPartitions() {
         final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
 
         final ConsumerRecord<byte[], byte[]> record0 = createRecord(TOPIC, PARTITION_0, 5L);
@@ -186,8 +220,37 @@ class Kafka3ConsumerServiceTest {
         for (ByteRecord ignored : polledRecords) {
         }
 
-        consumerService.rollback();
         consumerService.onPartitionsRevoked(List.of(partition0));
+        assertTrue(consumerService.hasRevokedPartitions());
+
+        consumerService.rollback();
+        assertFalse(consumerService.hasRevokedPartitions());
+
+        consumerService.commitOffsetsForRevokedPartitions();
+        verify(consumer, never()).commitSync(anyMap());
+    }
+
+    @Test
+    void testClearRevokedPartitionsWithoutCommitting() {
+        final TopicPartition partition0 = new TopicPartition(TOPIC, PARTITION_0);
+
+        final ConsumerRecord<byte[], byte[]> record0 = createRecord(TOPIC, PARTITION_0, 5L);
+
+        final Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap = new HashMap<>();
+        recordsMap.put(partition0, List.of(record0));
+        final ConsumerRecords<byte[], byte[]> consumerRecords = createConsumerRecords(recordsMap);
+
+        when(consumer.poll(any(Duration.class))).thenReturn(consumerRecords);
+
+        final Iterable<ByteRecord> polledRecords = consumerService.poll(Duration.ofMillis(100));
+        for (ByteRecord ignored : polledRecords) {
+        }
+
+        consumerService.onPartitionsRevoked(List.of(partition0));
+        assertTrue(consumerService.hasRevokedPartitions());
+
+        consumerService.clearRevokedPartitions();
+        assertFalse(consumerService.hasRevokedPartitions());
 
         verify(consumer, never()).commitSync(anyMap());
     }
