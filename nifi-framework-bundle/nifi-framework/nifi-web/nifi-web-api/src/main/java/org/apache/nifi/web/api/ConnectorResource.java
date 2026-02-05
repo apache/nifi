@@ -74,6 +74,7 @@ import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
 import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.AssetDTO;
 import org.apache.nifi.web.api.dto.BundleDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
@@ -82,6 +83,7 @@ import org.apache.nifi.web.api.dto.VerifyConnectorConfigStepRequestDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -2144,6 +2146,244 @@ public class ConnectorResource extends ApplicationResource {
         return generateOkResponse(streamingOutput)
             .header(HttpHeaders.CONTENT_DISPOSITION, String.format("attachment; filename=\"%s\"", asset.getName()))
             .build();
+    }
+
+    // -----------------
+    // Processor State
+    // -----------------
+
+    /**
+     * Gets the state for a processor within a connector.
+     *
+     * @param connectorId the connector id
+     * @param processorId the processor id
+     * @return a ComponentStateEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/processors/{processorId}/state")
+    @Operation(
+            summary = "Gets the state for a processor within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ComponentStateEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+            }
+    )
+    public Response getConnectorProcessorState(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The processor id.", required = true)
+            @PathParam("processorId") final String processorId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+        });
+
+        final ComponentStateDTO state = serviceFacade.getConnectorProcessorState(connectorId, processorId);
+
+        final ComponentStateEntity entity = new ComponentStateEntity();
+        entity.setComponentState(state);
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Clears the state for a processor within a connector.
+     *
+     * @param connectorId the connector id
+     * @param processorId the processor id
+     * @return a ComponentStateEntity
+     */
+    @POST
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.WILDCARD})
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/processors/{processorId}/state/clear-requests")
+    @Operation(
+            summary = "Clears the state for a processor within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ComponentStateEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+            }
+    )
+    public Response clearConnectorProcessorState(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The processor id.", required = true)
+            @PathParam("processorId") final String processorId,
+            @Parameter(description = "Optional component state to perform a selective key removal. If omitted, clears all state.", required = false)
+            final ComponentStateEntity componentStateEntity) {
+
+        if (isReplicateRequest()) {
+            if (componentStateEntity == null) {
+                return replicate(HttpMethod.POST);
+            } else {
+                return replicate(HttpMethod.POST, componentStateEntity);
+            }
+        }
+
+        final ConnectorEntity requestConnectorEntity = new ConnectorEntity();
+        requestConnectorEntity.setId(connectorId);
+
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                lookup -> {
+                    final Authorizable connector = lookup.getConnector(connectorId);
+                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanClearConnectorProcessorState(connectorId, processorId),
+                (connectorEntity) -> {
+                    // clear state
+                    final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
+                    final ComponentStateDTO state = serviceFacade.clearConnectorProcessorState(connectorEntity.getId(), processorId, expectedState);
+
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
+                    entity.setComponentState(state);
+
+                    // generate the response
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    // -----------------
+    // Controller Service State
+    // -----------------
+
+    /**
+     * Gets the state for a controller service within a connector.
+     *
+     * @param connectorId         the connector id
+     * @param controllerServiceId the controller service id
+     * @return a ComponentStateEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/controller-services/{controllerServiceId}/state")
+    @Operation(
+            summary = "Gets the state for a controller service within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ComponentStateEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+            }
+    )
+    public Response getConnectorControllerServiceState(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The controller service id.", required = true)
+            @PathParam("controllerServiceId") final String controllerServiceId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable connector = lookup.getConnector(connectorId);
+            connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+        });
+
+        final ComponentStateDTO state = serviceFacade.getConnectorControllerServiceState(connectorId, controllerServiceId);
+
+        final ComponentStateEntity entity = new ComponentStateEntity();
+        entity.setComponentState(state);
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Clears the state for a controller service within a connector.
+     *
+     * @param connectorId         the connector id
+     * @param controllerServiceId the controller service id
+     * @return a ComponentStateEntity
+     */
+    @POST
+    @Consumes({MediaType.APPLICATION_JSON, MediaType.WILDCARD})
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/controller-services/{controllerServiceId}/state/clear-requests")
+    @Operation(
+            summary = "Clears the state for a controller service within a connector",
+            responses = {
+                    @ApiResponse(responseCode = "200", content = @Content(schema = @Schema(implementation = ComponentStateEntity.class))),
+                    @ApiResponse(responseCode = "400", description = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(responseCode = "401", description = "Client could not be authenticated."),
+                    @ApiResponse(responseCode = "403", description = "Client is not authorized to make this request."),
+                    @ApiResponse(responseCode = "404", description = "The specified resource could not be found."),
+                    @ApiResponse(responseCode = "409", description = "The request was valid but NiFi was not in the appropriate state to process it.")
+            },
+            security = {
+                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+            }
+    )
+    public Response clearConnectorControllerServiceState(
+            @Parameter(description = "The connector id.", required = true)
+            @PathParam("id") final String connectorId,
+            @Parameter(description = "The controller service id.", required = true)
+            @PathParam("controllerServiceId") final String controllerServiceId,
+            @Parameter(description = "Optional component state to perform a selective key removal. If omitted, clears all state.", required = false)
+            final ComponentStateEntity componentStateEntity) {
+
+        if (isReplicateRequest()) {
+            if (componentStateEntity == null) {
+                return replicate(HttpMethod.POST);
+            } else {
+                return replicate(HttpMethod.POST, componentStateEntity);
+            }
+        }
+
+        final ConnectorEntity requestConnectorEntity = new ConnectorEntity();
+        requestConnectorEntity.setId(connectorId);
+
+        return withWriteLock(
+                serviceFacade,
+                requestConnectorEntity,
+                lookup -> {
+                    final Authorizable connector = lookup.getConnector(connectorId);
+                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                },
+                () -> serviceFacade.verifyCanClearConnectorControllerServiceState(connectorId, controllerServiceId),
+                (connectorEntity) -> {
+                    // clear state
+                    final ComponentStateDTO expectedState = componentStateEntity == null ? null : componentStateEntity.getComponentState();
+                    final ComponentStateDTO state = serviceFacade.clearConnectorControllerServiceState(connectorEntity.getId(), controllerServiceId, expectedState);
+
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
+                    entity.setComponentState(state);
+
+                    // generate the response
+                    return generateOkResponse(entity).build();
+                }
+        );
     }
 
     // -----------------
