@@ -33,10 +33,12 @@ public class GhostConnector implements Connector {
     private final String canonicalClassName;
     private final List<ValidationResult> validationResults;
     private final List<ConfigVerificationResult> configVerificationResults;
+    private final Exception causeOfGhost;
 
-    public GhostConnector(final String identifier, final String canonicalClassName) {
+    public GhostConnector(final String identifier, final String canonicalClassName, final Exception causeOfGhost) {
         this.identifier = identifier;
         this.canonicalClassName = canonicalClassName;
+        this.causeOfGhost = causeOfGhost;
 
         validationResults = List.of(new ValidationResult.Builder()
             .subject("Missing Connector")
@@ -49,6 +51,10 @@ public class GhostConnector implements Connector {
             .outcome(Outcome.FAILED)
             .explanation("Could not create Connector of type " + canonicalClassName)
             .build());
+    }
+
+    public Exception getCauseOfGhost() {
+        return causeOfGhost;
     }
 
     @Override

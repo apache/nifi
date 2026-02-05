@@ -28,11 +28,13 @@ import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.AssetReference;
+import org.apache.nifi.components.connector.Connector;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
+import org.apache.nifi.components.connector.GhostConnector;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StandaloneConnectorRequestReplicator;
 import org.apache.nifi.components.connector.StepConfiguration;
@@ -188,6 +190,15 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
         final BundleCoordinate bundleCoordinate = bundles.getFirst().getBundleDetails().getCoordinate();
         connectorNode = flowController.getFlowManager().createConnector(connectorClassName, CONNECTOR_ID, bundleCoordinate, true, true);
+
+        if (connectorNode.isExtensionMissing()) {
+            final Connector connector = connectorNode.getConnector();
+            if (connector instanceof final GhostConnector ghostConnector) {
+                throw new IllegalStateException("Failed to create Connector of type " + connectorClassName, ghostConnector.getCauseOfGhost());
+            } else {
+                throw new IllegalStateException("Failed to create Connector of type " + connectorClassName);
+            }
+        }
     }
 
     @Override

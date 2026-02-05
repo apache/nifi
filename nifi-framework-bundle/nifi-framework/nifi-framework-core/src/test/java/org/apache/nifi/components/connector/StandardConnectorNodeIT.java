@@ -545,6 +545,23 @@ public class StandardConnectorNodeIT {
         connectorNode.stop(componentLifecycleThreadPool);
     }
 
+    @Test
+    public void testInitialFlowWithMissingBundleResultsInInvalidConnector() {
+        final ConnectorNode connectorNode = flowManager.createConnector(MissingBundleConnector.class.getName(), "missing-bundle-connector", SystemBundle.SYSTEM_BUNDLE_COORDINATE, true, true);
+        assertNotNull(connectorNode);
+
+        assertFalse(connectorNode.isExtensionMissing());
+
+        final ValidationState validationState = connectorNode.performValidation();
+        assertNotNull(validationState);
+        assertEquals(ValidationStatus.INVALID, validationState.getStatus());
+        assertEquals(1, validationState.getValidationErrors().size());
+
+        final String explanation = validationState.getValidationErrors().iterator().next().getExplanation();
+        assertTrue(explanation.contains("com.example.nonexistent:missing-nar:1.0.0"), "Expected explanation to mention the missing bundle coordinates but was: " + explanation);
+        assertTrue(explanation.contains("com.example.nonexistent.MissingProcessor"), "Expected explanation to mention the missing processor type but was: " + explanation);
+    }
+
     private List<String> getConfigurationStepNames(final ConnectorNode connectorNode) {
         return connectorNode.getConfigurationSteps().stream()
             .map(ConfigurationStep::getName)
