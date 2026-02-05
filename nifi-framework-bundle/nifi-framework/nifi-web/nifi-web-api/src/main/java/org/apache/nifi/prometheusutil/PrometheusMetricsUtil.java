@@ -266,6 +266,7 @@ public class PrometheusMetricsUtil {
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
         jvmMetricsRegistry.setDataPoint(jvmMetrics.heapUsed(DataUnit.B), "JVM_HEAP_USED", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.heapUsage(), "JVM_HEAP_USAGE", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.heapCommitted(DataUnit.B), "JVM_HEAP_COMMITTED", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapUsage(), "JVM_HEAP_NON_USAGE", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapUsed(DataUnit.B), "JVM_NON_HEAP_USED", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapCommitted(DataUnit.B), "JVM_NON_HEAP_COMMITTED", instanceId);
