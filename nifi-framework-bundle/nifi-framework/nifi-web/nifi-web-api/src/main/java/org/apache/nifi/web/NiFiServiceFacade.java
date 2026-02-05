@@ -2101,6 +2101,59 @@ public interface NiFiServiceFacade {
      */
     ComponentStateDTO getRemoteProcessGroupState(String remoteProcessGroupId);
 
+    /**
+     * Gets the state for a processor within a connector's managed process group.
+     *
+     * @param connectorId the connector id
+     * @param processorId the processor id
+     * @return the component state
+     */
+    ComponentStateDTO getConnectorProcessorState(String connectorId, String processorId);
+
+    /**
+     * Verifies the processor state within a connector could be cleared.
+     *
+     * @param connectorId the connector id
+     * @param processorId the processor id
+     */
+    void verifyCanClearConnectorProcessorState(String connectorId, String processorId);
+
+    /**
+     * Clears the state for a processor within a connector's managed process group.
+     *
+     * @param connectorId       the connector id
+     * @param processorId       the processor id
+     * @param componentStateDTO the state of the processor
+     * @return the cleared component state
+     */
+    ComponentStateDTO clearConnectorProcessorState(String connectorId, String processorId, ComponentStateDTO componentStateDTO);
+
+    /**
+     * Gets the state for a controller service within a connector's managed process group.
+     *
+     * @param connectorId         the connector id
+     * @param controllerServiceId the controller service id
+     * @return the component state
+     */
+    ComponentStateDTO getConnectorControllerServiceState(String connectorId, String controllerServiceId);
+
+    /**
+     * Verifies the controller service state within a connector could be cleared.
+     *
+     * @param connectorId         the connector id
+     * @param controllerServiceId the controller service id
+     */
+    void verifyCanClearConnectorControllerServiceState(String connectorId, String controllerServiceId);
+
+    /**
+     * Clears the state for a controller service within a connector's managed process group.
+     *
+     * @param connectorId         the connector id
+     * @param controllerServiceId the controller service id
+     * @param componentStateDTO   the state of the controller service
+     * @return the cleared component state
+     */
+    ComponentStateDTO clearConnectorControllerServiceState(String connectorId, String controllerServiceId, ComponentStateDTO componentStateDTO);
 
     // ----------------------------------------
     // Label methods
