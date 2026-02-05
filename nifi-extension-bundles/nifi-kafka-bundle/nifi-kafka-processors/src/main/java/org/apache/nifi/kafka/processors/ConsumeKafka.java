@@ -28,9 +28,12 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.kafka.processors.common.KafkaUtils;
+import org.apache.nifi.kafka.processors.consumer.ConsumerPartitionsUtil;
 import org.apache.nifi.kafka.processors.consumer.OffsetTracker;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.processors.consumer.bundle.ByteRecordBundler;
@@ -63,16 +66,19 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -330,6 +336,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private static final Set<Relationship> SUCCESS_RELATIONSHIP = Set.of(SUCCESS);
     private static final Set<Relationship> SUCCESS_FAILURE_RELATIONSHIPS = Set.of(SUCCESS, PARSE_FAILURE);
 
+    private volatile KafkaConnectionService connectionService;
     private volatile Charset headerEncoding;
     private volatile Pattern headerNamePattern;
     private volatile String headerNamePrefix;
@@ -348,6 +355,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
 
+    private final Queue<PollingContext> availablePartitionedPollingContexts = new LinkedBlockingQueue<>();
+    private final Map<KafkaConsumerService, PollingContext> consumerServiceToPartitionedPollingContext = new ConcurrentHashMap<>();
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
@@ -365,8 +375,55 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
     }
 
+    private static final String PARTITIONS_PROPERTY_PREFIX = "partitions";
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+                .description("Specifies from which partitions to consume on each host in the cluster in the form of 'partitions.host_name=partition_1[,partition_2...]'.")
+                .name(propertyDescriptorName)
+                .addValidator((subject, input, context) -> {
+                    final ValidationResult.Builder builder = new ValidationResult.Builder();
+                    builder.subject(subject);
+
+                    if (subject.startsWith(PARTITIONS_PROPERTY_PREFIX)) {
+                        builder.valid(true);
+                    }
+
+                    return builder.build();
+                })
+                .dynamic(true)
+                .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+                .build();
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final Collection<ValidationResult> validationResults = new ArrayList<>();
+
+        final ValidationResult consumerPartitionsResult = ConsumerPartitionsUtil.validateConsumePartitions(validationContext.getAllProperties());
+        validationResults.add(consumerPartitionsResult);
+
+        final boolean explicitPartitionMapping = ConsumerPartitionsUtil.isPartitionAssignmentExplicit(validationContext.getAllProperties());
+        if (explicitPartitionMapping) {
+            final String topicType = validationContext.getProperty(TOPIC_FORMAT).getValue();
+            if (TOPIC_PATTERN.getValue().equals(topicType)) {
+                validationResults.add(new ValidationResult.Builder()
+                        .subject(TOPIC_FORMAT.getDisplayName())
+                        .input(TOPIC_PATTERN.getDisplayName())
+                        .valid(false)
+                        .explanation("It is not valid to explicitly assign topic partitions and also using a Topic Pattern. "
+                                + "Topic Partitions may be assigned only if explicitly specifying topic names also.")
+                        .build());
+            }
+        }
+
+        return validationResults;
+    }
+
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
+        connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
+
         pollingContext = createPollingContext(context);
         headerEncoding = Charset.forName(context.getProperty(HEADER_ENCODING).getValue());
 
@@ -389,7 +446,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         keyFormat = (outputStrategy == OutputStrategy.USE_WRAPPER || outputStrategy == OutputStrategy.INJECT_METADATA)
                 ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class)
                 : KeyFormat.BYTE_ARRAY;
-        brokerUri = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class).getBrokerUri();
+        brokerUri = connectionService.getBrokerUri();
         maxConsumerCount = context.getMaxConcurrentTasks();
         activeConsumerCount.set(0);
 
@@ -397,6 +454,41 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         maxUncommittedSizeConfigured = maxUncommittedSizeProperty.isSet();
         if (maxUncommittedSizeConfigured) {
             maxUncommittedSize = maxUncommittedSizeProperty.asDataSize(DataUnit.B).longValue();
+        }
+
+        if (ConsumerPartitionsUtil.isPartitionAssignmentExplicit(context.getAllProperties())) {
+            final int numAssignedPartitions = ConsumerPartitionsUtil.getPartitionAssignmentCount(context.getAllProperties());
+            final int partitionCount = getPartitionCount(connectionService);
+
+            if (partitionCount != numAssignedPartitions) {
+                context.yield();
+
+                throw new ProcessException(
+                        String.format(
+                                "Illegal Partition Assignment: There %s %d partition%s statically assigned using the %s.* property names, but the Kafka topic(s) have %d partition%s",
+                                numAssignedPartitions == 1 ? "is" : "are",
+                                numAssignedPartitions,
+                                numAssignedPartitions == 1 ? "" : "s",
+                                PARTITIONS_PROPERTY_PREFIX,
+                                partitionCount,
+                                partitionCount == 1 ? "" : "s"
+                        )
+                );
+            }
+
+            final int[] assignedPartitions;
+            try {
+                assignedPartitions = ConsumerPartitionsUtil.getPartitionsForHost(context.getAllProperties(), getLogger());
+            } catch (final UnknownHostException uhe) {
+                throw new ProcessException("Failed to resolve local host address", uhe);
+            }
+
+            availablePartitionedPollingContexts.clear();
+            for (int partition : assignedPartitions) {
+                PollingContext partitionedPollingContext = createPollingContext(context, partition);
+
+                availablePartitionedPollingContexts.add(partitionedPollingContext);
+            }
         }
     }
 
@@ -408,17 +500,27 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         while ((service = consumerServices.poll()) != null) {
             close(service, "Processor stopped");
         }
+
+        availablePartitionedPollingContexts.clear();
+        consumerServiceToPartitionedPollingContext.clear();
     }
 
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         final KafkaConsumerService consumerService = getConsumerService(context);
+
         if (consumerService == null) {
             getLogger().debug("No Kafka Consumer Service available; will yield and return immediately");
             context.yield();
             return;
         }
+
+        final PollingContext partitionedPollingContext = consumerServiceToPartitionedPollingContext.get(consumerService);
+
+        final PollingContext pollingContext = partitionedPollingContext == null
+                ? this.pollingContext
+                : partitionedPollingContext;
 
         final long maxUncommittedMillis = context.getProperty(MAX_UNCOMMITTED_TIME).asTimePeriod(TimeUnit.MILLISECONDS);
         final long stopTime = System.currentTimeMillis() + maxUncommittedMillis;
@@ -523,6 +625,11 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             activeConsumerCount.decrementAndGet();
         } catch (final IOException ioe) {
             getLogger().warn("Failed to close Kafka Consumer Service", ioe);
+        } finally {
+            final PollingContext partitionedPollingContext = consumerServiceToPartitionedPollingContext.remove(consumerService);
+            if (partitionedPollingContext != null) {
+                availablePartitionedPollingContexts.add(partitionedPollingContext);
+            }
         }
     }
 
@@ -532,43 +639,106 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
         final PollingContext pollingContext = createPollingContext(context);
-        final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext);
 
-        final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()
-                .verificationStepName("Verify Topic Partitions");
+        final Collection<String> topics = pollingContext.getTopics();
+        if (!topics.isEmpty()) {
+            try (final KafkaConsumerService consumerService = connectionService.getConsumerService(pollingContext)) {
+                final ConfigVerificationResult.Builder verificationPartitions = new ConfigVerificationResult.Builder()
+                        .verificationStepName("Verify Topic Partitions");
 
-        try {
-            final List<PartitionState> partitionStates = consumerService.getPartitionStates();
-            verificationPartitions
-                    .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
-                    .explanation(String.format("Partitions [%d] found for Topics %s", partitionStates.size(), pollingContext.getTopics()));
-        } catch (final Exception e) {
-            getLogger().error("Topics {} Partition verification failed", pollingContext.getTopics(), e);
-            verificationPartitions
-                    .outcome(ConfigVerificationResult.Outcome.FAILED)
-                    .explanation(String.format("Topics %s Partition access failed: %s", pollingContext.getTopics(), e));
+                try {
+                    final List<PartitionState> partitionStates = consumerService.getPartitionStatesByTopic().values().stream().findFirst().orElse(Collections.emptyList());
+                    verificationPartitions
+                            .outcome(ConfigVerificationResult.Outcome.SUCCESSFUL)
+                            .explanation(String.format("Partitions [%d] found for Topics %s", partitionStates.size(), pollingContext.getTopics()));
+                } catch (final Exception e) {
+                    verificationLogger.error("Topics {} Partition verification failed", pollingContext.getTopics(), e);
+                    verificationPartitions
+                            .outcome(ConfigVerificationResult.Outcome.FAILED)
+                            .explanation(String.format("Topics %s Partition access failed: %s", pollingContext.getTopics(), e));
+                }
+                verificationResults.add(verificationPartitions.build());
+            } catch (IOException e) {
+                verificationLogger.warn("Failed to close KafkaConsumerService after verification", e);
+            }
         }
-        verificationResults.add(verificationPartitions.build());
 
         return verificationResults;
     }
 
     private KafkaConsumerService getConsumerService(final ProcessContext context) {
+        recreatePartitionedConsumerServices();
+
         final KafkaConsumerService consumerService = consumerServices.poll();
         if (consumerService != null) {
             return consumerService;
         }
 
-        final int activeCount = activeConsumerCount.incrementAndGet();
-        if (activeCount > getMaxConsumerCount()) {
-            getLogger().trace("No Kafka Consumer Service available; have already reached max count of {} so will not create a new one", getMaxConsumerCount());
-            activeConsumerCount.decrementAndGet();
+        final boolean isExplicitPartitionMapping = ConsumerPartitionsUtil.isPartitionAssignmentExplicit(context.getAllProperties());
+
+        if (isExplicitPartitionMapping) {
+            getLogger().trace("No Partitioned Kafka Consumer Service available, all specified partitions are being consumed from.");
             return null;
+        } else {
+            final int activeCount = activeConsumerCount.incrementAndGet();
+            if (activeCount > getMaxConsumerCount()) {
+                getLogger().trace("No Kafka Consumer Service available; have already reached max count of {} so will not create a new one", getMaxConsumerCount());
+                activeConsumerCount.decrementAndGet();
+                return null;
+            }
+
+            getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
+            return connectionService.getConsumerService(pollingContext);
+        }
+    }
+
+    private int getPartitionCount(final KafkaConnectionService connectionService) {
+        Collection<String> topics = this.pollingContext.getTopics();
+
+        if (topics.isEmpty()) {
+            return -1;
         }
 
-        getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
-        final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-        return connectionService.getConsumerService(pollingContext);
+        int partitionsEachTopic = 0;
+        try (KafkaConsumerService kafkaConsumerService = connectionService.getConsumerService(this.pollingContext)) {
+            final Map<String, List<PartitionState>> topicToPartitionStates = kafkaConsumerService.getPartitionStatesByTopic();
+            for (Map.Entry<String, List<PartitionState>> topicAndPartitionStates : topicToPartitionStates.entrySet()) {
+                final String thisTopic = topicAndPartitionStates.getKey();
+                final int partitionsThisTopic = topicAndPartitionStates.getValue().size();
+                if (partitionsEachTopic != 0 && partitionsThisTopic != partitionsEachTopic) {
+                    throw new IllegalStateException(String.format(
+                            "The topics do not have the same number of partitions. Topic '%s' has %d partition%s, while others have %d partition%s",
+                            thisTopic,
+                            partitionsThisTopic,
+                            partitionsThisTopic == 1 ? "" : "s",
+                            partitionsEachTopic,
+                            partitionsEachTopic == 1 ? "" : "s"
+                    ));
+                }
+
+                partitionsEachTopic = partitionsThisTopic;
+            }
+        } catch (IOException e) {
+            getLogger().warn("Failed to close KafkaConsumerService after partition assignment check", e);
+        }
+
+        return partitionsEachTopic;
+    }
+
+    private void recreatePartitionedConsumerServices() {
+        PollingContext partitionedPollingContext;
+        while ((partitionedPollingContext = availablePartitionedPollingContexts.poll()) != null) {
+            final Collection<String> topics = partitionedPollingContext.getTopics();
+            final Integer partition = partitionedPollingContext.getPartition();
+
+            getLogger().info("Creating new Partitioned Kafka Consumer Service for topic(s): {}, partition {}", topics, partition);
+
+            final KafkaConsumerService partitionedConsumerService = connectionService.getConsumerService(partitionedPollingContext);
+
+            consumerServiceToPartitionedPollingContext.put(partitionedConsumerService, partitionedPollingContext);
+
+            consumerServices.offer(partitionedConsumerService);
+        }
     }
 
     private int getMaxConsumerCount() {
@@ -636,6 +806,10 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     }
 
     private PollingContext createPollingContext(final ProcessContext context) {
+        return createPollingContext(context, null);
+    }
+
+    private PollingContext createPollingContext(final ProcessContext context, final Integer partition) {
         final String groupId = context.getProperty(GROUP_ID).getValue();
         final String offsetReset = context.getProperty(AUTO_OFFSET_RESET).getValue();
         final AutoOffsetReset autoOffsetReset = AutoOffsetReset.valueOf(offsetReset.toUpperCase());
@@ -648,7 +822,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             pollingContext = new PollingContext(groupId, topicPattern, autoOffsetReset);
         } else if (topicFormat.equals(TOPIC_NAME.getValue())) {
             final Collection<String> topicList = KafkaUtils.toTopicList(topics);
-            pollingContext = new PollingContext(groupId, topicList, autoOffsetReset);
+            pollingContext = new PollingContext(groupId, topicList, autoOffsetReset, partition);
         } else {
             throw new ProcessException(String.format("Topic Format [%s] not supported", topicFormat));
         }

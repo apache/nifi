@@ -31,12 +31,14 @@ public class Subscription {
 
     private final String groupId;
     private final Collection<String> topics;
+    private final Integer partition;
     private final Pattern topicPattern;
     private final AutoOffsetReset autoOffsetReset;
 
-    public Subscription(final String groupId, final Collection<String> topics, final AutoOffsetReset autoOffsetReset) {
+    public Subscription(final String groupId, final Collection<String> topics, final Integer partition, final AutoOffsetReset autoOffsetReset) {
         this.groupId = Objects.requireNonNull(groupId, "Group ID required");
         this.topics = Collections.unmodifiableCollection(Objects.requireNonNull(topics, "Topics required"));
+        this.partition = partition;
         this.topicPattern = null;
         this.autoOffsetReset = Objects.requireNonNull(autoOffsetReset, "Auto Offset Reset required");
     }
@@ -44,6 +46,7 @@ public class Subscription {
     public Subscription(final String groupId, final Pattern topicPattern, final AutoOffsetReset autoOffsetReset) {
         this.groupId = Objects.requireNonNull(groupId, "Group ID required");
         this.topics = Collections.emptyList();
+        this.partition = null;
         this.topicPattern = Objects.requireNonNull(topicPattern, "Topic Pattern required");
         this.autoOffsetReset = Objects.requireNonNull(autoOffsetReset, "Auto Offset Reset required");
     }
@@ -54,6 +57,10 @@ public class Subscription {
 
     public Collection<String> getTopics() {
         return topics;
+    }
+
+    public Integer getPartition() {
+        return partition;
     }
 
     public Optional<Pattern> getTopicPattern() {
@@ -94,7 +101,11 @@ public class Subscription {
     }
 
     private boolean isTopicSubscriptionMatched(final Subscription subscription) {
-        if (topics.size() == subscription.topics.size() && topics.containsAll(subscription.topics)) {
+        if (
+                topics.size() == subscription.topics.size()
+                        && topics.containsAll(subscription.topics)
+                        && Objects.equals(this.partition, subscription.partition)
+        ) {
             final String regexLeft = (topicPattern == null ? null : topicPattern.pattern());
             final String regexRight = (subscription.topicPattern == null ? null : subscription.topicPattern.pattern());
             return Objects.equals(regexLeft, regexRight);

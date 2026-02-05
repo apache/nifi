@@ -62,13 +62,21 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
         this.consumer = consumer;
         this.subscription = subscription;
 
-        final Optional<Pattern> topicPatternFound = subscription.getTopicPattern();
-        if (topicPatternFound.isPresent()) {
-            final Pattern topicPattern = topicPatternFound.get();
-            consumer.subscribe(topicPattern, this);
+        final Integer partition = subscription.getPartition();
+        if (partition == null) {
+            final Optional<Pattern> topicPatternFound = subscription.getTopicPattern();
+            if (topicPatternFound.isPresent()) {
+                final Pattern topicPattern = topicPatternFound.get();
+                consumer.subscribe(topicPattern, this);
+            } else {
+                final Collection<String> topics = subscription.getTopics();
+                consumer.subscribe(topics, this);
+            }
         } else {
-            final Collection<String> topics = subscription.getTopics();
-            consumer.subscribe(topics, this);
+            List<TopicPartition> topicPartitions = subscription.getTopics().stream()
+                    .map(topic -> new TopicPartition(topic, partition))
+                    .collect(Collectors.toList());
+            consumer.assign(topicPartitions);
         }
     }
 
@@ -140,19 +148,11 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
 
     @Override
     public List<PartitionState> getPartitionStates() {
-        final Iterator<String> topics = subscription.getTopics().iterator();
-
-        final List<PartitionState> partitionStates;
-
-        if (topics.hasNext()) {
-            final String topic = topics.next();
-            partitionStates = consumer.partitionsFor(topic)
-                .stream()
+        List<PartitionState> partitionStates = subscription.getTopics().stream()
+                .map(consumer::partitionsFor)
+                .flatMap(Collection::stream)
                 .map(partitionInfo -> new PartitionState(partitionInfo.topic(), partitionInfo.partition()))
                 .collect(Collectors.toList());
-        } else {
-            partitionStates = Collections.emptyList();
-        }
 
         return partitionStates;
     }
