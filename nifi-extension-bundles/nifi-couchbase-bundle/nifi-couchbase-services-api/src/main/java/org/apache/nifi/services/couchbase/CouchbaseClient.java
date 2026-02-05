@@ -34,9 +34,9 @@ public interface CouchbaseClient {
 
     void removeDocument(String documentId) throws CouchbaseException;
 
-    void replaceDocument(String documentId, byte[] content) throws CouchbaseException;
+    void replaceDocument(String documentId, byte[] content, long cas) throws CouchbaseException;
 
-    CouchbaseLookupInResult lookUpIn(String documentId, String subDocPath) throws CouchbaseException;
+    CouchbaseLookupInResult lookupIn(String documentId, String subDocPath) throws CouchbaseException;
 
     ExceptionCategory getExceptionCategory(Throwable throwable);
 }

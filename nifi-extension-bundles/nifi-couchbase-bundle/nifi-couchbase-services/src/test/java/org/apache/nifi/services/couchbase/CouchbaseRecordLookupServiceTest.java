@@ -20,11 +20,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
-import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,7 +82,7 @@ public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTe
     @Test
     public void testLookUpFailure() throws CouchbaseException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.lookUpIn(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
+        when(client.lookupIn(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
 
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
 

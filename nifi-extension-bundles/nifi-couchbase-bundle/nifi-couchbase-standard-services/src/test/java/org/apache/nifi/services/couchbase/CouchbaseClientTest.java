@@ -97,7 +97,7 @@ public class CouchbaseClientTest {
         final String content = "{invalid-json}";
         final StandardCouchbaseClient client = new StandardCouchbaseClient(collection, JSON, PersistTo.ONE, ReplicateTo.ONE);
 
-        final Exception exception = assertThrows(CouchbaseException.class, () -> client.replaceDocument(TEST_DOCUMENT_ID, content.getBytes()));
+        final Exception exception = assertThrows(CouchbaseException.class, () -> client.replaceDocument(TEST_DOCUMENT_ID, content.getBytes(), TEST_CAS));
         assertTrue(exception.getMessage().contains("The provided input is invalid"));
     }
 
@@ -136,7 +136,7 @@ public class CouchbaseClientTest {
 
         when(collection.lookupIn(anyString(), any())).thenReturn(result);
 
-        final CouchbaseLookupInResult lookupInResult = client.lookUpIn(TEST_DOCUMENT_ID, "");
+        final CouchbaseLookupInResult lookupInResult = client.lookupIn(TEST_DOCUMENT_ID, "");
 
         assertEquals(expectedResult, lookupInResult.resultContent());
         assertEquals(TEST_CAS, lookupInResult.cas());
@@ -158,7 +158,7 @@ public class CouchbaseClientTest {
 
         when(collection.lookupIn(anyString(), any())).thenReturn(result);
 
-        final CouchbaseLookupInResult lookupInResult = client.lookUpIn(TEST_DOCUMENT_ID, "");
+        final CouchbaseLookupInResult lookupInResult = client.lookupIn(TEST_DOCUMENT_ID, "");
 
         assertEquals(expectedResult, lookupInResult.resultContent());
         assertEquals(TEST_CAS, lookupInResult.cas());
@@ -173,7 +173,7 @@ public class CouchbaseClientTest {
 
         when(collection.lookupIn(anyString(), any())).thenReturn(result);
 
-        final Exception exception = assertThrows(CouchbaseException.class, () -> client.lookUpIn(TEST_DOCUMENT_ID, "test-path"));
+        final Exception exception = assertThrows(CouchbaseException.class, () -> client.lookupIn(TEST_DOCUMENT_ID, "test-path"));
         assertTrue(exception.getCause().getMessage().contains("No value found on the requested path [test-path] in Couchbase"));
     }
 }

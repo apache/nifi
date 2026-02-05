@@ -19,6 +19,7 @@ package org.apache.nifi.services.couchbase;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.json.JsonParserFactory;
 import org.apache.nifi.json.JsonTreeRowRecordReader;
 import org.apache.nifi.json.SchemaApplicationStrategy;
@@ -27,9 +28,10 @@ import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.schema.access.InferenceSchemaStrategy;
 import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
+import org.apache.nifi.services.couchbase.utils.DocumentType;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -77,6 +79,11 @@ public class CouchbaseRecordLookupService extends AbstractCouchbaseService imple
         } catch (Exception e) {
             throw new LookupFailureException("Record lookup from Couchbase failed", e);
         }
+    }
+
+    @Override
+    protected DocumentType resolveDocumentType(ConfigurationContext context) {
+        return DocumentType.JSON;
     }
 
     private JsonTreeRowRecordReader createJsonReader(InputStream inputStream, RecordSchema recordSchema) throws IOException, MalformedRecordException {

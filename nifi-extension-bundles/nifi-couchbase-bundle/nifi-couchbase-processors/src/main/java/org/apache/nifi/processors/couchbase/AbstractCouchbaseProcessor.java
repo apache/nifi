@@ -50,8 +50,6 @@ import static org.apache.nifi.processors.couchbase.utils.CouchbaseAttributes.SCO
 
 public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
 
-    protected CouchbaseConnectionService connectionService;
-
     public static final PropertyDescriptor DOCUMENT_ID = new PropertyDescriptor.Builder()
             .name("Document ID")
             .description("Couchbase document identifier, or an expression to construct the Couchbase document identifier.")
@@ -127,6 +125,8 @@ public abstract class AbstractCouchbaseProcessor extends AbstractProcessor {
     );
 
     private static final Set<Relationship> RELATIONSHIPS = Set.of(REL_SUCCESS, REL_FAILURE, REL_RETRY);
+
+    protected volatile CouchbaseConnectionService connectionService;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

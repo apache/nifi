@@ -57,6 +57,9 @@ import com.couchbase.client.java.kv.PersistTo;
 import com.couchbase.client.java.kv.ReplaceOptions;
 import com.couchbase.client.java.kv.ReplicateTo;
 import com.couchbase.client.java.kv.UpsertOptions;
+import org.apache.nifi.services.couchbase.exception.CouchbaseCasMismatchException;
+import org.apache.nifi.services.couchbase.exception.CouchbaseDocExistsException;
+import org.apache.nifi.services.couchbase.exception.CouchbaseDocNotFoundException;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.exception.ExceptionCategory;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
@@ -128,6 +131,8 @@ class StandardCouchbaseClient implements CouchbaseClient {
             final GetResult result = collection.get(documentId, GetOptions.getOptions().transcoder(getTranscoder(documentType)));
 
             return new CouchbaseGetResult(result.contentAsBytes(), result.cas());
+        } catch (DocumentNotFoundException e) {
+            throw new CouchbaseDocNotFoundException("Couchbase document with key [%s] not found".formatted(documentId), e);
         } catch (Exception e) {
             throw new CouchbaseException("Failed to get document [%s] from Couchbase".formatted(documentId), e);
         }
@@ -174,6 +179,8 @@ class StandardCouchbaseClient implements CouchbaseClient {
                             .durability(persistTo, replicateTo)
                             .transcoder(getTranscoder(documentType))
                             .clientContext(new HashMap<>()));
+        } catch (DocumentExistsException e) {
+            throw new CouchbaseDocExistsException("Document with key [%s] already exists".formatted(documentId), e);
         } catch (Exception e) {
             throw new CouchbaseException("Failed to insert document [%s] in Couchbase".formatted(documentId), e);
         }
@@ -183,13 +190,15 @@ class StandardCouchbaseClient implements CouchbaseClient {
     public void removeDocument(String documentId) throws CouchbaseException {
         try {
             collection.remove(documentId);
+        } catch (DocumentNotFoundException e) {
+            throw new CouchbaseDocNotFoundException("Couchbase document with key [%s] not found".formatted(documentId), e);
         } catch (Exception e) {
             throw new CouchbaseException("Failed to remove document [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public void replaceDocument(String documentId, byte[] content) throws CouchbaseException {
+    public void replaceDocument(String documentId, byte[] content, long cas) throws CouchbaseException {
         if (!getInputValidator(documentType).test(content)) {
             throw new CouchbaseException("The provided input is invalid for document [%s]".formatted(documentId));
         }
@@ -197,16 +206,21 @@ class StandardCouchbaseClient implements CouchbaseClient {
         try {
             collection.replace(documentId, content,
                     ReplaceOptions.replaceOptions()
+                            .cas(cas)
                             .durability(persistTo, replicateTo)
                             .transcoder(getTranscoder(documentType))
                             .clientContext(new HashMap<>()));
+        } catch (CasMismatchException e) {
+            throw new CouchbaseCasMismatchException("Couchbase document with key [%s] has been concurrently modified".formatted(documentId), e);
+        } catch (DocumentNotFoundException e) {
+            throw new CouchbaseDocNotFoundException("Couchbase document with key [%s] not found".formatted(documentId), e);
         } catch (Exception e) {
             throw new CouchbaseException("Failed to replace document [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
-    public CouchbaseLookupInResult lookUpIn(String documentId, String subDocPath) throws CouchbaseException {
+    public CouchbaseLookupInResult lookupIn(String documentId, String subDocPath) throws CouchbaseException {
         try {
             final String documentPath = subDocPath == null ? "" : subDocPath;
             final LookupInResult result = collection.lookupIn(documentId, Collections.singletonList(LookupInSpec.get(documentPath)));

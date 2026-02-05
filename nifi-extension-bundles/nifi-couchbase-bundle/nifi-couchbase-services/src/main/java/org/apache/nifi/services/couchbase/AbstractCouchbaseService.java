@@ -36,8 +36,6 @@ public class AbstractCouchbaseService extends AbstractControllerService {
     private static final String DEFAULT_SCOPE = "_default";
     private static final String DEFAULT_COLLECTION = "_default";
 
-    protected CouchbaseClient couchbaseClient;
-
     public static final PropertyDescriptor COUCHBASE_CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("Couchbase Connection Service")
             .description("A Couchbase Connection Service which manages connections to a Couchbase cluster.")
@@ -72,6 +70,16 @@ public class AbstractCouchbaseService extends AbstractControllerService {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
+    public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder()
+            .name("Document Type")
+            .description("The content type for storing the document.")
+            .required(true)
+            .allowableValues(DocumentType.values())
+            .defaultValue(DocumentType.JSON.toString())
+            .build();
+
+    protected volatile CouchbaseClient couchbaseClient;
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final CouchbaseConnectionService connectionService = context.getProperty(COUCHBASE_CONNECTION_SERVICE).asControllerService(CouchbaseConnectionService.class);
@@ -83,11 +91,16 @@ public class AbstractCouchbaseService extends AbstractControllerService {
         return REQUIRED_KEYS;
     }
 
+    protected DocumentType resolveDocumentType(ConfigurationContext context) {
+        return DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
+    }
+
     private CouchbaseContext getCouchbaseContext(ConfigurationContext context) {
         final String bucketName = context.getProperty(BUCKET_NAME).evaluateAttributeExpressions().getValue();
         final String scopeName = context.getProperty(SCOPE_NAME).evaluateAttributeExpressions().getValue();
         final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions().getValue();
+        final DocumentType documentType = resolveDocumentType(context);
 
-        return new CouchbaseContext(bucketName, scopeName, collectionName, DocumentType.JSON);
+        return new CouchbaseContext(bucketName, scopeName, collectionName, documentType);
     }
 }

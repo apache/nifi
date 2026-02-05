@@ -19,6 +19,7 @@ package org.apache.nifi.services.couchbase;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.services.couchbase.exception.CouchbaseDocNotFoundException;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
@@ -77,7 +78,7 @@ public class CouchbaseMapCacheClientTest extends AbstractCouchbaseServiceTest {
     @Test
     public void testCacheGetFailure() throws CouchbaseException, IOException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.getDocument(anyString())).thenThrow(new CouchbaseException("Test exception"));
+        when(client.getDocument(anyString())).thenThrow(new CouchbaseDocNotFoundException("Test exception", null));
 
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
 

@@ -23,6 +23,9 @@ import org.apache.nifi.distributed.cache.client.AtomicCacheEntry;
 import org.apache.nifi.distributed.cache.client.AtomicDistributedMapCacheClient;
 import org.apache.nifi.distributed.cache.client.Deserializer;
 import org.apache.nifi.distributed.cache.client.Serializer;
+import org.apache.nifi.services.couchbase.exception.CouchbaseCasMismatchException;
+import org.apache.nifi.services.couchbase.exception.CouchbaseDocExistsException;
+import org.apache.nifi.services.couchbase.exception.CouchbaseDocNotFoundException;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 
@@ -30,6 +33,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 
 @Tags({"distributed", "cache", "map", "cluster", "couchbase"})
 @CapabilityDescription("Provides the ability to communicate with a Couchbase Server cluster as a DistributedMapCacheServer." +
@@ -48,7 +52,8 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
             COUCHBASE_CONNECTION_SERVICE,
             BUCKET_NAME,
             SCOPE_NAME,
-            COLLECTION_NAME
+            COLLECTION_NAME,
+            DOCUMENT_TYPE
     );
 
     @Override
@@ -62,8 +67,10 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
         try {
             final CouchbaseGetResult result = couchbaseClient.getDocument(documentId);
             return new AtomicCacheEntry<>(key, deserializeDocument(valueDeserializer, result.resultContent()), result.cas());
-        } catch (CouchbaseException e) {
+        } catch (CouchbaseDocNotFoundException e) {
             return null;
+        } catch (CouchbaseException e) {
+            throw new IOException("Failed to fetch cache entry [%s] from Couchbase".formatted(documentId), e);
         }
     }
 
@@ -71,12 +78,27 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
     public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
         final String documentId = serializeDocumentKey(entry.getKey(), keySerializer);
         final byte[] document = serializeDocument(entry.getValue(), valueSerializer);
+        final Optional<Long> revision = entry.getRevision();
+
+        if (revision.isEmpty()) {
+            try {
+                couchbaseClient.insertDocument(documentId, document);
+                return true;
+            } catch (CouchbaseDocExistsException e) {
+                return false;
+            } catch (CouchbaseException e) {
+                throw new IOException("Failed to insert cache entry [%s] into Couchbase".formatted(documentId), e);
+            }
+        }
 
         try {
-            couchbaseClient.replaceDocument(documentId, document);
+            final long casValue = revision.get();
+            couchbaseClient.replaceDocument(documentId, document, casValue);
             return true;
-        } catch (CouchbaseException e) {
+        } catch (CouchbaseDocNotFoundException | CouchbaseCasMismatchException e) {
             return false;
+        } catch (CouchbaseException e) {
+            throw new IOException("Failed to replace cache entry [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
@@ -88,18 +110,21 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
         try {
             couchbaseClient.insertDocument(documentId, document);
             return true;
-        } catch (CouchbaseException e) {
+        } catch (CouchbaseDocExistsException e) {
             return false;
+        } catch (CouchbaseException e) {
+            throw new IOException("Failed to insert cache entry [%s] into Couchbase".formatted(documentId), e);
         }
     }
 
     @Override
     public <K, V> V getAndPutIfAbsent(K key, V value, Serializer<K> keySerializer, Serializer<V> valueSerializer, Deserializer<V> valueDeserializer) throws IOException {
-        if (containsKey(key, keySerializer)) {
-            return get(key, keySerializer, valueDeserializer);
+        final V document = get(key, keySerializer, valueDeserializer);
+        if (document != null) {
+            return document;
         }
 
-        put(key, value, keySerializer, valueSerializer);
+        putIfAbsent(key, value, keySerializer, valueSerializer);
         return value;
     }
 
@@ -110,7 +135,7 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
         try {
             return couchbaseClient.documentExists(documentId);
         } catch (CouchbaseException e) {
-            throw new IOException(e);
+            throw new IOException("Failed to check existence of cache entry [%s] in Couchbase".formatted(documentId), e);
         }
     }
 
@@ -122,7 +147,7 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
         try {
             couchbaseClient.upsertDocument(documentId, document);
         } catch (CouchbaseException e) {
-            throw new IOException(e);
+            throw new IOException("Failed to insert cache entry [%s] into Couchbase".formatted(documentId), e);
         }
     }
 
@@ -133,8 +158,10 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
         try {
             final CouchbaseGetResult result = couchbaseClient.getDocument(documentId);
             return deserializeDocument(valueDeserializer, result.resultContent());
-        } catch (CouchbaseException e) {
+        } catch (CouchbaseDocNotFoundException e) {
             return null;
+        } catch (CouchbaseException e) {
+            throw new IOException("Failed to fetch cache entry [%s] from Couchbase".formatted(documentId), e);
         }
     }
 
@@ -149,8 +176,10 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
         try {
             couchbaseClient.removeDocument(documentId);
             return true;
-        } catch (CouchbaseException e) {
+        } catch (CouchbaseDocNotFoundException e) {
             return false;
+        } catch (CouchbaseException e) {
+            throw new IOException("Failed to remove cache entry [%s] from Couchbase".formatted(documentId), e);
         }
     }
 
@@ -166,7 +195,7 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
         }
 
         if (result.isEmpty()) {
-            throw new IOException("Cache record key cannot be empty!");
+            throw new IOException("Cache entry key cannot be empty!");
         }
 
         return result;

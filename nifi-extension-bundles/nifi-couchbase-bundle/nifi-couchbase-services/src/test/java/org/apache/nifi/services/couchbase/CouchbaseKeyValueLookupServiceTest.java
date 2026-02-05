@@ -50,9 +50,9 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
     }
 
     @Test
-    public void testSuccessfulLookUp() throws CouchbaseException, LookupFailureException {
+    public void testSuccessfulLookup() throws CouchbaseException, LookupFailureException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.lookUpIn(anyString(), any())).thenReturn(new CouchbaseLookupInResult("test result", TEST_CAS));
+        when(client.lookupIn(anyString(), any())).thenReturn(new CouchbaseLookupInResult("test result", TEST_CAS));
 
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
@@ -70,9 +70,9 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
     }
 
     @Test
-    public void testLookUpFailure() throws CouchbaseException {
+    public void testLookupFailure() throws CouchbaseException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
-        when(client.lookUpIn(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
+        when(client.lookupIn(anyString(), any())).thenThrow(new CouchbaseException("Test exception"));
 
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
 

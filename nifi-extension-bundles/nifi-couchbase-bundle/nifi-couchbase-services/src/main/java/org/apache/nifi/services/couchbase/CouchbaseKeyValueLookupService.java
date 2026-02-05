@@ -26,6 +26,7 @@ import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.couchbase.utils.CouchbaseLookupInResult;
+import org.apache.nifi.services.couchbase.utils.DocumentType;
 
 import java.util.List;
 import java.util.Map;
@@ -34,8 +35,6 @@ import java.util.Optional;
 @Tags({"lookup", "enrich", "key", "value", "couchbase"})
 @CapabilityDescription("Lookup a string value from Couchbase Server associated with the specified key. The coordinates that are passed to the lookup must contain the key 'key'.")
 public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService implements StringLookupService {
-
-    private volatile String subDocPath;
 
     public static final PropertyDescriptor LOOKUP_SUB_DOC_PATH = new PropertyDescriptor.Builder()
             .name("Lookup Sub-Document Path")
@@ -52,6 +51,8 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService imp
             LOOKUP_SUB_DOC_PATH
     );
 
+    private volatile String subDocPath;
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
@@ -65,6 +66,11 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService imp
     }
 
     @Override
+    protected DocumentType resolveDocumentType(ConfigurationContext context) {
+        return DocumentType.JSON;
+    }
+
+    @Override
     public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         final Object documentId = coordinates.get(KEY);
 
@@ -72,7 +78,7 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService imp
             return Optional.empty();
         }
         try {
-            final CouchbaseLookupInResult result = couchbaseClient.lookUpIn(documentId.toString(), subDocPath);
+            final CouchbaseLookupInResult result = couchbaseClient.lookupIn(documentId.toString(), subDocPath);
             return Optional.ofNullable(result.resultContent().toString());
         } catch (Exception e) {
             throw new LookupFailureException("Key-value lookup from Couchbase failed", e);
