@@ -20,18 +20,27 @@ package org.apache.nifi.components.connector.facades.standalone;
 import org.apache.nifi.components.connector.components.ControllerServiceLifecycle;
 import org.apache.nifi.components.connector.components.ControllerServiceState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.parameter.ParameterContext;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public class StandaloneControllerServiceLifecycle implements ControllerServiceLifecycle {
     private final ControllerServiceNode controllerServiceNode;
     private final ProcessScheduler processScheduler;
+    private final ComponentContextProvider componentContextProvider;
+    private final ParameterContext parameterContext;
 
-    public StandaloneControllerServiceLifecycle(final ControllerServiceNode controllerServiceNode, final ProcessScheduler scheduler) {
+    public StandaloneControllerServiceLifecycle(final ControllerServiceNode controllerServiceNode, final ProcessScheduler scheduler,
+            final ComponentContextProvider componentContextProvider, final ParameterContext parameterContext) {
+
         this.controllerServiceNode = controllerServiceNode;
         this.processScheduler = scheduler;
+        this.componentContextProvider = componentContextProvider;
+        this.parameterContext = parameterContext;
     }
 
     @Override
@@ -53,6 +62,12 @@ public class StandaloneControllerServiceLifecycle implements ControllerServiceLi
         }
 
         return processScheduler.enableControllerService(controllerServiceNode);
+    }
+
+    @Override
+    public CompletableFuture<Void> enable(final Map<String, String> propertyValueOverrides) {
+        final ConfigurationContext configurationContext = componentContextProvider.createConfigurationContext(controllerServiceNode, propertyValueOverrides, parameterContext);
+        return processScheduler.enableControllerService(controllerServiceNode, configurationContext);
     }
 
     @Override

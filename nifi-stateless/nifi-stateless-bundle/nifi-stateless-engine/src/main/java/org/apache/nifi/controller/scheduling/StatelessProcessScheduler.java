@@ -330,6 +330,12 @@ public class StatelessProcessScheduler implements ProcessScheduler {
     }
 
     @Override
+    public CompletableFuture<Void> enableControllerService(final ControllerServiceNode service, final ConfigurationContext configurationContext) {
+        logger.info("Enabling {}", service);
+        return service.enable(componentLifeCycleThreadPool, ADMINISTRATIVE_YIELD_MILLIS, true, configurationContext);
+    }
+
+    @Override
     public CompletableFuture<Void> disableControllerService(final ControllerServiceNode service) {
         logger.info("Disabling {}", service);
         return service.disable(componentLifeCycleThreadPool);
