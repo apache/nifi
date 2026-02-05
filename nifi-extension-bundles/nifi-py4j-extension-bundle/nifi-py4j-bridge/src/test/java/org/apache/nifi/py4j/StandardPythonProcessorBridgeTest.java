@@ -37,11 +37,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Unit tests for StandardPythonProcessorBridge cancellation functionality.
- */
 class StandardPythonProcessorBridgeTest {
 
     @Mock
@@ -75,23 +74,20 @@ class StandardPythonProcessorBridgeTest {
 
     @Test
     void testCancelSetsFlag() {
-        assertFalse(bridge.isCanceled(), "Bridge should not be canceled initially");
+        assertFalse(bridge.isCanceled());
 
         bridge.cancel();
 
-        assertTrue(bridge.isCanceled(), "Bridge should be canceled after cancel() is called");
+        assertTrue(bridge.isCanceled());
     }
 
     @Test
     void testCancelSetsLoadStateToCanceled() {
-        // Initially should be in some non-canceled state
-        LoadState initialState = bridge.getLoadState();
-        assertFalse(initialState == LoadState.CANCELED, "Initial state should not be CANCELED");
+        assertNotSame(LoadState.CANCELED, bridge.getLoadState());
 
         bridge.cancel();
 
-        assertEquals(LoadState.CANCELED, bridge.getLoadState(),
-                "Load state should be CANCELED after cancel() is called");
+        assertEquals(LoadState.CANCELED, bridge.getLoadState());
     }
 
     @Test
@@ -100,12 +96,10 @@ class StandardPythonProcessorBridgeTest {
         assertTrue(bridge.isCanceled());
         assertEquals(LoadState.CANCELED, bridge.getLoadState());
 
-        // Call cancel again - should not throw or change state
         bridge.cancel();
         assertTrue(bridge.isCanceled());
         assertEquals(LoadState.CANCELED, bridge.getLoadState());
 
-        // And again
         bridge.cancel();
         assertTrue(bridge.isCanceled());
         assertEquals(LoadState.CANCELED, bridge.getLoadState());
@@ -113,13 +107,13 @@ class StandardPythonProcessorBridgeTest {
 
     @Test
     void testIsCanceledReturnsFalseInitially() {
-        assertFalse(bridge.isCanceled(), "isCanceled() should return false before cancel() is called");
+        assertFalse(bridge.isCanceled());
     }
 
     @Test
     void testIsCanceledReturnsTrueAfterCancel() {
         bridge.cancel();
-        assertTrue(bridge.isCanceled(), "isCanceled() should return true after cancel() is called");
+        assertTrue(bridge.isCanceled());
     }
 
     @Test
@@ -135,23 +129,18 @@ class StandardPythonProcessorBridgeTest {
         });
 
         cancelThread.start();
-        assertTrue(cancelLatch.await(5, TimeUnit.SECONDS), "Cancel should complete within timeout");
-        assertTrue(canceledFromThread.get(), "Bridge should be canceled from another thread");
-        assertTrue(bridge.isCanceled(), "Bridge should be canceled as seen from main thread");
+        assertTrue(cancelLatch.await(5, TimeUnit.SECONDS));
+        assertTrue(canceledFromThread.get());
+        assertTrue(bridge.isCanceled());
     }
 
     @Test
     void testLoadStateTransitionsToCanceledOnCancel() {
-        // Get initial state
-        LoadState beforeCancel = bridge.getLoadState();
+        assertNotSame(LoadState.CANCELED, bridge.getLoadState());
 
-        // Cancel
         bridge.cancel();
 
-        // Verify state changed to CANCELED
-        LoadState afterCancel = bridge.getLoadState();
-        assertEquals(LoadState.CANCELED, afterCancel,
-                "Load state should transition to CANCELED, was: " + beforeCancel);
+        assertEquals(LoadState.CANCELED, bridge.getLoadState());
     }
 
     @Test
@@ -175,19 +164,13 @@ class StandardPythonProcessorBridgeTest {
             }).start();
         }
 
-        // Start all threads at once
         startLatch.countDown();
 
-        // Wait for all to complete
-        assertTrue(doneLatch.await(10, TimeUnit.SECONDS), "All threads should complete");
+        assertTrue(doneLatch.await(10, TimeUnit.SECONDS));
 
-        // Verify no exceptions occurred
-        if (exception.get() != null) {
-            throw new AssertionError("Exception during concurrent cancel", exception.get());
-        }
+        assertNull(exception.get());
 
-        // Verify final state
-        assertTrue(bridge.isCanceled(), "Bridge should be canceled");
-        assertEquals(LoadState.CANCELED, bridge.getLoadState(), "Load state should be CANCELED");
+        assertTrue(bridge.isCanceled());
+        assertEquals(LoadState.CANCELED, bridge.getLoadState());
     }
 }

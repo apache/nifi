@@ -119,40 +119,30 @@ public class StandardPythonBridge implements PythonBridge {
     }
 
     private PythonProcessorBridge createProcessorBridge(final String identifier, final String type, final String version, final boolean preferIsolatedProcess) {
-        logger.info("createProcessorBridge called for identifier={}, type={}, version={}", identifier, type, version);
         ensureStarted();
 
         final Optional<ExtensionId> extensionIdFound = findExtensionId(type, version);
         final ExtensionId extensionId = extensionIdFound.orElseThrow(() -> new IllegalArgumentException("Processor Type [%s] Version [%s] not found".formatted(type, version)));
         logger.debug("Creating Python Processor Type [{}] Version [{}]", extensionId.type(), extensionId.version());
 
-        logger.info("Calling getProcessorTypes() for identifier={}", identifier);
         final PythonProcessorDetails processorDetails = getProcessorTypes().stream()
             .filter(details -> details.getProcessorType().equals(type))
             .filter(details -> details.getProcessorVersion().equals(version))
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Could not find Processor Details for Python Processor type [%s] or version [%s]".formatted(type, version)));
-        logger.info("getProcessorTypes() completed for identifier={}", identifier);
 
         final String processorHome = processorDetails.getExtensionHome();
         final boolean bundledWithDependencies = processorDetails.isBundledWithDependencies();
 
-        // Pre-compute NAR directories BEFORE acquiring the synchronized lock in getProcessForNextComponent.
-        // This avoids a deadlock: getProcessForNextComponent is synchronized on this object, and
-        // getNarDirectories calls extensionManager.getAllBundles() which is synchronized on
-        // StandardExtensionDiscoveringManager. Meanwhile, removeBundles (synchronized on
-        // StandardExtensionDiscoveringManager) can call onProcessorRemoved (synchronized on this object).
+        // Pre-compute NAR directories BEFORE acquiring the synchronized lock in getProcessForNextComponent
+        // to avoid a deadlock between StandardPythonBridge and StandardExtensionDiscoveringManager locks
         final Set<String> narDirectories = getNarDirectories();
 
-        logger.info("Calling getProcessForNextComponent for identifier={}", identifier);
         final PythonProcess pythonProcess = getProcessForNextComponent(extensionId, identifier, processorHome, preferIsolatedProcess, bundledWithDependencies, narDirectories);
-        logger.info("getProcessForNextComponent completed for identifier={}", identifier);
 
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
 
-        logger.info("Calling pythonProcess.createProcessor for identifier={}", identifier);
         final PythonProcessorBridge processorBridge = pythonProcess.createProcessor(identifier, type, version, workDirPath, preferIsolatedProcess);
-        logger.info("pythonProcess.createProcessor completed for identifier={}", identifier);
 
         processorCountByType.merge(extensionId, 1, Integer::sum);
         return processorBridge;
@@ -206,12 +196,10 @@ public class StandardPythonBridge implements PythonBridge {
                         }
                     }
 
-                    // If no processor was found to remove, check if any process is still starting up
-                    // for this identifier (e.g., during venv creation). If so, shut it down.
                     if (toRemove == null) {
                         for (final PythonProcess process : processes) {
-                            if (process.isStartingFor(identifier)) {
-                                logger.info("Found Python Process that is starting for identifier {}. Shutting down.", identifier);
+                            if (process.isNotLoadedForComponent(identifier)) {
+                                logger.info("Shutting down Python Process for Processor [{}]", identifier);
                                 toRemove = process;
                                 break;
                             }
@@ -285,35 +273,24 @@ public class StandardPythonBridge implements PythonBridge {
 
                 final PythonProcess pythonProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, packagedWithDependencies, extensionId.type(), componentId);
 
-                // Add the process to the list BEFORE calling start() so that if a component removal
-                // is requested during startup (e.g., NAR deletion during venv creation), we can find
-                // the process and shut it down.
+                // Add process to list before start() so removal requests during startup can find it
                 processesForType.add(pythonProcess);
-                logger.info("Added PythonProcess to list for component {}, now calling start()", componentId);
 
                 try {
                     pythonProcess.start();
-                    logger.info("PythonProcess.start() completed for component {}", componentId);
 
-                    // Create list of extensions directories, including NAR directories
-                    // (NAR directories were pre-computed before acquiring this lock to avoid deadlock)
                     final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
                         .map(File::getAbsolutePath)
                         .collect(Collectors.toCollection(ArrayList::new));
                     extensionsDirs.addAll(narDirectories);
 
                     final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
-                    logger.info("Calling discoverExtensions for component {}", componentId);
                     pythonProcess.discoverExtensions(extensionsDirs, workDirPath);
-                    logger.info("discoverExtensions completed for component {}", componentId);
                 } catch (final IOException e) {
-                    // If start fails, remove the process from the list
-                    logger.info("PythonProcess.start() or discoverExtensions failed for component {}, removing from list", componentId);
                     processesForType.remove(pythonProcess);
                     throw e;
                 }
 
-                logger.info("Returning PythonProcess for component {}", componentId);
                 return pythonProcess;
             } catch (final IOException ioe) {
                 final String message = String.format("Failed to launch Process for Python Processor [%s] Version [%s]", extensionId.type(), extensionId.version());

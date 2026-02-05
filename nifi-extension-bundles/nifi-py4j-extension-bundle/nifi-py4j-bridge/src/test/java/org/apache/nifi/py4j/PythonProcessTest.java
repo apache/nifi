@@ -132,54 +132,33 @@ class PythonProcessTest {
         return this.virtualEnvHome.getAbsolutePath() + File.separator + binarySubDirectoryName + File.separator + PYTHON_CMD;
     }
 
-    /**
-     * Tests that the PythonProcess can be shutdown even if it hasn't been started.
-     */
     @Test
     void testShutdownBeforeStart() {
-        // Should not throw any exception
         pythonProcess.shutdown();
-        assertTrue(pythonProcess.isShutdown(), "Process should be marked as shutdown");
+        assertTrue(pythonProcess.isShutdown());
     }
 
-    /**
-     * Tests that isShutdown() returns correct values.
-     */
     @Test
     void testIsShutdownInitialState() {
-        assertFalse(pythonProcess.isShutdown(), "Process should not be shutdown initially");
+        assertFalse(pythonProcess.isShutdown());
     }
 
-    /**
-     * Tests that shutdown can be called multiple times without issues.
-     */
     @Test
     void testMultipleShutdownCalls() {
         pythonProcess.shutdown();
         assertTrue(pythonProcess.isShutdown());
 
-        // Second shutdown should not throw
         pythonProcess.shutdown();
         assertTrue(pythonProcess.isShutdown());
 
-        // Third shutdown should still work
         pythonProcess.shutdown();
         assertTrue(pythonProcess.isShutdown());
     }
 
-
-    /**
-     * Tests that shutdown properly cleans up even when called during initialization.
-     * This simulates the scenario where NAR deletion triggers shutdown during venv creation.
-     */
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS)
     void testShutdownDuringInitializationPreparation() {
-        // Shutdown immediately - this simulates early cancellation
         pythonProcess.shutdown();
-
-        // Process should be marked as shutdown
-        assertTrue(pythonProcess.isShutdown(),
-                "Process should be marked as shutdown immediately after shutdown() is called");
+        assertTrue(pythonProcess.isShutdown());
     }
 }

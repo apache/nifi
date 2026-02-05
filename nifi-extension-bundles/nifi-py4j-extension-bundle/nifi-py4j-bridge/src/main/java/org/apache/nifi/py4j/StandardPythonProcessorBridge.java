@@ -66,7 +66,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
     @Override
     public void initialize(final PythonProcessorInitializationContext context) {
-        // If already canceled, do not start initialization
         if (canceled) {
             logger.info("Not initializing Python Processor {} ({}) because it has been canceled",
                     context.getIdentifier(), getProcessorType());
@@ -88,7 +87,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
     @Override
     public void replaceController(final PythonController controller) {
-        // If already canceled, do not start re-initialization
         if (canceled) {
             logger.info("Not re-initializing Python Processor {} ({}) because it has been canceled",
                     identifier, getProcessorType());
@@ -123,13 +121,11 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         canceled = true;
         logger.info("Canceling initialization for Python Processor {} ({})", identifier, getProcessorType());
 
-        // Cancel the initialization future if it exists
         final CompletableFuture<Void> future = this.initializationFuture;
         if (future != null) {
             future.cancel(true);
         }
 
-        // Update load state if not already finished
         if (loadState != LoadState.FINISHED_LOADING) {
             loadState = LoadState.CANCELED;
         }
@@ -146,7 +142,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
             return;
         }
 
-        // Check if already canceled before starting
         if (canceled) {
             loadState = LoadState.CANCELED;
             future.complete(null);
@@ -169,7 +164,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
                 break;
             } catch (final Exception e) {
-                // Check for cancellation after exception
                 if (canceled) {
                     loadState = LoadState.CANCELED;
                     logger.info("Python Processor {} ({}) initialization canceled during dependency download", identifier, getProcessorType());
@@ -201,7 +195,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
             }
         }
 
-        // Check cancellation before moving to code loading phase
         if (canceled) {
             loadState = LoadState.CANCELED;
             logger.info("Python Processor {} ({}) initialization canceled before loading processor code", identifier, getProcessorType());
@@ -220,7 +213,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
                 logger.info("Successfully loaded Python Processor {} ({})", identifier, getProcessorType());
                 break;
             } catch (final Exception e) {
-                // Check for cancellation after exception
                 if (canceled) {
                     loadState = LoadState.CANCELED;
                     logger.info("Python Processor {} ({}) initialization canceled during code loading", identifier, getProcessorType());
@@ -253,7 +245,6 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
             }
         }
 
-        // Final check for cancellation
         if (canceled && loadState != LoadState.FINISHED_LOADING) {
             loadState = LoadState.CANCELED;
             logger.info("Python Processor {} ({}) initialization canceled", identifier, getProcessorType());
