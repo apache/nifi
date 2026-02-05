@@ -415,6 +415,7 @@ import org.apache.nifi.web.api.request.FlowMetricsRegistry;
 import org.apache.nifi.web.api.request.FlowMetricsReportingStrategy;
 import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ConnectorDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
@@ -497,6 +498,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private BulletinRepository bulletinRepository;
 
     // data access objects
+    private ComponentStateDAO componentStateDAO;
     private ProcessorDAO processorDAO;
     private ProcessGroupDAO processGroupDAO;
     private RemoteProcessGroupDAO remoteProcessGroupDAO;
@@ -2097,6 +2099,68 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         // processor will be non null as it was already found when getting the state
         final RemoteProcessGroup remoteProcessGroup = remoteProcessGroupDAO.getRemoteProcessGroup(remoteProcessGroupId);
         return dtoFactory.createComponentStateDTO(remoteProcessGroupId, remoteProcessGroup.getClass(), localState, clusterState);
+    }
+
+    @Override
+    public ComponentStateDTO getConnectorProcessorState(final String connectorId, final String processorId) {
+        final ProcessorNode processor = locateConnectorProcessor(connectorId, processorId);
+        final StateMap clusterState = isClustered() ? componentStateDAO.getState(processor, Scope.CLUSTER) : null;
+        final StateMap localState = componentStateDAO.getState(processor, Scope.LOCAL);
+        return dtoFactory.createComponentStateDTO(processorId, processor.getProcessor().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public void verifyCanClearConnectorProcessorState(final String connectorId, final String processorId) {
+        final ProcessorNode processor = locateConnectorProcessor(connectorId, processorId);
+        processor.verifyCanClearState();
+    }
+
+    @Override
+    public ComponentStateDTO clearConnectorProcessorState(final String connectorId, final String processorId, final ComponentStateDTO componentStateDTO) {
+        final ProcessorNode processor = locateConnectorProcessor(connectorId, processorId);
+        componentStateDAO.clearState(processor, componentStateDTO);
+        return getConnectorProcessorState(connectorId, processorId);
+    }
+
+    @Override
+    public ComponentStateDTO getConnectorControllerServiceState(final String connectorId, final String controllerServiceId) {
+        final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
+        final StateMap clusterState = isClustered() ? componentStateDAO.getState(controllerService, Scope.CLUSTER) : null;
+        final StateMap localState = componentStateDAO.getState(controllerService, Scope.LOCAL);
+        return dtoFactory.createComponentStateDTO(controllerServiceId, controllerService.getControllerServiceImplementation().getClass(), localState, clusterState);
+    }
+
+    @Override
+    public void verifyCanClearConnectorControllerServiceState(final String connectorId, final String controllerServiceId) {
+        final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
+        controllerService.verifyCanClearState();
+    }
+
+    @Override
+    public ComponentStateDTO clearConnectorControllerServiceState(final String connectorId, final String controllerServiceId, final ComponentStateDTO componentStateDTO) {
+        final ControllerServiceNode controllerService = locateConnectorControllerService(connectorId, controllerServiceId);
+        componentStateDAO.clearState(controllerService, componentStateDTO);
+        return getConnectorControllerServiceState(connectorId, controllerServiceId);
+    }
+
+    private ProcessorNode locateConnectorProcessor(final String connectorId, final String processorId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ProcessorNode processor = managedGroup.findProcessor(processorId);
+        if (processor == null) {
+            throw new ResourceNotFoundException("Unable to find processor with id '%s' within connector '%s'.".formatted(processorId, connectorId));
+        }
+        return processor;
+    }
+
+    private ControllerServiceNode locateConnectorControllerService(final String connectorId, final String controllerServiceId) {
+        final ConnectorNode connectorNode = connectorDAO.getConnector(connectorId);
+        final ProcessGroup managedGroup = connectorNode.getActiveFlowContext().getManagedProcessGroup();
+        final ControllerServiceNode controllerService = managedGroup.findControllerService(controllerServiceId, false, true);
+        if (controllerService == null) {
+            throw new ResourceNotFoundException("Unable to find controller service with id '%s' within connector '%s'.".formatted(controllerServiceId, connectorId));
+        }
+        return controllerService;
     }
 
     @Override
@@ -7807,6 +7871,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Autowired
     public void setParameterProviderDAO(final ParameterProviderDAO parameterProviderDAO) {
         this.parameterProviderDAO = parameterProviderDAO;
+    }
+
+    @Autowired
+    public void setComponentStateDAO(final ComponentStateDAO componentStateDAO) {
+        this.componentStateDAO = componentStateDAO;
     }
 
     @Autowired

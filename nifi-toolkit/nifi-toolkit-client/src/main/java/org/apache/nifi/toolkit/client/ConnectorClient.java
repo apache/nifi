@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.client;
 
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -365,6 +366,50 @@ public interface ConnectorClient {
      * @throws IOException if an I/O error occurs
      */
     DropRequestEntity deletePurgeRequest(String connectorId, String purgeRequestId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the state for a processor within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param processorId the processor ID
+     * @return the component state entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ComponentStateEntity getProcessorState(String connectorId, String processorId) throws NiFiClientException, IOException;
+
+    /**
+     * Clears the state for a processor within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param processorId the processor ID
+     * @return the component state entity after clearing
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ComponentStateEntity clearProcessorState(String connectorId, String processorId) throws NiFiClientException, IOException;
+
+    /**
+     * Gets the state for a controller service within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param controllerServiceId the controller service ID
+     * @return the component state entity
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ComponentStateEntity getControllerServiceState(String connectorId, String controllerServiceId) throws NiFiClientException, IOException;
+
+    /**
+     * Clears the state for a controller service within a connector.
+     *
+     * @param connectorId the connector ID
+     * @param controllerServiceId the controller service ID
+     * @return the component state entity after clearing
+     * @throws NiFiClientException if an error occurs during the request
+     * @throws IOException if an I/O error occurs
+     */
+    ComponentStateEntity clearControllerServiceState(String connectorId, String controllerServiceId) throws NiFiClientException, IOException;
 
     /**
      * Indicates that mutable requests should indicate that the client has

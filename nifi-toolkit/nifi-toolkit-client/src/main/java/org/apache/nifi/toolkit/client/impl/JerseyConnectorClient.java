@@ -27,6 +27,7 @@ import org.apache.nifi.toolkit.client.RequestConfig;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.entity.AssetEntity;
 import org.apache.nifi.web.api.entity.AssetsEntity;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepEntity;
 import org.apache.nifi.web.api.entity.ConfigurationStepNamesEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
@@ -591,6 +592,82 @@ public class JerseyConnectorClient extends AbstractJerseyClient implements Conne
                 .resolveTemplate("purgeRequestId", purgeRequestId);
 
             return getRequestBuilder(target).delete(DropRequestEntity.class);
+        });
+    }
+
+    @Override
+    public ComponentStateEntity getProcessorState(final String connectorId, final String processorId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(processorId)) {
+            throw new IllegalArgumentException("Processor id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving processor state for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                .path("/processors/{processorId}/state")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("processorId", processorId);
+
+            return getRequestBuilder(target).get(ComponentStateEntity.class);
+        });
+    }
+
+    @Override
+    public ComponentStateEntity clearProcessorState(final String connectorId, final String processorId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(processorId)) {
+            throw new IllegalArgumentException("Processor id cannot be null or blank");
+        }
+
+        return executeAction("Error clearing processor state for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                .path("/processors/{processorId}/state/clear-requests")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("processorId", processorId);
+
+            return getRequestBuilder(target).post(null, ComponentStateEntity.class);
+        });
+    }
+
+    @Override
+    public ComponentStateEntity getControllerServiceState(final String connectorId, final String controllerServiceId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(controllerServiceId)) {
+            throw new IllegalArgumentException("Controller service id cannot be null or blank");
+        }
+
+        return executeAction("Error retrieving controller service state for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                .path("/controller-services/{controllerServiceId}/state")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("controllerServiceId", controllerServiceId);
+
+            return getRequestBuilder(target).get(ComponentStateEntity.class);
+        });
+    }
+
+    @Override
+    public ComponentStateEntity clearControllerServiceState(final String connectorId, final String controllerServiceId) throws NiFiClientException, IOException {
+        if (StringUtils.isBlank(connectorId)) {
+            throw new IllegalArgumentException("Connector id cannot be null or blank");
+        }
+        if (StringUtils.isBlank(controllerServiceId)) {
+            throw new IllegalArgumentException("Controller service id cannot be null or blank");
+        }
+
+        return executeAction("Error clearing controller service state for Connector " + connectorId, () -> {
+            final WebTarget target = connectorTarget
+                .path("/controller-services/{controllerServiceId}/state/clear-requests")
+                .resolveTemplate("id", connectorId)
+                .resolveTemplate("controllerServiceId", controllerServiceId);
+
+            return getRequestBuilder(target).post(null, ComponentStateEntity.class);
         });
     }
 }

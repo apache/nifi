@@ -29,10 +29,12 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.AllowableValueEntity;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 import org.apache.nifi.web.api.entity.ConnectorPropertyAllowableValuesEntity;
 import org.apache.nifi.web.api.entity.ConnectorRunStatusEntity;
@@ -104,6 +106,8 @@ public class TestConnectorResource {
     private static final String PROPERTY_GROUP_NAME = "test-group";
     private static final String PROPERTY_NAME = "test-property";
     private static final String PROCESS_GROUP_ID = "test-process-group-id";
+    private static final String PROCESSOR_ID = "test-processor-id";
+    private static final String CONTROLLER_SERVICE_ID = "test-controller-service-id";
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -628,5 +632,117 @@ public class TestConnectorResource {
             connectorResource.createConnector(requestEntity));
 
         verify(serviceFacade, never()).createConnector(any(Revision.class), any(ConnectorDTO.class));
+    }
+
+    @Test
+    public void testGetConnectorProcessorState() {
+        final ComponentStateDTO stateDTO = new ComponentStateDTO();
+        stateDTO.setComponentId(PROCESSOR_ID);
+        when(serviceFacade.getConnectorProcessorState(CONNECTOR_ID, PROCESSOR_ID)).thenReturn(stateDTO);
+
+        try (Response response = connectorResource.getConnectorProcessorState(CONNECTOR_ID, PROCESSOR_ID)) {
+            assertEquals(200, response.getStatus());
+            final ComponentStateEntity entity = (ComponentStateEntity) response.getEntity();
+            assertEquals(PROCESSOR_ID, entity.getComponentState().getComponentId());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorProcessorState(CONNECTOR_ID, PROCESSOR_ID);
+    }
+
+    @Test
+    public void testGetConnectorProcessorStateNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+            connectorResource.getConnectorProcessorState(CONNECTOR_ID, PROCESSOR_ID));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getConnectorProcessorState(anyString(), anyString());
+    }
+
+    @Test
+    public void testClearConnectorProcessorState() {
+        final ComponentStateDTO stateDTO = new ComponentStateDTO();
+        stateDTO.setComponentId(PROCESSOR_ID);
+        when(serviceFacade.clearConnectorProcessorState(eq(CONNECTOR_ID), eq(PROCESSOR_ID), any())).thenReturn(stateDTO);
+
+        try (Response response = connectorResource.clearConnectorProcessorState(CONNECTOR_ID, PROCESSOR_ID, null)) {
+            assertEquals(200, response.getStatus());
+            final ComponentStateEntity entity = (ComponentStateEntity) response.getEntity();
+            assertEquals(PROCESSOR_ID, entity.getComponentState().getComponentId());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).verifyCanClearConnectorProcessorState(CONNECTOR_ID, PROCESSOR_ID);
+        verify(serviceFacade).clearConnectorProcessorState(eq(CONNECTOR_ID), eq(PROCESSOR_ID), any());
+    }
+
+    @Test
+    public void testClearConnectorProcessorStateNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+            connectorResource.clearConnectorProcessorState(CONNECTOR_ID, PROCESSOR_ID, null));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).verifyCanClearConnectorProcessorState(anyString(), anyString());
+        verify(serviceFacade, never()).clearConnectorProcessorState(anyString(), anyString(), any());
+    }
+
+    @Test
+    public void testGetConnectorControllerServiceState() {
+        final ComponentStateDTO stateDTO = new ComponentStateDTO();
+        stateDTO.setComponentId(CONTROLLER_SERVICE_ID);
+        when(serviceFacade.getConnectorControllerServiceState(CONNECTOR_ID, CONTROLLER_SERVICE_ID)).thenReturn(stateDTO);
+
+        try (Response response = connectorResource.getConnectorControllerServiceState(CONNECTOR_ID, CONTROLLER_SERVICE_ID)) {
+            assertEquals(200, response.getStatus());
+            final ComponentStateEntity entity = (ComponentStateEntity) response.getEntity();
+            assertEquals(CONTROLLER_SERVICE_ID, entity.getComponentState().getComponentId());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).getConnectorControllerServiceState(CONNECTOR_ID, CONTROLLER_SERVICE_ID);
+    }
+
+    @Test
+    public void testGetConnectorControllerServiceStateNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+            connectorResource.getConnectorControllerServiceState(CONNECTOR_ID, CONTROLLER_SERVICE_ID));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).getConnectorControllerServiceState(anyString(), anyString());
+    }
+
+    @Test
+    public void testClearConnectorControllerServiceState() {
+        final ComponentStateDTO stateDTO = new ComponentStateDTO();
+        stateDTO.setComponentId(CONTROLLER_SERVICE_ID);
+        when(serviceFacade.clearConnectorControllerServiceState(eq(CONNECTOR_ID), eq(CONTROLLER_SERVICE_ID), any())).thenReturn(stateDTO);
+
+        try (Response response = connectorResource.clearConnectorControllerServiceState(CONNECTOR_ID, CONTROLLER_SERVICE_ID, null)) {
+            assertEquals(200, response.getStatus());
+            final ComponentStateEntity entity = (ComponentStateEntity) response.getEntity();
+            assertEquals(CONTROLLER_SERVICE_ID, entity.getComponentState().getComponentId());
+        }
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade).verifyCanClearConnectorControllerServiceState(CONNECTOR_ID, CONTROLLER_SERVICE_ID);
+        verify(serviceFacade).clearConnectorControllerServiceState(eq(CONNECTOR_ID), eq(CONTROLLER_SERVICE_ID), any());
+    }
+
+    @Test
+    public void testClearConnectorControllerServiceStateNotAuthorized() {
+        doThrow(AccessDeniedException.class).when(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+
+        assertThrows(AccessDeniedException.class, () ->
+            connectorResource.clearConnectorControllerServiceState(CONNECTOR_ID, CONTROLLER_SERVICE_ID, null));
+
+        verify(serviceFacade).authorizeAccess(any(AuthorizeAccess.class));
+        verify(serviceFacade, never()).verifyCanClearConnectorControllerServiceState(anyString(), anyString());
+        verify(serviceFacade, never()).clearConnectorControllerServiceState(anyString(), anyString(), any());
     }
 }
