@@ -19,6 +19,7 @@ package org.apache.nifi.web.connector.authorization;
 import org.apache.nifi.components.connector.components.ControllerServiceLifecycle;
 import org.apache.nifi.components.connector.components.ControllerServiceState;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -45,6 +46,12 @@ public class AuthorizingControllerServiceLifecycle implements ControllerServiceL
     public CompletableFuture<Void> enable() {
         authContext.authorizeWrite();
         return delegate.enable();
+    }
+
+    @Override
+    public CompletableFuture<Void> enable(final Map<String, String> propertyValueOverrides) {
+        authContext.authorizeWrite();
+        return delegate.enable(propertyValueOverrides);
     }
 
     @Override

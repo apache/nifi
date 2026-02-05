@@ -48,6 +48,7 @@ import org.apache.nifi.controller.scheduling.processors.FailOnScheduledProcessor
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceProvider;
 import org.apache.nifi.controller.service.mock.MockProcessGroup;
 import org.apache.nifi.engine.FlowEngine;
@@ -64,6 +65,7 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.StandardProcessorInitializationContext;
 import org.apache.nifi.processor.StandardValidationContextFactory;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingContext;
@@ -88,6 +90,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
@@ -95,6 +98,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -491,6 +495,51 @@ public class TestStandardProcessScheduler {
         assertEquals(0, ts.disableInvocationCount());
     }
 
+    @Test
+    @Timeout(10)
+    public void testEnableControllerServiceWithConfigurationContext() throws Exception {
+        final ControllerServiceNode serviceNode = flowManager.createControllerService(PropertyTrackingService.class.getName(),
+            "property-tracking-service", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
+
+        rootGroup.addControllerService(serviceNode);
+        serviceNode.setProperties(Map.of(PropertyTrackingService.TRACKING_PROPERTY.getName(), "original-value"));
+        serviceNode.performValidation();
+
+        final ConfigurationContext overrideContext = new StandardConfigurationContext(
+            serviceNode, Map.of(PropertyTrackingService.TRACKING_PROPERTY.getName(), "overridden-value"), null,
+            rootGroup.getParameterContext(), serviceProvider, null);
+
+        final CompletableFuture<Void> future = scheduler.enableControllerService(serviceNode, overrideContext);
+        future.get(5, TimeUnit.SECONDS);
+
+        final PropertyTrackingService service = (PropertyTrackingService) serviceNode.getControllerServiceImplementation();
+        assertEquals(1, service.enableInvocationCount());
+        assertEquals("overridden-value", service.getEnabledPropertyValue());
+        assertEquals(ControllerServiceState.ENABLED, serviceNode.getState());
+    }
+
+    @Test
+    @Timeout(10)
+    public void testEnableControllerServiceWithConfigurationContextUsesOverriddenProperties() throws ExecutionException, InterruptedException, TimeoutException {
+        final ControllerServiceNode serviceNode = flowManager.createControllerService(PropertyTrackingService.class.getName(),
+            "property-tracking-service-2", systemBundle.getBundleDetails().getCoordinate(), null, false, true, null);
+
+        rootGroup.addControllerService(serviceNode);
+        serviceNode.performValidation();
+
+        final ConfigurationContext validOverrideContext = new StandardConfigurationContext(
+            serviceNode, Map.of(PropertyTrackingService.TRACKING_PROPERTY.getName(), "override-value"), null,
+            rootGroup.getParameterContext(), serviceProvider, null);
+
+        final CompletableFuture<Void> future = scheduler.enableControllerService(serviceNode, validOverrideContext);
+        future.get(5, TimeUnit.SECONDS);
+
+        final PropertyTrackingService service = (PropertyTrackingService) serviceNode.getControllerServiceImplementation();
+        assertEquals(1, service.enableInvocationCount());
+        assertEquals("override-value", service.getEnabledPropertyValue());
+        assertEquals(ControllerServiceState.ENABLED, serviceNode.getState());
+    }
+
     // Test that if processor throws Exception in @OnScheduled, it keeps getting scheduled
     @Test
     @Timeout(10)
@@ -624,6 +673,38 @@ public class TestStandardProcessScheduler {
 
         public int disableInvocationCount() {
             return this.disableCounter.get();
+        }
+    }
+
+    public static class PropertyTrackingService extends AbstractControllerService {
+        public static final PropertyDescriptor TRACKING_PROPERTY = new PropertyDescriptor.Builder()
+            .name("Tracking Property")
+            .description("A property for tracking what value was used during enabling")
+            .required(false)
+            .defaultValue("default-value")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+        private volatile String enabledPropertyValue;
+        private final AtomicInteger enableCounter = new AtomicInteger();
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return List.of(TRACKING_PROPERTY);
+        }
+
+        @OnEnabled
+        public void enable(final ConfigurationContext context) {
+            this.enabledPropertyValue = context.getProperty(TRACKING_PROPERTY).getValue();
+            this.enableCounter.incrementAndGet();
+        }
+
+        public String getEnabledPropertyValue() {
+            return enabledPropertyValue;
+        }
+
+        public int enableInvocationCount() {
+            return enableCounter.get();
         }
     }
 

@@ -644,6 +644,13 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
      */
     @Override
     public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final boolean completeExceptionallyOnFailure) {
+        return enable(scheduler, administrativeYieldMillis, completeExceptionallyOnFailure, null);
+    }
+
+    @Override
+    public CompletableFuture<Void> enable(final ScheduledExecutorService scheduler, final long administrativeYieldMillis, final boolean completeExceptionallyOnFailure,
+            final ConfigurationContext providedConfigurationContext) {
+
         final CompletableFuture<Void> future = new CompletableFuture<>();
 
         if (!stateTransition.transitionToEnabling(ControllerServiceState.DISABLED, future)) {
@@ -662,7 +669,9 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         scheduler.execute(new Runnable() {
             @Override
             public void run() {
-                final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null);
+                final ConfigurationContext configContext = providedConfigurationContext == null
+                    ? new StandardConfigurationContext(serviceNode, controllerServiceProvider, null)
+                    : providedConfigurationContext;
 
                 if (!isActive()) {
                     LOG.warn("Enabling {} stopped: no active status", serviceNode);
@@ -671,9 +680,17 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
                     return;
                 }
 
-                // Perform Validation and evaluate status before continuing
-                performValidation();
-                final ValidationState validationState = getValidationState();
+                // Perform validation - if a ConfigurationContext was provided, validate against its properties
+                final ValidationState validationState;
+                if (providedConfigurationContext == null) {
+                    performValidation();
+                    validationState = getValidationState();
+                } else {
+                    final Map<String, String> properties = providedConfigurationContext.getAllProperties();
+                    final ValidationContext validationContext = createValidationContext(properties, getAnnotationData(), getParameterLookup(), true);
+                    validationState = performValidation(validationContext);
+                }
+
                 final ValidationStatus validationStatus = validationState.getStatus();
                 if (validationStatus == ValidationStatus.VALID) {
                     LOG.debug("Enabling {} proceeding after performing validation", serviceNode);
@@ -774,6 +791,12 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         }
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
+        // If already disabled, complete immediately
+        if (getState() == ControllerServiceState.DISABLED) {
+            future.complete(null);
+            return future;
+        }
+
         final boolean transitioned = this.stateTransition.transitionToDisabling(ControllerServiceState.ENABLING, future);
         if (transitioned) {
             // If we transitioned from ENABLING to DISABLING, we need to immediately complete the disable

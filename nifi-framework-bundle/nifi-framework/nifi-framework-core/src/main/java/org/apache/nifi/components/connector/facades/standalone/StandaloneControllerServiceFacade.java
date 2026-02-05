@@ -73,7 +73,7 @@ public class StandaloneControllerServiceFacade implements ControllerServiceFacad
         this.extensionManager = extensionManager;
         this.assetManager = assetManager;
 
-        this.lifecycle = new StandaloneControllerServiceLifecycle(controllerServiceNode, processScheduler);
+        this.lifecycle = new StandaloneControllerServiceLifecycle(controllerServiceNode, processScheduler, componentContextProvider, parameterContext);
     }
 
     @Override
