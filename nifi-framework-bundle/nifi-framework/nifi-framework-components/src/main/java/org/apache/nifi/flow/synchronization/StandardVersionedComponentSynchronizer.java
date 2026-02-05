@@ -2209,25 +2209,13 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
                 // if it was created during an import with REPLACE strategy.
                 final String parentContextName = parentContext.getName();
                 if (parentContextName.equals(versionedParameterContextName)
-                        || isParameterContextNameWithSuffix(parentContextName, versionedParameterContextName)) {
+                        || ParameterContextNameUtils.isNameWithSuffix(parentContextName, versionedParameterContextName)) {
                     return parentContext;
                 }
             }
             parent = parent.getParent();
         }
         return null;
-    }
-
-    /**
-     * Checks if the given parameter context name is the versioned name with a numeric suffix.
-     * For example, "P (1)" or "P (2)" would match versioned name "P".
-     *
-     * @param contextName the actual parameter context name
-     * @param versionedName the parameter context name from the versioned flow
-     * @return true if contextName is versionedName with a suffix like " (n)"
-     */
-    private boolean isParameterContextNameWithSuffix(final String contextName, final String versionedName) {
-        return ParameterContextNameUtils.isNameWithSuffix(contextName, versionedName);
     }
 
     private void createMissingParameterProvider(final VersionedParameterContext versionedParameterContext, final String parameterProviderId,
