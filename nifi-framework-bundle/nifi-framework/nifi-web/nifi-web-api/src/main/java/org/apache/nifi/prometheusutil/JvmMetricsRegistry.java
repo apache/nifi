@@ -37,9 +37,27 @@ public class JvmMetricsRegistry extends AbstractMetricsRegistry {
                 .labelNames("instance")
                 .register(registry));
 
+        nameToGaugeMap.put("JVM_HEAP_COMMITTED", Gauge.build()
+                .name("nifi_jvm_heap_committed")
+                .help("NiFi JVM heap memory committed in bytes")
+                .labelNames("instance")
+                .register(registry));
+
         nameToGaugeMap.put("JVM_HEAP_NON_USAGE", Gauge.build()
                 .name("nifi_jvm_heap_non_usage")
                 .help("NiFi JVM heap non usage")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("JVM_NON_HEAP_USED", Gauge.build()
+                .name("nifi_jvm_non_heap_used")
+                .help("NiFi JVM non-heap memory used in bytes")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("JVM_NON_HEAP_COMMITTED", Gauge.build()
+                .name("nifi_jvm_non_heap_committed")
+                .help("NiFi JVM non-heap memory committed in bytes")
                 .labelNames("instance")
                 .register(registry));
 
