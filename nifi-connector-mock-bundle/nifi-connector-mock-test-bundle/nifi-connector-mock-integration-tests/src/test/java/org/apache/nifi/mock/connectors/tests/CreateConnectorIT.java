@@ -24,6 +24,9 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.io.IOException;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 public class CreateConnectorIT {
 
     @Test
@@ -36,5 +39,19 @@ public class CreateConnectorIT {
             testRunner.startConnector();
             testRunner.stopConnector();
         }
+    }
+
+    @Test
+    public void testConnectorWithMissingBundleThrowsException() {
+        final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
+            new StandardConnectorTestRunner.Builder()
+                .connectorClassName("org.apache.nifi.mock.connectors.MissingBundleConnector")
+                .narLibraryDirectory(new File("target/libDir"))
+                .build();
+        });
+
+        final String message = exception.getMessage();
+        assertTrue(message.contains("com.example.nonexistent:missing-nar:1.0.0"), "Expected exception message to contain missing bundle coordinates but was: " + message);
+        assertTrue(message.contains("com.example.nonexistent.MissingProcessor"), "Expected exception message to contain missing processor type but was: " + message);
     }
 }

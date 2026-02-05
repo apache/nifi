@@ -100,6 +100,7 @@ public class StandardConnectorNode implements ConnectorNode {
     private final boolean extensionMissing;
     private volatile boolean triggerValidation = true;
     private final AtomicReference<CompletableFuture<Void>> drainFutureRef = new AtomicReference<>();
+    private volatile ValidationResult unresolvedBundleValidationResult = null;
 
     private volatile FrameworkFlowContext workingFlowContext;
 
@@ -709,11 +710,18 @@ public class StandardConnectorNode implements ConnectorNode {
         if (initialFlow == null) {
             logger.info("{} has no initial flow to load", this);
         } else {
-            logger.info("Loading initial flow for {}", this);
-            // Update all RUNNING components to ENABLED before applying the initial flow so that components
-            // are not started before being configured.
-            stopComponents(initialFlow.getFlowContents());
-            initializationContext.updateFlow(activeFlowContext, initialFlow, BundleCompatibility.RESOLVE_BUNDLE);
+            final ValidationResult unresolvedBundleResult = validateBundlesCanBeResolved(initialFlow.getFlowContents(), initializationContext.getComponentBundleLookup());
+
+            if (unresolvedBundleResult != null) {
+                logger.error("Cannot load initial flow for {} because some component bundles cannot be resolved: {}", this, unresolvedBundleResult.getExplanation());
+                unresolvedBundleValidationResult = unresolvedBundleResult;
+            } else {
+                logger.info("Loading initial flow for {}", this);
+                // Update all RUNNING components to ENABLED before applying the initial flow so that components
+                // are not started before being configured.
+                stopComponents(initialFlow.getFlowContents());
+                initializationContext.updateFlow(activeFlowContext, initialFlow, BundleCompatibility.RESOLVE_BUNDLE);
+            }
         }
 
         resetValidationState();
@@ -736,6 +744,101 @@ public class StandardConnectorNode implements ConnectorNode {
         for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
             stopComponents(childGroup);
         }
+    }
+
+    /**
+     * Ensures that all bundles required by the given Process Group can be resolved. We do this in order to make the Connector
+     * invalid if any Processor or Controller Service cannot be properly instantiated due to missing bundles. We intentionally
+     * differentiate between making the Connector invalid versus Ghosting the Connector for a few reasons:
+     * <ul>
+     *     <li>
+     *         Ghosting the Connector would prevent us from even getting the Configuration Steps, and it results in all Properties becoming sensitive. This can lead to confusion.
+     *     </li>
+     *     <li>
+     *         The flow may change dynamically and so it's possible for a Connector to be valid given its initial flow and then become invalid
+     *     based on configuration because the new configuration requires a new component that is unavailable. We would not suddenly change from
+     *     a valid Connector to a Ghosted Connector, we could only become invalid. We do not want a missing component in the Initial Flow to be
+     *     treated differently than a missing component from a subsequent flow update.
+     *     </li>
+     *     <li>
+     *         Ghosting should be reserved for situations where the extension itself is missing.
+     *     </li>
+     * </ul>
+     *
+     * @param group the process group to validate
+     * @param bundleLookup the bundle lookup
+     * @return a ValidationResult describing the missing bundles if any are missing; null if all bundles can be resolved
+     */
+    private ValidationResult validateBundlesCanBeResolved(final VersionedProcessGroup group, final ComponentBundleLookup bundleLookup) {
+        final Set<String> missingBundles = new HashSet<>();
+        final Set<String> missingProcessorTypes = new HashSet<>();
+        final Set<String> missingControllerServiceTypes = new HashSet<>();
+
+        collectUnresolvedBundles(group, bundleLookup, missingBundles, missingProcessorTypes, missingControllerServiceTypes);
+
+        if (missingBundles.isEmpty()) {
+            return null;
+        }
+
+        final StringBuilder explanation = new StringBuilder();
+        explanation.append("%d Processors and %d Controller Services unavailable from %d missing bundles".formatted(
+            missingProcessorTypes.size(), missingControllerServiceTypes.size(), missingBundles.size()));
+        explanation.append("\nMissing Bundles: %s".formatted(missingBundles));
+        if (!missingProcessorTypes.isEmpty()) {
+            explanation.append("\nMissing Processors: %s".formatted(missingProcessorTypes));
+        }
+        if (!missingControllerServiceTypes.isEmpty()) {
+            explanation.append("\nMissing Controller Services: %s".formatted(missingControllerServiceTypes));
+        }
+
+        return new ValidationResult.Builder()
+            .subject("Missing Bundles")
+            .valid(false)
+            .explanation(explanation.toString())
+            .build();
+    }
+
+    private void collectUnresolvedBundles(final VersionedProcessGroup group, final ComponentBundleLookup bundleLookup,
+                                          final Set<String> missingBundles, final Set<String> missingProcessorTypes,
+                                          final Set<String> missingControllerServiceTypes) {
+        if (group.getProcessors() != null) {
+            for (final VersionedProcessor processor : group.getProcessors()) {
+                if (!isBundleResolvable(processor.getType(), processor.getBundle(), bundleLookup)) {
+                    missingBundles.add(formatBundle(processor.getBundle()));
+                    missingProcessorTypes.add(processor.getType());
+                }
+            }
+        }
+
+        if (group.getControllerServices() != null) {
+            for (final VersionedControllerService service : group.getControllerServices()) {
+                if (!isBundleResolvable(service.getType(), service.getBundle(), bundleLookup)) {
+                    missingBundles.add(formatBundle(service.getBundle()));
+                    missingControllerServiceTypes.add(service.getType());
+                }
+            }
+        }
+
+        if (group.getProcessGroups() != null) {
+            for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+                collectUnresolvedBundles(childGroup, bundleLookup, missingBundles, missingProcessorTypes, missingControllerServiceTypes);
+            }
+        }
+    }
+
+    private String formatBundle(final Bundle bundle) {
+        return "%s:%s:%s".formatted(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+    }
+
+    private boolean isBundleResolvable(final String componentType, final Bundle currentBundle, final ComponentBundleLookup bundleLookup) {
+        final List<Bundle> availableBundles = bundleLookup.getAvailableBundles(componentType);
+
+        if (availableBundles.contains(currentBundle)) {
+            return true;
+        }
+
+        // With RESOLVE_BUNDLE, a bundle can be resolved only if exactly one alternative bundle is available
+        return availableBundles.size() == 1;
     }
 
     private void recreateWorkingFlowContext() {
@@ -1233,22 +1336,27 @@ public class StandardConnectorNode implements ConnectorNode {
         logger.debug("Performing validation for {}", this);
         try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
 
-            final ConnectorValidationContext validationContext = createValidationContext(activeFlowContext);
-
             final List<ValidationResult> allResults = new ArrayList<>();
-            validateManagedFlowComponents(allResults);
-            validatePropertyReferences(allResults);
 
-            if (allResults.isEmpty()) {
-                try {
-                    final List<ValidationResult> implValidationResults = getConnector().validate(activeFlowContext, validationContext);
-                    allResults.addAll(implValidationResults);
-                } catch (final Exception e) {
-                    allResults.add(new ValidationResult.Builder()
-                        .subject("Validation Failure")
-                        .valid(false)
-                        .explanation("Encountered a failure while attempting to perform validation: " + e.getMessage())
-                        .build());
+            if (unresolvedBundleValidationResult != null) {
+                allResults.add(unresolvedBundleValidationResult);
+            } else {
+                final ConnectorValidationContext validationContext = createValidationContext(activeFlowContext);
+
+                validateManagedFlowComponents(allResults);
+                validatePropertyReferences(allResults);
+
+                if (allResults.isEmpty()) {
+                    try {
+                        final List<ValidationResult> implValidationResults = getConnector().validate(activeFlowContext, validationContext);
+                        allResults.addAll(implValidationResults);
+                    } catch (final Exception e) {
+                        allResults.add(new ValidationResult.Builder()
+                            .subject("Validation Failure")
+                            .valid(false)
+                            .explanation("Encountered a failure while attempting to perform validation: " + e.getMessage())
+                            .build());
+                    }
                 }
             }
 
