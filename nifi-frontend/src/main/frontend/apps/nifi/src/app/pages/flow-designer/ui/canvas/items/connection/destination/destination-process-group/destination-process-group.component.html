@@ -20,10 +20,10 @@
         <div class="flex flex-col mb-5" data-qa="error-section">
             <div data-qa="to-input-error-label">To Input</div>
             @if (noPorts) {
-                <mat-error data-qa="no-ports-error">{{ groupName }} does not have any local input ports.</mat-error>
+                <mat-error data-qa="no-ports-error" class="tertiary-color break-words font-medium w-full">{{ groupName }} does not have any local input ports.</mat-error>
             }
             @if (hasUnauthorizedPorts) {
-                <mat-error data-qa="unauthorized-ports-error"
+                <mat-error data-qa="unauthorized-ports-error" class="tertiary-color break-words font-medium w-full"
                     >Not authorized for any local input ports in {{ groupName }}</mat-error
                 >
             }
@@ -54,7 +54,7 @@
         <div data-qa="within-group-label">Within Group</div>
         <div
             [title]="groupName"
-            class="tertiary-color overflow-ellipsis overflow-hidden whitespace-nowrap font-medium"
+            class="tertiary-color break-words font-medium w-full"
             data-qa="group-name-display">
             {{ groupName }}
         </div>
