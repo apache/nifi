@@ -64,13 +64,34 @@ public abstract class ComponentDAO {
      * @return group
      */
     protected ProcessGroup locateProcessGroup(final FlowController flowController, final String groupId) {
+        return locateProcessGroup(flowController, groupId, false);
+    }
+
+    /**
+     * Locates the specified ProcessGroup, optionally including Connector-managed ProcessGroups.
+     *
+     * @param flowController controller
+     * @param groupId id
+     * @param includeConnectorManaged whether to include Connector-managed ProcessGroups in the search
+     * @return group
+     */
+    protected ProcessGroup locateProcessGroup(final FlowController flowController, final String groupId, final boolean includeConnectorManaged) {
+        // First, try to find the group in the main flow hierarchy (non-Connector groups)
         ProcessGroup group = flowController.getFlowManager().getGroup(groupId, null);
 
-        if (group == null) {
-            throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
+        if (group != null) {
+            return group;
         }
 
-        return group;
+        // Optionally search Connector-managed ProcessGroups
+        if (includeConnectorManaged) {
+            group = flowController.getFlowManager().getGroup(groupId);
+            if (group != null) {
+                return group;
+            }
+        }
+
+        throw new ResourceNotFoundException(String.format("Unable to locate group with id '%s'.", groupId));
     }
 
     protected void verifyCreate(final ExtensionManager extensionManager, final String type, final BundleDTO bundle) {
