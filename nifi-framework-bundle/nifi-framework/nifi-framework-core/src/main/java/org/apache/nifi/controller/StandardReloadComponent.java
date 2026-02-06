@@ -18,6 +18,7 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.AsyncLoadedProcessor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.exception.ControllerServiceInstantiationException;
 import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
@@ -83,6 +84,15 @@ public class StandardReloadComponent implements ReloadComponent {
 
         // Cleanup the URL ClassLoader for the existing processor instance.
         extensionManager.closeURLClassLoader(id, existingInstanceClassLoader);
+
+        // If the existing processor is an AsyncLoadedProcessor (e.g., Python processor), cancel its loading
+        // to prevent it from continuing to initialize while we're trying to reload/remove it.
+        // This is important when a NAR is deleted while a processor is still initializing.
+        final Processor existingProcessor = existingNode.getProcessor();
+        if (existingProcessor instanceof AsyncLoadedProcessor asyncProcessor) {
+            logger.debug("Cancelling async loading for processor {} before reload", id);
+            asyncProcessor.cancelLoading();
+        }
 
         // Ensure that we notify the Python Bridge that we're removing the old processor, if the Processor is Python based.
         // This way we can shutdown the Process if necessary before creating a new processor (which may then spawn a new process).

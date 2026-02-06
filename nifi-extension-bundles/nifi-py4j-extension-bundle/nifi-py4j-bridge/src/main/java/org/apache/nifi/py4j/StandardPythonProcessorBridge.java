@@ -46,6 +46,7 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
     private volatile String identifier;
     private volatile PythonController controller;
     private volatile CompletableFuture<Void> initializationFuture;
+    private volatile boolean canceled = false;
 
 
     private StandardPythonProcessorBridge(final Builder builder) {
@@ -65,6 +66,12 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
     @Override
     public void initialize(final PythonProcessorInitializationContext context) {
+        if (canceled) {
+            logger.info("Not initializing Python Processor {} ({}) because it has been canceled",
+                    context.getIdentifier(), getProcessorType());
+            return;
+        }
+
         if (initializationFuture != null) {
             initializationFuture.cancel(true);
         }
@@ -80,6 +87,12 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
     @Override
     public void replaceController(final PythonController controller) {
+        if (canceled) {
+            logger.info("Not re-initializing Python Processor {} ({}) because it has been canceled",
+                    identifier, getProcessorType());
+            return;
+        }
+
         if (initializationFuture != null) {
             initializationFuture.cancel(true);
         }
@@ -99,14 +112,44 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
         return loadState;
     }
 
+    @Override
+    public void cancel() {
+        if (canceled) {
+            return;
+        }
+
+        canceled = true;
+        logger.info("Canceling initialization for Python Processor {} ({})", identifier, getProcessorType());
+
+        final CompletableFuture<Void> future = this.initializationFuture;
+        if (future != null) {
+            future.cancel(true);
+        }
+
+        if (loadState != LoadState.FINISHED_LOADING) {
+            loadState = LoadState.CANCELED;
+        }
+    }
+
+    @Override
+    public boolean isCanceled() {
+        return canceled;
+    }
+
     private void initializePythonSide(final boolean continualRetry, final CompletableFuture<Void> future) {
         if (initializationContext == null) {
             future.complete(null);
             return;
         }
 
+        if (canceled) {
+            loadState = LoadState.CANCELED;
+            future.complete(null);
+            return;
+        }
+
         long sleepMillis = 1_000L;
-        while (!future.isCancelled()) {
+        while (!future.isCancelled() && !canceled) {
             final boolean packagedWithDependencies = creationWorkflow.isPackagedWithDependencies();
             if (packagedWithDependencies) {
                 loadState = LoadState.LOADING_PROCESSOR_CODE;
@@ -121,6 +164,13 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
 
                 break;
             } catch (final Exception e) {
+                if (canceled) {
+                    loadState = LoadState.CANCELED;
+                    logger.info("Python Processor {} ({}) initialization canceled during dependency download", identifier, getProcessorType());
+                    future.complete(null);
+                    return;
+                }
+
                 loadState = LoadState.DEPENDENCY_DOWNLOAD_FAILED;
                 if (!continualRetry) {
                     throw e;
@@ -133,13 +183,26 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
                     Thread.sleep(sleepMillis);
                 } catch (final InterruptedException ex) {
                     Thread.currentThread().interrupt();
+                    if (canceled) {
+                        loadState = LoadState.CANCELED;
+                        logger.info("Python Processor {} ({}) initialization canceled during sleep", identifier, getProcessorType());
+                        future.complete(null);
+                        return;
+                    }
                     e.addSuppressed(ex);
                     throw e;
                 }
             }
         }
 
-        while (!future.isCancelled()) {
+        if (canceled) {
+            loadState = LoadState.CANCELED;
+            logger.info("Python Processor {} ({}) initialization canceled before loading processor code", identifier, getProcessorType());
+            future.complete(null);
+            return;
+        }
+
+        while (!future.isCancelled() && !canceled) {
             loadState = LoadState.LOADING_PROCESSOR_CODE;
 
             try {
@@ -150,6 +213,13 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
                 logger.info("Successfully loaded Python Processor {} ({})", identifier, getProcessorType());
                 break;
             } catch (final Exception e) {
+                if (canceled) {
+                    loadState = LoadState.CANCELED;
+                    logger.info("Python Processor {} ({}) initialization canceled during code loading", identifier, getProcessorType());
+                    future.complete(null);
+                    return;
+                }
+
                 loadState = LoadState.LOADING_PROCESSOR_CODE_FAILED;
 
                 if (!continualRetry) {
@@ -163,10 +233,21 @@ public class StandardPythonProcessorBridge implements PythonProcessorBridge {
                     Thread.sleep(sleepMillis);
                 } catch (final InterruptedException ex) {
                     Thread.currentThread().interrupt();
+                    if (canceled) {
+                        loadState = LoadState.CANCELED;
+                        logger.info("Python Processor {} ({}) initialization canceled during sleep", identifier, getProcessorType());
+                        future.complete(null);
+                        return;
+                    }
                     e.addSuppressed(ex);
                     throw e;
                 }
             }
+        }
+
+        if (canceled && loadState != LoadState.FINISHED_LOADING) {
+            loadState = LoadState.CANCELED;
+            logger.info("Python Processor {} ({}) initialization canceled", identifier, getProcessorType());
         }
 
         future.complete(null);

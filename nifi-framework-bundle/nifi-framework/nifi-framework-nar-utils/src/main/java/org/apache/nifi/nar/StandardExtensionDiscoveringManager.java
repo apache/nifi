@@ -744,11 +744,9 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
         final Bundle removedBundle = bundleCoordinateBundleLookup.remove(bundleCoordinate);
         if (removedBundle == null) {
-            logger.debug("Bundle not found with coordinate [{}]", bundleCoordinate);
             return null;
         }
 
-        logger.debug("Removing bundle [{}]", bundleCoordinate);
         final ClassLoader removedBundleClassLoader = removedBundle.getClassLoader();
         classLoaderBundleLookup.remove(removedBundleClassLoader);
 
