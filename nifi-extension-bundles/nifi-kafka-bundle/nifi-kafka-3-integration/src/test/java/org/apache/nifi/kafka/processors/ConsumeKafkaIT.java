@@ -40,6 +40,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,6 +52,8 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
     private static final int FIRST_PARTITION = 0;
 
     private static final long FIRST_OFFSET = 0;
+
+    private static final String METRIC_CURRENT_LAG_RECORDS = "topic.%s.partition.%d.currentLagRecords";
 
     private TestRunner runner;
 
@@ -252,6 +255,37 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
         }
 
         runner.assertAllFlowFilesTransferred(ConsumeKafka.SUCCESS, 1);
+    }
+
+    @Test
+    @Timeout(30)
+    public void testLagReporting() throws ExecutionException, InterruptedException {
+        final String topic = "testLagReporting";
+        final int partition = 0;
+        final int maxPollRecords = 2;
+
+        runner.setProperty(ConsumeKafka.GROUP_ID, "testLagReportingGroup");
+        runner.setProperty(ConsumeKafka.TOPICS, topic);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
+        runner.setProperty(ConsumeKafka.MAX_UNCOMMITTED_TIME, "1000 millis");
+
+        final ControllerService connectionService = runner.getControllerService(CONNECTION_SERVICE_ID);
+        runner.disableControllerService(connectionService);
+        runner.setProperty(connectionService, Kafka3ConnectionService.MAX_POLL_RECORDS, Integer.toString(maxPollRecords));
+        runner.enableControllerService(connectionService);
+
+        final List<ProducerRecord<String, String>> records = IntStream.range(0, 1000)
+                .mapToObj(i -> new ProducerRecord<>(topic, partition, "key" + i, "val" + i))
+                .toList();
+        produce(topic, records);
+
+        final String gaugeName = METRIC_CURRENT_LAG_RECORDS.formatted(topic, partition);
+        runner.run(1, false, true);
+
+        // consume until at least one gauge with lag gets recorded
+        while (runner.getGaugeValues(gaugeName).isEmpty()) {
+            runner.run(1, false, false);
+        }
     }
 
     @Timeout(5)
