@@ -46,6 +46,7 @@ import org.apache.nifi.asset.Asset;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.DataAuthorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
@@ -820,7 +821,7 @@ public class ConnectorResource extends ApplicationResource {
             description = "This will create a request to purge all FlowFiles from the connector. The connector must be in a STOPPED state before purging can begin. "
                     + "This is an asynchronous operation. The client should poll the returned URI to get the status of the purge request.",
             security = {
-                    @SecurityRequirement(name = "Write - /connectors/{uuid}")
+                    @SecurityRequirement(name = "Write Source Data - /data/connectors/{uuid}")
             }
     )
     public Response createPurgeRequest(
@@ -841,8 +842,8 @@ public class ConnectorResource extends ApplicationResource {
                 serviceFacade,
                 requestConnectorEntity,
                 lookup -> {
-                    final Authorizable connector = lookup.getConnector(id);
-                    connector.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                    final Authorizable dataAuthorizable = new DataAuthorizable(lookup.getConnector(id));
+                    dataAuthorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                 },
                 () -> serviceFacade.verifyPurgeConnectorFlowFiles(id),
                 (connectorEntity) -> performAsyncPurge(connectorEntity, id, NiFiUserUtils.getNiFiUser())
@@ -886,8 +887,8 @@ public class ConnectorResource extends ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connector = lookup.getConnector(connectorId);
-            connector.authorize(authorizer, RequestAction.WRITE, user);
+            final Authorizable dataAuthorizable = new DataAuthorizable(lookup.getConnector(connectorId));
+            dataAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
         });
 
         final AsynchronousWebRequest<ConnectorEntity, Void> asyncRequest = purgeRequestManager.getRequest(PURGE_REQUEST_TYPE, purgeRequestId, user);
@@ -932,10 +933,10 @@ public class ConnectorResource extends ApplicationResource {
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
-        // Make sure user has write access to the connector
+        // Make sure user has write access to the connector data
         serviceFacade.authorizeAccess(lookup -> {
-            final Authorizable connector = lookup.getConnector(connectorId);
-            connector.authorize(authorizer, RequestAction.WRITE, user);
+            final Authorizable dataAuthorizable = new DataAuthorizable(lookup.getConnector(connectorId));
+            dataAuthorizable.authorize(authorizer, RequestAction.WRITE, user);
         });
 
         final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
