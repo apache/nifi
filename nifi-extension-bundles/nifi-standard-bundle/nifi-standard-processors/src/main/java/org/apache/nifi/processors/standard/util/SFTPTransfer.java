@@ -394,7 +394,7 @@ public class SFTPTransfer implements FileTransfer {
                 }
 
                 // remember directory for later recursive listing
-                if (isIncludedDirectory(dirEntry, recurse, symlink)) {
+                if (isIncludedDirectory(directory, dirEntry, recurse, symlink)) {
                     subDirectoryPaths.add(dirEntry);
                     continue;
                 }
@@ -462,19 +462,21 @@ public class SFTPTransfer implements FileTransfer {
     /**
      * Include remote resources when recursion is enabled or when symbolic links are enabled and the resource is a directory link
      *
+     * @param directory Directory path containing Directory Entry
      * @param dirEntry Remote Directory Entry
      * @param recursionEnabled Recursion enabled status
      * @param symlinksEnabled Follow symbolic links enabled
      * @return Included directory status
      */
-    private boolean isIncludedDirectory(final SftpClient.DirEntry dirEntry, final boolean recursionEnabled, final boolean symlinksEnabled) {
+    private boolean isIncludedDirectory(final String directory, final SftpClient.DirEntry dirEntry, final boolean recursionEnabled, final boolean symlinksEnabled) {
         boolean includedDirectory = false;
 
         final SftpClient.Attributes entryAttributes = dirEntry.getAttributes();
         if (entryAttributes.isDirectory()) {
             includedDirectory = recursionEnabled;
         } else if (symlinksEnabled && entryAttributes.isSymbolicLink()) {
-            final String path = dirEntry.getFilename();
+            final String filename = dirEntry.getFilename();
+            final String path = buildFullPath(directory, filename);
             try {
                 final SftpClient.Attributes attributes = sftpClient.stat(path);
                 includedDirectory = attributes.isDirectory();
