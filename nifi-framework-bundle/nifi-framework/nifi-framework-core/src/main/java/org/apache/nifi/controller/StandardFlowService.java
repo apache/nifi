@@ -1026,6 +1026,16 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                     }
                     writeLock.lock();
                     try {
+                        // Skip saving during shutdown to preserve RUNNING processor states in flow.json.gz.
+                        // During graceful shutdown, processor desired states are set to STOPPED before this
+                        // save executes. Saving at that point would persist ENABLED states instead of RUNNING,
+                        // which prevents auto-resume of processors on the next startup.
+                        if (!running.get()) {
+                            StandardFlowService.this.saveHolder.set(null);
+                            logger.info("Skipping flow controller save because service is no longer running");
+                            return;
+                        }
+
                         dao.save(controller, holder.shouldArchive);
                         // Nulling it out if it is still set to our current SaveHolder.  Otherwise leave it alone because it means
                         // another save is already pending.
