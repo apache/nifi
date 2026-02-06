@@ -16,59 +16,43 @@
  */
 package org.apache.nifi.web.util;
 
+import org.apache.nifi.parameter.ParameterContextNameUtils;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 
 import java.util.Collection;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ParameterContextNameCollisionResolver {
-    private static final String PATTERN_GROUP_NAME = "name";
-    private static final String PATTERN_GROUP_INDEX = "index";
-
-    private static final String LINEAGE_FORMAT = "^(?<" + PATTERN_GROUP_NAME + ">.+?)( \\((?<" + PATTERN_GROUP_INDEX + ">[0-9]+)\\))?$";
-    private static final Pattern LINEAGE_PATTERN = Pattern.compile(LINEAGE_FORMAT);
-
-    private static final String NAME_FORMAT = "%s (%d)";
 
     public String resolveNameCollision(final String originalParameterContextName, final Collection<ParameterContextEntity> existingContexts) {
-        final Matcher lineageMatcher = LINEAGE_PATTERN.matcher(originalParameterContextName);
-
-        if (!lineageMatcher.matches()) {
-            throw new IllegalArgumentException("Existing Parameter Context name \"(" + originalParameterContextName + "\") cannot be processed");
-        }
-
-        final String lineName = lineageMatcher.group(PATTERN_GROUP_NAME);
-        final String originalIndex = lineageMatcher.group(PATTERN_GROUP_INDEX);
+        final String lineName = ParameterContextNameUtils.extractBaseName(originalParameterContextName);
+        final int originalIndex = ParameterContextNameUtils.extractSuffixIndex(originalParameterContextName);
 
         // Candidates cannot be cached because new context might be added between calls
         final Set<ParameterContextDTO> candidates = existingContexts
                 .stream()
-                .map(pc -> pc.getComponent())
+                .map(ParameterContextEntity::getComponent)
                 .filter(dto -> dto.getName().startsWith(lineName))
                 .collect(Collectors.toSet());
 
-        int biggestIndex = (originalIndex == null) ? 0 : Integer.valueOf(originalIndex);
+        int biggestIndex = Math.max(originalIndex, 0);
 
         for (final ParameterContextDTO candidate : candidates) {
-            final Matcher matcher = LINEAGE_PATTERN.matcher(candidate.getName());
-
-            if (matcher.matches() && lineName.equals(matcher.group(PATTERN_GROUP_NAME))) {
-                final String indexGroup = matcher.group(PATTERN_GROUP_INDEX);
-
-                if (indexGroup != null) {
-                    int biggestIndexCandidate = Integer.valueOf(indexGroup);
-
-                    if (biggestIndexCandidate > biggestIndex) {
-                        biggestIndex = biggestIndexCandidate;
+            try {
+                final String candidateBaseName = ParameterContextNameUtils.extractBaseName(candidate.getName());
+                if (lineName.equals(candidateBaseName)) {
+                    final int candidateIndex = ParameterContextNameUtils.extractSuffixIndex(candidate.getName());
+                    if (candidateIndex > biggestIndex) {
+                        biggestIndex = candidateIndex;
                     }
                 }
+            } catch (final IllegalArgumentException ignored) {
+                // Candidate name doesn't match expected pattern, skip it
             }
         }
 
-        return String.format(NAME_FORMAT, lineName, biggestIndex + 1);
+        return ParameterContextNameUtils.createNameWithSuffix(lineName, biggestIndex + 1);
     }
 }
