@@ -95,80 +95,9 @@ public class ParquetTestUtils {
     }
 
     /**
-     * Creates a parquet file with timestamp_millis logical type for testing NIFI-15548.
-     *
-     * @param numRecords Number of records to create
-     * @param directory Directory where the parquet file will be created
-     * @return The created parquet file
-     * @throws IOException if file creation fails
-     */
-    public static File createTimestampParquetFile(int numRecords, File directory) throws IOException {
-        // Create schema with timestamp_millis logical type
-        final Schema timestampSchema = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
-
-        final Schema recordSchema = Schema.createRecord("TimestampRecord", null, "test", false);
-        recordSchema.setFields(List.of(
-                new Schema.Field("id", Schema.create(Schema.Type.INT)),
-                new Schema.Field("name", Schema.create(Schema.Type.STRING)),
-                new Schema.Field("created_at", timestampSchema)
-        ));
-
-        final File parquetFile = new File(directory, "TestParquetReader-testTimestamp-" + System.currentTimeMillis());
-
-        try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
-            for (int i = 0; i < numRecords; i++) {
-                final GenericRecord record = new GenericData.Record(recordSchema);
-                record.put("id", i);
-                record.put("name", "Record" + i);
-                // Use epoch millis for timestamp
-                record.put("created_at", Instant.now().toEpochMilli());
-                writer.write(record);
-            }
-        }
-
-        return parquetFile;
-    }
-
-    /**
-     * Creates a parquet file with nullable timestamp_millis logical type for testing NIFI-15548.
-     * The timestamp field is wrapped in a union with null.
-     *
-     * @param numRecords Number of records to create
-     * @param directory Directory where the parquet file will be created
-     * @return The created parquet file
-     * @throws IOException if file creation fails
-     */
-    public static File createNullableTimestampParquetFile(int numRecords, File directory) throws IOException {
-        // Create schema with nullable timestamp_millis logical type (union with null)
-        final Schema timestampSchema = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
-        final Schema nullableTimestampSchema = Schema.createUnion(Schema.create(Schema.Type.NULL), timestampSchema);
-
-        final Schema recordSchema = Schema.createRecord("NullableTimestampRecord", null, "test", false);
-        recordSchema.setFields(List.of(
-                new Schema.Field("id", Schema.create(Schema.Type.INT)),
-                new Schema.Field("name", Schema.create(Schema.Type.STRING)),
-                new Schema.Field("created_at", nullableTimestampSchema)
-        ));
-
-        final File parquetFile = new File(directory, "TestParquetReader-testNullableTimestamp-" + System.currentTimeMillis());
-
-        try (final ParquetWriter<GenericRecord> writer = createParquetWriter(recordSchema, parquetFile)) {
-            for (int i = 0; i < numRecords; i++) {
-                final GenericRecord record = new GenericData.Record(recordSchema);
-                record.put("id", i);
-                record.put("name", "Record" + i);
-                // Use epoch millis for timestamp
-                record.put("created_at", Instant.now().toEpochMilli());
-                writer.write(record);
-            }
-        }
-
-        return parquetFile;
-    }
-
-    /**
-     * Creates a parquet file with all temporal logical types for comprehensive testing.
-     * This tests: date, time-millis, time-micros, timestamp-millis, timestamp-micros.
+     * Creates a parquet file with all temporal logical types for comprehensive testing of NIFI-15548.
+     * This tests: date, time-millis, time-micros, timestamp-millis, timestamp-micros,
+     * and a nullable timestamp-millis field (union with null).
      *
      * @param numRecords Number of records to create
      * @param directory Directory where the parquet file will be created
@@ -182,6 +111,8 @@ public class ParquetTestUtils {
         final Schema timeMicrosSchema = LogicalTypes.timeMicros().addToSchema(Schema.create(Schema.Type.LONG));
         final Schema timestampMillisSchema = LogicalTypes.timestampMillis().addToSchema(Schema.create(Schema.Type.LONG));
         final Schema timestampMicrosSchema = LogicalTypes.timestampMicros().addToSchema(Schema.create(Schema.Type.LONG));
+        // Nullable timestamp (union with null) to test union handling
+        final Schema nullableTimestampSchema = Schema.createUnion(Schema.create(Schema.Type.NULL), timestampMillisSchema);
 
         final Schema recordSchema = Schema.createRecord("AllTemporalTypesRecord", null, "test", false);
         recordSchema.setFields(List.of(
@@ -190,7 +121,8 @@ public class ParquetTestUtils {
                 new Schema.Field("time_millis_field", timeMillisSchema),
                 new Schema.Field("time_micros_field", timeMicrosSchema),
                 new Schema.Field("timestamp_millis_field", timestampMillisSchema),
-                new Schema.Field("timestamp_micros_field", timestampMicrosSchema)
+                new Schema.Field("timestamp_micros_field", timestampMicrosSchema),
+                new Schema.Field("nullable_timestamp_field", nullableTimestampSchema)
         ));
 
         final File parquetFile = new File(directory, "TestParquetReader-testAllTemporalTypes-" + System.currentTimeMillis());
@@ -209,6 +141,8 @@ public class ParquetTestUtils {
                 record.put("timestamp_millis_field", Instant.now().toEpochMilli());
                 // timestamp-micros: microseconds since epoch
                 record.put("timestamp_micros_field", Instant.now().toEpochMilli() * 1000L);
+                // nullable timestamp: milliseconds since epoch (non-null value)
+                record.put("nullable_timestamp_field", Instant.now().toEpochMilli());
                 writer.write(record);
             }
         }

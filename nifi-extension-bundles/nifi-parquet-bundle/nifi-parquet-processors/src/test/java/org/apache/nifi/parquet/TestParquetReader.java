@@ -224,69 +224,12 @@ public class TestParquetReader {
 
     /**
      * Test for NIFI-15548: ParquetReader fails on timestamps.
-     * This test programmatically creates a parquet file with timestamp_millis logical type
-     * and verifies that the timestamp values can be read without ClassCastException.
-     */
-    @Test
-    public void testReadParquetWithTimestampMillis() throws IOException, MalformedRecordException {
-        final int numRecords = 5;
-        final File parquetFile = ParquetTestUtils.createTimestampParquetFile(numRecords, tempDir);
-
-        final List<Record> results = getRecords(parquetFile, emptyMap());
-
-        // The file should contain the expected number of records
-        assertNotNull(results);
-        assertEquals(numRecords, results.size());
-
-        // Verify each record can be read and contains valid timestamp values
-        for (int i = 0; i < numRecords; i++) {
-            final Record record = results.get(i);
-            assertNotNull(record);
-            assertEquals(i, record.getValue("id"));
-            assertEquals("Record" + i, record.getValue("name"));
-
-            // The timestamp should be readable without ClassCastException
-            final Object timestampValue = record.getValue("created_at");
-            assertNotNull(timestampValue, "Timestamp value should not be null for record " + i);
-        }
-    }
-
-    /**
-     * Test for NIFI-15548: ParquetReader fails on timestamps with nullable union types.
-     * This test programmatically creates a parquet file with nullable timestamp_millis logical type
-     * and verifies that the timestamp values can be read without ClassCastException.
-     */
-    @Test
-    public void testReadParquetWithNullableTimestampMillis() throws IOException, MalformedRecordException {
-        final int numRecords = 5;
-        final File parquetFile = ParquetTestUtils.createNullableTimestampParquetFile(numRecords, tempDir);
-
-        final List<Record> results = getRecords(parquetFile, emptyMap());
-
-        // The file should contain the expected number of records
-        assertNotNull(results);
-        assertEquals(numRecords, results.size());
-
-        // Verify each record can be read and contains valid timestamp values
-        for (int i = 0; i < numRecords; i++) {
-            final Record record = results.get(i);
-            assertNotNull(record);
-            assertEquals(i, record.getValue("id"));
-            assertEquals("Record" + i, record.getValue("name"));
-
-            // The timestamp should be readable without ClassCastException
-            final Object timestampValue = record.getValue("created_at");
-            assertNotNull(timestampValue, "Timestamp value should not be null for record " + i);
-        }
-    }
-
-    /**
-     * Comprehensive test for all temporal logical types.
+     * Comprehensive test for all temporal logical types including nullable union types.
      * Verifies that parquet files with date, time-millis, time-micros, timestamp-millis,
-     * and timestamp-micros logical types can all be read without ClassCastException.
+     * timestamp-micros, and nullable timestamp logical types can all be read without ClassCastException.
      */
     @Test
-    public void testReadParquetWithAllTemporalLogicalTypes() throws IOException, MalformedRecordException {
+    public void testReadParquetWithTemporalLogicalTypes() throws IOException, MalformedRecordException {
         final int numRecords = 5;
         final File parquetFile = ParquetTestUtils.createAllTemporalTypesParquetFile(numRecords, tempDir);
 
@@ -306,6 +249,7 @@ public class TestParquetReader {
             assertNotNull(record.getValue("time_micros_field"), "Time-micros value should not be null for record " + i);
             assertNotNull(record.getValue("timestamp_millis_field"), "Timestamp-millis value should not be null for record " + i);
             assertNotNull(record.getValue("timestamp_micros_field"), "Timestamp-micros value should not be null for record " + i);
+            assertNotNull(record.getValue("nullable_timestamp_field"), "Nullable timestamp value should not be null for record " + i);
         }
     }
 
