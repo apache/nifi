@@ -3870,16 +3870,22 @@ public final class StandardProcessGroup implements ProcessGroup {
         final ComponentScheduler defaultComponentScheduler = new DefaultComponentScheduler(controllerServiceProvider, stateLookup);
         final ComponentScheduler retainExistingStateScheduler = new RetainExistingStateComponentScheduler(this, defaultComponentScheduler);
 
-        final FlowSynchronizationOptions synchronizationOptions = new FlowSynchronizationOptions.Builder()
+        final FlowSynchronizationOptions.Builder flowSynchronizationBuilder = new FlowSynchronizationOptions.Builder()
             .componentIdGenerator(idGenerator)
             .componentComparisonIdLookup(VersionedComponent::getIdentifier)
             .componentScheduler(retainExistingStateScheduler)
             .ignoreLocalModifications(!verifyNotDirty)
             .updateDescendantVersionedFlows(updateDescendantVersionedFlows)
             .updateGroupSettings(updateSettings)
-            .updateRpgUrls(false)
-            .propertyDecryptor(value -> null)
-            .build();
+            .updateRpgUrls(false);
+        // Connectors should not have encrypted values copied from versioned flow. However we do need to decrypt parameter references.
+        if (getConnectorIdentifier().isPresent()) {
+            flowSynchronizationBuilder.propertyDecryptor(value -> value);
+        } else {
+            flowSynchronizationBuilder.propertyDecryptor(value -> null);
+        }
+
+        final FlowSynchronizationOptions synchronizationOptions = flowSynchronizationBuilder.build();
 
         final FlowMappingOptions flowMappingOptions = new FlowMappingOptions.Builder()
             .mapSensitiveConfiguration(false)
