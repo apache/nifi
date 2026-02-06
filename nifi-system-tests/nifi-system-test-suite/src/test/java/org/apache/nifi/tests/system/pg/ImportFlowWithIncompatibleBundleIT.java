@@ -30,10 +30,11 @@ import org.apache.nifi.web.api.entity.ParameterProviderEntity;
 import org.apache.nifi.web.api.entity.ParameterProvidersEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -53,6 +54,9 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
     private static final String PROPERTIES_PARAMETER_PROVIDER_TYPE = TEST_PARAM_PROVIDERS_PACKAGE + ".PropertiesParameterProvider";
     private static final String INCOMPATIBLE_VERSION = "0.0.0-DOES-NOT-EXIST";
 
+    @TempDir
+    private Path tempDir;
+
     /**
      * Tests that when uploading a flow with a ParameterContext that references a ParameterProvider with an
      * incompatible bundle version, NiFi falls back to using the only available bundle version instead of
@@ -67,16 +71,12 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
      */
     @Test
     public void testUploadFlowWithParameterProviderIncompatibleBundleVersion() throws NiFiClientException, IOException, InterruptedException {
-        // Build a versioned flow snapshot with a parameter provider that has an incompatible bundle version
         final RegisteredFlowSnapshot snapshot = createSnapshotWithParameterProviderIncompatibleBundle();
 
-        // Serialize the snapshot to a temporary JSON file
-        final File tempFile = Files.createTempFile("flow-snapshot", ".json").toFile();
-        tempFile.deleteOnExit();
+        final File tempFile = tempDir.resolve("flow-snapshot.json").toFile();
         final ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.writeValue(tempFile, snapshot);
 
-        // Upload the flow using the upload endpoint (this goes through ProcessGroupResource, not FlowUpdateResource)
         final ProcessGroupEntity uploadedGroup = getNifiClient().getProcessGroupClient().upload(
                 "root",
                 tempFile,
@@ -88,14 +88,12 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
         assertNotNull(uploadedGroup, "Uploaded process group should not be null");
         assertNotNull(uploadedGroup.getId(), "Uploaded process group should have an ID");
 
-        // Verify that the parameter provider was created and is NOT a ghost component
         final ParameterProvidersEntity parameterProviders = getNifiClient().getFlowClient().getParamProviders();
         assertNotNull(parameterProviders);
         assertNotNull(parameterProviders.getParameterProviders());
         assertFalse(parameterProviders.getParameterProviders().isEmpty(),
                 "Expected at least one parameter provider to be created");
 
-        // Find the parameter provider that was created
         final ParameterProviderEntity createdProvider = parameterProviders.getParameterProviders().stream()
                 .filter(pp -> pp.getComponent().getType().equals(PROPERTIES_PARAMETER_PROVIDER_TYPE))
                 .findFirst()
@@ -105,23 +103,13 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
 
         final ParameterProviderDTO providerDto = createdProvider.getComponent();
         assertNotNull(providerDto);
-
-        // The key assertion: the bundle version should be the actual NiFi version (fallback),
-        // NOT the incompatible version we specified in the flow
         assertNotNull(providerDto.getBundle(), "Bundle should not be null");
         assertFalse(INCOMPATIBLE_VERSION.equals(providerDto.getBundle().getVersion()),
                 "Bundle version should NOT be the incompatible version - should have fallen back to available version");
-
-        // The bundle version should be the actual NiFi version
         assertEquals(getNiFiVersion(), providerDto.getBundle().getVersion(),
                 "Bundle version should be the NiFi framework version (fallback)");
-
-        // Verify the component is not a ghost by checking that it's valid or has actual validation errors
-        // (Ghost components have a specific type pattern like "(Missing) ClassName")
         assertFalse(providerDto.getType().startsWith("(Missing)"),
                 "Parameter provider should not be a Ghost component - type should not start with '(Missing)'");
-
-        // Also verify the type is exactly what we expected
         assertEquals(PROPERTIES_PARAMETER_PROVIDER_TYPE, providerDto.getType(),
                 "Parameter provider type should match");
     }
@@ -131,13 +119,12 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
      * with a bundle version that does not exist in the system.
      */
     private RegisteredFlowSnapshot createSnapshotWithParameterProviderIncompatibleBundle() {
-        // Create the parameter provider reference with an incompatible bundle version
         final String parameterProviderId = UUID.randomUUID().toString();
 
         final Bundle incompatibleBundle = new Bundle();
         incompatibleBundle.setGroup(NIFI_GROUP_ID);
         incompatibleBundle.setArtifact(TEST_EXTENSIONS_ARTIFACT_ID);
-        incompatibleBundle.setVersion(INCOMPATIBLE_VERSION);  // This version doesn't exist!
+        incompatibleBundle.setVersion(INCOMPATIBLE_VERSION);
 
         final ParameterProviderReference providerReference = new ParameterProviderReference();
         providerReference.setIdentifier(parameterProviderId);
@@ -145,11 +132,9 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
         providerReference.setType(PROPERTIES_PARAMETER_PROVIDER_TYPE);
         providerReference.setBundle(incompatibleBundle);
 
-        // Create the parameter providers map
         final Map<String, ParameterProviderReference> parameterProviders = new HashMap<>();
         parameterProviders.put(parameterProviderId, providerReference);
 
-        // Create a versioned parameter context that references this parameter provider
         final VersionedParameterContext versionedParameterContext = new VersionedParameterContext();
         versionedParameterContext.setIdentifier(UUID.randomUUID().toString());
         versionedParameterContext.setName("Test Parameter Context");
@@ -158,7 +143,6 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
         versionedParameterContext.setParameterGroupName("Parameters");
         versionedParameterContext.setSynchronized(true);
 
-        // Create a simple parameter to include
         final VersionedParameter versionedParameter = new VersionedParameter();
         versionedParameter.setName("test-param");
         versionedParameter.setValue("test-value");
@@ -169,17 +153,14 @@ public class ImportFlowWithIncompatibleBundleIT extends NiFiSystemIT {
         parameters.add(versionedParameter);
         versionedParameterContext.setParameters(parameters);
 
-        // Create the parameter contexts map (keyed by name, not identifier)
         final Map<String, VersionedParameterContext> parameterContexts = new HashMap<>();
         parameterContexts.put(versionedParameterContext.getName(), versionedParameterContext);
 
-        // Create the versioned process group
         final VersionedProcessGroup versionedProcessGroup = new VersionedProcessGroup();
         versionedProcessGroup.setIdentifier(UUID.randomUUID().toString());
         versionedProcessGroup.setName("Test Process Group");
         versionedProcessGroup.setParameterContextName("Test Parameter Context");
 
-        // Create and return the flow snapshot
         final RegisteredFlowSnapshot snapshot = new RegisteredFlowSnapshot();
         snapshot.setFlowContents(versionedProcessGroup);
         snapshot.setParameterContexts(parameterContexts);
