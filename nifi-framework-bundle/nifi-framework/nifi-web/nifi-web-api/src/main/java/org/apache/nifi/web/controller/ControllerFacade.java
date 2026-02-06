@@ -1073,6 +1073,8 @@ public class ControllerFacade implements Authorizable {
         resources.add(ResourceFactory.getSiteToSiteResource());
         resources.add(ResourceFactory.getParameterContextsResource());
         resources.add(ResourceFactory.getConnectorsResource());
+        resources.add(ResourceFactory.getDataResource(ResourceFactory.getConnectorsResource()));
+        resources.add(ResourceFactory.getProvenanceDataResource(ResourceFactory.getConnectorsResource()));
 
         // add each parameter context
         flowController.getFlowManager().getParameterContextManager().getParameterContexts().forEach(parameterContext -> resources.add(parameterContext.getResource()));
@@ -1193,6 +1195,8 @@ public class ControllerFacade implements Authorizable {
         for (final ConnectorNode connector : flowController.getFlowManager().getAllConnectors()) {
             final Resource connectorResource = connector.getResource();
             resources.add(connectorResource);
+            resources.add(ResourceFactory.getDataResource(connectorResource));
+            resources.add(ResourceFactory.getProvenanceDataResource(connectorResource));
             resources.add(ResourceFactory.getPolicyResource(connectorResource));
             resources.add(ResourceFactory.getOperationResource(connectorResource));
         }

@@ -138,6 +138,15 @@ public interface AuthorizableLookup {
     ConnectionAuthorizable getConnection(String id);
 
     /**
+     * Get the authorizable Connection, optionally including Connector-managed ProcessGroups in the search.
+     *
+     * @param id connection id
+     * @param includeConnectorManaged whether to search Connector-managed ProcessGroups
+     * @return authorizable
+     */
+    ConnectionAuthorizable getConnection(String id, boolean includeConnectorManaged);
+
+    /**
      * Get the authorizable root ProcessGroup.
      *
      * @return authorizable
@@ -151,6 +160,15 @@ public interface AuthorizableLookup {
      * @return authorizable
      */
     ProcessGroupAuthorizable getProcessGroup(String id);
+
+    /**
+     * Get the authorizable ProcessGroup, optionally including Connector-managed ProcessGroups in the search.
+     *
+     * @param id process group id
+     * @param includeConnectorManaged whether to search Connector-managed ProcessGroups
+     * @return authorizable
+     */
+    ProcessGroupAuthorizable getProcessGroup(String id, boolean includeConnectorManaged);
 
     /**
      * Get the authorizable RemoteProcessGroup.

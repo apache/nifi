@@ -296,7 +296,12 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public ConnectionAuthorizable getConnection(final String id) {
-        final Connection connection = connectionDAO.getConnection(id);
+        return getConnection(id, false);
+    }
+
+    @Override
+    public ConnectionAuthorizable getConnection(final String id, final boolean includeConnectorManaged) {
+        final Connection connection = connectionDAO.getConnection(id, includeConnectorManaged);
         return new StandardConnectionAuthorizable(connection);
     }
 
@@ -307,7 +312,12 @@ public class StandardAuthorizableLookup implements AuthorizableLookup {
 
     @Override
     public ProcessGroupAuthorizable getProcessGroup(final String id) {
-        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id);
+        return getProcessGroup(id, false);
+    }
+
+    @Override
+    public ProcessGroupAuthorizable getProcessGroup(final String id, final boolean includeConnectorManaged) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(id, includeConnectorManaged);
         return new StandardProcessGroupAuthorizable(processGroup, controllerFacade.getExtensionManager());
     }
 
