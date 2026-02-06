@@ -872,7 +872,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     private void authorizeHandleDropAllFlowFilesRequest(String processGroupId, AuthorizableLookup lookup) {
-        final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
+        final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId, true);
 
         authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
 
