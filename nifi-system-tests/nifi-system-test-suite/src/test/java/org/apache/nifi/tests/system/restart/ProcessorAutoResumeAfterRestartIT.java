@@ -30,12 +30,15 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ProcessorAutoResumeAfterRestartIT extends NiFiSystemIT {
 
@@ -51,56 +54,72 @@ public class ProcessorAutoResumeAfterRestartIT extends NiFiSystemIT {
         getClientUtil().waitForRunningProcessor(generate.getId());
         getClientUtil().waitForRunningProcessor(terminate.getId());
 
+        final Set<String> runningProcessorIds = Set.of(generate.getId(), terminate.getId());
+
         // Wait for the flow to be saved at least once with RUNNING states.
         // The SaveReportingTask runs every 500ms and the default write delay is 500ms,
-        // so 2 seconds is sufficient for at least one successful save.
-        Thread.sleep(2000);
+        // so 3 seconds is sufficient for at least one successful save.
+        Thread.sleep(3000);
 
         // Trigger a new save request by making a flow modification, then immediately stop NiFi.
         // Each REST API modification calls saveFlowChanges() which sets a saveHolder with a 500ms delay.
         // By stopping NiFi immediately after the modification, the pending save has not yet been processed.
         // During NiFi's shutdown sequence, the pending save would execute after all processors have been
-        // stopped.
-        getClientUtil().createProcessor(TERMINATE_FLOWFILE);
+        // stopped, persisting ENABLED states instead of RUNNING. The fix in StandardFlowService.stop()
+        // flushes any pending save before stopping the controller, preserving RUNNING states.
+        final ProcessorEntity addedBeforeShutdown = getClientUtil().createProcessor(TERMINATE_FLOWFILE);
 
         final NiFiInstance nifiInstance = getNiFiInstance();
         nifiInstance.stop();
 
-        // After shutdown, verify that flow.json.gz still has RUNNING states for the processors.
-        // Without the fix in SaveReportingTask, the shutdown race condition would cause processors
-        // to be saved with ENABLED states instead of RUNNING.
+        // After shutdown, verify that flow.json.gz still has RUNNING states for the started processors.
+        // Without the fix, the shutdown race condition would cause processors to be saved with ENABLED
+        // states instead of RUNNING, preventing auto-resume on the next startup.
         final File confDir = new File(nifiInstance.getInstanceDirectory(), "conf");
         final File flowJsonGz = new File(confDir, "flow.json.gz");
 
-        final List<String> processorStates = getProcessorScheduledStates(flowJsonGz);
+        final Map<String, String> processorStates = getProcessorScheduledStates(flowJsonGz);
         assertFalse(processorStates.isEmpty(), "Expected processors in flow.json.gz");
-        for (final String state : processorStates) {
-            assertEquals("RUNNING", state,
-                    "Processor should have RUNNING state in flow.json.gz after graceful shutdown, but found %s".formatted(state));
+        for (final String processorId : runningProcessorIds) {
+            final String state = processorStates.get(processorId);
+            assertEquals("RUNNING", state);
         }
+
+        assertTrue(processorStates.containsKey(addedBeforeShutdown.getId()));
 
         nifiInstance.start(true);
         getClientUtil().waitForRunningProcessor(generate.getId());
         getClientUtil().waitForRunningProcessor(terminate.getId());
+
+        final ProcessorEntity generateAfterRestart = getNifiClient().getProcessorClient().getProcessor(generate.getId());
+        assertEquals("RUNNING", generateAfterRestart.getComponent().getState());
+
+        final ProcessorEntity terminateAfterRestart = getNifiClient().getProcessorClient().getProcessor(terminate.getId());
+        assertEquals("RUNNING", terminateAfterRestart.getComponent().getState());
+
+        final ProcessorEntity addedAfterRestart = getNifiClient().getProcessorClient().getProcessor(addedBeforeShutdown.getId());
+        assertNotNull(addedAfterRestart);
+        assertEquals("STOPPED", addedAfterRestart.getComponent().getState());
     }
 
-    private List<String> getProcessorScheduledStates(final File flowJsonGz) throws IOException {
+    private Map<String, String> getProcessorScheduledStates(final File flowJsonGz) throws IOException {
         final byte[] decompressed = decompress(flowJsonGz);
         final ObjectMapper mapper = new ObjectMapper();
         final JsonNode root = mapper.readTree(decompressed);
-        final List<String> states = new ArrayList<>();
+        final Map<String, String> states = new HashMap<>();
         final JsonNode rootGroup = root.path("rootGroup");
         collectProcessorStates(rootGroup, states);
         return states;
     }
 
-    private void collectProcessorStates(final JsonNode group, final List<String> states) {
+    private void collectProcessorStates(final JsonNode group, final Map<String, String> states) {
         final JsonNode processors = group.path("processors");
         if (processors.isArray()) {
             for (final JsonNode processor : processors) {
+                final JsonNode instanceId = processor.path("instanceIdentifier");
                 final JsonNode scheduledState = processor.path("scheduledState");
-                if (!scheduledState.isMissingNode()) {
-                    states.add(scheduledState.asText());
+                if (!instanceId.isMissingNode() && !scheduledState.isMissingNode()) {
+                    states.put(instanceId.asText(), scheduledState.asText());
                 }
             }
         }

@@ -311,6 +311,19 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 return;
             }
 
+            // Flush any pending save while processors are still running, preserving their
+            // RUNNING states in flow.json.gz. This must happen before controller.shutdown()
+            // which sets all processor desired states to STOPPED.
+            final SaveHolder pendingSave = saveHolder.getAndSet(null);
+            if (pendingSave != null) {
+                try {
+                    dao.save(controller, pendingSave.shouldArchive);
+                    logger.info("Flushed pending flow save before shutdown");
+                } catch (final Exception e) {
+                    logger.error("Failed to flush pending flow save before shutdown", e);
+                }
+            }
+
             running.set(false);
 
             // Stop Cluster Coordinator before Node Protocol Sender
@@ -334,6 +347,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             if (!controller.isTerminated()) {
                 controller.shutdown(force);
             }
+
+            // Clear any save requests triggered during shutdown (e.g. by stopping processors).
+            // These would contain incorrect processor states (STOPPED mapped to ENABLED).
+            saveHolder.set(null);
         } finally {
             writeLock.unlock();
         }
@@ -358,7 +375,10 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
             }
         }
 
-        // Ensure that our background save reporting task has a chance to run, because we've now shut down the executor, which could cause the save reporting task to get canceled.
+        // Run the save reporting task one final time. At this point, saveHolder should be null
+        // (cleared above), so this will be a no-op. However, if a save was somehow requested
+        // between the writeLock release and here, the running check will prevent saving
+        // incorrect post-shutdown processor states.
         saveReportingTask.run();
     }
 
