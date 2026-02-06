@@ -22,6 +22,7 @@ import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.kafka.processors.consumer.ProcessingStrategy;
 import org.apache.nifi.kafka.service.Kafka3ConnectionService;
+import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.reporting.InitializationException;
@@ -40,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -252,6 +254,39 @@ class ConsumeKafkaIT extends AbstractConsumeKafkaIT {
         }
 
         runner.assertAllFlowFilesTransferred(ConsumeKafka.SUCCESS, 1);
+    }
+
+    @Test
+    @Timeout(30)
+    public void testLagReporting() throws ExecutionException, InterruptedException {
+        final String topic = "testLagReporting";
+        final int partition = 0;
+        final int maxPollRecords = 2;
+
+        runner.setProperty(ConsumeKafka.GROUP_ID, "testLagReportingGroup");
+        runner.setProperty(ConsumeKafka.TOPICS, topic);
+        runner.setProperty(ConsumeKafka.PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE.getValue());
+        runner.setProperty(ConsumeKafka.MAX_UNCOMMITTED_TIME, "1000 millis");
+
+        final ControllerService connectionService = runner.getControllerService(CONNECTION_SERVICE_ID);
+        runner.disableControllerService(connectionService);
+        runner.setProperty(connectionService, Kafka3ConnectionService.MAX_POLL_RECORDS, Integer.toString(maxPollRecords));
+        runner.enableControllerService(connectionService);
+
+
+        List<ProducerRecord<String, String>> records = IntStream.range(0, 1000)
+                .mapToObj(i -> new ProducerRecord<String, String>(topic, partition, "key" + i, "val" + i))
+                .toList();
+        produce(topic, records);
+
+        final TopicPartitionSummary tps = new TopicPartitionSummary(topic, partition);
+        final String lagMetricName = ((ConsumeKafka) runner.getProcessor()).makeLagMetricName(tps);
+        runner.run(1, false, true);
+
+        // consume until at least one gauge with lag gets recorded
+        while (runner.getGaugeValues(lagMetricName).isEmpty()) {
+            runner.run(1, false, false);
+        }
     }
 
     @Timeout(5)
