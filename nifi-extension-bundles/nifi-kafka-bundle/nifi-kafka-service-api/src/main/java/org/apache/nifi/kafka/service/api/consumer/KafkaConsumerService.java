@@ -17,11 +17,13 @@
 package org.apache.nifi.kafka.service.api.consumer;
 
 import org.apache.nifi.kafka.service.api.common.PartitionState;
+import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
+import java.util.OptionalLong;
 
 /**
  * Kafka Consumer Service must be closed to avoid leaking connection resources
@@ -57,4 +59,12 @@ public interface KafkaConsumerService extends Closeable {
      * @return List of Partition State information
      */
     List<PartitionState> getPartitionStates();
+
+    /**
+     * Get current lag (in records) for the specified topic partition
+     *
+     * @param topicPartitionSummary Topic Partition to query for consumer lag
+     * @return OptionalLong containing the current lag or empty when not available
+     */
+    OptionalLong currentLag(TopicPartitionSummary topicPartitionSummary);
 }
