@@ -776,6 +776,10 @@ public class StandardParameterContext implements ParameterContext {
         final boolean isDeletion = (parameter == null);
         final String action = isDeletion ? "remove" : "update";
         for (final ProcessorNode procNode : parameterReferenceManager.getProcessorsReferencing(this, parameterName)) {
+            if (procNode.isExtensionMissing()) {
+                continue;
+            }
+
             if (procNode.isRunning() && (isDeletion || duringUpdate)) {
                 throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by " + procNode + ", which is currently running");
             }
@@ -786,6 +790,10 @@ public class StandardParameterContext implements ParameterContext {
         }
 
         for (final ControllerServiceNode serviceNode : parameterReferenceManager.getControllerServicesReferencing(this, parameterName)) {
+            if (serviceNode.isExtensionMissing()) {
+                continue;
+            }
+
             final ControllerServiceState serviceState = serviceNode.getState();
             if (serviceState != ControllerServiceState.DISABLED && (isDeletion || duringUpdate)) {
                 throw new IllegalStateException("Cannot " + action + " parameter '" + parameterName + "' because it is referenced by "

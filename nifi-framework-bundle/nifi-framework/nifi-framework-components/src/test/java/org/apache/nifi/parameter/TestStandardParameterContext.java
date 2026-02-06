@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
@@ -394,6 +396,79 @@ public class TestStandardParameterContext {
 
     private static void enableControllerService(final ControllerServiceNode serviceNode) {
         setControllerServiceState(serviceNode, ControllerServiceState.ENABLED);
+    }
+
+    @Test
+    public void testGhostedProcessorSkippedDuringParameterValidation() {
+        final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final ParameterContext context = createStandardParameterContext(referenceManager);
+
+        final ProcessorNode procNode = getProcessorNode("abc", referenceManager);
+        Mockito.when(procNode.isExtensionMissing()).thenReturn(true);
+
+        // Set up the ghosted processor to reference "abc" via a sensitive property
+        final PropertyDescriptor sensitiveProperty = new PropertyDescriptor.Builder().name("sensitive-prop").sensitive(true).build();
+        final ParameterReference paramReference = Mockito.mock(ParameterReference.class);
+        Mockito.when(paramReference.getParameterName()).thenReturn("abc");
+        final PropertyConfiguration propertyConfig = Mockito.mock(PropertyConfiguration.class);
+        Mockito.when(propertyConfig.getParameterReferences()).thenReturn(Collections.singletonList(paramReference));
+        Mockito.when(procNode.getProperties()).thenReturn(Collections.singletonMap(sensitiveProperty, propertyConfig));
+
+        // Adding parameter "abc" as non-sensitive should succeed despite the sensitivity mismatch because the processor is ghosted
+        final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(false).build();
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", createParameter(abcDescriptor, "123"));
+        context.setParameters(parameters);
+        assertEquals("123", context.getParameter("abc").get().getValue());
+
+        // Updating the parameter value should succeed because the processor is ghosted
+        parameters.clear();
+        parameters.put("abc", createParameter(abcDescriptor, "321"));
+        context.setParameters(parameters);
+        assertEquals("321", context.getParameter("abc").get().getValue());
+
+        // Deleting the parameter should succeed because the processor is ghosted
+        parameters.clear();
+        parameters.put("abc", null);
+        context.setParameters(parameters);
+        assertFalse(context.getParameter("abc").isPresent());
+    }
+
+    @Test
+    public void testGhostedControllerServiceSkippedDuringParameterValidation() {
+        final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final ParameterContext context = createStandardParameterContext(referenceManager);
+
+        final ControllerServiceNode serviceNode = Mockito.mock(ControllerServiceNode.class);
+        Mockito.when(serviceNode.isExtensionMissing()).thenReturn(true);
+        referenceManager.addControllerServiceReference("abc", serviceNode);
+
+        // Set up the ghosted controller service to reference "abc" via a non-sensitive property
+        final PropertyDescriptor nonSensitiveProperty = new PropertyDescriptor.Builder().name("non-sensitive-prop").sensitive(false).build();
+        final ParameterReference paramReference = Mockito.mock(ParameterReference.class);
+        Mockito.when(paramReference.getParameterName()).thenReturn("abc");
+        final PropertyConfiguration propertyConfig = Mockito.mock(PropertyConfiguration.class);
+        Mockito.when(propertyConfig.getParameterReferences()).thenReturn(Collections.singletonList(paramReference));
+        Mockito.when(serviceNode.getProperties()).thenReturn(Collections.singletonMap(nonSensitiveProperty, propertyConfig));
+
+        // Adding parameter "abc" as sensitive should succeed despite the sensitivity mismatch because the controller service is ghosted
+        final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", createParameter(abcDescriptor, "123"));
+        context.setParameters(parameters);
+        assertEquals("123", context.getParameter("abc").get().getValue());
+
+        // Updating the parameter value should succeed because the controller service is ghosted
+        parameters.clear();
+        parameters.put("abc", createParameter(abcDescriptor, "321"));
+        context.setParameters(parameters);
+        assertEquals("321", context.getParameter("abc").get().getValue());
+
+        // Deleting the parameter should succeed because the controller service is ghosted
+        parameters.clear();
+        parameters.put("abc", null);
+        context.setParameters(parameters);
+        assertFalse(context.getParameter("abc").isPresent());
     }
 
     @Test
