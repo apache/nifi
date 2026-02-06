@@ -24,6 +24,11 @@ public interface ProvenanceEventLineageNode extends LineageNode {
 
     ProvenanceEventType getEventType();
 
+    /**
+     * @return the type of the component that generated this event
+     */
+    String getComponentType();
+
     long getEventIdentifier();
 
     List<String> getParentUuids();

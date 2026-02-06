@@ -37,6 +37,7 @@ public class ProvenanceNodeDTO {
     private String clusterNodeIdentifier;
     private String type;
     private String eventType;
+    private String componentType;
     private Long millis;
     private Date timestamp;
 
@@ -130,6 +131,19 @@ public class ProvenanceNodeDTO {
 
     public void setEventType(String eventType) {
         this.eventType = eventType;
+    }
+
+    /**
+     * @return if this is an event node, this is the type of the component that generated this event
+     */
+    @Schema(description = "If the type is EVENT, this is the type of the component that generated the event."
+    )
+    public String getComponentType() {
+        return componentType;
+    }
+
+    public void setComponentType(String componentType) {
+        this.componentType = componentType;
     }
 
     /**
