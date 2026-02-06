@@ -374,12 +374,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
                 logger.warn("Scheduling service did not gracefully shutdown within configured {} second window", gracefulShutdownSeconds);
             }
         }
-
-        // Run the save reporting task one final time. At this point, saveHolder should be null
-        // (cleared above), so this will be a no-op. However, if a save was somehow requested
-        // between the writeLock release and here, the running check will prevent saving
-        // incorrect post-shutdown processor states.
-        saveReportingTask.run();
     }
 
     @Override
