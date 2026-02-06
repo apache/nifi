@@ -41,6 +41,7 @@ import org.apache.nifi.kafka.processors.consumer.convert.RecordStreamKafkaMessag
 import org.apache.nifi.kafka.processors.consumer.convert.WrapperRecordStreamKafkaMessageConverter;
 import org.apache.nifi.kafka.service.api.KafkaConnectionService;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
+import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
@@ -57,6 +58,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -68,15 +70,19 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
@@ -432,7 +438,9 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                     break;
                 }
 
-                final Iterator<ByteRecord> consumerRecords = consumerService.poll(maxWaitDuration).iterator();
+                final TopicPartitionScanningIterator consumerRecords =
+                        new TopicPartitionScanningIterator(consumerService.poll(maxWaitDuration).iterator());
+
                 if (!consumerRecords.hasNext()) {
                     getLogger().trace("No Kafka Records consumed: {}", pollingContext);
                     // Check if a rebalance occurred during poll - if so, break to commit what we have
@@ -445,6 +453,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
                 recordsReceived = true;
                 processConsumerRecords(context, session, offsetTracker, consumerRecords);
+                reportCurrentLag(consumerService, session, consumerRecords.getTopicPartitionSummaries());
 
                 // Check if a rebalance occurred during poll - if so, break to commit what we have
                 if (consumerService.hasRevokedPartitions()) {
@@ -496,6 +505,27 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 rollback(consumerService, offsetTracker, session);
                 context.yield();
             });
+    }
+
+    private void reportCurrentLag(final KafkaConsumerService consumerService, final ProcessSession session, final Set<TopicPartitionSummary> topicPartitionSummaries) {
+        Map<TopicPartitionSummary, OptionalLong> topicPartitionLag =
+                topicPartitionSummaries.stream()
+                        .map(ps -> new TopicPartitionSummary(ps.getTopic(), ps.getPartition()))
+                        .collect(Collectors.toMap(
+                                Function.identity(),
+                                tps -> consumerService.currentLag(tps)
+                        ));
+
+        topicPartitionLag.forEach((tps, lag) -> {
+            if (lag.isPresent()) {
+                final String gaugeName = makeLagMetricName(tps);
+                session.recordGauge(gaugeName, lag.getAsLong(), CommitTiming.NOW);
+            }
+        });
+    }
+
+    String makeLagMetricName(final TopicPartitionSummary tps) {
+        return "consume.kafka." + tps.getTopic() + "." + tps.getPartition() + ".currentLag";
     }
 
     private void commitOffsets(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext, final ProcessSession session) {
@@ -685,5 +715,32 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         }
 
         return pollingContext;
+    }
+
+    static class TopicPartitionScanningIterator implements Iterator<ByteRecord> {
+
+        private final Iterator<ByteRecord> delegate;
+        private final Set<TopicPartitionSummary> topicPartitionSummaries = new HashSet<>();
+
+        TopicPartitionScanningIterator(Iterator<ByteRecord> delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return delegate.hasNext();
+        }
+
+        @Override
+        public ByteRecord next() {
+            ByteRecord record = delegate.next();
+            topicPartitionSummaries.add(new TopicPartitionSummary(record.getTopic(), record.getPartition()));
+            return record;
+
+        }
+
+        public Set<TopicPartitionSummary> getTopicPartitionSummaries() {
+            return topicPartitionSummaries;
+        }
     }
 }
