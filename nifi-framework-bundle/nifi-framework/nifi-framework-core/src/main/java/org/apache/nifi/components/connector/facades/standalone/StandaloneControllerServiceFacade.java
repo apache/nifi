@@ -46,6 +46,7 @@ import org.apache.nifi.parameter.ParameterLookup;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class StandaloneControllerServiceFacade implements ControllerServiceFacade {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -198,6 +199,30 @@ public class StandaloneControllerServiceFacade implements ControllerServiceFacad
         } catch (final JsonProcessingException e) {
             throw new InvocationFailedException("Failed to deserialize return value from Connector Method '" + methodName + "'", e);
         }
+    }
+
+    @Override
+    public String toString() {
+        final String type = versionedControllerService.getType();
+        final String simpleType = type == null ? null : type.substring(type.lastIndexOf('.') + 1);
+        return "StandaloneControllerServiceFacade[id=" + versionedControllerService.getIdentifier() + ", name=" + versionedControllerService.getName() + ", type=" + simpleType + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final StandaloneControllerServiceFacade that = (StandaloneControllerServiceFacade) o;
+        return Objects.equals(versionedControllerService.getIdentifier(), that.versionedControllerService.getIdentifier());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(versionedControllerService.getIdentifier());
     }
 
     private Map<String, String> serializeArgumentsToJson(final Map<String, Object> arguments) throws InvocationFailedException {

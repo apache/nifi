@@ -30,6 +30,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -150,6 +151,28 @@ public class AuthorizingProcessGroupFacade implements ProcessGroupFacade {
     public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
         authContext.authorizeWrite();
         return delegate.dropFlowFiles(predicate);
+    }
+
+    @Override
+    public String toString() {
+        return "AuthorizingProcessGroupFacade[delegate=" + delegate + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final AuthorizingProcessGroupFacade that = (AuthorizingProcessGroupFacade) o;
+        return Objects.equals(delegate, that.delegate);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(delegate);
     }
 }
 

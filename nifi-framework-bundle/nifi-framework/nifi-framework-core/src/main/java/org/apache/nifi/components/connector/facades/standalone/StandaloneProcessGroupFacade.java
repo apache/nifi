@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -379,6 +380,28 @@ public class StandaloneProcessGroupFacade implements ProcessGroupFacade {
     @Override
     public ProcessGroupLifecycle getLifecycle() {
         return lifecycle;
+    }
+
+    @Override
+    public String toString() {
+        return "StandaloneProcessGroupFacade[id=" + flowDefinition.getIdentifier() + ", name=" + flowDefinition.getName() + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final StandaloneProcessGroupFacade that = (StandaloneProcessGroupFacade) o;
+        return Objects.equals(flowDefinition.getIdentifier(), that.flowDefinition.getIdentifier());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(flowDefinition.getIdentifier());
     }
 
     @Override

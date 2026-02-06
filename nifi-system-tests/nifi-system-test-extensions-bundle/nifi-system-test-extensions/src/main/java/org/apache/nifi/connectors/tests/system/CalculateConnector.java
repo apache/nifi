@@ -28,12 +28,11 @@ import org.apache.nifi.components.connector.PropertyType;
 import org.apache.nifi.components.connector.StepConfigurationContext;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.ProcessorFacade;
+import org.apache.nifi.components.connector.util.VersionedFlowUtils;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.Position;
-import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
-import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.File;
@@ -41,7 +40,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * A test connector that invokes a ConnectorMethod on a CalculateProcessor using its own POJO types.
@@ -163,36 +161,10 @@ public class CalculateConnector extends AbstractConnector {
 
     @Override
     public VersionedExternalFlow getInitialFlow() {
-        final VersionedProcessGroup group = new VersionedProcessGroup();
-        group.setName("Calculate Flow");
-        group.setIdentifier("calculate-flow-id");
+        final Bundle bundle = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "2.8.0-SNAPSHOT");
+        final VersionedProcessGroup group = VersionedFlowUtils.createProcessGroup("calculate-flow-id", "Calculate Flow");
 
-        final Bundle bundle = new Bundle();
-        bundle.setGroup("org.apache.nifi");
-        bundle.setArtifact("nifi-system-test-extensions-nar");
-        bundle.setVersion("2.8.0-SNAPSHOT");
-
-        final VersionedProcessor processor = new VersionedProcessor();
-        processor.setIdentifier("calculate-processor-id");
-        processor.setName("Calculate Processor");
-        processor.setType("org.apache.nifi.processors.tests.system.Calculate");
-        processor.setBundle(bundle);
-        processor.setProperties(Map.of());
-        processor.setPropertyDescriptors(Map.of());
-        processor.setScheduledState(ScheduledState.ENABLED);
-        processor.setBulletinLevel("WARN");
-        processor.setPosition(new Position(0D, 0D));
-        processor.setPenaltyDuration("30 sec");
-        processor.setAutoTerminatedRelationships(Set.of());
-        processor.setExecutionNode("ALL");
-        processor.setGroupIdentifier(group.getIdentifier());
-        processor.setConcurrentlySchedulableTaskCount(1);
-        processor.setRunDurationMillis(0L);
-        processor.setSchedulingStrategy("TIMER_DRIVEN");
-        processor.setYieldDuration("1 sec");
-        processor.setSchedulingPeriod("0 sec");
-        processor.setStyle(Map.of());
-        group.setProcessors(Set.of(processor));
+        VersionedFlowUtils.addProcessor(group, "org.apache.nifi.processors.tests.system.Calculate", bundle, "Calculate Processor", new Position(0, 0));
 
         final VersionedExternalFlow flow = new VersionedExternalFlow();
         flow.setFlowContents(group);

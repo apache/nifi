@@ -23,6 +23,7 @@ import org.apache.nifi.components.connector.components.ParameterValue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -67,6 +68,28 @@ public class AuthorizingParameterContextFacade implements ParameterContextFacade
     public Asset createAsset(final InputStream inputStream) throws IOException {
         authContext.authorizeWrite();
         return delegate.createAsset(inputStream);
+    }
+
+    @Override
+    public String toString() {
+        return "AuthorizingParameterContextFacade[delegate=" + delegate + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final AuthorizingParameterContextFacade that = (AuthorizingParameterContextFacade) o;
+        return Objects.equals(delegate, that.delegate);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(delegate);
     }
 }
 
