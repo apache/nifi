@@ -39,8 +39,8 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
-import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -946,10 +946,9 @@ public class ProcessorResource extends ApplicationResource {
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, user);
 
                     final ProcessorConfigDTO config = requestProcessorDTO.getConfig();
-                    if (config != null) {
-                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
-                        AuthorizeParameterReference.authorizeParameterReferences(config.getProperties(), authorizer, authorizable.getParameterContext(), user);
-                    }
+                    final Map<String, String> properties = config == null ? Collections.emptyMap() : config.getProperties();
+                    final Authorizable parameterContext = authorizable.getParameterContext();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, parameterContext);
                 },
                 () -> serviceFacade.verifyUpdateProcessor(requestProcessorDTO),
                 (revision, processorEntity) -> {

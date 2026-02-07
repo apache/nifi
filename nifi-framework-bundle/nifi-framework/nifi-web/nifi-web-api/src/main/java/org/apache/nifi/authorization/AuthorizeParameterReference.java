@@ -28,10 +28,6 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterTokenList;
 import org.apache.nifi.web.NiFiServiceFacade;
-import org.apache.nifi.web.api.dto.ControllerServiceDTO;
-import org.apache.nifi.web.api.dto.FlowSnippetDTO;
-import org.apache.nifi.web.api.dto.ProcessorConfigDTO;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
 
 import java.util.List;
 import java.util.Map;
@@ -103,24 +99,6 @@ public class AuthorizeParameterReference {
         if (referencesParameter) {
             parameterContextAuthorizable.authorize(authorizer, RequestAction.READ, user);
         }
-    }
-
-    public static void authorizeParameterReferences(final FlowSnippetDTO flowSnippet, final Authorizer authorizer, final Authorizable parameterContextAuthorizable, final NiFiUser user) {
-        for (final ProcessorDTO processorDto : flowSnippet.getProcessors()) {
-            final ProcessorConfigDTO configDto = processorDto.getConfig();
-            if (configDto == null) {
-                continue;
-            }
-
-            authorizeParameterReferences(configDto.getProperties(), authorizer, parameterContextAuthorizable, user);
-        }
-
-        for (final ControllerServiceDTO serviceDto : flowSnippet.getControllerServices()) {
-            authorizeParameterReferences(serviceDto.getProperties(), authorizer, parameterContextAuthorizable, user);
-        }
-
-        // Note: there is no need to recurse here because when a snippet is instantiated, if there are any components in child Process Groups, a new Process Group will be created
-        // without any Parameter Context, so there is no need to perform any authorization beyond the top-level group where the instantiation is occurring.
     }
 
     /**

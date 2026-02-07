@@ -31,7 +31,7 @@ import org.apache.nifi.action.StandardRequestDetails;
 import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.action.details.FlowChangeConfigureDetails;
 import org.apache.nifi.admin.service.AuditService;
-import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
+import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -48,6 +48,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.ApplicationResource.ReplicationTarget;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
@@ -424,12 +425,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final ComponentAuthorizable authorizable = lookup.getProcessor(id);
                 authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                // authorize any referenced service
-                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
-
-                // authorize any parameter references
-                AuthorizeParameterReference.authorizeParameterReferences(properties, authorizer, authorizable.getParameterContext(), user);
-                AuthorizeParameterReference.authorizeParameterReferences(annotationData, authorizer, authorizable.getParameterContext(), user);
+                final ParameterContext parameterContext = authorizable.getParameterContext();
+                AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, parameterContext);
+                AuthorizeParameterReference.authorizeParameterReferences(annotationData, authorizer, parameterContext, user);
             });
 
             ProcessorEntity entity;
@@ -609,12 +607,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final ComponentAuthorizable authorizable = lookup.getControllerService(id);
                 authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                // authorize any referenced service
-                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
-
-                // authorize any parameter references
-                AuthorizeParameterReference.authorizeParameterReferences(properties, authorizer, authorizable.getParameterContext(), user);
-                AuthorizeParameterReference.authorizeParameterReferences(annotationData, authorizer, authorizable.getParameterContext(), user);
+                final ParameterContext parameterContext = authorizable.getParameterContext();
+                AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, parameterContext);
+                AuthorizeParameterReference.authorizeParameterReferences(annotationData, authorizer, parameterContext, user);
             });
 
             ControllerServiceEntity entity;
@@ -757,8 +752,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final ComponentAuthorizable authorizable = lookup.getReportingTask(id);
                 authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                // authorize any referenced service
-                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
+                AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, null);
             });
 
             ReportingTaskEntity entity;
@@ -902,8 +896,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final ComponentAuthorizable authorizable = lookup.getParameterProvider(id);
                 authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                // authorize any referenced service
-                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
+                AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, null);
             });
 
             ParameterProviderEntity entity;
@@ -1046,8 +1039,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final ComponentAuthorizable authorizable = lookup.getParameterProvider(id);
                 authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                // authorize any referenced service
-                AuthorizeControllerServiceReference.authorizeControllerServiceReferences(properties, authorizable, authorizer, lookup);
+                AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, null);
             });
 
             FlowRegistryClientEntity entity;

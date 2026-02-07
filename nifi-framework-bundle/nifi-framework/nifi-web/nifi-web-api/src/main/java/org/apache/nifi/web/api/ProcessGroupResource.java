@@ -45,6 +45,7 @@ import jakarta.ws.rs.core.Response.Status;
 import jakarta.ws.rs.core.UriBuilder;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.AuthorizeParameterProviders;
 import org.apache.nifi.authorization.AuthorizeParameterReference;
@@ -80,6 +81,7 @@ import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
 import org.apache.nifi.web.api.concurrent.RequestManager;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
@@ -136,6 +138,7 @@ import org.springframework.stereotype.Controller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1313,28 +1316,11 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
                     final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
-                    final ProcessorConfigDTO configDto = requestProcessor.getConfig();
-                    if (parameterContext != null && configDto != null) {
-                        AuthorizeParameterReference.authorizeParameterReferences(configDto.getProperties(), authorizer, parameterContext, user);
-                    }
-
-                    ComponentAuthorizable authorizable = null;
-                    try {
-                        authorizable = lookup.getConfigurableComponent(requestProcessor.getType(), requestProcessor.getBundle());
-
-                        if (authorizable.isRestricted()) {
-                            authorizeRestrictions(authorizer, authorizable);
-                        }
-
-                        final ProcessorConfigDTO config = requestProcessor.getConfig();
-                        if (config != null && config.getProperties() != null) {
-                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(config.getProperties(), authorizable, authorizer, lookup);
-                        }
-                    } finally {
-                        if (authorizable != null) {
-                            authorizable.cleanUpResources();
-                        }
-                    }
+                    final ProcessorConfigDTO config = requestProcessor.getConfig();
+                    final Map<String, String> properties = config == null ? Collections.emptyMap() : config.getProperties();
+                    final String componentType = requestProcessor.getType();
+                    final BundleDTO bundle = requestProcessor.getBundle();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, componentType, bundle, properties, parameterContext);
                 },
                 () -> serviceFacade.verifyCreateProcessor(requestProcessor),
                 processorEntity -> {
@@ -2541,26 +2527,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     processGroup.authorize(authorizer, RequestAction.WRITE, user);
 
                     final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
-                    if (parameterContext != null) {
-                        AuthorizeParameterReference.authorizeParameterReferences(requestControllerService.getProperties(), authorizer, parameterContext, user);
-                    }
-
-                    ComponentAuthorizable authorizable = null;
-                    try {
-                        authorizable = lookup.getConfigurableComponent(requestControllerService.getType(), requestControllerService.getBundle());
-
-                        if (authorizable.isRestricted()) {
-                            authorizeRestrictions(authorizer, authorizable);
-                        }
-
-                        if (requestControllerService.getProperties() != null) {
-                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
-                        }
-                    } finally {
-                        if (authorizable != null) {
-                            authorizable.cleanUpResources();
-                        }
-                    }
+                    final String componentType = requestControllerService.getType();
+                    final BundleDTO bundle = requestControllerService.getBundle();
+                    final Map<String, String> properties = requestControllerService.getProperties();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, componentType, bundle, properties, parameterContext);
                 },
                 () -> serviceFacade.verifyCreateControllerService(requestControllerService),
                 controllerServiceEntity -> {

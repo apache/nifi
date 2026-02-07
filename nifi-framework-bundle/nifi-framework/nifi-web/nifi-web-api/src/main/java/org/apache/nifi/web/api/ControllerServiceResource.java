@@ -39,8 +39,8 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
-import org.apache.nifi.authorization.AuthorizeParameterReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
@@ -730,10 +730,9 @@ public class ControllerServiceResource extends ApplicationResource {
                     final ComponentAuthorizable authorizable = lookup.getControllerService(id);
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                    // authorize any referenced services
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerServiceDTO.getProperties(), authorizable, authorizer, lookup);
-                    AuthorizeParameterReference.authorizeParameterReferences(requestControllerServiceDTO.getProperties(), authorizer, authorizable.getParameterContext(),
-                            NiFiUserUtils.getNiFiUser());
+                    final Map<String, String> properties = requestControllerServiceDTO.getProperties();
+                    final Authorizable parameterContext = authorizable.getParameterContext();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, parameterContext);
                 },
                 () -> serviceFacade.verifyUpdateControllerService(requestControllerServiceDTO),
                 (revision, controllerServiceEntity) -> {
