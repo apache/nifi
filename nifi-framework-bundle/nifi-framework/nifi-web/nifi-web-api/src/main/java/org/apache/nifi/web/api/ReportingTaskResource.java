@@ -39,6 +39,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -84,6 +85,7 @@ import org.springframework.stereotype.Controller;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -536,8 +538,9 @@ public class ReportingTaskResource extends ApplicationResource {
                     final ComponentAuthorizable authorizable = lookup.getReportingTask(id);
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                    // authorize any referenced services
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTaskDTO.getProperties(), authorizable, authorizer, lookup);
+                    final Authorizable parameterContext = authorizable.getParameterContext();
+                    final Map<String, String> componentProperties = requestReportingTaskDTO.getProperties();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, componentProperties, parameterContext);
                 },
                 () -> serviceFacade.verifyUpdateReportingTask(requestReportingTaskDTO),
                 (revision, reportingTaskEntity) -> {
