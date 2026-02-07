@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.parameter;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
@@ -40,6 +42,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestStandardParameterContext {
 
@@ -370,8 +374,8 @@ public class TestStandardParameterContext {
     }
 
     private static ProcessorNode getProcessorNode(String parameterName, HashMapParameterReferenceManager referenceManager) {
-        final ProcessorNode procNode = Mockito.mock(ProcessorNode.class);
-        Mockito.when(procNode.isRunning()).thenReturn(false);
+        final ProcessorNode procNode = mock(ProcessorNode.class);
+        when(procNode.isRunning()).thenReturn(false);
         referenceManager.addProcessorReference(parameterName, procNode);
         return procNode;
     }
@@ -385,15 +389,88 @@ public class TestStandardParameterContext {
     }
 
     private static void setProcessorRunning(final ProcessorNode processorNode, final boolean isRunning) {
-        Mockito.when(processorNode.isRunning()).thenReturn(isRunning);
+        when(processorNode.isRunning()).thenReturn(isRunning);
     }
 
     private static void setControllerServiceState(final ControllerServiceNode serviceNode, final ControllerServiceState state) {
-        Mockito.when(serviceNode.getState()).thenReturn(state);
+        when(serviceNode.getState()).thenReturn(state);
     }
 
     private static void enableControllerService(final ControllerServiceNode serviceNode) {
         setControllerServiceState(serviceNode, ControllerServiceState.ENABLED);
+    }
+
+    @Test
+    public void testGhostedProcessorSkippedDuringParameterValidation() {
+        final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final ParameterContext context = createStandardParameterContext(referenceManager);
+
+        final ProcessorNode procNode = getProcessorNode("abc", referenceManager);
+        when(procNode.isExtensionMissing()).thenReturn(true);
+
+        // Set up the ghosted processor to reference "abc" via a sensitive property
+        final PropertyDescriptor sensitiveProperty = new PropertyDescriptor.Builder().name("sensitive-prop").sensitive(true).build();
+        final ParameterReference paramReference = mock(ParameterReference.class);
+        when(paramReference.getParameterName()).thenReturn("abc");
+        final PropertyConfiguration propertyConfig = mock(PropertyConfiguration.class);
+        when(propertyConfig.getParameterReferences()).thenReturn(Collections.singletonList(paramReference));
+        when(procNode.getProperties()).thenReturn(Collections.singletonMap(sensitiveProperty, propertyConfig));
+
+        // Adding parameter "abc" as non-sensitive should succeed despite the sensitivity mismatch because the processor is ghosted
+        final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(false).build();
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", createParameter(abcDescriptor, "123"));
+        context.setParameters(parameters);
+        assertEquals("123", context.getParameter("abc").get().getValue());
+
+        // Updating the parameter value should succeed because the processor is ghosted
+        parameters.clear();
+        parameters.put("abc", createParameter(abcDescriptor, "321"));
+        context.setParameters(parameters);
+        assertEquals("321", context.getParameter("abc").get().getValue());
+
+        // Deleting the parameter should succeed because the processor is ghosted
+        parameters.clear();
+        parameters.put("abc", null);
+        context.setParameters(parameters);
+        assertFalse(context.getParameter("abc").isPresent());
+    }
+
+    @Test
+    public void testGhostedControllerServiceSkippedDuringParameterValidation() {
+        final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
+        final ParameterContext context = createStandardParameterContext(referenceManager);
+
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
+        when(serviceNode.isExtensionMissing()).thenReturn(true);
+        referenceManager.addControllerServiceReference("abc", serviceNode);
+
+        // Set up the ghosted controller service to reference "abc" via a non-sensitive property
+        final PropertyDescriptor nonSensitiveProperty = new PropertyDescriptor.Builder().name("non-sensitive-prop").sensitive(false).build();
+        final ParameterReference paramReference = mock(ParameterReference.class);
+        when(paramReference.getParameterName()).thenReturn("abc");
+        final PropertyConfiguration propertyConfig = mock(PropertyConfiguration.class);
+        when(propertyConfig.getParameterReferences()).thenReturn(Collections.singletonList(paramReference));
+        when(serviceNode.getProperties()).thenReturn(Collections.singletonMap(nonSensitiveProperty, propertyConfig));
+
+        // Adding parameter "abc" as sensitive should succeed despite the sensitivity mismatch because the controller service is ghosted
+        final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("abc", createParameter(abcDescriptor, "123"));
+        context.setParameters(parameters);
+        assertEquals("123", context.getParameter("abc").get().getValue());
+
+        // Updating the parameter value should succeed because the controller service is ghosted
+        parameters.clear();
+        parameters.put("abc", createParameter(abcDescriptor, "321"));
+        context.setParameters(parameters);
+        assertEquals("321", context.getParameter("abc").get().getValue());
+
+        // Deleting the parameter should succeed because the controller service is ghosted
+        parameters.clear();
+        parameters.put("abc", null);
+        context.setParameters(parameters);
+        assertFalse(context.getParameter("abc").isPresent());
     }
 
     @Test
@@ -403,9 +480,9 @@ public class TestStandardParameterContext {
 
         final HashMapParameterReferenceManager referenceManager = Mockito.spy(new HashMapParameterReferenceManager());
         final Set<ProcessGroup> processGroups = new HashSet<>();
-        final ProcessGroup processGroup = Mockito.mock(ProcessGroup.class);
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
         processGroups.add(processGroup);
-        Mockito.when(referenceManager.getProcessGroupsBound(ArgumentMatchers.any())).thenReturn(processGroups);
+        when(referenceManager.getProcessGroupsBound(ArgumentMatchers.any())).thenReturn(processGroups);
         final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
         final ParameterContext a = createParameterContext("a", parameterContextLookup, referenceManager);
         addParameter(a, "abc", "123");
@@ -446,7 +523,7 @@ public class TestStandardParameterContext {
         //   Param abc
         //   (Inherited) Param def (from B)
 
-        final ControllerServiceNode serviceNode = Mockito.mock(ControllerServiceNode.class);
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
         enableControllerService(serviceNode);
 
         referenceManager.addControllerServiceReference(inheritedParamName, serviceNode);
@@ -476,7 +553,7 @@ public class TestStandardParameterContext {
     public void testChangingParameterForEnabledControllerService() {
         final HashMapParameterReferenceManager referenceManager = new HashMapParameterReferenceManager();
         final ParameterContext context = createStandardParameterContext(referenceManager);
-        final ControllerServiceNode serviceNode = Mockito.mock(ControllerServiceNode.class);
+        final ControllerServiceNode serviceNode = mock(ControllerServiceNode.class);
         enableControllerService(serviceNode);
 
         final ParameterDescriptor abcDescriptor = new ParameterDescriptor.Builder().name("abc").sensitive(true).build();
