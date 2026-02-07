@@ -26,6 +26,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.AbstractAwsSyncProcessor;
+import software.amazon.awssdk.awscore.defaultsmode.DefaultsMode;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -203,6 +204,8 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
                 .map(AmazonS3EncryptionService::createEncryptionClientBuilder)
                 .map(S3ClientBuilderWrapper::new)
                 .orElse(new S3ClientBuilderWrapper(S3Client.builder()));
+
+        clientBuilder.defaultsMode(DefaultsMode.STANDARD);
 
         final S3Configuration.Builder configurationBuilder = S3Configuration.builder();
 
