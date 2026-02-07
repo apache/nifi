@@ -1,0 +1,18 @@
+---
+description: Maven build instructions for the NiFi codebase
+alwaysApply: true
+---
+
+# Building
+
+NiFi is a complex Maven codebase. Never build code (testing or otherwise) using javac.
+Always use `mvn` instead, or preferably the `.mvnw` wrapper script.
+
+Additionally, building a maven module using the also-make flag (`-am`) is often very
+expensive and slow. Instead, only build the specific module you are modifying. Assume that
+the user has already built the entire codebase and that only the specific module you are
+modifying needs to be built again. If this fails, you can prompt the user to build the entire
+codebase, but only after you have attempted to build the relevant modules yourself first.
+It is important not to run `mvn clean` at the root level or at the `nifi-assembly` level without
+the user's express permission, as this may delete a running instance of NiFi, causing permanent
+loss of flows and configuration.
