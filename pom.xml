@@ -120,7 +120,7 @@
         <nifi.nar.maven.plugin.version>2.2.0</nifi.nar.maven.plugin.version>
 
         <!-- CSPs SDK -->
-        <software.amazon.awssdk.version>2.41.21</software.amazon.awssdk.version>
+        <software.amazon.awssdk.version>2.41.24</software.amazon.awssdk.version>
         <software.amazon.encryption.s3.version>4.0.0</software.amazon.encryption.s3.version>
         <azure.sdk.bom.version>1.3.4</azure.sdk.bom.version> <!-- when changing this version, also update msal4j to the version that is required by azure-identity -->
 
@@ -149,7 +149,7 @@
 
         <!-- Data formats and serialization -->
         <avro.version>1.12.1</avro.version>
-        <com.github.luben.zstd-jni.version>1.5.7-6</com.github.luben.zstd-jni.version>
+        <com.github.luben.zstd-jni.version>1.5.7-7</com.github.luben.zstd-jni.version>
         <com.jayway.jsonpath.version>2.10.0</com.jayway.jsonpath.version>
         <gson.version>2.13.2</gson.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
@@ -160,17 +160,17 @@
         <!-- JVM languages and bytecode -->
         <aspectj.version>1.9.25.1</aspectj.version>
         <groovy.version>5.0.4</groovy.version>
-        <kotlin.version>2.3.0</kotlin.version>
+        <kotlin.version>2.3.10</kotlin.version>
 
         <!-- Logging and observability -->
         <log4j2.version>2.25.3</log4j2.version>
-        <logback.version>1.5.27</logback.version>
+        <logback.version>1.5.28</logback.version>
         <org.slf4j.version>2.0.17</org.slf4j.version>
         <prometheus.version>0.16.0</prometheus.version>
         <simple-syslog-5424.version>0.0.19</simple-syslog-5424.version>
 
         <!-- Networking and transport -->
-        <netty.4.version>4.2.9.Final</netty.4.version>
+        <netty.4.version>4.2.10.Final</netty.4.version>
         <okhttp.version>5.3.2</okhttp.version>
         <okio.version>3.16.4</okio.version>
         <org.apache.httpcomponents.httpclient.version>4.5.14</org.apache.httpcomponents.httpclient.version>
@@ -179,7 +179,7 @@
 
         <!-- Security -->
         <nimbus-jose-jwt.version>10.7</nimbus-jose-jwt.version>
-        <nimbus-oauth2-oidc.version>11.32</nimbus-oauth2-oidc.version>
+        <nimbus-oauth2-oidc.version>11.33</nimbus-oauth2-oidc.version>
         <org.bouncycastle.version>1.83</org.bouncycastle.version>
 
         <!-- Utilities -->
@@ -190,7 +190,7 @@
         <hapi.version>2.6.0</hapi.version>
         <jakarta.annotation-api.version>3.0.0</jakarta.annotation-api.version>
         <jakarta.ws.rs-api.version>4.0.0</jakarta.ws.rs-api.version>
-        <jakarta.xml.bind-api.version>4.0.4</jakarta.xml.bind-api.version>
+        <jakarta.xml.bind-api.version>4.0.5</jakarta.xml.bind-api.version>
         <jakarta.activation-api.version>2.1.4</jakarta.activation-api.version>
         <jaxb.runtime.version>4.0.6</jaxb.runtime.version>
         <jersey.bom.version>4.0.2</jersey.bom.version>
@@ -204,7 +204,7 @@
         <junit.version>6.0.2</junit.version>
         <mockito.version>5.21.0</mockito.version>
         <pmd.version>7.21.0</pmd.version>
-        <checkstyle.version>13.1.0</checkstyle.version>
+        <checkstyle.version>13.2.0</checkstyle.version>
         <testcontainers.version>2.0.3</testcontainers.version>
         <jacoco.version>0.8.14</jacoco.version>
     </properties>
@@ -772,7 +772,7 @@
                 <plugin>
                     <groupId>io.fabric8</groupId>
                     <artifactId>docker-maven-plugin</artifactId>
-                    <version>0.48.0</version>
+                    <version>0.48.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
