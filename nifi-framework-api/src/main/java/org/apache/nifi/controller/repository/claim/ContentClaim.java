@@ -44,4 +44,12 @@ public interface ContentClaim extends Comparable<ContentClaim> {
      * @return the length of this ContentClaim
      */
     long getLength();
+
+    /**
+     * Indicates whether or not this ContentClaim is a candidate for truncation.
+     * @return true if this ContentClaim is a candidate for truncation, false otherwise
+     */
+    default boolean isTruncationCandidate() {
+        return false;
+    }
 }
