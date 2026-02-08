@@ -48,6 +48,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.reporting.ReportingTaskProvider;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.api.ApplicationResource.ReplicationTarget;
 import org.apache.nifi.web.api.dto.AllowableValueDTO;
@@ -606,8 +607,9 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final ComponentAuthorizable authorizable = lookup.getControllerService(id);
                 authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, null);
-                AuthorizeParameterReference.authorizeParameterReferences(annotationData, authorizer, authorizable.getParameterContext(), user);
+                final ParameterContext parameterContext = authorizable.getParameterContext();
+                AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, parameterContext);
+                AuthorizeParameterReference.authorizeParameterReferences(annotationData, authorizer, parameterContext, user);
             });
 
             ControllerServiceEntity entity;
