@@ -47,6 +47,12 @@ class S3IcebergFileIOProviderTest {
 
     private static final String SESSION_TOKEN = "SessionToken";
 
+    private static final String ENDPOINT = "Endpoint";
+
+    private static final String PATH_STYLE_ACCESS = "PathStyleAccess";
+
+    private static final String STORAGE_CLASS = "StorageClass";
+
     private TestRunner runner;
 
     private S3IcebergFileIOProvider provider;
@@ -82,6 +88,9 @@ class S3IcebergFileIOProviderTest {
         runner.setProperty(provider, S3IcebergFileIOProvider.SECRET_ACCESS_KEY, SECRET_ACCESS_KEY);
         runner.setProperty(provider, S3IcebergFileIOProvider.SESSION_TOKEN, SESSION_TOKEN);
         runner.setProperty(provider, S3IcebergFileIOProvider.CLIENT_REGION, CLIENT_REGION);
+        runner.setProperty(provider, S3IcebergFileIOProvider.ENDPOINT, ENDPOINT);
+        runner.setProperty(provider, S3IcebergFileIOProvider.PATH_STYLE_ACCESS, PATH_STYLE_ACCESS);
+        runner.setProperty(provider, S3IcebergFileIOProvider.STORAGE_CLASS, STORAGE_CLASS);
 
         runner.enableControllerService(provider);
 
@@ -96,6 +105,9 @@ class S3IcebergFileIOProviderTest {
             assertEquals(SECRET_ACCESS_KEY, configuredProperties.get(S3FileIOProperties.SECRET_ACCESS_KEY));
             assertEquals(SESSION_TOKEN, configuredProperties.get(S3FileIOProperties.SESSION_TOKEN));
             assertEquals(CLIENT_REGION, configuredProperties.get(AwsClientProperties.CLIENT_REGION));
+            assertEquals(ENDPOINT, configuredProperties.get(S3FileIOProperties.ENDPOINT));
+            assertEquals(PATH_STYLE_ACCESS, configuredProperties.get(S3FileIOProperties.PATH_STYLE_ACCESS));
+            assertEquals(STORAGE_CLASS, configuredProperties.get(S3FileIOProperties.WRITE_STORAGE_CLASS));
         }
     }
 

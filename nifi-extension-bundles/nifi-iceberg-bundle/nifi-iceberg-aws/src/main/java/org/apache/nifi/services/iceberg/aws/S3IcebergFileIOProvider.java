@@ -32,6 +32,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.iceberg.IcebergFileIOProvider;
 import org.apache.nifi.services.iceberg.ProviderContext;
+import software.amazon.awssdk.services.s3.model.StorageClass;
 
 import java.util.HashMap;
 import java.util.List;
@@ -102,25 +103,39 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
             )
             .build();
 
-    static final PropertyDescriptor ENDPOINT_URL = new PropertyDescriptor.Builder()
-            .name("Endpoint URL")
-            .description("""
-                Endpoint URL to use instead of the AWS default including scheme, host, port, and path.
-                The AWS libraries select an endpoint URL based on the AWS region, but this property overrides
-                the selected endpoint URL, allowing use with other S3-compatible endpoints.""")
+    static final PropertyDescriptor ENDPOINT = new PropertyDescriptor.Builder()
+            .name("Endpoint")
+            .description("Endpoint Override URL, use for on-premise s3 compactible solutions")
             .required(false)
-            .addValidator(StandardValidators.URL_VALIDATOR)
+            .addValidator(StandardValidators.URI_VALIDATOR)
+            .dependsOn(
+                    AUTHENTICATION_STRATEGY,
+                    AuthenticationStrategy.BASIC_CREDENTIALS
+            )
             .build();
 
-    static final PropertyDescriptor PATH_STYLE_ACCESS = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor PATH_STYLE_ACCESS  = new PropertyDescriptor.Builder()
             .name("Path Style Access")
-            .description("""
-                Path-style access can be enforced by setting this property to true. Set it to true if the configured
-                endpoint does not support virtual-hosted-style requests, only path-style requests.""")
-            .allowableValues(Boolean.TRUE.toString(), Boolean.FALSE.toString())
-            .defaultValue(String.valueOf(S3FileIOProperties.PATH_STYLE_ACCESS_DEFAULT))
+            .description("Path Style Access, use for on-premise s3 compactible solutions")
             .required(true)
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
+            .defaultValue(String.valueOf(S3FileIOProperties.PATH_STYLE_ACCESS_DEFAULT))
+            .dependsOn(
+                    AUTHENTICATION_STRATEGY,
+                    AuthenticationStrategy.BASIC_CREDENTIALS
+            )
+            .build();
+
+    static final PropertyDescriptor STORAGE_CLASS  = new PropertyDescriptor.Builder()
+            .name("Storage Class")
+            .description("Storage Class, use for on-premise s3 compactible solutions")
+            .required(false)
+            .allowableValues(StorageClass.values())
+            .dependsOn(
+                    AUTHENTICATION_STRATEGY,
+                    AuthenticationStrategy.BASIC_CREDENTIALS
+            )
             .build();
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
@@ -129,8 +144,9 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
             SECRET_ACCESS_KEY,
             SESSION_TOKEN,
             CLIENT_REGION,
-            ENDPOINT_URL,
-            PATH_STYLE_ACCESS
+            ENDPOINT,
+            PATH_STYLE_ACCESS,
+            STORAGE_CLASS
     );
 
     private final Map<String, String> standardProperties = new ConcurrentHashMap<>();
@@ -173,21 +189,21 @@ public class S3IcebergFileIOProvider extends AbstractControllerService implement
 
             final String accessKeyId = context.getProperty(ACCESS_KEY_ID).getValue();
             final String secretAccessKey = context.getProperty(SECRET_ACCESS_KEY).getValue();
+            final String endpoint = context.getProperty(ENDPOINT).getValue();
+            final String pathStyleAccess = context.getProperty(PATH_STYLE_ACCESS).getValue();
+            final String storageCLass = context.getProperty(STORAGE_CLASS).getValue();
+
             contextProperties.put(S3FileIOProperties.ACCESS_KEY_ID, accessKeyId);
             contextProperties.put(S3FileIOProperties.SECRET_ACCESS_KEY, secretAccessKey);
+            contextProperties.put(S3FileIOProperties.ENDPOINT, endpoint);
+            contextProperties.put(S3FileIOProperties.PATH_STYLE_ACCESS, pathStyleAccess);
+            contextProperties.put(S3FileIOProperties.WRITE_STORAGE_CLASS, storageCLass);
 
             if (AuthenticationStrategy.SESSION_CREDENTIALS == authenticationStrategy) {
                 final String sessionToken = context.getProperty(SESSION_TOKEN).getValue();
                 contextProperties.put(S3FileIOProperties.SESSION_TOKEN, sessionToken);
             }
         }
-
-        if (context.getProperty(ENDPOINT_URL).isSet()) {
-            final String endpoint = context.getProperty(ENDPOINT_URL).getValue();
-            contextProperties.put(S3FileIOProperties.ENDPOINT, endpoint);
-        }
-        final String pathStyleAccess = context.getProperty(PATH_STYLE_ACCESS).getValue();
-        contextProperties.put(S3FileIOProperties.PATH_STYLE_ACCESS, pathStyleAccess);
 
         // HttpURLConnection Client Type avoids additional dependencies
         contextProperties.put(HttpClientProperties.CLIENT_TYPE, HttpClientProperties.CLIENT_TYPE_URLCONNECTION);

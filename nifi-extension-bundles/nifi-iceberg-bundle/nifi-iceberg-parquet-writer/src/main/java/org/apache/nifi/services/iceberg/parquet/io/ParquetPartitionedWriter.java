@@ -25,6 +25,7 @@ import org.apache.iceberg.io.FileAppenderFactory;
 import org.apache.iceberg.io.FileIO;
 import org.apache.iceberg.io.OutputFileFactory;
 import org.apache.iceberg.io.PartitionedFanoutWriter;
+import org.apache.iceberg.data.InternalRecordWrapper;
 
 /**
  * Parquet implementation of Partition Writer with Partition Key derived from configured Schema definition
@@ -32,6 +33,7 @@ import org.apache.iceberg.io.PartitionedFanoutWriter;
 public class ParquetPartitionedWriter extends PartitionedFanoutWriter<Record> {
 
     private final PartitionKey partitionKey;
+    private final InternalRecordWrapper recordWrapper;
 
     public ParquetPartitionedWriter(
             final PartitionSpec spec,
@@ -43,11 +45,12 @@ public class ParquetPartitionedWriter extends PartitionedFanoutWriter<Record> {
     ) {
         super(spec, FileFormat.PARQUET, appenderFactory, fileFactory, io, targetFileSize);
         this.partitionKey = new PartitionKey(spec, schema);
+        this.recordWrapper = new InternalRecordWrapper(schema.asStruct());
     }
 
     @Override
     protected PartitionKey partition(final Record record) {
-        partitionKey.partition(record);
+        partitionKey.partition(recordWrapper.wrap(record));
         return partitionKey;
     }
 }
