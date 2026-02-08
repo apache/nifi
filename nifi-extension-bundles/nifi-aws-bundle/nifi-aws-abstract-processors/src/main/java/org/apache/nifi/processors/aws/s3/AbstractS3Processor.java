@@ -203,9 +203,7 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
         final S3ClientBuilderWrapper clientBuilder = Optional.ofNullable(encryptionService)
                 .map(AmazonS3EncryptionService::createEncryptionClientBuilder)
                 .map(S3ClientBuilderWrapper::new)
-                .orElse(new S3ClientBuilderWrapper(S3Client.builder()));
-
-        clientBuilder.defaultsMode(DefaultsMode.STANDARD);
+                .orElseGet(() -> new S3ClientBuilderWrapper(S3Client.builder().defaultsMode(DefaultsMode.STANDARD)));
 
         final S3Configuration.Builder configurationBuilder = S3Configuration.builder();
 
