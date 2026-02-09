@@ -71,8 +71,10 @@ import javax.net.ssl.X509ExtendedKeyManager;
 import javax.net.ssl.X509TrustManager;
 
 /**
- * Reads secrets from AWS Secrets Manager to provide parameter values.  Secrets must be created similar to the following AWS cli command: <br/><br/>
- * <code>aws secretsmanager create-secret --name "[Context]" --secret-string '{ "[Param]": "[secretValue]", "[Param2]": "[secretValue2]" }'</code> <br/><br/>
+ * Reads secrets from AWS Secrets Manager to provide parameter values.  Secrets must be created similar to the following AWS cli command:
+ * {@snippet lang="text" :
+ *     aws secretsmanager create-secret --name "[Context]" --secret-string '{ "[Param]": "[secretValue]", "[Param2]": "[secretValue2]" }'
+ * }
  */
 @Tags({"aws", "secretsmanager", "secrets", "manager"})
 @CapabilityDescription("Fetches parameters from AWS SecretsManager. Each secret becomes a Parameter group, which can map to a Parameter Context, with " +

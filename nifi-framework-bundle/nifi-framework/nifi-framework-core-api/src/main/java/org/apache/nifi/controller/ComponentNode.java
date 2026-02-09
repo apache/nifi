@@ -105,17 +105,15 @@ public interface ComponentNode extends ComponentAuthorizable {
      * we don't want to trigger validation for each update, so we can follow the pattern:
      * </p>
      *
-     * <pre>
-     * <code>
-     * componentNode.pauseValidationTrigger();
-     * try {
-     *   componentNode.setProperties(properties);
-     *   componentNode.setAnnotationData(annotationData);
-     * } finally {
-     *   componentNode.resumeValidationTrigger();
+     * {@snippet :
+     *     componentNode.pauseValidationTrigger();
+     *     try {
+     *         componentNode.setProperties(properties);
+     *         componentNode.setAnnotationData(annotationData);
+     *     } finally {
+     *         componentNode.resumeValidationTrigger();
+     *     }
      * }
-     * </code>
-     * </pre>
      *
      * <p>
      * When calling this method, it is imperative that {@link #resumeValidationTrigger()} is always called within a {@code finally} block to

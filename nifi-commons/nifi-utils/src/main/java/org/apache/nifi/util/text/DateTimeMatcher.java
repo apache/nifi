@@ -22,15 +22,15 @@ package org.apache.nifi.util.text;
  * by the Time Format used in {@link java.time.format.DateTimeFormatter}. It is not uncommon to see code written along the lines of:
  * </p>
  *
- * <code><pre>
- * final String format = "yyyy/MM/dd HH:mm:ss.SSS";
- * try {
- *     DateTimeFormatter.ofPattern(format).parse(text);
- *     return true;
- * } catch (Exception e) {
- *     return false;
- * }
- * </pre></code>
+ *  {@snippet :
+ *     final String format = "yyyy/MM/dd HH:mm:ss.SSS";
+ *     try {
+ *         DateTimeFormatter.ofPattern(format).parse(text);
+ *         return true;
+ *     } catch (Exception e) {
+ *         return false;
+ *     }
+ *  }
  *
  * <p>
  *     This approach, however, is frowned upon for two important reasons. Firstly, the performance is poor. A micro-benchmark that involves executing

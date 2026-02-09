@@ -30,41 +30,41 @@ package org.apache.nifi.controller;
  *
  * E.g.:
  *
- * <pre><code>public interface IConnectionProviderService {
- *     IConnection getConnection();
- *     void closeConnection(IConnection);
+ * {@snippet :
+ *     public interface IConnectionProviderService {
+ *        IConnection getConnection();
+ *        void closeConnection(IConnection connection);
+ *    }
+ *
+ *    public class ConnectionProviderServiceImpl {
+ *        IConnection getConnection() {
+ *            return new SimpleConnection();
+ *        }
+ *
+ *        void closeConnection(IConnection connection) {
+ *            if (connection instanceof SimpleConnection) {
+ *                // Other code
+ *            } else {
+ *                throw new InvalidArgumentException();
+ *            }
+ *        }
+ *    }
+ *
+ *    public class ConnectionUserProcessor {
+ *            IConnectionProviderService service; // Set to ConnectionProviderServiceImpl
+ *
+ *            void onTrigger() {
+ *            IConnection connection = service.getConnection();
+ *
+ *            // 'connection' at this point is a proxy of a 'SimpleConnection' object
+ *            // So '(connection instanceof IConnection)' is true, but
+ *            // '(connection instanceof SimpleConnection)' is false
+ *            // Other code
+ *
+ *            service.closeConnection(connection); // This would have thrown InvalidArgumentException
+ *        }
+ *    }
  * }
- *
- * public class ConnectionProviderServiceImpl {
- *     IConnection getConnection() {
- *         return new SimpleConnection();
- *     }
- *
- *     void closeConnection(IConnection) {
- *         if (connection instanceof SimpleConnection) {
- *             ...
- *         } else {
- *             throw new InvalidArgumentException();
- *         }
- *     }
- * }
- *
- * public class ConnectionUserProcessor {
- *     IConnectionProviderService service; #Set to ConnectionProviderServiceImpl
- *
- *     void onTrigger() {
- *         IConnection connection = service.getConnection();
- *
- *         # 'connection' at this point is a proxy of a 'SimpleConnection' object
- *         # So '(connection instanceof IConnection)' is true, but
- *         # '(connection instanceof SimpleConnection)' is false
- *
- *         ...
- *
- *         service.closeConnection(connection); # !! This would have thrown InvalidArgumentException
- *     }
- * }
- * </code></pre>
  *
  * But why wrap the return value in a proxy in the first place? It is needed to handle the following scenario:
  *
@@ -74,44 +74,44 @@ package org.apache.nifi.controller;
  * Since it tries to use the Processor classloader, it fails.
  *
  * E.g.:
- * <pre><code>package root.interface;
+ * {@snippet :
+ *        package root.interface;
  *
- * public interface IReportService {
- *     IReport getReport();
+ *            public interface IReportService {
+ *                IReport getReport();
+ *            }
+ *            public interface IReport {
+ *                void submit();
+ *            }
+ *
+ *        package root.service;
+ *
+ *            public class ReportServiceImpl {
+ *                IReport getReport() {
+ *                    return new Report();
+ *                }
+ *            }
+ *            public class ReportImpl {
+ *                void submit() {
+ *                    Class.forName("roo.service.OtherClass");
+ *                    // Other code
+ *                }
+ *            }
+ *            public class OtherClass {}
+ *
+ *
+ *        package root.processor;
+ *
+ *            public class ReportProcessor {
+ *            IReportService service; //Set to ReportServiceImpl
+ *
+ *            void onTrigger() {
+ *            IReport report = service.getReport();
+ *            // Other code
+ *            report.submit(); // This would have thrown ClassNotFoundException
+ *            }
+ *        }
  * }
- * public interface IReport {
- *     void submit();
- * }
- *
- *
- * package root.service;
- *
- * public class ReportServiceImpl {
- *     IReport getReport() {
- *         return new Report();
- *     }
- * }
- * public class ReportImpl {
- *     void submit() {
- *         Class.forName("roo.service.OtherClass");
- *         ...
- *     }
- * }
- * public class OtherClass {}
- *
- *
- * package root.processor;
- *
- * public class ReportProcessor {
- *     IReportService service; #Set to ReportServiceImpl
- *
- *     void onTrigger() {
- *         IReport report = service.getReport();
- *         ...
- *         report.submit(); # !! This would have thrown ClassNotFoundException
- *     }
- * }
- * </code></pre>
  *
  * So in general there is a barrier between the Controller Service and the Processor (or another Controller Service) due to the fact that they have
  * their own classloaders.

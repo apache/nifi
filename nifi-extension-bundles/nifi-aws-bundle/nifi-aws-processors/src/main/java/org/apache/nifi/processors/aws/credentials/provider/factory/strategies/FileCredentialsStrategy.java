@@ -27,10 +27,10 @@ import java.io.File;
 /**
  * Supports AWS credentials stored in a file.  The file format should be a Java properties file like the following:
  *
- * <code>
- * accessKey = XXXXXXXXXXXXXXXXXXXX
- * secretKey = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
- * </code>
+ * {@snippet lang="properties" :
+ *     accessKey = XXXXXXXXXXXXXXXXXXXX
+ *     secretKey = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ * }
  *
  *  * @see <a href="http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/PropertiesFileCredentialsProvider.html">
  *     PropertiesFileCredentialsProvider</a>

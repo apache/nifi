@@ -35,13 +35,13 @@ import java.util.Collection;
  * A file-based implementation of the ClusterFirewall interface. The class is configured with a file. If the file is empty, then everything is permissible. Otherwise, the file should contain hostnames
  * or IPs formatted as dotted decimals with an optional CIDR suffix. Each entry must be separated by a newline. An example configuration is given below:
  *
- * <code>
- * # hash character is a comment delimiter
- * 1.2.3.4         # exact IP
- * some.host.name  # a host name
- * 4.5.6.7/8       # range of CIDR IPs
- * 9.10.11.12/13   # a smaller range of CIDR IPs
- * </code>
+ * {@snippet lang="text" :
+ *     # hash character is a comment delimiter
+ *     1.2.3.4         # exact IP
+ *     some.host.name  # a host name
+ *     4.5.6.7/8       # range of CIDR IPs
+ *     9.10.11.12/13   # a smaller range of CIDR IPs
+ * }
  *
  * This class allows for synchronization with an optionally configured restore directory. If configured, then at startup, if the either the config file or the restore directory's copy is missing, then
  * the configuration file will be copied to the appropriate location. If both restore directory contains a copy that is different in content to configuration file, then an exception is thrown at

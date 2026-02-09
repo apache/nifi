@@ -164,13 +164,13 @@ public class FormatUtils {
      * This method handles decimal values over {@code 1 ns}, but {@code < 1 ns} will return {@code 0} in any other unit.
      * <p>
      * Examples:
-     * <p>
-     * "10 seconds", {@code TimeUnit.MILLISECONDS} -> 10_000.0
-     * "0.010 s", {@code TimeUnit.MILLISECONDS} -> 10.0
-     * "0.010 s", {@code TimeUnit.SECONDS} -> 0.010
-     * "0.010 ns", {@code TimeUnit.NANOSECONDS} -> 1
-     * "0.010 ns", {@code TimeUnit.MICROSECONDS} -> 0
-     *
+     * {@snippet lang="text" :
+     *     "10 seconds", TimeUnit.MILLISECONDS -> 10_000.0
+     *     "0.010 s", TimeUnit.MILLISECONDS -> 10.0
+     *     "0.010 s", TimeUnit.SECONDS -> 0.010
+     *     "0.010 ns", TimeUnit.NANOSECONDS -> 1
+     *     "0.010 ns", TimeUnit.MICROSECONDS -> 0
+     * }
      * @param value       the {@code String} input
      * @param desiredUnit the desired output {@link TimeUnit}
      * @return the parsed and converted amount (without a unit)
