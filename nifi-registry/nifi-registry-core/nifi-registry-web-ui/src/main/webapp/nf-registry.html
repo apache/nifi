@@ -15,6 +15,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
+<div id="nifi-registry-deprecation-banner">
+    <i class="fa fa-exclamation-triangle" aria-hidden="true"></i>
+    <span>Apache NiFi Registry has been deprecated and might be removed with Apache NiFi 3.0. More information can be found at
+        <a href="https://nifi.apache.org/projects/registry/" target="_blank" rel="noopener noreferrer">https://nifi.apache.org/projects/registry/</a>
+    </span>
+</div>
 <mat-progress-spinner id="loading-spinner" *ngIf="nfRegistryService.inProgress" mode="indeterminate"></mat-progress-spinner>
 <mat-sidenav-container>
     <mat-sidenav #sidenav mode="over" position="end" opened="false" disableClose="true">

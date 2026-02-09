@@ -15,6 +15,33 @@
  * limitations under the License.
  */
 
+#nifi-registry-deprecation-banner {
+    background-color: #f0ad4e;
+    color: #333;
+    text-align: center;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1001;
+    position: relative;
+    min-width: 1045px;
+}
+
+#nifi-registry-deprecation-banner .fa-exclamation-triangle {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+#nifi-registry-deprecation-banner a {
+    color: #333;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+#nifi-registry-deprecation-banner a:hover {
+    color: #000;
+}
+
 body {
     background: $grey12 url('assets/images/registry-logo-web-app.svg') no-repeat center center;
     background-size: 40%;
