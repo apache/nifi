@@ -930,6 +930,8 @@ public class RunNiFiRegistry {
             cmdBuilder.append(s).append(" ");
         }
 
+        cmdLogger.warn("Apache NiFi Registry has been deprecated and might be removed with Apache NiFi 3.0."
+                + " More information can be found at https://nifi.apache.org/projects/registry/");
         cmdLogger.info("Starting Apache NiFi Registry...");
         cmdLogger.info("Working Directory: {}", workingDir.getAbsolutePath());
         cmdLogger.info("Command: {}", cmdBuilder);
