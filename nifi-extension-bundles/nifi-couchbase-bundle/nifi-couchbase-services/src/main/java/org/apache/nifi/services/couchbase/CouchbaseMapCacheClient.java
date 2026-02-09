@@ -52,8 +52,7 @@ public class CouchbaseMapCacheClient extends AbstractCouchbaseService implements
             COUCHBASE_CONNECTION_SERVICE,
             BUCKET_NAME,
             SCOPE_NAME,
-            COLLECTION_NAME,
-            DOCUMENT_TYPE
+            COLLECTION_NAME
     );
 
     @Override

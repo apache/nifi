@@ -26,7 +26,6 @@ import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.couchbase.utils.CouchbaseLookupInResult;
-import org.apache.nifi.services.couchbase.utils.DocumentType;
 
 import java.util.List;
 import java.util.Map;
@@ -66,11 +65,6 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService imp
     }
 
     @Override
-    protected DocumentType resolveDocumentType(ConfigurationContext context) {
-        return DocumentType.JSON;
-    }
-
-    @Override
     public Optional<String> lookup(Map<String, Object> coordinates) throws LookupFailureException {
         final Object documentId = coordinates.get(KEY);
 
@@ -79,7 +73,7 @@ public class CouchbaseKeyValueLookupService extends AbstractCouchbaseService imp
         }
         try {
             final CouchbaseLookupInResult result = couchbaseClient.lookupIn(documentId.toString(), subDocPath);
-            return Optional.ofNullable(result.resultContent().toString());
+            return Optional.ofNullable(result.resultContent()).map(Object::toString);
         } catch (Exception e) {
             throw new LookupFailureException("Key-value lookup from Couchbase failed", e);
         }

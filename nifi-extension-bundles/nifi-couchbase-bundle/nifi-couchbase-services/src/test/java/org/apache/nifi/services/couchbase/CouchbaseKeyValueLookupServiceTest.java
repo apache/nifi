@@ -56,8 +56,8 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
 
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, SERVICE_ID);
-        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
+        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, CONNECTION_SERVICE_ID);
+        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, CONNECTION_SERVICE_ID);
         final MockConfigurationContext context = new MockConfigurationContext(properties, serviceInitializationContext, new HashMap<>());
 
         lookupService.onEnabled(context);
@@ -76,8 +76,8 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
 
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, SERVICE_ID);
-        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
+        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, CONNECTION_SERVICE_ID);
+        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, CONNECTION_SERVICE_ID);
         final MockConfigurationContext context = new MockConfigurationContext(properties, serviceInitializationContext, new HashMap<>());
 
         lookupService.onEnabled(context);
@@ -92,8 +92,8 @@ public class CouchbaseKeyValueLookupServiceTest extends AbstractCouchbaseService
         final CouchbaseClient client = mock(CouchbaseClient.class);
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, SERVICE_ID);
-        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
+        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, CONNECTION_SERVICE_ID);
+        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, CONNECTION_SERVICE_ID);
         final MockConfigurationContext context = new MockConfigurationContext(properties, serviceInitializationContext, new HashMap<>());
         lookupService.onEnabled(context);
 

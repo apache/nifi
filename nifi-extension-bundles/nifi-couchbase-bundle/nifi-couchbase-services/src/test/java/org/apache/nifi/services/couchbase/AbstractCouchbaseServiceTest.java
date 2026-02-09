@@ -22,14 +22,14 @@ import static org.mockito.Mockito.when;
 
 public abstract class AbstractCouchbaseServiceTest {
 
-    protected static final String SERVICE_ID = "couchbaseConnectionService";
+    protected static final String CONNECTION_SERVICE_ID = "couchbaseConnectionService";
     protected static final String TEST_DOCUMENT_ID = "test-document-id";
     protected static final String TEST_DOCUMENT_CONTENT = "{\"key\":\"value\"}";
     protected static final long TEST_CAS = 1L;
 
     protected static CouchbaseConnectionService mockConnectionService(CouchbaseClient client) {
         final CouchbaseConnectionService connectionService = mock(CouchbaseConnectionService.class);
-        when(connectionService.getIdentifier()).thenReturn(SERVICE_ID);
+        when(connectionService.getIdentifier()).thenReturn(CONNECTION_SERVICE_ID);
         when(connectionService.getClient(any())).thenReturn(client);
         return connectionService;
     }

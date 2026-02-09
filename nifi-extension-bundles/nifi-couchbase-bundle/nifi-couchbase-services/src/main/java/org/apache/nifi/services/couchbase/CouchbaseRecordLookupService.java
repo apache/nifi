@@ -18,47 +18,56 @@ package org.apache.nifi.services.couchbase;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.json.JsonParserFactory;
-import org.apache.nifi.json.JsonTreeRowRecordReader;
-import org.apache.nifi.json.SchemaApplicationStrategy;
-import org.apache.nifi.json.StartingFieldStrategy;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.RecordLookupService;
-import org.apache.nifi.schema.access.InferenceSchemaStrategy;
-import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.services.couchbase.exception.CouchbaseDocNotFoundException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
-import org.apache.nifi.services.couchbase.utils.DocumentType;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Tags({"lookup", "enrich", "couchbase"})
 @CapabilityDescription("Lookup a record from Couchbase Server associated with the specified key. The coordinates that are passed to the lookup must contain the key 'key'.")
 public class CouchbaseRecordLookupService extends AbstractCouchbaseService implements RecordLookupService {
 
-    private static final String DATE_FORMAT = "yyyy-MM-dd";
-    private static final String TIME_FORMAT = "HH:mm:ss.SSSZ";
-    private static final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
-    private static final JsonParserFactory jsonParserFactory = new JsonParserFactory();
+    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("record-reader")
+            .displayName("Record Reader")
+            .description("The Record Reader to use for parsing fetched document from Couchbase Server.")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .required(true)
+            .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = List.of(
             COUCHBASE_CONNECTION_SERVICE,
             BUCKET_NAME,
             SCOPE_NAME,
-            COLLECTION_NAME
+            COLLECTION_NAME,
+            RECORD_READER
     );
+
+    private volatile RecordReaderFactory readerFactory;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
+    }
+
+    @Override
+    @OnEnabled
+    public void onEnabled(final ConfigurationContext context) {
+        super.onEnabled(context);
+        readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
     }
 
     @Override
@@ -69,36 +78,27 @@ public class CouchbaseRecordLookupService extends AbstractCouchbaseService imple
             return Optional.empty();
         }
 
+        CouchbaseGetResult result;
         try {
-            final CouchbaseGetResult result = couchbaseClient.getDocument(documentId.toString());
-            final RecordSchema schema = new InferenceSchemaStrategy().getSchema(null, new ByteArrayInputStream(result.resultContent()), null);
-
-            final JsonTreeRowRecordReader recordReader = createJsonReader(new ByteArrayInputStream(result.resultContent()), schema);
-
-            return Optional.ofNullable(recordReader.nextRecord());
+            result = couchbaseClient.getDocument(documentId.toString());
+        } catch (CouchbaseDocNotFoundException e) {
+            return Optional.empty();
         } catch (Exception e) {
             throw new LookupFailureException("Record lookup from Couchbase failed", e);
         }
-    }
 
-    @Override
-    protected DocumentType resolveDocumentType(ConfigurationContext context) {
-        return DocumentType.JSON;
-    }
+        try (final InputStream input = new ByteArrayInputStream(result.resultContent())) {
+            final long inputLength = result.resultContent().length;
+            final Map<String, String> stringMap = coordinates.entrySet().stream()
+                    .collect(Collectors.toMap(
+                            Map.Entry::getKey,
+                            e -> String.valueOf(e.getValue())
+                    ));
 
-    private JsonTreeRowRecordReader createJsonReader(InputStream inputStream, RecordSchema recordSchema) throws IOException, MalformedRecordException {
-        return new JsonTreeRowRecordReader(
-                inputStream,
-                getLogger(),
-                recordSchema,
-                DATE_FORMAT,
-                TIME_FORMAT,
-                DATE_TIME_FORMAT,
-                StartingFieldStrategy.ROOT_NODE,
-                null,
-                SchemaApplicationStrategy.SELECTED_PART,
-                null,
-                jsonParserFactory
-        );
+            final RecordReader recordReader = readerFactory.createRecordReader(stringMap, input, inputLength, getLogger());
+            return Optional.ofNullable(recordReader.nextRecord());
+        } catch (Exception e) {
+            throw new LookupFailureException("Failed to parse the looked-up record", e);
+        }
     }
 }

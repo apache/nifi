@@ -18,8 +18,10 @@ package org.apache.nifi.services.couchbase;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.lookup.LookupFailureException;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -27,7 +29,9 @@ import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseGetResult;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
-import org.junit.jupiter.api.BeforeEach;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -48,26 +52,40 @@ import static org.mockito.Mockito.when;
 
 public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTest {
 
+    private static final String LOOKUP_SERVICE_ID = "lookupService";
+    private static final String RECORD_READER_ID = "recordReaderService";
+
     private CouchbaseRecordLookupService lookupService;
 
-    @BeforeEach
-    public void init() {
+    public void initLookupService() throws InitializationException, CouchbaseException {
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         lookupService = new CouchbaseRecordLookupService();
-    }
 
-    @Test
-    public void testSuccessfulLookUp() throws CouchbaseException, LookupFailureException {
         final CouchbaseClient client = mock(CouchbaseClient.class);
         when(client.getDocument(anyString())).thenReturn(new CouchbaseGetResult(TEST_DOCUMENT_CONTENT.getBytes(), TEST_CAS));
 
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
+        final MockRecordParser readerFactory = new MockRecordParser();
+        readerFactory.addSchemaField("key", RecordFieldType.STRING);
+        readerFactory.addRecord("value");
 
-        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, SERVICE_ID);
-        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
-        final MockConfigurationContext context = new MockConfigurationContext(properties, serviceInitializationContext, new HashMap<>());
+        runner.addControllerService(LOOKUP_SERVICE_ID, lookupService);
 
-        lookupService.onEnabled(context);
+        runner.addControllerService(CONNECTION_SERVICE_ID, connectionService);
+        runner.addControllerService(RECORD_READER_ID, readerFactory);
 
+        runner.enableControllerService(connectionService);
+        runner.enableControllerService(readerFactory);
+
+        runner.setProperty(lookupService, CouchbaseRecordLookupService.COUCHBASE_CONNECTION_SERVICE, CONNECTION_SERVICE_ID);
+        runner.setProperty(lookupService, CouchbaseRecordLookupService.RECORD_READER, RECORD_READER_ID);
+
+        runner.enableControllerService(lookupService);
+    }
+
+    @Test
+    public void testSuccessfulLookUp() throws LookupFailureException, CouchbaseException, InitializationException {
+        initLookupService();
         final Map<String, Object> coordinates = Collections.singletonMap(KEY, TEST_DOCUMENT_ID);
         final Optional<Record> result = lookupService.lookup(coordinates);
 
@@ -86,10 +104,11 @@ public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTe
 
         final CouchbaseConnectionService connectionService = mockConnectionService(client);
 
-        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, SERVICE_ID);
-        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
+        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, CONNECTION_SERVICE_ID);
+        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, CONNECTION_SERVICE_ID);
         final MockConfigurationContext context = new MockConfigurationContext(properties, serviceInitializationContext, new HashMap<>());
 
+        lookupService = new CouchbaseRecordLookupService();
         lookupService.onEnabled(context);
 
         final Map<String, Object> coordinates = Collections.singletonMap(KEY, TEST_DOCUMENT_ID);
@@ -98,15 +117,8 @@ public class CouchbaseRecordLookupServiceTest extends AbstractCouchbaseServiceTe
     }
 
     @Test
-    public void testMissingKey() throws LookupFailureException {
-        final CouchbaseClient client = mock(CouchbaseClient.class);
-        final CouchbaseConnectionService connectionService = mockConnectionService(client);
-
-        final MockControllerServiceInitializationContext serviceInitializationContext = new MockControllerServiceInitializationContext(connectionService, SERVICE_ID);
-        final Map<PropertyDescriptor, String> properties = Collections.singletonMap(COUCHBASE_CONNECTION_SERVICE, SERVICE_ID);
-        final MockConfigurationContext context = new MockConfigurationContext(properties, serviceInitializationContext, new HashMap<>());
-        lookupService.onEnabled(context);
-
+    public void testMissingKey() throws LookupFailureException, CouchbaseException, InitializationException {
+        initLookupService();
         final Optional<Record> result = lookupService.lookup(Collections.emptyMap());
 
         assertTrue(result.isEmpty());

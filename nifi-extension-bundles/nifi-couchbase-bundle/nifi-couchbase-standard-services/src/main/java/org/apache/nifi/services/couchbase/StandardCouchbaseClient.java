@@ -45,6 +45,7 @@ import com.couchbase.client.java.Collection;
 import com.couchbase.client.java.codec.RawBinaryTranscoder;
 import com.couchbase.client.java.codec.RawJsonTranscoder;
 import com.couchbase.client.java.codec.Transcoder;
+import com.couchbase.client.java.json.JsonArray;
 import com.couchbase.client.java.json.JsonObject;
 import com.couchbase.client.java.kv.ExistsResult;
 import com.couchbase.client.java.kv.GetOptions;
@@ -74,7 +75,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static java.util.Map.entry;
 import static org.apache.nifi.services.couchbase.exception.ExceptionCategory.FAILURE;
@@ -229,8 +229,14 @@ class StandardCouchbaseClient implements CouchbaseClient {
                 throw new CouchbaseException("No value found on the requested path [%s] in Couchbase".formatted(subDocPath));
             }
 
-            final Object lookUpInResult = result.contentAs(0, Object.class);
-            return new CouchbaseLookupInResult(deserializeLookupInResult(lookUpInResult), result.cas());
+            Object lookupInResult;
+            try {
+                lookupInResult = result.contentAs(0, Object.class);
+            } catch (DecodingFailureException e) {
+                lookupInResult = result.contentAs(0, byte[].class);
+            }
+
+            return new CouchbaseLookupInResult(deserializeLookupInResult(lookupInResult), result.cas());
         } catch (Exception e) {
             throw new CouchbaseException("Failed to look up in document [%s] in Couchbase".formatted(documentId), e);
         }
@@ -256,18 +262,14 @@ class StandardCouchbaseClient implements CouchbaseClient {
     }
 
     private String deserializeLookupInResult(Object result) {
-        if (result instanceof String) {
-            return (String) result;
-        } else if (result instanceof Map) {
-            return JsonObject.from((Map<String, ?>) result).toString();
-        } else if (result instanceof List) {
-            return ((List<?>) result).stream()
-                    .map(this::deserializeLookupInResult)
-                    .collect(Collectors.joining(",", "[", "]"));
-        } else if (result instanceof byte[]) {
-            return new String((byte[]) result, StandardCharsets.UTF_8);
-        }
+        return switch (result) {
+            case null -> null;
+            case String s -> s;
+            case Map map -> JsonObject.from(map).toString();
+            case List list -> JsonArray.from(list).toString();
+            case byte[] bytes -> new String(bytes, StandardCharsets.UTF_8);
+            default -> result.toString();
+        };
 
-        return result.toString();
     }
 }

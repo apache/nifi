@@ -27,7 +27,7 @@ import org.apache.nifi.services.couchbase.utils.DocumentType;
 
 import java.util.Set;
 
-public class AbstractCouchbaseService extends AbstractControllerService {
+public abstract class AbstractCouchbaseService extends AbstractControllerService {
 
     protected static final String KEY = "key";
     protected static final Set<String> REQUIRED_KEYS = Set.of(KEY);
@@ -70,14 +70,6 @@ public class AbstractCouchbaseService extends AbstractControllerService {
             .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
             .build();
 
-    public static final PropertyDescriptor DOCUMENT_TYPE = new PropertyDescriptor.Builder()
-            .name("Document Type")
-            .description("The content type for storing the document.")
-            .required(true)
-            .allowableValues(DocumentType.values())
-            .defaultValue(DocumentType.JSON.toString())
-            .build();
-
     protected volatile CouchbaseClient couchbaseClient;
 
     @OnEnabled
@@ -91,16 +83,11 @@ public class AbstractCouchbaseService extends AbstractControllerService {
         return REQUIRED_KEYS;
     }
 
-    protected DocumentType resolveDocumentType(ConfigurationContext context) {
-        return DocumentType.valueOf(context.getProperty(DOCUMENT_TYPE).getValue());
-    }
-
     private CouchbaseContext getCouchbaseContext(ConfigurationContext context) {
         final String bucketName = context.getProperty(BUCKET_NAME).evaluateAttributeExpressions().getValue();
         final String scopeName = context.getProperty(SCOPE_NAME).evaluateAttributeExpressions().getValue();
         final String collectionName = context.getProperty(COLLECTION_NAME).evaluateAttributeExpressions().getValue();
-        final DocumentType documentType = resolveDocumentType(context);
 
-        return new CouchbaseContext(bucketName, scopeName, collectionName, documentType);
+        return new CouchbaseContext(bucketName, scopeName, collectionName, DocumentType.BINARY);
     }
 }
