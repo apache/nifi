@@ -23,6 +23,7 @@ import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConfigurationStep;
+import org.apache.nifi.flow.VersionedConnectorValueReference;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.util.ReflectionUtils;
@@ -31,9 +32,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +54,7 @@ public class StandardConnectorRepository implements ConnectorRepository {
     private volatile ConnectorRequestReplicator requestReplicator;
     private volatile SecretsManager secretsManager;
     private volatile ConnectorAssetRepository assetRepository;
+    private volatile ConnectorConfigurationProvider configurationProvider;
 
     @Override
     public void initialize(final ConnectorRepositoryInitializationContext context) {
@@ -58,17 +63,29 @@ public class StandardConnectorRepository implements ConnectorRepository {
         this.requestReplicator = context.getRequestReplicator();
         this.secretsManager = context.getSecretsManager();
         this.assetRepository = new StandardConnectorAssetRepository(context.getAssetManager());
-        logger.debug("Successfully initialized ConnectorRepository");
+        this.configurationProvider = context.getConnectorConfigurationProvider();
+        logger.debug("Successfully initialized ConnectorRepository with configurationProvider={}", configurationProvider != null ? configurationProvider.getClass().getSimpleName() : "null");
+    }
+
+    @Override
+    public void verifyCreate(final String connectorId) {
+        if (connectors.containsKey(connectorId)) {
+            throw new IllegalStateException("A Connector already exists with ID %s".formatted(connectorId));
+        }
+        if (configurationProvider != null) {
+            configurationProvider.verifyCreate(connectorId);
+        }
     }
 
     @Override
     public void addConnector(final ConnectorNode connector) {
+        syncFromProvider(connector);
         connectors.put(connector.getIdentifier(), connector);
     }
 
     @Override
     public void restoreConnector(final ConnectorNode connector) {
-        addConnector(connector);
+        connectors.put(connector.getIdentifier(), connector);
         logger.debug("Successfully restored {}", connector);
     }
 
@@ -81,6 +98,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
         }
 
         connectorNode.verifyCanDelete();
+        if (configurationProvider != null) {
+            configurationProvider.delete(connectorId);
+        }
         connectors.remove(connectorId);
 
         final Class<?> taskClass = connectorNode.getConnector().getClass();
@@ -93,12 +113,20 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public ConnectorNode getConnector(final String identifier) {
-        return connectors.get(identifier);
+        final ConnectorNode connector = connectors.get(identifier);
+        if (connector != null) {
+            syncFromProvider(connector);
+        }
+        return connector;
     }
 
     @Override
     public List<ConnectorNode> getConnectors() {
-        return List.copyOf(connectors.values());
+        final List<ConnectorNode> connectorList = List.copyOf(connectors.values());
+        for (final ConnectorNode connector : connectorList) {
+            syncFromProvider(connector);
+        }
+        return connectorList;
     }
 
     @Override
@@ -143,6 +171,10 @@ public class StandardConnectorRepository implements ConnectorRepository {
         logger.debug("Applying update to {}", connector);
         final ConnectorState initialDesiredState = connector.getDesiredState();
         logger.info("Applying update to Connector {}", connector);
+
+        // Sync the working configuration from the external provider before applying the update,
+        // so that the update is applied using the latest externally managed configuration.
+        syncFromProvider(connector);
 
         // Transition the connector's state to PREPARING_FOR_UPDATE before starting the background process.
         // This allows us to ensure that if we poll and see the state in the same state it was in before that
@@ -272,7 +304,22 @@ public class StandardConnectorRepository implements ConnectorRepository {
     }
 
     @Override
+    public void updateConnector(final ConnectorNode connector, final String name) {
+        if (configurationProvider != null) {
+            final ConnectorWorkingConfiguration workingConfiguration = buildWorkingConfiguration(connector);
+            workingConfiguration.setName(name);
+            configurationProvider.save(connector.getIdentifier(), workingConfiguration);
+        }
+        connector.setName(name);
+    }
+
+    @Override
     public void configureConnector(final ConnectorNode connector, final String stepName, final StepConfiguration configuration) throws FlowUpdateException {
+        if (configurationProvider != null) {
+            final ConnectorWorkingConfiguration mergedConfiguration = buildMergedWorkingConfiguration(connector, stepName, configuration);
+            configurationProvider.save(connector.getIdentifier(), mergedConfiguration);
+        }
+
         connector.setConfiguration(stepName, configuration);
         logger.info("Successfully configured {} for step {}", connector, stepName);
     }
@@ -297,6 +344,9 @@ public class StandardConnectorRepository implements ConnectorRepository {
 
     @Override
     public void discardWorkingConfiguration(final ConnectorNode connector) {
+        if (configurationProvider != null) {
+            configurationProvider.discard(connector.getIdentifier());
+        }
         connector.discardWorkingConfiguration();
         cleanUpAssets(connector);
     }
@@ -320,5 +370,151 @@ public class StandardConnectorRepository implements ConnectorRepository {
     @Override
     public ConnectorAssetRepository getAssetRepository() {
         return assetRepository;
+    }
+
+    private void syncFromProvider(final ConnectorNode connector) {
+        if (configurationProvider == null) {
+            return;
+        }
+
+        final Optional<ConnectorWorkingConfiguration> externalConfig = configurationProvider.load(connector.getIdentifier());
+        if (externalConfig.isEmpty()) {
+            return;
+        }
+
+        final ConnectorWorkingConfiguration config = externalConfig.get();
+        if (config.getName() != null) {
+            connector.setName(config.getName());
+        }
+
+        final List<VersionedConfigurationStep> workingFlowConfiguration = config.getWorkingFlowConfiguration();
+        if (workingFlowConfiguration != null) {
+            final MutableConnectorConfigurationContext workingConfigContext = connector.getWorkingFlowContext().getConfigurationContext();
+            for (final VersionedConfigurationStep step : workingFlowConfiguration) {
+                final StepConfiguration stepConfiguration = toStepConfiguration(step);
+                workingConfigContext.replaceProperties(step.getName(), stepConfiguration);
+            }
+        }
+    }
+
+    private ConnectorWorkingConfiguration buildWorkingConfiguration(final ConnectorNode connector) {
+        final ConnectorWorkingConfiguration config = new ConnectorWorkingConfiguration();
+        config.setName(connector.getName());
+        config.setWorkingFlowConfiguration(buildVersionedConfigurationSteps(connector.getWorkingFlowContext()));
+        return config;
+    }
+
+    private List<VersionedConfigurationStep> buildVersionedConfigurationSteps(final FrameworkFlowContext flowContext) {
+        if (flowContext == null) {
+            return List.of();
+        }
+
+        final ConnectorConfiguration configuration = flowContext.getConfigurationContext().toConnectorConfiguration();
+        final List<VersionedConfigurationStep> configurationSteps = new ArrayList<>();
+
+        for (final NamedStepConfiguration namedStepConfiguration : configuration.getNamedStepConfigurations()) {
+            final VersionedConfigurationStep versionedConfigurationStep = new VersionedConfigurationStep();
+            versionedConfigurationStep.setName(namedStepConfiguration.stepName());
+            versionedConfigurationStep.setProperties(toVersionedProperties(namedStepConfiguration.configuration()));
+            configurationSteps.add(versionedConfigurationStep);
+        }
+
+        return configurationSteps;
+    }
+
+    private ConnectorWorkingConfiguration buildMergedWorkingConfiguration(final ConnectorNode connector, final String stepName, final StepConfiguration incomingConfiguration) {
+        final ConnectorWorkingConfiguration existingConfig;
+        if (configurationProvider != null) {
+            final Optional<ConnectorWorkingConfiguration> externalConfig = configurationProvider.load(connector.getIdentifier());
+            existingConfig = externalConfig.orElseGet(() -> buildWorkingConfiguration(connector));
+        } else {
+            existingConfig = buildWorkingConfiguration(connector);
+        }
+
+        final List<VersionedConfigurationStep> existingSteps = existingConfig.getWorkingFlowConfiguration() != null
+            ? new ArrayList<>(existingConfig.getWorkingFlowConfiguration())
+            : new ArrayList<>();
+
+        VersionedConfigurationStep targetStep = null;
+        for (final VersionedConfigurationStep step : existingSteps) {
+            if (stepName.equals(step.getName())) {
+                targetStep = step;
+                break;
+            }
+        }
+
+        if (targetStep == null) {
+            targetStep = new VersionedConfigurationStep();
+            targetStep.setName(stepName);
+            targetStep.setProperties(new HashMap<>());
+            existingSteps.add(targetStep);
+        }
+
+        final Map<String, VersionedConnectorValueReference> mergedProperties = targetStep.getProperties() != null
+            ? new HashMap<>(targetStep.getProperties())
+            : new HashMap<>();
+
+        for (final Map.Entry<String, ConnectorValueReference> entry : incomingConfiguration.getPropertyValues().entrySet()) {
+            if (entry.getValue() != null) {
+                mergedProperties.put(entry.getKey(), toVersionedValueReference(entry.getValue()));
+            }
+        }
+        targetStep.setProperties(mergedProperties);
+
+        existingConfig.setWorkingFlowConfiguration(existingSteps);
+        return existingConfig;
+    }
+
+    private Map<String, VersionedConnectorValueReference> toVersionedProperties(final StepConfiguration configuration) {
+        final Map<String, VersionedConnectorValueReference> versionedProperties = new HashMap<>();
+        for (final Map.Entry<String, ConnectorValueReference> entry : configuration.getPropertyValues().entrySet()) {
+            final ConnectorValueReference valueReference = entry.getValue();
+            if (valueReference != null) {
+                versionedProperties.put(entry.getKey(), toVersionedValueReference(valueReference));
+            }
+        }
+        return versionedProperties;
+    }
+
+    private VersionedConnectorValueReference toVersionedValueReference(final ConnectorValueReference valueReference) {
+        final VersionedConnectorValueReference versionedReference = new VersionedConnectorValueReference();
+        versionedReference.setValueType(valueReference.getValueType().name());
+
+        switch (valueReference) {
+            case StringLiteralValue stringLiteral -> versionedReference.setValue(stringLiteral.getValue());
+            case AssetReference assetRef -> versionedReference.setAssetIds(assetRef.getAssetIdentifiers());
+            case SecretReference secretRef -> {
+                versionedReference.setProviderId(secretRef.getProviderId());
+                versionedReference.setProviderName(secretRef.getProviderName());
+                versionedReference.setSecretName(secretRef.getSecretName());
+                versionedReference.setFullyQualifiedSecretName(secretRef.getFullyQualifiedName());
+            }
+        }
+
+        return versionedReference;
+    }
+
+    private StepConfiguration toStepConfiguration(final VersionedConfigurationStep step) {
+        final Map<String, ConnectorValueReference> propertyValues = new HashMap<>();
+        final Map<String, VersionedConnectorValueReference> versionedProperties = step.getProperties();
+        if (versionedProperties != null) {
+            for (final Map.Entry<String, VersionedConnectorValueReference> entry : versionedProperties.entrySet()) {
+                final VersionedConnectorValueReference versionedRef = entry.getValue();
+                if (versionedRef != null) {
+                    propertyValues.put(entry.getKey(), toConnectorValueReference(versionedRef));
+                }
+            }
+        }
+        return new StepConfiguration(propertyValues);
+    }
+
+    private ConnectorValueReference toConnectorValueReference(final VersionedConnectorValueReference versionedReference) {
+        final ConnectorValueType valueType = ConnectorValueType.valueOf(versionedReference.getValueType());
+        return switch (valueType) {
+            case STRING_LITERAL -> new StringLiteralValue(versionedReference.getValue());
+            case ASSET_REFERENCE -> new AssetReference(versionedReference.getAssetIds());
+            case SECRET_REFERENCE -> new SecretReference(versionedReference.getProviderId(), versionedReference.getProviderName(),
+                versionedReference.getSecretName(), versionedReference.getFullyQualifiedSecretName());
+        };
     }
 }

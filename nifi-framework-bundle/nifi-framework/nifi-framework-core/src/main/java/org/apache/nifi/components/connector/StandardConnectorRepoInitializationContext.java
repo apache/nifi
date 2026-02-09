@@ -30,19 +30,22 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
     private final AssetManager assetManager;
     private final NodeTypeProvider nodeTypeProvider;
     private final ConnectorRequestReplicator requestReplicator;
+    private final ConnectorConfigurationProvider connectorConfigurationProvider;
 
     public StandardConnectorRepoInitializationContext(final FlowManager flowManager,
                                                      final ExtensionManager extensionManager,
                                                      final SecretsManager secretsManager,
                                                      final AssetManager assetManager,
                                                      final NodeTypeProvider nodeTypeProvider,
-                                                     final ConnectorRequestReplicator requestReplicator) {
+                                                     final ConnectorRequestReplicator requestReplicator,
+                                                     final ConnectorConfigurationProvider connectorConfigurationProvider) {
         this.flowManager = flowManager;
         this.extensionManager = extensionManager;
         this.secretsManager = secretsManager;
         this.assetManager = assetManager;
         this.nodeTypeProvider = nodeTypeProvider;
         this.requestReplicator = requestReplicator;
+        this.connectorConfigurationProvider = connectorConfigurationProvider;
     }
 
     @Override
@@ -73,5 +76,10 @@ public class StandardConnectorRepoInitializationContext implements ConnectorRepo
     @Override
     public ConnectorRequestReplicator getRequestReplicator() {
         return requestReplicator;
+    }
+
+    @Override
+    public ConnectorConfigurationProvider getConnectorConfigurationProvider() {
+        return connectorConfigurationProvider;
     }
 }
