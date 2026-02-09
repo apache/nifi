@@ -23,7 +23,7 @@ import org.apache.nifi.web.api.dto.BundleDTO;
 
 import java.util.Map;
 
-public class AuthorizeComponentReference {
+public final class AuthorizeComponentReference {
     /**
      * Authorize configuration of specified Component Type including restrictions and referenced Controller Services
      *

@@ -138,6 +138,7 @@ import org.springframework.stereotype.Controller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -1316,7 +1317,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
                     final Authorizable parameterContext = groupAuthorizable.getProcessGroup().getParameterContext();
                     final ProcessorConfigDTO config = requestProcessor.getConfig();
-                    final Map<String, String> properties = config == null ? Map.of() : config.getProperties();
+                    final Map<String, String> properties = config == null ? Collections.emptyMap() : config.getProperties();
                     final String componentType = requestProcessor.getType();
                     final BundleDTO bundle = requestProcessor.getBundle();
                     AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, componentType, bundle, properties, parameterContext);

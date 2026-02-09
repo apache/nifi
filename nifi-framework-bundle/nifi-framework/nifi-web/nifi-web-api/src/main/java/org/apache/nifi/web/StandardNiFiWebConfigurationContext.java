@@ -425,7 +425,7 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
                 final ComponentAuthorizable authorizable = lookup.getProcessor(id);
                 authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                final Authorizable parameterContext = authorizable.getParameterContext();
+                final ParameterContext parameterContext = authorizable.getParameterContext();
                 AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, properties, parameterContext);
                 AuthorizeParameterReference.authorizeParameterReferences(annotationData, authorizer, parameterContext, user);
             });
