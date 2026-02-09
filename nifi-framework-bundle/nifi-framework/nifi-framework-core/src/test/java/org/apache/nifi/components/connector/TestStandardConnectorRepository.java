@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -471,7 +472,7 @@ public class TestStandardConnectorRepository {
         repository.addConnector(connector);
 
         // Reset interactions so we can verify that inheritConfiguration itself does not call the provider
-        org.mockito.Mockito.reset(provider);
+        reset(provider);
 
         repository.inheritConfiguration(connector, List.of(), List.of(), null);
 
