@@ -1,0 +1,46 @@
+---
+description: Testing guidance for NiFi framework code (not extensions). Covers when to use unit, integration, and system tests for framework classes.
+alwaysApply: false
+---
+
+# Framework Testing
+
+This rule applies when working on NiFi framework code (not Processors, Controller
+Services, or Connectors).
+
+## Unit Tests
+
+Unit tests should be used to test individual classes and methods in isolation. This often
+will result in mocking dependency classes. However, if there already exists a Mock
+implementation of an interface or dependency class, it is preferred to use the existing
+Mock implementation. Similarly, for simple classes, it is preferable to make use of the
+real implementation of a class rather than creating a Mock implementation. We are infinitely
+more interested in having tests that are fast, reliable, correct, and easy to maintain than
+we are in having tests that adhere to strict and arbitrary definitions of what constitutes
+a "unit test."
+
+## Integration Tests
+
+When working in the framework, unit tests are still important, but integration tests and
+system tests are often more important. Integration tests are still allowed to use mocks but
+typically we prefer to use real implementations of classes in order to ensure a more
+realistic and holistic test.
+
+## System Tests
+
+System tests live in the `nifi-system-tests` module and should be used for any changes
+that make significant changes to the framework and the interaction between a significant
+number of classes. They should also be used for any changes that may be fairly isolated but
+which are in a critical path of the framework, especially those that affect how data is
+persisted, processed, or accessed; or those that affect how components are created,
+configured, scheduled, or executed.
+
+Good candidates for system tests include changes to `ProcessScheduler`, `ProcessorNode`,
+`ControllerServiceNode`, `FlowController`, `FlowManager`, how Parameters are handled, flow
+synchronization, the repositories, etc.
+
+## Escalation
+
+Any unit test that ends up requiring a large number of mocks is a good candidate for an
+integration test, and any integration test that ends up requiring a large number of mocks
+is a good candidate for a system test.

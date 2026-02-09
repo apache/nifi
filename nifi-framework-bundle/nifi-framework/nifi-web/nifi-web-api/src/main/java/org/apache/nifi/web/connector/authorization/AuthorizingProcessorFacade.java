@@ -27,6 +27,7 @@ import org.apache.nifi.flow.VersionedProcessor;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * A wrapper around {@link ProcessorFacade} that enforces authorization before delegating
@@ -94,6 +95,28 @@ public class AuthorizingProcessorFacade implements ProcessorFacade {
     public <T> T invokeConnectorMethod(final String methodName, final Map<String, Object> arguments, final Class<T> returnType) throws InvocationFailedException {
         authContext.authorizeWrite();
         return delegate.invokeConnectorMethod(methodName, arguments, returnType);
+    }
+
+    @Override
+    public String toString() {
+        return "AuthorizingProcessorFacade[delegate=" + delegate + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final AuthorizingProcessorFacade that = (AuthorizingProcessorFacade) o;
+        return Objects.equals(delegate, that.delegate);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(delegate);
     }
 }
 

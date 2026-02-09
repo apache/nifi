@@ -48,6 +48,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class StandaloneProcessorFacade implements ProcessorFacade {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -206,6 +207,30 @@ public class StandaloneProcessorFacade implements ProcessorFacade {
         } catch (final JsonProcessingException e) {
             throw new InvocationFailedException("Failed to deserialize return value from Connector Method '" + methodName + "'", e);
         }
+    }
+
+    @Override
+    public String toString() {
+        final String type = versionedProcessor.getType();
+        final String simpleType = type == null ? null : type.substring(type.lastIndexOf('.') + 1);
+        return "StandaloneProcessorFacade[id=" + versionedProcessor.getIdentifier() + ", name=" + versionedProcessor.getName() + ", type=" + simpleType + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final StandaloneProcessorFacade that = (StandaloneProcessorFacade) o;
+        return Objects.equals(versionedProcessor.getIdentifier(), that.versionedProcessor.getIdentifier());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(versionedProcessor.getIdentifier());
     }
 
     private Map<String, String> serializeArgumentsToJson(final Map<String, Object> arguments) throws InvocationFailedException {

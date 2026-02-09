@@ -24,6 +24,7 @@ import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.ConnectableComponent;
 import org.apache.nifi.flow.ConnectableComponentType;
+import org.apache.nifi.flow.PortType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConnection;
@@ -109,7 +110,8 @@ public class VersionedFlowUtils {
         return component;
     }
 
-    public static void addConnection(final VersionedProcessGroup group, final ConnectableComponent source, final ConnectableComponent destination, final Set<String> relationships) {
+    public static VersionedConnection addConnection(final VersionedProcessGroup group, final ConnectableComponent source, final ConnectableComponent destination,
+            final Set<String> relationships) {
         final VersionedConnection connection = new VersionedConnection();
         connection.setSource(source);
         connection.setDestination(destination);
@@ -134,6 +136,7 @@ public class VersionedFlowUtils {
 
         final String uuid = generateDeterministicUuid(group, ComponentType.CONNECTION);
         connection.setIdentifier(uuid);
+        return connection;
     }
 
     public static List<VersionedConnection> findOutboundConnections(final VersionedProcessGroup group, final VersionedProcessor processor) {
@@ -263,6 +266,64 @@ public class VersionedFlowUtils {
         return controllerService;
     }
 
+    public static VersionedProcessGroup createProcessGroup(final String identifier, final String name) {
+        final VersionedProcessGroup group = new VersionedProcessGroup();
+        group.setIdentifier(identifier);
+        group.setName(name);
+        group.setProcessors(new HashSet<>());
+        group.setProcessGroups(new HashSet<>());
+        group.setConnections(new HashSet<>());
+        group.setControllerServices(new HashSet<>());
+        group.setInputPorts(new HashSet<>());
+        group.setOutputPorts(new HashSet<>());
+        group.setFunnels(new HashSet<>());
+        group.setLabels(new HashSet<>());
+        group.setComponentType(ComponentType.PROCESS_GROUP);
+        return group;
+    }
+
+    public static VersionedPort addInputPort(final VersionedProcessGroup group, final String name, final Position position) {
+        return addPort(group, name, position, PortType.INPUT_PORT);
+    }
+
+    public static VersionedPort addOutputPort(final VersionedProcessGroup group, final String name, final Position position) {
+        return addPort(group, name, position, PortType.OUTPUT_PORT);
+    }
+
+    private static VersionedPort addPort(final VersionedProcessGroup group, final String name, final Position position, final PortType portType) {
+        final boolean isInput = portType == PortType.INPUT_PORT;
+        final ComponentType componentType = isInput ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
+
+        final VersionedPort port = new VersionedPort();
+        port.setIdentifier(generateDeterministicUuid(group, componentType));
+        port.setName(name);
+        port.setPosition(position);
+        port.setType(portType);
+        port.setComponentType(componentType);
+        port.setScheduledState(ScheduledState.ENABLED);
+        port.setConcurrentlySchedulableTaskCount(1);
+        port.setAllowRemoteAccess(false);
+        port.setGroupIdentifier(group.getIdentifier());
+
+        if (isInput) {
+            Set<VersionedPort> inputPorts = group.getInputPorts();
+            if (inputPorts == null) {
+                inputPorts = new HashSet<>();
+                group.setInputPorts(inputPorts);
+            }
+            inputPorts.add(port);
+        } else {
+            Set<VersionedPort> outputPorts = group.getOutputPorts();
+            if (outputPorts == null) {
+                outputPorts = new HashSet<>();
+                group.setOutputPorts(outputPorts);
+            }
+            outputPorts.add(port);
+        }
+
+        return port;
+    }
+
     public static Set<VersionedControllerService> getReferencedControllerServices(final VersionedProcessGroup group) {
         final Set<VersionedControllerService> referencedServices = new HashSet<>();
         collectReferencedControllerServices(group, referencedServices);
@@ -307,6 +368,105 @@ public class VersionedFlowUtils {
         }
     }
 
+    /**
+     * Returns the set of controller services that are transitively referenced by the given processor.
+     * This includes any services directly referenced by the processor's properties, as well as any services
+     * that those services reference, and so on. Only services that are accessible to the processor are considered,
+     * meaning services in the processor's own group and its ancestor groups.
+     *
+     * @param rootGroup the root process group to search for controller services
+     * @param processor the processor whose referenced services should be found
+     * @return the set of transitively referenced controller services
+     */
+    public static Set<VersionedControllerService> getReferencedControllerServices(final VersionedProcessGroup rootGroup, final VersionedProcessor processor) {
+        return findTransitivelyReferencedServices(rootGroup, processor.getGroupIdentifier(), processor.getProperties());
+    }
+
+    /**
+     * Returns the set of controller services that are transitively referenced by the given controller service.
+     * This includes any services directly referenced by the service's properties, as well as any services
+     * that those services reference, and so on. Only services that are accessible to the given service are considered,
+     * meaning services in the service's own group and its ancestor groups.
+     *
+     * @param rootGroup the root process group to search for controller services
+     * @param controllerService the controller service whose referenced services should be found
+     * @return the set of transitively referenced controller services
+     */
+    public static Set<VersionedControllerService> getReferencedControllerServices(final VersionedProcessGroup rootGroup, final VersionedControllerService controllerService) {
+        return findTransitivelyReferencedServices(rootGroup, controllerService.getGroupIdentifier(), controllerService.getProperties());
+    }
+
+    private static Set<VersionedControllerService> findTransitivelyReferencedServices(final VersionedProcessGroup rootGroup, final String componentGroupId,
+            final Map<String, String> properties) {
+        final Map<String, VersionedControllerService> serviceMap = new HashMap<>();
+        collectAccessibleControllerServices(rootGroup, componentGroupId, serviceMap);
+
+        final Set<VersionedControllerService> referencedServices = new HashSet<>();
+        for (final String propertyValue : properties.values()) {
+            final VersionedControllerService referencedService = serviceMap.get(propertyValue);
+            if (referencedService != null) {
+                referencedServices.add(referencedService);
+            }
+        }
+
+        resolveTransitiveServiceReferences(referencedServices, serviceMap);
+        return referencedServices;
+    }
+
+    /**
+     * Collects controller services that are accessible from the given target group. In NiFi, a component can reference
+     * controller services in its own group or any ancestor group. This method traverses from the root group down to the
+     * target group, collecting services from each group along the path.
+     *
+     * @param group the current group being examined
+     * @param targetGroupId the identifier of the group whose accessible services should be collected
+     * @param serviceMap the map to populate with accessible service identifiers and their corresponding services
+     * @return true if the target group was found at or beneath this group, false otherwise
+     */
+    private static boolean collectAccessibleControllerServices(final VersionedProcessGroup group, final String targetGroupId,
+            final Map<String, VersionedControllerService> serviceMap) {
+        final boolean isTarget = group.getIdentifier().equals(targetGroupId);
+
+        boolean foundInChild = false;
+        if (!isTarget) {
+            for (final VersionedProcessGroup childGroup : group.getProcessGroups()) {
+                if (collectAccessibleControllerServices(childGroup, targetGroupId, serviceMap)) {
+                    foundInChild = true;
+                    break;
+                }
+            }
+        }
+
+        if (isTarget || foundInChild) {
+            for (final VersionedControllerService service : group.getControllerServices()) {
+                serviceMap.put(service.getIdentifier(), service);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void resolveTransitiveServiceReferences(final Set<VersionedControllerService> referencedServices, final Map<String, VersionedControllerService> serviceMap) {
+        while (true) {
+            final Set<VersionedControllerService> newlyAddedServices = new HashSet<>();
+
+            for (final VersionedControllerService service : referencedServices) {
+                for (final String propertyValue : service.getProperties().values()) {
+                    final VersionedControllerService referencedService = serviceMap.get(propertyValue);
+                    if (referencedService != null && !referencedServices.contains(referencedService)) {
+                        newlyAddedServices.add(referencedService);
+                    }
+                }
+            }
+
+            referencedServices.addAll(newlyAddedServices);
+            if (newlyAddedServices.isEmpty()) {
+                break;
+            }
+        }
+    }
+
     public static void removeControllerServiceReferences(final VersionedProcessGroup processGroup, final String serviceIdentifier) {
         for (final VersionedProcessor processor : processGroup.getProcessors()) {
             removeValuesFromMap(processor.getProperties(), serviceIdentifier);
@@ -344,6 +504,18 @@ public class VersionedFlowUtils {
             if (parameter.getName().equals(parameterName)) {
                 parameter.setValue(parameterValue);
             }
+        }
+    }
+
+    public static void setParameterValues(final VersionedExternalFlow externalFlow, final Map<String, String> parameterValues) {
+        for (final Map.Entry<String, String> entry : parameterValues.entrySet()) {
+            setParameterValue(externalFlow, entry.getKey(), entry.getValue());
+        }
+    }
+
+    public static void setParameterValues(final VersionedParameterContext parameterContext, final Map<String, String> parameterValues) {
+        for (final Map.Entry<String, String> entry : parameterValues.entrySet()) {
+            setParameterValue(parameterContext, entry.getKey(), entry.getValue());
         }
     }
 

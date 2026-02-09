@@ -26,13 +26,9 @@ import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.PropertyType;
 import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.components.connector.util.VersionedFlowUtils;
 import org.apache.nifi.flow.Bundle;
-import org.apache.nifi.flow.ConnectableComponent;
-import org.apache.nifi.flow.ConnectableComponentType;
-import org.apache.nifi.flow.PortType;
 import org.apache.nifi.flow.Position;
-import org.apache.nifi.flow.ScheduledState;
-import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
@@ -43,7 +39,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,15 +70,8 @@ public class ParameterContextConnector extends AbstractConnector {
     private static final String CONFIGURATION_STEP_NAME = "Parameter Context Configuration";
 
     private static final String ROOT_GROUP_ID = "root-group";
-    private static final String GENERATE_PROCESSOR_ID = "generate-flowfile";
     private static final String GROUP_A_ID = "process-group-a";
     private static final String GROUP_B_ID = "process-group-b";
-    private static final String INPUT_PORT_A_ID = "input-port-a";
-    private static final String INPUT_PORT_B_ID = "input-port-b";
-    private static final String UPDATE_CONTENT_ID = "update-content";
-    private static final String REPLACE_WITH_FILE_ID = "replace-with-file";
-    private static final String WRITE_SENSITIVE_ID = "write-sensitive";
-    private static final String WRITE_ASSET_ID = "write-asset";
 
     private static final String PARENT_CONTEXT_NAME = "Parent Parameter Context";
     private static final String CHILD_CONTEXT_A_NAME = "Child Context A";
@@ -147,15 +135,7 @@ public class ParameterContextConnector extends AbstractConnector {
     }
 
     private VersionedExternalFlow createEmptyFlow() {
-        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
-        rootGroup.setIdentifier(ROOT_GROUP_ID);
-        rootGroup.setName("Parameter Context Test Flow");
-        rootGroup.setProcessors(new HashSet<>());
-        rootGroup.setProcessGroups(new HashSet<>());
-        rootGroup.setConnections(new HashSet<>());
-        rootGroup.setInputPorts(new HashSet<>());
-        rootGroup.setOutputPorts(new HashSet<>());
-        rootGroup.setControllerServices(new HashSet<>());
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, "Parameter Context Test Flow");
 
         final VersionedExternalFlow flow = new VersionedExternalFlow();
         flow.setFlowContents(rootGroup);
@@ -190,46 +170,30 @@ public class ParameterContextConnector extends AbstractConnector {
 
     private VersionedExternalFlow createFlow(final String sensitiveValue, final String assetFilePath,
                                               final String sensitiveOutputFile, final String assetOutputFile) {
-        final Bundle bundle = createBundle();
-
-        // Create Parameter Contexts with inheritance
+        final Bundle bundle = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "2.8.0-SNAPSHOT");
         final Map<String, VersionedParameterContext> parameterContexts = createParameterContexts(sensitiveValue, assetFilePath);
 
-        // Create root group
-        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
-        rootGroup.setIdentifier(ROOT_GROUP_ID);
-        rootGroup.setName("Parameter Context Test Flow");
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup(ROOT_GROUP_ID, "Parameter Context Test Flow");
         rootGroup.setParameterContextName(PARENT_CONTEXT_NAME);
 
-        // Create GenerateFlowFile at root level
-        final VersionedProcessor generateProcessor = createProcessor(GENERATE_PROCESSOR_ID, ROOT_GROUP_ID, "GenerateFlowFile",
-                "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle,
-                Map.of("Max FlowFiles", "1", "File Size", "0 B"), ScheduledState.ENABLED);
+        final VersionedProcessor generateProcessor = VersionedFlowUtils.addProcessor(rootGroup,
+                "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle, "GenerateFlowFile", new Position(0, 0));
+        generateProcessor.getProperties().putAll(Map.of("Max FlowFiles", "1", "File Size", "0 B"));
         generateProcessor.setSchedulingPeriod("60 sec");
 
-        // Create Process Group A (sensitive value path)
         final VersionedProcessGroup groupA = createProcessGroupA(bundle, sensitiveOutputFile);
+        rootGroup.getProcessGroups().add(groupA);
 
-        // Create Process Group B (asset path)
         final VersionedProcessGroup groupB = createProcessGroupB(bundle, assetOutputFile);
+        rootGroup.getProcessGroups().add(groupB);
 
-        // Create connections from GenerateFlowFile to both process group input ports
-        final VersionedConnection connectionToA = createConnection("conn-to-group-a", ROOT_GROUP_ID,
-                GENERATE_PROCESSOR_ID, ConnectableComponentType.PROCESSOR,
-                INPUT_PORT_A_ID, ConnectableComponentType.INPUT_PORT, GROUP_A_ID,
-                Set.of("success"));
+        final VersionedPort inputPortA = groupA.getInputPorts().iterator().next();
+        final VersionedPort inputPortB = groupB.getInputPorts().iterator().next();
 
-        final VersionedConnection connectionToB = createConnection("conn-to-group-b", ROOT_GROUP_ID,
-                GENERATE_PROCESSOR_ID, ConnectableComponentType.PROCESSOR,
-                INPUT_PORT_B_ID, ConnectableComponentType.INPUT_PORT, GROUP_B_ID,
-                Set.of("success"));
-
-        rootGroup.setProcessors(Set.of(generateProcessor));
-        rootGroup.setProcessGroups(Set.of(groupA, groupB));
-        rootGroup.setConnections(Set.of(connectionToA, connectionToB));
-        rootGroup.setInputPorts(new HashSet<>());
-        rootGroup.setOutputPorts(new HashSet<>());
-        rootGroup.setControllerServices(new HashSet<>());
+        VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(generateProcessor),
+                VersionedFlowUtils.createConnectableComponent(inputPortA), Set.of("success"));
+        VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(generateProcessor),
+                VersionedFlowUtils.createConnectableComponent(inputPortB), Set.of("success"));
 
         final VersionedExternalFlow flow = new VersionedExternalFlow();
         flow.setFlowContents(rootGroup);
@@ -238,7 +202,6 @@ public class ParameterContextConnector extends AbstractConnector {
     }
 
     private Map<String, VersionedParameterContext> createParameterContexts(final String sensitiveValue, final String assetFilePath) {
-        // Child Context A - sensitive parameter
         final VersionedParameter sensitiveParam = new VersionedParameter();
         sensitiveParam.setName(SENSITIVE_PARAM_NAME);
         sensitiveParam.setSensitive(true);
@@ -250,7 +213,6 @@ public class ParameterContextConnector extends AbstractConnector {
         childContextA.setName(CHILD_CONTEXT_A_NAME);
         childContextA.setParameters(Set.of(sensitiveParam));
 
-        // Child Context B - asset parameter
         final VersionedParameter assetParam = new VersionedParameter();
         assetParam.setName(ASSET_PARAM_NAME);
         assetParam.setSensitive(false);
@@ -262,7 +224,6 @@ public class ParameterContextConnector extends AbstractConnector {
         childContextB.setName(CHILD_CONTEXT_B_NAME);
         childContextB.setParameters(Set.of(assetParam));
 
-        // Parent Context - inherits from both child contexts
         final VersionedParameterContext parentContext = new VersionedParameterContext();
         parentContext.setName(PARENT_CONTEXT_NAME);
         parentContext.setParameters(Set.of());
@@ -276,172 +237,50 @@ public class ParameterContextConnector extends AbstractConnector {
     }
 
     private VersionedProcessGroup createProcessGroupA(final Bundle bundle, final String outputFile) {
-        final VersionedProcessGroup groupA = new VersionedProcessGroup();
-        groupA.setIdentifier(GROUP_A_ID);
+        final VersionedProcessGroup groupA = VersionedFlowUtils.createProcessGroup(GROUP_A_ID, "Process Group A - Sensitive Value");
         groupA.setGroupIdentifier(ROOT_GROUP_ID);
-        groupA.setName("Process Group A - Sensitive Value");
         groupA.setParameterContextName(PARENT_CONTEXT_NAME);
 
-        // Input Port
-        final VersionedPort inputPortA = createInputPort(INPUT_PORT_A_ID, GROUP_A_ID, "Input Port A");
+        final VersionedPort inputPortA = VersionedFlowUtils.addInputPort(groupA, "Input Port A", new Position(0, 0));
 
-        // UpdateContent processor using sensitive parameter
-        final VersionedProcessor updateContent = createProcessor(UPDATE_CONTENT_ID, GROUP_A_ID, "UpdateContent",
-                "org.apache.nifi.processors.tests.system.UpdateContent", bundle,
-                Map.of("Sensitive Content", "#{" + SENSITIVE_PARAM_NAME + "}", "Update Strategy", "Replace"),
-                ScheduledState.ENABLED);
+        final VersionedProcessor updateContent = VersionedFlowUtils.addProcessor(groupA,
+                "org.apache.nifi.processors.tests.system.UpdateContent", bundle, "UpdateContent", new Position(0, 0));
+        updateContent.getProperties().putAll(Map.of("Sensitive Content", "#{" + SENSITIVE_PARAM_NAME + "}", "Update Strategy", "Replace"));
 
-        // WriteToFile processor
-        final VersionedProcessor writeToFile = createProcessor(WRITE_SENSITIVE_ID, GROUP_A_ID, "WriteToFile",
-                "org.apache.nifi.processors.tests.system.WriteToFile", bundle,
-                Map.of("Filename", outputFile), ScheduledState.ENABLED);
+        final VersionedProcessor writeToFile = VersionedFlowUtils.addProcessor(groupA,
+                "org.apache.nifi.processors.tests.system.WriteToFile", bundle, "WriteToFile", new Position(0, 0));
+        writeToFile.getProperties().put("Filename", outputFile);
         writeToFile.setAutoTerminatedRelationships(Set.of("success", "failure"));
 
-        // Connections within Group A
-        final VersionedConnection inputToUpdate = createConnection("input-to-update", GROUP_A_ID,
-                INPUT_PORT_A_ID, ConnectableComponentType.INPUT_PORT,
-                UPDATE_CONTENT_ID, ConnectableComponentType.PROCESSOR, null,
-                Set.of());
-
-        final VersionedConnection updateToWrite = createConnection("update-to-write", GROUP_A_ID,
-                UPDATE_CONTENT_ID, ConnectableComponentType.PROCESSOR,
-                WRITE_SENSITIVE_ID, ConnectableComponentType.PROCESSOR, null,
-                Set.of("success"));
-
-        groupA.setInputPorts(Set.of(inputPortA));
-        groupA.setOutputPorts(new HashSet<>());
-        groupA.setProcessors(Set.of(updateContent, writeToFile));
-        groupA.setConnections(Set.of(inputToUpdate, updateToWrite));
-        groupA.setProcessGroups(new HashSet<>());
-        groupA.setControllerServices(new HashSet<>());
+        VersionedFlowUtils.addConnection(groupA, VersionedFlowUtils.createConnectableComponent(inputPortA),
+                VersionedFlowUtils.createConnectableComponent(updateContent), Set.of());
+        VersionedFlowUtils.addConnection(groupA, VersionedFlowUtils.createConnectableComponent(updateContent),
+                VersionedFlowUtils.createConnectableComponent(writeToFile), Set.of("success"));
 
         return groupA;
     }
 
     private VersionedProcessGroup createProcessGroupB(final Bundle bundle, final String outputFile) {
-        final VersionedProcessGroup groupB = new VersionedProcessGroup();
-        groupB.setIdentifier(GROUP_B_ID);
+        final VersionedProcessGroup groupB = VersionedFlowUtils.createProcessGroup(GROUP_B_ID, "Process Group B - Asset Value");
         groupB.setGroupIdentifier(ROOT_GROUP_ID);
-        groupB.setName("Process Group B - Asset Value");
         groupB.setParameterContextName(PARENT_CONTEXT_NAME);
 
-        // Input Port
-        final VersionedPort inputPortB = createInputPort(INPUT_PORT_B_ID, GROUP_B_ID, "Input Port B");
+        final VersionedPort inputPortB = VersionedFlowUtils.addInputPort(groupB, "Input Port B", new Position(0, 0));
 
-        // ReplaceWithFile processor using asset parameter
-        final VersionedProcessor replaceWithFile = createProcessor(REPLACE_WITH_FILE_ID, GROUP_B_ID, "ReplaceWithFile",
-                "org.apache.nifi.processors.tests.system.ReplaceWithFile", bundle,
-                Map.of("Filename", "#{" + ASSET_PARAM_NAME + "}"), ScheduledState.ENABLED);
+        final VersionedProcessor replaceWithFile = VersionedFlowUtils.addProcessor(groupB,
+                "org.apache.nifi.processors.tests.system.ReplaceWithFile", bundle, "ReplaceWithFile", new Position(0, 0));
+        replaceWithFile.getProperties().put("Filename", "#{" + ASSET_PARAM_NAME + "}");
 
-        // WriteToFile processor
-        final VersionedProcessor writeToFile = createProcessor(WRITE_ASSET_ID, GROUP_B_ID, "WriteToFile",
-                "org.apache.nifi.processors.tests.system.WriteToFile", bundle,
-                Map.of("Filename", outputFile), ScheduledState.ENABLED);
+        final VersionedProcessor writeToFile = VersionedFlowUtils.addProcessor(groupB,
+                "org.apache.nifi.processors.tests.system.WriteToFile", bundle, "WriteToFile", new Position(0, 0));
+        writeToFile.getProperties().put("Filename", outputFile);
         writeToFile.setAutoTerminatedRelationships(Set.of("success", "failure"));
 
-        // Connections within Group B
-        final VersionedConnection inputToReplace = createConnection("input-to-replace", GROUP_B_ID,
-                INPUT_PORT_B_ID, ConnectableComponentType.INPUT_PORT,
-                REPLACE_WITH_FILE_ID, ConnectableComponentType.PROCESSOR, null,
-                Set.of());
-
-        final VersionedConnection replaceToWrite = createConnection("replace-to-write", GROUP_B_ID,
-                REPLACE_WITH_FILE_ID, ConnectableComponentType.PROCESSOR,
-                WRITE_ASSET_ID, ConnectableComponentType.PROCESSOR, null,
-                Set.of("success"));
-
-        groupB.setInputPorts(Set.of(inputPortB));
-        groupB.setOutputPorts(new HashSet<>());
-        groupB.setProcessors(Set.of(replaceWithFile, writeToFile));
-        groupB.setConnections(Set.of(inputToReplace, replaceToWrite));
-        groupB.setProcessGroups(new HashSet<>());
-        groupB.setControllerServices(new HashSet<>());
+        VersionedFlowUtils.addConnection(groupB, VersionedFlowUtils.createConnectableComponent(inputPortB),
+                VersionedFlowUtils.createConnectableComponent(replaceWithFile), Set.of());
+        VersionedFlowUtils.addConnection(groupB, VersionedFlowUtils.createConnectableComponent(replaceWithFile),
+                VersionedFlowUtils.createConnectableComponent(writeToFile), Set.of("success"));
 
         return groupB;
-    }
-
-    private Bundle createBundle() {
-        final Bundle bundle = new Bundle();
-        bundle.setGroup("org.apache.nifi");
-        bundle.setArtifact("nifi-system-test-extensions-nar");
-        bundle.setVersion("2.8.0-SNAPSHOT");
-        return bundle;
-    }
-
-    private VersionedPort createInputPort(final String identifier, final String groupIdentifier, final String name) {
-        final VersionedPort port = new VersionedPort();
-        port.setIdentifier(identifier);
-        port.setGroupIdentifier(groupIdentifier);
-        port.setName(name);
-        port.setType(PortType.INPUT_PORT);
-        port.setScheduledState(ScheduledState.ENABLED);
-        port.setConcurrentlySchedulableTaskCount(1);
-        port.setPosition(new Position(0, 0));
-        port.setAllowRemoteAccess(false);
-        return port;
-    }
-
-    private VersionedProcessor createProcessor(final String identifier, final String groupIdentifier, final String name,
-                                                final String type, final Bundle bundle, final Map<String, String> properties,
-                                                final ScheduledState scheduledState) {
-        final VersionedProcessor processor = new VersionedProcessor();
-        processor.setIdentifier(identifier);
-        processor.setGroupIdentifier(groupIdentifier);
-        processor.setName(name);
-        processor.setType(type);
-        processor.setBundle(bundle);
-        processor.setProperties(properties);
-        processor.setPropertyDescriptors(Collections.emptyMap());
-        processor.setScheduledState(scheduledState);
-
-        processor.setBulletinLevel("WARN");
-        processor.setSchedulingStrategy("TIMER_DRIVEN");
-        processor.setSchedulingPeriod("0 sec");
-        processor.setExecutionNode("ALL");
-        processor.setConcurrentlySchedulableTaskCount(1);
-        processor.setPenaltyDuration("30 sec");
-        processor.setYieldDuration("1 sec");
-        processor.setRunDurationMillis(0L);
-        processor.setPosition(new Position(0, 0));
-
-        processor.setAutoTerminatedRelationships(Collections.emptySet());
-        processor.setRetryCount(10);
-        processor.setRetriedRelationships(Collections.emptySet());
-        processor.setBackoffMechanism("PENALIZE_FLOWFILE");
-        processor.setMaxBackoffPeriod("10 mins");
-
-        return processor;
-    }
-
-    private VersionedConnection createConnection(final String identifier, final String groupIdentifier,
-                                                  final String sourceId, final ConnectableComponentType sourceType,
-                                                  final String destinationId, final ConnectableComponentType destinationType,
-                                                  final String destinationGroupId,
-                                                  final Set<String> selectedRelationships) {
-        final ConnectableComponent source = new ConnectableComponent();
-        source.setId(sourceId);
-        source.setType(sourceType);
-        source.setGroupId(groupIdentifier);
-
-        final ConnectableComponent destination = new ConnectableComponent();
-        destination.setId(destinationId);
-        destination.setType(destinationType);
-        destination.setGroupId(destinationGroupId != null ? destinationGroupId : groupIdentifier);
-
-        final VersionedConnection connection = new VersionedConnection();
-        connection.setIdentifier(identifier);
-        connection.setGroupIdentifier(groupIdentifier);
-        connection.setSource(source);
-        connection.setDestination(destination);
-        connection.setSelectedRelationships(selectedRelationships);
-        connection.setBackPressureDataSizeThreshold("1 GB");
-        connection.setBackPressureObjectThreshold(10_000L);
-        connection.setBends(Collections.emptyList());
-        connection.setLabelIndex(1);
-        connection.setFlowFileExpiration("0 sec");
-        connection.setPrioritizers(Collections.emptyList());
-        connection.setzIndex(0L);
-
-        return connection;
     }
 }

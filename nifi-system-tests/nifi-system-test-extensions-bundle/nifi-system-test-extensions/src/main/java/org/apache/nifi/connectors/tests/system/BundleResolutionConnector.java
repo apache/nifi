@@ -27,18 +27,15 @@ import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.PropertyType;
 import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.components.connector.util.VersionedFlowUtils;
 import org.apache.nifi.flow.Bundle;
-import org.apache.nifi.flow.ComponentType;
 import org.apache.nifi.flow.Position;
-import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedParameter;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -94,13 +91,7 @@ public class BundleResolutionConnector extends AbstractConnector {
 
     @Override
     public VersionedExternalFlow getInitialFlow() {
-        final VersionedProcessGroup group = new VersionedProcessGroup();
-        group.setIdentifier(UUID.randomUUID().toString());
-        group.setName("Bundle Resolution Flow");
-        group.setProcessors(new HashSet<>());
-        group.setProcessGroups(new HashSet<>());
-        group.setConnections(new HashSet<>());
-        group.setControllerServices(new HashSet<>());
+        final VersionedProcessGroup group = VersionedFlowUtils.createProcessGroup(UUID.randomUUID().toString(), "Bundle Resolution Flow");
 
         final VersionedParameter compatabilityParam = new VersionedParameter();
         compatabilityParam.setName("BUNDLE_COMPATABILITY");
@@ -120,26 +111,17 @@ public class BundleResolutionConnector extends AbstractConnector {
     }
 
     private VersionedExternalFlow createFlowWithBundleScenarios() {
-        final VersionedProcessGroup group = new VersionedProcessGroup();
-        group.setIdentifier(UUID.randomUUID().toString());
-        group.setName("Bundle Resolution Flow");
-        group.setProcessors(new HashSet<>());
-        group.setProcessGroups(new HashSet<>());
-        group.setConnections(new HashSet<>());
-        group.setControllerServices(new HashSet<>());
+        final VersionedProcessGroup group = VersionedFlowUtils.createProcessGroup(UUID.randomUUID().toString(), "Bundle Resolution Flow");
 
         // Add a processor with an unavailable bundle (fake version) that should be resolved based on BundleCompatability
         // Uses the system test GenerateFlowFile processor which is available in the system test extensions bundle
-        final VersionedProcessor testProcessor = createProcessor(
-            "test-processor",
-            "GenerateFlowFile for Bundle Resolution Test",
-            "org.apache.nifi.processors.tests.system.GenerateFlowFile",
-            "org.apache.nifi",
-            "nifi-system-test-extensions-nar",
-            "0.0.0-NONEXISTENT",
-            new Position(100, 100)
-        );
-        group.getProcessors().add(testProcessor);
+        final Bundle nonexistentBundle = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "0.0.0-NONEXISTENT");
+
+        final VersionedProcessor testProcessor = VersionedFlowUtils.addProcessor(group,
+            "org.apache.nifi.processors.tests.system.GenerateFlowFile", nonexistentBundle,
+            "GenerateFlowFile for Bundle Resolution Test", new Position(100, 100));
+        testProcessor.setSchedulingPeriod("1 sec");
+        testProcessor.setAutoTerminatedRelationships(Set.of("success"));
 
         final VersionedParameterContext parameterContext = new VersionedParameterContext();
         parameterContext.setName("Bundle Resolution Parameter Context");
@@ -149,43 +131,6 @@ public class BundleResolutionConnector extends AbstractConnector {
         flow.setParameterContexts(Map.of(parameterContext.getName(), parameterContext));
         flow.setFlowContents(group);
         return flow;
-    }
-
-    private VersionedProcessor createProcessor(final String id, final String name, final String type,
-                                               final String bundleGroup, final String bundleArtifact,
-                                               final String bundleVersion, final Position position) {
-        final VersionedProcessor processor = new VersionedProcessor();
-        processor.setIdentifier(id);
-        processor.setName(name);
-        processor.setType(type);
-        processor.setPosition(position);
-
-        final Bundle bundle = new Bundle();
-        bundle.setGroup(bundleGroup);
-        bundle.setArtifact(bundleArtifact);
-        bundle.setVersion(bundleVersion);
-        processor.setBundle(bundle);
-
-        processor.setProperties(new HashMap<>());
-        processor.setPropertyDescriptors(new HashMap<>());
-        processor.setStyle(new HashMap<>());
-        processor.setSchedulingPeriod("1 sec");
-        processor.setSchedulingStrategy("TIMER_DRIVEN");
-        processor.setExecutionNode("ALL");
-        processor.setPenaltyDuration("30 sec");
-        processor.setYieldDuration("1 sec");
-        processor.setBulletinLevel("WARN");
-        processor.setRunDurationMillis(0L);
-        processor.setConcurrentlySchedulableTaskCount(1);
-        processor.setAutoTerminatedRelationships(Set.of("success"));
-        processor.setScheduledState(ScheduledState.ENABLED);
-        processor.setRetryCount(10);
-        processor.setRetriedRelationships(new HashSet<>());
-        processor.setBackoffMechanism("PENALIZE_FLOWFILE");
-        processor.setMaxBackoffPeriod("10 mins");
-        processor.setComponentType(ComponentType.PROCESSOR);
-
-        return processor;
     }
 
     @Override
