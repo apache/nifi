@@ -24,6 +24,7 @@ import { initialState } from '../../../../state/flow/flow.reducer';
 import { ComponentType, Storage, ComponentContext } from '@nifi/shared';
 import { BreadcrumbEntity } from '../../../../state/shared';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import * as d3 from 'd3';
 import { CanvasView } from '../../../../service/canvas-view.service';
 import { Client } from '../../../../../../service/client.service';
@@ -32,7 +33,7 @@ import { CanvasActionsService } from '../../../../service/canvas-actions.service
 @Component({
     selector: 'operation-control',
     templateUrl: './operation-control.component.html',
-    imports: [MatButtonModule, ComponentContext],
+    imports: [MatButtonModule, MatTooltipModule, ComponentContext],
     styleUrls: ['./operation-control.component.scss']
 })
 export class OperationControl {
