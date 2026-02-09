@@ -25,9 +25,8 @@ import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.components.ConnectionFacade;
 import org.apache.nifi.components.connector.components.FlowContext;
 import org.apache.nifi.components.connector.components.ProcessGroupFacade;
+import org.apache.nifi.components.connector.util.VersionedFlowUtils;
 import org.apache.nifi.flow.Bundle;
-import org.apache.nifi.flow.ConnectableComponent;
-import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.Position;
 import org.apache.nifi.flow.ScheduledState;
 import org.apache.nifi.flow.VersionedConnection;
@@ -50,62 +49,33 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class SelectiveDropConnector extends AbstractConnector {
 
-    private static final String CONNECTION_ID = "generate-to-terminate-connection";
-
     @Override
     protected void onStepConfigured(final String stepName, final FlowContext workingContext) {
     }
 
     @Override
     public VersionedExternalFlow getInitialFlow() {
-        final Bundle bundle = new Bundle();
-        bundle.setGroup("org.apache.nifi");
-        bundle.setArtifact("nifi-system-test-extensions-nar");
-        bundle.setVersion("2.7.0-SNAPSHOT");
+        final Bundle bundle = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "2.7.0-SNAPSHOT");
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup("1234", "Selective Drop Connector");
 
-        // GenerateFlowFile processor configured to generate 1-byte FlowFiles with flowFileIndex attribute
-        final Map<String, String> generateProperties = Map.of(
+        final VersionedProcessor generate = VersionedFlowUtils.addProcessor(rootGroup,
+            "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle, "GenerateFlowFile", new Position(0, 0));
+        generate.getProperties().putAll(Map.of(
             "File Size", "1 B",
             "Batch Size", "20000",
             "Max FlowFiles", "20000",
             "flowFileIndex", "${nextInt()}"
-        );
-        final VersionedProcessor generate = createVersionedProcessor("gen-1", "1234", "GenerateFlowFile",
-            "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle, generateProperties, ScheduledState.ENABLED);
+        ));
         generate.setSchedulingPeriod("10 sec");
 
-        final VersionedProcessor terminate = createVersionedProcessor("term-1", "1234", "TerminateFlowFile",
-            "org.apache.nifi.processors.tests.system.TerminateFlowFile", bundle, Collections.emptyMap(), ScheduledState.DISABLED);
+        final VersionedProcessor terminate = VersionedFlowUtils.addProcessor(rootGroup,
+            "org.apache.nifi.processors.tests.system.TerminateFlowFile", bundle, "TerminateFlowFile", new Position(0, 0));
+        terminate.setScheduledState(ScheduledState.DISABLED);
 
-        final ConnectableComponent source = new ConnectableComponent();
-        source.setId(generate.getIdentifier());
-        source.setType(ConnectableComponentType.PROCESSOR);
-        source.setGroupId("1234");
-
-        final ConnectableComponent destination = new ConnectableComponent();
-        destination.setId(terminate.getIdentifier());
-        destination.setType(ConnectableComponentType.PROCESSOR);
-        destination.setGroupId("1234");
-
-        final VersionedConnection connection = new VersionedConnection();
-        connection.setIdentifier(CONNECTION_ID);
-        connection.setSource(source);
-        connection.setDestination(destination);
-        connection.setGroupIdentifier("1234");
-        connection.setSelectedRelationships(Set.of("success"));
+        final VersionedConnection connection = VersionedFlowUtils.addConnection(rootGroup,
+            VersionedFlowUtils.createConnectableComponent(generate), VersionedFlowUtils.createConnectableComponent(terminate), Set.of("success"));
         connection.setBackPressureDataSizeThreshold("100 GB");
         connection.setBackPressureObjectThreshold(100_000L);
-        connection.setBends(Collections.emptyList());
-        connection.setLabelIndex(1);
-        connection.setFlowFileExpiration("0 sec");
-        connection.setPrioritizers(Collections.emptyList());
-        connection.setzIndex(1L);
-
-        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
-        rootGroup.setName("Selective Drop Connector");
-        rootGroup.setIdentifier("1234");
-        rootGroup.setProcessors(Set.of(generate, terminate));
-        rootGroup.setConnections(Set.of(connection));
 
         final VersionedExternalFlow flow = new VersionedExternalFlow();
         flow.setFlowContents(rootGroup);
@@ -131,15 +101,13 @@ public class SelectiveDropConnector extends AbstractConnector {
 
     @Override
     public void stop(final FlowContext context) throws FlowUpdateException {
-        // First, stop the processors via the parent class
         super.stop(context);
 
-        // Then, drop all FlowFiles where flowFileIndex has an even value
         final ProcessGroupFacade rootGroup = context.getRootGroup();
-        final ConnectionFacade connection = findConnectionById(rootGroup, CONNECTION_ID);
+        final ConnectionFacade connection = findFirstConnection(rootGroup);
 
         if (connection == null) {
-            getLogger().warn("Could not find connection with ID {} to perform selective drop", CONNECTION_ID);
+            getLogger().warn("Could not find connection to perform selective drop");
             return;
         }
 
@@ -165,52 +133,18 @@ public class SelectiveDropConnector extends AbstractConnector {
         return Integer.parseInt(flowFile.getAttribute("flowFileIndex")) % 2 == 0;
     }
 
-    private ConnectionFacade findConnectionById(final ProcessGroupFacade group, final String connectionId) {
+    private ConnectionFacade findFirstConnection(final ProcessGroupFacade group) {
         for (final ConnectionFacade connection : group.getConnections()) {
-            if (connectionId.equals(connection.getDefinition().getIdentifier())) {
-                return connection;
-            }
+            return connection;
         }
 
         for (final ProcessGroupFacade childGroup : group.getProcessGroups()) {
-            final ConnectionFacade found = findConnectionById(childGroup, connectionId);
+            final ConnectionFacade found = findFirstConnection(childGroup);
             if (found != null) {
                 return found;
             }
         }
 
         return null;
-    }
-
-    private VersionedProcessor createVersionedProcessor(final String identifier, final String groupIdentifier, final String name,
-                                                        final String type, final Bundle bundle, final Map<String, String> properties,
-                                                        final ScheduledState scheduledState) {
-        final VersionedProcessor processor = new VersionedProcessor();
-        processor.setIdentifier(identifier);
-        processor.setGroupIdentifier(groupIdentifier);
-        processor.setName(name);
-        processor.setType(type);
-        processor.setBundle(bundle);
-        processor.setProperties(properties);
-        processor.setPropertyDescriptors(Collections.emptyMap());
-        processor.setScheduledState(scheduledState);
-
-        processor.setBulletinLevel("WARN");
-        processor.setSchedulingStrategy("TIMER_DRIVEN");
-        processor.setSchedulingPeriod("0 sec");
-        processor.setExecutionNode("ALL");
-        processor.setConcurrentlySchedulableTaskCount(1);
-        processor.setPenaltyDuration("30 sec");
-        processor.setYieldDuration("1 sec");
-        processor.setRunDurationMillis(0L);
-        processor.setPosition(new Position(0, 0));
-
-        processor.setAutoTerminatedRelationships(Collections.emptySet());
-        processor.setRetryCount(10);
-        processor.setRetriedRelationships(Collections.emptySet());
-        processor.setBackoffMechanism("PENALIZE_FLOWFILE");
-        processor.setMaxBackoffPeriod("10 mins");
-
-        return processor;
     }
 }

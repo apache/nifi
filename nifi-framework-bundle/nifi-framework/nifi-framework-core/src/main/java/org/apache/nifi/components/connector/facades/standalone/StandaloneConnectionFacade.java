@@ -25,6 +25,7 @@ import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.function.Predicate;
 
 public class StandaloneConnectionFacade implements ConnectionFacade {
@@ -55,5 +56,27 @@ public class StandaloneConnectionFacade implements ConnectionFacade {
     @Override
     public DropFlowFileSummary dropFlowFiles(final Predicate<FlowFile> predicate) throws IOException {
         return connection.getFlowFileQueue().dropFlowFiles(predicate);
+    }
+
+    @Override
+    public String toString() {
+        return "StandaloneConnectionFacade[id=" + versionedConnection.getIdentifier() + ", name=" + versionedConnection.getName() + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final StandaloneConnectionFacade that = (StandaloneConnectionFacade) o;
+        return Objects.equals(versionedConnection.getIdentifier(), that.versionedConnection.getIdentifier());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(versionedConnection.getIdentifier());
     }
 }

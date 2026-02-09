@@ -26,19 +26,15 @@ import org.apache.nifi.components.connector.ConnectorPropertyGroup;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.PropertyType;
 import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.components.connector.util.VersionedFlowUtils;
 import org.apache.nifi.flow.Bundle;
-import org.apache.nifi.flow.ConnectableComponent;
-import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.Position;
-import org.apache.nifi.flow.ScheduledState;
-import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,8 +48,6 @@ import java.util.Set;
  * the connector with a gate file path and apply the update before starting the connector.
  */
 public class GatedDataQueuingConnector extends AbstractConnector {
-
-    private static final String TERMINATE_PROCESSOR_ID = "term-1";
 
     static final ConnectorPropertyDescriptor GATE_FILE_PATH = new ConnectorPropertyDescriptor.Builder()
             .name("Gate File Path")
@@ -80,49 +74,19 @@ public class GatedDataQueuingConnector extends AbstractConnector {
 
     @Override
     public VersionedExternalFlow getInitialFlow() {
-        final Bundle bundle = new Bundle();
-        bundle.setGroup("org.apache.nifi");
-        bundle.setArtifact("nifi-system-test-extensions-nar");
-        bundle.setVersion("2.8.0");
+        final Bundle bundle = new Bundle("org.apache.nifi", "nifi-system-test-extensions-nar", "2.8.0");
+        final VersionedProcessGroup rootGroup = VersionedFlowUtils.createProcessGroup("1234", "Gated Data Queuing Connector");
 
-        final VersionedProcessor generate = createVersionedProcessor("gen-1", "1234", "GenerateFlowFile",
-            "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle,
-            Map.of("File Size", "1 KB"), ScheduledState.ENABLED);
+        final VersionedProcessor generate = VersionedFlowUtils.addProcessor(rootGroup,
+            "org.apache.nifi.processors.tests.system.GenerateFlowFile", bundle, "GenerateFlowFile", new Position(0, 0));
+        generate.getProperties().put("File Size", "1 KB");
         generate.setSchedulingPeriod("100 millis");
 
-        final VersionedProcessor terminate = createVersionedProcessor(TERMINATE_PROCESSOR_ID, "1234", "TerminateFlowFile",
-            "org.apache.nifi.processors.tests.system.TerminateFlowFile", bundle,
-            Collections.emptyMap(), ScheduledState.ENABLED);
+        final VersionedProcessor terminate = VersionedFlowUtils.addProcessor(rootGroup,
+            "org.apache.nifi.processors.tests.system.TerminateFlowFile", bundle, "TerminateFlowFile", new Position(0, 0));
 
-        final ConnectableComponent source = new ConnectableComponent();
-        source.setId(generate.getIdentifier());
-        source.setType(ConnectableComponentType.PROCESSOR);
-        source.setGroupId("1234");
-
-        final ConnectableComponent destination = new ConnectableComponent();
-        destination.setId(terminate.getIdentifier());
-        destination.setType(ConnectableComponentType.PROCESSOR);
-        destination.setGroupId("1234");
-
-        final VersionedConnection connection = new VersionedConnection();
-        connection.setIdentifier("generate-to-terminate-1");
-        connection.setSource(source);
-        connection.setDestination(destination);
-        connection.setGroupIdentifier("1234");
-        connection.setSelectedRelationships(Set.of("success"));
-        connection.setBackPressureDataSizeThreshold("1 GB");
-        connection.setBackPressureObjectThreshold(10_000L);
-        connection.setBends(Collections.emptyList());
-        connection.setLabelIndex(1);
-        connection.setFlowFileExpiration("0 sec");
-        connection.setPrioritizers(Collections.emptyList());
-        connection.setzIndex(1L);
-
-        final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
-        rootGroup.setName("Gated Data Queuing Connector");
-        rootGroup.setIdentifier("1234");
-        rootGroup.setProcessors(Set.of(generate, terminate));
-        rootGroup.setConnections(Set.of(connection));
+        VersionedFlowUtils.addConnection(rootGroup, VersionedFlowUtils.createConnectableComponent(generate),
+            VersionedFlowUtils.createConnectableComponent(terminate), Set.of("success"));
 
         final VersionedExternalFlow flow = new VersionedExternalFlow();
         flow.setFlowContents(rootGroup);
@@ -150,46 +114,9 @@ public class GatedDataQueuingConnector extends AbstractConnector {
         final VersionedExternalFlow flow = getInitialFlow();
         final VersionedProcessGroup rootGroup = flow.getFlowContents();
 
-        for (final VersionedProcessor processor : rootGroup.getProcessors()) {
-            if (TERMINATE_PROCESSOR_ID.equals(processor.getIdentifier())) {
-                final Map<String, String> properties = new HashMap<>(processor.getProperties());
-                properties.put("Gate File", gateFilePath);
-                processor.setProperties(properties);
-            }
-        }
+        VersionedFlowUtils.findProcessor(rootGroup, p -> p.getType().endsWith("TerminateFlowFile"))
+            .ifPresent(processor -> processor.getProperties().put("Gate File", gateFilePath));
 
         getInitializationContext().updateFlow(activeFlowContext, flow, BundleCompatibility.RESOLVE_BUNDLE);
-    }
-
-    private VersionedProcessor createVersionedProcessor(final String identifier, final String groupIdentifier, final String name,
-                                                        final String type, final Bundle bundle, final Map<String, String> properties,
-                                                        final ScheduledState scheduledState) {
-        final VersionedProcessor processor = new VersionedProcessor();
-        processor.setIdentifier(identifier);
-        processor.setGroupIdentifier(groupIdentifier);
-        processor.setName(name);
-        processor.setType(type);
-        processor.setBundle(bundle);
-        processor.setProperties(properties);
-        processor.setPropertyDescriptors(Collections.emptyMap());
-        processor.setScheduledState(scheduledState);
-
-        processor.setBulletinLevel("WARN");
-        processor.setSchedulingStrategy("TIMER_DRIVEN");
-        processor.setSchedulingPeriod("0 sec");
-        processor.setExecutionNode("ALL");
-        processor.setConcurrentlySchedulableTaskCount(1);
-        processor.setPenaltyDuration("30 sec");
-        processor.setYieldDuration("1 sec");
-        processor.setRunDurationMillis(0L);
-        processor.setPosition(new Position(0, 0));
-
-        processor.setAutoTerminatedRelationships(Collections.emptySet());
-        processor.setRetryCount(10);
-        processor.setRetriedRelationships(Collections.emptySet());
-        processor.setBackoffMechanism("PENALIZE_FLOWFILE");
-        processor.setMaxBackoffPeriod("10 mins");
-
-        return processor;
     }
 }

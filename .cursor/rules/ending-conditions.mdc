@@ -1,0 +1,30 @@
+---
+description: Task completion checklist that must be verified before considering any task done
+alwaysApply: true
+---
+
+# Ending Conditions
+
+When you have completed a task, ensure that you have verified the following:
+
+1. All code compiles and builds successfully using `mvn`.
+2. All relevant unit tests pass successfully using `mvn`.
+3. All code adheres to the Code Style rules.
+4. Checkstyle and PMD pass successfully using
+   `mvn checkstyle:check pmd:check -T 1C` from the appropriate directory.
+5. Unit tests have been added to verify the functionality of any sufficiently complex method.
+6. A system test or an integration test has been added if the change makes significant
+   changes to the framework and the interaction between a significant number of classes.
+7. You have performed a full review of the code to ensure that there are no logical errors
+   and that the code is not duplicative or difficult to understand. If you find any code that
+   is in need of refactoring due to clarity or duplication, you should report this to the user
+   and offer to make those changes as well.
+8. If creating a new Processor or Controller Service, ensure that all relevant annotations
+   have been added, including `@Tags`, `@CapabilityDescription`, `@UseCase`, and
+   `@MultiProcessorUseCase` as appropriate.
+
+
+Do not consider the task complete until all of the above conditions have been met. When you
+do consider the task complete, provide a summary of what you changed and which tests were
+added or modified and what the behavior is that they verify. Additionally, provide any feedback
+about your work that may need further review or that is not entirely complete.

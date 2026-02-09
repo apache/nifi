@@ -1,0 +1,74 @@
+---
+description: Java code style conventions for the NiFi codebase
+globs: "**/*.java"
+alwaysApply: false
+---
+
+# Code Style
+
+NiFi adheres to a few code styles that are not necessarily common. Please ensure that you
+observe these code styles.
+
+1. Any variable that can be marked `final` must be marked `final`. This includes
+   declarations of Exceptions, method arguments, local variables, member variables, etc.
+2. Short-hand is highly discouraged in names of variables, classes, methods, etc., as well
+   as in documentation. Exceptions to this include in the framework, you may see references to
+   `procNode` for `ProcessorNode` or other such short-hand that is very difficult to confuse with
+   other terms, and it is used only when clearly defined such as `final ProcessorNode procNode = ...`.
+   Even though, however, we would not abbreviate `ControllerService` as `cs` because `cs` is too vague
+   and easily misunderstood. Instead, a value of `serviceNode` might be used.
+3. Private / helper methods should not be placed before the first public/protected method
+   that calls it.
+4. Unless the method is to be heavily reused, avoid creating trivial 1-2 line methods and
+   instead just place the code inline.
+5. Code is allowed to be up to 200 characters wide. Avoid breaking lines into many short lines.
+6. Avoid creating private methods that are called only once unless they are at least 10
+   lines long or are complex.
+7. It is never acceptable to use star imports. Import each individual class that is to be used.
+8. Never use underscores in class names, variables, or filenames.
+9. Never use System.out.println but instead use SLF4J Loggers.
+10. Avoid excessive whitespace in method invocations. For example, instead of writing:
+
+```java
+myObject.doSomething(
+    arg1,
+    arg2,
+    arg3,
+    arg4,
+    arg5
+);
+```
+
+Write this instead:
+
+```java
+myObject.doSomething(arg1, arg2, arg3, arg4, arg5);
+```
+
+It is okay to use many newlines in a builder pattern, such as:
+```java
+final MyObject myObject = MyObject.builder()
+    .arg1(arg1)
+    .arg2(arg2)
+    .arg3(arg3)
+    .build();
+```
+
+It is also acceptable when chaining methods in a functional style such as:
+```java
+final List<String> result = myList.stream()
+    .filter(s -> s.startsWith("A"))
+    .map(String::toUpperCase)
+    .toList();
+```
+
+11. When possible, prefer importing a class, rather than using fully qualified classname
+    inline in the code.
+12. Avoid statically importing methods, except in methods that are frequently used in testing
+    frameworks, such as the `Assertions` and `Mockito` classes.
+13. Avoid trailing whitespace at the end of lines, especially in blank lines.
+14. The `var` keyword is never allowed in the codebase. Always explicitly declare the type of variables.
+15. Prefer procedural code over functional code. For example, prefer using a for loop instead of a stream
+    when the logic is not simple and straightforward. The stream API is powerful but can be difficult to
+    read when overused or used in complex scenarios. Functional style is best used when the logic is simple
+    and chains together no more than 3-4 operations.

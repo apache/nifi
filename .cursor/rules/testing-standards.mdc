@@ -1,0 +1,69 @@
+---
+description: Shared test coding conventions for all NiFi automated tests (framework and extensions)
+globs: "**/src/test/**/*.java"
+alwaysApply: false
+---
+
+# Testing Standards
+
+In addition to the general rules defined in the Code Style rule, follow these rules when
+creating or manipulating automated tests.
+
+## Test Code Conventions
+
+1. NEVER add comments such as `// Given`, `// When`, `// Then`. These comments are
+   considered an anti-pattern and should be removed or replaced whenever they are
+   encountered. Instead, leave them out all together (preferred) or use comments that
+   clearly articulate what is happening, such as `// Setup`, `// Invoke method`,
+   `// Assert expected results`. One of the reasons that this is considered an anti-pattern
+   (in addition to the fact that the given/when/then nomenclature itself provides no
+   meaning) is that it assumes a very specific pattern in unit tests, that we will create a
+   bunch of objects, invoke the method we care about, make assertions, and then end. This
+   often results in many tests that are extremely repetitive. Instead, whenever it makes
+   sense to do so, create the prerequisite objects, invoke the method we care about with
+   appropriate arguments, make assertions, and then invoke again with a different set of
+   arguments, make assertions, etc. There is no need to have many repetitive methods that
+   each create many repetitive objects.
+
+2. Unit tests are Java. They are not English. As such, they should be written like Java.
+   Frameworks such as assertj that strive to make the unit tests look more "English-like"
+   should be avoided. Use of these frameworks sometimes works well but often quickly
+   devolves into automated tests that read like neither English nor Java.
+
+3. Like any other code, unit tests should be created using reusable methods where
+   appropriate. Do not create 15 methods that are all very similar and repetitive. Instead,
+   create reusable methods that can be called from each of the methods.
+
+4. Never use the `assert` keyword. Use JUnit assertions instead.
+
+5. Never create a test file that is centered around testing a method or capability. Unit
+   tests must always be named after the class they are testing. It is okay if a given unit
+   test class is very, very long.
+
+6. This is a Java project using the Maven structure. Java test files must always fall under
+   src/test/java of the appropriate sub-module.
+
+7. Never use pointless assertions such as assertDoesNotThrow. This adds nothing but
+   complexity. Just call the method, and if it throws an Exception, the test will fail. It
+   is assumed by default that each line does not throw an Exception.
+
+## General Testing Philosophy
+
+- Unit tests should be used to verify any sufficiently complex method in a class. We should
+  *NOT* have unit tests for trivial methods such as getters and setters, or methods that are
+  only a few lines long and are not complex. A good general rule of thumb is that if a
+  person can understand a method and verify that it is correct in a few seconds, then it is
+  not necessary to have a unit test for that method.
+
+- Avoid adding multiple tests that are redundant. For example, if you have a method that
+  takes a single `String` argument it may make sense to test with `null`, a 0-length
+  string, and a long String. But do not test with 4 different Strings each with a different
+  value but which test the same lines of code. Avoid over-testing by adding multiple tests
+  whose differences are conditions that do not truly affect the behavior of the code.
+
+- Unit tests should always focus on the "contract" of the method. That is, given a certain
+  input, the test should assert that it receives the correct output. The test should NOT be
+  focused on the inner details of how the method works. Focusing on the inner details of
+  how the method works is an anti-pattern because it results in tests that are more brittle,
+  more difficult to maintain, and tests that fail when the method is improved or refactored
+  but still adheres to the same contract.

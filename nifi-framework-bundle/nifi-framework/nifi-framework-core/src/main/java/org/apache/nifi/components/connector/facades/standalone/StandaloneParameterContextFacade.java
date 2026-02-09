@@ -205,4 +205,25 @@ public class StandaloneParameterContextFacade implements ParameterContextFacade 
         return null;
     }
 
+    @Override
+    public String toString() {
+        return "StandaloneParameterContextFacade[id=" + parameterContext.getIdentifier() + ", name=" + parameterContext.getName() + "]";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        final StandaloneParameterContextFacade that = (StandaloneParameterContextFacade) o;
+        return Objects.equals(parameterContext.getIdentifier(), that.parameterContext.getIdentifier());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(parameterContext.getIdentifier());
+    }
 }
