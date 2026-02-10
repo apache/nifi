@@ -37,7 +37,7 @@ interface RecordBuffer {
 
         ShardBufferId createBuffer(String shardId);
 
-        void addRecords(ShardBufferId bufferId, List<KinesisClientRecord> records, RecordProcessorCheckpointer checkpointer);
+        void addRecords(ShardBufferId bufferId, List<KinesisClientRecord> records, RecordProcessorCheckpointer checkpointer, Long millisBehindLatest);
 
         /**
          * Called when a shard ends - waits until the buffer is flushed then performs the final checkpoint.
@@ -74,7 +74,7 @@ interface RecordBuffer {
          * Consumes records from the buffer associated with the given lease.
          * The records have to be committed or rolled back later.
          */
-        List<KinesisClientRecord> consumeRecords(LEASE lease);
+        ConsumeRecordsResult consumeRecords(LEASE lease);
 
         void commitConsumedRecords(LEASE lease);
 
@@ -88,6 +88,12 @@ interface RecordBuffer {
     }
 
     record ShardBufferId(String shardId, long bufferId) {
+    }
+
+    record ConsumeRecordsResult(List<KinesisClientRecord> records, Long millisBehindLatest) {
+        static ConsumeRecordsResult empty() {
+            return new ConsumeRecordsResult(List.of(), null);
+        }
     }
 
     interface ShardBufferLease {
