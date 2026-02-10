@@ -29,6 +29,17 @@ public interface ConnectorRepository {
     void initialize(ConnectorRepositoryInitializationContext context);
 
     /**
+     * Verifies that a connector with the given identifier can be created. This checks that the connector
+     * does not already exist in the repository, and if a ConnectorConfigurationProvider is configured,
+     * delegates to the provider's verifyCreate method to ensure the external store can support the operation.
+     *
+     * @param connectorId the identifier of the connector to be created
+     * @throws IllegalStateException if a connector with the given identifier already exists
+     * @throws ConnectorConfigurationProviderException if the provider rejects the create operation
+     */
+    void verifyCreate(String connectorId);
+
+    /**
      * Adds the given Connector to the Repository
      * @param connector the Connector to add
      */
@@ -83,6 +94,16 @@ public interface ConnectorRepository {
      * @return a CompletableFuture that will be completed when the Connector has restarted
      */
     Future<Void> restartConnector(ConnectorNode connector);
+
+    /**
+     * Updates the metadata of a Connector, such as its name. This method should be used instead of calling
+     * {@link ConnectorNode#setName(String)} directly, so that the ConnectorRepository can synchronize
+     * changes with the ConnectorConfigurationProvider if one is configured.
+     *
+     * @param connector the Connector to update
+     * @param name the new name for the Connector
+     */
+    void updateConnector(ConnectorNode connector, String name);
 
     void configureConnector(ConnectorNode connector, String stepName, StepConfiguration configuration) throws FlowUpdateException;
 

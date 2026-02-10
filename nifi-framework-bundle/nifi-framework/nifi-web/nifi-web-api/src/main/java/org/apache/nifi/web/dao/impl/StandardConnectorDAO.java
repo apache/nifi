@@ -83,8 +83,8 @@ public class StandardConnectorDAO implements ConnectorDAO {
     @Override
     public void verifyCreate(final ConnectorDTO connectorDTO) {
         final String id = connectorDTO.getId();
-        if (id != null && hasConnector(id)) {
-            throw new IllegalStateException("A Connector already exists with ID %s".formatted(id));
+        if (id != null) {
+            getConnectorRepository().verifyCreate(id);
         }
     }
 
@@ -111,8 +111,15 @@ public class StandardConnectorDAO implements ConnectorDAO {
     public ConnectorNode createConnector(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded, final boolean registerLogObserver) {
         final FlowManager flowManager = getFlowManager();
         final ConnectorNode connector = flowManager.createConnector(type, id, bundleCoordinate, firstTimeAdded, registerLogObserver);
-        getConnectorRepository().addConnector(connector);
         return connector;
+    }
+
+    @Override
+    public void updateConnector(final ConnectorDTO connectorDTO) {
+        final ConnectorNode connector = getConnector(connectorDTO.getId());
+        if (connectorDTO.getName() != null) {
+            getConnectorRepository().updateConnector(connector, connectorDTO.getName());
+        }
     }
 
     @Override

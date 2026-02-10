@@ -3601,13 +3601,11 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final RevisionClaim claim = new StandardRevisionClaim(revision);
 
         final RevisionUpdate<ConnectorDTO> snapshot = revisionManager.updateRevision(claim, user, () -> {
-            final ConnectorNode node = connectorDAO.getConnector(connectorDTO.getId());
-            if (connectorDTO.getName() != null) {
-                node.setName(connectorDTO.getName());
-            }
+            connectorDAO.updateConnector(connectorDTO);
 
             controllerFacade.save();
 
+            final ConnectorNode node = connectorDAO.getConnector(connectorDTO.getId());
             final ConnectorDTO dto = dtoFactory.createConnectorDto(node);
             final FlowModification lastMod = new FlowModification(revision.incrementRevision(revision.getClientId()), user.getIdentity());
             return new StandardRevisionUpdate<>(dto, lastMod);

@@ -42,6 +42,8 @@ public interface ConnectorDAO {
 
     ConnectorNode createConnector(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded, boolean registerLogObserver);
 
+    void updateConnector(ConnectorDTO connectorDTO);
+
     void deleteConnector(String id);
 
     void startConnector(String id);

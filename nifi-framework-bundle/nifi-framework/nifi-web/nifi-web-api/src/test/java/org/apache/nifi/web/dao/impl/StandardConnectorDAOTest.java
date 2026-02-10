@@ -273,12 +273,22 @@ class StandardConnectorDAOTest {
     }
 
     @Test
-    void testVerifyCreateWithExistingConnectorId() {
+    void testVerifyCreateDelegatesToRepository() {
         final ConnectorDTO connectorDTO = new ConnectorDTO();
         connectorDTO.setId(CONNECTOR_ID);
-        connectorDTO.setType("org.apache.nifi.connector.TestConnector");
 
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(connectorNode);
+        connectorDAO.verifyCreate(connectorDTO);
+
+        verify(connectorRepository).verifyCreate(CONNECTOR_ID);
+    }
+
+    @Test
+    void testVerifyCreateWithRepositoryThrowingException() {
+        final ConnectorDTO connectorDTO = new ConnectorDTO();
+        connectorDTO.setId(CONNECTOR_ID);
+
+        doThrow(new IllegalStateException("A Connector already exists with ID %s".formatted(CONNECTOR_ID)))
+            .when(connectorRepository).verifyCreate(CONNECTOR_ID);
 
         final IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
             connectorDAO.verifyCreate(connectorDTO)
@@ -288,25 +298,13 @@ class StandardConnectorDAOTest {
     }
 
     @Test
-    void testVerifyCreateWithNewId() {
-        final ConnectorDTO connectorDTO = new ConnectorDTO();
-        connectorDTO.setId(CONNECTOR_ID);
-
-        when(connectorRepository.getConnector(CONNECTOR_ID)).thenReturn(null);
-
-        connectorDAO.verifyCreate(connectorDTO);
-
-        verify(connectorRepository).getConnector(CONNECTOR_ID);
-    }
-
-    @Test
     void testVerifyCreateWithNullId() {
         final ConnectorDTO connectorDTO = new ConnectorDTO();
         connectorDTO.setId(null);
 
         connectorDAO.verifyCreate(connectorDTO);
 
-        verify(connectorRepository, never()).getConnector(any());
+        verify(connectorRepository, never()).verifyCreate(any());
     }
 
 }

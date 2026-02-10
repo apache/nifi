@@ -1173,7 +1173,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
     private void updateConnector(final VersionedConnector versionedConnector, final ConnectorRepository connectorRepository) {
         final ConnectorNode connectorNode = connectorRepository.getConnector(versionedConnector.getInstanceIdentifier());
 
-        connectorNode.setName(versionedConnector.getName());
+        connectorRepository.updateConnector(connectorNode, versionedConnector.getName());
 
         // TODO: We don't want to throw an Exception here. Consider handling Connectors first so that we can get all Connectors in a state of
         // prepareForUpdate. If any fails, we can restore them and throw an Exception. We don't want to be throwing an Exception in the middle
