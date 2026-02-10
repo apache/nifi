@@ -49,10 +49,13 @@ import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.UnknownServiceAddressException;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.components.ClassLoaderAwarePythonBridge;
+import org.apache.nifi.components.connector.ConnectorConfigurationProvider;
+import org.apache.nifi.components.connector.ConnectorConfigurationProviderInitializationContext;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorRepositoryInitializationContext;
 import org.apache.nifi.components.connector.ConnectorRequestReplicator;
 import org.apache.nifi.components.connector.ConnectorValidationTrigger;
+import org.apache.nifi.components.connector.StandardConnectorConfigurationProviderInitializationContext;
 import org.apache.nifi.components.connector.StandardConnectorRepoInitializationContext;
 import org.apache.nifi.components.connector.StandardConnectorRepository;
 import org.apache.nifi.components.connector.StandardConnectorValidationTrigger;
@@ -638,7 +641,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 controllerServiceProvider, new StandardControllerServiceApiLookup(extensionManager));
 
         final SecretsManager secretsManager = createSecretsManager(nifiProperties, extensionManager, flowManager);
-        connectorRepository = createConnectorRepository(nifiProperties, extensionManager, flowManager, connectorAssetManager, secretsManager, this, connectorRequestReplicator);
+        final ConnectorConfigurationProvider connectorConfigurationProvider = createConnectorConfigurationProvider(nifiProperties, extensionManager);
+        connectorRepository = createConnectorRepository(nifiProperties, extensionManager, flowManager, connectorAssetManager, secretsManager, this, connectorRequestReplicator,
+            connectorConfigurationProvider);
 
         final PythonBridge rawPythonBridge = createPythonBridge(nifiProperties, controllerServiceProvider);
         final ClassLoader pythonBridgeClassLoader = rawPythonBridge.getClass().getClassLoader();
@@ -914,7 +919,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     }
 
     private static ConnectorRepository createConnectorRepository(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowManager flowManager,
-                final AssetManager assetManager, final SecretsManager secretsManager, final NodeTypeProvider nodeTypeProvider, final ConnectorRequestReplicator requestReplicator) {
+                final AssetManager assetManager, final SecretsManager secretsManager, final NodeTypeProvider nodeTypeProvider, final ConnectorRequestReplicator requestReplicator,
+                final ConnectorConfigurationProvider connectorConfigurationProvider) {
 
         final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_REPOSITORY_IMPLEMENTATION, DEFAULT_CONNECTOR_REPOSITORY_IMPLEMENTATION);
 
@@ -922,7 +928,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             // Discover implementations of Connector Repository. This is not done at startup because the ConnectorRepository class is not
             // provided in the list of standard extension points. This is due to the fact that ConnectorRepository lives in the nifi-framework-core-api, and
             // does not make sense to refactor it into some other module due to its dependencies, simply to allow it to be discovered at startup.
-            final Set<Class<?>> additionalExtensionTypes = Set.of(ConnectorRepository.class, SecretsManager.class);
+            final Set<Class<?>> additionalExtensionTypes = Set.of(ConnectorRepository.class, SecretsManager.class, ConnectorConfigurationProvider.class);
             extensionManager.discoverExtensions(extensionManager.getAllBundles(), additionalExtensionTypes, true);
             final ConnectorRepository created = NarThreadContextClassLoader.createInstance(extensionManager, implementationClassName, ConnectorRepository.class, properties);
 
@@ -932,7 +938,8 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 secretsManager,
                 assetManager,
                 nodeTypeProvider,
-                requestReplicator
+                requestReplicator,
+                connectorConfigurationProvider
             );
 
             synchronized (created) {
@@ -974,6 +981,42 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             return created;
         } catch (final Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private static ConnectorConfigurationProvider createConnectorConfigurationProvider(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager) {
+        final String implementationClassName = properties.getProperty(NiFiProperties.CONNECTOR_CONFIGURATION_PROVIDER_IMPLEMENTATION);
+        if (implementationClassName == null || implementationClassName.isBlank()) {
+            LOG.info("No Connector Configuration Provider implementation configured; external connector configuration management is disabled");
+            return null;
+        }
+
+        try {
+            extensionManager.discoverExtensions(extensionManager.getAllBundles(), Set.of(ConnectorConfigurationProvider.class), true);
+            final ConnectorConfigurationProvider created = NarThreadContextClassLoader.createInstance(
+                extensionManager, implementationClassName, ConnectorConfigurationProvider.class, properties);
+
+            final Map<String, String> initializationProperties = properties.getPropertiesWithPrefix(NiFiProperties.CONNECTOR_CONFIGURATION_PROVIDER_PROPERTIES_PREFIX)
+                .entrySet().stream()
+                .collect(Collectors.toMap(
+                    entry -> entry.getKey().substring(NiFiProperties.CONNECTOR_CONFIGURATION_PROVIDER_PROPERTIES_PREFIX.length()),
+                    Map.Entry::getValue
+                ));
+
+            final ConnectorConfigurationProviderInitializationContext initializationContext =
+                new StandardConnectorConfigurationProviderInitializationContext(initializationProperties);
+
+            synchronized (created) {
+                try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, created.getClass(), "connector-configuration-provider")) {
+                    created.initialize(initializationContext);
+                }
+            }
+
+            LOG.info("Created Connector Configuration Provider of type {}", created.getClass().getSimpleName());
+
+            return created;
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to create Connector Configuration Provider", e);
         }
     }
 
