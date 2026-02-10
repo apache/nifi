@@ -18,6 +18,7 @@ package org.apache.nifi.processors.aws.kinesis;
 
 import jakarta.annotation.Nullable;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ConsumeRecordsResult;
 import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ShardBufferId;
 import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ShardBufferLease;
 import software.amazon.kinesis.exceptions.InvalidStateException;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Random;
@@ -96,7 +98,8 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     }
 
     @Override
-    public void addRecords(final ShardBufferId bufferId, final List<KinesisClientRecord> records, final RecordProcessorCheckpointer checkpointer) {
+    public void addRecords(final ShardBufferId bufferId, final List<KinesisClientRecord> records,
+                           final RecordProcessorCheckpointer checkpointer, final Long millisBehindLatest) {
         if (records.isEmpty()) {
             return;
         }
@@ -112,7 +115,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             return;
         }
 
-        final RecordBatch recordBatch = new RecordBatch(records, checkpointer, calculateMemoryUsage(records));
+        final RecordBatch recordBatch = new RecordBatch(records, checkpointer, calculateMemoryUsage(records), millisBehindLatest);
         memoryTracker.reserveMemory(recordBatch, bufferId);
         final boolean addedRecords = buffer.offer(recordBatch);
 
@@ -211,10 +214,10 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
     }
 
     @Override
-    public List<KinesisClientRecord> consumeRecords(final Lease lease) {
+    public ConsumeRecordsResult consumeRecords(final Lease lease) {
         if (lease.isReturnedToPool()) {
             logger.warn("Attempting to consume records from a buffer that was already returned to the pool. Ignoring");
-            return emptyList();
+            return ConsumeRecordsResult.empty();
         }
 
         final ShardBufferId bufferId = lease.bufferId();
@@ -222,7 +225,7 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
         final ShardBuffer buffer = shardBuffers.get(bufferId);
         if (buffer == null) {
             logger.debug("Buffer with id {} not found. Cannot consume records", bufferId);
-            return emptyList();
+            return ConsumeRecordsResult.empty();
         }
 
         return buffer.consumeRecords();
@@ -398,7 +401,8 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
 
     private record RecordBatch(List<KinesisClientRecord> records,
                                RecordProcessorCheckpointer checkpointer,
-                               long batchSizeBytes) {
+                               long batchSizeBytes,
+                               Long millisBehindLatest) {
         int size() {
             return records.size();
         }
@@ -489,9 +493,9 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             return true;
         }
 
-        List<KinesisClientRecord> consumeRecords() {
+        ConsumeRecordsResult consumeRecords() {
             if (invalidated.get()) {
-                return emptyList();
+                return ConsumeRecordsResult.empty();
             }
 
             RecordBatch pendingBatch;
@@ -504,7 +508,13 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
                 recordsToConsume.addAll(batch.records());
             }
 
-            return recordsToConsume;
+            final Long maxMillisBehindLatest = inProgressBatches.stream()
+                    .map(RecordBatch::millisBehindLatest)
+                    .filter(Objects::nonNull)
+                    .min(Long::compareTo)
+                    .orElse(null);
+
+            return new ConsumeRecordsResult(recordsToConsume, maxMillisBehindLatest);
         }
 
         List<RecordBatch> commitConsumedRecords() {

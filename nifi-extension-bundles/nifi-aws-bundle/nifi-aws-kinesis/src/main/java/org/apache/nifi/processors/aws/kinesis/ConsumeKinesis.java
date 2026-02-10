@@ -40,10 +40,12 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.metrics.CommitTiming;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.AwsCredentialsProviderService;
 import org.apache.nifi.processors.aws.kinesis.MemoryBoundRecordBuffer.Lease;
 import org.apache.nifi.processors.aws.kinesis.ReaderRecordProcessor.ProcessingResult;
+import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ConsumeRecordsResult;
 import org.apache.nifi.processors.aws.kinesis.RecordBuffer.ShardBufferId;
 import org.apache.nifi.processors.aws.kinesis.converter.InjectMetadataRecordConverter;
 import org.apache.nifi.processors.aws.kinesis.converter.KinesisRecordConverter;
@@ -672,7 +674,8 @@ public class ConsumeKinesis extends AbstractProcessor {
 
     private void processRecordsFromBuffer(final ProcessSession session, final Lease lease) {
         try {
-            final List<KinesisClientRecord> records = recordBuffer.consumeRecords(lease);
+            final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
+            final List<KinesisClientRecord> records = result.records();
 
             if (records.isEmpty()) {
                 recordBuffer.returnBufferLease(lease);
@@ -685,6 +688,12 @@ public class ConsumeKinesis extends AbstractProcessor {
                 processRecordsWithReader(processor, session, shardId, records);
             } else {
                 processRecordsAsRaw(session, shardId, records);
+            }
+
+            final Long maxMillisBehindLatest = result.maxMillisBehindLatest();
+            if (maxMillisBehindLatest != null) {
+                session.recordGauge("kinesis.stream." + streamName + ".shard." + shardId + ".millisBehindLatest",
+                        maxMillisBehindLatest, CommitTiming.NOW);
             }
 
             session.adjustCounter("Records Processed", records.size(), false);
@@ -761,7 +770,8 @@ public class ConsumeKinesis extends AbstractProcessor {
             if (bufferId == null) {
                 throw new IllegalStateException("Buffer ID not found: Record Processor not initialized");
             }
-            recordBuffer.addRecords(bufferId, processRecordsInput.records(), processRecordsInput.checkpointer());
+            recordBuffer.addRecords(bufferId, processRecordsInput.records(),
+                    processRecordsInput.checkpointer(), processRecordsInput.millisBehindLatest());
         }
 
         @Override
