@@ -128,6 +128,7 @@ import { EditProcessGroup } from '../../ui/canvas/items/process-group/edit-proce
 import { ControllerServiceService } from '../../service/controller-service.service';
 import {
     ComponentType,
+    ComponentTypeNamePipe,
     isDefinedAndNotNull,
     LARGE_DIALOG,
     MEDIUM_DIALOG,
@@ -200,6 +201,7 @@ export class FlowEffects {
     private parameterContextService = inject(ParameterContextService);
     private extensionTypesService = inject(ExtensionTypesService);
     private errorHelper = inject(ErrorHelper);
+    private componentTypeNamePipe = inject(ComponentTypeNamePipe);
     private copyPasteService = inject(CopyPasteService);
 
     private createProcessGroupDialogRef: MatDialogRef<CreateProcessGroup, any> | undefined;
@@ -2968,16 +2970,16 @@ export class FlowEffects {
         () =>
             this.actions$.pipe(
                 ofType(FlowActions.navigateToProvenanceForComponent),
-                map((action) => action.id),
+                map((action) => ({ id: action.id, componentType: action.componentType })),
                 concatLatestFrom(() => this.store.select(selectCurrentProcessGroupId)),
-                tap(([componentId, processGroupId]) => {
+                tap(([{ id: componentId, componentType }, processGroupId]) => {
                     this.router.navigate(['/provenance'], {
                         queryParams: { componentId },
                         state: {
                             backNavigation: {
-                                route: ['/process-groups', processGroupId, ComponentType.Processor, componentId],
+                                route: ['/process-groups', processGroupId, componentType, componentId],
                                 routeBoundary: ['/provenance'],
-                                context: 'Processor'
+                                context: this.componentTypeNamePipe.transform(componentType)
                             } as BackNavigation
                         }
                     });
