@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.controller;
 
+import org.apache.nifi.authorization.AuthorizationResult;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.RequestAction;
+import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser;
@@ -23,8 +27,16 @@ import org.apache.nifi.c2.protocol.component.api.Bundle;
 import org.apache.nifi.c2.protocol.component.api.ComponentManifest;
 import org.apache.nifi.c2.protocol.component.api.ConnectorDefinition;
 import org.apache.nifi.c2.protocol.component.api.RuntimeManifest;
+import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.manifest.RuntimeManifestService;
+import org.apache.nifi.provenance.ProvenanceAuthorizableFactory;
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.search.SearchResultsDTO;
 import org.apache.nifi.web.search.query.SearchQuery;
 import org.apache.nifi.web.search.query.SearchQueryParser;
@@ -36,14 +48,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -185,6 +201,105 @@ public class ControllerFacadeTest {
         final ConnectorDefinition result = controllerFacade.getConnectorDefinition(TEST_GROUP, TEST_ARTIFACT, TEST_VERSION, TEST_CONNECTOR_TYPE);
 
         assertNull(result);
+    }
+
+    @Test
+    public void testGetProvenanceEventSetsConnectorIdWhenComponentBelongsToConnector() throws IOException {
+        final String componentId = "test-component-id";
+        final String groupId = "test-group-id";
+        final String connectorId = "test-connector-id";
+
+        final ControllerFacade facade = createProvenanceFacade(componentId, groupId, Optional.of(connectorId));
+
+        final ProvenanceEventDTO result = facade.getProvenanceEvent(1L);
+
+        assertNotNull(result);
+        assertEquals(connectorId, result.getConnectorId());
+        assertEquals(groupId, result.getGroupId());
+        assertEquals(componentId, result.getComponentId());
+    }
+
+    @Test
+    public void testGetProvenanceEventConnectorIdIsNullWhenComponentNotManagedByConnector() throws IOException {
+        final String componentId = "test-component-id";
+        final String groupId = "test-group-id";
+
+        final ControllerFacade facade = createProvenanceFacade(componentId, groupId, Optional.empty());
+
+        final ProvenanceEventDTO result = facade.getProvenanceEvent(1L);
+
+        assertNotNull(result);
+        assertNull(result.getConnectorId());
+        assertEquals(groupId, result.getGroupId());
+        assertEquals(componentId, result.getComponentId());
+    }
+
+    /**
+     * Creates a ControllerFacade wired with mocks sufficient to test provenance event creation
+     * through the connectable branch of setComponentDetails.
+     */
+    private ControllerFacade createProvenanceFacade(final String componentId, final String groupId,
+                                                     final Optional<String> connectorIdentifier) throws IOException {
+        // Mock the ProvenanceEventRecord
+        final ProvenanceEventRecord event = mock(ProvenanceEventRecord.class);
+        when(event.getEventId()).thenReturn(1L);
+        when(event.getEventTime()).thenReturn(System.currentTimeMillis());
+        when(event.getEventType()).thenReturn(ProvenanceEventType.CREATE);
+        when(event.getFlowFileUuid()).thenReturn("test-flowfile-uuid");
+        when(event.getFileSize()).thenReturn(1024L);
+        when(event.getComponentId()).thenReturn(componentId);
+        when(event.getComponentType()).thenReturn("TestProcessor");
+        when(event.getUpdatedAttributes()).thenReturn(Map.of());
+        when(event.getPreviousAttributes()).thenReturn(Map.of());
+        when(event.getParentUuids()).thenReturn(List.of());
+        when(event.getChildUuids()).thenReturn(List.of());
+        when(event.getEventDuration()).thenReturn(-1L);
+        when(event.getLineageStartDate()).thenReturn(0L);
+
+        // Mock the ProcessGroup that the connectable belongs to
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getIdentifier()).thenReturn(groupId);
+        when(processGroup.getConnectorIdentifier()).thenReturn(connectorIdentifier);
+
+        // Mock a Connectable found in the flow
+        final Connectable connectable = mock(Connectable.class);
+        when(connectable.getProcessGroup()).thenReturn(processGroup);
+        when(connectable.getName()).thenReturn("Test Component");
+        when(connectable.checkAuthorization(any(), any(), any())).thenReturn(AuthorizationResult.approved());
+
+        // Mock FlowManager
+        final FlowManager flowManager = mock(FlowManager.class);
+        when(flowManager.findConnectable(componentId)).thenReturn(connectable);
+        when(flowManager.getRootGroup()).thenReturn(mock(ProcessGroup.class));
+
+        // Mock ProvenanceRepository
+        final ProvenanceRepository provenanceRepository = mock(ProvenanceRepository.class);
+        when(provenanceRepository.getEvent(eq(1L), any(NiFiUser.class))).thenReturn(event);
+
+        // Mock data authorization as not approved so we skip content availability logic
+        final Authorizable dataAuthorizable = mock(Authorizable.class);
+        when(dataAuthorizable.checkAuthorization(any(), eq(RequestAction.READ), any(NiFiUser.class), any()))
+                .thenReturn(AuthorizationResult.denied("test"));
+
+        // Mock ProvenanceAuthorizableFactory
+        final ProvenanceAuthorizableFactory provenanceAuthorizableFactory = mock(ProvenanceAuthorizableFactory.class);
+        when(provenanceAuthorizableFactory.createLocalDataAuthorizable(componentId)).thenReturn(dataAuthorizable);
+
+        // Mock FlowController
+        final FlowController flowController = mock(FlowController.class);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
+        when(flowController.getProvenanceRepository()).thenReturn(provenanceRepository);
+        when(flowController.getProvenanceAuthorizableFactory()).thenReturn(provenanceAuthorizableFactory);
+
+        // Mock Authorizer
+        final Authorizer authorizer = mock(Authorizer.class);
+
+        // Build the ControllerFacade
+        final ControllerFacade facade = new ControllerFacade();
+        facade.setFlowController(flowController);
+        facade.setAuthorizer(authorizer);
+
+        return facade;
     }
 }
 
