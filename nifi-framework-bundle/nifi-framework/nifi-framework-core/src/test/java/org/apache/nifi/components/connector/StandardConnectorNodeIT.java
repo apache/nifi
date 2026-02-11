@@ -29,6 +29,7 @@ import org.apache.nifi.components.connector.secrets.ParameterProviderSecretsMana
 import org.apache.nifi.components.connector.secrets.SecretsManager;
 import org.apache.nifi.components.connector.services.CounterService;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.validation.StandardVerifiableComponentFactory;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
@@ -138,11 +139,14 @@ public class StandardConnectorNodeIT {
         final LifecycleStateManager lifecycleStateManager = new StandardLifecycleStateManager();
         final ReloadComponent reloadComponent = mock(ReloadComponent.class);
 
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties");
+
         final FlowController flowController = mock(FlowController.class);
         when(flowController.isInitialized()).thenReturn(true);
         when(flowController.getExtensionManager()).thenReturn(extensionManager);
         when(flowController.getStateManagerProvider()).thenReturn(stateManagerProvider);
         when(flowController.getReloadComponent()).thenReturn(reloadComponent);
+        when(flowController.getVerifiableComponentFactory()).thenReturn(new StandardVerifiableComponentFactory(flowController, nifiProperties));
 
         final RepositoryContextFactory repoContextFactory = mock(RepositoryContextFactory.class);
         final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
@@ -166,8 +170,6 @@ public class StandardConnectorNodeIT {
         doAnswer(invocation -> {
             return createConnection(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2), invocation.getArgument(3), invocation.getArgument(4));
         }).when(flowController).createConnection(anyString(), nullable(String.class), any(Connectable.class), any(Connectable.class), anyCollection());
-
-        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties("src/test/resources/conf/nifi.properties");
 
         final FlowFileEventRepository flowFileEventRepository = mock(FlowFileEventRepository.class);
         final ParameterContextManager parameterContextManager = mock(ParameterContextManager.class);

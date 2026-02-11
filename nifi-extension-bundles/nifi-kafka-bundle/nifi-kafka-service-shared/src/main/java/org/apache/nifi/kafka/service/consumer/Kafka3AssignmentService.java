@@ -22,6 +22,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.nifi.kafka.service.api.common.PartitionState;
+import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
@@ -30,6 +31,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.OptionalLong;
 import java.util.Set;
 
 public class Kafka3AssignmentService implements KafkaConsumerService {
@@ -79,6 +81,10 @@ public class Kafka3AssignmentService implements KafkaConsumerService {
         return topicPartitions.stream()
             .map(tp -> new PartitionState(tp.topic(), tp.partition()))
             .toList();
+    }
+
+    public OptionalLong currentLag(final TopicPartitionSummary topicPartitionSummary) {
+        return OptionalLong.empty();
     }
 
     @Override

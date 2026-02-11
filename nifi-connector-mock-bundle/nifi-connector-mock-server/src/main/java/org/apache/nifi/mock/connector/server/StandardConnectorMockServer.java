@@ -46,6 +46,7 @@ import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.metrics.DefaultComponentMetricReporter;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
 import org.apache.nifi.controller.status.history.StatusHistoryDumpFactory;
@@ -110,6 +111,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             nifiProperties,
             authorizer,
             auditService,
+            new DefaultComponentMetricReporter(),
             propertyEncryptor,
             bulletinRepository,
             extensionManager,

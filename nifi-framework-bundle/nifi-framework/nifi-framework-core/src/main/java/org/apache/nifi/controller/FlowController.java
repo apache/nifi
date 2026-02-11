@@ -600,7 +600,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         parameterContextManager = new StandardParameterContextManager();
         final long maxAppendableBytes = getMaxAppendableBytes();
         repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository,
-            counterRepositoryRef.get(), provenanceRepository, stateManagerProvider, maxAppendableBytes);
+            counterRepositoryRef.get(), componentMetricReporter, provenanceRepository, stateManagerProvider, maxAppendableBytes);
 
         assetManager = createAssetManager(
             nifiProperties,
@@ -697,7 +697,6 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
 
         this.snippetManager = new SnippetManager();
-        this.reloadComponent = new StandardReloadComponent(this);
         this.verifiableComponentFactory = new StandardVerifiableComponentFactory(this, this.nifiProperties);
 
         final ProcessGroup rootGroup = flowManager.createProcessGroup(ComponentIdGenerator.generateId().toString());
