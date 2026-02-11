@@ -41,6 +41,7 @@ export interface ProvenanceEventRequest {
 export interface GoToProvenanceEventSourceRequest {
     eventId?: number;
     componentId?: string;
+    componentType?: string;
     groupId?: string;
     clusterNodeId?: string;
 }

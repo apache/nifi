@@ -120,6 +120,7 @@ import {
 } from '../../../../state/shared';
 import { ErrorContext } from '../../../../state/error';
 import { CopyResponseContext, CopyResponseEntity } from '../../../../state/copy';
+import { ComponentType } from '@nifi/shared';
 
 const CANVAS_PREFIX = '[Canvas]';
 
@@ -608,7 +609,7 @@ export const renderConnectionsForComponent = createAction(
 
 export const navigateToProvenanceForComponent = createAction(
     `${CANVAS_PREFIX} Navigate To Provenance For Component`,
-    props<{ id: string }>()
+    props<{ id: string; componentType: ComponentType }>()
 );
 
 export const replayLastProvenanceEvent = createAction(

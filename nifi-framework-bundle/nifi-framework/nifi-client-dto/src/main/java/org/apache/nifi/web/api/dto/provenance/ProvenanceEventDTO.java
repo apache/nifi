@@ -49,6 +49,7 @@ public class ProvenanceEventDTO {
     private String clusterNodeAddress; // include when clustered
 
     private String groupId;
+    private String connectorId;
     private String componentId;
     private String componentType;
     private String componentName;
@@ -215,6 +216,19 @@ public class ProvenanceEventDTO {
 
     public void setGroupId(String groupId) {
         this.groupId = groupId;
+    }
+
+    /**
+     * @return id of the Connector that manages the component that generated this event, or {@code null} if the component is not managed by a Connector
+     */
+    @Schema(description = "The id of the connector that manages the component that generated the event. If the component is not managed by a connector, this will not be set."
+    )
+    public String getConnectorId() {
+        return connectorId;
+    }
+
+    public void setConnectorId(String connectorId) {
+        this.connectorId = connectorId;
     }
 
     /**

@@ -1864,7 +1864,9 @@ public class ControllerFacade implements Authorizable {
 
         final Connectable connectable = findLocalConnectable(dto.getComponentId());
         if (connectable != null) {
-            dto.setGroupId(connectable.getProcessGroup().getIdentifier());
+            final ProcessGroup connectableGroup = connectable.getProcessGroup();
+            dto.setGroupId(connectableGroup.getIdentifier());
+            connectableGroup.getConnectorIdentifier().ifPresent(dto::setConnectorId);
 
             // if the user is approved for this component policy, provide additional details, otherwise override/redact as necessary
             if (Result.Approved.equals(connectable.checkAuthorization(authorizer, RequestAction.READ, user).getResult())) {
@@ -1880,7 +1882,13 @@ public class ControllerFacade implements Authorizable {
 
         final RemoteGroupPort remoteGroupPort = root.findRemoteGroupPort(dto.getComponentId());
         if (remoteGroupPort != null) {
-            dto.setGroupId(remoteGroupPort.getProcessGroupIdentifier());
+            final String remoteGroupPortGroupId = remoteGroupPort.getProcessGroupIdentifier();
+            dto.setGroupId(remoteGroupPortGroupId);
+
+            final ProcessGroup remotePortGroup = root.findProcessGroup(remoteGroupPortGroupId);
+            if (remotePortGroup != null) {
+                remotePortGroup.getConnectorIdentifier().ifPresent(dto::setConnectorId);
+            }
 
             // if the user is approved for this component policy, provide additional details, otherwise override/redact as necessary
             if (Result.Approved.equals(remoteGroupPort.checkAuthorization(authorizer, RequestAction.READ, user).getResult())) {
@@ -1895,7 +1903,9 @@ public class ControllerFacade implements Authorizable {
 
         final Connection connection = root.findConnection(dto.getComponentId());
         if (connection != null) {
-            dto.setGroupId(connection.getProcessGroup().getIdentifier());
+            final ProcessGroup connectionGroup = connection.getProcessGroup();
+            dto.setGroupId(connectionGroup.getIdentifier());
+            connectionGroup.getConnectorIdentifier().ifPresent(dto::setConnectorId);
 
             // if the user is approved for this component policy, provide additional details, otherwise override/redact as necessary
             if (Result.Approved.equals(connection.checkAuthorization(authorizer, RequestAction.READ, user).getResult())) {
