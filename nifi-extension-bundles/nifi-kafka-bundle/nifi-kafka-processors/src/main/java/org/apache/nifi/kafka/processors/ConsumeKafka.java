@@ -335,6 +335,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private static final Set<Relationship> SUCCESS_RELATIONSHIP = Set.of(SUCCESS);
     private static final Set<Relationship> SUCCESS_FAILURE_RELATIONSHIPS = Set.of(SUCCESS, PARSE_FAILURE);
+    private static final String METRIC_CURRENT_LAG_RECORDS = "topic.%s.partition.%d.currentLagRecords";
 
     private volatile Charset headerEncoding;
     private volatile Pattern headerNamePattern;
@@ -508,24 +509,17 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     }
 
     private void reportCurrentLag(final KafkaConsumerService consumerService, final ProcessSession session, final Set<TopicPartitionSummary> topicPartitionSummaries) {
-        Map<TopicPartitionSummary, OptionalLong> topicPartitionLag =
-                topicPartitionSummaries.stream()
-                        .map(ps -> new TopicPartitionSummary(ps.getTopic(), ps.getPartition()))
-                        .collect(Collectors.toMap(
-                                Function.identity(),
-                                tps -> consumerService.currentLag(tps)
-                        ));
-
-        topicPartitionLag.forEach((tps, lag) -> {
-            if (lag.isPresent()) {
-                final String gaugeName = makeLagMetricName(tps);
+        for (final TopicPartitionSummary topicPartitionSummary : topicPartitionSummaries) {
+            OptionalLong lag = consumerService.currentLag(topicPartitionSummary);
+            if(lag.isPresent()) {
+                final String gaugeName = makeLagMetricName(topicPartitionSummary);
                 session.recordGauge(gaugeName, lag.getAsLong(), CommitTiming.NOW);
             }
-        });
+        }
     }
 
     String makeLagMetricName(final TopicPartitionSummary tps) {
-        return "consume.kafka." + tps.getTopic() + "." + tps.getPartition() + ".currentLag";
+        return METRIC_CURRENT_LAG_RECORDS.formatted(tps.getTopic(), tps.getPartition());
     }
 
     private void commitOffsets(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext, final ProcessSession session) {
@@ -721,6 +715,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         private final Iterator<ByteRecord> delegate;
         private final Set<TopicPartitionSummary> topicPartitionSummaries = new HashSet<>();
+        private TopicPartitionSummary lastTopicPartition;
 
         TopicPartitionScanningIterator(Iterator<ByteRecord> delegate) {
             this.delegate = delegate;
@@ -734,13 +729,21 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         @Override
         public ByteRecord next() {
             ByteRecord record = delegate.next();
-            topicPartitionSummaries.add(new TopicPartitionSummary(record.getTopic(), record.getPartition()));
+            // avoid unnecessary TopicPartitionSummary object creation. Create one only if last one is different from the current one
+            if (lastTopicPartition == null || !lastTopicPartitionEquals(record.getTopic(), record.getPartition())) {
+                final TopicPartitionSummary tps = new TopicPartitionSummary(record.getTopic(), record.getPartition());
+                topicPartitionSummaries.add(tps);
+                lastTopicPartition = tps;
+            }
             return record;
-
         }
 
         public Set<TopicPartitionSummary> getTopicPartitionSummaries() {
             return topicPartitionSummaries;
+        }
+
+        private boolean lastTopicPartitionEquals(final String topic, final int partition){
+            return lastTopicPartition.getTopic().equals(topic) && lastTopicPartition.getPartition() == partition;
         }
     }
 }
