@@ -257,6 +257,7 @@ public class ExtensionBuilder {
 
     public ExtensionBuilder verifiableComponentFactory(final VerifiableComponentFactory verifiableComponentFactory) {
         this.verifiableComponentFactory = verifiableComponentFactory;
+        return this;
     }
 
     public ExtensionBuilder managedProcessGroup(final ProcessGroup managedProcessGroup) {
