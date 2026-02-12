@@ -20,6 +20,7 @@ package org.apache.nifi.mock.connector.server;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.processor.Processor;
@@ -44,6 +45,19 @@ public class MockExtensionDiscoveringManager extends StandardExtensionDiscoverin
 
         mockComponentClassLoaders.put(mockProcessorClass.getName(), mockProcessorClass.getClassLoader());
         registerExtensionClass(Processor.class, mockProcessorClass.getName(), mockBundle);
+    }
+
+    public synchronized void addControllerService(final Class<? extends ControllerService> mockControllerServiceClass) {
+        final BundleDetails bundleDetails = new BundleDetails.Builder()
+            .workingDir(new File("target/work/extensions/mock-bundle"))
+            .coordinate(new BundleCoordinate("org.apache.nifi.mock", mockControllerServiceClass.getName(), "1.0.0"))
+            .build();
+
+        final Bundle mockBundle = new Bundle(bundleDetails, mockControllerServiceClass.getClassLoader());
+        discoverExtensions(Set.of(mockBundle));
+
+        mockComponentClassLoaders.put(mockControllerServiceClass.getName(), mockControllerServiceClass.getClassLoader());
+        registerExtensionClass(ControllerService.class, mockControllerServiceClass.getName(), mockBundle);
     }
 
     @Override

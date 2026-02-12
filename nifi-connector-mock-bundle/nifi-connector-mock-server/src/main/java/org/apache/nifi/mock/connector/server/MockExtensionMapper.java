@@ -18,6 +18,7 @@
 package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedProcessor;
 
 import java.util.HashMap;
@@ -26,9 +27,14 @@ import java.util.Map;
 public class MockExtensionMapper {
 
     private final Map<String, String> processorMocks = new HashMap<>();
+    private final Map<String, String> controllerServiceMocks = new HashMap<>();
 
     public void mockProcessor(final String processorType, final String mockProcessorClassName) {
         processorMocks.put(processorType, mockProcessorClassName);
+    }
+
+    public void mockControllerService(final String controllerServiceType, final String mockControllerServiceClassName) {
+        controllerServiceMocks.put(controllerServiceType, mockControllerServiceClassName);
     }
 
     public void mapProcessor(final VersionedProcessor processor) {
@@ -40,5 +46,16 @@ public class MockExtensionMapper {
 
         processor.setType(implementationClassName);
         processor.setBundle(new Bundle("org.apache.nifi.mock", implementationClassName, "1.0.0"));
+    }
+
+    public void mapControllerService(final VersionedControllerService controllerService) {
+        final String type = controllerService.getType();
+        final String implementationClassName = controllerServiceMocks.get(type);
+        if (implementationClassName == null) {
+            return;
+        }
+
+        controllerService.setType(implementationClassName);
+        controllerService.setBundle(new Bundle("org.apache.nifi.mock", implementationClassName, "1.0.0"));
     }
 }

@@ -57,6 +57,7 @@ import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
 import org.apache.nifi.mock.connector.server.secrets.ConnectorTestRunnerSecretsManager;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.BulletinRepository;
@@ -392,6 +393,12 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     public void mockProcessor(final String processorType, final Class<? extends Processor> mockProcessorClass) {
         mockExtensionMapper.mockProcessor(processorType, mockProcessorClass.getName());
         extensionManager.addProcessor(mockProcessorClass);
+    }
+
+    @Override
+    public void mockControllerService(final String controllerServiceType, final Class<? extends ControllerService> mockControllerServiceClass) {
+        mockExtensionMapper.mockControllerService(controllerServiceType, mockControllerServiceClass.getName());
+        extensionManager.addControllerService(mockControllerServiceClass);
     }
 
     @Override

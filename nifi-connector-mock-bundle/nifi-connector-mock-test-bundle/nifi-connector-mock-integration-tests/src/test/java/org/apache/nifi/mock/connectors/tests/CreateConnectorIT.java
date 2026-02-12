@@ -17,14 +17,16 @@
 
 package org.apache.nifi.mock.connectors.tests;
 
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.mock.connector.StandardConnectorTestRunner;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class CreateConnectorIT {
@@ -42,16 +44,18 @@ public class CreateConnectorIT {
     }
 
     @Test
-    public void testConnectorWithMissingBundleThrowsException() {
-        final IllegalStateException exception = assertThrows(IllegalStateException.class, () -> {
-            new StandardConnectorTestRunner.Builder()
+    public void testConnectorWithMissingBundleFailsValidate() throws IOException {
+        
+        try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.MissingBundleConnector")
                 .narLibraryDirectory(new File("target/libDir"))
-                .build();
-        });
+                .build()) {
 
-        final String message = exception.getMessage();
-        assertTrue(message.contains("com.example.nonexistent:missing-nar:1.0.0"), "Expected exception message to contain missing bundle coordinates but was: " + message);
-        assertTrue(message.contains("com.example.nonexistent.MissingProcessor"), "Expected exception message to contain missing processor type but was: " + message);
+            final List<ValidationResult> results = testRunner.validate();
+            assertEquals(results.size(), 1);
+            final String message = results.getFirst().getExplanation();
+            assertTrue(message.contains("com.example.nonexistent:missing-nar:1.0.0"), "Expected exception message to contain missing bundle coordinates but was: " + message);
+            assertTrue(message.contains("com.example.nonexistent.MissingProcessor"), "Expected exception message to contain missing processor type but was: " + message);
+        }
     }
 }
