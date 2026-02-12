@@ -31,6 +31,8 @@ import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
+import software.amazon.awssdk.services.s3.endpoints.S3EndpointParams;
+import software.amazon.awssdk.services.s3.endpoints.S3EndpointProvider;
 import software.amazon.awssdk.services.s3.model.ObjectCannedACL;
 import software.amazon.awssdk.services.s3.model.ServerSideEncryption;
 
@@ -197,13 +199,16 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
     }
 
     @Override
-    protected S3ClientBuilderWrapper createClientBuilder(ProcessContext context) {
+    protected S3ClientBuilderWrapper createClientBuilder(final ProcessContext context) {
         final AmazonS3EncryptionService encryptionService = context.getProperty(ENCRYPTION_SERVICE).asControllerService(AmazonS3EncryptionService.class);
 
         final S3ClientBuilderWrapper clientBuilder = Optional.ofNullable(encryptionService)
                 .map(AmazonS3EncryptionService::createEncryptionClientBuilder)
                 .map(S3ClientBuilderWrapper::new)
-                .orElseGet(() -> new S3ClientBuilderWrapper(S3Client.builder().defaultsMode(DefaultsMode.STANDARD)));
+                .orElseGet(() -> new S3ClientBuilderWrapper(
+                        S3Client.builder()
+                                .defaultsMode(DefaultsMode.STANDARD)
+                                .endpointProvider(createRegionalEndpointProvider())));
 
         final S3Configuration.Builder configurationBuilder = S3Configuration.builder();
 
@@ -221,6 +226,27 @@ public abstract class AbstractS3Processor extends AbstractAwsSyncProcessor<S3Cli
         clientBuilder.serviceConfiguration(configurationBuilder.build());
 
         return clientBuilder;
+    }
+
+    /**
+     * Creates an {@link S3EndpointProvider} that forces regional endpoint resolution for us-east-1
+     * instead of the global endpoint.
+     *
+     * <p>This works around a bug in AWS SDK v2 where {@link DefaultsMode#STANDARD} does not properly configure
+     * regional endpoints for S3 in us-east-1. The SDK's internal {@code UseGlobalEndpointResolver} reads
+     * {@code DEFAULT_S3_US_EAST_1_REGIONAL_ENDPOINT} from the client configuration during
+     * {@code finalizeServiceConfiguration}, but the value is only populated later during
+     * {@code finalizeAwsConfiguration}. As a result, the resolver always reads {@code null} and defaults to
+     * the global endpoint ({@code s3.amazonaws.com}), which causes DNS resolution failures in environments
+     * that configure network rules for the regional endpoint ({@code s3.us-east-1.amazonaws.com}).
+     *
+     * <p>This method wraps the default endpoint provider to override {@link S3EndpointParams#useGlobalEndpoint()}
+     * to {@code false}, ensuring the regional endpoint is always used. This is consistent with the behavior
+     * that {@link DefaultsMode#STANDARD} is supposed to provide.
+     */
+    private static S3EndpointProvider createRegionalEndpointProvider() {
+        final S3EndpointProvider defaultProvider = S3EndpointProvider.defaultProvider();
+        return params -> defaultProvider.resolveEndpoint(params.toBuilder().useGlobalEndpoint(false).build());
     }
 
     protected String getFullControlGranteeSpec(final PropertyContext context, final FlowFile flowFile) {
