@@ -18,12 +18,14 @@
 package org.apache.nifi.components.connector.facades.standalone;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceHierarchy;
 import org.apache.nifi.components.connector.components.ControllerServiceReferenceScope;
 import org.apache.nifi.components.connector.components.ProcessGroupLifecycle;
 import org.apache.nifi.components.connector.components.StatelessGroupLifecycle;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -37,7 +39,9 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -75,13 +79,22 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
 
     private void collectReferencedServices(final ProcessGroup group, final Set<ControllerServiceNode> referencedServices, final boolean recursive) {
         for (final ProcessorNode processor : group.getProcessors()) {
+            final ValidationContext validationContext = createValidationContext(processor);
+
             for (final PropertyDescriptor descriptor : processor.getPropertyDescriptors()) {
                 if (descriptor.getControllerServiceDefinition() == null) {
                     continue;
                 }
 
-                final String serviceId = processor.getProperty(descriptor).getEffectiveValue(group.getParameterContext());
+                final String serviceId = processor.getEffectivePropertyValue(descriptor);
                 if (serviceId == null) {
+                    continue;
+                }
+
+                // Skip properties whose dependencies are not satisfied, as the property is not relevant to the component's functionality
+                if (!validationContext.isDependencySatisfied(descriptor, processor::getPropertyDescriptor)) {
+                    logger.debug("Not enabling Controller Service {} because it is referenced by {} property of {} whose dependencies are not satisfied",
+                        serviceId, descriptor.getName(), processor);
                     continue;
                 }
 
@@ -96,25 +109,16 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
             }
         }
 
+        // Transitively collect services required by the already-referenced services.
+        // ControllerServiceNode.getRequiredControllerServices() already filters based on satisfied property dependencies.
         while (true) {
             final Set<ControllerServiceNode> newlyAddedServices = new HashSet<>();
             for (final ControllerServiceNode service : referencedServices) {
-                for (final PropertyDescriptor descriptor : service.getPropertyDescriptors()) {
-                    if (descriptor.getControllerServiceDefinition() == null) {
-                        continue;
-                    }
-
-                    final String serviceId = service.getProperty(descriptor).getEffectiveValue(group.getParameterContext());
-                    if (serviceId == null) {
-                        continue;
-                    }
-
-                    final ControllerServiceNode referencedService = controllerServiceProvider.getControllerServiceNode(serviceId);
-                    if (referencedService != null && !referencedServices.contains(referencedService)) {
-                        logger.debug("Marking {} as a Referenced Controller Service because it is referenced by {} property of {}",
-                            referencedService, descriptor.getName(), service);
-
-                        newlyAddedServices.add(referencedService);
+                for (final ControllerServiceNode requiredService : service.getRequiredControllerServices()) {
+                    if (!referencedServices.contains(requiredService)) {
+                        logger.debug("Marking {} as a Referenced Controller Service because it is required by {}",
+                            requiredService, service);
+                        newlyAddedServices.add(requiredService);
                     }
                 }
             }
@@ -130,6 +134,15 @@ public class StandaloneProcessGroupLifecycle implements ProcessGroupLifecycle {
                 collectReferencedServices(childGroup, referencedServices, true);
             }
         }
+    }
+
+    private ValidationContext createValidationContext(final ComponentNode component) {
+        final Map<String, String> effectivePropertyValues = new LinkedHashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : component.getEffectivePropertyValues().entrySet()) {
+            effectivePropertyValues.put(entry.getKey().getName(), entry.getValue());
+        }
+
+        return component.createValidationContext(effectivePropertyValues, component.getAnnotationData(), component.getParameterLookup(), false);
     }
 
     @Override
