@@ -582,7 +582,7 @@ class MemoryBoundRecordBufferTest {
     }
 
     @Test
-    void testConsumeRecordsReturnsMinMillisBehindLatest() {
+    void testConsumeRecordsReturnsLastMillisBehindLatest() {
         final ShardBufferId bufferId = recordBuffer.createBuffer(SHARD_ID_1);
 
         recordBuffer.addRecords(bufferId, createTestRecords(1), checkpointer1, 200L);
@@ -592,7 +592,7 @@ class MemoryBoundRecordBufferTest {
         final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
 
         assertEquals(2, result.records().size());
-        assertEquals(200L, result.maxMillisBehindLatest());
+        assertEquals(500L, result.maxMillisBehindLatest());
     }
 
     @Test
@@ -619,7 +619,7 @@ class MemoryBoundRecordBufferTest {
         final ConsumeRecordsResult result = recordBuffer.consumeRecords(lease);
 
         assertEquals(2, result.records().size());
-        assertEquals(300L, result.maxMillisBehindLatest());
+        assertNull(result.maxMillisBehindLatest());
     }
 
     @ParameterizedTest

@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.Random;
@@ -504,17 +503,13 @@ final class MemoryBoundRecordBuffer implements RecordBuffer.ForKinesisClientLibr
             }
 
             final List<KinesisClientRecord> recordsToConsume = new ArrayList<>();
+            Long lastMillisBehindLatest = null;
             for (final RecordBatch batch : inProgressBatches) {
                 recordsToConsume.addAll(batch.records());
+                lastMillisBehindLatest = batch.millisBehindLatest;
             }
 
-            final Long maxMillisBehindLatest = inProgressBatches.stream()
-                    .map(RecordBatch::millisBehindLatest)
-                    .filter(Objects::nonNull)
-                    .min(Long::compareTo)
-                    .orElse(null);
-
-            return new ConsumeRecordsResult(recordsToConsume, maxMillisBehindLatest);
+            return new ConsumeRecordsResult(recordsToConsume, lastMillisBehindLatest);
         }
 
         List<RecordBatch> commitConsumedRecords() {

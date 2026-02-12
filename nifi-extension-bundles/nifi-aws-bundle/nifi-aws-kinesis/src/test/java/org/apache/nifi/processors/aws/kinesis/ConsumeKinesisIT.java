@@ -240,6 +240,12 @@ class ConsumeKinesisIT {
         assertTrue(
                 streamClient.getEnhancedFanOutConsumerNames().isEmpty(),
                 "No enhanced fan-out consumers should be created for Shared Throughput consumer type");
+        final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
+        final String gaugeName = "kinesis.stream." + streamName + ".shard." + shardId + ".millisBehindLatest";
+        final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
+        assertFalse(gaugeValues.isEmpty(), "Expected millisBehindLatest gauge to be recorded");
+
+
     }
 
     @Test
