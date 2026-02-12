@@ -18,6 +18,7 @@
 package org.apache.nifi.mock.connector.server;
 
 import org.apache.nifi.NiFiServer;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.Processor;
 
 import java.io.File;
@@ -29,5 +30,7 @@ public interface ConnectorMockServer extends NiFiServer, ConnectorTestRunner {
     void registerMockBundle(ClassLoader classLoader, File workingDirectory);
 
     void mockProcessor(String processorType, Class<? extends Processor> mockProcessorClass);
+
+    void mockControllerService(String controllerServiceType, Class<? extends ControllerService> mockControllerServiceClass);
 
 }
