@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.Metadata;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.filemetadata.GetFileMetadataByIdScope;
+import com.box.sdkgen.schemas.metadata.Metadata;
+import com.box.sdkgen.schemas.metadatafull.MetadataFull;
+import com.box.sdkgen.schemas.metadatas.Metadatas;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -42,7 +44,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +80,16 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor FETCH_FULL_METADATA = new PropertyDescriptor.Builder()
+            .name("Fetch Full Metadata")
+            .description("When enabled, makes an additional API call for each metadata instance to retrieve full metadata "
+                    + "including custom field values. When disabled, only basic metadata fields ($parent, $template, $scope, $version) "
+                    + "are returned. Enabling this may increase API calls but provides complete metadata information.")
+            .required(true)
+            .defaultValue("true")
+            .allowableValues("true", "false")
+            .build();
+
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("A FlowFile containing the metadata instances records will be routed to this relationship upon successful processing.")
@@ -102,10 +113,11 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
 
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = List.of(
             BOX_CLIENT_SERVICE,
-            FILE_ID
+            FILE_ID,
+            FETCH_FULL_METADATA
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -121,7 +133,7 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -132,30 +144,45 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
         }
 
         final String fileId = context.getProperty(FILE_ID).evaluateAttributeExpressions(flowFile).getValue();
+        final boolean fetchFullMetadata = context.getProperty(FETCH_FULL_METADATA).asBoolean();
 
         try {
-            final BoxFile boxFile = getBoxFile(fileId);
+            final Metadatas metadatas = getFileMetadata(fileId);
 
             final List<Map<String, Object>> instanceList = new ArrayList<>();
-            final Iterable<Metadata> metadataList = boxFile.getAllMetadata();
-            final Iterator<Metadata> iterator = metadataList.iterator();
             final Set<String> templateNames = new LinkedHashSet<>();
 
-            if (!iterator.hasNext()) {
+            if (metadatas.getEntries() == null || metadatas.getEntries().isEmpty()) {
                 flowFile = session.putAttribute(flowFile, "box.id", fileId);
                 flowFile = session.putAttribute(flowFile, "box.metadata.instances.count", "0");
                 session.transfer(flowFile, REL_SUCCESS);
                 return;
             }
 
-            while (iterator.hasNext()) {
-                final Metadata metadata = iterator.next();
+            for (final Metadata metadata : metadatas.getEntries()) {
                 final Map<String, Object> instanceFields = new HashMap<>();
+                final String templateName = metadata.getTemplate();
+                final String scope = metadata.getScope();
 
-                templateNames.add(metadata.getTemplateName());
+                if (templateName != null) {
+                    templateNames.add(templateName);
+                }
 
-                // Add standard metadata fields
-                processBoxMetadataInstance(fileId, metadata, instanceFields);
+                if (fetchFullMetadata && templateName != null && scope != null) {
+                    // Fetch full metadata with all custom fields
+                    final GetFileMetadataByIdScope metadataScope = "global".equalsIgnoreCase(scope)
+                            ? GetFileMetadataByIdScope.GLOBAL
+                            : GetFileMetadataByIdScope.ENTERPRISE;
+                    final MetadataFull fullMetadata = getFileMetadataById(fileId, metadataScope, templateName);
+                    processBoxMetadataInstance(fileId, scope, templateName, fullMetadata, instanceFields);
+                } else {
+                    // Add only basic metadata fields
+                    instanceFields.put("$parent", metadata.getParent());
+                    instanceFields.put("$template", templateName);
+                    instanceFields.put("$scope", scope);
+                    instanceFields.put("$version", metadata.getVersion());
+                }
+
                 instanceList.add(instanceFields);
             }
 
@@ -185,10 +212,11 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
                 session.transfer(flowFile, REL_FAILURE);
             }
 
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        } catch (final BoxAPIError e) {
+            final int statusCode = e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0;
+            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(statusCode));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
-            if (e.getResponseCode() == 404) {
+            if (statusCode == 404) {
                 getLogger().warn("Box file with ID {} was not found.", fileId);
                 session.transfer(flowFile, REL_NOT_FOUND);
             } else {
@@ -203,12 +231,24 @@ public class ListBoxFileMetadataInstances extends AbstractBoxProcessor {
     }
 
     /**
-     * Returns a BoxFile object for the given file ID.
+     * Returns all metadata for a file.
      *
      * @param fileId The ID of the file.
-     * @return A BoxFile object for the given file ID.
+     * @return The metadata for the file.
      */
-    BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
+    Metadatas getFileMetadata(final String fileId) {
+        return boxClient.getFileMetadata().getFileMetadata(fileId);
+    }
+
+    /**
+     * Returns full metadata for a specific template on a file.
+     *
+     * @param fileId      The ID of the file.
+     * @param scope       The scope of the metadata.
+     * @param templateKey The template key of the metadata.
+     * @return The full metadata for the file.
+     */
+    MetadataFull getFileMetadataById(final String fileId, final GetFileMetadataByIdScope scope, final String templateKey) {
+        return boxClient.getFileMetadata().getFileMetadataById(fileId, scope, templateKey);
     }
 }

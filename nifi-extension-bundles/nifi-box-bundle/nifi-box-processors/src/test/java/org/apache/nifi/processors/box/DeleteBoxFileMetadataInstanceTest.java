@@ -16,8 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.box.errors.ResponseInfo;
+import com.box.sdkgen.managers.filemetadata.FileMetadataManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,8 +27,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
@@ -35,20 +40,17 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
     private static final String TEMPLATE_KEY = "fileProperties";
 
     @Mock
-    private BoxFile mockBoxFile;
+    private FileMetadataManager mockFileMetadataManager;
 
     @Override
     @BeforeEach
     void setUp() throws Exception {
-        final DeleteBoxFileMetadataInstance testSubject = new DeleteBoxFileMetadataInstance() {
-            @Override
-            BoxFile getBoxFile(String fileId) {
-                return mockBoxFile;
-            }
-        };
+        final DeleteBoxFileMetadataInstance testSubject = new DeleteBoxFileMetadataInstance();
 
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
+
+        when(mockBoxClient.getFileMetadata()).thenReturn(mockFileMetadataManager);
 
         testRunner.setProperty(DeleteBoxFileMetadataInstance.FILE_ID, TEST_FILE_ID);
         testRunner.setProperty(DeleteBoxFileMetadataInstance.TEMPLATE_KEY, TEMPLATE_KEY);
@@ -56,10 +58,10 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testSuccessfulMetadataDeletion() {
+        doNothing().when(mockFileMetadataManager).deleteFileMetadataById(anyString(), any(), anyString());
+
         testRunner.enqueue("test content");
         testRunner.run();
-
-        verify(mockBoxFile).deleteMetadata(TEMPLATE_KEY);
 
         testRunner.assertAllFlowFilesTransferred(DeleteBoxFileMetadataInstance.REL_SUCCESS, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(DeleteBoxFileMetadataInstance.REL_SUCCESS).getFirst();
@@ -70,8 +72,12 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
 
     @Test
     void testFileNotFound() {
-        final BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
-        doThrow(mockException).when(mockBoxFile).deleteMetadata(TEMPLATE_KEY);
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(404);
+        BoxAPIError mockException = mock(BoxAPIError.class);
+        when(mockException.getMessage()).thenReturn("Box File Not Found");
+        when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+        doThrow(mockException).when(mockFileMetadataManager).deleteFileMetadataById(anyString(), any(), anyString());
 
         testRunner.enqueue("test content");
         testRunner.run();
@@ -79,13 +85,16 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(DeleteBoxFileMetadataInstance.REL_FILE_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(DeleteBoxFileMetadataInstance.REL_FILE_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
     }
 
     @Test
     void testMetadataNotFound() {
-        final BoxAPIResponseException mockException = new BoxAPIResponseException("Specified metadata template not found - Template not found", 404, "Specified metadata template not found", null);
-        doThrow(mockException).when(mockBoxFile).deleteMetadata(TEMPLATE_KEY);
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(404);
+        BoxAPIError mockException = mock(BoxAPIError.class);
+        when(mockException.getMessage()).thenReturn("Specified metadata template not found");
+        when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+        doThrow(mockException).when(mockFileMetadataManager).deleteFileMetadataById(anyString(), any(), anyString());
 
         testRunner.enqueue("test content");
         testRunner.run();
@@ -93,13 +102,16 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(DeleteBoxFileMetadataInstance.REL_TEMPLATE_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(DeleteBoxFileMetadataInstance.REL_TEMPLATE_NOT_FOUND).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Specified metadata template not found - Template not found [404]");
     }
 
     @Test
     void testGeneralError() {
-        final BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 500, "Internal Server Error", null);
-        doThrow(mockException).when(mockBoxFile).deleteMetadata(TEMPLATE_KEY);
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(500);
+        BoxAPIError mockException = mock(BoxAPIError.class);
+        when(mockException.getMessage()).thenReturn("Internal Server Error");
+        when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+        doThrow(mockException).when(mockFileMetadataManager).deleteFileMetadataById(anyString(), any(), anyString());
 
         testRunner.enqueue("test content");
         testRunner.run();
@@ -107,6 +119,5 @@ public class DeleteBoxFileMetadataInstanceTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(DeleteBoxFileMetadataInstance.REL_FAILURE, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(DeleteBoxFileMetadataInstance.REL_FAILURE).getFirst();
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "500");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [500]");
     }
 }

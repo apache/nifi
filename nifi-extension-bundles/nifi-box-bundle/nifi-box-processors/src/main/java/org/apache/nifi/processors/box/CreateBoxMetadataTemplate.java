@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.MetadataTemplate;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.metadatatemplates.CreateMetadataTemplateRequestBody;
+import com.box.sdkgen.managers.metadatatemplates.CreateMetadataTemplateRequestBodyFieldsField;
+import com.box.sdkgen.managers.metadatatemplates.CreateMetadataTemplateRequestBodyFieldsOptionsField;
+import com.box.sdkgen.managers.metadatatemplates.CreateMetadataTemplateRequestBodyFieldsTypeField;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -130,7 +133,7 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
             RECORD_READER
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -144,13 +147,9 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        boxAPIConnection = getBoxAPIConnection(context);
-    }
-
-    protected BoxAPIConnection getBoxAPIConnection(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        return boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -168,7 +167,7 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
         try (final InputStream inputStream = session.read(flowFile);
              final RecordReader recordReader = recordReaderFactory.createRecordReader(flowFile, inputStream, getLogger())) {
 
-            final List<MetadataTemplate.Field> fields = new ArrayList<>();
+            final List<CreateMetadataTemplateRequestBodyFieldsField> fields = new ArrayList<>();
             final List<String> errors = new ArrayList<>();
             final Set<String> processedKeys = new HashSet<>();
 
@@ -194,12 +193,8 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
                 return;
             }
 
-            createBoxMetadataTemplate(
-                    boxAPIConnection,
-                    templateKey,
-                    templateName,
-                    hidden,
-                    fields);
+            createBoxMetadataTemplate(templateKey, templateName, hidden, fields);
+
             final Map<String, String> attributes = new HashMap<>();
             attributes.put("box.template.name", templateName);
             attributes.put("box.template.key", templateKey);
@@ -210,8 +205,9 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
             session.getProvenanceReporter().create(flowFile, "Created Box metadata template: " + templateName);
             session.transfer(flowFile, REL_SUCCESS);
 
-        } catch (final BoxAPIResponseException e) {
-            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        } catch (final BoxAPIError e) {
+            final int statusCode = e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0;
+            flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(statusCode));
             flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
             getLogger().error("Couldn't create metadata template with name [{}]", templateName, e);
             session.transfer(flowFile, REL_FAILURE);
@@ -223,7 +219,7 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
     }
 
     private void processRecord(final Record record,
-                               final List<MetadataTemplate.Field> fields,
+                               final List<CreateMetadataTemplateRequestBodyFieldsField> fields,
                                final Set<String> processedKeys,
                                final List<String> errors) {
         // Extract and validate key (required)
@@ -253,55 +249,62 @@ public class CreateBoxMetadataTemplate extends AbstractBoxProcessor {
             return;
         }
 
-        final MetadataTemplate.Field metadataField = new MetadataTemplate.Field();
-        metadataField.setKey(key);
-        metadataField.setType(normalizedType);
+        final CreateMetadataTemplateRequestBodyFieldsTypeField fieldType = mapToFieldType(normalizedType);
 
+        // Get display name, defaulting to key if not provided
         final Object displayNameObj = record.getValue("displayName");
-        if (displayNameObj != null) {
-            metadataField.setDisplayName(displayNameObj.toString());
-        }
+        final String displayName = displayNameObj != null ? displayNameObj.toString() : key;
+
+        final CreateMetadataTemplateRequestBodyFieldsField.Builder fieldBuilder =
+                new CreateMetadataTemplateRequestBodyFieldsField.Builder(fieldType, key, displayName);
 
         final Object hiddenObj = record.getValue("hidden");
         if (hiddenObj != null) {
-            metadataField.setIsHidden(Boolean.parseBoolean(hiddenObj.toString()));
+            fieldBuilder.hidden(Boolean.parseBoolean(hiddenObj.toString()));
         }
 
         final Object descriptionObj = record.getValue("description");
         if (descriptionObj != null) {
-            metadataField.setDescription(descriptionObj.toString());
+            fieldBuilder.description(descriptionObj.toString());
         }
 
         if ("enum".equals(normalizedType) || "multiSelect".equals(normalizedType)) {
             final Object optionsObj = record.getValue("options");
             if (optionsObj instanceof List<?> optionsList) {
-                final List<String> options = optionsList.stream()
-                        .map(obj -> {
-                            if (obj == null) {
-                                throw new IllegalArgumentException("Null option value found for field '" + key + "'");
-                            }
-                            return obj.toString();
-                        })
-                        .toList();
-                metadataField.setOptions(options);
+                final List<CreateMetadataTemplateRequestBodyFieldsOptionsField> options = new ArrayList<>();
+                for (Object obj : optionsList) {
+                    if (obj != null) {
+                        options.add(new CreateMetadataTemplateRequestBodyFieldsOptionsField(obj.toString()));
+                    }
+                }
+                fieldBuilder.options(options);
             }
         }
 
-        fields.add(metadataField);
+        fields.add(fieldBuilder.build());
         processedKeys.add(key);
     }
 
-    protected void createBoxMetadataTemplate(final BoxAPIConnection boxAPIConnection,
-                                             final String templateKey,
+    private CreateMetadataTemplateRequestBodyFieldsTypeField mapToFieldType(final String type) {
+        return switch (type) {
+            case "string" -> CreateMetadataTemplateRequestBodyFieldsTypeField.STRING;
+            case "float" -> CreateMetadataTemplateRequestBodyFieldsTypeField.FLOAT;
+            case "date" -> CreateMetadataTemplateRequestBodyFieldsTypeField.DATE;
+            case "enum" -> CreateMetadataTemplateRequestBodyFieldsTypeField.ENUM;
+            case "multiselect" -> CreateMetadataTemplateRequestBodyFieldsTypeField.MULTISELECT;
+            default -> CreateMetadataTemplateRequestBodyFieldsTypeField.STRING;
+        };
+    }
+
+    protected void createBoxMetadataTemplate(final String templateKey,
                                              final String templateName,
                                              final boolean isHidden,
-                                             final List<MetadataTemplate.Field> fields) {
-        MetadataTemplate.createMetadataTemplate(
-                boxAPIConnection,
-                CreateBoxMetadataTemplate.SCOPE_ENTERPRISE,
-                templateKey,
-                templateName,
-                isHidden,
-                fields);
+                                             final List<CreateMetadataTemplateRequestBodyFieldsField> fields) {
+        final CreateMetadataTemplateRequestBody requestBody = new CreateMetadataTemplateRequestBody.Builder(SCOPE_ENTERPRISE, templateName)
+                .templateKey(templateKey)
+                .hidden(isHidden)
+                .fields(fields)
+                .build();
+        boxClient.getMetadataTemplates().createMetadataTemplate(requestBody);
     }
 }

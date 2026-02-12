@@ -16,11 +16,16 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIException;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxFile.Info;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.files.GetFileByIdQueryParams;
+import com.box.sdkgen.networking.fetchoptions.FetchOptions;
+import com.box.sdkgen.networking.fetchoptions.ResponseFormat;
+import com.box.sdkgen.networking.fetchresponse.FetchResponse;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.filefull.FileFullRepresentationsEntriesContentField;
+import com.box.sdkgen.schemas.filefull.FileFullRepresentationsEntriesField;
+import com.box.sdkgen.schemas.filefull.FileFullRepresentationsField;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -43,6 +48,7 @@ import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +65,6 @@ import static org.apache.nifi.components.ConfigVerificationResult.Outcome;
         @WritesAttribute(attribute = "box.file.size", description = "The size of the Box file in bytes."),
         @WritesAttribute(attribute = "box.file.created.time", description = "The timestamp when the file was created."),
         @WritesAttribute(attribute = "box.file.modified.time", description = "The timestamp when the file was last modified."),
-        @WritesAttribute(attribute = "box.file.mime.type", description = "The MIME type of the file."),
         @WritesAttribute(attribute = "box.file.representation.type", description = "The representation type that was fetched."),
         @WritesAttribute(attribute = "box.error.message", description = "The error message returned by Box if the operation fails."),
         @WritesAttribute(attribute = "box.error.code", description = "The error code returned by Box if the operation fails.")
@@ -119,14 +124,7 @@ public class FetchBoxFileRepresentation extends AbstractBoxProcessor implements 
             REL_REPRESENTATION_NOT_FOUND
     );
 
-    /*
-     * The maximum number of retries for polling the status of the generated representation.
-     * Each retry waits for 100 milliseconds before the next attempt, set in the Box SDK.
-     * Total wait time is 5 seconds.
-     */
-    private static final int MAX_RETRIES = 50;
-
-    private volatile BoxAPIConnection boxAPIConnection;
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -142,7 +140,7 @@ public class FetchBoxFileRepresentation extends AbstractBoxProcessor implements 
     public void onScheduled(final ProcessContext context) {
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -157,60 +155,83 @@ public class FetchBoxFileRepresentation extends AbstractBoxProcessor implements 
         final String representationType = context.getProperty(REPRESENTATION_TYPE).evaluateAttributeExpressions(flowFile).getValue();
 
         try {
-            final BoxFile boxFile = getBoxFile(fileId);
-            final Info fileInfo = boxFile.getInfo();
+            // Get file info with representations
+            final GetFileByIdQueryParams queryParams = new GetFileByIdQueryParams.Builder()
+                    .fields(List.of("id", "name", "size", "created_at", "modified_at", "representations"))
+                    .build();
+            final FileFull fileInfo = boxClient.getFiles().getFileById(fileId, queryParams);
 
-            flowFile = session.write(flowFile, outputStream ->
-                    // Download the file representation, box sdk handles a request to create representation if it doesn't exist
-                    boxFile.getRepresentationContent("[" + representationType + "]", "", outputStream, MAX_RETRIES)
-            );
+            // Find the matching representation
+            final String representationUrl = findRepresentationUrl(fileInfo, representationType);
+            if (representationUrl == null) {
+                logger.warn("Representation {} is not available for file {}", representationType, fileId);
+                flowFile = session.putAttribute(flowFile, "box.error.message", "No matching representation found");
+                session.transfer(flowFile, REL_REPRESENTATION_NOT_FOUND);
+                return;
+            }
+
+            // Download the representation content using Box SDK's network client
+            final FetchOptions fetchOptions = new FetchOptions.Builder(representationUrl, "GET")
+                    .responseFormat(ResponseFormat.BINARY)
+                    .build();
+            final FetchResponse response = boxClient.makeRequest(fetchOptions);
+
+            flowFile = session.write(flowFile, outputStream -> {
+                try (InputStream is = response.getContent()) {
+                    is.transferTo(outputStream);
+                } catch (Exception e) {
+                    throw new ProcessException("Failed to download representation content", e);
+                }
+            });
 
             flowFile = session.putAllAttributes(flowFile, Map.of(
                     "box.id", fileId,
                     "box.file.name", fileInfo.getName(),
                     "box.file.size", String.valueOf(fileInfo.getSize()),
-                    "box.file.created.time", fileInfo.getCreatedAt().toString(),
-                    "box.file.modified.time", fileInfo.getModifiedAt().toString(),
-                    "box.file.mime.type", fileInfo.getType(),
+                    "box.file.created.time", fileInfo.getCreatedAt() != null ? fileInfo.getCreatedAt().toString() : "",
+                    "box.file.modified.time", fileInfo.getModifiedAt() != null ? fileInfo.getModifiedAt().toString() : "",
                     "box.file.representation.type", representationType
             ));
 
             session.getProvenanceReporter().fetch(flowFile, BOX_FILE_URI.formatted(fileId, representationType));
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (final BoxAPIResponseException e) {
+        } catch (final BoxAPIError e) {
             flowFile = session.putAttribute(flowFile, "box.error.message", e.getMessage());
-            flowFile = session.putAttribute(flowFile, "box.error.code", String.valueOf(e.getResponseCode()));
+            if (e.getResponseInfo() != null) {
+                flowFile = session.putAttribute(flowFile, "box.error.code", String.valueOf(e.getResponseInfo().getStatusCode()));
 
-            if (e.getResponseCode() == 404) {
-                logger.warn("Box file with ID {} was not found or representation {} is not available", fileId, representationType);
-                session.transfer(flowFile, REL_FILE_NOT_FOUND);
-            } else {
-                logger.error("Failed to retrieve Box file representation for file [{}]", fileId, e);
-                session.transfer(flowFile, REL_FAILURE);
+                if (e.getResponseInfo().getStatusCode() == 404) {
+                    logger.warn("Box file with ID {} was not found", fileId);
+                    session.transfer(flowFile, REL_FILE_NOT_FOUND);
+                    return;
+                }
             }
-        } catch (final BoxAPIException e) {
+            logger.error("Failed to retrieve Box file representation for file [{}]", fileId, e);
+            session.transfer(flowFile, REL_FAILURE);
+        } catch (final Exception e) {
             flowFile = session.putAttribute(flowFile, "box.error.message", e.getMessage());
-            flowFile = session.putAttribute(flowFile, "box.error.code", String.valueOf(e.getResponseCode()));
-
-            // Check if this is the "No matching representations found" error
-            if (e.getMessage() != null && e.getMessage().toLowerCase().startsWith("no matching representations found for requested")) {
-                logger.warn("Representation {} is not available for file {}: {}", representationType, fileId, e.getMessage());
-                session.transfer(flowFile, REL_REPRESENTATION_NOT_FOUND);
-            } else {
-                logger.error("BoxAPIException while retrieving file [{}]", fileId, e);
-                session.transfer(flowFile, REL_FAILURE);
-            }
+            logger.error("Error while retrieving file [{}]", fileId, e);
+            session.transfer(flowFile, REL_FAILURE);
         }
     }
 
-    /**
-     * Get BoxFile object for the given fileId. Required for testing purposes to mock BoxFile.
-     *
-     * @param fileId fileId
-     * @return BoxFile object
-     */
-    protected BoxFile getBoxFile(final String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
+    private String findRepresentationUrl(final FileFull fileInfo, final String representationType) {
+        final FileFullRepresentationsField representations = fileInfo.getRepresentations();
+        if (representations == null || representations.getEntries() == null) {
+            return null;
+        }
+
+        for (FileFullRepresentationsEntriesField entry : representations.getEntries()) {
+            final String repType = entry.getRepresentation();
+            if (repType != null && repType.toLowerCase().contains(representationType.toLowerCase())) {
+                final FileFullRepresentationsEntriesContentField content = entry.getContent();
+                if (content != null && content.getUrlTemplate() != null) {
+                    // The URL template usually has a {+asset_path} placeholder
+                    return content.getUrlTemplate().replace("{+asset_path}", "");
+                }
+            }
+        }
+        return null;
     }
 
     @Override
@@ -220,10 +241,11 @@ public class FetchBoxFileRepresentation extends AbstractBoxProcessor implements 
         final List<ConfigVerificationResult> results = new ArrayList<>();
         final BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE)
                 .asControllerService(BoxClientService.class);
-        final BoxAPIConnection boxAPIConnection = boxClientService.getBoxApiConnection();
+        final BoxClient client = boxClientService.getBoxClient();
 
         try {
-            boxAPIConnection.refresh();
+            // Verify the connection by getting the current user
+            client.getUsers().getUserMe();
             results.add(new ConfigVerificationResult.Builder()
                     .verificationStepName("Box API Connection")
                     .outcome(Outcome.SUCCESSFUL)

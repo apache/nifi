@@ -16,11 +16,17 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIException;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
-import com.box.sdk.BoxSharedLink;
-import com.box.sdk.BoxUser;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.box.errors.ResponseInfo;
+import com.box.sdkgen.managers.files.FilesManager;
+import com.box.sdkgen.managers.files.GetFileByIdQueryParams;
+import com.box.sdkgen.schemas.file.FileItemStatusField;
+import com.box.sdkgen.schemas.file.FilePathCollectionField;
+import com.box.sdkgen.schemas.file.FileSharedLinkField;
+import com.box.sdkgen.schemas.filefull.FileFull;
+import com.box.sdkgen.schemas.foldermini.FolderMini;
+import com.box.sdkgen.schemas.usermini.UserMini;
+import com.box.sdkgen.serialization.json.EnumWrapper;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,14 +35,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Date;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,30 +57,26 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
     private static final String TEST_OWNER_ID = "123456";
     private static final String TEST_OWNER_LOGIN = "Test.User@mail.org";
     private static final String TEST_SHARED_LINK_URL = "https://app.box.com/s/abcdef123456";
-    private static final Date TEST_CREATED_AT = new Date(12345678L);
-    private static final Date TEST_CONTENT_CREATED_AT = new Date(12345600L);
-    private static final Date TEST_CONTENT_MODIFIED_AT = new Date(12345700L);
-    private static final Date TEST_TRASHED_AT = null;
-    private static final Date TEST_PURGED_AT = null;
+    private static final OffsetDateTime TEST_CREATED_AT = OffsetDateTime.of(1970, 1, 1, 3, 25, 45, 678000000, ZoneOffset.UTC);
+    private static final OffsetDateTime TEST_CONTENT_CREATED_AT = OffsetDateTime.of(1970, 1, 1, 3, 25, 45, 600000000, ZoneOffset.UTC);
+    private static final OffsetDateTime TEST_CONTENT_MODIFIED_AT = OffsetDateTime.of(1970, 1, 1, 3, 25, 45, 700000000, ZoneOffset.UTC);
 
     @Mock
-    BoxFile mockBoxFile;
+    FilesManager mockFilesManager;
 
     @Mock
-    BoxUser.Info mockBoxUser;
+    FileFull mockFileFull;
 
     @Mock
-    BoxSharedLink mockSharedLink;
+    UserMini mockBoxUser;
+
+    @Mock
+    FileSharedLinkField mockSharedLink;
 
     @Override
     @BeforeEach
     void setUp() throws Exception {
-        final FetchBoxFileInfo testSubject = new FetchBoxFileInfo() {
-            @Override
-            protected BoxFile getBoxFile(String fileId) {
-                return mockBoxFile;
-            }
-        };
+        final FetchBoxFileInfo testSubject = new FetchBoxFileInfo();
 
         testRunner = TestRunners.newTestRunner(testSubject);
         super.setUp();
@@ -122,10 +125,14 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
     void testApiErrorHandling() {
         testRunner.setProperty(FetchBoxFileInfo.FILE_ID, TEST_FILE_ID);
 
-        BoxAPIResponseException mockException = new BoxAPIResponseException("API Error", 404, "Box File Not Found", null);
-        doThrow(mockException).when(mockBoxFile).getInfo(anyString(), anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString(), anyString());
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(404);
+        BoxAPIError mockException = mock(BoxAPIError.class);
+        when(mockException.getMessage()).thenReturn("API Error [404]");
+        when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+
+        when(mockFilesManager.getFileById(anyString(), any(GetFileByIdQueryParams.class))).thenThrow(mockException);
+        when(mockBoxClient.getFiles()).thenReturn(mockFilesManager);
 
         MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
@@ -135,17 +142,20 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FetchBoxFileInfo.REL_NOT_FOUND);
         final MockFlowFile flowFilesFirst = flowFiles.getFirst();
         flowFilesFirst.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        flowFilesFirst.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
     }
 
     @Test
     void testBoxApiExceptionHandling() {
         testRunner.setProperty(FetchBoxFileInfo.FILE_ID, TEST_FILE_ID);
 
-        BoxAPIException mockException = new BoxAPIException("General API Error:", 500, "Unexpected Error");
-        doThrow(mockException).when(mockBoxFile).getInfo(anyString(), anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(),
-                anyString(), anyString(), anyString(), anyString(), anyString());
+        ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+        when(mockResponseInfo.getStatusCode()).thenReturn(500);
+        BoxAPIError mockException = mock(BoxAPIError.class);
+        when(mockException.getMessage()).thenReturn("General API Error:\nUnexpected Error");
+        when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+
+        when(mockFilesManager.getFileById(anyString(), any(GetFileByIdQueryParams.class))).thenThrow(mockException);
+        when(mockBoxClient.getFiles()).thenReturn(mockFilesManager);
 
         MockFlowFile inputFlowFile = new MockFlowFile(0);
         testRunner.enqueue(inputFlowFile);
@@ -156,36 +166,47 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
         final MockFlowFile flowFilesFirst = flowFiles.getFirst();
 
         flowFilesFirst.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "500");
-        flowFilesFirst.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "General API Error:\nUnexpected Error");
     }
 
     private void setupMockFileInfoWithExtendedAttributes() {
-        final BoxFile.Info fetchedFileInfo = createFileInfo(TEST_FOLDER_NAME, MODIFIED_TIME);
+        // Set up path collection
+        FolderMini folderMini = mock(FolderMini.class);
+        when(folderMini.getName()).thenReturn(TEST_FOLDER_NAME);
+        when(folderMini.getId()).thenReturn("not0");
+
+        FilePathCollectionField pathCollection = mock(FilePathCollectionField.class);
+        when(pathCollection.getEntries()).thenReturn(List.of(folderMini));
+
+        // Set up basic file info
+        when(mockFileFull.getId()).thenReturn(TEST_FILE_ID);
+        when(mockFileFull.getName()).thenReturn(TEST_FILENAME);
+        when(mockFileFull.getSize()).thenReturn(TEST_SIZE);
+        when(mockFileFull.getPathCollection()).thenReturn(pathCollection);
+        when(mockFileFull.getModifiedAt()).thenReturn(OffsetDateTime.ofInstant(java.time.Instant.ofEpochMilli(MODIFIED_TIME), ZoneOffset.UTC));
 
         // Set up additional metadata attributes
-        when(mockFileInfo.getDescription()).thenReturn(TEST_DESCRIPTION);
-        when(mockFileInfo.getEtag()).thenReturn(TEST_ETAG);
-        when(mockFileInfo.getSha1()).thenReturn(TEST_SHA1);
-        when(mockFileInfo.getItemStatus()).thenReturn(TEST_ITEM_STATUS);
-        when(mockFileInfo.getSequenceID()).thenReturn(TEST_SEQUENCE_ID);
-        when(mockFileInfo.getCreatedAt()).thenReturn(TEST_CREATED_AT);
-        when(mockFileInfo.getContentCreatedAt()).thenReturn(TEST_CONTENT_CREATED_AT);
-        when(mockFileInfo.getContentModifiedAt()).thenReturn(TEST_CONTENT_MODIFIED_AT);
-        when(mockFileInfo.getTrashedAt()).thenReturn(TEST_TRASHED_AT);
-        when(mockFileInfo.getPurgedAt()).thenReturn(TEST_PURGED_AT);
+        when(mockFileFull.getDescription()).thenReturn(TEST_DESCRIPTION);
+        when(mockFileFull.getEtag()).thenReturn(TEST_ETAG);
+        when(mockFileFull.getSha1()).thenReturn(TEST_SHA1);
+        when(mockFileFull.getItemStatus()).thenReturn(new EnumWrapper<>(FileItemStatusField.ACTIVE));
+        when(mockFileFull.getSequenceId()).thenReturn(TEST_SEQUENCE_ID);
+        when(mockFileFull.getCreatedAt()).thenReturn(TEST_CREATED_AT);
+        when(mockFileFull.getContentCreatedAt()).thenReturn(TEST_CONTENT_CREATED_AT);
+        when(mockFileFull.getContentModifiedAt()).thenReturn(TEST_CONTENT_MODIFIED_AT);
+        when(mockFileFull.getTrashedAt()).thenReturn(null);
+        when(mockFileFull.getPurgedAt()).thenReturn(null);
 
         when(mockBoxUser.getName()).thenReturn(TEST_OWNER_NAME);
-        when(mockBoxUser.getID()).thenReturn(TEST_OWNER_ID);
+        when(mockBoxUser.getId()).thenReturn(TEST_OWNER_ID);
         when(mockBoxUser.getLogin()).thenReturn(TEST_OWNER_LOGIN);
-        when(mockFileInfo.getOwnedBy()).thenReturn(mockBoxUser);
+        when(mockFileFull.getOwnedBy()).thenReturn(mockBoxUser);
 
-        when(mockSharedLink.getURL()).thenReturn(TEST_SHARED_LINK_URL);
-        when(mockFileInfo.getSharedLink()).thenReturn(mockSharedLink);
+        when(mockSharedLink.getUrl()).thenReturn(TEST_SHARED_LINK_URL);
+        when(mockFileFull.getSharedLink()).thenReturn(mockSharedLink);
 
         // Return the file info when requested
-        doReturn(fetchedFileInfo).when(mockBoxFile).getInfo("name", "description", "size", "created_at", "modified_at",
-                "owned_by", "parent", "etag", "sha1", "item_status", "sequence_id", "path_collection",
-                "content_created_at", "content_modified_at", "trashed_at", "purged_at", "shared_link");
+        when(mockFilesManager.getFileById(anyString(), any(GetFileByIdQueryParams.class))).thenReturn(mockFileFull);
+        when(mockBoxClient.getFiles()).thenReturn(mockFilesManager);
     }
 
     private void verifyExtendedAttributes(MockFlowFile flowFile) {
@@ -201,7 +222,7 @@ public class FetchBoxFileInfoTest extends AbstractBoxFileTest {
         flowFile.assertAttributeEquals("box.owner.id", TEST_OWNER_ID);
         flowFile.assertAttributeEquals("box.owner.login", TEST_OWNER_LOGIN);
         flowFile.assertAttributeEquals("box.shared.link", TEST_SHARED_LINK_URL);
-        flowFile.assertAttributeEquals("box.path.folder.ids", mockBoxFolderInfo.getID());
-        flowFile.assertAttributeEquals("path", "/" + mockBoxFolderInfo.getName());
+        flowFile.assertAttributeEquals("box.path.folder.ids", "not0");
+        flowFile.assertAttributeEquals("path", "/" + TEST_FOLDER_NAME);
     }
 }

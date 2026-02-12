@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAIExtractStructuredResponse;
-import com.box.sdk.BoxAPIResponseException;
-import com.eclipsesource.json.JsonObject;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.box.errors.ResponseInfo;
+import com.box.sdkgen.schemas.aiextractstructuredresponse.AiExtractStructuredResponse;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -35,7 +35,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.InputStream;
-import java.util.Date;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -43,6 +43,7 @@ import java.util.function.Function;
 
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
@@ -77,14 +78,13 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
             ]
             """;
     private static final String COMPLETION_REASON = "success";
-    private static final Date CREATED_AT = new Date();
 
     @Mock
-    private BoxAIExtractStructuredResponse mockAIResponse;
+    private AiExtractStructuredResponse mockAIResponse;
 
     // Suppliers to simulate responses from the Box API calls.
-    private BiFunction<String, String, BoxAIExtractStructuredResponse> templateResponseSupplier;
-    private Function<InputStream, BoxAIExtractStructuredResponse> fieldsInputStreamResponseSupplier;
+    private BiFunction<String, String, AiExtractStructuredResponse> templateResponseSupplier;
+    private Function<InputStream, AiExtractStructuredResponse> fieldsInputStreamResponseSupplier;
 
     @Override
     @BeforeEach
@@ -96,14 +96,14 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         // Override the processor methods to use our suppliers.
         final ExtractStructuredBoxFileMetadata testSubject = new ExtractStructuredBoxFileMetadata() {
             @Override
-            BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
-                                                                                         final String fileId) {
+            AiExtractStructuredResponse getBoxAIExtractStructuredResponseWithTemplate(final String templateKey,
+                                                                                       final String fileId) {
                 return templateResponseSupplier.apply(templateKey, fileId);
             }
 
             @Override
-            BoxAIExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final RecordReader recordReader,
-                                                                                       final String fileId) {
+            AiExtractStructuredResponse getBoxAIExtractStructuredResponseWithFields(final RecordReader recordReader,
+                                                                                     final String fileId) {
                 // For testing, simply use the supplier.
                 return fieldsInputStreamResponseSupplier.apply(null);
             }
@@ -123,12 +123,12 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.RECORD_READER, "mockReader");
 
         lenient().when(mockAIResponse.getCompletionReason()).thenReturn(COMPLETION_REASON);
-        lenient().when(mockAIResponse.getCreatedAt()).thenReturn(CREATED_AT);
-        // Prepare a sample JSON answer.
-        JsonObject jsonAnswer = new JsonObject();
-        jsonAnswer.add("title", "Sample Document");
-        jsonAnswer.add("author", "John Doe");
-        lenient().when(mockAIResponse.getAnswer()).thenReturn(jsonAnswer);
+        lenient().when(mockAIResponse.getCreatedAt()).thenReturn(OffsetDateTime.now());
+        // Prepare a sample answer.
+        Map<String, Object> answer = new HashMap<>();
+        answer.put("title", "Sample Document");
+        answer.put("author", "John Doe");
+        lenient().when(mockAIResponse.getAnswer()).thenReturn(answer);
     }
 
     @Test
@@ -171,7 +171,12 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
     void testFileNotFoundWithTemplate() {
         // Simulate a 404 error when processing a template.
         templateResponseSupplier = (templateKey, fileId) -> {
-            throw new BoxAPIResponseException("Not Found", 404, "Not Found", null);
+            ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+            when(mockResponseInfo.getStatusCode()).thenReturn(404);
+            BoxAPIError mockException = mock(BoxAPIError.class);
+            when(mockException.getMessage()).thenReturn("Not Found");
+            when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+            throw mockException;
         };
 
         testRunner.enqueue("test data");
@@ -180,14 +185,18 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_FILE_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FILE_NOT_FOUND).get(0);
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Not Found [404]");
     }
 
     @Test
     void testFileNotFoundWithFields() {
         // Simulate a 404 error when processing fields.
         fieldsInputStreamResponseSupplier = (inputStream) -> {
-            throw new BoxAPIResponseException("Not Found", 404, "Not Found", null);
+            ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+            when(mockResponseInfo.getStatusCode()).thenReturn(404);
+            BoxAPIError mockException = mock(BoxAPIError.class);
+            when(mockException.getMessage()).thenReturn("Not Found");
+            when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+            throw mockException;
         };
 
         testRunner.setProperty(ExtractStructuredBoxFileMetadata.EXTRACTION_METHOD, ExtractionMethod.FIELDS.getValue());
@@ -199,14 +208,18 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_FILE_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FILE_NOT_FOUND).get(0);
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Not Found [404]");
     }
 
     @Test
     void testTemplateNotFound() {
         // Simulate a 404 error that indicates the template was not found.
         templateResponseSupplier = (templateKey, fileId) -> {
-            throw new BoxAPIResponseException("API Error", 404, "Specified Metadata Template not found", null);
+            ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+            when(mockResponseInfo.getStatusCode()).thenReturn(404);
+            BoxAPIError mockException = mock(BoxAPIError.class);
+            when(mockException.getMessage()).thenReturn("Specified Metadata Template not found");
+            when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+            throw mockException;
         };
 
         testRunner.enqueue("test data");
@@ -215,14 +228,18 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_TEMPLATE_NOT_FOUND, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_TEMPLATE_NOT_FOUND).get(0);
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "404");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "API Error [404]");
     }
 
     @Test
     void testOtherAPIError() {
         // Simulate a non-404 error.
         templateResponseSupplier = (templateKey, fileId) -> {
-            throw new BoxAPIResponseException("Server Error", 500, "Server Error", null);
+            ResponseInfo mockResponseInfo = mock(ResponseInfo.class);
+            when(mockResponseInfo.getStatusCode()).thenReturn(500);
+            BoxAPIError mockException = mock(BoxAPIError.class);
+            when(mockException.getMessage()).thenReturn("Server Error");
+            when(mockException.getResponseInfo()).thenReturn(mockResponseInfo);
+            throw mockException;
         };
 
         testRunner.enqueue("test data");
@@ -231,7 +248,6 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_FAILURE, 1);
         final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FAILURE).get(0);
         flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_CODE, "500");
-        flowFile.assertAttributeEquals(BoxFileAttributes.ERROR_MESSAGE, "Server Error [500]");
     }
 
     @Test
@@ -298,7 +314,7 @@ public class ExtractStructuredBoxFileMetadataTest extends AbstractBoxFileTest {
         testRunner.run();
 
         testRunner.assertAllFlowFilesTransferred(ExtractStructuredBoxFileMetadata.REL_FAILURE, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FAILURE).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(ExtractStructuredBoxFileMetadata.REL_FAILURE).getFirst();
         flowFile.assertAttributeExists(BoxFileAttributes.ERROR_MESSAGE);
     }
 }

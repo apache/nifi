@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonArray;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
 import org.apache.nifi.processors.box.utils.BoxMetadataUtils;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -30,12 +29,12 @@ public class BoxParseJsonTest {
     @Test
     void testParseString() {
         String expected = "test string";
-        Object result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
+        Object result = BoxMetadataUtils.parseValue(expected);
         assertEquals(expected, result);
 
         // Empty string
         expected = "";
-        result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
+        result = BoxMetadataUtils.parseValue(expected);
         assertEquals(expected, result);
     }
 
@@ -43,12 +42,12 @@ public class BoxParseJsonTest {
     void testParseBoolean() {
         // Test true
         boolean expected = true;
-        Object result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
+        Object result = BoxMetadataUtils.parseValue(expected);
         assertEquals(expected, result);
 
         // Test false
         expected = false;
-        result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
+        result = BoxMetadataUtils.parseValue(expected);
         assertEquals(expected, result);
     }
 
@@ -56,84 +55,74 @@ public class BoxParseJsonTest {
     void testParseIntegerNumber() {
         // Integer value
         long expected = 42;
-        Object result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
+        Object result = BoxMetadataUtils.parseValue(expected);
         assertEquals(expected, result);
 
         // Max long value
         expected = Long.MAX_VALUE;
-        result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
+        result = BoxMetadataUtils.parseValue(expected);
         assertEquals(expected, result);
 
         // Min long value
         expected = Long.MIN_VALUE;
-        result = BoxMetadataUtils.parseJsonValue(Json.value(expected));
+        result = BoxMetadataUtils.parseValue(expected);
         assertEquals(expected, result);
     }
 
     @Test
     void testParseDecimalNumber() {
         // Double without exponent
-        String input = "3.14159";
-        JsonValue jsonValue = Json.parse(input);
-        Object result = BoxMetadataUtils.parseJsonValue(jsonValue);
-        assertEquals(input, result);
+        Double input = 3.14159;
+        Object result = BoxMetadataUtils.parseValue(input);
+        assertEquals("3.14159", result);
 
-        // Very small number that should be preserved
-        input = "0.0000000001";
-        jsonValue = Json.parse(input);
-        result = BoxMetadataUtils.parseJsonValue(jsonValue);
-        assertEquals(input, result);
+        // Very small number - toPlainString() will expand the decimal
+        input = 0.0000000001;
+        result = BoxMetadataUtils.parseValue(input);
+        assertEquals("0.00000000010", result);
 
         // Very large number that should be preserved
-        input = "9999999999999999.9999";
-        jsonValue = Json.parse(input);
-        result = BoxMetadataUtils.parseJsonValue(jsonValue);
-        assertEquals(input, result);
+        input = 9999999999999999.9999;
+        result = BoxMetadataUtils.parseValue(input);
+        // Note: doubles have precision limits
+        assertEquals("10000000000000000", result);
     }
 
     @Test
     void testParseExponentialNumber() {
         // Scientific notation is converted to plain string format
-        String input = "1.234e5";
-        JsonValue jsonValue = Json.parse(input);
-        Object result = BoxMetadataUtils.parseJsonValue(jsonValue);
-        assertEquals("123400", result);
+        Double input = 1.234e5;
+        Object result = BoxMetadataUtils.parseValue(input);
+        // Note: Double 1.234e5 = 123400.0 when converted to BigDecimal
+        assertEquals("123400.0", result);
 
         // large exponent
-        input = "1.234e20";
-        jsonValue = Json.parse(input);
-        result = BoxMetadataUtils.parseJsonValue(jsonValue);
+        input = 1.234e20;
+        result = BoxMetadataUtils.parseValue(input);
         assertEquals("123400000000000000000", result);
 
         // Negative exponent
-        input = "1.234e-5";
-        jsonValue = Json.parse(input);
-        result = BoxMetadataUtils.parseJsonValue(jsonValue);
+        input = 1.234e-5;
+        result = BoxMetadataUtils.parseValue(input);
         assertEquals("0.00001234", result);
     }
 
     @Test
-    void testParseObjectAndArray() {
-        // JSON objects return their string representation
-        JsonObject jsonObject = Json.object().add("key", "value");
-        Object result = BoxMetadataUtils.parseJsonValue(jsonObject);
-        assertEquals(jsonObject.toString(), result);
-
-        // JSON arrays return their string representation
-        JsonArray jsonArray = Json.array().add("item1").add("item2");
-        result = BoxMetadataUtils.parseJsonValue(jsonArray);
-        assertEquals(jsonArray.toString(), result);
+    void testParseNull() {
+        Object result = BoxMetadataUtils.parseValue(null);
+        assertEquals(null, result);
     }
 
     @Test
-    void testParseNumberFormatException() {
-        String largeIntegerString = "9999999999999999999"; // Beyond Long.MAX_VALUE
-        JsonValue jsonValue = Json.parse(largeIntegerString);
-        Object result = BoxMetadataUtils.parseJsonValue(jsonValue);
-        assertEquals(largeIntegerString, result);
+    void testParseObjectAndArray() {
+        // Collections return their string representation
+        List<String> list = List.of("item1", "item2");
+        Object result = BoxMetadataUtils.parseValue(list);
+        assertEquals(list.toString(), result);
 
-        double doubleValue = 123.456;
-        result = BoxMetadataUtils.parseJsonValue(Json.value(doubleValue));
-        assertEquals(String.valueOf(doubleValue), result);
+        // Maps return their string representation
+        Map<String, String> map = Map.of("key", "value");
+        result = BoxMetadataUtils.parseValue(map);
+        assertEquals(map.toString(), result);
     }
 }

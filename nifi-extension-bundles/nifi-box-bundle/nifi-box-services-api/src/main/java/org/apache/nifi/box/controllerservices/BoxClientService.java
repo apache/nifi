@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.box.controllerservices;
 
-import com.box.sdk.BoxAPIConnection;
+import com.box.sdkgen.client.BoxClient;
 import org.apache.nifi.controller.ControllerService;
 
 /**
@@ -24,5 +24,5 @@ import org.apache.nifi.controller.ControllerService;
  */
 public interface BoxClientService extends ControllerService {
 
-    BoxAPIConnection getBoxApiConnection();
+    BoxClient getBoxClient();
 }

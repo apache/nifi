@@ -16,57 +16,60 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxEvent;
+import com.box.sdkgen.managers.events.EventsManager;
+import com.box.sdkgen.managers.events.GetEventsQueryParams;
+import com.box.sdkgen.schemas.event.Event;
+import com.box.sdkgen.schemas.event.EventEventTypeField;
+import com.box.sdkgen.schemas.events.Events;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
-    private final BlockingQueue<BoxEvent> queue = new LinkedBlockingQueue<>();
+    @Mock
+    private EventsManager mockEventsManager;
 
     @Override
     @BeforeEach
     void setUp() throws Exception {
-
-        final ConsumeBoxEvents testSubject = new ConsumeBoxEvents() {
-            @Override
-            public void onScheduled(ProcessContext context) {
-                // do nothing
-            }
-        };
-        testSubject.events = queue;
-
-        testRunner = TestRunners.newTestRunner(testSubject);
+        testRunner = TestRunners.newTestRunner(ConsumeBoxEvents.class);
         super.setUp();
+
+        when(mockBoxClient.getEvents()).thenReturn(mockEventsManager);
     }
 
     @Test
     void testCaptureEvents() {
+        // Create events using real SDK objects
+        Event event1 = new Event.Builder()
+                .eventId("1")
+                .eventType(EventEventTypeField.ITEM_CREATE)
+                .build();
 
-        queue.add(new BoxEvent(this.mockBoxAPIConnection, """
-                {
-                "event_id": "1",
-                "event_type": "ITEM_CREATE"
-                }
-                """));
-        queue.add(new BoxEvent(this.mockBoxAPIConnection, """
-                {
-                "event_id": "2",
-                "event_type": "ITEM_TRASH"
-                }
-                """));
+        Event event2 = new Event.Builder()
+                .eventId("2")
+                .eventType(EventEventTypeField.ITEM_TRASH)
+                .build();
+
+        Events events = new Events.Builder()
+                .entries(List.of(event1, event2))
+                .nextStreamPosition("2")
+                .build();
+
+        when(mockEventsManager.getEvents(any(GetEventsQueryParams.class))).thenReturn(events);
 
         testRunner.run();
 
@@ -77,9 +80,22 @@ public class ConsumeBoxEventsTest extends AbstractBoxFileTest {
 
         final String content = ff0.getContent();
         assertTrue(content.contains("\"id\":\"1\""));
-        assertTrue(content.contains("\"eventType\":\"ITEM_CREATE\""));
         assertTrue(content.contains("\"id\":\"2\""));
+        assertTrue(content.contains("\"eventType\":\"ITEM_CREATE\""));
         assertTrue(content.contains("\"eventType\":\"ITEM_TRASH\""));
     }
 
+    @Test
+    void testNoEventsReturned() {
+        Events emptyEvents = new Events.Builder()
+                .entries(List.of())
+                .nextStreamPosition("0")
+                .build();
+
+        when(mockEventsManager.getEvents(any(GetEventsQueryParams.class))).thenReturn(emptyEvents);
+
+        testRunner.run();
+
+        testRunner.assertTransferCount(ConsumeBoxEvents.REL_SUCCESS, 0);
+    }
 }

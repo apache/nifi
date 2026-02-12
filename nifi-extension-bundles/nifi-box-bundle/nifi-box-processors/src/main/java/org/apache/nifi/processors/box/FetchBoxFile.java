@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.processors.box;
 
-import com.box.sdk.BoxAPIConnection;
-import com.box.sdk.BoxAPIResponseException;
-import com.box.sdk.BoxFile;
+import com.box.sdkgen.box.errors.BoxAPIError;
+import com.box.sdkgen.client.BoxClient;
+import com.box.sdkgen.managers.files.GetFileByIdQueryParams;
+import com.box.sdkgen.schemas.filefull.FileFull;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -38,6 +39,8 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -103,7 +106,9 @@ public class FetchBoxFile extends AbstractBoxProcessor {
             FILE_ID
     );
 
-    private volatile BoxAPIConnection boxAPIConnection;
+    private static final List<String> FILE_INFO_FIELDS = List.of("id", "name", "size", "modified_at", "path_collection");
+
+    private volatile BoxClient boxClient;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -118,8 +123,7 @@ public class FetchBoxFile extends AbstractBoxProcessor {
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
         BoxClientService boxClientService = context.getProperty(BOX_CLIENT_SERVICE).asControllerService(BoxClientService.class);
-
-        boxAPIConnection = boxClientService.getBoxApiConnection();
+        boxClient = boxClientService.getBoxClient();
     }
 
     @Override
@@ -137,7 +141,7 @@ public class FetchBoxFile extends AbstractBoxProcessor {
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, boxUrlOfFile, transferMillis);
             session.transfer(flowFile, REL_SUCCESS);
-        } catch (BoxAPIResponseException e) {
+        } catch (BoxAPIError e) {
             handleErrorResponse(session, fileId, flowFile, e);
         } catch (Exception e) {
             handleUnexpectedError(session, flowFile, fileId, e);
@@ -150,21 +154,25 @@ public class FetchBoxFile extends AbstractBoxProcessor {
         config.renameProperty("box-file-id", FILE_ID.getName());
     }
 
-    BoxFile getBoxFile(String fileId) {
-        return new BoxFile(boxAPIConnection, fileId);
-    }
-
     private FlowFile fetchFile(String fileId, ProcessSession session, FlowFile flowFile) {
-        final BoxFile boxFile = getBoxFile(fileId);
-        flowFile = session.write(flowFile, outputStream -> boxFile.download(outputStream));
-        flowFile = session.putAllAttributes(flowFile, BoxFileUtils.createAttributeMap(boxFile.getInfo()));
+        try (InputStream inputStream = boxClient.getDownloads().downloadFile(fileId)) {
+            flowFile = session.importFrom(inputStream, flowFile);
+        } catch (IOException e) {
+            throw new ProcessException("Failed to download file from Box", e);
+        }
+
+        final GetFileByIdQueryParams queryParams = new GetFileByIdQueryParams.Builder()
+                .fields(FILE_INFO_FIELDS)
+                .build();
+        final FileFull fileInfo = boxClient.getFiles().getFileById(fileId, queryParams);
+        flowFile = session.putAllAttributes(flowFile, BoxFileUtils.createAttributeMap(fileInfo));
         return flowFile;
     }
 
-    private void handleErrorResponse(ProcessSession session, String fileId, FlowFile flowFile, BoxAPIResponseException e) {
+    private void handleErrorResponse(ProcessSession session, String fileId, FlowFile flowFile, BoxAPIError e) {
         getLogger().error("Couldn't fetch file with id [{}]", fileId, e);
 
-        flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseCode()));
+        flowFile = session.putAttribute(flowFile, ERROR_CODE, valueOf(e.getResponseInfo() != null ? e.getResponseInfo().getStatusCode() : 0));
         flowFile = session.putAttribute(flowFile, ERROR_MESSAGE, e.getMessage());
         flowFile = session.penalize(flowFile);
         session.transfer(flowFile, REL_FAILURE);
