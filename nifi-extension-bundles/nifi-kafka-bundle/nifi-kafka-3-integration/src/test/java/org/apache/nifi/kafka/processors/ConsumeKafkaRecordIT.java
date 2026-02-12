@@ -180,6 +180,7 @@ class ConsumeKafkaRecordIT extends AbstractConsumeKafkaIT {
         flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_MAX_OFFSET, MAX_OFFSET);
         flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_OFFSET, FIRST_OFFSET);
         flowFile.assertAttributeEquals(KafkaFlowFileAttribute.KAFKA_COUNT, Integer.toString(TEST_RECORD_COUNT));
+        flowFile.assertAttributeExists(KafkaFlowFileAttribute.KAFKA_TIMESTAMP);
 
         flowFile.assertAttributeEquals("record.count", Integer.toString(TEST_RECORD_COUNT));
         flowFile.assertAttributeEquals(FIRST_HEADER, HEADER_VALUE);
