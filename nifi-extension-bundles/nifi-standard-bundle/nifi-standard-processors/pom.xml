@@ -407,7 +407,7 @@
         <dependency>
             <groupId>net.datafaker</groupId>
             <artifactId>datafaker</artifactId>
-            <version>2.5.3</version>
+            <version>2.5.4</version>
             <exclusions>
                 <!-- Exclude snakeyaml with android qualifier -->
                 <exclusion>
@@ -455,7 +455,7 @@
         <dependency>
             <groupId>net.lingala.zip4j</groupId>
             <artifactId>zip4j</artifactId>
-            <version>2.11.5</version>
+            <version>2.11.6</version>
         </dependency>
         <dependency>
             <groupId>org.mockftpserver</groupId>
@@ -565,7 +565,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.9</version>
+            <version>42.7.10</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
