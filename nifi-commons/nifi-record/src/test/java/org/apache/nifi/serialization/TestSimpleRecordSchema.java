@@ -18,12 +18,18 @@
 package org.apache.nifi.serialization;
 
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.serialization.record.validation.FieldValidator;
+import org.apache.nifi.serialization.record.validation.RecordValidator;
+import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -210,6 +216,74 @@ class TestSimpleRecordSchema {
         schema.setSchemaName(schemaName);
         schema.setSchemaNamespace(schemaNamespace);
         return schema;
+    }
+
+    @Test
+    void testRecordFieldsWithDifferentValidatorsAreNotEqual() {
+        final FieldValidator validator = new FieldValidator() {
+            @Override
+            public Collection<ValidationError> validate(final RecordField field, final String path, final Object value) {
+                return List.of();
+            }
+
+            @Override
+            public String getDescription() {
+                return "test";
+            }
+        };
+
+        final RecordField withValidators = new RecordField("name", RecordFieldType.STRING.getDataType(), null, Collections.emptySet(), true, List.of(validator));
+        final RecordField withoutValidators = new RecordField("name", RecordFieldType.STRING.getDataType(), null, Collections.emptySet(), true);
+
+        assertNotEquals(withValidators, withoutValidators);
+        assertNotEquals(withValidators.hashCode(), withoutValidators.hashCode());
+    }
+
+    @Test
+    void testNotEqualsSchemasWithDifferentRecordValidators() {
+        final RecordField field = new RecordField("name", RecordFieldType.STRING.getDataType());
+
+        final RecordValidator validator = new RecordValidator() {
+            @Override
+            public Collection<ValidationError> validate(final Record record, final RecordSchema schema, final String fieldPath) {
+                return List.of();
+            }
+
+            @Override
+            public String getDescription() {
+                return "test validator";
+            }
+        };
+
+        final SimpleRecordSchema schemaWithValidators = new SimpleRecordSchema(List.of(field));
+        schemaWithValidators.setRecordValidators(List.of(validator));
+
+        final SimpleRecordSchema schemaWithoutValidators = new SimpleRecordSchema(List.of(field));
+
+        assertNotEquals(schemaWithValidators, schemaWithoutValidators);
+        assertNotEquals(schemaWithValidators.hashCode(), schemaWithoutValidators.hashCode());
+    }
+
+    @Test
+    void testRenameFieldPreservesValidators() {
+        final FieldValidator validator = new FieldValidator() {
+            @Override
+            public Collection<ValidationError> validate(final RecordField f, final String path, final Object value) {
+                return List.of();
+            }
+
+            @Override
+            public String getDescription() {
+                return "test";
+            }
+        };
+        final RecordField field = new RecordField("old", RecordFieldType.STRING.getDataType(), null, Collections.emptySet(), true, List.of(validator));
+
+        final SimpleRecordSchema schema = new SimpleRecordSchema(List.of(field));
+        schema.renameField("old", "renamed");
+
+        final RecordField renamedField = schema.getField("renamed").orElseThrow();
+        assertEquals(1, renamedField.getFieldValidators().size());
     }
 
     private Set<String> set(final String... values) {
