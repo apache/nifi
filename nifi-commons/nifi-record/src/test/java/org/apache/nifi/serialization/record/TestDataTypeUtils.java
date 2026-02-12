@@ -1223,4 +1223,26 @@ public class TestDataTypeUtils {
         assertNull(DataTypeUtils.toLong("", fieldName));
         assertNull(DataTypeUtils.toShort("", fieldName));
     }
+
+    @Test
+    void testUuidCompatibilityAcrossSupportedRepresentations() {
+        final UUID uuid = UUID.randomUUID();
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(uuid));
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(uuid.toString()));
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(" " + uuid + " "));
+
+        final byte[] uuidBytes = new byte[16];
+        Arrays.fill(uuidBytes, (byte) 1);
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(uuidBytes));
+
+        final Byte[] boxedBytes = new Byte[16];
+        Arrays.fill(boxedBytes, (byte) 2);
+        assertTrue(DataTypeUtils.isUUIDTypeCompatible(boxedBytes));
+
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible(null));
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible(new byte[15]));
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible(new Byte[15]));
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible("not-a-uuid"));
+        assertFalse(DataTypeUtils.isUUIDTypeCompatible(""));
+    }
 }
