@@ -80,9 +80,7 @@ import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
@@ -511,7 +509,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private void reportCurrentLag(final KafkaConsumerService consumerService, final ProcessSession session, final Set<TopicPartitionSummary> topicPartitionSummaries) {
         for (final TopicPartitionSummary topicPartitionSummary : topicPartitionSummaries) {
             OptionalLong lag = consumerService.currentLag(topicPartitionSummary);
-            if(lag.isPresent()) {
+            if (lag.isPresent()) {
                 final String gaugeName = makeLagMetricName(topicPartitionSummary);
                 session.recordGauge(gaugeName, lag.getAsLong(), CommitTiming.NOW);
             }
@@ -742,7 +740,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             return topicPartitionSummaries;
         }
 
-        private boolean lastTopicPartitionEquals(final String topic, final int partition){
+        private boolean lastTopicPartitionEquals(final String topic, final int partition) {
             return lastTopicPartition.getTopic().equals(topic) && lastTopicPartition.getPartition() == partition;
         }
     }
