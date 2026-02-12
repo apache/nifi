@@ -21,6 +21,7 @@ import org.apache.nifi.components.connector.BundleCompatibility;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.StandardConnectorInitializationContext;
 import org.apache.nifi.components.connector.components.FlowContext;
+import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flow.VersionedProcessor;
@@ -45,6 +46,12 @@ public class MockConnectorInitializationContext extends StandardConnectorInitial
         if (group.getProcessors() != null) {
             for (final VersionedProcessor processor : group.getProcessors()) {
                 mockExtensionMapper.mapProcessor(processor);
+            }
+        }
+
+        if (group.getControllerServices() != null) {
+            for (final VersionedControllerService controllerService : group.getControllerServices()) {
+                mockExtensionMapper.mapControllerService(controllerService);
             }
         }
 
