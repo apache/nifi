@@ -189,9 +189,19 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
     private VersionedExternalFlow createVersionedExternalFlow(final ProcessGroup group, final FlowMappingOptions flowMappingOptions) {
         final VersionedComponentFlowMapper flowMapper = new VersionedComponentFlowMapper(flowController.getExtensionManager(), flowMappingOptions);
         final InstantiatedVersionedProcessGroup versionedGroup = flowMapper.mapNonVersionedProcessGroup(group, flowController.getControllerServiceProvider());
-        final Map<String, VersionedParameterContext> parameterContexts = flowMapper.mapParameterContexts(group, true, new HashMap<>());
         final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences =
             Optional.ofNullable(versionedGroup.getExternalControllerServiceReferences()).orElse(Collections.emptyMap());
+
+        // If the Process Group is within a Connector, then we do not want to map Parameter Contexts
+        // because we do not use the standard management for Parameter Contexts and instead use only an implicit
+        // Parameter Context for the entire Connector.
+        final boolean inConnector = group.getConnectorIdentifier().isPresent();
+        final Map<String, VersionedParameterContext> parameterContexts;
+        if (inConnector) {
+            parameterContexts = Collections.emptyMap();
+        } else {
+            parameterContexts = flowMapper.mapParameterContexts(group, true, new HashMap<>());
+        }
 
         final VersionedExternalFlow versionedExternalFlow = new VersionedExternalFlow();
         versionedExternalFlow.setFlowContents(versionedGroup);
@@ -300,6 +310,13 @@ public class StandardStatelessGroupNodeFactory implements StatelessGroupNodeFact
 
         child.synchronizeFlow(versionedExternalFlow, synchronizationOptions, flowMappingOptions);
         child.setParent(group);
+
+        // If this Process Group is within a Connector, explicitly set the Parameter Context
+        // on the child Process Group to be the same as the parent group because we want all
+        // groups within a Connector to share the same Parameter Context.
+        if (group.getConnectorIdentifier().isPresent()) {
+            child.setParameterContext(group.getParameterContext());
+        }
 
         return child;
     }

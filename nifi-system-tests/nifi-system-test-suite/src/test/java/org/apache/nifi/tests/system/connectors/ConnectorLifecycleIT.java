@@ -26,6 +26,8 @@ import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
@@ -35,7 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -63,6 +68,14 @@ public class ConnectorLifecycleIT extends NiFiSystemIT {
 
         logger.info("Starting connector {}", connectorId);
         getClientUtil().startConnector(connectorId);
+
+        // Ensure that there are no Parameter Contexts defined. When we start a flow that has a Stateless Group,
+        // we synchronize the Process Group with the Versioned External Flow, and we want to ensure that this does
+        // not register a Parameter Context
+        final ParameterContextsEntity contextsEntity = getNifiClient().getParamContextClient().getParamContexts();
+        final Set<ParameterContextEntity> parameterContexts = contextsEntity.getParameterContexts();
+        assertNotNull(parameterContexts);
+        assertEquals(Collections.emptySet(), parameterContexts);
 
         logger.info("Verifying flow has components after start");
         verifyFlowHasComponents(connectorId);
