@@ -47,6 +47,18 @@ creating or manipulating automated tests.
    complexity. Just call the method, and if it throws an Exception, the test will fail. It
    is assumed by default that each line does not throw an Exception.
 
+8. Avoid providing messages in assert statements when they do not offer benefits over the default message.
+   For example, rather than:
+```
+   assertEquals(3, processors.size(), "Expected 3 processors in the initial flow");
+```
+   Just use:
+```
+   assertEquals(3, processors.size());
+```
+Because the expectation is already clear from assertion, and this message is actually harmful because it hides the size
+of the `processors` Collection.
+
 ## General Testing Philosophy
 
 - Unit tests should be used to verify any sufficiently complex method in a class. We should
