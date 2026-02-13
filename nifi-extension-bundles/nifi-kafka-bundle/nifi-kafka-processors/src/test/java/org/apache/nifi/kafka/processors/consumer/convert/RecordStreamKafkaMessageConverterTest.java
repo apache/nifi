@@ -41,7 +41,6 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
@@ -127,7 +126,6 @@ class RecordStreamKafkaMessageConverterTest {
                 .map(attrs -> attrs.get(KafkaFlowFileAttribute.KAFKA_TIMESTAMP))
                 .filter(Objects::nonNull)
                 .toList();
-        assertFalse(timestamps.isEmpty(), "Expected at least one group to have kafka.timestamp attribute");
         assertTrue(timestamps.contains("500"), "Expected timestamp from group1Record2");
         assertTrue(timestamps.contains("2000"), "Expected timestamp from group2");
         assertTrue(timestamps.contains("3000"), "Expected timestamp from group3");
