@@ -17,10 +17,14 @@
 package org.apache.nifi.dbcp;
 
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.utils.DBCPProperties;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.PropertyMigrationResult;
@@ -42,6 +46,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -120,6 +125,32 @@ public class DBCPServiceTest {
 
         final AssertionFailedError e = assertThrows(AssertionFailedError.class, () -> runner.enableControllerService(service));
         assertTrue(e.getMessage().contains("Duplicate"));
+    }
+
+    @Test
+    public void testGetConnectionPropertiesWithNullDynamicPropertyValue() {
+        final PropertyDescriptor dynamicProperty = new PropertyDescriptor.Builder()
+            .name("nullProperty")
+            .dynamic(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+        final PropertyDescriptor sensitiveDynamicProperty = new PropertyDescriptor.Builder()
+            .name("SENSITIVE.nullProperty")
+            .dynamic(true)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+        final Map<PropertyDescriptor, String> properties = new LinkedHashMap<>();
+        properties.put(dynamicProperty, null);
+        properties.put(sensitiveDynamicProperty, null);
+
+        final MockConfigurationContext configurationContext = new MockConfigurationContext(service, properties, null, Map.of());
+        final Map<String, String> connectionProperties = service.getConnectionProperties(configurationContext);
+
+        assertTrue(connectionProperties.isEmpty());
     }
 
     @Test
