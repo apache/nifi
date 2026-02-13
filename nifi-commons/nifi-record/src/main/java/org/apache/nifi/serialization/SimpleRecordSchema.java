@@ -22,11 +22,13 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldRemovalPath;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.serialization.record.validation.RecordValidator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -41,6 +43,7 @@ public class SimpleRecordSchema implements RecordSchema {
     private String schemaNamespace;
     private volatile int hashCode;
     private volatile Boolean recursive;
+    private List<RecordValidator> recordValidators = List.of();
 
     public SimpleRecordSchema(final List<RecordField> fields) {
         this(fields, null, null, false, SchemaIdentifier.EMPTY);
@@ -181,12 +184,12 @@ public class SimpleRecordSchema implements RecordSchema {
                     && getSchemaName().isPresent() && getSchemaName().equals(other.getSchemaName())) {
                 return true;
             } else {
-                return fields.equals(other.getFields());
+                return fields.equals(other.getFields()) && getRecordValidators().equals(other.getRecordValidators());
             }
         } else if (thisIsRecursive || otherIsRecursive) {
             return false;
         } else {
-            return fields.equals(other.getFields());
+            return fields.equals(other.getFields()) && getRecordValidators().equals(other.getRecordValidators());
         }
     }
 
@@ -201,7 +204,7 @@ public class SimpleRecordSchema implements RecordSchema {
     }
 
     private int calculateHashCode() {
-        return 143 + 3 * fields.hashCode();
+        return 143 + 3 * fields.hashCode() + 7 * recordValidators.hashCode();
     }
 
 
@@ -304,7 +307,8 @@ public class SimpleRecordSchema implements RecordSchema {
         boolean renamed = false;
         for (final RecordField recordField : fields) {
             if (recordField.getFieldName().equals(currentName)) {
-                final RecordField updated = new RecordField(newName, recordField.getDataType(), recordField.getDefaultValue(), recordField.getAliases(), recordField.isNullable());
+                final RecordField updated = new RecordField(newName, recordField.getDataType(), recordField.getDefaultValue(),
+                    recordField.getAliases(), recordField.isNullable(), recordField.getFieldValidators());
                 updatedFields.add(updated);
                 renamed = true;
             } else {
@@ -330,6 +334,17 @@ public class SimpleRecordSchema implements RecordSchema {
         hashCode = calculateHashCode();
     }
 
+
+    public void setRecordValidators(final List<RecordValidator> recordValidators) {
+        Objects.requireNonNull(recordValidators, "Record validators cannot be null");
+        this.recordValidators = recordValidators.isEmpty() ? List.of() : List.copyOf(recordValidators);
+        this.hashCode = 0;
+    }
+
+    @Override
+    public List<RecordValidator> getRecordValidators() {
+        return recordValidators;
+    }
 
     @Override
     public boolean isRecursive() {

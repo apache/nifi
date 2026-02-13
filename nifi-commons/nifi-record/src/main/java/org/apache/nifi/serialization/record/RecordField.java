@@ -18,8 +18,10 @@
 package org.apache.nifi.serialization.record;
 
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.validation.FieldValidator;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -31,6 +33,7 @@ public class RecordField {
     private final Set<String> aliases;
     private final Object defaultValue;
     private final boolean nullable;
+    private final List<FieldValidator> fieldValidators;
 
     public RecordField(final String fieldName, final DataType dataType) {
         this(fieldName, dataType, null, Collections.emptySet(), DEFAULT_NULLABLE);
@@ -61,6 +64,11 @@ public class RecordField {
     }
 
     public RecordField(final String fieldName, final DataType dataType, final Object defaultValue, final Set<String> aliases, final boolean nullable) {
+        this(fieldName, dataType, defaultValue, aliases, nullable, List.of());
+    }
+
+    public RecordField(final String fieldName, final DataType dataType, final Object defaultValue, final Set<String> aliases, final boolean nullable,
+            final List<FieldValidator> fieldValidators) {
         if (defaultValue != null && !DataTypeUtils.isCompatibleDataType(defaultValue, dataType)) {
             throw new IllegalArgumentException("Cannot set the default value for field [" + fieldName + "] to [" + defaultValue
                 + "] because that is not a valid value for Data Type [" + dataType + "]");
@@ -79,6 +87,8 @@ public class RecordField {
 
         this.defaultValue = defaultValue;
         this.nullable = nullable;
+        Objects.requireNonNull(fieldValidators, "Field validators cannot be null");
+        this.fieldValidators = fieldValidators.isEmpty() ? List.of() : List.copyOf(fieldValidators);
     }
 
     public String getFieldName() {
@@ -101,6 +111,10 @@ public class RecordField {
         return nullable;
     }
 
+    public List<FieldValidator> getFieldValidators() {
+        return fieldValidators;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -110,6 +124,7 @@ public class RecordField {
         result = prime * result + aliases.hashCode();
         result = prime * result + ((defaultValue == null) ? 0 : defaultValue.hashCode());
         result = prime * result + Boolean.hashCode(nullable);
+        result = prime * result + fieldValidators.hashCode();
         return result;
     }
 
@@ -128,11 +143,13 @@ public class RecordField {
 
         RecordField other = (RecordField) obj;
         return dataType.equals(other.getDataType()) && fieldName.equals(other.getFieldName()) && aliases.equals(other.getAliases()) && Objects.equals(defaultValue, other.defaultValue)
-            && nullable == other.nullable;
+            && nullable == other.nullable
+            && fieldValidators.equals(other.fieldValidators);
     }
 
     @Override
     public String toString() {
-        return "RecordField[name=" + fieldName + ", dataType=" + dataType + (aliases.isEmpty() ? "" : ", aliases=" + aliases) + ", nullable=" + nullable + "]";
+        return "RecordField[name=" + fieldName + ", dataType=" + dataType + (aliases.isEmpty() ? "" : ", aliases=" + aliases)
+            + ", nullable=" + nullable + (fieldValidators.isEmpty() ? "" : ", validators=" + fieldValidators.size()) + "]";
     }
 }
