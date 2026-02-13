@@ -90,8 +90,8 @@ jobs:
           --no-transfer-progress
           --fail-fast
           -DskipTests
-          pmd:check
           package
+          pmd:check
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
       - name: Get Project Version
