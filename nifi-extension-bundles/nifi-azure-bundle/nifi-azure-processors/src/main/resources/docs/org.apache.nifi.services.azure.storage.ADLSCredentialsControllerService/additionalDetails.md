@@ -15,6 +15,12 @@
 
 # ADLSCredentialsControllerService
 
+### Azure Identity Federation Token Provider
+
+When the **Credentials Type** property is set to `Access Token`, configure the **Azure Identity Federation Token Provider** with a controller service capable of exchanging workload identity tokens for Azure AD access tokens. The provider must return an `access_token` issued by Microsoft Entra ID (for example using the `StandardAzureIdentityFederationTokenProvider`). The access token is converted to the Azure SDK representation and cached in memory until it expires.
+
+The Azure client instances created by this service do not perform additional token refresh on their own. Ensure the configured Azure Identity Federation Token Provider automatically refreshes tokens before they expire, and that the configured scopes or audiences grant access to the target storage resources.
+
 ### Security considerations of using Expression Language for sensitive properties
 
 Allowing Expression Language for a property has the advantage of configuring the property dynamically via FlowFile

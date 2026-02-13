@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.azure.storage.queue;
 
 import com.azure.core.credential.AzureSasCredential;
-import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.ProxyOptions;
 import com.azure.core.http.netty.NettyAsyncHttpClientBuilder;
@@ -42,9 +41,9 @@ import org.apache.nifi.processors.azure.AzureServiceEndpoints;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsDetails_v12;
 import org.apache.nifi.services.azure.storage.AzureStorageCredentialsService_v12;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -176,9 +175,9 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
                         .clientSecret(storageCredentialsDetails.getServicePrincipalClientSecret())
                         .build());
                 break;
-            case ACCESS_TOKEN:
-                TokenCredential credential = tokenRequestContext -> Mono.just(storageCredentialsDetails.getAccessToken());
-                clientBuilder.credential(credential);
+            case IDENTITY_FEDERATION:
+                final AzureIdentityFederationTokenProvider identityTokenProvider = storageCredentialsDetails.getIdentityTokenProvider();
+                clientBuilder.credential(identityTokenProvider.getCredentials());
                 break;
         }
     }
