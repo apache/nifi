@@ -72,7 +72,7 @@
             <dependency>
                 <groupId>io.projectreactor.netty</groupId>
                 <artifactId>reactor-netty-http</artifactId>
-                <version>1.3.2</version>
+                <version>1.3.3</version>
                 <exclusions>
                     <!--
                         Reactor Netty 1.3 includes HTTP/3 support requiring native QUIC libraries.

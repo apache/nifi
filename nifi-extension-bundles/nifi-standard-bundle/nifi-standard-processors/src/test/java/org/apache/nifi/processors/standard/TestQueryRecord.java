@@ -794,28 +794,28 @@ public class TestQueryRecord {
 
     /**
      * Returns a Record that, if written in JSON, would look like:
-     * <code><pre>
-     * {
-     *    "person": {
-     *        "name": "John Doe",
-     *        "age": 30,
-     *        "favoriteColors": [ "red", "green" ],
-     *        "dob": 598741575825,
-     *        "dobTimestamp": 598741575825,
-     *        "joinDate": "2018-02-04",
-     *        "weight": 180.8,
-     *        "mother": {
-     *          "name": "Jane Doe"
-     *        }
-     *    },
-     *    "favouriteThings": {
-     *       "sport": "basketball",
-     *       "color": "green",
-     *       "roses": "raindrops",
-     *       "kittens": "whiskers"
-     *    }
+     * {@snippet lang="json" :
+     *   {
+     *     "person": {
+     *         "name": "John Doe",
+     *         "age": 30,
+     *         "favoriteColors": [ "red", "green" ],
+     *         "dob": 598741575825,
+     *         "dobTimestamp": 598741575825,
+     *         "joinDate": "2018-02-04",
+     *         "weight": 180.8,
+     *         "mother": {
+     *           "name": "Jane Doe"
+     *         }
+     *     },
+     *     "favouriteThings": {
+     *         "sport": "basketball",
+     *         "color": "green",
+     *         "roses": "raindrops",
+     *         "kittens": "whiskers"
+     *     }
+     *   }
      * }
-     * </pre></code>
      *
      * @return the Record
      */
@@ -872,12 +872,12 @@ public class TestQueryRecord {
 
     /**
      * Returns a Record that, if written in JSON, would look like:
-     * <code><pre>
-     * {
-     *    "id": &gt;id&lt;,
-     *    "tags": [&gt;tag1&lt;,&gt;tag2&lt;...]
-     * }
-     * </pre></code>
+     * {@snippet lang="json":
+     *   {
+     *     "id": "someId",
+     *     "tags": ["someTag1","someTag2" ...]
+     *   }
+     *}
      *
      * @return the Record
      */
@@ -896,7 +896,7 @@ public class TestQueryRecord {
 
     /**
      * Returns a Record that, if written in JSON, would look like:
-     * <code><pre>
+     * {@snippet lang="json" :
      *          {
      *               "name": "John Doe",
      *               "title": "Software Engineer",
@@ -920,7 +920,7 @@ public class TestQueryRecord {
      *                   "label": "home"
      *               }]
      *             }
-     * </pre></code>
+     * }
      *
      * @return the Record
      */

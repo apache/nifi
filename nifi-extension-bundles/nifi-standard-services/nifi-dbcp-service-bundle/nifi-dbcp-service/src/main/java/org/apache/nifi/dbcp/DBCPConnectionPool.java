@@ -223,6 +223,7 @@ public class DBCPConnectionPool extends AbstractDBCPConnectionPool implements DB
                         return new AbstractMap.SimpleEntry<>(descriptor.getName(), propertyValue.evaluateAttributeExpressions().getValue());
                     }
                 })
+                .filter(entry -> entry.getValue() != null)
                 .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
     }
 

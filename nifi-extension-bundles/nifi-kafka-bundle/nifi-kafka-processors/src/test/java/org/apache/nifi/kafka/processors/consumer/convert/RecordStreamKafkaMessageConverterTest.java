@@ -37,9 +37,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
@@ -80,12 +82,12 @@ class RecordStreamKafkaMessageConverterTest {
         );
 
         // Create ByteRecords
-        final ByteRecord group1Record1 = new ByteRecord("topic1", 0, 0, 0L, List.of(), null, "value1".getBytes(), 0L);
-        final ByteRecord group1Record2 = new ByteRecord("topic1", 0, 3, 0L, List.of(), null, "value4".getBytes(), 0L);
+        final ByteRecord group1Record1 = new ByteRecord("topic1", 0, 0, 1000L, List.of(), null, "value1".getBytes(), 0L);
+        final ByteRecord group1Record2 = new ByteRecord("topic1", 0, 3, 500L, List.of(), null, "value4".getBytes(), 0L);
 
-        final ByteRecord group2 = new ByteRecord("topic1", 1, 1, 0L, List.of(), null, "value2".getBytes(), 0L);
+        final ByteRecord group2 = new ByteRecord("topic1", 1, 1, 2000L, List.of(), null, "value2".getBytes(), 0L);
 
-        final ByteRecord group3 = new ByteRecord("topic2", 0, 2, 0L, List.of(), null, "value3".getBytes(), 0L);
+        final ByteRecord group3 = new ByteRecord("topic2", 0, 2, 3000L, List.of(), null, "value3".getBytes(), 0L);
 
         final Iterator<ByteRecord> consumerRecords = List.of(group1Record1, group2, group3, group1Record2).iterator();
         // Mock the session.create() and session.write() methods
@@ -120,6 +122,12 @@ class RecordStreamKafkaMessageConverterTest {
         assertEquals("topic2", capturedAttributes.get(2).get(KafkaFlowFileAttribute.KAFKA_TOPIC));
         assertEquals("0", capturedAttributes.get(2).get(KafkaFlowFileAttribute.KAFKA_PARTITION));
 
-
+        final List<String> timestamps = capturedAttributes.stream()
+                .map(attrs -> attrs.get(KafkaFlowFileAttribute.KAFKA_TIMESTAMP))
+                .filter(Objects::nonNull)
+                .toList();
+        assertTrue(timestamps.contains("500"), "Expected timestamp from group1Record2");
+        assertTrue(timestamps.contains("2000"), "Expected timestamp from group2");
+        assertTrue(timestamps.contains("3000"), "Expected timestamp from group3");
     }
 }

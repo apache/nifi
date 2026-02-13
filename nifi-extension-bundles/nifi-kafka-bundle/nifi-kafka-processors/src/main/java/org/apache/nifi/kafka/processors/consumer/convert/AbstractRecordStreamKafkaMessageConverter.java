@@ -159,7 +159,8 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
             final long offset = consumerRecord.getOffset();
             final AtomicLong maxOffset = new AtomicLong(offset);
             final AtomicLong minOffset = new AtomicLong(offset);
-            group = new RecordGroup(ff, writer, maxOffset, minOffset);
+            final AtomicLong minTimestamp = new AtomicLong(consumerRecord.getTimestamp());
+            group = new RecordGroup(ff, writer, maxOffset, minOffset, minTimestamp);
             recordGroups.put(criteria, group);
         } else {
             final long recordOffset = consumerRecord.getOffset();
@@ -171,6 +172,12 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
             final AtomicLong minOffset = group.minOffset();
             if (recordOffset < minOffset.get()) {
                 minOffset.set(recordOffset);
+            }
+
+            final long recordTimestamp = consumerRecord.getTimestamp();
+            final AtomicLong minTimestamp = group.minTimestamp();
+            if (recordTimestamp < minTimestamp.get()) {
+                minTimestamp.set(recordTimestamp);
             }
         }
 
@@ -200,6 +207,9 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
 
                 final long minOffset = group.minOffset().get();
                 resultAttrs.put(KafkaFlowFileAttribute.KAFKA_OFFSET, Long.toString(minOffset));
+
+                final long minTimestamp = group.minTimestamp().get();
+                resultAttrs.put(KafkaFlowFileAttribute.KAFKA_TIMESTAMP, Long.toString(minTimestamp));
 
                 // add any extra header‐derived attributes
                 resultAttrs.putAll(criteria.extraAttributes());
@@ -240,6 +250,6 @@ public abstract class AbstractRecordStreamKafkaMessageConverter implements Kafka
     private record RecordGroupCriteria(RecordSchema schema, Map<String, String> extraAttributes, String topic, int partition) {
     }
 
-    private record RecordGroup(FlowFile flowFile, RecordSetWriter writer, AtomicLong maxOffset, AtomicLong minOffset) {
+    private record RecordGroup(FlowFile flowFile, RecordSetWriter writer, AtomicLong maxOffset, AtomicLong minOffset, AtomicLong minTimestamp) {
     }
 }

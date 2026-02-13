@@ -261,7 +261,7 @@ public class DataTypeUtils {
             }
             case String string -> {
                 try {
-                    return UUID.fromString(string);
+                    return UUID.fromString(string.trim());
                 } catch (Exception ex) {
                     throw new IllegalTypeConversionException(String.format("Could not parse %s into a UUID", value), ex);
                 }
@@ -314,13 +314,13 @@ public class DataTypeUtils {
             case TIME -> isTimeTypeCompatible(value, dataType.getFormat());
             case TIMESTAMP -> isTimestampTypeCompatible(value, dataType.getFormat());
             case STRING -> isStringTypeCompatible(value);
+            case UUID -> isUUIDTypeCompatible(value);
             case ENUM -> isEnumTypeCompatible(value, (EnumDataType) dataType);
             case MAP -> isMapTypeCompatible(value);
             case CHOICE -> {
                 final DataType chosenDataType = chooseDataType(value, (ChoiceDataType) dataType);
                 yield chosenDataType != null;
             }
-            default -> false;
         };
     }
 
@@ -1284,6 +1284,40 @@ public class DataTypeUtils {
                 continue;
             }
         }
+        return false;
+    }
+
+    public static boolean isUUIDTypeCompatible(final Object value) {
+        if (value == null) {
+            return false;
+        }
+
+        if (value instanceof UUID) {
+            return true;
+        }
+
+        if (value instanceof byte[] bytes) {
+            return bytes.length == 16;
+        }
+
+        if (value instanceof Byte[] array) {
+            return array.length == 16;
+        }
+
+        if (value instanceof String stringValue) {
+            final String trimmed = stringValue.trim();
+            if (trimmed.isEmpty()) {
+                return false;
+            }
+
+            try {
+                UUID.fromString(trimmed);
+                return true;
+            } catch (final IllegalArgumentException e) {
+                return false;
+            }
+        }
+
         return false;
     }
 

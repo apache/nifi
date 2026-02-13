@@ -26,11 +26,12 @@ import { Storage } from '@nifi/shared';
 
 import { Birdseye } from './birdseye/birdseye.component';
 import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
     selector: 'navigation-control',
     templateUrl: './navigation-control.component.html',
-    imports: [Birdseye, MatButtonModule],
+    imports: [Birdseye, MatButtonModule, MatTooltipModule],
     styleUrls: ['./navigation-control.component.scss']
 })
 export class NavigationControl {
