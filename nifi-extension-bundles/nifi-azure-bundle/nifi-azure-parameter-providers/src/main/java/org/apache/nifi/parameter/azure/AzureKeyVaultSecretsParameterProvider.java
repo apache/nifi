@@ -42,9 +42,10 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
- * Reads secrets from Azure Key Vault Secrets to provide parameter values.  Secrets must be created similar to the following Azure cli command: <br/><br/>
- * <code>az keyvault secret set --vault-name &lt;your-unique-keyvault-name> --name &lt;parameter-name> --value &lt;parameter-value>
- * --tags group-name=&lt;group-name></code> <br/><br/>
+ * Reads secrets from Azure Key Vault Secrets to provide parameter values.  Secrets must be created similar to the following Azure cli command:
+ * {@snippet lang="text" :
+ *       az keyvault secret set --vault-name <your-unique-keyvault-name> --name <parameter-name> --value <parameter-value> --tags group-name=<group-name>
+ *  }
  * @see <a href="https://learn.microsoft.com/en-us/azure/key-vault/secrets/quick-create-cli">Azure Key Vault Secrets</a>
  */
 @Tags({"azure", "keyvault", "key", "vault", "secrets"})

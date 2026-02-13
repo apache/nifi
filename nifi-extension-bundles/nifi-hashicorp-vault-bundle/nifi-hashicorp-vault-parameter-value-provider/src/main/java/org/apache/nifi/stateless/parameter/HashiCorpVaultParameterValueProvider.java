@@ -33,17 +33,18 @@ import java.util.Objects;
  * Reads secrets from HashiCorp Vault to provide parameters.  An example of setting one such secret parameter value
  * using the Vault CLI would be:
  *
- * <code>vault kv put "${vault.kv.path}/[ParamContextName]" [Param1]=[ParamValue1] [Param2]=[ParamValue2]</code>
+ * {@snippet lang="text" :
+ *      vault kv put "${vault.kv.path}/[ParamContextName]" [Param1]=[ParamValue1] [Param2]=[ParamValue2]
+ * }
  *
  * Here, vault.kv.path is supplied by the file specified by the "Vault Configuration File" property.
  *
- * A standard configuration for this provider would be: <br/><br/>
- *
- * <code>
+ * A standard configuration for this provider would be:
+ * {@snippet lang="properties" :
  *      nifi.stateless.parameter.provider.Vault.name=HashiCorp Vault Provider
  *      nifi.stateless.parameter.provider.Vault.type=org.apache.nifi.stateless.parameter.HashiCorpVaultParameterProvider
  *      nifi.stateless.parameter.provider.Vault.properties.vault-configuration-file=./conf/bootstrap-hashicorp-vault.conf
- * </code>
+ * }
  */
 public class HashiCorpVaultParameterValueProvider extends AbstractSecretBasedParameterValueProvider implements ParameterValueProvider {
     private static final String KEY_VALUE_PATH = "vault.kv.path";

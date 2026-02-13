@@ -52,8 +52,7 @@ import java.util.Properties;
  * The typical usage pattern for this class is as follows:
  * </p>
  *
- * <pre>
- * <code>
+ * {@snippet :
  *     try (final CalciteDatabase database = new CalciteDatabase()) {
  *         final ResettableDataSource dataSource = getDataSource();
  *         final NiFiTable firstTable = new NiFiTable("MY_TABLE", dataSource, getLogger());
@@ -64,11 +63,10 @@ import java.util.Properties;
  *         database.addTable(secondTable);
  *
  *         try (final PreparedStatement stmt = database.getConnection().prepareStatement("SELECT * FROM MY_TABLE")) {
- *             ...
+ *             // Custom code
  *         }
  *     }
- * </code>
- * </pre>
+ * }
  */
 public class CalciteDatabase implements Closeable {
     private static final Logger logger = LoggerFactory.getLogger(CalciteDatabase.class);
