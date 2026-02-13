@@ -4229,6 +4229,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (parameterProviderReference == null) {
             return;
         }
+
+        // Skip resolution for Ghost parameter providers - these are placeholders for missing components
+        // and cannot be resolved to a real bundle. This can occur when a flow was saved to version control
+        // while it contained a Ghost parameter provider.
+        final String providerType = parameterProviderReference.getType();
+        if ("org.apache.nifi.parameter.GhostParameterProvider".equals(providerType)) {
+            return;
+        }
+
         final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
         final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, parameterProviderReference.getType(), parameterProviderReference.getBundle());
         final ConfigurableComponent tempComponent = extensionManager.getTempComponent(parameterProviderReference.getType(), compatibleBundle);
