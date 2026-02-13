@@ -87,6 +87,7 @@ import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesisAttributes.RE
 import static org.apache.nifi.processors.aws.kinesis.JsonRecordAssert.assertFlowFileRecordPayloads;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
@@ -205,6 +206,12 @@ class ConsumeKinesisIT {
                 List.of(applicationName),
                 streamClient.getEnhancedFanOutConsumerNames(),
                 "Expected a single enhanced fan-out consumer with an application name");
+
+        // Verify millisBehindLatest gauge is recorded.
+        final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
+        final String gaugeName = "kinesis.stream." + streamName + ".shard." + shardId + ".millisBehindLatest";
+        final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
+        assertFalse(gaugeValues.isEmpty(), "Expected millisBehindLatest gauge to be recorded");
     }
 
     @Test
@@ -233,6 +240,12 @@ class ConsumeKinesisIT {
         assertTrue(
                 streamClient.getEnhancedFanOutConsumerNames().isEmpty(),
                 "No enhanced fan-out consumers should be created for Shared Throughput consumer type");
+        final String shardId = flowFile.getAttribute("aws.kinesis.shard.id");
+        final String gaugeName = "kinesis.stream." + streamName + ".shard." + shardId + ".millisBehindLatest";
+        final List<Double> gaugeValues = runner.getGaugeValues(gaugeName);
+        assertFalse(gaugeValues.isEmpty(), "Expected millisBehindLatest gauge to be recorded");
+
+
     }
 
     @Test
