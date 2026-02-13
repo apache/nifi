@@ -253,6 +253,7 @@ class TestConnectWebSocket extends TestListenWebSocket {
     }
 
     @Test
+    @Override
     void testMigrateProperties() {
         final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);
         final Map<String, String> expectedRenamed = Map.ofEntries(

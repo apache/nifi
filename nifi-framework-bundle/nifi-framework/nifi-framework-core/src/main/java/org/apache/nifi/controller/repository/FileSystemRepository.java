@@ -47,8 +47,10 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.FileChannel;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardOpenOption;
@@ -99,9 +101,10 @@ public class FileSystemRepository implements ContentRepository {
     private final List<String> containerNames;
     private final AtomicLong index;
 
-    private final ScheduledExecutorService executor = new FlowEngine(4, "FileSystemRepository Workers", true);
+    private final ScheduledExecutorService executor = new FlowEngine(6, "FileSystemRepository Workers", true);
     private final ConcurrentMap<String, BlockingQueue<ResourceClaim>> reclaimable = new ConcurrentHashMap<>();
     private final Map<String, ContainerState> containerStateMap = new HashMap<>();
+    private final TruncationClaimManager truncationClaimManager = new TruncationClaimManager();
 
     // Queue for claims that are kept open for writing. Ideally, this will be at
     // least as large as the number of threads that will be updating the repository simultaneously but we don't want
@@ -172,12 +175,13 @@ public class FileSystemRepository implements ContentRepository {
             archiveData = true;
 
             if (maxArchiveSize == null) {
-                throw new RuntimeException("No value specified for property '"
-                                           + NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE + "' but archiving is enabled. You must configure the max disk usage in order to enable archiving.");
+                throw new RuntimeException("No value specified for property '%s' but archiving is enabled. You must configure the max disk usage in order to enable archiving.".formatted(
+                    NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE));
             }
 
             if (!MAX_ARCHIVE_SIZE_PATTERN.matcher(maxArchiveSize.trim()).matches()) {
-                throw new RuntimeException("Invalid value specified for the '" + NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE + "' property. Value must be in format: <XX>%");
+                throw new RuntimeException("Invalid value specified for the '%s' property. Value must be in format: <XX>%%".formatted(
+                    NiFiProperties.CONTENT_ARCHIVE_MAX_USAGE_PERCENTAGE));
             }
         } else if ("false".equalsIgnoreCase(enableArchiving)) {
             archiveData = false;
@@ -240,14 +244,15 @@ public class FileSystemRepository implements ContentRepository {
         this.resourceClaimManager = context.getResourceClaimManager();
         this.eventReporter = context.getEventReporter();
 
-        final Map<String, Path> fileRespositoryPaths = nifiProperties.getContentRepositoryPaths();
+        final Map<String, Path> fileRepositoryPaths = nifiProperties.getContentRepositoryPaths();
 
         executor.scheduleWithFixedDelay(new BinDestructableClaims(), 1, 1, TimeUnit.SECONDS);
-        for (int i = 0; i < fileRespositoryPaths.size(); i++) {
+        for (int i = 0; i < fileRepositoryPaths.size(); i++) {
             executor.scheduleWithFixedDelay(new ArchiveOrDestroyDestructableClaims(), 1, 1, TimeUnit.SECONDS);
         }
 
         final long cleanupMillis = this.determineCleanupInterval(nifiProperties);
+        executor.scheduleWithFixedDelay(new TruncateClaims(), cleanupMillis, cleanupMillis, TimeUnit.MILLISECONDS);
 
         for (final Map.Entry<String, Path> containerEntry : containers.entrySet()) {
             final String containerName = containerEntry.getKey();
@@ -691,7 +696,16 @@ public class FileSystemRepository implements ContentRepository {
 
     @Override
     public int incrementClaimaintCount(final ContentClaim claim) {
-        return incrementClaimantCount(claim == null ? null : claim.getResourceClaim(), false);
+        if (claim == null) {
+            return 0;
+        }
+
+        if (claim.isTruncationCandidate() && claim instanceof final StandardContentClaim scc) {
+            LOG.debug("{} is a truncation candidate, but is being claimed again. Setting truncation candidate to false.", claim);
+            scc.setTruncationCandidate(false);
+        }
+
+        return incrementClaimantCount(claim.getResourceClaim(), false);
     }
 
     protected int incrementClaimantCount(final ResourceClaim resourceClaim, final boolean newClaim) {
@@ -743,6 +757,7 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
 
+        truncationClaimManager.removeTruncationClaims(claim);
         return true;
     }
 
@@ -1035,6 +1050,120 @@ public class FileSystemRepository implements ContentRepository {
         resourceClaimManager.purge();
     }
 
+
+    private class TruncateClaims implements Runnable {
+
+        @Override
+        public void run() {
+            final Map<String, Boolean> truncationActivationCache = new HashMap<>();
+
+            // Go through any known truncation claims and truncate them now if truncation is enabled for their container.
+            for (final String container : containerNames) {
+                if (isTruncationActiveForContainer(container, truncationActivationCache)) {
+                    final List<ContentClaim> toTruncate = truncationClaimManager.removeTruncationClaims(container);
+                    if (toTruncate.isEmpty()) {
+                        continue;
+                    }
+
+                    truncateClaims(toTruncate, truncationActivationCache);
+                }
+            }
+
+            // Drain any Truncation Claims from the Resource Claim Manager.
+            // If able, truncate those claims. Otherwise, save those claims in the Truncation Claim Manager to be truncated on the next run.
+            // This prevents us from having a case where we could truncate a big claim but we don't because we're not yet running out of disk space,
+            // but then we later start to run out of disk space and lost the opportunity to truncate that big claim.
+            while (true) {
+                final List<ContentClaim> toTruncate = new ArrayList<>();
+                resourceClaimManager.drainTruncatableClaims(toTruncate, 10_000);
+                if (toTruncate.isEmpty()) {
+                    return;
+                }
+
+                truncateClaims(toTruncate, truncationActivationCache);
+            }
+        }
+
+        private void truncateClaims(final List<ContentClaim> toTruncate, final Map<String, Boolean> truncationActivationCache) {
+            final Map<String, List<ContentClaim>> claimsSkipped = new HashMap<>();
+
+            for (final ContentClaim claim : toTruncate) {
+                final String container = claim.getResourceClaim().getContainer();
+                if (!isTruncationActiveForContainer(container, truncationActivationCache)) {
+                    LOG.debug("Will not truncate {} because truncation is not active for container {}; will save for later truncation.", claim, container);
+                    claimsSkipped.computeIfAbsent(container, key -> new ArrayList<>()).add(claim);
+                    continue;
+                }
+
+                if (claim.isTruncationCandidate()) {
+                    truncate(claim);
+                }
+            }
+
+            claimsSkipped.forEach(truncationClaimManager::addTruncationClaims);
+        }
+
+        private boolean isTruncationActiveForContainer(final String container, final Map<String, Boolean> activationCache) {
+            // If not archiving data, we consider truncation always active.
+            if (!archiveData) {
+                return true;
+            }
+
+            final Boolean cachedValue = activationCache.get(container);
+            if (cachedValue != null) {
+                return cachedValue;
+            }
+
+            if (!isArchiveClearedOnLastRun(container)) {
+                LOG.debug("Truncation is not active for container {} because the archive was not cleared on the last run.", container);
+                activationCache.put(container, false);
+                return false;
+            }
+
+            final long usableSpace;
+            try {
+                usableSpace = getContainerUsableSpace(container);
+            } catch (final IOException ioe) {
+                LOG.warn("Failed to determine usable space for container {}. Will not truncate claims for this container.", container, ioe);
+                return false;
+            }
+
+            final Long minUsableSpace = minUsableContainerBytesForArchive.get(container);
+            if (minUsableSpace != null && usableSpace < minUsableSpace) {
+                LOG.debug("Truncate is active for Container {} because usable space of {} bytes is below the desired threshold of {} bytes.",
+                    container, usableSpace, minUsableSpace);
+
+                activationCache.put(container, true);
+                return true;
+            }
+
+            activationCache.put(container, false);
+            return false;
+        }
+
+        private void truncate(final ContentClaim claim) {
+            LOG.info("Truncating {} to {} bytes because the FlowFile occupying the last {} bytes has been removed",
+                claim.getResourceClaim(), claim.getOffset(), claim.getLength());
+
+            final Path path = getPath(claim);
+            if (path == null) {
+                LOG.warn("Cannot truncate {} because the file cannot be found", claim);
+                return;
+            }
+
+            try (final FileChannel fileChannel = FileChannel.open(path, StandardOpenOption.WRITE)) {
+                fileChannel.truncate(claim.getOffset());
+            } catch (final NoSuchFileException nsfe) {
+                // This is unlikely but can occur if the claim was truncatable and the underlying Resource Claim becomes
+                // destructable. In this case, we may archive or delete the entire ResourceClaim. This is safe to ignore,
+                // since it means the data is cleaned up anyway.
+                LOG.debug("Failed to truncate {} because file does not exist.", claim, nsfe);
+            } catch (final IOException e) {
+                LOG.warn("Failed to truncate {} to {} bytes", claim, claim.getOffset(), e);
+            }
+        }
+    }
+
     private class BinDestructableClaims implements Runnable {
 
         @Override
@@ -1123,6 +1252,11 @@ public class FileSystemRepository implements ContentRepository {
 
         final boolean archived = archive(curPath);
         LOG.debug("Successfully moved {} to archive", claim);
+
+        if (archived) {
+            truncationClaimManager.removeTruncationClaims(claim);
+        }
+
         return archived;
     }
 
@@ -1396,7 +1530,7 @@ public class FileSystemRepository implements ContentRepository {
         if (notYetExceedingThreshold.isEmpty()) {
             oldestContainerArchive = System.currentTimeMillis();
         } else {
-            oldestContainerArchive = notYetExceedingThreshold.get(0).getLastModTime();
+            oldestContainerArchive = notYetExceedingThreshold.getFirst().getLastModTime();
         }
 
         // Queue up the files in the order that they should be destroyed so that we don't have to scan the directories for a while.
@@ -1404,10 +1538,11 @@ public class FileSystemRepository implements ContentRepository {
             fileQueue.offer(toEnqueue);
         }
 
+        containerState.setArchiveClearedOnLastRun(notYetExceedingThreshold.isEmpty());
+
         final long cleanupMillis = stopWatch.getElapsed(TimeUnit.MILLISECONDS) - deleteOldestMillis - sortRemainingMillis - deleteExpiredMillis;
         LOG.debug("Oldest Archive Date for Container {} is {}; delete expired = {} ms, sort remaining = {} ms, delete oldest = {} ms, cleanup = {} ms",
                 containerName, new Date(oldestContainerArchive), deleteExpiredMillis, sortRemainingMillis, deleteOldestMillis, cleanupMillis);
-        return;
     }
 
     private class ArchiveOrDestroyDestructableClaims implements Runnable {
@@ -1547,6 +1682,7 @@ public class FileSystemRepository implements ContentRepository {
 
         private volatile long bytesUsed = 0L;
         private volatile long checkUsedCutoffTimestamp = 0L;
+        private volatile boolean archiveClearedOnLastRun = false;
 
         public ContainerState(final String containerName, final boolean archiveEnabled, final long backPressureBytes, final long capacity) {
             this.containerName = containerName;
@@ -1665,6 +1801,24 @@ public class FileSystemRepository implements ContentRepository {
         public void decrementArchiveCount() {
             archivedFileCount.decrementAndGet();
         }
+
+        public void setArchiveClearedOnLastRun(final boolean archiveClearedOnLastRun) {
+            this.archiveClearedOnLastRun = archiveClearedOnLastRun;
+        }
+
+        public boolean isArchiveClearedOnLastRun() {
+            return archiveClearedOnLastRun;
+        }
+    }
+
+    // Visible for testing
+    protected boolean isArchiveClearedOnLastRun(final String containerName) {
+        final ContainerState containerState = containerStateMap.get(containerName);
+        if (containerState == null) {
+            return false;
+        }
+
+        return containerState.isArchiveClearedOnLastRun();
     }
 
     protected static class ClaimLengthPair {
@@ -1888,20 +2042,28 @@ public class FileSystemRepository implements ContentRepository {
                 // Mark the claim as no longer being able to be written to
                 resourceClaimManager.freeze(scc.getResourceClaim());
 
+                // If the content claim length is large (> 1 MB or the max appendable claim length),
+                // mark the claim as a truncation candidate
+                final boolean largeClaim = scc.getLength() > Math.min(1_000_000, maxAppendableClaimLength);
+                final boolean nonStartClaim = scc.getOffset() > 0;
+                if (largeClaim && nonStartClaim) {
+                    scc.setTruncationCandidate(true);
+                }
+
                 // ensure that the claim is no longer on the queue
                 writableClaimQueue.remove(new ClaimLengthPair(scc.getResourceClaim(), resourceClaimLength));
 
-                bcos.close();
-                LOG.debug("Claim lenth >= max; Closing {}", this);
+                LOG.debug("Claim length >= max; Closing {}", this);
                 if (LOG.isTraceEnabled()) {
                     LOG.trace("Stack trace: ", new RuntimeException("Stack Trace for closing " + this));
                 }
+                bcos.close();
             }
         }
 
 
         @Override
-        public synchronized ContentClaim newContentClaim() throws IOException {
+        public synchronized ContentClaim newContentClaim() {
             scc = new StandardContentClaim(scc.getResourceClaim(), scc.getOffset() + Math.max(0, scc.getLength()));
             initialLength = 0;
             bytesWritten = 0L;
@@ -1910,4 +2072,41 @@ public class FileSystemRepository implements ContentRepository {
         }
     }
 
+    private static class TruncationClaimManager {
+        private static final int MAX_THRESHOLD = 100_000;
+        private final Map<String, List<ContentClaim>> truncationClaims = new HashMap<>();
+
+        public synchronized void addTruncationClaims(final String container, final List<ContentClaim> claim) {
+            final List<ContentClaim> contentClaims = truncationClaims.computeIfAbsent(container, c -> new ArrayList<>());
+            contentClaims.addAll(claim);
+
+            // If we have too many claims, remove the smallest ones so that we only have the largest MAX_THRESHOLD claims.
+            if (contentClaims.size() > MAX_THRESHOLD) {
+                contentClaims.sort(Comparator.comparingLong(ContentClaim::getLength).reversed());
+                final List<ContentClaim> discardableClaims = contentClaims.subList(MAX_THRESHOLD, contentClaims.size());
+                LOG.debug("Truncation Claim Manager has more than {} claims for container {}; discarding {} claims: {}",
+                    MAX_THRESHOLD, container, discardableClaims.size(), discardableClaims);
+                discardableClaims.clear();
+            }
+        }
+
+        public synchronized List<ContentClaim> removeTruncationClaims(final String container) {
+            final List<ContentClaim> removed = truncationClaims.remove(container);
+            return removed == null ? Collections.emptyList() : removed;
+        }
+
+        public synchronized List<ContentClaim> removeTruncationClaims(final ResourceClaim resourceClaim) {
+            final List<ContentClaim> contentClaims = truncationClaims.get(resourceClaim.getContainer());
+            if (contentClaims == null) {
+                return Collections.emptyList();
+            }
+
+            final List<ContentClaim> claimsToRemove = contentClaims.stream()
+                .filter(cc -> cc.getResourceClaim().equals(resourceClaim))
+                .toList();
+
+            contentClaims.removeAll(claimsToRemove);
+            return claimsToRemove;
+        }
+    }
 }

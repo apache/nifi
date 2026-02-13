@@ -32,6 +32,7 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
     private static final Logger logger = LoggerFactory.getLogger(StandardResourceClaimManager.class);
     private final ConcurrentMap<ResourceClaim, ClaimCount> claimantCounts = new ConcurrentHashMap<>();
     private final BlockingQueue<ResourceClaim> destructableClaims = new LinkedBlockingQueue<>(50000);
+    private final BlockingQueue<ContentClaim> truncatableClaims = new LinkedBlockingQueue<>(100000);
 
     @Override
     public ResourceClaim newResourceClaim(final String container, final String section, final String id, final boolean lossTolerant, final boolean writable) {
@@ -162,6 +163,30 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
     }
 
     @Override
+    public void markTruncatable(final ContentClaim contentClaim) {
+        if (contentClaim == null) {
+            return;
+        }
+
+        final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+        synchronized (resourceClaim) {
+            if (isDestructable(resourceClaim)) {
+                return;
+            }
+
+            logger.debug("Marking {} as truncatable", contentClaim);
+            try {
+                if (!truncatableClaims.offer(contentClaim, 1, TimeUnit.MINUTES)) {
+                    logger.debug("Unable to mark {} as truncatable because the queue is full.", contentClaim);
+                }
+            } catch (final InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                logger.debug("Interrupted while marking {} as truncatable", contentClaim, ie);
+            }
+        }
+    }
+
+    @Override
     public void drainDestructableClaims(final Collection<ResourceClaim> destination, final int maxElements) {
         final int drainedCount = destructableClaims.drainTo(destination, maxElements);
         logger.debug("Drained {} destructable claims to {}", drainedCount, destination);
@@ -177,6 +202,12 @@ public class StandardResourceClaimManager implements ResourceClaimManager {
             }
         } catch (final InterruptedException ignored) {
         }
+    }
+
+    @Override
+    public void drainTruncatableClaims(final Collection<ContentClaim> destination, final int maxElements) {
+        final int drainedCount = truncatableClaims.drainTo(destination, maxElements);
+        logger.debug("Drained {} truncatable claims to {}", drainedCount, destination);
     }
 
     @Override

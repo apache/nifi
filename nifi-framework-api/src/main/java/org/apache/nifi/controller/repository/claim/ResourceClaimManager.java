@@ -114,6 +114,17 @@ public interface ResourceClaimManager {
     void markDestructable(ResourceClaim claim);
 
     /**
+     * Indicates that the Resource Claim associated with the given Content Claim can now be
+     * truncated to the start of the ContentClaim. This should only ever be called after it is
+     * guaranteed that the FlowFile Repository has been synchronized with its underlying
+     * storage component for the same reason as described in the {@link #markDestructable(ResourceClaim)}
+     * method.
+     *
+     * @param claim the ContentClaim that should be used for truncation
+     */
+    void markTruncatable(ContentClaim claim);
+
+    /**
      * Drains up to {@code maxElements} Content Claims from the internal queue
      * of destructable content claims to the given {@code destination} so that
      * they can be destroyed.
@@ -138,6 +149,16 @@ public interface ResourceClaimManager {
      * @param unit unit of time to wait
      */
     void drainDestructableClaims(Collection<ResourceClaim> destination, int maxElements, long timeout, TimeUnit unit);
+
+    /**
+     * Drains up to {@code maxElements} Content Claims from the internal queue
+     * of truncatable content claims to the given {@code destination} so that
+     * they can be truncated.
+     *
+     * @param destination to drain to
+     * @param maxElements max items to drain
+     */
+    void drainTruncatableClaims(Collection<ContentClaim> destination, int maxElements);
 
     /**
      * Clears the manager's memory of any and all ResourceClaims that it knows
