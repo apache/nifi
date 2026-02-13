@@ -23,6 +23,7 @@ import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
+import org.apache.nifi.flow.VersionedExternalFlow;
 
 import java.io.Closeable;
 import java.io.File;
@@ -68,4 +69,23 @@ public interface ConnectorTestRunner extends Closeable {
     void waitForIdle(Duration minimumIdleTime, Duration maxWaitTime);
 
     List<ValidationResult> validate();
+
+    /**
+     * Returns a {@link VersionedExternalFlow} representing the current state of the Active Flow Context.
+     * The Active Flow Context is the flow that is currently running (or most recently ran) in the Connector.
+     * This is useful for making assertions about how the flow is configured after updates have been applied.
+     *
+     * @return the VersionedExternalFlow for the Active Flow Context
+     */
+    VersionedExternalFlow getActiveFlowSnapshot();
+
+    /**
+     * Returns a {@link VersionedExternalFlow} representing the current state of the Working Flow Context.
+     * The Working Flow Context is the flow that reflects configuration changes that have been made
+     * but not yet applied. This is useful for making assertions about how the flow will be configured
+     * once the update is applied.
+     *
+     * @return the VersionedExternalFlow for the Working Flow Context
+     */
+    VersionedExternalFlow getWorkingFlowSnapshot();
 }

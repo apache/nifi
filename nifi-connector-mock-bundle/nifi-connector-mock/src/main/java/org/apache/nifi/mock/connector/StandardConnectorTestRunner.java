@@ -25,6 +25,8 @@ import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FlowUpdateException;
 import org.apache.nifi.components.connector.SecretReference;
 import org.apache.nifi.components.connector.StepConfiguration;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.flow.VersionedExternalFlow;
 import org.apache.nifi.mock.connector.server.ConnectorConfigVerificationResult;
 import org.apache.nifi.mock.connector.server.ConnectorMockServer;
 import org.apache.nifi.mock.connector.server.ConnectorTestRunner;
@@ -32,7 +34,6 @@ import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpackMode;
 import org.apache.nifi.nar.NarUnpacker;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.NiFiProperties;
@@ -206,6 +207,16 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
     @Override
     public List<ValidationResult> validate() {
         return mockServer.validate();
+    }
+
+    @Override
+    public VersionedExternalFlow getActiveFlowSnapshot() {
+        return mockServer.getActiveFlowSnapshot();
+    }
+
+    @Override
+    public VersionedExternalFlow getWorkingFlowSnapshot() {
+        return mockServer.getWorkingFlowSnapshot();
     }
 
 
