@@ -32,7 +32,7 @@ under the License.
     <exclude-pattern>.*/antlr/Protobuf3Lexer\.java</exclude-pattern>
     <exclude-pattern>.*/path/RecordPathParser\.java</exclude-pattern>
     <exclude-pattern>.*/path/RecordPathLexer\.java</exclude-pattern>
-    <exclude-pattern>.*/generated/.+?\.java</exclude-pattern>
+    <exclude-pattern>.*/generated.*/.+?\.java</exclude-pattern>
 
     <rule ref="category/java/bestpractices.xml/AvoidMessageDigestField" />
     <rule ref="category/java/bestpractices.xml/AvoidReassigningCatchVariables" />
