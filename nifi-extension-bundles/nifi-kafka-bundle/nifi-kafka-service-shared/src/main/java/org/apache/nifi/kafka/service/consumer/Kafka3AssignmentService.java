@@ -83,6 +83,7 @@ public class Kafka3AssignmentService implements KafkaConsumerService {
             .toList();
     }
 
+    @Override
     public OptionalLong currentLag(final TopicPartitionSummary topicPartitionSummary) {
         return OptionalLong.empty();
     }

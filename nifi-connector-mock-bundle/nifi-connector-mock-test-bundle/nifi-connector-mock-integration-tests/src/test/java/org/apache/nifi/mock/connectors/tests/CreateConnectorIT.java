@@ -45,7 +45,7 @@ public class CreateConnectorIT {
 
     @Test
     public void testConnectorWithMissingBundleFailsValidate() throws IOException {
-        
+
         try (final ConnectorTestRunner testRunner = new StandardConnectorTestRunner.Builder()
                 .connectorClassName("org.apache.nifi.mock.connectors.MissingBundleConnector")
                 .narLibraryDirectory(new File("target/libDir"))
