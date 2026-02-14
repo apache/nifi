@@ -28,7 +28,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.services.couchbase.CouchbaseClient;
-import org.apache.nifi.services.couchbase.CouchbaseConnectionService;
 import org.apache.nifi.services.couchbase.exception.CouchbaseException;
 import org.apache.nifi.services.couchbase.utils.CouchbaseContext;
 import org.apache.nifi.services.couchbase.utils.CouchbaseUpsertResult;
@@ -69,7 +68,6 @@ public class PutCouchbase extends AbstractCouchbaseProcessor {
         }
 
         final long startNanos = System.nanoTime();
-        final CouchbaseConnectionService connectionService = context.getProperty(COUCHBASE_CONNECTION_SERVICE).asControllerService(CouchbaseConnectionService.class);
         final String documentId = context.getProperty(DOCUMENT_ID).evaluateAttributeExpressions(flowFile).getValue();
 
         final CouchbaseContext couchbaseContext = getCouchbaseContext(context, flowFile);
