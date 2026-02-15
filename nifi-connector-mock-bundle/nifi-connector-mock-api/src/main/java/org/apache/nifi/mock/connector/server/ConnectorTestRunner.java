@@ -68,4 +68,13 @@ public interface ConnectorTestRunner extends Closeable {
     void waitForIdle(Duration minimumIdleTime, Duration maxWaitTime);
 
     List<ValidationResult> validate();
+
+    /**
+     * Returns the HTTP port on which the embedded Jetty server is listening, or -1 if no server is running.
+     *
+     * @return the HTTP port, or -1 if not applicable
+     */
+    default int getHttpPort() {
+        return -1;
+    }
 }

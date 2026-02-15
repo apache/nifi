@@ -17,6 +17,7 @@
 
 package org.apache.nifi.mock.connector.server;
 
+import jakarta.servlet.ServletContext;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.asset.Asset;
 import org.apache.nifi.asset.AssetManager;
@@ -44,6 +45,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.connectable.FlowFileTransferCounts;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.metrics.DefaultComponentMetricReporter;
@@ -56,19 +58,28 @@ import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.VolatileBulletinRepository;
-import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.mock.connector.server.secrets.ConnectorTestRunnerSecretsManager;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolationsManager;
+import org.apache.nifi.web.NiFiConnectorWebContext;
+import org.eclipse.jetty.ee11.webapp.WebAppContext;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -76,9 +87,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 public class StandardConnectorMockServer implements ConnectorMockServer {
+    private static final Logger logger = LoggerFactory.getLogger(StandardConnectorMockServer.class);
+
     private static final String CONNECTOR_ID = "test-connector";
+    private static final String NAR_DEPENDENCIES_PATH = "NAR-INF/bundled-dependencies";
+    private static final String WAR_EXTENSION = ".war";
 
     private Bundle systemBundle;
     private Set<Bundle> bundles;
@@ -90,6 +106,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     private FlowEngine flowEngine;
     private MockExtensionMapper mockExtensionMapper;
     private FlowFileTransferCounts initialFlowFileTransferCounts = new FlowFileTransferCounts(0L, 0L, 0L, 0L);
+    private Server jettyServer;
 
     @Override
     public void start() {
@@ -136,6 +153,8 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
         ((MockConnectorRepository) connectorRepository).setMockExtensionMapper(mockExtensionMapper);
 
         flowEngine = new FlowEngine(4, "Connector Threads");
+
+        startJettyServer();
     }
 
     @Override
@@ -147,6 +166,14 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     @Override
     public void stop() {
+        if (jettyServer != null) {
+            try {
+                jettyServer.stop();
+                logger.info("Jetty server stopped");
+            } catch (final Exception e) {
+                logger.warn("Failed to stop Jetty server", e);
+            }
+        }
         if (flowEngine != null) {
             flowEngine.shutdown();
         }
@@ -402,7 +429,95 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
     }
 
     @Override
+    public int getHttpPort() {
+        if (jettyServer == null) {
+            return -1;
+        }
+
+        final ServerConnector connector = (ServerConnector) jettyServer.getConnectors()[0];
+        return connector.getLocalPort();
+    }
+
+    @Override
     public void close() {
         stop();
+    }
+
+    private void startJettyServer() {
+        final String httpPortValue = nifiProperties.getProperty(NiFiProperties.WEB_HTTP_PORT);
+        if (httpPortValue == null || httpPortValue.isBlank()) {
+            logger.debug("No HTTP port configured; skipping Jetty server startup");
+            return;
+        }
+
+        final int httpPort = Integer.parseInt(httpPortValue);
+        final Map<File, Bundle> wars = findWars(bundles);
+        if (wars.isEmpty()) {
+            logger.debug("No WAR files found in NAR bundles; skipping Jetty server startup");
+            return;
+        }
+
+        jettyServer = new Server();
+
+        final ServerConnector serverConnector = new ServerConnector(jettyServer);
+        serverConnector.setPort(httpPort);
+        jettyServer.addConnector(serverConnector);
+
+        final List<WebAppContext> webAppContexts = new ArrayList<>();
+        final ContextHandlerCollection handlers = new ContextHandlerCollection();
+        for (final Map.Entry<File, Bundle> entry : wars.entrySet()) {
+            final File warFile = entry.getKey();
+            final Bundle bundle = entry.getValue();
+
+            final String warName = warFile.getName();
+            final String contextPath = "/" + warName.substring(0, warName.length() - WAR_EXTENSION.length());
+
+            final WebAppContext webAppContext = new WebAppContext(warFile.getPath(), contextPath);
+            webAppContext.setClassLoader(new org.eclipse.jetty.ee.webapp.WebAppClassLoader(bundle.getClassLoader(), webAppContext));
+
+            handlers.addHandler(webAppContext);
+            webAppContexts.add(webAppContext);
+            logger.info("Deploying WAR [{}] at context path [{}]", warFile.getAbsolutePath(), contextPath);
+        }
+
+        jettyServer.setHandler(handlers);
+
+        try {
+            jettyServer.start();
+            logger.info("Jetty server started on port [{}]", getHttpPort());
+        } catch (final Exception e) {
+            throw new RuntimeException("Failed to start Jetty server", e);
+        }
+
+        performInjectionForConnectorUis(webAppContexts);
+    }
+
+    private void performInjectionForConnectorUis(final List<WebAppContext> webAppContexts) {
+        final NiFiConnectorWebContext connectorWebContext = new MockNiFiConnectorWebContext(connectorRepository);
+        for (final WebAppContext webAppContext : webAppContexts) {
+            final ServletContext servletContext = webAppContext.getServletHandler().getServletContext();
+            servletContext.setAttribute("nifi-connector-web-context", connectorWebContext);
+            logger.info("Injected NiFiConnectorWebContext into WAR context [{}]", webAppContext.getContextPath());
+        }
+    }
+
+    private Map<File, Bundle> findWars(final Set<Bundle> bundles) {
+        final Map<File, Bundle> wars = new HashMap<>();
+
+        bundles.forEach(bundle -> {
+            final BundleDetails details = bundle.getBundleDetails();
+            final Path bundledDependencies = new File(details.getWorkingDirectory(), NAR_DEPENDENCIES_PATH).toPath();
+            if (Files.isDirectory(bundledDependencies)) {
+                try (final Stream<Path> dependencies = Files.list(bundledDependencies)) {
+                    dependencies.filter(dependency -> dependency.getFileName().toString().endsWith(WAR_EXTENSION))
+                            .map(Path::toFile)
+                            .forEach(dependency -> wars.put(dependency, bundle));
+                } catch (final IOException e) {
+                    logger.warn("Failed to find WAR files in bundled-dependencies [{}]", bundledDependencies, e);
+                }
+            }
+        });
+
+        return wars;
     }
 }
