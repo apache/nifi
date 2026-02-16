@@ -185,8 +185,8 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
 
     private void checkWritingMultipleRecords() throws IOException {
         if (!allowWritingMultipleRecords && hasWrittenRecord) {
-            final String message = "The writer attempts to write multiple record although property \'" + ROOT_TAG_NAME.getDisplayName() +
-                "\' has not been set. If the XMLRecordSetWriter is supposed to write multiple records into one FlowFile, this property is required to be configured.";
+            final String message = "The writer attempts to write multiple record although property '" + ROOT_TAG_NAME.getDisplayName() +
+                    "' has not been set. If the XMLRecordSetWriter is supposed to write multiple records into one FlowFile, this property is required to be configured.";
             throw new IOException(message);
         }
     }
