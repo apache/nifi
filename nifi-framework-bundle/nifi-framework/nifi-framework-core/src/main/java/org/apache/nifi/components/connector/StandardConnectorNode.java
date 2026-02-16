@@ -1546,7 +1546,7 @@ public class StandardConnectorNode implements ConnectorNode {
     private List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName, final FlowContext context) {
         final List<DescribedValue> allowableValues;
         try (NarCloseable ignored = NarCloseable.withComponentNarLoader(extensionManager, getConnector().getClass(), getIdentifier())) {
-            allowableValues = getConnector().fetchAllowableValues(stepName, propertyName, activeFlowContext);
+            allowableValues = getConnector().fetchAllowableValues(stepName, propertyName, context);
         }
 
         if (allowableValues == null || allowableValues.isEmpty()) {

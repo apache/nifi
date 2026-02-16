@@ -13,5 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+org.apache.nifi.mock.connectors.AllowableValuesConnector
 org.apache.nifi.mock.connectors.GenerateAndLog
 org.apache.nifi.mock.connectors.MissingBundleConnector
