@@ -103,7 +103,7 @@ public class TestConvertRecord {
 
         final String input = """
                 <note>
-                  <to alias=\"Toto\">Thomas Mills</to>
+                  <to alias="Toto">Thomas Mills</to>
                 </note>
                 """;
 

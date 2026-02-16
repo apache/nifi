@@ -4382,7 +4382,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public void setLogFileSuffix(final String logFileSuffix) {
         if (logFileSuffix != null && INVALID_DIRECTORY_NAME_CHARACTERS.matcher(logFileSuffix).find()) {
-            throw new IllegalArgumentException("Log file suffix can not contain the following characters: space, <, >, :, \', \", /, \\, |, ?, *");
+            throw new IllegalArgumentException("Log file suffix can not contain the following characters: space, <, >, :, ', \", /, \\, |, ?, *");
         } else {
             this.logFileSuffix = logFileSuffix;
         }

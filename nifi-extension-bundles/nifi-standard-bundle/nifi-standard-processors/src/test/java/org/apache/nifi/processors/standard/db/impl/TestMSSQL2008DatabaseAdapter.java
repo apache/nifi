@@ -30,16 +30,16 @@ public class TestMSSQL2008DatabaseAdapter {
         String expected1 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename";
         assertEquals(expected1, sql);
 
-        sql = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that=\'some\"\' value\'", "", null, null);
-        String expected2 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that=\'some\"\' value\'";
+        sql = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that='some\"' value'", "", null, null);
+        String expected2 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that='some\"' value'";
         assertEquals(expected2, sql);
 
-        sql = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that=\'some\"\' value\'", "might DESC", null, null);
-        String expected3 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
+        sql = db.getSelectStatement("database.tablename", "some(set),of(columns),that,might,contain,methods,a.*", "that='some\"' value'", "might DESC", null, null);
+        String expected3 = "SELECT some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename WHERE that='some\"' value' ORDER BY might DESC";
         assertEquals(expected3, sql);
 
-        sql = db.getSelectStatement("database.tablename", "", "that=\'some\"\' value\'", "might DESC", null, null);
-        String expected4 = "SELECT * FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
+        sql = db.getSelectStatement("database.tablename", "", "that='some\"' value'", "might DESC", null, null);
+        String expected4 = "SELECT * FROM database.tablename WHERE that='some\"' value' ORDER BY might DESC";
         assertEquals(expected4, sql);
     }
 
@@ -60,8 +60,8 @@ public class TestMSSQL2008DatabaseAdapter {
         String expected2 = "SELECT TOP 100 some(set),of(columns),that,might,contain,methods,a.* FROM database.tablename ORDER BY contain";
         assertEquals(expected2, sql);
 
-        sql = db.getSelectStatement("database.tablename", "", "that=\'some\"\' value\'", "might DESC", 123456L, null);
-        String expected4 = "SELECT TOP 123456 * FROM database.tablename WHERE that=\'some\"\' value\' ORDER BY might DESC";
+        sql = db.getSelectStatement("database.tablename", "", "that='some\"' value'", "might DESC", 123456L, null);
+        String expected4 = "SELECT TOP 123456 * FROM database.tablename WHERE that='some\"' value' ORDER BY might DESC";
         assertEquals(expected4, sql);
     }
 
