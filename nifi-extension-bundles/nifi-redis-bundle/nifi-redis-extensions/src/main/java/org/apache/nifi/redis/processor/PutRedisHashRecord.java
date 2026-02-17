@@ -220,6 +220,7 @@ public class PutRedisHashRecord extends AbstractProcessor {
         }
 
         flowFile = session.putAttribute(flowFile, SUCCESS_RECORD_COUNT, String.valueOf(count));
+        session.getProvenanceReporter().send(flowFile, "redis://hash");
         session.transfer(flowFile, REL_SUCCESS);
     }
 

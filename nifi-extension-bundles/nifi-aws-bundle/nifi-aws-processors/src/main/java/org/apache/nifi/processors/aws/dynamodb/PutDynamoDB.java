@@ -187,9 +187,10 @@ public class PutDynamoDB extends AbstractDynamoDBProcessor {
                 }
             }
 
-            // Handle any remaining flowfiles
+            final String transitUri = "dynamodb://%s".formatted(table);
             for (final FlowFile flowFile : keysToFlowFileMap.values()) {
                 getLogger().debug("Successful posted items to dynamodb : {}", table);
+                session.getProvenanceReporter().send(flowFile, transitUri);
                 session.transfer(flowFile, REL_SUCCESS);
             }
         } catch (final AwsServiceException exception) {

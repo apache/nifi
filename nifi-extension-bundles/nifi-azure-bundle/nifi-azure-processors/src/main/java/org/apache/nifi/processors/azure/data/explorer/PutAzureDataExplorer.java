@@ -223,6 +223,7 @@ public class PutAzureDataExplorer extends AbstractProcessor {
             final KustoIngestionResult result = service.ingestData(request);
             if (result == KustoIngestionResult.SUCCEEDED) {
                 getLogger().info("Ingest {} for {}", result.getStatus(), flowFile);
+                session.getProvenanceReporter().send(flowFile, "azuredataexplorer://%s/%s".formatted(databaseName, tableName));
                 transferRelationship = SUCCESS;
             } else if (result == KustoIngestionResult.FAILED) {
                 getLogger().error("Ingest {} for {}", result.getStatus(), flowFile);

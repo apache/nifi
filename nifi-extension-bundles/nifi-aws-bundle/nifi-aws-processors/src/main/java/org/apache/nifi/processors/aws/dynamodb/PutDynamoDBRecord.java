@@ -215,6 +215,8 @@ public class PutDynamoDBRecord extends AbstractDynamoDBProcessor {
         final FlowFile outgoingFlowFile = session.putAllAttributes(flowFile, attributes);
 
         if (result.isSuccess()) {
+            final String table = context.getProperty(TABLE).evaluateAttributeExpressions().getValue();
+            session.getProvenanceReporter().send(outgoingFlowFile, "dynamodb://%s".formatted(table));
             session.transfer(outgoingFlowFile, REL_SUCCESS);
         } else {
             handleError(context, session, result, outgoingFlowFile);

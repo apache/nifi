@@ -193,6 +193,9 @@ public class PutIoTDBRecord extends AbstractIoTDB {
             processSession.transfer(flowFile, REL_FAILURE);
             return;
         }
+        final String host = processContext.getProperty(IOTDB_HOST).getValue();
+        final String port = processContext.getProperty(IOTDB_PORT).getValue();
+        processSession.getProvenanceReporter().send(flowFile, "iotdb://%s:%s".formatted(host, port));
         processSession.transfer(flowFile, REL_SUCCESS);
     }
 

@@ -164,6 +164,7 @@ public class PutSnowflakeInternalStage extends AbstractProcessor {
         }
 
         flowFile = session.putAttribute(flowFile, ATTRIBUTE_STAGED_FILE_PATH, stagedFileName);
+        session.getProvenanceReporter().send(flowFile, "snowflake://%s/%s".formatted(internalStageName, stagedFileName));
         session.transfer(flowFile, REL_SUCCESS);
     }
 
