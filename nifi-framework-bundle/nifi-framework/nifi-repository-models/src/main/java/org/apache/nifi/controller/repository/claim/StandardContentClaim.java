@@ -30,6 +30,7 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
     private final ResourceClaim resourceClaim;
     private final long offset;
     private volatile long length;
+    private volatile boolean truncationCandidate = false;
 
     public StandardContentClaim(final ResourceClaim resourceClaim, final long offset) {
         this.resourceClaim = resourceClaim;
@@ -39,6 +40,15 @@ public final class StandardContentClaim implements ContentClaim, Comparable<Cont
 
     public void setLength(final long length) {
         this.length = length;
+    }
+
+    public void setTruncationCandidate(final boolean candidate) {
+        this.truncationCandidate = candidate;
+    }
+
+    @Override
+    public boolean isTruncationCandidate() {
+        return truncationCandidate;
     }
 
     @Override

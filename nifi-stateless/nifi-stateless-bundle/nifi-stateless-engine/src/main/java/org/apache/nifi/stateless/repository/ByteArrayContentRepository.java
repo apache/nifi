@@ -261,6 +261,11 @@ public class ByteArrayContentRepository implements ContentRepository {
         }
 
         @Override
+        public boolean isTruncationCandidate() {
+            return false;
+        }
+
+        @Override
         public int compareTo(final ContentClaim o) {
             return resourceClaim.compareTo(o.getResourceClaim());
         }
