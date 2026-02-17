@@ -17,6 +17,8 @@
 
 package org.apache.nifi.asset;
 
+import java.util.Collection;
+
 /**
  * Manages restarting components which reference a given Asset through a Parameter.
  */
@@ -35,5 +37,13 @@ public interface AssetComponentManager {
      * @param asset the asset
      */
     void restartReferencingComponents(Asset asset);
+
+    /**
+     * Synchronously restarts any components referencing any of the given assets.
+     * Components are only restarted once even if they reference multiple assets.
+     *
+     * @param assets the assets
+     */
+    void restartReferencingComponents(Collection<Asset> assets);
 
 }

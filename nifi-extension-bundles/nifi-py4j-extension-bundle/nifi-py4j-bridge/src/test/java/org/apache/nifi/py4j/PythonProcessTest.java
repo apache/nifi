@@ -20,6 +20,7 @@ import org.apache.nifi.python.ControllerServiceTypeLookup;
 import org.apache.nifi.python.PythonProcessConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.CleanupMode;
 import org.junit.jupiter.api.io.TempDir;
@@ -28,8 +29,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
@@ -127,5 +130,35 @@ class PythonProcessTest {
 
     private String getExpectedBinaryPath(String binarySubDirectoryName) {
         return this.virtualEnvHome.getAbsolutePath() + File.separator + binarySubDirectoryName + File.separator + PYTHON_CMD;
+    }
+
+    @Test
+    void testShutdownBeforeStart() {
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown());
+    }
+
+    @Test
+    void testIsShutdownInitialState() {
+        assertFalse(pythonProcess.isShutdown());
+    }
+
+    @Test
+    void testMultipleShutdownCalls() {
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown());
+
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown());
+
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown());
+    }
+
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS)
+    void testShutdownDuringInitializationPreparation() {
+        pythonProcess.shutdown();
+        assertTrue(pythonProcess.isShutdown());
     }
 }

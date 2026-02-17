@@ -340,11 +340,10 @@ public class ForkRecord extends AbstractProcessor {
                                 }
                             }
 
-                            if (!(dataType instanceof ArrayDataType)) {
+                            if (!(dataType instanceof ArrayDataType arrayDataType)) {
                                 continue;
                             }
 
-                            final ArrayDataType arrayDataType = (ArrayDataType) dataType;
                             final DataType elementType = arrayDataType.getElementType();
 
                             if (elementType.getFieldType() != RecordFieldType.RECORD) {
@@ -379,7 +378,7 @@ public class ForkRecord extends AbstractProcessor {
 
                         addParentFieldSchemas(fieldMap, parentField);
                     } catch (NoSuchElementException e) {
-                        return; // No parent field, nothing to do
+                        return; // No parent field, nothing to do. NOTE: A return statement is needed to ensure this method does not recurse infinitely.
                     }
                 }
 
@@ -479,7 +478,7 @@ public class ForkRecord extends AbstractProcessor {
                         // recursive call
                         recursivelyAddParentFields(recordToWrite, parentField);
                     } catch (NoSuchElementException e) {
-                        return;
+                        return; // NOTE: A return statement is needed to ensure this method does not recurse infinitely.
                     }
                 }
             });

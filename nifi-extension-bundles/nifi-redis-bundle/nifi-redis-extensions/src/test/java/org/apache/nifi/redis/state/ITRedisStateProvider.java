@@ -55,7 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ITRedisStateProvider {
 
     protected final String componentId = "111111111-1111-1111-1111-111111111111";
-    public static RedisContainer redisContainer = new RedisContainer("redis:8.2.2-alpine").withExposedPorts(6379);
+    public static RedisContainer redisContainer = new RedisContainer("redis:8.4-alpine").withExposedPorts(6379);
 
     private RedisStateProvider provider;
 

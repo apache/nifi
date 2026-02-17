@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Set;
 
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.PROCESSING_STRATEGY;
+import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.ProcessingStrategy.DEMARCATOR;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.ProcessingStrategy.FLOW_FILE;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.ProcessingStrategy.RECORD;
 import static org.apache.nifi.processors.aws.kinesis.ConsumeKinesis.REL_PARSE_FAILURE;
@@ -59,6 +60,15 @@ class ConsumeKinesisTest {
         final Set<Relationship> relationships = testRunner.getProcessor().getRelationships();
 
         assertEquals(Set.of(REL_SUCCESS, REL_PARSE_FAILURE), relationships);
+    }
+
+    @Test
+    void getRelationshipsForDemarcatorProcessingStrategy() {
+        testRunner.setProperty(PROCESSING_STRATEGY, DEMARCATOR);
+
+        final Set<Relationship> relationships = testRunner.getProcessor().getRelationships();
+
+        assertEquals(Set.of(REL_SUCCESS), relationships);
     }
 
     private static TestRunner createTestRunner() {

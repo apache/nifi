@@ -29,12 +29,12 @@ import java.util.Map;
  * </p>
  *
  * <pre>
- * Length Field : indicates the number of Flow File Attributes in the stream
- * 1 to N times (N=number of Flow File Attributes):
- *      String Field : Flow File Attribute key name
- *      String Field : Flow File Attribute value
- * Long : 8 bytes indicating the length of the Flow File content
- * Content : The next M bytes are the content of the Flow File.
+ * Length Field : indicates the number of FlowFile Attributes in the stream
+ * 1 to N times (N=number of FlowFile Attributes):
+ *      String Field : FlowFile Attribute key name
+ *      String Field : FlowFile Attribute value
+ * Long : 8 bytes indicating the length of the FlowFile content
+ * Content : The next M bytes are the content of the FlowFile.
  * </pre>
  *
  * <pre>

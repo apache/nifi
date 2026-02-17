@@ -45,6 +45,9 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
@@ -624,6 +627,32 @@ public class StandardParameterProviderNode extends AbstractComponentNode impleme
             return parametersApplications;
         } finally {
             readLock.unlock();
+        }
+    }
+
+    @Override
+    public void migrateConfiguration(final Map<String, String> originalPropertyValues, final ControllerServiceFactory serviceFactory) {
+        final Map<String, String> effectiveValues = new HashMap<>();
+        originalPropertyValues.forEach((key, value) -> effectiveValues.put(key, mapRawValueToEffectiveValue(value)));
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(effectiveValues,
+                originalPropertyValues, this::mapRawValueToEffectiveValue, toString(), serviceFactory);
+
+        final ParameterProvider parameterProvider = getParameterProvider();
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), parameterProvider.getClass(), getIdentifier())) {
+            parameterProvider.migrateProperties(propertyConfig);
+        } catch (final Exception e) {
+            getLogger().error("Failed to migrate Property Configuration for {}.", this, e);
+        }
+
+        if (propertyConfig.isModified()) {
+            // Create any necessary Controller Services. It is important that we create the services
+            // before updating the parameter provider's properties, as it's necessary in order to properly account
+            // for the Controller Service References.
+            final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
+            servicesCreated.forEach(serviceFactory::create);
+
+            overwriteProperties(propertyConfig.getRawProperties());
         }
     }
 

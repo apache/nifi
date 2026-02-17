@@ -40,6 +40,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.StreamingOutput;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -69,6 +70,7 @@ import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
 import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
 import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.BulletinDTO;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
@@ -126,6 +128,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -322,22 +325,10 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    ComponentAuthorizable authorizable = null;
-                    try {
-                        authorizable = lookup.getConfigurableComponent(requestParameterProvider.getType(), requestParameterProvider.getBundle());
-
-                        if (authorizable.isRestricted()) {
-                            authorizeRestrictions(authorizer, authorizable);
-                        }
-
-                        if (requestParameterProvider.getProperties() != null) {
-                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestParameterProvider.getProperties(), authorizable, authorizer, lookup);
-                        }
-                    } finally {
-                        if (authorizable != null) {
-                            authorizable.cleanUpResources();
-                        }
-                    }
+                    final String componentType = requestParameterProvider.getType();
+                    final BundleDTO bundle = requestParameterProvider.getBundle();
+                    final Map<String, String> properties = requestParameterProvider.getProperties();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, componentType, bundle, properties, null);
                 },
                 () -> serviceFacade.verifyCreateParameterProvider(requestParameterProvider),
                 (parameterProviderEntity) -> {
@@ -485,22 +476,10 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    ComponentAuthorizable authorizable = null;
-                    try {
-                        authorizable = lookup.getConfigurableComponent(requestReportingTask.getType(), requestReportingTask.getBundle());
-
-                        if (authorizable.isRestricted()) {
-                            authorizeRestrictions(authorizer, authorizable);
-                        }
-
-                        if (requestReportingTask.getProperties() != null) {
-                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestReportingTask.getProperties(), authorizable, authorizer, lookup);
-                        }
-                    } finally {
-                        if (authorizable != null) {
-                            authorizable.cleanUpResources();
-                        }
-                    }
+                    final String componentType = requestReportingTask.getType();
+                    final BundleDTO bundle = requestReportingTask.getBundle();
+                    final Map<String, String> properties = requestReportingTask.getProperties();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, componentType, bundle, properties, null);
                 },
                 () -> serviceFacade.verifyCreateReportingTask(requestReportingTask),
                 (reportingTaskEntity) -> {
@@ -649,22 +628,10 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    ComponentAuthorizable authorizable = null;
-                    try {
-                        authorizable = lookup.getConfigurableComponent(requestFlowAnalysisRule.getType(), requestFlowAnalysisRule.getBundle());
-
-                        if (authorizable.isRestricted()) {
-                            authorizeRestrictions(authorizer, authorizable);
-                        }
-
-                        if (requestFlowAnalysisRule.getProperties() != null) {
-                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestFlowAnalysisRule.getProperties(), authorizable, authorizer, lookup);
-                        }
-                    } finally {
-                        if (authorizable != null) {
-                            authorizable.cleanUpResources();
-                        }
-                    }
+                    final String componentType = requestFlowAnalysisRule.getType();
+                    final BundleDTO bundle = requestFlowAnalysisRule.getBundle();
+                    final Map<String, String> properties = requestFlowAnalysisRule.getProperties();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, componentType, bundle, properties, null);
                 },
                 () -> serviceFacade.verifyCreateFlowAnalysisRule(requestFlowAnalysisRule),
                 (flowAnalysisRuleEntity) -> {
@@ -819,9 +786,8 @@ public class ControllerResource extends ApplicationResource {
                     authorizeController(RequestAction.WRITE);
 
                     final ComponentAuthorizable authorizable = lookup.getFlowAnalysisRule(id);
-
-                    // authorize any referenced services
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestFlowAnalysisRuleDTO.getProperties(), authorizable, authorizer, lookup);
+                    final Map<String, String> componentProperties = requestFlowAnalysisRuleDTO.getProperties();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, componentProperties, null);
                 },
                 () -> serviceFacade.verifyUpdateFlowAnalysisRule(requestFlowAnalysisRuleDTO),
                 (revision, flowAnalysisRuleEntity) -> {
@@ -2501,22 +2467,10 @@ public class ControllerResource extends ApplicationResource {
                 lookup -> {
                     authorizeController(RequestAction.WRITE);
 
-                    ComponentAuthorizable authorizable = null;
-                    try {
-                        authorizable = lookup.getConfigurableComponent(requestControllerService.getType(), requestControllerService.getBundle());
-
-                        if (authorizable.isRestricted()) {
-                            authorizeRestrictions(authorizer, authorizable);
-                        }
-
-                        if (requestControllerService.getProperties() != null) {
-                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestControllerService.getProperties(), authorizable, authorizer, lookup);
-                        }
-                    } finally {
-                        if (authorizable != null) {
-                            authorizable.cleanUpResources();
-                        }
-                    }
+                    final String componentType = requestControllerService.getType();
+                    final BundleDTO bundle = requestControllerService.getBundle();
+                    final Map<String, String> properties = requestControllerService.getProperties();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, componentType, bundle, properties, null);
                 },
                 () -> serviceFacade.verifyCreateControllerService(requestControllerService),
                 (controllerServiceEntity) -> {

@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.annotation.behavior.DefaultRunDuration;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -42,7 +41,6 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"counter", "debug", "instrumentation"})
 @CapabilityDescription("This processor allows users to set specific counters and key points in their flow. It is useful for debugging and basic counting functions.")
-@ReadsAttribute(attribute = "counterName", description = "The name of the counter to update/get.")
 public class UpdateCounter extends AbstractProcessor {
 
     static final PropertyDescriptor COUNTER_NAME = new PropertyDescriptor.Builder()

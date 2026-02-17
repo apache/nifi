@@ -26,6 +26,7 @@ public class GitCreateContentRequest {
     private final String content;
     private final String message;
     private final String existingContentSha;
+    private final String expectedCommitSha;
 
     private GitCreateContentRequest(final Builder builder) {
         this.branch = Objects.requireNonNull(builder.branch);
@@ -34,6 +35,8 @@ public class GitCreateContentRequest {
         this.message = Objects.requireNonNull(builder.message);
         // Will be null for create, and populated for update
         this.existingContentSha = builder.existingContentSha;
+        // Commit SHA for providers that support atomic commits via commit SHA
+        this.expectedCommitSha = builder.expectedCommitSha;
     }
 
     public String getBranch() {
@@ -56,6 +59,10 @@ public class GitCreateContentRequest {
         return existingContentSha;
     }
 
+    public String getExpectedCommitSha() {
+        return expectedCommitSha;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -66,6 +73,7 @@ public class GitCreateContentRequest {
         private String content;
         private String message;
         private String existingContentSha;
+        private String expectedCommitSha;
 
         public Builder branch(final String branch) {
             this.branch = branch;
@@ -89,6 +97,11 @@ public class GitCreateContentRequest {
 
         public Builder existingContentSha(final String existingSha) {
             this.existingContentSha = existingSha;
+            return this;
+        }
+
+        public Builder expectedCommitSha(final String expectedCommitSha) {
+            this.expectedCommitSha = expectedCommitSha;
             return this;
         }
 

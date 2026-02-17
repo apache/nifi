@@ -1318,6 +1318,13 @@ public class FlowResource extends ApplicationResource {
                         .collect(Collectors.toSet())
         );
 
+        // Collect Controller Service IDs to distinguish them from local connectables during authorization
+        final Set<String> controllerServiceIds = serviceFacade.filterComponents(id, group ->
+                group.findAllControllerServices().stream()
+                        .map(cs -> cs.getIdentifier())
+                        .collect(Collectors.toSet())
+        );
+
         // if the components are not specified, gather all authorized components
         if (clearBulletinsForGroupRequestEntity.getComponents() == null) {
             // get component IDs that the user has write access to
@@ -1344,6 +1351,11 @@ public class FlowResource extends ApplicationResource {
                         .filter(remoteProcessGroup -> remoteProcessGroup.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
                         .forEach(remoteProcessGroup -> componentIds.add(remoteProcessGroup.getIdentifier()));
 
+                // find all controller services with write permissions
+                group.findAllControllerServices().stream()
+                        .filter(controllerService -> controllerService.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .forEach(controllerService -> componentIds.add(controllerService.getIdentifier()));
+
                 return componentIds;
             });
 
@@ -1367,9 +1379,14 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being cleared
                     final Set<String> requestComponentsToClear = clearBulletinsForGroupRequestEntity.getComponents();
                     requestComponentsToClear.forEach(componentId -> {
-                        final Authorizable authorizable = remoteProcessGroupIds.contains(componentId)
-                                ? lookup.getRemoteProcessGroup(componentId)
-                                : lookup.getLocalConnectable(componentId);
+                        final Authorizable authorizable;
+                        if (remoteProcessGroupIds.contains(componentId)) {
+                            authorizable = lookup.getRemoteProcessGroup(componentId);
+                        } else if (controllerServiceIds.contains(componentId)) {
+                            authorizable = lookup.getControllerService(componentId).getAuthorizable();
+                        } else {
+                            authorizable = lookup.getLocalConnectable(componentId);
+                        }
                         authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
                     });
                 },

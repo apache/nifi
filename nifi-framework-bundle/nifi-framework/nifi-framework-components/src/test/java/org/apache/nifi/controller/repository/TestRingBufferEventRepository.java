@@ -17,180 +17,92 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.metrics.RingBufferEventRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-public class TestRingBufferEventRepository {
+class TestRingBufferEventRepository {
+
+    private static final String FIRST_COMPONENT_ID = "component-1";
+    private static final String SECOND_COMPONENT_ID = "component-2";
+
+    private final RingBufferEventRepository repository = new RingBufferEventRepository(1);
+
+    @AfterEach
+    void closeRepository() throws IOException {
+        repository.close();
+    }
 
     @Test
-    public void testAdd() throws IOException {
-        final RingBufferEventRepository repo = new RingBufferEventRepository(5);
-        long insertNanos = 0L;
-        for (int i = 0; i < 1000000; i++) {
-            final FlowFileEvent event = generateEvent();
+    void testReportTransferEvents() {
+        final FlowFileEvent event = getFlowFileEvent();
+        repository.updateRepository(event, FIRST_COMPONENT_ID);
 
-            final long insertStart = System.nanoTime();
-            repo.updateRepository(event, "ABC");
-            insertNanos += System.nanoTime() - insertStart;
-        }
-
-        final long queryStart = System.nanoTime();
-        final StandardRepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis());
-        final long queryNanos = System.nanoTime() - queryStart;
+        final StandardRepositoryStatusReport report = repository.reportTransferEvents(System.currentTimeMillis());
         assertNotNull(report);
-        assertTrue(TimeUnit.MILLISECONDS.convert(insertNanos, TimeUnit.NANOSECONDS) > 0L);
-        assertTrue(TimeUnit.MILLISECONDS.convert(queryNanos, TimeUnit.NANOSECONDS) >= 0L);
 
-        repo.close();
+        final FlowFileEvent reportEntry = report.getReportEntry(FIRST_COMPONENT_ID);
+        assertNotNull(reportEntry);
+        assertEquals(event.getFlowFilesIn(), reportEntry.getFlowFilesIn());
     }
 
     @Test
-    public void testPurge() throws IOException {
-        final FlowFileEventRepository repo = new RingBufferEventRepository(5);
-        String id1 = "component1";
-        String id2 = "component2";
-        repo.updateRepository(generateEvent(), id1);
-        repo.updateRepository(generateEvent(), id2);
-        RepositoryStatusReport report = repo.reportTransferEvents(System.currentTimeMillis());
-        FlowFileEvent entry = report.getReportEntry(id1);
-        assertNotNull(entry);
-        entry = report.getReportEntry(id2);
-        assertNotNull(entry);
+    void testReportTransferEventsForComponentId() {
+        final FlowFileEvent event = getFlowFileEvent();
+        repository.updateRepository(event, FIRST_COMPONENT_ID);
 
-        repo.purgeTransferEvents(id1);
-        report = repo.reportTransferEvents(System.currentTimeMillis());
-        entry = report.getReportEntry(id1);
-        assertNull(entry);
-        entry = report.getReportEntry(id2);
-        assertNotNull(entry);
-
-        repo.purgeTransferEvents(id2);
-        report = repo.reportTransferEvents(System.currentTimeMillis());
-        entry = report.getReportEntry(id2);
-        assertNull(entry);
-
-        repo.close();
+        final FlowFileEvent reportEvent = repository.reportTransferEvents(FIRST_COMPONENT_ID, System.currentTimeMillis());
+        assertNotNull(reportEvent);
+        assertEquals(event.getFlowFilesIn(), reportEvent.getFlowFilesIn());
     }
 
-    private FlowFileEvent generateEvent() {
-        return new FlowFileEvent() {
-            @Override
-            public int getFlowFilesIn() {
-                return 1;
-            }
+    @Test
+    void testPurgeTransferEvents() {
+        final FlowFileEvent firstEvent = getFlowFileEvent();
+        final FlowFileEvent secondEvent = getFlowFileEvent();
 
-            @Override
-            public int getFlowFilesOut() {
-                return 1;
-            }
+        repository.updateRepository(firstEvent, FIRST_COMPONENT_ID);
+        repository.updateRepository(secondEvent, SECOND_COMPONENT_ID);
 
-            @Override
-            public long getContentSizeIn() {
-                return 1024L;
-            }
+        final RepositoryStatusReport report = repository.reportTransferEvents(System.currentTimeMillis());
+        final FlowFileEvent firstReportEntry = report.getReportEntry(FIRST_COMPONENT_ID);
+        assertNotNull(firstReportEntry);
+        final FlowFileEvent secondReportEntry = report.getReportEntry(SECOND_COMPONENT_ID);
+        assertNotNull(secondReportEntry);
 
-            @Override
-            public long getContentSizeOut() {
-                return 1024 * 1024L;
-            }
+        repository.purgeTransferEvents(FIRST_COMPONENT_ID);
+        final RepositoryStatusReport firstReportPurged = repository.reportTransferEvents(System.currentTimeMillis());
+        assertNull(firstReportPurged.getReportEntry(FIRST_COMPONENT_ID));
+        assertNotNull(firstReportPurged.getReportEntry(SECOND_COMPONENT_ID));
 
-            @Override
-            public long getBytesRead() {
-                return 1024L;
-            }
+        repository.purgeTransferEvents(SECOND_COMPONENT_ID);
+        final RepositoryStatusReport secondReportPurged = repository.reportTransferEvents(System.currentTimeMillis());
+        assertNull(secondReportPurged.getReportEntry(SECOND_COMPONENT_ID));
+    }
 
-            @Override
-            public long getBytesWritten() {
-                return 1024L * 1024L;
-            }
+    @Test
+    void testReportAggregateEvent() {
+        final FlowFileEvent firstEvent = getFlowFileEvent();
+        final FlowFileEvent secondEvent = getFlowFileEvent();
 
-            @Override
-            public long getContentSizeRemoved() {
-                return 1024;
-            }
+        repository.updateRepository(firstEvent, FIRST_COMPONENT_ID);
+        repository.updateRepository(secondEvent, SECOND_COMPONENT_ID);
 
-            @Override
-            public int getFlowFilesRemoved() {
-                return 1;
-            }
+        final int totalFlowFilesIn = firstEvent.getFlowFilesIn() + secondEvent.getFlowFilesIn();
+        final FlowFileEvent aggregateEvent = repository.reportAggregateEvent();
+        assertEquals(totalFlowFilesIn, aggregateEvent.getFlowFilesIn());
+    }
 
-            @Override
-            public long getProcessingNanoseconds() {
-                return 234782;
-            }
-
-            @Override
-            public long getCpuNanoseconds() {
-                return 0;
-            }
-
-            @Override
-            public long getContentReadNanoseconds() {
-                return 0;
-            }
-
-            @Override
-            public long getContentWriteNanoseconds() {
-                return 0;
-            }
-
-            @Override
-            public long getSessionCommitNanoseconds() {
-                return 0;
-            }
-
-            @Override
-            public long getGargeCollectionMillis() {
-                return 0;
-            }
-
-            @Override
-            public int getInvocations() {
-                return 1;
-            }
-
-            @Override
-            public long getAggregateLineageMillis() {
-                return 783L;
-            }
-
-            @Override
-            public long getAverageLineageMillis() {
-                return getAggregateLineageMillis() / (getFlowFilesRemoved() + getFlowFilesOut());
-            }
-
-            @Override
-            public int getFlowFilesReceived() {
-                return 0;
-            }
-
-            @Override
-            public long getBytesReceived() {
-                return 0;
-            }
-
-            @Override
-            public int getFlowFilesSent() {
-                return 0;
-            }
-
-            @Override
-            public long getBytesSent() {
-                return 0;
-            }
-
-            @Override
-            public Map<String, Long> getCounters() {
-                return Collections.emptyMap();
-            }
-        };
+    private FlowFileEvent getFlowFileEvent() {
+        final FlowFileEvent flowFileEvent = mock(FlowFileEvent.class);
+        when(flowFileEvent.getFlowFilesIn()).thenReturn(1);
+        return flowFileEvent;
     }
 }

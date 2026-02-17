@@ -19,7 +19,11 @@ package org.apache.nifi.processors.gcp.storage;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import org.apache.nifi.migration.ProxyServiceMigration;
+import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +34,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.reset;
@@ -164,5 +170,31 @@ public class DeleteGCSObjectTest extends AbstractGCSTest {
         runner.assertPenalizeCount(1);
         runner.assertAllFlowFilesTransferred(DeleteGCSObject.REL_FAILURE);
         runner.assertTransferCount(DeleteGCSObject.REL_FAILURE, 1);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        TestRunner testRunner = TestRunners.newTestRunner(DeleteGCSObject.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("gcs-bucket", DeleteGCSObject.BUCKET.getName()),
+                Map.entry("gcs-key", DeleteGCSObject.KEY.getName()),
+                Map.entry("gcs-generation", DeleteGCSObject.GENERATION.getName()),
+                Map.entry("storage-api-url", AbstractGCSProcessor.STORAGE_API_URL.getName()),
+                Map.entry("gcp-project-id", AbstractGCPProcessor.PROJECT_ID.getName()),
+                Map.entry("gcp-retry-count", AbstractGCPProcessor.RETRY_COUNT.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "gcp-proxy-host",
+                "gcp-proxy-port",
+                "gcp-proxy-user-name",
+                "gcp-proxy-user-password"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 }

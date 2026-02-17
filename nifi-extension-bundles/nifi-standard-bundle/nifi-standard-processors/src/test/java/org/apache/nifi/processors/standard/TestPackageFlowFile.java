@@ -21,6 +21,7 @@ import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.util.FlowFileUnpackager;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Assertions;
@@ -31,6 +32,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPackageFlowFile {
 
@@ -154,5 +157,13 @@ public class TestPackageFlowFile {
         runner.assertTransferCount(PackageFlowFile.REL_SUCCESS, 1);
         runner.assertTransferCount(PackageFlowFile.REL_ORIGINAL, 7);
         runner.assertQueueNotEmpty();
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of("max-batch-size", PackageFlowFile.BATCH_SIZE.getName());
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

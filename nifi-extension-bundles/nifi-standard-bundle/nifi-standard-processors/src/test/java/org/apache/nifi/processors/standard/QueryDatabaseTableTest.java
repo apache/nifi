@@ -24,7 +24,9 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.db.JdbcProperties;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +41,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -119,7 +122,7 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        //Remove Max Rows Per Flow File
+        //Remove Max Rows Per FlowFile
         runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
@@ -827,7 +830,7 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        //Remove Max Rows Per Flow File
+        //Remove Max Rows Per FlowFile
         runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
@@ -955,7 +958,7 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
         runner.assertAllFlowFilesTransferred(QueryDatabaseTable.REL_SUCCESS, 0);
         runner.clearTransferState();
 
-        //Remove Max Rows Per Flow File
+        //Remove Max Rows Per FlowFile
         runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "0");
 
         // Add a new row with a higher ID and run, one flowfile with one new row should be transferred
@@ -1067,6 +1070,28 @@ public class QueryDatabaseTableTest extends AbstractDatabaseConnectionServiceTes
         runner.setProperty(QueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE, "2");
 
         assertThrows(AssertionError.class, runner::run);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("db-fetch-db-type", AbstractDatabaseFetchProcessor.DB_TYPE.getName()),
+                Map.entry("db-fetch-where-clause", AbstractDatabaseFetchProcessor.WHERE_CLAUSE.getName()),
+                Map.entry("db-fetch-sql-query", AbstractDatabaseFetchProcessor.SQL_QUERY.getName()),
+                Map.entry("qdbt-max-rows", AbstractQueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE.getName()),
+                Map.entry("Max Rows Per Flow File", AbstractQueryDatabaseTable.MAX_ROWS_PER_FLOW_FILE.getName()),
+                Map.entry("qdbt-output-batch-size", AbstractQueryDatabaseTable.OUTPUT_BATCH_SIZE.getName()),
+                Map.entry("qdbt-max-frags", AbstractQueryDatabaseTable.MAX_FRAGMENTS.getName()),
+                Map.entry("transaction-isolation-level", AbstractQueryDatabaseTable.TRANS_ISOLATION_LEVEL.getName()),
+                Map.entry("initial-load-strategy", AbstractQueryDatabaseTable.INITIAL_LOAD_STRATEGY.getName()),
+                Map.entry(JdbcProperties.OLD_NORMALIZE_NAMES_FOR_AVRO_PROPERTY_NAME, JdbcProperties.NORMALIZE_NAMES_FOR_AVRO.getName()),
+                Map.entry(JdbcProperties.OLD_USE_AVRO_LOGICAL_TYPES_PROPERTY_NAME, JdbcProperties.USE_AVRO_LOGICAL_TYPES.getName()),
+                Map.entry(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE.getName()),
+                Map.entry(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private long getNumberOfRecordsFromStream(InputStream in) throws IOException {

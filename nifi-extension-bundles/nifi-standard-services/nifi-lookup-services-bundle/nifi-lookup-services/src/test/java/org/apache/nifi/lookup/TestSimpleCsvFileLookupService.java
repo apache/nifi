@@ -18,11 +18,16 @@ package org.apache.nifi.lookup;
 
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,14 +36,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSimpleCsvFileLookupService {
 
-    static final Optional<String> EMPTY_STRING = Optional.empty();
+    private TestRunner runner;
+    private SimpleCsvFileLookupService service;
+
+    @BeforeEach
+    void setUp() throws InitializationException {
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
+        service = new SimpleCsvFileLookupService();
+        runner.addControllerService("csv-file-lookup-service", service);
+    }
 
     @Test
-    public void testSimpleCsvFileLookupService() throws InitializationException, LookupFailureException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
-
-        runner.addControllerService("csv-file-lookup-service", service);
+    public void testSimpleCsvFileLookupService() throws LookupFailureException {
         runner.setProperty(service, SimpleCsvFileLookupService.CSV_FILE, "src/test/resources/test.csv");
         runner.setProperty(service, SimpleCsvFileLookupService.CSV_FORMAT, "RFC4180");
         runner.setProperty(service, SimpleCsvFileLookupService.LOOKUP_KEY_COLUMN, "key");
@@ -58,15 +67,11 @@ public class TestSimpleCsvFileLookupService {
         assertEquals(Optional.of("this is property 2"), property2);
 
         final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
-        assertEquals(EMPTY_STRING, property3);
+        assertEquals(Optional.empty(), property3);
     }
 
     @Test
-    public void testSimpleCsvFileLookupServiceWithCharset() throws InitializationException, LookupFailureException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
-
-        runner.addControllerService("csv-file-lookup-service", service);
+    public void testSimpleCsvFileLookupServiceWithCharset() throws LookupFailureException {
         runner.setProperty(service, SimpleCsvFileLookupService.CSV_FILE, "src/test/resources/test_Windows-31J.csv");
         runner.setProperty(service, SimpleCsvFileLookupService.CSV_FORMAT, "RFC4180");
         runner.setProperty(service, SimpleCsvFileLookupService.CHARSET, "Windows-31J");
@@ -81,11 +86,7 @@ public class TestSimpleCsvFileLookupService {
     }
 
     @Test
-    public void testSimpleCsvFileLookupServiceWithCustomSeparatorQuotedEscaped() throws InitializationException, LookupFailureException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final SimpleCsvFileLookupService service = new SimpleCsvFileLookupService();
-
-        runner.addControllerService("csv-file-lookup-service", service);
+    public void testSimpleCsvFileLookupServiceWithCustomSeparatorQuotedEscaped() throws LookupFailureException {
         runner.setProperty(service, SimpleCsvFileLookupService.CSV_FORMAT, "custom");
         runner.setProperty(service, SimpleCsvFileLookupService.CSV_FILE, "src/test/resources/test_sep_escape_comment.csv");
         runner.setProperty(service, SimpleCsvFileLookupService.LOOKUP_KEY_COLUMN, "key");
@@ -103,13 +104,11 @@ public class TestSimpleCsvFileLookupService {
     }
 
     @Test
-    public void testCacheIsClearedWhenDisableService() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final CSVRecordLookupService service = new CSVRecordLookupService();
-        runner.addControllerService("csv-file-lookup-service", service);
-        runner.setProperty(service, CSVRecordLookupService.CSV_FILE, "src/test/resources/test.csv");
-        runner.setProperty(service, CSVRecordLookupService.CSV_FORMAT, "RFC4180");
-        runner.setProperty(service, CSVRecordLookupService.LOOKUP_KEY_COLUMN, "key");
+    public void testCacheIsClearedWhenDisableService() {
+        runner.setProperty(service, SimpleCsvFileLookupService.CSV_FILE, "src/test/resources/test.csv");
+        runner.setProperty(service, SimpleCsvFileLookupService.CSV_FORMAT, "RFC4180");
+        runner.setProperty(service, SimpleCsvFileLookupService.LOOKUP_KEY_COLUMN, "key");
+        runner.setProperty(service, SimpleCsvFileLookupService.LOOKUP_VALUE_COLUMN, "value");
         runner.enableControllerService(service);
         runner.assertValid(service);
 
@@ -118,5 +117,24 @@ public class TestSimpleCsvFileLookupService {
         runner.disableControllerService(service);
 
         assertFalse(service.isCaching());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("lookup-value-column", SimpleCsvFileLookupService.LOOKUP_VALUE_COLUMN.getName()),
+                Map.entry("csv-file", AbstractCSVLookupService.CSV_FILE.getName()),
+                Map.entry("lookup-key-column", AbstractCSVLookupService.LOOKUP_KEY_COLUMN.getName()),
+                Map.entry("ignore-duplicates", AbstractCSVLookupService.IGNORE_DUPLICATES.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }

@@ -35,9 +35,11 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.db.JdbcCommon.AvroConversionOptions;
+import org.apache.nifi.util.db.JdbcProperties;
 import org.apache.nifi.util.db.SimpleCommerceDataSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -654,6 +656,27 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
         assertTrue(json.contains("\"test\":[\"test\"]"), "Expected JSON to contain array of strings: " + json);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("sql-pre-query", AbstractExecuteSQL.SQL_PRE_QUERY.getName()),
+                Map.entry("SQL select query", AbstractExecuteSQL.SQL_QUERY.getName()),
+                Map.entry("sql-post-query", AbstractExecuteSQL.SQL_POST_QUERY.getName()),
+                Map.entry("esql-max-rows", AbstractExecuteSQL.MAX_ROWS_PER_FLOW_FILE.getName()),
+                Map.entry("Max Rows Per Flow File", AbstractExecuteSQL.MAX_ROWS_PER_FLOW_FILE.getName()),
+                Map.entry("esql-output-batch-size", AbstractExecuteSQL.OUTPUT_BATCH_SIZE.getName()),
+                Map.entry("esql-fetch-size", AbstractExecuteSQL.FETCH_SIZE.getName()),
+                Map.entry("esql-auto-commit", AbstractExecuteSQL.AUTO_COMMIT.getName()),
+                Map.entry("esqlrecord-record-writer", ExecuteSQLRecord.RECORD_WRITER_FACTORY.getName()),
+                Map.entry("esqlrecord-normalize", ExecuteSQLRecord.NORMALIZE_NAMES.getName()),
+                Map.entry(JdbcProperties.OLD_USE_AVRO_LOGICAL_TYPES_PROPERTY_NAME, JdbcProperties.USE_AVRO_LOGICAL_TYPES.getName()),
+                Map.entry(JdbcProperties.OLD_DEFAULT_PRECISION_PROPERTY_NAME, JdbcProperties.DEFAULT_PRECISION.getName()),
+                Map.entry(JdbcProperties.OLD_DEFAULT_SCALE_PROPERTY_NAME, JdbcProperties.DEFAULT_SCALE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 
     private void insertRecords() throws SQLException {
         try (
@@ -700,7 +723,7 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
                 }
 
                 @Override
-                public WriteResult write(final Record record) throws IOException {
+                public WriteResult write(final Record record) {
                     throw new UnsupportedOperationException("Record-by-record writes not supported");
                 }
 
@@ -710,20 +733,20 @@ class TestExecuteSQLRecord extends AbstractDatabaseConnectionServiceTest {
                 }
 
                 @Override
-                public void flush() throws IOException {
+                public void flush() {
                 }
 
                 @Override
-                public void close() throws IOException {
+                public void close() {
                 }
 
                 @Override
-                public void beginRecordSet() throws IOException {
+                public void beginRecordSet() {
                     currentRecordCount = 0;
                 }
 
                 @Override
-                public WriteResult finishRecordSet() throws IOException {
+                public WriteResult finishRecordSet() {
                     return WriteResult.of(Math.toIntExact(currentRecordCount), Collections.emptyMap());
                 }
             };

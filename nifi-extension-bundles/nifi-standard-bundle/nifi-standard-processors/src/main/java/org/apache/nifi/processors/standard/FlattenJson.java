@@ -197,7 +197,7 @@ public class FlattenJson extends AbstractProcessor {
         final String mode = context.getProperty(FLATTEN_MODE).getValue();
         final FlattenMode flattenMode = getFlattenMode(mode);
 
-        final Character separator = context.getProperty(SEPARATOR).evaluateAttributeExpressions(flowFile).getValue().charAt(0);
+        final char separator = context.getProperty(SEPARATOR).evaluateAttributeExpressions(flowFile).getValue().charAt(0);
         final String returnType = context.getProperty(RETURN_TYPE).getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARACTER_SET).getValue());
         final PrintMode printMode = context.getProperty(PRETTY_PRINT).asBoolean() ? PrintMode.PRETTY : PrintMode.MINIMAL;

@@ -28,12 +28,17 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
+import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -943,6 +948,37 @@ public class ListGCSBucketTest extends AbstractGCSTest {
         verify(mockCache).remove(eq("ListedEntities::" + processor.getIdentifier()), any());
 
         assertFalse(processor.isResetTracking());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        TestRunner testRunner = TestRunners.newTestRunner(ListGCSBucket.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListGCSBucket.TRACKING_STATE_CACHE.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListGCSBucket.TRACKING_TIME_WINDOW.getName()),
+                Map.entry(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListGCSBucket.INITIAL_LISTING_TARGET.getName()),
+                Map.entry("listing-strategy", ListGCSBucket.LISTING_STRATEGY.getName()),
+                Map.entry("gcs-prefix", ListGCSBucket.PREFIX.getName()),
+                Map.entry("gcs-use-generations", ListGCSBucket.USE_GENERATIONS.getName()),
+                Map.entry("record-writer", ListGCSBucket.RECORD_WRITER.getName()),
+                Map.entry("gcs-bucket", AbstractGCSProcessor.BUCKET.getName()),
+                Map.entry("storage-api-url", AbstractGCSProcessor.STORAGE_API_URL.getName()),
+                Map.entry("gcp-project-id", AbstractGCPProcessor.PROJECT_ID.getName()),
+                Map.entry("gcp-retry-count", AbstractGCPProcessor.RETRY_COUNT.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "gcp-proxy-host",
+                "gcp-proxy-port",
+                "gcp-proxy-user-name",
+                "gcp-proxy-user-password"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private void setUpResetTrackingTest(AllowableValue listingStrategy) throws Exception {

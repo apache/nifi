@@ -52,9 +52,11 @@ import org.apache.nifi.components.monitor.LongRunningTaskMonitor;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateProvider;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
+import org.apache.nifi.components.validation.StandardVerifiableComponentFactory;
 import org.apache.nifi.components.validation.TriggerValidationTask;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -72,6 +74,7 @@ import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
+import org.apache.nifi.controller.metrics.ComponentMetricReporter;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.FlowFileQueueFactory;
 import org.apache.nifi.controller.queue.QueueSize;
@@ -286,6 +289,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final NiFiProperties nifiProperties;
     private final Set<RemoteSiteListener> externalSiteListeners = new HashSet<>();
     private final AtomicReference<CounterRepository> counterRepositoryRef;
+    private final ComponentMetricReporter componentMetricReporter;
     private final AtomicBoolean initialized = new AtomicBoolean(false);
     private final AtomicBoolean flowSynchronized = new AtomicBoolean(false);
     private final StandardControllerServiceProvider controllerServiceProvider;
@@ -325,6 +329,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
     private final FlowEngine flowAnalysisThreadPool;
     private final ValidationTrigger validationTrigger;
     private final ReloadComponent reloadComponent;
+    private final VerifiableComponentFactory verifiableComponentFactory;
     private final ProvenanceAuthorizableFactory provenanceAuthorizableFactory;
     private final UserAwareEventAccess eventAccess;
     private final ParameterContextManager parameterContextManager;
@@ -402,6 +407,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final NiFiProperties properties,
             final Authorizer authorizer,
             final AuditService auditService,
+            final ComponentMetricReporter componentMetricReporter,
             final PropertyEncryptor encryptor,
             final BulletinRepository bulletinRepo,
             final ExtensionDiscoveringManager extensionManager,
@@ -416,6 +422,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 properties,
                 authorizer,
                 auditService,
+                componentMetricReporter,
                 encryptor,
                 /* configuredForClustering */ false,
                 /* NodeProtocolSender */ null,
@@ -437,6 +444,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final NiFiProperties properties,
             final Authorizer authorizer,
             final AuditService auditService,
+            final ComponentMetricReporter componentMetricReporter,
             final PropertyEncryptor encryptor,
             final NodeProtocolSender protocolSender,
             final BulletinRepository bulletinRepo,
@@ -456,6 +464,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
                 properties,
                 authorizer,
                 auditService,
+                componentMetricReporter,
                 encryptor,
                 /* configuredForClustering */ true,
                 protocolSender,
@@ -477,6 +486,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
             final NiFiProperties nifiProperties,
             final Authorizer authorizer,
             final AuditService auditService,
+            final ComponentMetricReporter componentMetricReporter,
             final PropertyEncryptor encryptor,
             final boolean configuredForClustering,
             final NodeProtocolSender protocolSender,
@@ -501,6 +511,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         this.clusterCoordinator = clusterCoordinator;
         this.authorizer = authorizer;
         this.auditService = auditService;
+        this.componentMetricReporter = componentMetricReporter;
         this.configuredForClustering = configuredForClustering;
         this.revisionManager = revisionManager;
         this.statusHistoryRepository = statusHistoryRepository;
@@ -560,8 +571,16 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         parameterContextManager = new StandardParameterContextManager();
         final long maxAppendableBytes = getMaxAppendableBytes();
-        repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository,
-            counterRepositoryRef.get(), provenanceRepository, stateManagerProvider, maxAppendableBytes);
+        repositoryContextFactory = new RepositoryContextFactory(
+                contentRepository,
+                flowFileRepository,
+                flowFileEventRepository,
+                counterRepositoryRef.get(),
+                getComponentMetricReporter(),
+                provenanceRepository,
+                stateManagerProvider,
+                maxAppendableBytes
+        );
         assetManager = createAssetManager(nifiProperties);
 
         this.flowAnalysisThreadPool = new FlowEngine(1, "Background Flow Analysis", true);
@@ -640,6 +659,7 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
         this.snippetManager = new SnippetManager();
         this.reloadComponent = new StandardReloadComponent(this);
+        this.verifiableComponentFactory = new StandardVerifiableComponentFactory(this, this.nifiProperties);
 
         final ProcessGroup rootGroup = flowManager.createProcessGroup(ComponentIdGenerator.generateId().toString());
         rootGroup.setName(FlowManager.DEFAULT_ROOT_GROUP_NAME);
@@ -1046,8 +1066,16 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
 
             // Begin expiring FlowFiles that are old
             final long maxAppendableClaimBytes = getMaxAppendableBytes();
-            final RepositoryContextFactory contextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository,
-                    flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider, maxAppendableClaimBytes);
+            final RepositoryContextFactory contextFactory = new RepositoryContextFactory(
+                    contentRepository,
+                    flowFileRepository,
+                    flowFileEventRepository,
+                    counterRepositoryRef.get(),
+                    getComponentMetricReporter(),
+                    provenanceRepository,
+                    stateManagerProvider,
+                    maxAppendableClaimBytes
+            );
             processScheduler.scheduleFrameworkTask(new ExpireFlowFiles(this, contextFactory), "Expire FlowFiles", 30L, 30L, TimeUnit.SECONDS);
 
             // now that we've loaded the FlowFiles, this has restored our ContentClaims' states, so we can tell the
@@ -2087,6 +2115,10 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         return reloadComponent;
     }
 
+    public VerifiableComponentFactory getVerifiableComponentFactory() {
+        return verifiableComponentFactory;
+    }
+
     public void startProcessor(final String parentGroupId, final String processorId) {
         startProcessor(parentGroupId, processorId, true);
     }
@@ -2408,6 +2440,9 @@ public class FlowController implements ReportingTaskProvider, FlowAnalysisRulePr
         processScheduler.disableReportingTask(reportingTaskNode);
     }
 
+    public ComponentMetricReporter getComponentMetricReporter() {
+        return componentMetricReporter;
+    }
 
     //
     // Counters

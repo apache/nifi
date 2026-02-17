@@ -25,6 +25,7 @@ import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
+import org.apache.nifi.annotation.lifecycle.OnRemoved;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
@@ -45,6 +46,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
+import org.apache.nifi.components.validation.VerifiableComponentFactory;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -160,6 +162,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     private final AtomicLong schedulingNanos;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final ProcessScheduler processScheduler;
+    private final VerifiableComponentFactory verifiableComponentFactory;
     private long runNanos = 0L;
     private volatile long yieldNanos;
     private volatile ScheduledState desiredState = ScheduledState.STOPPED;
@@ -181,23 +184,25 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
                                  final ControllerServiceProvider controllerServiceProvider, final ReloadComponent reloadComponent,
-                                 final ExtensionManager extensionManager, final ValidationTrigger validationTrigger) {
+                                 final VerifiableComponentFactory verifiableComponentFactory, final ExtensionManager extensionManager,
+                                 final ValidationTrigger validationTrigger) {
 
         this(processor, uuid, validationContextFactory, scheduler, controllerServiceProvider, processor.getComponent().getClass().getSimpleName(),
-            processor.getComponent().getClass().getCanonicalName(), reloadComponent, extensionManager, validationTrigger, false);
+            processor.getComponent().getClass().getCanonicalName(), reloadComponent, verifiableComponentFactory, extensionManager, validationTrigger, false);
     }
 
     public StandardProcessorNode(final LoggableComponent<Processor> processor, final String uuid,
                                  final ValidationContextFactory validationContextFactory, final ProcessScheduler scheduler,
                                  final ControllerServiceProvider controllerServiceProvider, final String componentType, final String componentCanonicalClass,
-                                 final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
-                                 final boolean isExtensionMissing) {
+                                 final ReloadComponent reloadComponent, final VerifiableComponentFactory verifiableComponentFactory, final ExtensionManager extensionManager,
+                                 final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
 
         super(uuid, validationContextFactory, controllerServiceProvider, componentType, componentCanonicalClass, reloadComponent,
                 extensionManager, validationTrigger, isExtensionMissing);
 
         final ProcessorDetails processorDetails = new ProcessorDetails(processor);
         this.processorRef = new AtomicReference<>(processorDetails);
+        this.verifiableComponentFactory = verifiableComponentFactory;
 
         identifier = uuid;
         destinations = new ConcurrentHashMap<>();
@@ -1002,7 +1007,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 // Check if the given configuration requires a different classloader than the current configuration
                 final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
 
-                if (classpathDifferent) {
+                if (classpathDifferent || isReloadAdditionalResourcesNecessary()) {
+                    LOG.debug("Classpath reload required. Create temporary InstanceClassLoader for verification");
                     // Create a classloader for the given configuration and use that to verify the component's configuration
                     final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
                     final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
@@ -1013,7 +1019,12 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false,
                                 classloaderIsolationKey)) {
                         Thread.currentThread().setContextClassLoader(detectedClassLoader);
-                        results.addAll(verifiable.verify(context, logger, attributes));
+                        final VerifiableProcessor tempVerifiable = verifiableComponentFactory.createProcessor(this, detectedClassLoader);
+                        try {
+                            results.addAll(tempVerifiable.verify(context, logger, attributes));
+                        } finally {
+                            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, tempVerifiable, context);
+                        }
                     } finally {
                         Thread.currentThread().setContextClassLoader(currentClassLoader);
                     }
@@ -2167,4 +2178,5 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             serviceNode.updateReference(this, descriptor);
         }
     }
+
 }

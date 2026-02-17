@@ -21,6 +21,7 @@ import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
 import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.MapRecord;
@@ -30,7 +31,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -139,6 +142,25 @@ class TestUDPEventRecordSink {
         final String resultTransitUri = writeResult.getAttributes().get(TRANSIT_URI_KEY);
         assertEquals(transitUri, resultTransitUri);
         assertEquals(0, writeResult.getRecordCount());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("hostname", UDPEventRecordSink.HOSTNAME.getName()),
+                Map.entry("port", UDPEventRecordSink.PORT.getName()),
+                Map.entry("sender-threads", UDPEventRecordSink.SENDER_THREADS.getName()),
+                Map.entry("record-sink-record-writer", RecordSinkService.RECORD_WRITER_FACTORY.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        sink.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private String pollMessage() throws InterruptedException {

@@ -4229,6 +4229,15 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (parameterProviderReference == null) {
             return;
         }
+
+        // Skip resolution for Ghost parameter providers - these are placeholders for missing components
+        // and cannot be resolved to a real bundle. This can occur when a flow was saved to version control
+        // while it contained a Ghost parameter provider.
+        final String providerType = parameterProviderReference.getType();
+        if ("org.apache.nifi.parameter.GhostParameterProvider".equals(providerType)) {
+            return;
+        }
+
         final ExtensionManager extensionManager = controllerFacade.getExtensionManager();
         final BundleCoordinate compatibleBundle = BundleUtils.discoverCompatibleBundle(extensionManager, parameterProviderReference.getType(), parameterProviderReference.getBundle());
         final ConfigurableComponent tempComponent = extensionManager.getTempComponent(parameterProviderReference.getType(), compatibleBundle);
@@ -7466,15 +7475,18 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         if (fromTimestamp == null) {
             throw new IllegalArgumentException("From timestamp must be specified");
         }
+
+        // Create the response entity
+        final ClearBulletinsForGroupResultsEntity entity = new ClearBulletinsForGroupResultsEntity();
+
+        // If no components are specified, return success with 0 bulletins cleared
         if (componentIds == null || componentIds.isEmpty()) {
-            throw new IllegalArgumentException("Component IDs must be specified");
+            entity.setBulletinsCleared(0);
+            return entity;
         }
 
         // Clear bulletins for all components specified
         final int totalBulletinsCleared = bulletinRepository.clearBulletinsForComponents(componentIds, fromTimestamp);
-
-        // Create the response entity
-        final ClearBulletinsForGroupResultsEntity entity = new ClearBulletinsForGroupResultsEntity();
         entity.setBulletinsCleared(totalBulletinsCleared);
 
         return entity;

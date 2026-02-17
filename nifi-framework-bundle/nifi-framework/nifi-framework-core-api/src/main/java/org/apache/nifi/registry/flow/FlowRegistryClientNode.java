@@ -24,6 +24,7 @@ import org.apache.nifi.flow.ParameterProviderReference;
 import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 
 import java.io.IOException;
@@ -82,4 +83,12 @@ public interface FlowRegistryClientNode extends ComponentNode {
      */
     List<ConfigVerificationResult> verifyConfiguration(Map<String, String> properties, Map<String, String> variables,
                                                        ComponentLog logger, ExtensionManager extensionManager);
+
+    /**
+     * Migrates the configuration of the Flow Registry Client, allowing properties to be renamed, removed, or reconfigured.
+     *
+     * @param originalPropertyValues the original property values prior to migration
+     * @param controllerServiceFactory factory for creating controller services during migration
+     */
+    void migrateConfiguration(Map<String, String> originalPropertyValues, ControllerServiceFactory controllerServiceFactory);
 }

@@ -17,11 +17,17 @@
 package org.apache.nifi.dbcp;
 
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.dbcp.utils.DBCPProperties;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,8 +46,19 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
+import static org.apache.nifi.dbcp.utils.DBCPProperties.DB_DRIVER_LOCATION;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.EVICTION_RUN_PERIOD;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.KERBEROS_USER_SERVICE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_CONN_LIFETIME;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MAX_IDLE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_EVICTABLE_IDLE_TIME;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.MIN_IDLE;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.SOFT_MIN_EVICTABLE_IDLE_TIME;
+import static org.apache.nifi.dbcp.utils.DBCPProperties.VALIDATION_QUERY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -108,6 +125,32 @@ public class DBCPServiceTest {
 
         final AssertionFailedError e = assertThrows(AssertionFailedError.class, () -> runner.enableControllerService(service));
         assertTrue(e.getMessage().contains("Duplicate"));
+    }
+
+    @Test
+    public void testGetConnectionPropertiesWithNullDynamicPropertyValue() {
+        final PropertyDescriptor dynamicProperty = new PropertyDescriptor.Builder()
+            .name("nullProperty")
+            .dynamic(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.ENVIRONMENT)
+            .build();
+        final PropertyDescriptor sensitiveDynamicProperty = new PropertyDescriptor.Builder()
+            .name("SENSITIVE.nullProperty")
+            .dynamic(true)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+        final Map<PropertyDescriptor, String> properties = new LinkedHashMap<>();
+        properties.put(dynamicProperty, null);
+        properties.put(sensitiveDynamicProperty, null);
+
+        final MockConfigurationContext configurationContext = new MockConfigurationContext(service, properties, null, Map.of());
+        final Map<String, String> connectionProperties = service.getConnectionProperties(configurationContext);
+
+        assertTrue(connectionProperties.isEmpty());
     }
 
     @Test
@@ -219,13 +262,44 @@ public class DBCPServiceTest {
         final Collection<ValidationResult> validationResults = runner.validate(service);
         assertEquals(0, validationResults.size());
 
-        AssertionFailedError thrown = assertThrows(AssertionFailedError.class, () -> {
-            runner.enableControllerService(service);
-        });
+        AssertionFailedError thrown = assertThrows(AssertionFailedError.class, () -> runner.enableControllerService(service));
 
         // Verify the underlying cause is what we expect
         assertTrue(thrown.getMessage().contains("ProcessException"));
         assertTrue(thrown.getMessage().contains("JDBC driver class 'a.very.bad.jdbc.Driver' not found. The property 'Database Driver Location(s)' should be set."));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("database-driver-locations", DB_DRIVER_LOCATION.getName()),
+                Map.entry("Database Driver Location(s)", DB_DRIVER_LOCATION.getName()),
+                Map.entry(DBCPProperties.OLD_VALIDATION_QUERY_PROPERTY_NAME, VALIDATION_QUERY.getName()),
+                Map.entry(DBCPProperties.OLD_MIN_IDLE_PROPERTY_NAME, MIN_IDLE.getName()),
+                Map.entry(DBCPProperties.OLD_MAX_IDLE_PROPERTY_NAME, MAX_IDLE.getName()),
+                Map.entry(DBCPProperties.OLD_MAX_CONN_LIFETIME_PROPERTY_NAME, MAX_CONN_LIFETIME.getName()),
+                Map.entry(DBCPProperties.OLD_EVICTION_RUN_PERIOD_PROPERTY_NAME, EVICTION_RUN_PERIOD.getName()),
+                Map.entry(DBCPProperties.OLD_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, MIN_EVICTABLE_IDLE_TIME.getName()),
+                Map.entry(DBCPProperties.OLD_SOFT_MIN_EVICTABLE_IDLE_TIME_PROPERTY_NAME, SOFT_MIN_EVICTABLE_IDLE_TIME.getName()),
+                Map.entry(DBCPProperties.OLD_KERBEROS_USER_SERVICE_PROPERTY_NAME, KERBEROS_USER_SERVICE.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
+
+        final Set<String> expectedRemoved = Set.of(
+                "kerberos-principal",
+                "kerberos-password",
+                "kerberos-credentials-service"
+        );
+
+        assertEquals(expectedRemoved, result.getPropertiesRemoved());
     }
 
     private void assertConnectionNotNullDynamicProperty(final String propertyName, final String propertyValue) throws SQLException {

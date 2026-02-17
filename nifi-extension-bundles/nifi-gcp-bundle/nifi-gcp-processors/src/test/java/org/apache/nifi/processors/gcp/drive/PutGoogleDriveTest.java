@@ -24,9 +24,13 @@ import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.FileList;
 import com.google.gson.JsonParseException;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.migration.ProxyServiceMigration;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processors.gcp.util.GoogleUtils;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
+import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,6 +50,7 @@ import static java.util.Collections.singletonList;
 import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.IGNORE;
 import static org.apache.nifi.processors.conflict.resolution.ConflictResolutionStrategy.REPLACE;
 import static org.apache.nifi.processors.gcp.drive.GoogleDriveAttributes.ERROR_MESSAGE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -130,7 +135,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
 
         testRunner.assertAllFlowFilesTransferred(PutGoogleDrive.REL_FAILURE, 1);
         List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_FAILURE);
-        MockFlowFile ff0 = flowFiles.get(0);
+        MockFlowFile ff0 = flowFiles.getFirst();
         ff0.assertAttributeExists(ERROR_MESSAGE);
         assertNoProvenanceEvent();
     }
@@ -157,7 +162,7 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
         runWithFlowFile();
 
         testRunner.assertAllFlowFilesTransferred(PutGoogleDrive.REL_SUCCESS, 1);
-        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS).get(0);
+        final MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(PutGoogleDrive.REL_SUCCESS).getFirst();
         flowFile.assertAttributeEquals(GoogleDriveAttributes.ID, TEST_FILE_ID);
         flowFile.assertAttributeEquals(GoogleDriveAttributes.FILENAME, TEST_FILENAME);
         assertNoProvenanceEvent();
@@ -177,6 +182,25 @@ public class PutGoogleDriveTest extends AbstractGoogleDriveTest {
         testRunner.assertAllFlowFilesTransferred(PutGoogleDrive.REL_SUCCESS, 1);
         assertFlowFileAttributes(PutGoogleDrive.REL_SUCCESS);
         assertProvenanceEvent(ProvenanceEventType.SEND);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final TestRunner testRunner = TestRunners.newTestRunner(PutGoogleDrive.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry(GoogleDriveTrait.OLD_CONNECT_TIMEOUT_PROPERTY_NAME, GoogleDriveTrait.CONNECT_TIMEOUT.getName()),
+                Map.entry(GoogleDriveTrait.OLD_READ_TIMEOUT_PROPERTY_NAME, GoogleDriveTrait.READ_TIMEOUT.getName()),
+                Map.entry("folder-id", PutGoogleDrive.FOLDER_ID.getName()),
+                Map.entry("file-name", PutGoogleDrive.FILE_NAME.getName()),
+                Map.entry("conflict-resolution-strategy", PutGoogleDrive.CONFLICT_RESOLUTION.getName()),
+                Map.entry("chunked-upload-size", PutGoogleDrive.CHUNKED_UPLOAD_SIZE.getName()),
+                Map.entry("chunked-upload-threshold", PutGoogleDrive.CHUNKED_UPLOAD_THRESHOLD.getName()),
+                Map.entry(GoogleUtils.OLD_GCP_CREDENTIALS_PROVIDER_SERVICE_PROPERTY_NAME, GoogleUtils.GCP_CREDENTIALS_PROVIDER_SERVICE.getName()),
+                Map.entry(ProxyServiceMigration.OBSOLETE_PROXY_CONFIGURATION_SERVICE, ProxyServiceMigration.PROXY_CONFIGURATION_SERVICE)
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private MockFlowFile getMockFlowFile() {

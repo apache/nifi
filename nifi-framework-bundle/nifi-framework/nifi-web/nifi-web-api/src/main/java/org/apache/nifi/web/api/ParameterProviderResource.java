@@ -42,6 +42,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
+import org.apache.nifi.authorization.AuthorizeComponentReference;
 import org.apache.nifi.authorization.AuthorizeControllerServiceReference;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
@@ -645,8 +646,9 @@ public class ParameterProviderResource extends AbstractParameterResource {
                     final ComponentAuthorizable authorizable = lookup.getParameterProvider(id);
                     authorizable.getAuthorizable().authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
 
-                    // authorize any referenced services
-                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestParameterProviderDTO.getProperties(), authorizable, authorizer, lookup);
+                    final Authorizable parameterContext = authorizable.getParameterContext();
+                    final Map<String, String> componentProperties = requestParameterProviderDTO.getProperties();
+                    AuthorizeComponentReference.authorizeComponentConfiguration(authorizer, lookup, authorizable, componentProperties, parameterContext);
                 },
                 () -> serviceFacade.verifyUpdateParameterProvider(requestParameterProviderDTO),
                 (revision, parameterProviderEntity) -> {

@@ -18,8 +18,10 @@
 package org.apache.nifi.processors.standard;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,22 +47,23 @@ public class TestFlattenJson {
 
     @Test
     void testFlatten() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"test\": {\n" +
-                "        \"msg\": \"Hello, world\"\n" +
-                "    },\n" +
-                "    \"first\": {\n" +
-                "        \"second\": {\n" +
-                "            \"third\": [\n" +
-                "                \"one\",\n" +
-                "                \"two\",\n" +
-                "                \"three\",\n" +
-                "                \"four\",\n" +
-                "                \"five\"\n" +
-                "            ]\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "test": {
+                        "msg": "Hello, world"
+                    },
+                    "first": {
+                        "second": {
+                            "third": [
+                                "one",
+                                "two",
+                                "three",
+                                "four",
+                                "five"
+                            ]
+                        }
+                    }
+                }""";
         final Map parsed = (Map) baseTest(testRunner, json, 2);
         assertEquals(parsed.get("test.msg"), "Hello, world", "test.msg should exist, but doesn't");
         assertEquals(parsed.get("first.second.third"),
@@ -70,18 +73,19 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenRecordSet() throws JsonProcessingException {
-        final String json = "[\n" +
-                "    {\n" +
-                "        \"first\": {\n" +
-                "            \"second\": \"Hello\"\n" +
-                "        }\n" +
-                "    },\n" +
-                "    {\n" +
-                "        \"first\": {\n" +
-                "            \"second\": \"World\"\n" +
-                "        }\n" +
-                "    }\n" +
-                "]";
+        final String json = """
+                [
+                    {
+                        "first": {
+                            "second": "Hello"
+                        }
+                    },
+                    {
+                        "first": {
+                            "second": "World"
+                        }
+                    }
+                ]""";
 
         final List<String> expected = Arrays.asList("Hello", "World");
         final List parsed = (List) baseTest(testRunner, json, 2);
@@ -94,19 +98,20 @@ public class TestFlattenJson {
 
     @Test
     void testDifferentSeparator() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first\": {\n" +
-                "        \"second\": {\n" +
-                "            \"third\": [\n" +
-                "                \"one\",\n" +
-                "                \"two\",\n" +
-                "                \"three\",\n" +
-                "                \"four\",\n" +
-                "                \"five\"\n" +
-                "            ]\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "first": {
+                        "second": {
+                            "third": [
+                                "one",
+                                "two",
+                                "three",
+                                "four",
+                                "five"
+                            ]
+                        }
+                    }
+                }""";
         testRunner.setProperty(FlattenJson.SEPARATOR, "_");
         final Map parsed = (Map) baseTest(testRunner, json, 1);
 
@@ -117,19 +122,20 @@ public class TestFlattenJson {
 
     @Test
     void testExpressionLanguage() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first\": {\n" +
-                "        \"second\": {\n" +
-                "            \"third\": [\n" +
-                "                \"one\",\n" +
-                "                \"two\",\n" +
-                "                \"three\",\n" +
-                "                \"four\",\n" +
-                "                \"five\"\n" +
-                "            ]\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "first": {
+                        "second": {
+                            "third": [
+                                "one",
+                                "two",
+                                "three",
+                                "four",
+                                "five"
+                            ]
+                        }
+                    }
+                }""";
 
         testRunner.setValidateExpressionUsage(true);
         testRunner.setProperty(FlattenJson.SEPARATOR, "${separator.char}");
@@ -141,19 +147,20 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeNormal() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first\": {\n" +
-                "        \"second\": {\n" +
-                "            \"third\": [\n" +
-                "                \"one\",\n" +
-                "                \"two\",\n" +
-                "                \"three\",\n" +
-                "                \"four\",\n" +
-                "                \"five\"\n" +
-                "            ]\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "first": {
+                        "second": {
+                            "third": [
+                                "one",
+                                "two",
+                                "three",
+                                "four",
+                                "five"
+                            ]
+                        }
+                    }
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL);
         final Map parsed = (Map) baseTest(testRunner, json, 5);
@@ -162,39 +169,40 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeKeepArrays() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first\": {\n" +
-                "        \"second\": [\n" +
-                "            {\n" +
-                "                \"x\": 1,\n" +
-                "                \"y\": 2,\n" +
-                "                \"z\": [\n" +
-                "                    3,\n" +
-                "                    4,\n" +
-                "                    5\n" +
-                "                ]\n" +
-                "            },\n" +
-                "            [\n" +
-                "                6,\n" +
-                "                7,\n" +
-                "                8\n" +
-                "            ],\n" +
-                "            [\n" +
-                "                [\n" +
-                "                    9,\n" +
-                "                    10\n" +
-                "                ],\n" +
-                "                11,\n" +
-                "                12\n" +
-                "            ]\n" +
-                "        ],\n" +
-                "        \"third\": {\n" +
-                "            \"a\": \"b\",\n" +
-                "            \"c\": \"d\",\n" +
-                "            \"e\": \"f\"\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "first": {
+                        "second": [
+                            {
+                                "x": 1,
+                                "y": 2,
+                                "z": [
+                                    3,
+                                    4,
+                                    5
+                                ]
+                            },
+                            [
+                                6,
+                                7,
+                                8
+                            ],
+                            [
+                                [
+                                    9,
+                                    10
+                                ],
+                                11,
+                                12
+                            ]
+                        ],
+                        "third": {
+                            "a": "b",
+                            "c": "d",
+                            "e": "f"
+                        }
+                    }
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_ARRAYS);
         final Map parsed = (Map) baseTest(testRunner, json, 4);
@@ -205,39 +213,40 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeKeepPrimitiveArrays() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first\": {\n" +
-                "        \"second\": [\n" +
-                "            {\n" +
-                "                \"x\": 1,\n" +
-                "                \"y\": 2,\n" +
-                "                \"z\": [\n" +
-                "                    3,\n" +
-                "                    4,\n" +
-                "                    5\n" +
-                "                ]\n" +
-                "            },\n" +
-                "            [\n" +
-                "                6,\n" +
-                "                7,\n" +
-                "                8\n" +
-                "            ],\n" +
-                "            [\n" +
-                "                [\n" +
-                "                    9,\n" +
-                "                    10\n" +
-                "                ],\n" +
-                "                11,\n" +
-                "                12\n" +
-                "            ]\n" +
-                "        ],\n" +
-                "        \"third\": {\n" +
-                "            \"a\": \"b\",\n" +
-                "            \"c\": \"d\",\n" +
-                "            \"e\": \"f\"\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "first": {
+                        "second": [
+                            {
+                                "x": 1,
+                                "y": 2,
+                                "z": [
+                                    3,
+                                    4,
+                                    5
+                                ]
+                            },
+                            [
+                                6,
+                                7,
+                                8
+                            ],
+                            [
+                                [
+                                    9,
+                                    10
+                                ],
+                                11,
+                                12
+                            ]
+                        ],
+                        "third": {
+                            "a": "b",
+                            "c": "d",
+                            "e": "f"
+                        }
+                    }
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_PRIMITIVE_ARRAYS);
         final Map parsed = (Map) baseTest(testRunner, json, 10);
@@ -251,19 +260,20 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeDotNotation() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first\": {\n" +
-                "        \"second\": {\n" +
-                "            \"third\": [\n" +
-                "                \"one\",\n" +
-                "                \"two\",\n" +
-                "                \"three\",\n" +
-                "                \"four\",\n" +
-                "                \"five\"\n" +
-                "            ]\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "first": {
+                        "second": {
+                            "third": [
+                                "one",
+                                "two",
+                                "three",
+                                "four",
+                                "five"
+                            ]
+                        }
+                    }
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_DOT_NOTATION);
         final Map parsed = (Map) baseTest(testRunner, json, 5);
@@ -272,16 +282,17 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenSlash() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first\": {\n" +
-                "        \"second\": {\n" +
-                "            \"third\": [\n" +
-                "                \"http://localhost/value1\",\n" +
-                "                \"http://localhost/value2\"\n" +
-                "            ]\n" +
-                "        }\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "first": {
+                        "second": {
+                            "third": [
+                                "http://localhost/value1",
+                                "http://localhost/value2"
+                            ]
+                        }
+                    }
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL);
         final Map parsed = (Map) baseTest(testRunner, json, 2);
@@ -290,9 +301,10 @@ public class TestFlattenJson {
 
     @Test
     void testEscapeForJson() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"name\": \"Jos\\u00e9\"\n" +
-                "}";
+        final String json = """
+                {
+                    "name": "Jos\\u00e9"
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL);
         final Map parsed = (Map) baseTest(testRunner, json, 1);
@@ -301,16 +313,17 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlatten() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"test.msg\": \"Hello, world\",\n" +
-                "    \"first.second.third\": [\n" +
-                "        \"one\",\n" +
-                "        \"two\",\n" +
-                "        \"three\",\n" +
-                "        \"four\",\n" +
-                "        \"five\"\n" +
-                "    ]\n" +
-                "}";
+        final String json = """
+                {
+                    "test.msg": "Hello, world",
+                    "first.second.third": [
+                        "one",
+                        "two",
+                        "three",
+                        "four",
+                        "five"
+                    ]
+                }""";
 
         testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN);
         final Map parsed = (Map) baseTest(testRunner, json, 2);
@@ -321,15 +334,16 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlattenWithDifferentSeparator() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first_second_third\": [\n" +
-                "        \"one\",\n" +
-                "        \"two\",\n" +
-                "        \"three\",\n" +
-                "        \"four\",\n" +
-                "        \"five\"\n" +
-                "    ]\n" +
-                "}";
+        final String json = """
+                {
+                    "first_second_third": [
+                        "one",
+                        "two",
+                        "three",
+                        "four",
+                        "five"
+                    ]
+                }""";
 
         testRunner.setProperty(FlattenJson.SEPARATOR, "_");
         testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN);
@@ -340,19 +354,20 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlattenForKeepArraysMode() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"a.b\": 1,\n" +
-                "    \"a.c\": [\n" +
-                "        false,\n" +
-                "        {\n" +
-                "            \"i.j\": [\n" +
-                "                false,\n" +
-                "                true,\n" +
-                "                \"xy\"\n" +
-                "            ]\n" +
-                "        }\n" +
-                "    ]\n" +
-                "}";
+        final String json = """
+                {
+                    "a.b": 1,
+                    "a.c": [
+                        false,
+                        {
+                            "i.j": [
+                                false,
+                                true,
+                                "xy"
+                            ]
+                        }
+                    ]
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_ARRAYS);
         testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN);
@@ -365,66 +380,69 @@ public class TestFlattenJson {
 
     @Test
     void testUnFlattenForKeepPrimitiveArraysMode() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first.second[0].x\": 1,\n" +
-                "    \"first.second[0].y\": 2,\n" +
-                "    \"first.second[0].z\": [\n" +
-                "        3,\n" +
-                "        4,\n" +
-                "        5\n" +
-                "    ],\n" +
-                "    \"first.second[1]\": [\n" +
-                "        6,\n" +
-                "        7,\n" +
-                "        8\n" +
-                "    ],\n" +
-                "    \"first.second[2][0]\": [\n" +
-                "        9,\n" +
-                "        10\n" +
-                "    ],\n" +
-                "    \"first.second[2][1]\": 11,\n" +
-                "    \"first.second[2][2]\": 12,\n" +
-                "    \"first.third.a\": \"b\",\n" +
-                "    \"first.third.c\": \"d\",\n" +
-                "    \"first.third.e\": \"f\"\n" +
-                "}";
+        final String json = """
+                {
+                    "first.second[0].x": 1,
+                    "first.second[0].y": 2,
+                    "first.second[0].z": [
+                        3,
+                        4,
+                        5
+                    ],
+                    "first.second[1]": [
+                        6,
+                        7,
+                        8
+                    ],
+                    "first.second[2][0]": [
+                        9,
+                        10
+                    ],
+                    "first.second[2][1]": 11,
+                    "first.second[2][2]": 12,
+                    "first.third.a": "b",
+                    "first.third.c": "d",
+                    "first.third.e": "f"
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_PRIMITIVE_ARRAYS);
         testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN);
         final Map parsed = (Map) baseTest(testRunner, json, 1);
         assertEquals(1, ((Map) ((List) ((Map) parsed.get("first")).get("second")).get(0)).get("x"));
-        assertEquals(Arrays.asList(9, 10), ((List) ((List) ((Map) parsed.get("first")).get("second")).get(2)).get(0));
+        assertEquals(Arrays.asList(9, 10), ((List) ((List) ((Map) parsed.get("first")).get("second")).get(2)).getFirst());
         assertEquals("d", ((Map) ((Map) parsed.get("first")).get("third")).get("c"));
     }
 
     @Test
     void testUnFlattenForDotNotationMode() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first.second.third.0\": [\n" +
-                "        \"one\",\n" +
-                "        \"two\",\n" +
-                "        \"three\",\n" +
-                "        \"four\",\n" +
-                "        \"five\"\n" +
-                "    ]\n" +
-                "}";
+        final String json = """
+                {
+                    "first.second.third.0": [
+                        "one",
+                        "two",
+                        "three",
+                        "four",
+                        "five"
+                    ]
+                }""";
 
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_DOT_NOTATION);
         testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN);
 
         final Map parsed = (Map) baseTest(testRunner, json, 1);
         assertEquals(Arrays.asList("one", "two", "three", "four", "five"),
-                ((List) ((Map) ((Map) parsed.get("first")).get("second")).get("third")).get(0));
+                ((List) ((Map) ((Map) parsed.get("first")).get("second")).get("third")).getFirst());
     }
 
     @Test
     void testFlattenWithIgnoreReservedCharacters() throws JsonProcessingException {
-        final String json = "{\n" +
-                "    \"first\": {\n" +
-                "        \"second.third\": \"Hello\",\n" +
-                "        \"fourth\": \"World\"\n" +
-                "    }\n" +
-                "}";
+        final String json = """
+                {
+                    "first": {
+                        "second.third": "Hello",
+                        "fourth": "World"
+                    }
+                }""";
 
         testRunner.setProperty(FlattenJson.IGNORE_RESERVED_CHARACTERS, "true");
 
@@ -435,18 +453,19 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenRecordSetWithIgnoreReservedCharacters() throws JsonProcessingException {
-        final String json = "[\n" +
-                "    {\n" +
-                "        \"first\": {\n" +
-                "            \"second_third\": \"Hello\"\n" +
-                "        }\n" +
-                "    },\n" +
-                "    {\n" +
-                "        \"first\": {\n" +
-                "            \"second_third\": \"World\"\n" +
-                "        }\n" +
-                "    }\n" +
-                "]";
+        final String json = """
+                [
+                    {
+                        "first": {
+                            "second_third": "Hello"
+                        }
+                    },
+                    {
+                        "first": {
+                            "second_third": "World"
+                        }
+                    }
+                ]""";
         testRunner.setProperty(FlattenJson.SEPARATOR, "_");
         testRunner.setProperty(FlattenJson.IGNORE_RESERVED_CHARACTERS, "true");
 
@@ -460,18 +479,19 @@ public class TestFlattenJson {
 
     @Test
     void testFlattenModeNormalWithIgnoreReservedCharacters() throws JsonProcessingException {
-        final String json = "[\n" +
-                "    {\n" +
-                "        \"first\": {\n" +
-                "            \"second_third\": \"Hello\"\n" +
-                "        }\n" +
-                "    },\n" +
-                "    {\n" +
-                "        \"first\": {\n" +
-                "            \"second_third\": \"World\"\n" +
-                "        }\n" +
-                "    }\n" +
-                "]";
+        final String json = """
+                [
+                    {
+                        "first": {
+                            "second_third": "Hello"
+                        }
+                    },
+                    {
+                        "first": {
+                            "second_third": "World"
+                        }
+                    }
+                ]""";
         testRunner.setProperty(FlattenJson.SEPARATOR, "_");
         testRunner.setProperty(FlattenJson.IGNORE_RESERVED_CHARACTERS, "true");
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL);
@@ -481,27 +501,42 @@ public class TestFlattenJson {
         assertEquals("World", parsed.get("[1]_first_second_third"), "Separator not applied.");
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("flatten-json-separator", FlattenJson.SEPARATOR.getName()),
+                Map.entry("flatten-mode", FlattenJson.FLATTEN_MODE.getName()),
+                Map.entry("ignore-reserved-characters", FlattenJson.IGNORE_RESERVED_CHARACTERS.getName()),
+                Map.entry("flatten-json-return-type", FlattenJson.RETURN_TYPE.getName()),
+                Map.entry("flatten-json-character-set", FlattenJson.CHARACTER_SET.getName()),
+                Map.entry("flatten-json-pretty-print-json", FlattenJson.PRETTY_PRINT.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private Object baseTest(TestRunner testRunner, String json, int keyCount) throws JsonProcessingException {
         return baseTest(testRunner, json, Collections.emptyMap(), keyCount);
     }
 
-    private Object baseTest(TestRunner testRunner, String json, Map attrs, int keyCount) throws JsonProcessingException {
+    private Object baseTest(TestRunner testRunner, String json, Map<String, String> attrs, int keyCount) throws JsonProcessingException {
         testRunner.enqueue(json, attrs);
         testRunner.run(1, true);
         testRunner.assertTransferCount(FlattenJson.REL_FAILURE, 0);
         testRunner.assertTransferCount(FlattenJson.REL_SUCCESS, 1);
 
         final List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(FlattenJson.REL_SUCCESS);
-        final byte[] content = testRunner.getContentAsByteArray(flowFiles.get(0));
+        final byte[] content = testRunner.getContentAsByteArray(flowFiles.getFirst());
         final String asJson = new String(content);
         if (asJson.startsWith("[")) {
-            final List parsed;
-            parsed = mapper.readValue(asJson, List.class);
+            final List<?> parsed = mapper.readValue(asJson, new TypeReference<>() {
+            });
             assertEquals(keyCount, parsed.size(), "Too many keys");
             return parsed;
         } else {
-            final Map parsed;
-            parsed = mapper.readValue(asJson, Map.class);
+            final Map<?, ?> parsed = mapper.readValue(asJson, new TypeReference<>() {
+            });
             assertEquals(keyCount, parsed.size(), "Too many keys");
             return parsed;
         }

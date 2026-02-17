@@ -30,6 +30,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,7 +94,7 @@ class TestListHDFS {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).getFirst();
         mff.assertAttributeEquals("path", "/test");
         mff.assertAttributeEquals("filename", "testFile.txt");
     }
@@ -135,7 +136,7 @@ class TestListHDFS {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
-        final MockFlowFile mff = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0);
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).getFirst();
         mff.assertAttributeEquals("path", "/test");
         mff.assertAttributeEquals("filename", "testFile.txt");
     }
@@ -329,7 +330,7 @@ class TestListHDFS {
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
 
-        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0);
+        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).getFirst();
         mff1.assertAttributeEquals("path", "/test");
         mff1.assertAttributeEquals("filename", "testFile.txt");
     }
@@ -344,7 +345,7 @@ class TestListHDFS {
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
 
-        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0);
+        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).getFirst();
         mff1.assertAttributeEquals("path", "/test");
         mff1.assertAttributeEquals("filename", "testFile.txt");
 
@@ -424,7 +425,7 @@ class TestListHDFS {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(ListHDFS.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).get(0).assertAttributeEquals("filename", "testFile1.txt");
+        runner.getFlowFilesForRelationship(ListHDFS.REL_SUCCESS).getFirst().assertAttributeEquals("filename", "testFile1.txt");
         runner.clearTransferState();
         runner.getStateManager().clear(Scope.CLUSTER);
 
@@ -549,8 +550,33 @@ class TestListHDFS {
 
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         final List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(REL_SUCCESS);
-        final MockFlowFile flowFile = flowFilesForRelationship.get(0);
+        final MockFlowFile flowFile = flowFilesForRelationship.getFirst();
         flowFile.assertAttributeEquals("record.count", "8");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("record-writer", ListHDFS.RECORD_WRITER.getName()),
+                Map.entry("file-filter-mode", ListHDFS.FILE_FILTER_MODE.getName()),
+                Map.entry("minimum-file-age", ListHDFS.MINIMUM_FILE_AGE.getName()),
+                Map.entry("maximum-file-age", ListHDFS.MAXIMUM_FILE_AGE.getName()),
+                Map.entry("kerberos-user-service", AbstractHadoopProcessor.KERBEROS_USER_SERVICE.getName()),
+                Map.entry("Compression codec", AbstractHadoopProcessor.COMPRESSION_CODEC.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "Kerberos Principal",
+                "Kerberos Password",
+                "Kerberos Keytab",
+                "kerberos-credentials-service",
+                "Kerberos Relogin Period"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
     }
 
     private FsPermission create777() {

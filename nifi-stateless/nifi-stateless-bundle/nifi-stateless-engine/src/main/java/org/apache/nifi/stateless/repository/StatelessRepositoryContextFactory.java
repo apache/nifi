@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.metrics.ComponentMetricReporter;
 import org.apache.nifi.controller.repository.ContentRepository;
 import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -40,14 +41,22 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
     private final FlowFileRepository flowFileRepository;
     private final FlowFileEventRepository flowFileEventRepository;
     private final CounterRepository counterRepository;
+    private final ComponentMetricReporter componentMetricReporter;
     private final StateManagerProvider stateManagerProvider;
 
-    public StatelessRepositoryContextFactory(final ContentRepository contentRepository, final FlowFileRepository flowFileRepository, final FlowFileEventRepository flowFileEventRepository,
-                                             final CounterRepository counterRepository, final StateManagerProvider stateManagerProvider) {
+    public StatelessRepositoryContextFactory(
+            final ContentRepository contentRepository,
+            final FlowFileRepository flowFileRepository,
+            final FlowFileEventRepository flowFileEventRepository,
+            final CounterRepository counterRepository,
+            final ComponentMetricReporter componentMetricReporter,
+            final StateManagerProvider stateManagerProvider
+    ) {
         this.contentRepository = contentRepository;
         this.flowFileRepository = flowFileRepository;
         this.flowFileEventRepository = flowFileEventRepository;
         this.counterRepository = counterRepository;
+        this.componentMetricReporter = componentMetricReporter;
         this.stateManagerProvider = stateManagerProvider;
     }
 
@@ -58,7 +67,7 @@ public class StatelessRepositoryContextFactory implements RepositoryContextFacto
                 : null;
         final StateManager stateManager = stateManagerProvider.getStateManager(connectable.getIdentifier(), componentClass);
         return new StatelessRepositoryContext(connectable, new AtomicLong(0L), contentRepository, flowFileRepository,
-            flowFileEventRepository, counterRepository, provenanceEventRepository, stateManager);
+            flowFileEventRepository, counterRepository, componentMetricReporter, provenanceEventRepository, stateManager);
     }
 
     @Override

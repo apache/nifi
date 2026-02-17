@@ -16,10 +16,14 @@
   -->
 
 @if (frameSource) {
+    <!-- Sandbox omits allow-forms because this is a read-only content viewer -->
     <iframe
         #iframeRef
         class="h-full w-full"
         [src]="frameSource"
+        title="External content viewer"
+        sandbox="allow-scripts allow-same-origin"
+        referrerpolicy="strict-origin-when-cross-origin"
         *recreateView="frameSource"
         (load)="systemTokensService.appendStyleSheet(iframeRef)"></iframe>
 }

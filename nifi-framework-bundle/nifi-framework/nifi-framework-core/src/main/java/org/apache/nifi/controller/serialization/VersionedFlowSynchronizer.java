@@ -559,7 +559,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             if (existing == null) {
                 addFlowRegistryClient(controller, versionedFlowRegistryClient);
             } else if (affectedComponentSet.isFlowRegistryClientAffected(existing.getIdentifier())) {
-                updateRegistry(existing, versionedFlowRegistryClient, controller);
+                final Map<String, String> decryptedProperties = decryptProperties(versionedFlowRegistryClient.getProperties(), controller.getEncryptor());
+                updateRegistry(existing, versionedFlowRegistryClient, decryptedProperties);
             }
         }
     }
@@ -583,16 +584,21 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final FlowRegistryClientNode flowRegistryClient = flowController.getFlowManager().createFlowRegistryClient(
                 versionedFlowRegistryClient.getType(), versionedFlowRegistryClient.getIdentifier(), coordinate, Collections.emptySet(), false, true, null);
-        updateRegistry(flowRegistryClient, versionedFlowRegistryClient, flowController);
+
+        final Map<String, String> decryptedProperties = decryptProperties(versionedFlowRegistryClient.getProperties(), flowController.getEncryptor());
+        updateRegistry(flowRegistryClient, versionedFlowRegistryClient, decryptedProperties);
+
+        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(flowController.getExtensionManager(), flowController.getFlowManager(),
+            flowController.getControllerServiceProvider(), flowRegistryClient);
+        flowRegistryClient.migrateConfiguration(decryptedProperties, serviceFactory);
     }
 
-    private void updateRegistry(final FlowRegistryClientNode flowRegistryClient, final VersionedFlowRegistryClient versionedFlowRegistryClient, final FlowController flowController) {
+    private void updateRegistry(final FlowRegistryClientNode flowRegistryClient, final VersionedFlowRegistryClient versionedFlowRegistryClient, final Map<String, String> decryptedProperties) {
         flowRegistryClient.setName(versionedFlowRegistryClient.getName());
         flowRegistryClient.setDescription(versionedFlowRegistryClient.getDescription());
         flowRegistryClient.setAnnotationData(versionedFlowRegistryClient.getAnnotationData());
 
         final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(flowRegistryClient, versionedFlowRegistryClient);
-        final Map<String, String> decryptedProperties = decryptProperties(versionedFlowRegistryClient.getProperties(), flowController.getEncryptor());
         flowRegistryClient.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
     }
 
@@ -746,7 +752,8 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             if (existing == null) {
                 addParameterProvider(controller, versionedParameterProvider, controller.getEncryptor());
             } else if (affectedComponentSet.isParameterProviderAffected(existing.getIdentifier())) {
-                updateParameterProvider(existing, versionedParameterProvider, controller.getEncryptor());
+                final Map<String, String> decryptedProperties = decryptProperties(versionedParameterProvider.getProperties(), controller.getEncryptor());
+                updateParameterProvider(existing, versionedParameterProvider, decryptedProperties);
             }
         }
 
@@ -762,16 +769,21 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final ParameterProviderNode parameterProviderNode = controller.getFlowManager()
                 .createParameterProvider(parameterProvider.getType(), parameterProvider.getInstanceIdentifier(), coordinate, false);
-        updateParameterProvider(parameterProviderNode, parameterProvider, encryptor);
+
+        final Map<String, String> decryptedProperties = decryptProperties(parameterProvider.getProperties(), encryptor);
+        updateParameterProvider(parameterProviderNode, parameterProvider, decryptedProperties);
+
+        final ControllerServiceFactory serviceFactory = new StandardControllerServiceFactory(controller.getExtensionManager(), controller.getFlowManager(),
+            controller.getControllerServiceProvider(), parameterProviderNode);
+        parameterProviderNode.migrateConfiguration(decryptedProperties, serviceFactory);
     }
 
     private void updateParameterProvider(final ParameterProviderNode parameterProviderNode, final VersionedParameterProvider parameterProvider,
-                                         final  PropertyEncryptor encryptor) {
+                                         final Map<String, String> decryptedProperties) {
         parameterProviderNode.setName(parameterProvider.getName());
         parameterProviderNode.setComments(parameterProvider.getComments());
 
         parameterProviderNode.setAnnotationData(parameterProvider.getAnnotationData());
-        final Map<String, String> decryptedProperties = decryptProperties(parameterProvider.getProperties(), encryptor);
         parameterProviderNode.setProperties(decryptedProperties);
     }
 

@@ -132,7 +132,7 @@ public class ExtractRecordSchema extends AbstractProcessor {
 
         } catch (final Exception e) {
             getLogger().error("Failed to process {}; will route to failure", flowFile, e);
-            // Since we are wrapping the exceptions above there should always be a cause
+            // Since we are wrapping the exceptions above there should always be a cause,
             // but it's possible it might not have a message. This handles that by logging
             // the name of the class thrown.
             Throwable c = e.getCause();

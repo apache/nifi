@@ -19,6 +19,7 @@ package org.apache.nifi.processors.websocket;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.websocket.AbstractWebSocketSession;
@@ -267,6 +268,20 @@ public class TestPutWebSocket {
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final TestRunner runner = TestRunners.newTestRunner(PutWebSocket.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("websocket-session-id", PutWebSocket.PROP_WS_SESSION_ID.getName()),
+                Map.entry("websocket-controller-service-id", PutWebSocket.PROP_WS_CONTROLLER_SERVICE_ID.getName()),
+                Map.entry("websocket-endpoint-id", PutWebSocket.PROP_WS_CONTROLLER_SERVICE_ENDPOINT.getName()),
+                Map.entry("websocket-message-type", PutWebSocket.PROP_WS_MESSAGE_TYPE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     @ParameterizedTest

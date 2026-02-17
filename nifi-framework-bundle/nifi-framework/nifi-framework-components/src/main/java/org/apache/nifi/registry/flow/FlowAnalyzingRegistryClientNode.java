@@ -39,6 +39,7 @@ import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
@@ -478,5 +479,10 @@ public final class FlowAnalyzingRegistryClientNode implements FlowRegistryClient
     @Override
     public void setComponent(final LoggableComponent<FlowRegistryClient> component) {
         node.setComponent(component);
+    }
+
+    @Override
+    public void migrateConfiguration(final Map<String, String> originalPropertyValues, final ControllerServiceFactory controllerServiceFactory) {
+        node.migrateConfiguration(originalPropertyValues, controllerServiceFactory);
     }
 }

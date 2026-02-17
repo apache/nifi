@@ -96,7 +96,8 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
         @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_KEY, description = "The key of message if present and if single message. "
                 + "How the key is encoded depends on the value of the 'Key Attribute Encoding' property."),
         @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_OFFSET, description = "The offset of the record in the partition or the minimum value of the offset in a batch of records"),
-        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TIMESTAMP, description = "The timestamp of the message in the partition of the topic."),
+        @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TIMESTAMP, description = "The timestamp of the message consumed from the topic or the minimum value of the timestamp "
+                + "in a batch of messages. The value of this timestamp depends on 'log.message.timestamp.type` kafka broker config (LOG_APPEND_TIME, CREATE_TIME, NO_TIMESTAMP_TYPE)"),
         @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_PARTITION, description = "The partition of the topic for a record or batch of records"),
         @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOPIC, description = "The topic the for a record or batch of records"),
         @WritesAttribute(attribute = KafkaFlowFileAttribute.KAFKA_TOMBSTONE, description = "Set to true if the consumed message is a tombstone message"),
@@ -210,6 +211,18 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             .expressionLanguageSupported(NONE)
             .build();
 
+    static final PropertyDescriptor HEADER_NAME_PREFIX = new PropertyDescriptor.Builder()
+            .name("Header Name Prefix")
+            .description("""
+                    A prefix to apply to the FlowFile attribute name when writing Kafka Record Header values.
+                    This is useful to avoid conflicts with reserved FlowFile attribute names such as 'uuid'.
+                    For example, if set to 'kafka.header.', a Kafka header named 'uuid' would be written as 'kafka.header.uuid'.
+                    """)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(false)
+            .dependsOn(PROCESSING_STRATEGY, ProcessingStrategy.FLOW_FILE)
+            .build();
+
     static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
             .name("Record Reader")
             .description("The Record Reader to use for incoming Kafka messages")
@@ -304,6 +317,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             HEADER_NAME_PATTERN,
             HEADER_ENCODING,
             PROCESSING_STRATEGY,
+            HEADER_NAME_PREFIX,
             RECORD_READER,
             RECORD_WRITER,
             OUTPUT_STRATEGY,
@@ -319,6 +333,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private volatile Charset headerEncoding;
     private volatile Pattern headerNamePattern;
+    private volatile String headerNamePrefix;
     private volatile ProcessingStrategy processingStrategy;
     private volatile KeyEncoding keyEncoding;
     private volatile OutputStrategy outputStrategy;
@@ -366,6 +381,11 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         keyEncoding = context.getProperty(KEY_ATTRIBUTE_ENCODING).asAllowableValue(KeyEncoding.class);
         commitOffsets = context.getProperty(COMMIT_OFFSETS).asBoolean();
         processingStrategy = context.getProperty(PROCESSING_STRATEGY).asAllowableValue(ProcessingStrategy.class);
+
+        // Only read HEADER_NAME_PREFIX when PROCESSING_STRATEGY is FLOW_FILE (property dependency)
+        headerNamePrefix = processingStrategy == ProcessingStrategy.FLOW_FILE
+                ? context.getProperty(HEADER_NAME_PREFIX).getValue()
+                : null;
         outputStrategy = processingStrategy == ProcessingStrategy.RECORD ? context.getProperty(OUTPUT_STRATEGY).asAllowableValue(OutputStrategy.class) : null;
         keyFormat = (outputStrategy == OutputStrategy.USE_WRAPPER || outputStrategy == OutputStrategy.INJECT_METADATA)
                 ? context.getProperty(KEY_FORMAT).asAllowableValue(KeyFormat.class)
@@ -416,11 +436,22 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 final Iterator<ByteRecord> consumerRecords = consumerService.poll(maxWaitDuration).iterator();
                 if (!consumerRecords.hasNext()) {
                     getLogger().trace("No Kafka Records consumed: {}", pollingContext);
+                    // Check if a rebalance occurred during poll - if so, break to commit what we have
+                    if (consumerService.hasRevokedPartitions()) {
+                        getLogger().debug("Rebalance detected with revoked partitions, breaking to commit session");
+                        break;
+                    }
                     continue;
                 }
 
                 recordsReceived = true;
                 processConsumerRecords(context, session, offsetTracker, consumerRecords);
+
+                // Check if a rebalance occurred during poll - if so, break to commit what we have
+                if (consumerService.hasRevokedPartitions()) {
+                    getLogger().debug("Rebalance detected with revoked partitions, breaking to commit session");
+                    break;
+                }
 
                 if (maxUncommittedSizeConfigured) {
                     // Stop consuming before reaching Max Uncommitted Time when exceeding Max Uncommitted Size
@@ -441,8 +472,20 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
             }
         }
 
-        if (!recordsReceived) {
+        if (!recordsReceived && !consumerService.hasRevokedPartitions()) {
             getLogger().trace("No Kafka Records consumed, re-queuing consumer");
+            consumerServices.offer(consumerService);
+            return;
+        }
+
+        // If no records received but we have revoked partitions, we still need to commit their offsets
+        if (!recordsReceived && consumerService.hasRevokedPartitions()) {
+            getLogger().debug("No records received but rebalance occurred, committing offsets for revoked partitions");
+            try {
+                consumerService.commitOffsetsForRevokedPartitions();
+            } catch (final Exception e) {
+                getLogger().warn("Failed to commit offsets for revoked partitions", e);
+            }
             consumerServices.offer(consumerService);
             return;
         }
@@ -466,6 +509,12 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
                 });
             }
 
+            // After successful session commit, also commit offsets for any partitions that were revoked during rebalance
+            if (consumerService.hasRevokedPartitions()) {
+                getLogger().debug("Committing offsets for partitions revoked during rebalance");
+                consumerService.commitOffsetsForRevokedPartitions();
+            }
+
             consumerServices.offer(consumerService);
             getLogger().debug("Committed offsets for Kafka Consumer Service");
         } catch (final Exception e) {
@@ -477,6 +526,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
     private void rollback(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final ProcessSession session) {
         if (!consumerService.isClosed()) {
             try {
+                // Clear any pending revoked partitions since we're rolling back
+                consumerService.clearRevokedPartitions();
                 consumerService.rollback();
                 consumerServices.offer(consumerService);
                 getLogger().debug("Rolled back offsets for Kafka Consumer Service");
@@ -612,7 +663,7 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private void processInputFlowFile(final ProcessSession session, final OffsetTracker offsetTracker, final Iterator<ByteRecord> consumerRecords) {
         final KafkaMessageConverter converter = new FlowFileStreamKafkaMessageConverter(
-            headerEncoding, headerNamePattern, keyEncoding, commitOffsets, offsetTracker, brokerUri);
+            headerEncoding, headerNamePattern, headerNamePrefix, keyEncoding, commitOffsets, offsetTracker, brokerUri);
         converter.toFlowFiles(session, consumerRecords);
     }
 

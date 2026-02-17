@@ -72,6 +72,7 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
     private static final String FIELD_BRANCH = "branch";
     private static final String FIELD_MESSAGE = "message";
     private static final String FIELD_SOURCE_COMMIT_ID = "sourceCommitId";
+    private static final String FIELD_PARENTS = "parents";
     private static final String FIELD_CONTENT = "content";
     private static final String FIELD_FILES = "files";
     private static final String FIELD_CHILDREN = "children";
@@ -431,6 +432,12 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
         multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, request.getMessage().getBytes(StandardCharsets.UTF_8));
         multipartBuilder.addPart(FIELD_BRANCH, StandardHttpContentType.TEXT_PLAIN, branch.getBytes(StandardCharsets.UTF_8));
 
+        // Add parents parameter for atomic commit - Bitbucket Cloud will reject if the branch has moved
+        final String expectedCommitSha = request.getExpectedCommitSha();
+        if (expectedCommitSha != null && !expectedCommitSha.isBlank()) {
+            multipartBuilder.addPart(FIELD_PARENTS, StandardHttpContentType.TEXT_PLAIN, expectedCommitSha.getBytes(StandardCharsets.UTF_8));
+        }
+
         final URI uri = getRepositoryUriBuilder().addPathSegment("src").build();
         final String errorMessage = "Error while committing content for repository [%s] on branch %s at path %s"
                 .formatted(repoName, branch, resolvedPath);
@@ -460,10 +467,10 @@ public class BitbucketRepositoryClient implements GitRepositoryClient {
             multipartBuilder.addPart(FIELD_MESSAGE, StandardHttpContentType.TEXT_PLAIN, message.getBytes(StandardCharsets.UTF_8));
         }
 
-        final String existingContentSha = request.getExistingContentSha();
-        final boolean existingContentProvided = existingContentSha != null && !existingContentSha.isBlank();
-        if (existingContentProvided) {
-            multipartBuilder.addPart(FIELD_SOURCE_COMMIT_ID, StandardHttpContentType.TEXT_PLAIN, existingContentSha.getBytes(StandardCharsets.UTF_8));
+        // Use expectedCommitSha for atomic commit - Bitbucket DC will reject if the file has changed since this commit
+        final String expectedCommitSha = request.getExpectedCommitSha();
+        if (expectedCommitSha != null && !expectedCommitSha.isBlank()) {
+            multipartBuilder.addPart(FIELD_SOURCE_COMMIT_ID, StandardHttpContentType.TEXT_PLAIN, expectedCommitSha.getBytes(StandardCharsets.UTF_8));
         }
 
         final HttpUriBuilder uriBuilder = getRepositoryUriBuilder().addPathSegment("browse");

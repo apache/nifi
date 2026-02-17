@@ -116,6 +116,24 @@ public interface JvmMetrics {
     double nonHeapUsage();
 
     /**
+     * Returns the non-heap memory currently used by the current JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-heap memory currently used by JVM in the given {@link DataUnit}
+     */
+    double nonHeapUsed(DataUnit dataUnit);
+
+    /**
+     * Returns the non-heap memory committed to the JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-heap memory currently committed to the JVM in the given {@link DataUnit}
+     */
+    double nonHeapCommitted(DataUnit dataUnit);
+
+    /**
      * Returns a map of memory pool names to the percentage of that pool which is being used.
      *
      * @return a map of memory pool names to the percentage of that pool which is being used

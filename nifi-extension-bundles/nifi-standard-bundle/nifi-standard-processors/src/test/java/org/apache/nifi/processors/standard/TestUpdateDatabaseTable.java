@@ -22,6 +22,7 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -362,6 +363,29 @@ class TestUpdateDatabaseTable extends AbstractDatabaseConnectionServiceTest {
             assertColumnEquals(rs, "newField", 4, "CHARACTER VARYING");
             assertFalse(rs.next());
         }
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("record-reader", UpdateDatabaseTable.RECORD_READER.getName()),
+                Map.entry("db-type", UpdateDatabaseTable.DB_TYPE.getName()),
+                Map.entry("updatedatabasetable-dbcp-service", UpdateDatabaseTable.DBCP_SERVICE.getName()),
+                Map.entry("updatedatabasetable-catalog-name", UpdateDatabaseTable.CATALOG_NAME.getName()),
+                Map.entry("updatedatabasetable-schema-name", UpdateDatabaseTable.SCHEMA_NAME.getName()),
+                Map.entry("updatedatabasetable-table-name", UpdateDatabaseTable.TABLE_NAME.getName()),
+                Map.entry("updatedatabasetable-create-table", UpdateDatabaseTable.CREATE_TABLE.getName()),
+                Map.entry("updatedatabasetable-primary-keys", UpdateDatabaseTable.PRIMARY_KEY_FIELDS.getName()),
+                Map.entry("updatedatabasetable-translate-field-names", UpdateDatabaseTable.TRANSLATE_FIELD_NAMES.getName()),
+                Map.entry("updatedatabasetable-update-field-names", UpdateDatabaseTable.UPDATE_FIELD_NAMES.getName()),
+                Map.entry("updatedatabasetable-record-writer", UpdateDatabaseTable.RECORD_WRITER_FACTORY.getName()),
+                Map.entry("updatedatabasetable-quoted-column-identifiers", UpdateDatabaseTable.QUOTE_COLUMN_IDENTIFIERS.getName()),
+                Map.entry("updatedatabasetable-quoted-table-identifiers", UpdateDatabaseTable.QUOTE_TABLE_IDENTIFIER.getName()),
+                Map.entry("updatedatabasetable-query-timeout", UpdateDatabaseTable.QUERY_TIMEOUT.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private ResultSet getTableColumns(final Statement statement, final String tableName) throws SQLException {

@@ -30,19 +30,18 @@ import java.util.Arrays;
  *
  * <p>
  * The intended usage paradigm is:
- * <code>
- * <pre>
- * final byte[] searchSequence = ...;
- * final CircularBuffer buffer = new CircularBuffer(searchSequence);
- * while ((int nextByte = in.read()) > 0) {
- *      if ( buffer.addAndCompare(nextByte) ) {
- *          // This byte is the last byte in the given sequence
- *      } else {
- *          // This byte does not complete the given sequence
- *      }
+ * {@snippet :
+ *     final byte[] searchSequence; //TODO assignment
+ *     final CircularBuffer buffer = new CircularBuffer(searchSequence);
+ *     int nextByte;
+ *     while ((nextByte = in.read()) > 0) {
+ *         if ( buffer.addAndCompare(nextByte) ) {
+ *             // This byte is the last byte in the given sequence
+ *         } else {
+ *             // This byte does not complete the given sequence
+ *         }
+ *     }
  * }
- * </pre>
- * </code>
  * </p>
  */
 public class NaiveSearchRingBuffer {

@@ -38,12 +38,12 @@ import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFac
 import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -84,7 +84,7 @@ public class TestDistributedMapServerAndClient {
             FileUtils.cleanDirectory(dataFile);
         }
 
-        runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         server = new MapCacheServer();
         runner.addControllerService("server", server);

@@ -3544,6 +3544,7 @@ public final class DtoFactory {
         dto.setId(node.getIdentifier());
         dto.setType("EVENT");
         dto.setEventType(node.getEventType().toString());
+        dto.setComponentType(node.getComponentType());
         dto.setTimestamp(new Date(node.getTimestamp()));
         dto.setMillis(node.getTimestamp());
         dto.setFlowFileUuid(node.getFlowFileUuid());

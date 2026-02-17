@@ -146,6 +146,7 @@ export interface ProvenanceEventSummary {
     id: string;
     eventId: number;
     eventTime: string;
+    eventTimestamp: string;
     eventType: string;
     flowFileUuid: string;
     fileSize: string;

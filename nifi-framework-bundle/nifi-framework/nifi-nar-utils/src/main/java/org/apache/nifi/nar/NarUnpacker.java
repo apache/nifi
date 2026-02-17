@@ -116,9 +116,10 @@ public final class NarUnpacker {
                 }
             }
 
+            final long startTime = System.nanoTime();
+            logger.info("Expanding {} NAR files started", narFiles.size());
+
             if (!narFiles.isEmpty()) {
-                final long startTime = System.nanoTime();
-                logger.info("Expanding {} NAR files started", narFiles.size());
                 for (File narFile : narFiles) {
                     if (!narFile.canRead()) {
                         throw new IllegalStateException("Unable to read NAR file: " + narFile.getAbsolutePath());
@@ -199,10 +200,6 @@ public final class NarUnpacker {
                         }
                     }
                 }
-
-                final long duration = System.nanoTime() - startTime;
-                final double durationSeconds = TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0;
-                logger.info("Expanded {} NAR files in {} seconds ({} ns)", narFiles.size(), durationSeconds, duration);
             }
 
             final Map<File, BundleCoordinate> unpackedNars = new HashMap<>(createUnpackedNarBundleCoordinateMap(extensionsWorkingDir));
@@ -210,6 +207,10 @@ public final class NarUnpacker {
             final ExtensionMapping extensionMapping = new ExtensionMapping();
             mapExtensions(unpackedNars, extensionMapping);
             populateExtensionMapping(extensionMapping, systemBundle.getBundleDetails().getCoordinate(), systemBundle.getBundleDetails().getWorkingDirectory());
+
+            final long duration = System.nanoTime() - startTime;
+            final double durationSeconds = TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0;
+            logger.info("Expanded {} NAR files in {} seconds ({} ns)", narFiles.size(), durationSeconds, duration);
 
             return extensionMapping;
         } catch (IOException e) {

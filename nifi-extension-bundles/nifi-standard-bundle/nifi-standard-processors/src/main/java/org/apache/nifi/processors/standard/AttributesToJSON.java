@@ -213,7 +213,7 @@ public class AttributesToJSON extends AbstractProcessor {
     protected Map<String, Object> buildAttributesMapForFlowFile(FlowFile ff, Set<String> attributes, Set<String> attributesToRemove,
             boolean nullValForEmptyString, Pattern attPattern) {
         Map<String, Object> result;
-        //If list of attributes specified get only those attributes. Otherwise write them all
+        //If list of attributes specified get only those attributes. Otherwise, write them all
         if (attributes != null || attPattern != null) {
             result = new LinkedHashMap<>();
             if (attributes != null) {
@@ -246,7 +246,7 @@ public class AttributesToJSON extends AbstractProcessor {
     }
 
     private Set<String> buildAtrs(String atrList) {
-        //If list of attributes specified get only those attributes. Otherwise write them all
+        //If list of attributes specified get only those attributes. Otherwise, write them all
         if (StringUtils.isNotBlank(atrList)) {
             String[] ats = StringUtils.split(atrList, AT_LIST_SEPARATOR);
             if (ats != null) {

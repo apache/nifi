@@ -74,6 +74,12 @@ public class KafkaUtils {
     public static Map<String, String> toAttributes(final ByteRecord consumerRecord, final KeyEncoding keyEncoding,
                                                    final Pattern headerNamePattern, final Charset headerEncoding,
                                                    final boolean commitOffsets) {
+        return toAttributes(consumerRecord, keyEncoding, headerNamePattern, null, headerEncoding, commitOffsets);
+    }
+
+    public static Map<String, String> toAttributes(final ByteRecord consumerRecord, final KeyEncoding keyEncoding,
+                                                   final Pattern headerNamePattern, final String headerNamePrefix,
+                                                   final Charset headerEncoding, final boolean commitOffsets) {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put(KafkaFlowFileAttribute.KAFKA_TOPIC, consumerRecord.getTopic());
         attributes.put(KafkaFlowFileAttribute.KAFKA_PARTITION, Long.toString(consumerRecord.getPartition()));
@@ -97,7 +103,8 @@ public class KafkaUtils {
                 final String name = header.key();
                 if (headerNamePattern.matcher(name).matches()) {
                     final String value = new String(header.value(), headerEncoding);
-                    attributes.put(name, value);
+                    final String attributeName = headerNamePrefix != null ? headerNamePrefix + name : name;
+                    attributes.put(attributeName, value);
                 }
             }
         }

@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bson.Document;
@@ -64,12 +65,11 @@ public class MongoDBLookupServiceIT extends AbstractMongoIT {
 
     @BeforeEach
     public void before() throws Exception {
-        runner = TestRunners.newTestRunner(TestLookupServiceProcessor.class);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
         service = new MongoDBLookupService();
         controllerService = new MongoDBControllerService();
         runner.addControllerService("Client Service", service);
         runner.addControllerService("Client Service 2", controllerService);
-        runner.setProperty(TestLookupServiceProcessor.CLIENT_SERVICE, "Client Service");
         runner.setProperty(service, MongoDBLookupService.DATABASE_NAME, DB_NAME);
         runner.setProperty(service, MongoDBLookupService.COLLECTION_NAME, COL_NAME);
         runner.setProperty(controllerService, MongoDBControllerService.URI, MONGO_CONTAINER.getConnectionString());

@@ -148,14 +148,11 @@ public class StandardNarLoader implements NarLoader {
 
         final File workingDirectory = bundle.getBundleDetails().getWorkingDirectory();
         if (workingDirectory.exists()) {
-            LOGGER.debug("Removing NAR working directory [{}]", workingDirectory.getAbsolutePath());
             try {
                 FileUtils.deleteFile(workingDirectory, true);
             } catch (final IOException e) {
                 LOGGER.warn("Failed to delete bundle working directory [{}]", workingDirectory.getAbsolutePath());
             }
-        } else {
-            LOGGER.debug("NAR working directory does not exist at [{}]", workingDirectory.getAbsolutePath());
         }
     }
 

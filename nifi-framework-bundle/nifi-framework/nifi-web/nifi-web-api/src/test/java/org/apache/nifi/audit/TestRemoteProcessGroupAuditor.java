@@ -82,7 +82,7 @@ public class TestRemoteProcessGroupAuditor {
         // Setup updatedRPG mock based on inputRPGDTO.
         final RemoteProcessGroup updatedRPG = mock(RemoteProcessGroup.class);
         when(updatedRPG.getIdentifier()).thenReturn(remoteProcessGroupId);
-        when(updatedRPG.isTransmitting()).thenReturn(inputRPGDTO.isTransmitting());
+        when(updatedRPG.isConfiguredToTransmit()).thenReturn(inputRPGDTO.isTransmitting());
         when(updatedRPG.getCommunicationsTimeout()).thenReturn(inputRPGDTO.getCommunicationsTimeout());
         when(updatedRPG.getYieldDuration()).thenReturn(inputRPGDTO.getYieldDuration());
         when(updatedRPG.getTransportProtocol())

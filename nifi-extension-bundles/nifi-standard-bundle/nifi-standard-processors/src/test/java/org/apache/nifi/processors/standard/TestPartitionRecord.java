@@ -22,6 +22,7 @@ import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,12 +40,11 @@ public class TestPartitionRecord {
 
     private TestRunner runner;
     private MockRecordParser readerService;
-    private MockRecordWriter writerService;
 
     @BeforeEach
     public void setup() throws InitializationException {
         readerService = new MockRecordParser();
-        writerService = new MockRecordWriter(null, false);
+        MockRecordWriter writerService = new MockRecordWriter(null, false);
 
         runner = TestRunners.newTestRunner(PartitionRecord.class);
         runner.addControllerService("reader", readerService);
@@ -82,7 +83,7 @@ public class TestPartitionRecord {
         assertEquals(3L, out.stream().filter(ff -> ff.getAttribute("record.count").equals("1")).count());
         assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("record.count").equals("2")).count());
         out.forEach(ff -> ff.assertAttributeEquals("fragment.count", "4"));
-        IntStream.of(1, 3).forEach((i) -> out.get(i).assertAttributeEquals("fragment.id", out.get(0).getAttribute("fragment.id")));
+        IntStream.of(1, 3).forEach((i) -> out.get(i).assertAttributeEquals("fragment.id", out.getFirst().getAttribute("fragment.id")));
         IntStream.of(0, 3).forEach((i) -> assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("fragment.index").equals(String.valueOf(i))).count()));
 
         out.stream().filter(ff -> ff.getAttribute("record.count").equals("2")).forEach(ff -> ff.assertContentEquals("Jake,49,\nJake,14,\n"));
@@ -167,7 +168,7 @@ public class TestPartitionRecord {
         runner.assertTransferCount(PartitionRecord.REL_FAILURE, 0);
         runner.assertTransferCount(PartitionRecord.REL_SUCCESS, 1);
 
-        final MockFlowFile out = runner.getFlowFilesForRelationship(PartitionRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PartitionRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "5");
         out.assertContentEquals("John,30,\nJake,30,\nMark,30,\nJane,30,\nJake,30,\n");
         out.assertAttributeEquals("age", "30");
@@ -240,7 +241,7 @@ public class TestPartitionRecord {
         runner.run();
 
         runner.assertAllFlowFilesTransferred(PartitionRecord.REL_FAILURE, 1);
-        runner.getFlowFilesForRelationship(PartitionRecord.REL_FAILURE).get(0).assertContentEquals(new byte[0]);
+        runner.getFlowFilesForRelationship(PartitionRecord.REL_FAILURE).getFirst().assertContentEquals(new byte[0]);
     }
 
 
@@ -252,4 +253,14 @@ public class TestPartitionRecord {
         assertEquals(new PartitionRecord.ValueWrapper(a), new PartitionRecord.ValueWrapper(b));
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "record-reader", PartitionRecord.RECORD_READER.getName(),
+                "record-writer", PartitionRecord.RECORD_WRITER.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 }

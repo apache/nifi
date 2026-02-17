@@ -20,6 +20,7 @@ import mockwebserver3.MockResponse;
 import mockwebserver3.MockWebServer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -28,6 +29,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestConsumeTwitter {
     private MockWebServer mockWebServer;
@@ -86,5 +90,31 @@ public class TestConsumeTwitter {
         flowFile.assertContentEquals(expectedTweet);
         flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/json");
         flowFile.assertAttributeEquals("tweets", "1");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("stream-endpoint", ConsumeTwitter.ENDPOINT.getName()),
+                Map.entry("base-path", ConsumeTwitter.BASE_PATH.getName()),
+                Map.entry("bearer-token", ConsumeTwitter.BEARER_TOKEN.getName()),
+                Map.entry("queue-size", ConsumeTwitter.QUEUE_SIZE.getName()),
+                Map.entry("batch-size", ConsumeTwitter.BATCH_SIZE.getName()),
+                Map.entry("backoff-attempts", ConsumeTwitter.BACKOFF_ATTEMPTS.getName()),
+                Map.entry("backoff-time", ConsumeTwitter.BACKOFF_TIME.getName()),
+                Map.entry("maximum-backoff-time", ConsumeTwitter.MAXIMUM_BACKOFF_TIME.getName()),
+                Map.entry("connect-timeout", ConsumeTwitter.CONNECT_TIMEOUT.getName()),
+                Map.entry("read-timeout", ConsumeTwitter.READ_TIMEOUT.getName()),
+                Map.entry("backfill-minutes", ConsumeTwitter.BACKFILL_MINUTES.getName()),
+                Map.entry("tweet-fields", ConsumeTwitter.TWEET_FIELDS.getName()),
+                Map.entry("user-fields", ConsumeTwitter.USER_FIELDS.getName()),
+                Map.entry("media-fields", ConsumeTwitter.MEDIA_FIELDS.getName()),
+                Map.entry("poll-fields", ConsumeTwitter.POLL_FIELDS.getName()),
+                Map.entry("place-fields", ConsumeTwitter.PLACE_FIELDS.getName()),
+                Map.entry("expansions", ConsumeTwitter.EXPANSIONS.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

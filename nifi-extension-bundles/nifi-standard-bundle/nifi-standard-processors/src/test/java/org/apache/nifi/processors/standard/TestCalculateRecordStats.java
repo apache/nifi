@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -186,6 +187,16 @@ public class TestCalculateRecordStats {
         final Map<String, String> counts = Collections.singletonMap("sport", "/person/sport");
 
         commonTest(counts, sports, expectedAttributes);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed =
+                Map.of("record-stats-reader", CalculateRecordStats.RECORD_READER.getName(),
+                        "record-stats-limit", CalculateRecordStats.LIMIT.getName());
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void commonTest(Map<String, String> procProperties, List<String> sports, Map<String, String> expectedAttributes) {

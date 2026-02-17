@@ -325,6 +325,9 @@ public class ParameterContextResource extends AbstractParameterResource {
             throw new IllegalArgumentException("The Revision of the Parameter Context must be specified.");
         }
 
+        validateParameterNames(updateDto);
+        validateAssetReferences(updateDto);
+
         // Perform the request
         if (isReplicateRequest()) {
             return replicate(HttpMethod.PUT, requestEntity);

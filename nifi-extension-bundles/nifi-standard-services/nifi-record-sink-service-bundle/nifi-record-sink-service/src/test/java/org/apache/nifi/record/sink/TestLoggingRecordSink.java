@@ -26,6 +26,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +51,7 @@ public class TestLoggingRecordSink {
 
     @BeforeEach
     public void setup() throws InitializationException {
-        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         recordSink = new LoggingRecordSink();
         runner.addControllerService("log", recordSink);
 
@@ -85,5 +88,22 @@ public class TestLoggingRecordSink {
             assertNotNull(writeResult);
             assertEquals(2, writeResult.getRecordCount());
         }, "Should have completed successfully");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("logsink-log-level", LoggingRecordSink.LOG_LEVEL.getName()),
+                Map.entry("record-sink-record-writer", RecordSinkService.RECORD_WRITER_FACTORY.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        recordSink.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 }

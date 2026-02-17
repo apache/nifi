@@ -87,14 +87,14 @@ import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
         @WritesAttribute(attribute = "executesql.resultset.index", description = "Assuming multiple result sets are returned, "
                 + "the zero based index of this result set."),
         @WritesAttribute(attribute = "executesql.error.message", description = "If processing an incoming flow file causes "
-                + "an Exception, the Flow File is routed to failure and this attribute is set to the exception message."),
-        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
+                + "an Exception, the FlowFile is routed to failure and this attribute is set to the exception message."),
+        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per FlowFile' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
-        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per Flow File' is set then this is the total number of  "
+        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per FlowFile' is set then this is the total number of  "
                 + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
                 + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet. If Output Batch Size is set, then this "
                 + "attribute will not be populated."),
-        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
+        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per FlowFile' is set then the position of this FlowFile in the list of "
                 + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced"),

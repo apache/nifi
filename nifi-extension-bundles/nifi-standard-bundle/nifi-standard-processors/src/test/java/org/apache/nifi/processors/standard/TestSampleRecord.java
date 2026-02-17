@@ -26,8 +26,10 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -43,12 +45,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestSampleRecord {
-    @Test
-    public void testIntervalSampling() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
+    private TestRunner runner;
+    private MockRecordParser readerService;
+
+    @BeforeEach
+    void setUp() throws InitializationException {
+        runner = TestRunners.newTestRunner(SampleRecord.class);
+        readerService = new MockRecordParser();
         final MockRecordWriter writerService = new MockRecordWriter("header", false);
 
-        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
         runner.addControllerService("reader", readerService);
         runner.enableControllerService(readerService);
         runner.addControllerService("writer", writerService);
@@ -56,6 +61,10 @@ public class TestSampleRecord {
 
         runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
         runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
+    }
+
+    @Test
+    public void testIntervalSampling() {
         runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.INTERVAL_SAMPLING_KEY);
         runner.assertNotValid();
         runner.setProperty(SampleRecord.SAMPLING_INTERVAL, "4");
@@ -71,7 +80,7 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "25");
 
         runner.clearTransferState();
@@ -81,23 +90,12 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "100");
     }
 
     @Test
-    public void testIntervalSamplingWithNoRecords() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
-        runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
+    public void testIntervalSamplingWithNoRecords() {
         runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.INTERVAL_SAMPLING_KEY);
         runner.assertNotValid();
         runner.setProperty(SampleRecord.SAMPLING_INTERVAL, "0");
@@ -113,22 +111,13 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
 
         out.assertAttributeEquals("record.count", "0");
     }
 
     @Test
-    public void testRangeSampling() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
+    public void testRangeSampling() {
         runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
         runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
         runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.RANGE_SAMPLING_KEY);
@@ -146,7 +135,7 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "6");
 
         runner.clearTransferState();
@@ -156,7 +145,7 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "1");
         out.assertContentEquals("header\n3,8\n");
 
@@ -167,7 +156,7 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "2");
         out.assertContentEquals("header\n1,6\n2,7\n");
 
@@ -179,7 +168,7 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "2");
         out.assertContentEquals("header\n8,13\n20,25\n");
 
@@ -190,23 +179,12 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         out.assertAttributeEquals("record.count", "100");
     }
 
     @Test
-    public void testProbabilisticSamplingWithSeed() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
-        runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
+    public void testProbabilisticSamplingWithSeed() {
         runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.PROBABILISTIC_SAMPLING_KEY);
         runner.assertNotValid();
         runner.setProperty(SampleRecord.SAMPLING_PROBABILITY, "10");
@@ -223,7 +201,7 @@ public class TestSampleRecord {
         runner.run();
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         String firstContent = new String(runner.getContentAsByteArray(first));
 
         runner.clearTransferState();
@@ -231,25 +209,14 @@ public class TestSampleRecord {
         runner.run();
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile second = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        final MockFlowFile second = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         String secondContent = new String(runner.getContentAsByteArray(second));
 
         assertEquals(firstContent, secondContent);
     }
 
     @Test
-    public void testProbabilisticSamplingWithAllRecords() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
-        runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
+    public void testProbabilisticSamplingWithAllRecords() {
         runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.PROBABILISTIC_SAMPLING_KEY);
         runner.assertNotValid();
         runner.setProperty(SampleRecord.SAMPLING_PROBABILITY, "100");
@@ -278,7 +245,7 @@ public class TestSampleRecord {
         runner.run();
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         String[] content = new String(runner.getContentAsByteArray(first)).split(".*\n");
         for (int i = 0; i < content.length; i++) {
             assertEquals(content[i], records.get(i).toString());
@@ -286,18 +253,7 @@ public class TestSampleRecord {
     }
 
     @Test
-    public void testProbabilisticSamplingWithNoRecords() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
-        runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
+    public void testProbabilisticSamplingWithNoRecords() {
         runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.PROBABILISTIC_SAMPLING_KEY);
         runner.assertNotValid();
         runner.setProperty(SampleRecord.SAMPLING_PROBABILITY, "0");
@@ -316,24 +272,13 @@ public class TestSampleRecord {
         runner.run();
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         String content = new String(runner.getContentAsByteArray(first));
         assertTrue(content.isEmpty());
     }
 
     @Test
-    public void testReservoirSampling() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
-        runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
+    public void testReservoirSampling() {
         runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.RESERVOIR_SAMPLING_KEY);
         runner.assertNotValid();
         runner.setProperty(SampleRecord.RESERVOIR_SIZE, "10");
@@ -349,24 +294,13 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
 
         out.assertAttributeEquals("record.count", "10");
     }
 
     @Test
-    public void testReservoirSamplingWithSeed() throws InitializationException {
-        final MockRecordParser readerService = new MockRecordParser();
-        final MockRecordWriter writerService = new MockRecordWriter("header", false);
-
-        final TestRunner runner = TestRunners.newTestRunner(SampleRecord.class);
-        runner.addControllerService("reader", readerService);
-        runner.enableControllerService(readerService);
-        runner.addControllerService("writer", writerService);
-        runner.enableControllerService(writerService);
-
-        runner.setProperty(SampleRecord.RECORD_READER_FACTORY, "reader");
-        runner.setProperty(SampleRecord.RECORD_WRITER_FACTORY, "writer");
+    public void testReservoirSamplingWithSeed() {
         runner.setProperty(SampleRecord.SAMPLING_STRATEGY, SampleRecord.RESERVOIR_SAMPLING_KEY);
         runner.setProperty(SampleRecord.RANDOM_SEED, "1");
         runner.assertNotValid();
@@ -383,7 +317,7 @@ public class TestSampleRecord {
 
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        final MockFlowFile first = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         String firstContent = new String(runner.getContentAsByteArray(first));
         first.assertAttributeEquals("record.count", "10");
 
@@ -392,9 +326,26 @@ public class TestSampleRecord {
         runner.run();
         runner.assertTransferCount(SampleRecord.REL_SUCCESS, 1);
         runner.assertTransferCount(SampleRecord.REL_ORIGINAL, 1);
-        final MockFlowFile second = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).get(0);
+        final MockFlowFile second = runner.getFlowFilesForRelationship(SampleRecord.REL_SUCCESS).getFirst();
         String secondContent = new String(runner.getContentAsByteArray(second));
 
         assertEquals(firstContent, secondContent);
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("record-reader", SampleRecord.RECORD_READER_FACTORY.getName()),
+                Map.entry("record-writer", SampleRecord.RECORD_WRITER_FACTORY.getName()),
+                Map.entry("sample-record-sampling-strategy", SampleRecord.SAMPLING_STRATEGY.getName()),
+                Map.entry("sample-record-interval", SampleRecord.SAMPLING_INTERVAL.getName()),
+                Map.entry("sample-record-range", SampleRecord.SAMPLING_RANGE.getName()),
+                Map.entry("sample-record-probability", SampleRecord.SAMPLING_PROBABILITY.getName()),
+                Map.entry("sample-record-reservoir", SampleRecord.RESERVOIR_SIZE.getName()),
+                Map.entry("sample-record-random-seed", SampleRecord.RANDOM_SEED.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

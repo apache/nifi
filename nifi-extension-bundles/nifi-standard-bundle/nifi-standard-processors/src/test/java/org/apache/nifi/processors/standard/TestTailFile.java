@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
@@ -59,7 +60,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class TestTailFile {
 
     private File file;
-    private File existingFile;
     private File otherFile;
 
     private RandomAccessFile raf;
@@ -76,7 +76,7 @@ public class TestTailFile {
         file.delete();
         assertTrue(file.createNewFile());
 
-        existingFile = new File("target/existing-log.txt");
+        File existingFile = new File("target/existing-log.txt");
         existingFile.delete();
         assertTrue(existingFile.createNewFile());
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(existingFile)))) {
@@ -1287,6 +1287,24 @@ public class TestTailFile {
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("hey3\n")));
         assertTrue(runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).stream().anyMatch(mockFlowFile -> mockFlowFile.isContentEqual("hey\n")));
         runner.clearTransferState();
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("tail-base-directory", TailFile.BASE_DIRECTORY.getName()),
+                Map.entry("tail-mode", TailFile.MODE.getName()),
+                Map.entry("File to Tail", TailFile.FILENAME.getName()),
+                Map.entry("File Location", TailFile.STATE_LOCATION.getName()),
+                Map.entry("tailfile-recursive-lookup", TailFile.RECURSIVE.getName()),
+                Map.entry("tailfile-lookup-frequency", TailFile.LOOKUP_FREQUENCY.getName()),
+                Map.entry("tailfile-maximum-age", TailFile.MAXIMUM_AGE.getName()),
+                Map.entry("reread-on-nul", TailFile.REREAD_ON_NUL.getName()),
+                Map.entry("pre-allocated-buffer-size", TailFile.PRE_ALLOCATED_BUFFER_SIZE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void assertNumberOfStateMapEntries(int expectedNumberOfLogFiles) throws IOException {

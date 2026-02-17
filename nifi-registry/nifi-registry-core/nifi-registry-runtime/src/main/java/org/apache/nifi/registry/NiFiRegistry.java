@@ -106,6 +106,9 @@ public class NiFiRegistry {
             final long duration = System.nanoTime() - startTime;
             final double durationSeconds = TimeUnit.NANOSECONDS.toMillis(duration) / 1000.0;
             LOGGER.info("Started Application in {} seconds ({} ns)", durationSeconds, duration);
+
+            LOGGER.warn("Apache NiFi Registry has been deprecated and might be removed with Apache NiFi 3.0."
+                    + " More information can be found at https://nifi.apache.org/projects/registry/");
         }
     }
 

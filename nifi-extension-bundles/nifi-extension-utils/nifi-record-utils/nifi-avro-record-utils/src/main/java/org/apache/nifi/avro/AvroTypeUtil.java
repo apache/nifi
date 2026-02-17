@@ -1155,9 +1155,17 @@ public class AvroTypeUtil {
                 final String logicalName = logicalType.getName();
                 if (LOGICAL_TYPE_DATE.equals(logicalName)) {
                     // date logical name means that the value is number of days since Jan 1, 1970
+                    // Handle both Integer (legacy) and LocalDate (newer Avro libraries)
+                    if (value instanceof LocalDate localDate) {
+                        return java.sql.Date.valueOf(localDate);
+                    }
                     return java.sql.Date.valueOf(LocalDate.ofEpochDay((int) value));
                 } else if (LOGICAL_TYPE_TIME_MILLIS.equals(logicalName)) {
                     // time-millis logical name means that the value is number of milliseconds since midnight.
+                    // Handle both Integer (legacy) and LocalTime (newer Avro libraries)
+                    if (value instanceof LocalTime localTime) {
+                        return Time.valueOf(localTime);
+                    }
                     return new Time((int) value);
                 }
 
@@ -1171,10 +1179,22 @@ public class AvroTypeUtil {
 
                 final String logicalName = logicalType.getName();
                 if (LOGICAL_TYPE_TIME_MICROS.equals(logicalName)) {
+                    // Handle both Long (legacy) and LocalTime (newer Avro libraries)
+                    if (value instanceof LocalTime localTime) {
+                        return Time.valueOf(localTime);
+                    }
                     return new Time(TimeUnit.MICROSECONDS.toMillis((long) value));
                 } else if (LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalName)) {
+                    // Handle both Long (legacy) and Instant (newer Avro libraries)
+                    if (value instanceof Instant instant) {
+                        return Timestamp.from(instant);
+                    }
                     return new Timestamp((long) value);
                 } else if (LOGICAL_TYPE_TIMESTAMP_MICROS.equals(logicalName)) {
+                    // Handle both Long (legacy) and Instant (newer Avro libraries)
+                    if (value instanceof Instant instant) {
+                        return Timestamp.from(instant);
+                    }
                     return new Timestamp(TimeUnit.MICROSECONDS.toMillis((long) value));
                 }
                 break;

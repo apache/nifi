@@ -442,6 +442,35 @@ class ConsumeKinesisIT {
         assertReceiveProvenanceEvents(recordRunner.getProvenanceEvents(), firstFlowFile, secondFlowFile, parseFailureFlowFile);
     }
 
+    @Test
+    void testRecordProcessingWithDemarcator() throws InitializationException {
+        streamClient.createStream(1);
+
+        final TestRunner demarcatorTestRunner = createDemarcatorTestRunner(streamName, applicationName, System.lineSeparator());
+
+        final List<String> testRecords = List.of(
+                "{\"name\":\"John\",\"age\":30}", // Schema A
+                "{\"name\":\"Jane\",\"age\":25}", // Schema A
+                "{invalid json}",
+                "{\"id\":\"123\",\"value\":\"test\"}" // Schema B
+        );
+
+        testRecords.forEach(record -> streamClient.putRecord("key", record));
+
+        runProcessorWithInitAndWaitForFiles(demarcatorTestRunner, 1);
+
+        // All records from the same shard are put as is into the same FlowFile.
+        demarcatorTestRunner.assertTransferCount(REL_SUCCESS, 1);
+        final List<MockFlowFile> successFlowFiles = demarcatorTestRunner.getFlowFilesForRelationship(REL_SUCCESS);
+
+        final MockFlowFile flowFile = successFlowFiles.getFirst();
+        assertEquals("4", flowFile.getAttribute(RECORD_COUNT));
+        flowFile.assertContentEquals(String.join(System.lineSeparator(), testRecords));
+
+        // Verify provenance events.
+        assertReceiveProvenanceEvents(demarcatorTestRunner.getProvenanceEvents(), flowFile);
+    }
+
     private static void assertReceiveProvenanceEvents(final List<ProvenanceEventRecord> actualEvents, final FlowFile... expectedFlowFiles) {
         assertReceiveProvenanceEvents(actualEvents, List.of(expectedFlowFiles));
     }
@@ -506,6 +535,16 @@ class ConsumeKinesisIT {
         runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, ConsumeKinesis.ProcessingStrategy.RECORD);
         runner.setProperty(ConsumeKinesis.RECORD_READER, "json-reader");
         runner.setProperty(ConsumeKinesis.RECORD_WRITER, "json-writer");
+
+        runner.assertValid();
+        return runner;
+    }
+
+    private TestRunner createDemarcatorTestRunner(final String streamName, final String applicationName, final String demarcator) throws InitializationException {
+        final TestRunner runner = createTestRunner(streamName, applicationName);
+
+        runner.setProperty(ConsumeKinesis.PROCESSING_STRATEGY, ConsumeKinesis.ProcessingStrategy.DEMARCATOR);
+        runner.setProperty(ConsumeKinesis.MESSAGE_DEMARCATOR, demarcator);
 
         runner.assertValid();
         return runner;

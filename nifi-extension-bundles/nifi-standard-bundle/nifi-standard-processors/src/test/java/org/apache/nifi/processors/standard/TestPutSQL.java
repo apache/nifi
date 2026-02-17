@@ -26,10 +26,12 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -76,6 +78,7 @@ public class TestPutSQL {
     private static final String SERVICE_ID = FilteringEmbeddedDatabaseConnectionService.class.getSimpleName();
 
     private static FilteringEmbeddedDatabaseConnectionService service;
+    private TestRunner runner;
 
     @BeforeAll
     static void setService(@TempDir final Path databaseLocation) throws SQLException {
@@ -94,10 +97,16 @@ public class TestPutSQL {
         service.close();
     }
 
-    @Test
-    public void testDirectStatements() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    @BeforeEach
+    void setUp() throws InitializationException {
+        runner = TestRunners.newTestRunner(PutSQL.class);
+        runner.addControllerService(SERVICE_ID, service);
+        runner.enableControllerService(service);
+        runner.setProperty(PutSQL.CONNECTION_POOL, SERVICE_ID);
+    }
 
+    @Test
+    public void testDirectStatements() throws ProcessException, SQLException {
         recreateTable("PERSONS", createPersons);
 
         runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)".getBytes());
@@ -132,8 +141,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testCommitOnCleanup() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testCommitOnCleanup() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.AUTO_COMMIT, "false");
 
         recreateTable("PERSONS", createPersons);
@@ -156,8 +164,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testInsertWithGeneratedKeys() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testInsertWithGeneratedKeys() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "true");
 
         recreateTable("PERSONS_AI", createPersonsAutoId);
@@ -181,8 +188,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testProvenanceEventsWithBatchMode() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testProvenanceEventsWithBatchMode() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.BATCH_SIZE, "10");
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -191,8 +197,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testProvenanceEventsWithFragmentedTransaction() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testProvenanceEventsWithFragmentedTransaction() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.BATCH_SIZE, "10");
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "true");
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -201,8 +206,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testProvenanceEventsWithObtainGeneratedKeys() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testProvenanceEventsWithObtainGeneratedKeys() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.BATCH_SIZE, "10");
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "true");
@@ -227,8 +231,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testKeepFlowFileOrderingWithBatchMode() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testKeepFlowFileOrderingWithBatchMode() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.BATCH_SIZE, "10");
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -237,8 +240,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testKeepFlowFileOrderingWithFragmentedTransaction() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testKeepFlowFileOrderingWithFragmentedTransaction() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.BATCH_SIZE, "10");
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "true");
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
@@ -247,8 +249,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testKeepFlowFileOrderingWithObtainGeneratedKeys() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testKeepFlowFileOrderingWithObtainGeneratedKeys() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.BATCH_SIZE, "10");
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "true");
@@ -295,8 +296,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadStatementAndSupportTransaction() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadStatementAndSupportTransaction() throws ProcessException {
         testFailInMiddleWithBadStatement(runner);
         runner.run();
 
@@ -306,8 +306,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadStatementAndNotSupportTransaction() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadStatementAndNotSupportTransaction() throws ProcessException {
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         testFailInMiddleWithBadStatement(runner);
         runner.run();
@@ -319,8 +318,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadStatementRollbackOnFailure() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadStatementRollbackOnFailure() throws ProcessException {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
         runner.enqueue("INSERT INTO PERSONS_AI (NAME, CODE) VALUES ('Mark', 84)".getBytes());
@@ -335,8 +333,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterTypeAndNotSupportTransaction() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadParameterTypeAndNotSupportTransaction() throws ProcessException {
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         testFailInMiddleWithBadParameterType(runner);
         runner.run();
@@ -349,8 +346,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterTypeAndSupportTransaction() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadParameterTypeAndSupportTransaction() throws ProcessException {
         testFailInMiddleWithBadParameterType(runner);
         runner.run();
 
@@ -361,8 +357,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterTypeRollbackOnFailure() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadParameterTypeRollbackOnFailure() throws ProcessException {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
@@ -387,8 +382,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithNumberFormatException() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithNumberFormatException() throws ProcessException {
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "false");
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         final Map<String, String> goodAttributes = new HashMap<>();
@@ -413,8 +407,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterValueAndSupportTransaction() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadParameterValueAndSupportTransaction() throws ProcessException, SQLException {
         testFailInMiddleWithBadParameterValue(runner);
         runner.run();
 
@@ -434,8 +427,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterValueAndNotSupportTransaction() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadParameterValueAndNotSupportTransaction() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.SUPPORT_TRANSACTIONS, "false");
         testFailInMiddleWithBadParameterValue(runner);
         runner.run();
@@ -462,8 +454,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testFailInMiddleWithBadParameterValueRollbackOnFailure() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testFailInMiddleWithBadParameterValueRollbackOnFailure() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.OBTAIN_GENERATED_KEYS, "false");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
@@ -498,8 +489,7 @@ public class TestPutSQL {
 
 
     @Test
-    public void testUsingSqlDataTypesWithNegativeValues() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testUsingSqlDataTypesWithNegativeValues() throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE PERSONS2 (id integer primary key, name varchar(100), code bigint)");
@@ -528,8 +518,7 @@ public class TestPutSQL {
 
     // Not specifying a format for the date fields here to continue to test backwards compatibility
     @Test
-    public void testUsingTimestampValuesEpochAndString() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testUsingTimestampValuesEpochAndString() throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST1 (id integer primary key, ts1 timestamp(3), ts2 timestamp(3))");
@@ -565,8 +554,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testUsingTimestampValuesWithFormatAttribute() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testUsingTimestampValuesWithFormatAttribute() throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST2 (id integer primary key, ts1 timestamp(9), ts2 timestamp(9))");
@@ -609,8 +597,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testUsingDateTimeValuesWithFormatAttribute() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testUsingDateTimeValuesWithFormatAttribute() throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE TIMESTAMPTEST3 (id integer primary key, ts1 TIME, ts2 DATE)");
@@ -697,8 +684,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testBitType() throws SQLException, InitializationException {
-        final TestRunner runner = initTestRunner();
+    public void testBitType() throws SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE BITTESTS (id integer primary key, bt1 BOOLEAN)");
@@ -810,8 +796,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testUsingTimeValuesEpochAndString() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testUsingTimeValuesEpochAndString() throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE TIMETESTS (id integer primary key, ts1 time, ts2 time)");
@@ -851,8 +836,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testUsingDateValuesEpochAndString() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testUsingDateValuesEpochAndString() throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE DATETESTS (id integer primary key, ts1 date, ts2 date)");
@@ -887,8 +871,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testBinaryColumnTypes() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testBinaryColumnTypes() throws ProcessException, SQLException {
         try (final Connection conn = service.getConnection()) {
             try (final Statement stmt = conn.createStatement()) {
                 stmt.executeUpdate("CREATE TABLE BINARYTESTS (id integer primary key, bn1 BLOB, bn2 BLOB, bn3 BLOB)");
@@ -1012,9 +995,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testStatementsWithPreparedParameters() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
-
+    public void testStatementsWithPreparedParameters() throws ProcessException, SQLException {
         recreateTable("PERSONS", createPersons);
 
         final Map<String, String> attributes = new HashMap<>();
@@ -1069,9 +1050,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testMultipleStatementsWithinFlowFile() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
-
+    public void testMultipleStatementsWithinFlowFile() throws ProcessException, SQLException {
         recreateTable("PERSONS", createPersons);
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
@@ -1105,8 +1084,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testMultipleStatementsWithinFlowFileRollbackOnFailure() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testMultipleStatementsWithinFlowFileRollbackOnFailure() throws ProcessException, SQLException {
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
         recreateTable("PERSONS", createPersons);
@@ -1140,8 +1118,7 @@ public class TestPutSQL {
 
 
     @Test
-    public void testWithNullParameter() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testWithNullParameter() throws ProcessException, SQLException {
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("sql.args.1.type", String.valueOf(Types.INTEGER));
         attributes.put("sql.args.1.value", "1");
@@ -1169,9 +1146,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testInvalidStatement() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
-
+    public void testInvalidStatement() throws ProcessException, SQLException {
         recreateTable("PERSONS", createPersons);
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
@@ -1205,8 +1180,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testInvalidStatementRollbackOnFailure() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testInvalidStatementRollbackOnFailure() throws ProcessException, SQLException {
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
         recreateTable("PERSONS", createPersons);
@@ -1239,13 +1213,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testRetryableFailureRollbackOnFailure() throws InitializationException, ProcessException {
-        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
-
-        runner.setProperty(PutSQL.CONNECTION_POOL, SERVICE_ID);
+    public void testRetryableFailureRollbackOnFailure() throws ProcessException {
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
         final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
@@ -1270,8 +1238,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testMultipleFlowFilesSuccessfulInTransaction() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testMultipleFlowFilesSuccessfulInTransaction() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.BATCH_SIZE, "1");
 
         recreateTable("PERSONS", createPersons);
@@ -1325,8 +1292,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testMultipleFlowFilesSuccessfulInTransactionRollBackOnFailure() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testMultipleFlowFilesSuccessfulInTransactionRollBackOnFailure() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.BATCH_SIZE, "1");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
 
@@ -1354,9 +1320,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testTransactionTimeout() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
-
+    public void testTransactionTimeout() throws ProcessException {
         runner.setProperty(PutSQL.TRANSACTION_TIMEOUT, "5 secs");
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("fragment.identifier", "1");
@@ -1389,9 +1353,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testTransactionTimeoutRollbackOnFailure() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
-
+    public void testTransactionTimeoutRollbackOnFailure() throws ProcessException {
         runner.setProperty(PutSQL.TRANSACTION_TIMEOUT, "5 secs");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
         final Map<String, String> attributes = new HashMap<>();
@@ -1425,9 +1387,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testNullFragmentCountRollbackOnFailure() throws InitializationException, ProcessException {
-        final TestRunner runner = initTestRunner();
-
+    public void testNullFragmentCountRollbackOnFailure() throws ProcessException {
         runner.setProperty(PutSQL.TRANSACTION_TIMEOUT, "5 secs");
         runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
         final Map<String, String> attribute1 = new HashMap<>();
@@ -1449,8 +1409,7 @@ public class TestPutSQL {
     }
 
     @Test
-    public void testStatementsFromProperty() throws InitializationException, ProcessException, SQLException {
-        final TestRunner runner = initTestRunner();
+    public void testStatementsFromProperty() throws ProcessException, SQLException {
         runner.setProperty(PutSQL.SQL_STATEMENT, "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (${row.id}, 'Mark', 84)");
 
         recreateTable("PERSONS", createPersons);
@@ -1551,9 +1510,6 @@ public class TestPutSQL {
 
         try {
             recreateTable("PERSONS", createPersons);
-
-            TestRunner runner = initTestRunner();
-
             runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)", new HashMap<>());
             runner.run();
 
@@ -1572,9 +1528,6 @@ public class TestPutSQL {
 
         try {
             recreateTable("PERSONS", createPersons);
-
-            TestRunner runner = initTestRunner();
-
             Map<String, String> attributes = new HashMap<>();
             attributes.put("database.name", "someDatabaseName");
             runner.enqueue("INSERT INTO PERSONS (ID, NAME, CODE) VALUES (1, 'Mark', 84)", attributes);
@@ -1587,6 +1540,18 @@ public class TestPutSQL {
         } finally {
             service.setFlowFileFilter(null);
         }
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("putsql-sql-statement", PutSQL.SQL_STATEMENT.getName()),
+                Map.entry("database-session-autocommit", PutSQL.AUTO_COMMIT.getName()),
+                Map.entry(RollbackOnFailure.OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME, RollbackOnFailure.ROLLBACK_ON_FAILURE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void makeServiceLookLikeAnInstanceOfDBCPConnectionPoolLookup() {
@@ -1698,16 +1663,6 @@ public class TestPutSQL {
     private String fixedSizeByteArrayAsBase64String(int length) {
         byte[] bBinary = randomBytes(length);
         return DatatypeConverter.printBase64Binary(bBinary);
-    }
-
-    private TestRunner initTestRunner() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(PutSQL.class);
-
-        runner.addControllerService(SERVICE_ID, service);
-        runner.enableControllerService(service);
-        runner.setProperty(PutSQL.CONNECTION_POOL, SERVICE_ID);
-
-        return runner;
     }
 
     private static void assertSQLExceptionRelatedAttributes(final TestRunner runner, Relationship relationship) {

@@ -35,6 +35,7 @@ import org.junit.jupiter.api.condition.DisabledOnJre;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -51,12 +52,16 @@ import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.nifi.parquet.utils.ParquetUtils.AVRO_ADD_LIST_ELEMENT_RECORDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @DisabledOnJre(value = { JRE.JAVA_25 }, disabledReason = "java.security.auth.Subject.getSubject() is not supported")
 @DisabledOnOs({ OS.WINDOWS })
 public class TestParquetReader {
 
     private static final String PARQUET_PATH = "src/test/resources/TestParquetReader.parquet";
+
+    @TempDir
+    private File tempDir;
 
     private ParquetReader parquetReaderFactory;
     private ComponentLog componentLog;
@@ -215,6 +220,37 @@ public class TestParquetReader {
         runner.assertAllFlowFilesTransferred(TestParquetProcessor.SUCCESS, 1);
         runner.getFlowFilesForRelationship(TestParquetProcessor.SUCCESS).getFirst().assertContentEquals(
                 "MapRecord[{name=Bob, favorite_number=1, favorite_colors=[blue, red, yellow]}]");
+    }
+
+    /**
+     * Test for NIFI-15548: ParquetReader fails on timestamps.
+     * Comprehensive test for all temporal logical types including nullable union types.
+     * Verifies that parquet files with date, time-millis, time-micros, timestamp-millis,
+     * timestamp-micros, and nullable timestamp logical types can all be read without ClassCastException.
+     */
+    @Test
+    public void testReadParquetWithTemporalLogicalTypes() throws IOException, MalformedRecordException {
+        final int numRecords = 5;
+        final File parquetFile = ParquetTestUtils.createAllTemporalTypesParquetFile(numRecords, tempDir);
+
+        final List<Record> results = getRecords(parquetFile, emptyMap());
+
+        assertNotNull(results);
+        assertEquals(numRecords, results.size());
+
+        for (int i = 0; i < numRecords; i++) {
+            final Record record = results.get(i);
+            assertNotNull(record);
+            assertEquals(i, record.getValue("id"));
+
+            // Verify all temporal fields can be read without ClassCastException
+            assertNotNull(record.getValue("date_field"), "Date value should not be null for record " + i);
+            assertNotNull(record.getValue("time_millis_field"), "Time-millis value should not be null for record " + i);
+            assertNotNull(record.getValue("time_micros_field"), "Time-micros value should not be null for record " + i);
+            assertNotNull(record.getValue("timestamp_millis_field"), "Timestamp-millis value should not be null for record " + i);
+            assertNotNull(record.getValue("timestamp_micros_field"), "Timestamp-micros value should not be null for record " + i);
+            assertNotNull(record.getValue("nullable_timestamp_field"), "Nullable timestamp value should not be null for record " + i);
+        }
     }
 
     private List<Record> getRecords(File parquetFile, Map<String, String> variables)

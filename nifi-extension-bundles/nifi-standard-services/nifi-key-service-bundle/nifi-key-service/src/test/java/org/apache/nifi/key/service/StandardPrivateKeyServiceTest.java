@@ -17,7 +17,9 @@
 package org.apache.nifi.key.service;
 
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -35,13 +37,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.bouncycastle.openssl.jcajce.JceOpenSSLPKCS8EncryptorBuilder.AES_256_CBC;
@@ -126,6 +128,24 @@ class StandardPrivateKeyServiceTest {
         assertEquals(generatedPrivateKey, privateKey);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("key-file", StandardPrivateKeyService.KEY_FILE.getName()),
+                Map.entry("key", StandardPrivateKeyService.KEY.getName()),
+                Map.entry("key-password", StandardPrivateKeyService.KEY_PASSWORD.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
+    }
+
     private static String[] encryptionAlgorithms() {
         return new String[] {
                 AES_256_CBC,
@@ -138,9 +158,7 @@ class StandardPrivateKeyServiceTest {
         final Path keyPath = Files.createTempFile(StandardPrivateKeyServiceTest.class.getSimpleName(), RSA_ALGORITHM);
         keyPath.toFile().deleteOnExit();
 
-        final byte[] keyBytes = encodedPrivateKey.getBytes(StandardCharsets.UTF_8);
-
-        Files.write(keyPath, keyBytes);
+        Files.writeString(keyPath, encodedPrivateKey);
         return keyPath;
     }
 

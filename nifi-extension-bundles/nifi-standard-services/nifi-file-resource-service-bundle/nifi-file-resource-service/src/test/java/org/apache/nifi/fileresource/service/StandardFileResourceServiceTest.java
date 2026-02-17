@@ -20,7 +20,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.nifi.fileresource.service.api.FileResource;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterAll;
@@ -134,6 +136,22 @@ class StandardFileResourceServiceTest {
         final Map<String, String> attributes = setUpServiceWithEL(filePath);
 
         assertThrows(ProcessException.class, () -> service.getFileResource(attributes));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "file-path", StandardFileResourceService.FILE_PATH.getName()
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private Path createTestFile(final String filenamePrefix) throws IOException {

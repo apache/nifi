@@ -38,7 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public abstract class AbstractStartGcpVisionOperation<B extends com.google.protobuf.GeneratedMessageV3.Builder<B>> extends AbstractGcpVisionProcessor  {
+public abstract class AbstractStartGcpVisionOperation<B extends com.google.protobuf.Message.Builder> extends AbstractGcpVisionProcessor  {
     public static final PropertyDescriptor FEATURE_TYPE = new PropertyDescriptor.Builder()
             .name("Vision Feature Type")
             .description("Type of GCP Vision Feature. The value of this property applies when the JSON Payload property is configured. " +

@@ -264,6 +264,11 @@ class AbstractGitFlowRegistryClientTest {
         }
 
         @Override
+        public Optional<String> getContentShaAtCommit(final String path, final String commitSha) {
+            throw new UnsupportedOperationException("Not required for test");
+        }
+
+        @Override
         public String createContent(final GitCreateContentRequest request) {
             throw new UnsupportedOperationException("Not required for test");
         }

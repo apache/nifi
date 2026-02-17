@@ -45,6 +45,11 @@ public class EventNode implements ProvenanceEventLineageNode {
     }
 
     @Override
+    public String getComponentType() {
+        return record.getComponentType();
+    }
+
+    @Override
     public long getTimestamp() {
         return record.getEventTime();
     }

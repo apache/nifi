@@ -33,7 +33,9 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -72,6 +74,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
@@ -126,6 +129,7 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
     private static final boolean ENABLED = true;
     private static final boolean DISABLED = false;
 
+    private static final String BATCHES_EXECUTED_COUNTER = "Batches Executed";
     private static final String CONNECTION_FAILED = "Connection Failed";
 
     private static final String PARSER_ID = MockRecordParser.class.getSimpleName();
@@ -2155,6 +2159,143 @@ class PutDatabaseRecordTest extends AbstractDatabaseConnectionServiceTest {
         stmt.execute("drop table LONGVARBINARY_TEST");
         stmt.close();
         conn.close();
+    }
+
+    @Test
+    public void testInsertBinaryTypesUsesSetBytes() throws InitializationException, ProcessException, SQLException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        final String createTable = "CREATE TABLE BINARY_TYPES_TEST (id INTEGER PRIMARY KEY, binary_col BINARY(10), varbinary_col VARBINARY(100), longvarbinary_col LONGVARBINARY);";
+
+        final Connection conn = dbcp.getConnection();
+        final Statement stmt = conn.createStatement();
+        stmt.execute(createTable);
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService("parser", parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("binaryCol", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
+        parser.addSchemaField("varbinaryCol", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
+        parser.addSchemaField("longvarbinaryCol", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()).getFieldType());
+
+        final byte[] binaryValue = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        final byte[] varbinaryValue = new byte[]{11, 12, 13};
+        final byte[] longvarbinaryValue = new byte[]{21, 22, 23, 24, 25};
+
+        parser.addRecord(1, binaryValue, varbinaryValue, longvarbinaryValue);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, "parser");
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, "BINARY_TYPES_TEST");
+
+        final Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy();
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1);
+
+        verify(spyStmt.get()).setBytes(eq(2), eq(binaryValue));
+        verify(spyStmt.get()).setBytes(eq(3), eq(varbinaryValue));
+        verify(spyStmt.get()).setBytes(eq(4), eq(longvarbinaryValue));
+
+        final ResultSet rs = stmt.executeQuery("SELECT * FROM BINARY_TYPES_TEST;");
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertArrayEquals(binaryValue, rs.getBytes(2));
+        assertArrayEquals(varbinaryValue, rs.getBytes(3));
+        assertArrayEquals(longvarbinaryValue, rs.getBytes(4));
+        assertFalse(rs.next());
+
+        stmt.execute("DROP TABLE BINARY_TYPES_TEST;");
+        stmt.close();
+        conn.close();
+    }
+
+    @Test
+    public void testPrePostProcessingSql() throws InitializationException, ProcessException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService(PARSER_ID, parser);
+        runner.enableControllerService(parser);
+
+        parser.addSchemaField("id", RecordFieldType.INT);
+        parser.addSchemaField("name", RecordFieldType.STRING);
+        parser.addRecord(1, "testing");
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, PARSER_ID);
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, TABLE_NAME);
+
+        final String dropCreateSql = "DROP TABLE IF EXISTS %s; %s".formatted(TABLE_NAME, createPersons);
+        runner.setProperty(PutDatabaseRecord.PRE_PROCESSING_SQL, dropCreateSql);
+        runner.setProperty(PutDatabaseRecord.POST_PROCESSING_SQL, "DROP TABLE PERSONS");
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_SUCCESS);
+        final Long batchesExecuted = runner.getCounterValue(BATCHES_EXECUTED_COUNTER);
+        assertEquals(1, batchesExecuted, "Batches executed counter not matched");
+    }
+
+    @Test
+    public void testPreProcessingSqlFailure() throws InitializationException, ProcessException {
+        setRunner(TestCaseEnum.DEFAULT_0.getTestCase());
+
+        final MockRecordParser parser = new MockRecordParser();
+        runner.addControllerService(PARSER_ID, parser);
+        runner.enableControllerService(parser);
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, PARSER_ID);
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE);
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, TABLE_NAME);
+
+        final String preProcessingSql = "DROP TABLE UNKNOWN";
+        runner.setProperty(PutDatabaseRecord.PRE_PROCESSING_SQL, preProcessingSql);
+
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutDatabaseRecord.REL_FAILURE);
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).getFirst();
+        firstFlowFile.assertAttributeExists(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR);
+        final String recordError = firstFlowFile.getAttribute(PutDatabaseRecord.PUT_DATABASE_RECORD_ERROR);
+        assertTrue(recordError.contains(PutDatabaseRecord.PRE_PROCESSING_SQL.getName()), "Pre-Processing SQL not found in [%s]".formatted(recordError));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        runner = TestRunners.newTestRunner(PutDatabaseRecord.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("put-db-record-record-reader", PutDatabaseRecord.RECORD_READER_FACTORY.getName()),
+                Map.entry("db-type", PutDatabaseRecord.DB_TYPE.getName()),
+                Map.entry("put-db-record-statement-type", PutDatabaseRecord.STATEMENT_TYPE.getName()),
+                Map.entry("put-db-record-dcbp-service", PutDatabaseRecord.DBCP_SERVICE.getName()),
+                Map.entry("put-db-record-catalog-name", PutDatabaseRecord.CATALOG_NAME.getName()),
+                Map.entry("put-db-record-schema-name", PutDatabaseRecord.SCHEMA_NAME.getName()),
+                Map.entry("put-db-record-table-name", PutDatabaseRecord.TABLE_NAME.getName()),
+                Map.entry("put-db-record-binary-format", PutDatabaseRecord.BINARY_STRING_FORMAT.getName()),
+                Map.entry("put-db-record-translate-field-names", PutDatabaseRecord.TRANSLATE_FIELD_NAMES.getName()),
+                Map.entry("put-db-record-unmatched-field-behavior", PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR.getName()),
+                Map.entry("put-db-record-unmatched-column-behavior", PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR.getName()),
+                Map.entry("put-db-record-update-keys", PutDatabaseRecord.UPDATE_KEYS.getName()),
+                Map.entry("put-db-record-field-containing-sql", PutDatabaseRecord.FIELD_CONTAINING_SQL.getName()),
+                Map.entry("put-db-record-allow-multiple-statements", PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS.getName()),
+                Map.entry("put-db-record-quoted-identifiers", PutDatabaseRecord.QUOTE_IDENTIFIERS.getName()),
+                Map.entry("put-db-record-quoted-table-identifiers", PutDatabaseRecord.QUOTE_TABLE_IDENTIFIER.getName()),
+                Map.entry("put-db-record-query-timeout", PutDatabaseRecord.QUERY_TIMEOUT.getName()),
+                Map.entry("table-schema-cache-size", PutDatabaseRecord.TABLE_SCHEMA_CACHE_SIZE.getName()),
+                Map.entry("put-db-record-max-batch-size", PutDatabaseRecord.MAX_BATCH_SIZE.getName()),
+                Map.entry("database-session-autocommit", PutDatabaseRecord.AUTO_COMMIT.getName()),
+                Map.entry(RollbackOnFailure.OLD_ROLLBACK_ON_FAILURE_PROPERTY_NAME, RollbackOnFailure.ROLLBACK_ON_FAILURE.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private void recreateTable() throws ProcessException {

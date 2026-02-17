@@ -134,10 +134,16 @@ public class StandardPythonBridge implements PythonBridge {
         final String processorHome = processorDetails.getExtensionHome();
         final boolean bundledWithDependencies = processorDetails.isBundledWithDependencies();
 
-        final PythonProcess pythonProcess = getProcessForNextComponent(extensionId, identifier, processorHome, preferIsolatedProcess, bundledWithDependencies);
+        // Pre-compute NAR directories BEFORE acquiring the synchronized lock in getProcessForNextComponent
+        // to avoid a deadlock between StandardPythonBridge and StandardExtensionDiscoveringManager locks
+        final Set<String> narDirectories = getNarDirectories();
+
+        final PythonProcess pythonProcess = getProcessForNextComponent(extensionId, identifier, processorHome, preferIsolatedProcess, bundledWithDependencies, narDirectories);
+
         final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
 
         final PythonProcessorBridge processorBridge = pythonProcess.createProcessor(identifier, type, version, workDirPath, preferIsolatedProcess);
+
         processorCountByType.merge(extensionId, 1, Integer::sum);
         return processorBridge;
     }
@@ -182,12 +188,21 @@ public class StandardPythonBridge implements PythonBridge {
                 try {
                     // Find the Python Process that has the Processor, if any, and remove it.
                     // If there are no additional Processors in the Python Process, remove it from our list and shut down the process.
-                    // Use iterator so we can call remove()
                     for (final PythonProcess process : processes) {
                         final boolean removed = process.removeProcessor(identifier);
                         if (removed && process.getProcessorCount() == 0) {
                             toRemove = process;
                             break;
+                        }
+                    }
+
+                    if (toRemove == null) {
+                        for (final PythonProcess process : processes) {
+                            if (process.isNotLoadedForComponent(identifier)) {
+                                logger.info("Shutting down Python Process for Processor [{}]", identifier);
+                                toRemove = process;
+                                break;
+                            }
                         }
                     }
 
@@ -215,7 +230,7 @@ public class StandardPythonBridge implements PythonBridge {
     }
 
     private synchronized PythonProcess getProcessForNextComponent(final ExtensionId extensionId, final String componentId, final String processorHome, final boolean preferIsolatedProcess,
-                final boolean packagedWithDependencies) {
+                final boolean packagedWithDependencies, final Set<String> narDirectories) {
 
         final int processorsOfThisType = processorCountByType.getOrDefault(extensionId, 0);
         final int processIndex = processorsOfThisType % processConfig.getMaxPythonProcessesPerType();
@@ -257,19 +272,24 @@ public class StandardPythonBridge implements PythonBridge {
                 }
 
                 final PythonProcess pythonProcess = new PythonProcess(processConfig, serviceTypeLookup, envHome, packagedWithDependencies, extensionId.type(), componentId);
-                pythonProcess.start();
 
-                // Create list of extensions directories, including NAR directories
-                final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
-                    .map(File::getAbsolutePath)
-                    .collect(Collectors.toCollection(ArrayList::new));
-                extensionsDirs.addAll(getNarDirectories());
-
-                final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
-                pythonProcess.discoverExtensions(extensionsDirs, workDirPath);
-
-                // Add the newly create process to the processes for the given type of processor.
+                // Add process to list before start() so removal requests during startup can find it
                 processesForType.add(pythonProcess);
+
+                try {
+                    pythonProcess.start();
+
+                    final List<String> extensionsDirs = processConfig.getPythonExtensionsDirectories().stream()
+                        .map(File::getAbsolutePath)
+                        .collect(Collectors.toCollection(ArrayList::new));
+                    extensionsDirs.addAll(narDirectories);
+
+                    final String workDirPath = processConfig.getPythonWorkingDirectory().getAbsolutePath();
+                    pythonProcess.discoverExtensions(extensionsDirs, workDirPath);
+                } catch (final IOException e) {
+                    processesForType.remove(pythonProcess);
+                    throw e;
+                }
 
                 return pythonProcess;
             } catch (final IOException ioe) {

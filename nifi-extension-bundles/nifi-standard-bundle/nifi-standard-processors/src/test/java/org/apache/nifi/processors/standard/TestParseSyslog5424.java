@@ -20,12 +20,16 @@ package org.apache.nifi.processors.standard;
 import com.github.palindromicity.syslog.NilPolicy;
 import org.apache.nifi.syslog.attributes.SyslogAttributes;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -39,9 +43,15 @@ public class TestParseSyslog5424 {
             + " [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"]"
             + " [exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"] Removing instance";
 
+    private TestRunner runner;
+
+    @BeforeEach
+    void setUp() {
+        runner = TestRunners.newTestRunner(ParseSyslog5424.class);
+    }
+
     @Test
     public void testValidMessage() {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog5424());
         runner.setProperty(ParseSyslog5424.NIL_POLICY, NilPolicy.DASH.name());
         runner.enqueue(SYSLOG_LINE_ALL.getBytes());
         runner.run();
@@ -50,7 +60,6 @@ public class TestParseSyslog5424 {
 
     @Test
     public void testValidMessageWithNils() {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog5424());
         runner.setProperty(ParseSyslog5424.NIL_POLICY, NilPolicy.DASH.name());
         runner.enqueue(SYSLOG_LINE_NILS.getBytes());
         runner.run();
@@ -59,7 +68,6 @@ public class TestParseSyslog5424 {
 
     @Test
     public void testInvalidMessage() {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog5424());
         runner.setProperty(ParseSyslog5424.NIL_POLICY, NilPolicy.OMIT.name());
         runner.enqueue("<hello> yesterday localhost\n".getBytes());
         runner.run();
@@ -69,36 +77,44 @@ public class TestParseSyslog5424 {
 
     @Test
     public void testDefaultHasBodyAttribute() {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog5424());
         runner.setProperty(ParseSyslog5424.NIL_POLICY, NilPolicy.DASH.name());
         runner.enqueue(SYSLOG_LINE_NILS.getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        assertNotNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
+        assertNotNull(results.getFirst().getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
     @Test
     public void testIncludeBodyAttributeTrue() {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog5424());
         runner.setProperty(ParseSyslog5424.NIL_POLICY, NilPolicy.DASH.name());
         runner.setProperty(ParseSyslog5424.INCLUDE_BODY_IN_ATTRIBUTES, "true");
         runner.enqueue(SYSLOG_LINE_NILS.getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        assertNotNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
+        assertNotNull(results.getFirst().getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
     }
 
     @Test
     public void testIncludeBodyAttributeFalse() {
-        final TestRunner runner = TestRunners.newTestRunner(new ParseSyslog5424());
         runner.setProperty(ParseSyslog5424.NIL_POLICY, NilPolicy.DASH.name());
         runner.setProperty(ParseSyslog5424.INCLUDE_BODY_IN_ATTRIBUTES, "false");
         runner.enqueue(SYSLOG_LINE_NILS.getBytes());
         runner.run();
         runner.assertAllFlowFilesTransferred(ParseSyslog5424.REL_SUCCESS, 1);
         List<MockFlowFile> results = runner.getFlowFilesForRelationship(ParseSyslog5424.REL_SUCCESS);
-        assertNull(results.get(0).getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
+        assertNull(results.getFirst().getAttribute(SyslogAttributes.SYSLOG_BODY.key()));
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "nil_policy", ParseSyslog5424.NIL_POLICY.getName(),
+                "include_policy", ParseSyslog5424.INCLUDE_BODY_IN_ATTRIBUTES.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 }

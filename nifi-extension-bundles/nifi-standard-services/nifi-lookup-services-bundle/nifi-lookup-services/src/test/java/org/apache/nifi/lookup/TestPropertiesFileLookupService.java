@@ -16,24 +16,34 @@
  */
 package org.apache.nifi.lookup;
 
+import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockPropertyConfiguration;
+import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestPropertiesFileLookupService {
 
-    static final Optional<String> EMPTY_STRING = Optional.empty();
+    private PropertiesFileLookupService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new PropertiesFileLookupService();
+    }
 
     @Test
     public void testPropertiesFileLookupService() throws InitializationException, LookupFailureException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final PropertiesFileLookupService service = new PropertiesFileLookupService();
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         runner.addControllerService("properties-file-lookup-service", service);
         runner.setProperty(service, PropertiesFileLookupService.CONFIGURATION_FILE, "src/test/resources/test.properties");
@@ -52,13 +62,12 @@ public class TestPropertiesFileLookupService {
         assertEquals(Optional.of("this is property 2"), property2);
 
         final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
-        assertEquals(EMPTY_STRING, property3);
+        assertEquals(Optional.empty(), property3);
     }
 
     @Test
     public void testPropertiesFileLookupServiceVariable() throws InitializationException, LookupFailureException {
-        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
-        final PropertiesFileLookupService service = new PropertiesFileLookupService();
+        final TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         runner.setEnvironmentVariableValue("myFile", "src/test/resources/test.properties");
 
@@ -79,7 +88,22 @@ public class TestPropertiesFileLookupService {
         assertEquals(Optional.of("this is property 2"), property2);
 
         final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
-        assertEquals(EMPTY_STRING, property3);
+        assertEquals(Optional.empty(), property3);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "configuration-file", CommonsConfigurationLookupService.CONFIGURATION_FILE.getName()
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        service.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
+    }
 }

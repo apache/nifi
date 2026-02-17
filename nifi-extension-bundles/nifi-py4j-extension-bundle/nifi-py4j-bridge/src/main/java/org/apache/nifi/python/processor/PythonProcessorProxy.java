@@ -150,6 +150,14 @@ public abstract class PythonProcessorProxy<T extends PythonProcessor> extends Ab
     }
 
     @Override
+    public void cancelLoading() {
+        final PythonProcessorBridge currentBridge = this.bridge;
+        if (currentBridge != null) {
+            currentBridge.cancel();
+        }
+    }
+
+    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         if (cachedPropertyDescriptors != null) {
             return this.cachedPropertyDescriptors;

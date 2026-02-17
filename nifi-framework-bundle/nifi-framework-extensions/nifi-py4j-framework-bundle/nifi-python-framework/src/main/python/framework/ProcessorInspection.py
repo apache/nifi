@@ -49,9 +49,10 @@ class StringConstantVisitor(ast.NodeVisitor):
 
 class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
 
-    def __init__(self, module_string_constants, processor_name):
+    def __init__(self, module_string_constants, processor_name, imported_property_descriptors=None):
         self.module_string_constants = module_string_constants
         self.discovered_property_descriptors = {}
+        self.imported_property_descriptors = imported_property_descriptors if imported_property_descriptors else {}
         self.processor_name = processor_name
         self.logger = logging.getLogger("python.CollectPropertyDescriptorVisitors")
 
@@ -59,10 +60,14 @@ class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
         resolved_dependencies = []
         for dependency in node.elts:
             variable_name = dependency.args[0].id
-            if not self.discovered_property_descriptors[variable_name]:
-                self.logger.error(f"Not able to find actual property descriptor for {variable_name}, so not able to resolve property dependencies in {self.processor_name}.")
+            # First check locally discovered descriptors, then check imported ones
+            actual_property = self.discovered_property_descriptors.get(variable_name)
+            if actual_property is None:
+                actual_property = self.imported_property_descriptors.get(variable_name)
+
+            if actual_property is None:
+                self.logger.warning(f"Not able to find actual property descriptor for {variable_name}, so not able to resolve property dependencies in {self.processor_name}.")
             else:
-                actual_property = self.discovered_property_descriptors[variable_name]
                 dependent_values = []
                 for dependent_value in dependency.args[1:]:
                     dependent_values.append(get_constant_values(dependent_value, self.module_string_constants))
@@ -113,12 +118,158 @@ class CollectPropertyDescriptorVisitors(ast.NodeVisitor):
         return isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name) and node.value.func.id == 'PropertyDescriptor'
 
 
-def get_module_string_constants(module_file: str) -> dict:
+def parse_module_file(module_file: str) -> ast.AST:
+    """
+    Parse a Python module file and return the AST root node.
+
+    This function reads and parses a module file once, allowing the AST
+    to be reused by multiple inspection functions without re-parsing.
+
+    :param module_file: Path to the Python module file to parse
+    :return: The root AST node of the parsed module
+    """
     with open(module_file) as file:
-        root_node = ast.parse(file.read())
+        return ast.parse(file.read())
+
+
+def get_module_string_constants_from_ast(root_node: ast.AST) -> dict:
+    """
+    Extract string constant assignments from a pre-parsed AST.
+
+    :param root_node: The root AST node of a parsed module
+    :return: Dictionary mapping variable names to string values
+    """
     visitor = StringConstantVisitor()
     visitor.visit(root_node)
     return visitor.string_assignments
+
+
+def get_imports_from_ast(root_node: ast.AST, module_dir: str) -> dict:
+    """
+    Extract import information from a pre-parsed AST.
+
+    This function extracts import statements from the AST and resolves
+    them to actual file paths. It handles:
+    - 'from module import name' style imports
+    - Relative imports within the same directory
+
+    :param root_node: The root AST node of a parsed module
+    :param module_dir: Directory containing the module (for resolving relative imports)
+    :return: Dictionary mapping imported names to their source file paths
+             e.g., {'SHARED_PROPERTY': '/path/to/SharedModule.py'}
+    """
+    imports = {}
+
+    for node in ast.walk(root_node):
+        if isinstance(node, ast.ImportFrom):
+            # Handle: from ModuleName import name1, name2
+            source_module = node.module
+            if source_module is None:
+                # Relative import without module name (e.g., from . import x)
+                continue
+
+            # Try to resolve the module to a file in the same directory
+            source_file = os.path.join(module_dir, f"{source_module}.py")
+            if os.path.exists(source_file):
+                for alias in node.names:
+                    # Use the alias name if provided, otherwise use the original name
+                    imported_name = alias.asname if alias.asname else alias.name
+                    imports[imported_name] = source_file
+
+    return imports
+
+
+def get_property_descriptors_from_ast(root_node: ast.AST, module_string_constants: dict, module_file: str = None) -> dict:
+    """
+    Extract all PropertyDescriptor assignments from a pre-parsed AST.
+
+    This function is used to discover PropertyDescriptors defined in shared/utility modules
+    that are imported by processor classes.
+
+    :param root_node: The root AST node of a parsed module
+    :param module_string_constants: Dictionary of string constants from the module
+    :param module_file: Optional path to the module file (used for logging only)
+    :return: Dictionary mapping variable names to PropertyDescription objects
+    """
+    property_descriptors = {}
+
+    for node in ast.walk(root_node):
+        if isinstance(node, ast.Assign):
+            # Check if this is a PropertyDescriptor assignment
+            if isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name):
+                if node.value.func.id == 'PropertyDescriptor':
+                    # Extract the variable name
+                    for target in node.targets:
+                        if isinstance(target, ast.Name):
+                            variable_name = target.id
+                            # Parse the PropertyDescriptor keywords
+                            if node.value.keywords:
+                                descriptor_info = {}
+                                for keyword in node.value.keywords:
+                                    key = keyword.arg
+                                    # Skip dependencies for now - they would create circular issues
+                                    if key != 'dependencies':
+                                        value = get_constant_values(keyword.value, module_string_constants)
+                                        descriptor_info[key] = value
+
+                                property_descriptors[variable_name] = PropertyDescription(
+                                    name=descriptor_info.get('name'),
+                                    description=descriptor_info.get('description'),
+                                    display_name=replace_null(descriptor_info.get('display_name'), descriptor_info.get('name')),
+                                    required=replace_null(descriptor_info.get('required'), False),
+                                    sensitive=replace_null(descriptor_info.get('sensitive'), False),
+                                    default_value=descriptor_info.get('default_value'),
+                                    expression_language_scope=replace_null(descriptor_info.get('expression_language_scope'), 'NONE'),
+                                    controller_service_definition=descriptor_info.get('controller_service_definition'),
+                                    allowable_values=descriptor_info.get('allowable_values'),
+                                    dependencies=None  # Dependencies from imported modules are not resolved
+                                )
+                                if module_file:
+                                    logger.debug(f"Found PropertyDescriptor '{variable_name}' in module {module_file}")
+
+    return property_descriptors
+
+
+def get_imported_property_descriptors_from_ast(root_node: ast.AST, module_file: str) -> dict:
+    """
+    Get all PropertyDescriptors that are imported into the given module, using a pre-parsed AST.
+
+    This function:
+    1. Extracts import statements from the pre-parsed AST
+    2. For each imported name, checks if it's a PropertyDescriptor in the source module
+    3. Returns a dictionary of imported PropertyDescriptors
+
+    :param root_node: The root AST node of a parsed module
+    :param module_file: Path to the module file (used for resolving relative imports)
+    :return: Dictionary mapping imported variable names to PropertyDescription objects
+    """
+    imported_descriptors = {}
+
+    # Get all imports from the pre-parsed AST
+    module_dir = os.path.dirname(module_file)
+    imports = get_imports_from_ast(root_node, module_dir)
+
+    # Cache of already-parsed modules to avoid re-parsing
+    parsed_modules = {}
+
+    for imported_name, source_file in imports.items():
+        # Parse the source module if we haven't already (parse once, extract both constants and descriptors)
+        if source_file not in parsed_modules:
+            try:
+                source_ast = parse_module_file(source_file)
+                source_constants = get_module_string_constants_from_ast(source_ast)
+                parsed_modules[source_file] = get_property_descriptors_from_ast(source_ast, source_constants, source_file)
+            except Exception as e:
+                logger.warning(f"Failed to parse module {source_file} for PropertyDescriptors: {e}")
+                parsed_modules[source_file] = {}
+
+        # Check if the imported name is a PropertyDescriptor in the source module
+        source_descriptors = parsed_modules[source_file]
+        if imported_name in source_descriptors:
+            imported_descriptors[imported_name] = source_descriptors[imported_name]
+            logger.debug(f"Resolved imported PropertyDescriptor '{imported_name}' from {source_file}")
+
+    return imported_descriptors
 
 
 def get_processor_class_nodes(module_file: str) -> list:
@@ -137,7 +288,10 @@ def get_processor_class_nodes(module_file: str) -> list:
 def get_processor_details(class_node, module_file, extension_home, dependencies_bundled):
     # Look for a 'ProcessorDetails' class
     child_class_nodes = get_class_nodes(class_node)
-    module_string_constants = get_module_string_constants(module_file)
+
+    # Parse the module file once and reuse the AST for all operations
+    module_ast = parse_module_file(module_file)
+    module_string_constants = get_module_string_constants_from_ast(module_ast)
 
     # Get the Java interfaces that it implements
     interfaces = get_java_interfaces(class_node)
@@ -151,7 +305,7 @@ def get_processor_details(class_node, module_file, extension_home, dependencies_
             tags = __get_processor_tags(child_class_node)
             use_cases = get_use_cases(class_node)
             multi_processor_use_cases = get_multi_processor_use_cases(class_node)
-            property_descriptions = get_property_descriptions(class_node, module_string_constants)
+            property_descriptions = get_property_descriptions(class_node, module_string_constants, module_file, module_ast)
             bundle_coordinate = __get_bundle_coordinate(extension_home)
 
             return ExtensionDetails.ExtensionDetails(interfaces=interfaces,
@@ -283,8 +437,27 @@ def get_processor_configurations(constructor_calls: ast.List) -> list:
     return configurations
 
 
-def get_property_descriptions(class_node, module_string_constants):
-    visitor = CollectPropertyDescriptorVisitors(module_string_constants, class_node.name)
+def get_property_descriptions(class_node, module_string_constants, module_file, module_ast):
+    """
+    Extract PropertyDescriptions from a processor class node.
+
+    This function discovers all PropertyDescriptors defined in the class and resolves
+    any dependencies, including those that reference imported PropertyDescriptors.
+
+    :param class_node: The AST node representing the processor class
+    :param module_string_constants: Dictionary of string constants defined in the module
+    :param module_file: Path to the module file, used to resolve imported PropertyDescriptors
+    :param module_ast: Pre-parsed AST of the module file
+    :return: Collection of PropertyDescription objects
+    """
+    # Get imported PropertyDescriptors using the pre-parsed AST
+    imported_property_descriptors = {}
+    try:
+        imported_property_descriptors = get_imported_property_descriptors_from_ast(module_ast, module_file)
+    except Exception as e:
+        logger.warning(f"Failed to resolve imported PropertyDescriptors for {class_node.name}: {e}")
+
+    visitor = CollectPropertyDescriptorVisitors(module_string_constants, class_node.name, imported_property_descriptors)
     visitor.visit(class_node)
     return visitor.discovered_property_descriptors.values()
 

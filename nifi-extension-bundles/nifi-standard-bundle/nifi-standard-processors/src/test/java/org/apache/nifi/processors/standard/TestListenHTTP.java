@@ -43,6 +43,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.ssl.SSLContextProvider;
 import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.eclipse.jetty.server.NetworkConnector;
@@ -543,6 +544,25 @@ public class TestListenHTTP {
         return parser;
     }
 
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("health-check-port", ListenHTTP.HEALTH_CHECK_PORT.getName()),
+                Map.entry("Authorized DN Pattern", ListenHTTP.AUTHORIZED_DN_PATTERN.getName()),
+                Map.entry("authorized-issuer-dn-pattern", ListenHTTP.AUTHORIZED_ISSUER_DN_PATTERN.getName()),
+                Map.entry("multipart-request-max-size", ListenHTTP.MULTIPART_REQUEST_MAX_SIZE.getName()),
+                Map.entry("multipart-read-buffer-size", ListenHTTP.MULTIPART_READ_BUFFER_SIZE.getName()),
+                Map.entry("client-authentication", ListenHTTP.CLIENT_AUTHENTICATION.getName()),
+                Map.entry("max-thread-pool-size", ListenHTTP.MAX_THREAD_POOL_SIZE.getName()),
+                Map.entry("record-reader", ListenHTTP.RECORD_READER.getName()),
+                Map.entry("record-writer", ListenHTTP.RECORD_WRITER.getName()),
+                Map.entry("HTTP Headers to receive as Attributes (Regex)", ListenHTTP.HEADERS_AS_ATTRIBUTES_REGEX.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
+
     private int startSecureServer() {
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_NO_CONTENT));
@@ -823,9 +843,7 @@ public class TestListenHTTP {
 
         final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
         assertEquals(2, provenanceEvents.size());
-        provenanceEvents.forEach(provenanceEvent -> {
-            assertEquals("urn:nifi:dummy-uuid", provenanceEvent.getSourceSystemFlowFileIdentifier());
-        });
+        provenanceEvents.forEach(provenanceEvent -> assertEquals("urn:nifi:dummy-uuid", provenanceEvent.getSourceSystemFlowFileIdentifier()));
     }
 
     private byte[] generateRandomBinaryData() {

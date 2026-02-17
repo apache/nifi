@@ -28,6 +28,7 @@ import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.StandardProcessorNode;
+import org.apache.nifi.controller.metrics.ComponentMetricReporter;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.PollStrategy;
 import org.apache.nifi.controller.queue.StandardFlowFileQueue;
@@ -133,6 +134,7 @@ public class StandardProcessSessionIT {
     private ProvenanceEventRepository provenanceRepo;
     private MockFlowFileRepository flowFileRepo;
     private CounterRepository counterRepository;
+    private ComponentMetricReporter componentMetricReporter;
     private FlowFileEventRepository flowFileEventRepository;
     private ResourceClaimManager resourceClaimManager;
 
@@ -177,6 +179,7 @@ public class StandardProcessSessionIT {
         flowFileEventRepository = new RingBufferEventRepository(1);
         counterRepository = new StandardCounterRepository();
         provenanceRepo = new MockProvenanceRepository();
+        componentMetricReporter = mock(ComponentMetricReporter.class);
 
         final Connection connection = createConnection();
 
@@ -185,6 +188,7 @@ public class StandardProcessSessionIT {
 
         final ProcessGroup procGroup = Mockito.mock(ProcessGroup.class);
         when(procGroup.getIdentifier()).thenReturn("proc-group-identifier-1");
+        when(procGroup.getLoggingAttributes()).thenReturn(Map.of());
 
         connectable = Mockito.mock(Connectable.class);
         when(connectable.hasIncomingConnection()).thenReturn(true);
@@ -218,7 +222,7 @@ public class StandardProcessSessionIT {
         stateManager.setIgnoreAnnotations(true);
 
         context = new StandardRepositoryContext(connectable, new AtomicLong(0L), contentRepo, flowFileRepo, flowFileEventRepository,
-            counterRepository, provenanceRepo, stateManager, 50_000L);
+            counterRepository, componentMetricReporter, provenanceRepo, stateManager, 50_000L);
         session = new StandardProcessSession(context, () -> false, new NopPerformanceTracker());
     }
 
@@ -2978,6 +2982,11 @@ public class StandardProcessSessionIT {
         }).when(connectable).getConnections(Mockito.any(Relationship.class));
 
         when(connectable.getConnections()).thenReturn(new HashSet<>(connList));
+
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        when(processGroup.getLoggingAttributes()).thenReturn(Map.of());
+        when(connectable.getProcessGroup()).thenReturn(processGroup);
+
         return connectable;
     }
 
@@ -2989,6 +2998,7 @@ public class StandardProcessSessionIT {
                 flowFileRepo,
                 flowFileEventRepository,
                 counterRepository,
+                componentMetricReporter,
                 provenanceRepo,
                 stateManager,
                 50_000L);

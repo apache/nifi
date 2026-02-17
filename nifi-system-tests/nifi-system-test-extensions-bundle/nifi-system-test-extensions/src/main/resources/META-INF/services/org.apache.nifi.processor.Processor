@@ -54,6 +54,7 @@ org.apache.nifi.processors.tests.system.TransferBatch
 org.apache.nifi.processors.tests.system.ThrowExceptionInFlowFileFilter
 org.apache.nifi.processors.tests.system.ThrowProcessException
 org.apache.nifi.processors.tests.system.UpdateContent
+org.apache.nifi.processors.tests.system.UpdateMetric
 org.apache.nifi.processors.tests.system.UnzipFlowFile
 org.apache.nifi.processors.tests.system.ValidateFileExists
 org.apache.nifi.processors.tests.system.VerifyContents

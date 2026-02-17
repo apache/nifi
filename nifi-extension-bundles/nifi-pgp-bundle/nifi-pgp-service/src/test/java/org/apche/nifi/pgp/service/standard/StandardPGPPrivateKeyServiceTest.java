@@ -19,7 +19,7 @@ package org.apche.nifi.pgp.service.standard;
 import org.apache.nifi.pgp.service.standard.StandardPGPPrivateKeyService;
 import org.apache.nifi.pgp.util.PGPFileUtils;
 import org.apache.nifi.pgp.util.PGPSecretKeyGenerator;
-import org.apache.nifi.processor.Processor;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.bouncycastle.openpgp.PGPPrivateKey;
@@ -36,7 +36,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
 
 public class StandardPGPPrivateKeyServiceTest {
     private static final String SERVICE_ID = StandardPGPPrivateKeyService.class.getSimpleName();
@@ -76,8 +75,7 @@ public class StandardPGPPrivateKeyServiceTest {
     @BeforeEach
     public void setService() {
         service = new StandardPGPPrivateKeyService();
-        final Processor processor = mock(Processor.class);
-        runner = TestRunners.newTestRunner(processor);
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
     }
 
     @Test

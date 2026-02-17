@@ -24,6 +24,8 @@ import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Objects;
+
 public class VersionInfoRegistry extends AbstractMetricsRegistry {
     private static final Logger LOGGER = LoggerFactory.getLogger(VersionInfoRegistry.class);
     private static final String DEFAULT_LABEL_STRING = "unknown";
@@ -78,13 +80,15 @@ public class VersionInfoRegistry extends AbstractMetricsRegistry {
             final Bundle frameworkBundle = NarClassLoadersHolder.getInstance().getFrameworkBundle();
             if (frameworkBundle != null) {
                 final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
-                frameworkVersion = frameworkDetails.getCoordinate().getVersion();
-                revision = frameworkDetails.getBuildRevision();
-                tag = frameworkDetails.getBuildTag();
-                buildBranch = frameworkDetails.getBuildBranch();
+                frameworkVersion = Objects.requireNonNullElse(frameworkDetails.getCoordinate().getVersion(), DEFAULT_LABEL_STRING);
+
+                // Handle null Build properties
+                revision = Objects.requireNonNullElse(frameworkDetails.getBuildRevision(), DEFAULT_LABEL_STRING);
+                tag = Objects.requireNonNullElse(frameworkDetails.getBuildTag(), DEFAULT_LABEL_STRING);
+                buildBranch = Objects.requireNonNullElse(frameworkDetails.getBuildBranch(), DEFAULT_LABEL_STRING);
             }
-        } catch (Exception e) {
-            LOGGER.debug("Could not retrieve NiFi bundle details for version info metric", e);
+        } catch (final Exception e) {
+            LOGGER.warn("Failed to get Framework Bundle for Version Details", e);
         }
         return new VersionDetails(frameworkVersion, revision, tag, buildBranch, javaVersion, javaVendor, osVersion, osName, osArchitecture);
     }

@@ -45,6 +45,9 @@ import org.apache.nifi.flow.VersionedParameterContext;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.migration.ControllerServiceCreationDetails;
+import org.apache.nifi.migration.ControllerServiceFactory;
+import org.apache.nifi.migration.StandardPropertyConfiguration;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
@@ -168,7 +171,7 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
 
     @Override
     public boolean isValidationNecessary() {
-        return getValidationStatus() != ValidationStatus.VALID;
+        return true;
     }
 
     @Override
@@ -516,6 +519,32 @@ public final class StandardFlowRegistryClientNode extends AbstractComponentNode 
         registeredFlowSnapshot.setSnapshotMetadata(metadata);
         registeredFlowSnapshot.setParameterProviders(parameterProviderReferences);
         return registeredFlowSnapshot;
+    }
+
+    @Override
+    public void migrateConfiguration(final Map<String, String> originalPropertyValues, final ControllerServiceFactory serviceFactory) {
+        final Map<String, String> effectiveValues = new HashMap<>();
+        originalPropertyValues.forEach((key, value) -> effectiveValues.put(key, mapRawValueToEffectiveValue(value)));
+
+        final StandardPropertyConfiguration propertyConfig = new StandardPropertyConfiguration(effectiveValues,
+                originalPropertyValues, this::mapRawValueToEffectiveValue, toString(), serviceFactory);
+
+        final FlowRegistryClient flowRegistryClient = client.get().getComponent();
+        try (final NarCloseable ignored = NarCloseable.withComponentNarLoader(getExtensionManager(), flowRegistryClient.getClass(), getIdentifier())) {
+            flowRegistryClient.migrateProperties(propertyConfig);
+        } catch (final Exception e) {
+            logger.error("Failed to migrate Property Configuration for {}.", this, e);
+        }
+
+        if (propertyConfig.isModified()) {
+            // Create any necessary Controller Services. It is important that we create the services
+            // before updating the flow registry client's properties, as it's necessary in order to properly account
+            // for the Controller Service References.
+            final List<ControllerServiceCreationDetails> servicesCreated = propertyConfig.getCreatedServices();
+            servicesCreated.forEach(serviceFactory::create);
+
+            overwriteProperties(propertyConfig.getRawProperties());
+        }
     }
 
     private interface FlowRegistryClientAction<T> {

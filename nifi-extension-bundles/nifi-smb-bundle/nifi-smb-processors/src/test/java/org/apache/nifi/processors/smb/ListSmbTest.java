@@ -19,10 +19,12 @@ package org.apache.nifi.processors.smb;
 import org.apache.nifi.distributed.cache.client.DistributedMapCacheClient;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.list.ListedEntity;
+import org.apache.nifi.processor.util.list.ListedEntityTracker;
 import org.apache.nifi.processors.smb.util.InitialListingStrategy;
 import org.apache.nifi.services.smb.SmbClientProviderService;
 import org.apache.nifi.services.smb.SmbClientService;
 import org.apache.nifi.services.smb.SmbListableEntity;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,6 +34,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -41,15 +44,20 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.BY_TIMESTAMPS;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.LISTING_STRATEGY;
+import static org.apache.nifi.processor.util.list.AbstractListProcessor.RECORD_WRITER;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.REL_SUCCESS;
 import static org.apache.nifi.processor.util.list.AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION;
 import static org.apache.nifi.processor.util.list.ListedEntityTracker.TRACKING_STATE_CACHE;
 import static org.apache.nifi.processors.smb.ListSmb.DIRECTORY;
+import static org.apache.nifi.processors.smb.ListSmb.FILE_FILTER;
 import static org.apache.nifi.processors.smb.ListSmb.IGNORE_FILES_WITH_SUFFIX;
 import static org.apache.nifi.processors.smb.ListSmb.INITIAL_LISTING_STRATEGY;
 import static org.apache.nifi.processors.smb.ListSmb.INITIAL_LISTING_TIMESTAMP;
 import static org.apache.nifi.processors.smb.ListSmb.MAXIMUM_AGE;
+import static org.apache.nifi.processors.smb.ListSmb.MAXIMUM_SIZE;
 import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_AGE;
+import static org.apache.nifi.processors.smb.ListSmb.MINIMUM_SIZE;
+import static org.apache.nifi.processors.smb.ListSmb.PATH_FILTER;
 import static org.apache.nifi.processors.smb.ListSmb.SMB_CLIENT_PROVIDER_SERVICE;
 import static org.apache.nifi.processors.smb.ListSmb.SMB_LISTING_STRATEGY;
 import static org.apache.nifi.util.TestRunners.newTestRunner;
@@ -239,11 +247,12 @@ class ListSmbTest {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
         testRunner.setProperty(LISTING_STRATEGY, "timestamps");
         testRunner.setProperty(TARGET_SYSTEM_TIMESTAMP_PRECISION, "millis");
-        final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner);
-        when(mockNifiSmbClientService.listFiles(anyString())).thenThrow(new RuntimeException("test exception"));
-        testRunner.run();
-        assertEquals(1, testRunner.getLogger().getErrorMessages().size());
-        testRunner.assertValid();
+        try (final SmbClientService mockNifiSmbClientService = configureTestRunnerWithMockedSmbClientService(testRunner)) {
+            when(mockNifiSmbClientService.listFiles(anyString())).thenThrow(new RuntimeException("test exception"));
+            testRunner.run();
+            assertEquals(1, testRunner.getLogger().getErrorMessages().size());
+            testRunner.assertValid();
+        }
     }
 
     @Test
@@ -283,19 +292,53 @@ class ListSmbTest {
         testInitialListingTimestamp("2025-04-03 16:16:54", false);
     }
 
+    @Test
+    void testMigrateProperties() {
+        final TestRunner testRunner = newTestRunner(ListSmb.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("directory", DIRECTORY.getName()),
+                Map.entry("min-file-age", MINIMUM_AGE.getName()),
+                Map.entry("max-file-age", MAXIMUM_AGE.getName()),
+                Map.entry("min-file-size", MINIMUM_SIZE.getName()),
+                Map.entry("max-file-size", MAXIMUM_SIZE.getName()),
+                Map.entry("initial-listing-strategy", INITIAL_LISTING_STRATEGY.getName()),
+                Map.entry("initial-listing-timestamp", INITIAL_LISTING_TIMESTAMP.getName()),
+                Map.entry("smb-client-provider-service", SMB_CLIENT_PROVIDER_SERVICE.getName()),
+                Map.entry("file-filter", FILE_FILTER.getName()),
+                Map.entry("path-filter", PATH_FILTER.getName()),
+                Map.entry("file-name-suffix-filter", IGNORE_FILES_WITH_SUFFIX.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_STATE_CACHE_PROPERTY_NAME, ListSmb.TRACKING_STATE_CACHE.getName()),
+                Map.entry(ListedEntityTracker.OLD_TRACKING_TIME_WINDOW_PROPERTY_NAME, ListSmb.TRACKING_TIME_WINDOW.getName()),
+                Map.entry(ListedEntityTracker.OLD_INITIAL_LISTING_TARGET_PROPERTY_NAME, ListSmb.INITIAL_LISTING_TARGET.getName()),
+                Map.entry("target-system-timestamp-precision", TARGET_SYSTEM_TIMESTAMP_PRECISION.getName()),
+                Map.entry("listing-strategy", LISTING_STRATEGY.getName()),
+                Map.entry("record-writer", RECORD_WRITER.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = testRunner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+
+        final Set<String> expectedRemoved = Set.of(
+                "Distributed Cache Service"
+        );
+
+        assertEquals(expectedRemoved, propertyMigrationResult.getPropertiesRemoved());
+    }
+
     private void testInitialListingTimestamp(String propertyValue, boolean shouldBeValid) throws Exception {
         final TestRunner testRunner = newTestRunner(ListSmb.class);
 
-        configureTestRunnerWithMockedSmbClientService(testRunner);
+        try (SmbClientService ignored = configureTestRunnerWithMockedSmbClientService(testRunner)) {
 
-        testRunner.setProperty(SMB_LISTING_STRATEGY, BY_TIMESTAMPS);
-        testRunner.setProperty(INITIAL_LISTING_STRATEGY, InitialListingStrategy.FROM_TIMESTAMP);
-        testRunner.setProperty(INITIAL_LISTING_TIMESTAMP, propertyValue);
+            testRunner.setProperty(SMB_LISTING_STRATEGY, BY_TIMESTAMPS);
+            testRunner.setProperty(INITIAL_LISTING_STRATEGY, InitialListingStrategy.FROM_TIMESTAMP);
+            testRunner.setProperty(INITIAL_LISTING_TIMESTAMP, propertyValue);
 
-        if (shouldBeValid) {
-            testRunner.assertValid();
-        } else {
-            testRunner.assertNotValid();
+            if (shouldBeValid) {
+                testRunner.assertValid();
+            } else {
+                testRunner.assertNotValid();
+            }
         }
     }
 

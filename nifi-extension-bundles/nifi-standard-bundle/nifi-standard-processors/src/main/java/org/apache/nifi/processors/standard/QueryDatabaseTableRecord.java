@@ -73,13 +73,13 @@ import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFA
 @WritesAttributes({
         @WritesAttribute(attribute = "tablename", description = "Name of the table being queried"),
         @WritesAttribute(attribute = "querydbtable.row.count", description = "The number of rows selected by the query"),
-        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per Flow File' is set then all FlowFiles from the same query result set "
+        @WritesAttribute(attribute = "fragment.identifier", description = "If 'Max Rows Per FlowFile' is set then all FlowFiles from the same query result set "
                 + "will have the same value for the fragment.identifier attribute. This can then be used to correlate the results."),
-        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per Flow File' is set then this is the total number of  "
+        @WritesAttribute(attribute = "fragment.count", description = "If 'Max Rows Per FlowFile' is set then this is the total number of  "
                 + "FlowFiles produced by a single ResultSet. This can be used in conjunction with the "
                 + "fragment.identifier attribute in order to know how many FlowFiles belonged to the same incoming ResultSet. If Output Batch Size is set, then this "
                 + "attribute will not be populated."),
-        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per Flow File' is set then the position of this FlowFile in the list of "
+        @WritesAttribute(attribute = "fragment.index", description = "If 'Max Rows Per FlowFile' is set then the position of this FlowFile in the list of "
                 + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced"),
@@ -105,7 +105,7 @@ import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFA
             an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
         Set the "Initial Load Strategy" property to "Start at Beginning".
         Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
-        Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+        Set the "Max Rows Per FlowFile" to a value that allows efficient processing, such as `1000` or `10000`.
         Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
             A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
             memory utilization.
@@ -123,7 +123,7 @@ import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFA
             an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
         Set the "Initial Load Strategy" property to "Start at Current Maximum Values".
         Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
-        Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+        Set the "Max Rows Per FlowFile" to a value that allows efficient processing, such as `1000` or `10000`.
         Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
             A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
             memory utilization.
@@ -159,7 +159,7 @@ import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFA
                     an `id` column that is a one-up number, or a `last_modified` column that is a timestamp of when the row was last modified.
                 Set the "Initial Load Strategy" property to "Start at Current Maximum Values".
                 Set the "Fetch Size" to a number that avoids loading too much data into memory on the NiFi side. For example, a value of `1000` will load up to 1,000 rows of data.
-                Set the "Max Rows Per Flow File" to a value that allows efficient processing, such as `1000` or `10000`.
+                Set the "Max Rows Per FlowFile" to a value that allows efficient processing, such as `1000` or `10000`.
                 Set the "Output Batch Size" property to a value greater than `0`. A smaller value, such as `1` or even `20` will result in lower latency but also slightly lower throughput.
                     A larger value such as `1000` will result in higher throughput but also higher latency. It is not recommended to set the value larger than `1000` as it can cause significant
                     memory utilization.

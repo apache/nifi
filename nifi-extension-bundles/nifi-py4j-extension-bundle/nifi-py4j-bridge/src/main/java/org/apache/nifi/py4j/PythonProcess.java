@@ -47,6 +47,7 @@ import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -328,6 +329,10 @@ public class PythonProcess {
             return;
         }
 
+        if (isShutdown()) {
+            throw new IOException("Python Process [%s] is shutting down, cannot create virtual environment".formatted(componentId));
+        }
+
         final File environmentCreationCompleteFile = new File(virtualEnvHome, "env-creation-complete.txt");
         if (environmentCreationCompleteFile.exists()) {
             logger.debug("Environment has already been created for {}; will not recreate", virtualEnvHome);
@@ -346,17 +351,28 @@ public class PythonProcess {
 
         final String command = String.join(" ", processBuilder.command());
         logger.debug("Creating Python Virtual Environment {} using command {}", virtualEnvHome, command);
-        final Process process = processBuilder.start();
+        final Process venvProcess = processBuilder.start();
 
-        final int result;
         try {
-            result = process.waitFor();
+            while (!venvProcess.waitFor(1, TimeUnit.SECONDS)) {
+                if (isShutdown()) {
+                    venvProcess.destroyForcibly();
+                    throw new IOException("Python Process [%s] shutdown during virtual environment creation".formatted(componentId));
+                }
+            }
+
+            final int result = venvProcess.exitValue();
+            if (result != 0) {
+                throw new IOException("Failed to create Python Virtual Environment [%s]: process exited with code %d".formatted(virtualEnvHome, result));
+            }
         } catch (final InterruptedException e) {
-            throw new IOException("Interrupted while waiting for Python virtual environment to be created");
+            venvProcess.destroyForcibly();
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for Python Virtual Environment [%s] to be created".formatted(virtualEnvHome), e);
         }
 
-        if (result != 0) {
-            throw new IOException("Failed to create Python Environment " + virtualEnvHome + ": process existed with code " + result);
+        if (isShutdown()) {
+            throw new IOException("Python Process [%s] shutdown after virtual environment creation".formatted(componentId));
         }
 
         if (processConfig.isDebugController() && "Controller".equals(componentId)) {
@@ -369,6 +385,10 @@ public class PythonProcess {
     }
 
     private void installDebugPy() throws IOException {
+        if (isShutdown()) {
+            return;
+        }
+
         final String pythonCommand = processConfig.getPythonCommand();
 
         final ProcessBuilder processBuilder = new ProcessBuilder(pythonCommand, "-m", "pip", "install", "--no-cache-dir", "--upgrade", "debugpy", "--target",
@@ -377,17 +397,24 @@ public class PythonProcess {
 
         final String command = String.join(" ", processBuilder.command());
         logger.debug("Installing DebugPy to Virtual Env {} using command {}", virtualEnvHome, command);
-        final Process process = processBuilder.start();
+        final Process pipProcess = processBuilder.start();
 
-        final int result;
         try {
-            result = process.waitFor();
-        } catch (final InterruptedException e) {
-            throw new IOException("Interrupted while waiting for DebugPy to be installed");
-        }
+            while (!pipProcess.waitFor(1, TimeUnit.SECONDS)) {
+                if (isShutdown()) {
+                    pipProcess.destroyForcibly();
+                    return;
+                }
+            }
 
-        if (result != 0) {
-            throw new IOException("Failed to install DebugPy for Python Environment " + virtualEnvHome + ": process existed with code " + result);
+            final int result = pipProcess.exitValue();
+            if (result != 0) {
+                throw new IOException("Failed to install DebugPy for Python Virtual Environment [%s]: process exited with code %d".formatted(virtualEnvHome, result));
+            }
+        } catch (final InterruptedException e) {
+            pipProcess.destroyForcibly();
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while waiting for DebugPy to be installed for Python Virtual Environment [%s]".formatted(virtualEnvHome), e);
         }
     }
 
@@ -527,6 +554,25 @@ public class PythonProcess {
 
     public int getProcessorCount() {
         return processorPrefersIsolation.size();
+    }
+
+    /**
+     * Returns true if this process was created for the given component identifier and has no processors running.
+     *
+     * @param identifier the component identifier (must not be null)
+     * @return true if this process matches the identifier and has no processors
+     */
+    public boolean isNotLoadedForComponent(final String identifier) {
+        Objects.requireNonNull(identifier, "Identifier is required");
+        return identifier.equals(componentId) && getProcessorCount() == 0;
+    }
+
+    /**
+     * Returns the component ID that this process was initially created for.
+     * @return the initial component ID
+     */
+    public String getInitialComponentId() {
+        return componentId;
     }
 
     public Map<String, Integer> getJavaObjectBindingCounts() {

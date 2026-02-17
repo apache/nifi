@@ -26,6 +26,7 @@ import org.apache.nifi.registry.flow.FlowRegistryClientConfigurationContext;
 import org.apache.nifi.registry.flow.FlowRegistryException;
 import org.apache.nifi.registry.flow.git.AbstractGitFlowRegistryClient;
 import org.apache.nifi.registry.flow.git.client.GitRepositoryClient;
+import org.apache.nifi.ssl.SSLContextProvider;
 
 import java.io.IOException;
 import java.util.List;
@@ -125,6 +126,7 @@ public class GitHubFlowRegistryClient extends AbstractGitFlowRegistryClient {
                 .repoOwner(context.getProperty(REPOSITORY_OWNER).getValue())
                 .repoName(context.getProperty(REPOSITORY_NAME).getValue())
                 .repoPath(context.getProperty(REPOSITORY_PATH).getValue())
+                .sslContext(context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextProvider.class))
                 .build();
     }
 

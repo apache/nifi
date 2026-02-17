@@ -25,17 +25,16 @@ import org.apache.nifi.distributed.cache.client.SetCacheClientService;
 import org.apache.nifi.distributed.cache.server.AbstractCacheServer;
 import org.apache.nifi.distributed.cache.server.SetCacheServer;
 import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -63,7 +62,7 @@ public class TestDistributedSetServerAndClient {
             FileUtils.cleanDirectory(dataFile);
         }
 
-        runner = TestRunners.newTestRunner(Mockito.mock(Processor.class));
+        runner = TestRunners.newTestRunner(NoOpProcessor.class);
 
         server = new SetCacheServer();
         runner.addControllerService("server", server);

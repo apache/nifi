@@ -23,6 +23,7 @@ import org.apache.nifi.processors.attributes.UpdateAttribute;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.update.attributes.serde.CriteriaSerDe;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.Test;
@@ -883,6 +884,16 @@ public class TestUpdateAttribute {
         } catch (AssertionError e) {
             assertTrue(e.getMessage().contains("org.apache.nifi.processor.exception.ProcessException"));
         }
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.of(
+                "canonical-value-lookup-cache-size", UpdateAttribute.CANONICAL_VALUE_LOOKUP_CACHE_SIZE.getName()
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private Criteria getCriteria() {

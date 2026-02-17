@@ -39,8 +39,10 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
+import org.apache.nifi.util.MockPropertyConfiguration;
 import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.NoOpProcessor;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
@@ -95,7 +97,7 @@ public class DatabaseRecordSinkTest {
     private DBCPConnectionPool dbcpService;
 
     @BeforeEach
-    public void setService(@TempDir final Path tempDir) throws InitializationException, SQLException {
+    public void setService(@TempDir final Path tempDir) throws InitializationException {
         dbcpService = new DBCPConnectionPool();
         TestRunner runner = TestRunners.newTestRunner(NoOpProcessor.class);
         runner.addControllerService(SERVICE_ID, dbcpService);
@@ -114,15 +116,13 @@ public class DatabaseRecordSinkTest {
         // Create the table
         final Connection con = dbcpService.getConnection();
         final Statement stmt = con.createStatement();
-        try {
-            stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException ignored) {
-            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
-        }
-        try {
+        try (stmt) {
+            try {
+                stmt.execute("drop table TESTTABLE");
+            } catch (final SQLException ignored) {
+                // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
+            }
             stmt.executeUpdate("CREATE TABLE testTable (field1 integer, field2 varchar(20))");
-        } finally {
-            stmt.close();
         }
 
         final List<RecordField> recordFields = Arrays.asList(
@@ -202,18 +202,16 @@ public class DatabaseRecordSinkTest {
         // Create the table
         final Connection con = dbcpService.getConnection();
         final Statement stmt = con.createStatement();
-        try {
-            stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException ignored) {
-            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
-        }
-        try {
+        try (stmt) {
+            try {
+                stmt.execute("drop table TESTTABLE");
+            } catch (final SQLException ignored) {
+                // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
+            }
             stmt.executeUpdate("CREATE TABLE testTable (field1 integer, field2 varchar(20) not null)");
-        } finally {
-            stmt.close();
         }
 
-        final List<RecordField> recordFields = Arrays.asList(
+        final List<RecordField> recordFields = List.of(
                 new RecordField("field1", RecordFieldType.INT.getDataType())
         );
         final RecordSchema recordSchema = new SimpleRecordSchema(recordFields);
@@ -236,15 +234,13 @@ public class DatabaseRecordSinkTest {
         // Create the table
         final Connection con = dbcpService.getConnection();
         final Statement stmt = con.createStatement();
-        try {
-            stmt.execute("drop table TESTTABLE");
-        } catch (final SQLException ignored) {
-            // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
-        }
-        try {
+        try (stmt) {
+            try {
+                stmt.execute("drop table TESTTABLE");
+            } catch (final SQLException ignored) {
+                // Ignore, usually due to Derby not having DROP TABLE IF EXISTS
+            }
             stmt.executeUpdate("CREATE TABLE testTable (field1 integer, field2 varchar(20))");
-        } finally {
-            stmt.close();
         }
 
         final List<RecordField> recordFields = Arrays.asList(
@@ -260,6 +256,33 @@ public class DatabaseRecordSinkTest {
         final RecordSet recordSet = new ListRecordSet(recordSchema, Collections.singletonList(new MapRecord(recordSchema, row1)));
         assertThrows(IOException.class, () -> task.sendData(recordSet, new HashMap<>(), true),
                 "Should have generated an exception for field not present");
+    }
+
+    @Test
+    void testMigrateProperties() {
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("db-record-sink-dcbp-service", DatabaseRecordSink.DBCP_SERVICE.getName()),
+                Map.entry("db-record-sink-catalog-name", DatabaseRecordSink.CATALOG_NAME.getName()),
+                Map.entry("db-record-sink-schema-name", DatabaseRecordSink.SCHEMA_NAME.getName()),
+                Map.entry("db-record-sink-table-name", DatabaseRecordSink.TABLE_NAME.getName()),
+                Map.entry("db-record-sink-translate-field-names", DatabaseRecordSink.TRANSLATE_FIELD_NAMES.getName()),
+                Map.entry("db-record-sink-unmatched-field-behavior", DatabaseRecordSink.UNMATCHED_FIELD_BEHAVIOR.getName()),
+                Map.entry("db-record-sink-unmatched-column-behavior", DatabaseRecordSink.UNMATCHED_COLUMN_BEHAVIOR.getName()),
+                Map.entry("db-record-sink-quoted-identifiers", DatabaseRecordSink.QUOTED_IDENTIFIERS.getName()),
+                Map.entry("db-record-sink-quoted-table-identifiers", DatabaseRecordSink.QUOTED_TABLE_IDENTIFIER.getName()),
+                Map.entry("db-record-sink-query-timeout", DatabaseRecordSink.QUERY_TIMEOUT.getName()),
+                Map.entry("record-sink-record-writer", RecordSinkService.RECORD_WRITER_FACTORY.getName())
+        );
+
+        final Map<String, String> propertyValues = Map.of();
+        final MockPropertyConfiguration configuration = new MockPropertyConfiguration(propertyValues);
+        final DatabaseRecordSink databaseRecordSink = new DatabaseRecordSink();
+        databaseRecordSink.migrateProperties(configuration);
+
+        final PropertyMigrationResult result = configuration.toPropertyMigrationResult();
+        final Map<String, String> propertiesRenamed = result.getPropertiesRenamed();
+
+        assertEquals(expectedRenamed, propertiesRenamed);
     }
 
     private DatabaseRecordSink initTask(String tableName) throws InitializationException {

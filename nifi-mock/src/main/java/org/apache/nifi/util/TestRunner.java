@@ -563,6 +563,14 @@ public interface TestRunner {
     Long getCounterValue(String name);
 
     /**
+     * Get list of values recorded for the named Gauge
+     *
+     * @param name Gauge Name
+     * @return List of recorded values or empty when the named Gauge was not used
+     */
+    List<Double> getGaugeValues(String name);
+
+    /**
      * @return the number of FlowFiles that have been removed from the system
      */
     int getRemovedCount();

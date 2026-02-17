@@ -23,6 +23,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -72,16 +73,10 @@ public class TestListenWebSocket {
     protected Map<Relationship, List<MockFlowFile>> getAllTransferredFlowFiles(final Collection<MockProcessSession> processSessions, final Processor processor) {
         final Map<Relationship, List<MockFlowFile>> flowFiles = new HashMap<>();
 
-        processSessions.forEach(session -> {
-            processor.getRelationships().forEach(rel -> {
-                List<MockFlowFile> relFlowFiles = flowFiles.get(rel);
-                if (relFlowFiles == null) {
-                    relFlowFiles = new ArrayList<>();
-                    flowFiles.put(rel, relFlowFiles);
-                }
-                relFlowFiles.addAll(session.getFlowFilesForRelationship(rel));
-            });
-        });
+        processSessions.forEach(session -> processor.getRelationships().forEach(rel -> {
+            List<MockFlowFile> relFlowFiles = flowFiles.computeIfAbsent(rel, k -> new ArrayList<>());
+            relFlowFiles.addAll(session.getFlowFilesForRelationship(rel));
+        }));
 
         return flowFiles;
     }
@@ -166,21 +161,15 @@ public class TestListenWebSocket {
 
         List<MockFlowFile> connectedFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_CONNECTED);
         assertEquals(1, connectedFlowFiles.size());
-        connectedFlowFiles.forEach(ff -> {
-            assertFlowFile(webSocketSession, serviceId, endpointId, ff, null);
-        });
+        connectedFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, null));
 
         List<MockFlowFile> textFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_TEXT);
         assertEquals(2, textFlowFiles.size());
-        textFlowFiles.forEach(ff -> {
-            assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT);
-        });
+        textFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.TEXT));
 
         List<MockFlowFile> binaryFlowFiles = transferredFlowFiles.get(AbstractWebSocketGatewayProcessor.REL_MESSAGE_BINARY);
         assertEquals(3, binaryFlowFiles.size());
-        binaryFlowFiles.forEach(ff -> {
-            assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.BINARY);
-        });
+        binaryFlowFiles.forEach(ff -> assertFlowFile(webSocketSession, serviceId, endpointId, ff, WebSocketMessage.Type.BINARY));
 
         final List<ProvenanceEventRecord> provenanceEvents = sharedSessionState.getProvenanceEvents();
         assertEquals(6, provenanceEvents.size());
@@ -205,4 +194,15 @@ public class TestListenWebSocket {
         assertEquals(6, createdSessions.size(), "Processor should register it with the service again");
     }
 
+    @Test
+    void testMigrateProperties() {
+        final TestRunner runner = TestRunners.newTestRunner(ListenWebSocket.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("websocket-server-controller-service", ListenWebSocket.PROP_WEBSOCKET_SERVER_SERVICE.getName()),
+                Map.entry("server-url-path", ListenWebSocket.PROP_SERVER_URL_PATH.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
+    }
 }

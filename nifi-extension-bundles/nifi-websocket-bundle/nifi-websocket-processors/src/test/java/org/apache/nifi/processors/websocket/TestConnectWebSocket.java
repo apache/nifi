@@ -23,6 +23,7 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.PropertyMigrationResult;
 import org.apache.nifi.util.SharedSessionState;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -249,6 +250,19 @@ class TestConnectWebSocket extends TestListenWebSocket {
         assertEquals(1, flowFilesForDisconnectedRelationship.size());
 
         runner.stop();
+    }
+
+    @Test
+    @Override
+    void testMigrateProperties() {
+        final TestRunner runner = TestRunners.newTestRunner(ConnectWebSocket.class);
+        final Map<String, String> expectedRenamed = Map.ofEntries(
+                Map.entry("websocket-client-controller-service", ConnectWebSocket.PROP_WEBSOCKET_CLIENT_SERVICE.getName()),
+                Map.entry("websocket-client-id", ConnectWebSocket.PROP_WEBSOCKET_CLIENT_ID.getName())
+        );
+
+        final PropertyMigrationResult propertyMigrationResult = runner.migrateProperties();
+        assertEquals(expectedRenamed, propertyMigrationResult.getPropertiesRenamed());
     }
 
     private MockFlowFile getFlowFile() {

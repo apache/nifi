@@ -43,6 +43,7 @@
                             mat-icon-button
                             class="primary-icon-button"
                             type="button"
+                            matTooltip="Configure"
                             [disabled]="!canConfigure(selection)"
                             (click)="configure(selection)">
                             <i class="fa fa-cog"></i>
@@ -52,6 +53,7 @@
                                 mat-icon-button
                                 class="primary-icon-button mr-2"
                                 type="button"
+                                matTooltip="Policies"
                                 [disabled]="!canManageAccess(selection)"
                                 (click)="manageAccess(selection)">
                                 <i class="fa fa-key"></i>
@@ -61,6 +63,7 @@
                             mat-icon-button
                             class="primary-icon-button"
                             type="button"
+                            matTooltip="Enable"
                             [disabled]="!canEnable(selection)"
                             (click)="enable(selection)">
                             <i class="fa fa-flash"></i>
@@ -69,6 +72,7 @@
                             mat-icon-button
                             class="primary-icon-button mr-2"
                             type="button"
+                            matTooltip="Disable"
                             [disabled]="!canDisable(selection)"
                             (click)="disable(selection)">
                             <i class="ml-1 icon icon-enable-false"></i>
@@ -77,6 +81,7 @@
                             mat-icon-button
                             class="primary-icon-button"
                             type="button"
+                            matTooltip="Start"
                             [disabled]="!canStart(selection)"
                             (click)="start(selection)">
                             <i class="fa fa-play"></i>
@@ -85,6 +90,7 @@
                             mat-icon-button
                             class="primary-icon-button"
                             type="button"
+                            matTooltip="Stop"
                             [disabled]="!canStop(selection)"
                             (click)="stop(selection)">
                             <i class="fa fa-stop"></i>
@@ -95,6 +101,7 @@
                             mat-icon-button
                             class="primary-icon-button"
                             type="button"
+                            matTooltip="Copy"
                             [disabled]="!canCopy(selection)"
                             (click)="copy(selection)">
                             <i class="fa fa-copy"></i>
@@ -103,6 +110,7 @@
                             mat-icon-button
                             class="primary-icon-button"
                             type="button"
+                            matTooltip="Group"
                             [disabled]="!canGroup(selection)"
                             (click)="group(selection)">
                             <i class="ml-1 icon icon-group"></i>
@@ -111,6 +119,7 @@
                             mat-icon-button
                             class="primary-icon-button mr-2"
                             type="button"
+                            matTooltip="Change Color"
                             [disabled]="!canColor(selection)"
                             (click)="color(selection)">
                             <i class="fa fa-paint-brush"></i>
@@ -119,6 +128,7 @@
                             mat-icon-button
                             class="primary-icon-button"
                             type="button"
+                            matTooltip="Delete"
                             [disabled]="!canDelete(selection)"
                             (click)="delete(selection)">
                             <i class="fa fa-trash"></i>
