@@ -189,17 +189,8 @@ public class AzureStorageCredentialsDetails_v12 {
             String accountName,
             String endpointSuffix,
             AccessToken accessToken) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.IDENTITY_FEDERATION,
+        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.ACCESS_TOKEN,
                 null, null, null, null, null, null, accessToken, null, null);
-    }
-
-    public static AzureStorageCredentialsDetails_v12 createWithAccessToken(
-            String accountName,
-            String endpointSuffix,
-            AccessToken accessToken,
-            AzureIdentityFederationTokenProvider identityTokenProvider) {
-        return new AzureStorageCredentialsDetails_v12(accountName, endpointSuffix, AzureStorageCredentialsType.IDENTITY_FEDERATION, null, null, null,
-                null, null, null, accessToken, identityTokenProvider, null);
     }
 
     public static AzureStorageCredentialsDetails_v12 createWithIdentityTokenProvider(

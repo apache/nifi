@@ -17,7 +17,7 @@
 
 The *StandardAzureIdentityFederationTokenProvider* provides Azure `TokenCredential` for workload identity federation. It exchanges tokens from external identity providers for Azure AD credentials using Azure Identity SDK's `ClientAssertionCredential`. This approach provides built-in token caching, automatic refresh, and robust error handling.
 
-Components such as the ADLS and Azure Storage credentials controller services reference this provider when the **Credentials Type** is set to **Access Token**.
+Components such as the ADLS and Azure Storage credentials controller services reference this provider when the **Credentials Type** is set to **Identity Federation**.
 
 
 ## Configuration workflow

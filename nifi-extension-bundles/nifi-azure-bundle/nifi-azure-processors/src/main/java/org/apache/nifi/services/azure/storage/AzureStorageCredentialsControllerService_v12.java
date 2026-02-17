@@ -134,10 +134,5 @@ public class AzureStorageCredentialsControllerService_v12 extends AbstractContro
         config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_ID_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_CLIENT_ID.getName());
         config.renameProperty(AzureStorageUtils.OLD_SERVICE_PRINCIPAL_CLIENT_SECRET_DESCRIPTOR_NAME, SERVICE_PRINCIPAL_CLIENT_SECRET.getName());
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
-
-        // Migrate ACCESS_TOKEN credential type to IDENTITY_FEDERATION
-        config.getPropertyValue(CREDENTIALS_TYPE.getName())
-                .filter("ACCESS_TOKEN"::equals)
-                .ifPresent(value -> config.setProperty(CREDENTIALS_TYPE.getName(), AzureStorageCredentialsType.IDENTITY_FEDERATION.getValue()));
     }
 }

@@ -132,11 +132,6 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             config.removeProperty(propNameUseManagedIdentity);
         }
 
-        // Migrate ACCESS_TOKEN credential type to IDENTITY_FEDERATION
-        config.getPropertyValue(CREDENTIALS_TYPE.getName())
-                .filter("ACCESS_TOKEN"::equals)
-                .ifPresent(value -> config.setProperty(CREDENTIALS_TYPE.getName(), AzureStorageCredentialsType.IDENTITY_FEDERATION.getValue()));
-
         ProxyServiceMigration.renameProxyConfigurationServiceProperty(config);
     }
 
