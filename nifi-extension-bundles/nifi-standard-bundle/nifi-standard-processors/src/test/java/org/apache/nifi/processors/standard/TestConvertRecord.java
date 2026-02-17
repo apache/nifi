@@ -62,6 +62,7 @@ public class TestConvertRecord {
     private static final String PERSON_SCHEMA;
     private static final String READER_ID = "reader";
     private static final String WRITER_ID = "writer";
+    private static final String SCHEMA_WRITE_STRATEGY = "Schema Write Strategy";
     private TestRunner runner;
 
     static {
@@ -262,7 +263,7 @@ public class TestConvertRecord {
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, PERSON_SCHEMA);
         runner.setProperty(jsonWriter, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
-        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(jsonWriter, SCHEMA_WRITE_STRATEGY, "full-schema-attribute");
         runner.setProperty(jsonWriter, JsonRecordSetWriter.COMPRESSION_FORMAT, "snappy");
         runner.enableControllerService(jsonWriter);
 
@@ -352,7 +353,7 @@ public class TestConvertRecord {
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, PERSON_SCHEMA);
         runner.setProperty(jsonWriter, JsonRecordSetWriter.PRETTY_PRINT_JSON, "true");
-        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(jsonWriter, SCHEMA_WRITE_STRATEGY, "full-schema-attribute");
         runner.enableControllerService(jsonWriter);
 
         runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/person_long_id.json"));
@@ -480,7 +481,7 @@ public class TestConvertRecord {
         runner.addControllerService(WRITER_ID, jsonWriter);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, personJobSchema);
-        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(jsonWriter, SCHEMA_WRITE_STRATEGY, "full-schema-attribute");
         runner.enableControllerService(jsonWriter);
 
         runner.enqueue(Paths.get("src/test/resources/TestConvertRecord/input/personJob_dropfield.json"));
@@ -555,7 +556,7 @@ public class TestConvertRecord {
         runner.addControllerService(WRITER_ID, jsonWriter);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
         runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_TEXT, schema);
-        runner.setProperty(jsonWriter, "Schema Write Strategy", "full-schema-attribute");
+        runner.setProperty(jsonWriter, SCHEMA_WRITE_STRATEGY, "full-schema-attribute");
         runner.enableControllerService(jsonWriter);
 
         runner.setProperty(ConvertRecord.RECORD_READER, READER_ID);
@@ -568,5 +569,58 @@ public class TestConvertRecord {
 
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
         flowFile.assertContentEquals(expectedContent);
+    }
+
+    @Test
+    public void testXMLReaderWithNamespacedAttributesAndInferredSchema() throws InitializationException {
+        final XMLReader xmlReader = new XMLReader();
+        runner.addControllerService(READER_ID, xmlReader);
+        runner.setProperty(xmlReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+        runner.setProperty(xmlReader, XMLReader.RECORD_FORMAT, XMLReader.RECORD_SINGLE.getValue());
+        runner.setProperty(xmlReader, XMLReader.PARSE_XML_ATTRIBUTES, "true");
+        runner.setProperty(xmlReader, XMLReader.CONTENT_FIELD_NAME, "content_value");
+        runner.enableControllerService(xmlReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService(WRITER_ID, jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        runner.enableControllerService(jsonWriter);
+
+        runner.setProperty(ConvertRecord.RECORD_READER, READER_ID);
+        runner.setProperty(ConvertRecord.RECORD_WRITER, WRITER_ID);
+
+        final String xmlWithNamespacedAttributes = """
+                <?xml version='1.0' encoding='UTF-8'?>
+                     <wd:data xmlns:wd="urn:com.wd.report/foo">
+                        <wd:entry>
+                            <wd:something wd:attr1="attr1 content">
+                                <wd:record_with_attr2 wd:attr2="attr2 content 1">record_with_attr2 content 1</wd:record_with_attr2>
+                                <wd:record_with_attr2 wd:attr2="attr2 content 2">record_with_attr2 content 2</wd:record_with_attr2>
+                            </wd:something>
+                        </wd:entry>
+                     </wd:data>
+                """;
+        final String xmlWithPlainAttributes = """
+                <?xml version='1.0' encoding='UTF-8'?>
+                <wd:data xmlns:wd="urn:com.wd.report/foo">
+                    <wd:entry>
+                        <wd:something attr1="attr1 content">
+                            <wd:record_with_attr2 attr2="attr2 content 1">record_with_attr2 content 1</wd:record_with_attr2>
+                            <wd:record_with_attr2 attr2="attr2 content 2">record_with_attr2 content 2</wd:record_with_attr2>
+                        </wd:something>
+                    </wd:entry>
+                </wd:data>
+                """;
+
+        runner.enqueue(xmlWithNamespacedAttributes);
+        runner.enqueue(xmlWithPlainAttributes);
+        runner.run(2);
+
+        runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 2);
+        final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
+        final MockFlowFile secondFlowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).get(1);
+        assertFalse(firstFlowFile.getContent().contains("null"));
+        assertFalse(secondFlowFile.getContent().contains("null"));
+        assertEquals(firstFlowFile.getContent(), secondFlowFile.getContent());
     }
 }
