@@ -28,12 +28,15 @@ import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import org.apache.nifi.serialization.record.validation.FieldValidator;
 import org.apache.nifi.serialization.record.validation.RecordSchemaValidator;
+import org.apache.nifi.serialization.record.validation.RecordValidator;
 import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
 
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -93,6 +96,9 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                 continue;
             }
 
+            final String fieldPath = concat(fieldPrefix, field);
+            applyFieldValidators(field, fieldPath, rawValue, result);
+
             // Now that we have the 'canonical data type', we check if it is a Record. If so, we need to validate each sub-field.
             verifyComplexType(dataType, rawValue, result, fieldPrefix, field);
         }
@@ -105,7 +111,44 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
             }
         }
 
+        applyRecordValidators(record, schema, fieldPrefix, result);
+
         return result;
+    }
+
+    private void applyFieldValidators(final RecordField field, final String fieldPath, final Object value, final StandardSchemaValidationResult result) {
+        if (value == null) {
+            return;
+        }
+
+        for (final FieldValidator validator : field.getFieldValidators()) {
+            final Collection<ValidationError> errors = validator.validate(field, fieldPath, value);
+            if (errors == null || errors.isEmpty()) {
+                continue;
+            }
+
+            for (final ValidationError validationError : errors) {
+                result.addValidationError(validationError);
+            }
+        }
+    }
+
+    private void applyRecordValidators(final Record record, final RecordSchema schema, final String fieldPath, final StandardSchemaValidationResult result) {
+        final List<RecordValidator> recordValidators = schema.getRecordValidators();
+        if (recordValidators.isEmpty()) {
+            return;
+        }
+
+        for (final RecordValidator recordValidator : recordValidators) {
+            final Collection<ValidationError> validationErrors = recordValidator.validate(record, schema, fieldPath);
+            if (validationErrors == null || validationErrors.isEmpty()) {
+                continue;
+            }
+
+            for (final ValidationError validationError : validationErrors) {
+                result.addValidationError(validationError);
+            }
+        }
     }
 
     private void verifyComplexType(final DataType dataType, final Object rawValue, final StandardSchemaValidationResult result, final String fieldPrefix, final RecordField field) {

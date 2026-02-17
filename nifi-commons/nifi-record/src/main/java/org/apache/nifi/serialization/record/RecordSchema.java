@@ -17,6 +17,8 @@
 
 package org.apache.nifi.serialization.record;
 
+import org.apache.nifi.serialization.record.validation.RecordValidator;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -111,6 +113,14 @@ public interface RecordSchema {
      * @return true if the schema contains itself as a nested field type, false if it does not
      */
     boolean isRecursive();
+
+    /**
+     * @return validators that should be applied to records adhering to this schema. The default implementation returns an empty list to
+     *         maintain backwards compatibility for existing schema implementations that do not expose custom validators.
+     */
+    default List<RecordValidator> getRecordValidators() {
+        return List.of();
+    }
 
     /**
      * @param schemas the list of schemas to check whether the current schema is contained within
