@@ -27,6 +27,7 @@ import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.common.TopicPartitionSummary;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingSummary;
+import org.apache.nifi.kafka.service.api.consumer.RebalanceCallback;
 import org.apache.nifi.kafka.service.api.header.RecordHeader;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.logging.ComponentLog;
@@ -57,14 +58,21 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     private final ComponentLog componentLog;
     private final Consumer<byte[], byte[]> consumer;
     private final Subscription subscription;
+    private volatile RebalanceCallback rebalanceCallback;
     private final Map<TopicPartition, Long> uncommittedOffsets = new ConcurrentHashMap<>();
     private final Set<TopicPartition> revokedPartitions = new CopyOnWriteArraySet<>();
     private volatile boolean closed = false;
 
     public Kafka3ConsumerService(final ComponentLog componentLog, final Consumer<byte[], byte[]> consumer, final Subscription subscription) {
+        this(componentLog, consumer, subscription, null);
+    }
+
+    public Kafka3ConsumerService(final ComponentLog componentLog, final Consumer<byte[], byte[]> consumer,
+                                  final Subscription subscription, final RebalanceCallback rebalanceCallback) {
         this.componentLog = Objects.requireNonNull(componentLog, "Component Log required");
         this.consumer = consumer;
         this.subscription = subscription;
+        this.rebalanceCallback = rebalanceCallback;
 
         final Optional<Pattern> topicPatternFound = subscription.getTopicPattern();
         if (topicPatternFound.isPresent()) {
@@ -85,17 +93,57 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
     public void onPartitionsRevoked(final Collection<TopicPartition> partitions) {
         componentLog.info("Kafka revoked the following Partitions from this consumer: {}", partitions);
 
-        // Store revoked partitions for the processor to handle after committing its session.
-        // We do NOT commit offsets here to avoid data loss - the processor must commit its
-        // session first, then call commitOffsetsForRevokedPartitions().
+        // Identify partitions with uncommitted offsets
+        final Map<TopicPartition, Long> partitionsWithUncommittedOffsets = new HashMap<>();
         for (final TopicPartition partition : partitions) {
-            if (uncommittedOffsets.containsKey(partition)) {
-                revokedPartitions.add(partition);
+            final Long offset = uncommittedOffsets.get(partition);
+            if (offset != null) {
+                partitionsWithUncommittedOffsets.put(partition, offset);
             }
         }
 
-        if (!revokedPartitions.isEmpty()) {
-            componentLog.info("Partitions revoked with uncommitted offsets, pending processor commit: {}", revokedPartitions);
+        if (partitionsWithUncommittedOffsets.isEmpty()) {
+            return;
+        }
+
+        componentLog.info("Partitions revoked with uncommitted offsets: {}", partitionsWithUncommittedOffsets.keySet());
+
+        // If a callback is registered, we can safely commit offsets synchronously:
+        // 1. Call the callback so the processor can commit its session (FlowFiles) first
+        // 2. Then commit Kafka offsets immediately while consumer is still in valid state
+        // This prevents both data loss (session committed first) and duplicates (offsets committed during callback).
+        if (rebalanceCallback != null) {
+            final Collection<PartitionState> revokedStates = partitionsWithUncommittedOffsets.keySet().stream()
+                    .map(tp -> new PartitionState(tp.topic(), tp.partition()))
+                    .collect(Collectors.toList());
+
+            try {
+                componentLog.debug("Invoking rebalance callback for partitions: {}", revokedStates);
+                rebalanceCallback.onPartitionsRevoked(revokedStates);
+            } catch (final Exception e) {
+                componentLog.warn("Rebalance callback failed, offsets will not be committed for revoked partitions", e);
+                return;
+            }
+
+            // Commit offsets for revoked partitions immediately while still in valid state
+            final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
+            for (final Map.Entry<TopicPartition, Long> entry : partitionsWithUncommittedOffsets.entrySet()) {
+                offsetsToCommit.put(entry.getKey(), new OffsetAndMetadata(entry.getValue()));
+                uncommittedOffsets.remove(entry.getKey());
+            }
+
+            try {
+                consumer.commitSync(offsetsToCommit);
+                componentLog.info("Committed offsets during rebalance for partitions: {}", offsetsToCommit);
+            } catch (final Exception e) {
+                componentLog.warn("Failed to commit offsets during rebalance for partitions: {}", offsetsToCommit.keySet(), e);
+            }
+        } else {
+            // No callback registered - defer commit to avoid data loss.
+            // Store revoked partitions so the processor can call commitOffsetsForRevokedPartitions()
+            // after successfully committing its session.
+            revokedPartitions.addAll(partitionsWithUncommittedOffsets.keySet());
+            componentLog.info("No rebalance callback registered, deferring commit for partitions: {}", revokedPartitions);
         }
     }
 
@@ -246,6 +294,11 @@ public class Kafka3ConsumerService implements KafkaConsumerService, Closeable, C
             uncommittedOffsets.remove(partition);
         }
         revokedPartitions.clear();
+    }
+
+    @Override
+    public void setRebalanceCallback(final RebalanceCallback callback) {
+        this.rebalanceCallback = callback;
     }
 
     private Map<TopicPartition, OffsetAndMetadata> getOffsets(final PollingSummary pollingSummary) {

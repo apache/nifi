@@ -106,4 +106,21 @@ public interface KafkaConsumerService extends Closeable {
      */
     default void clearRevokedPartitions() {
     }
+
+    /**
+     * Set a callback to be invoked during consumer group rebalance when partitions are revoked.
+     * The callback is invoked inside {@code onPartitionsRevoked()} before Kafka offsets are committed,
+     * allowing the processor to commit its session (FlowFiles) first.
+     * <p>
+     * This is critical for preventing both data loss and duplicates during rebalance:
+     * <ul>
+     *   <li>The callback commits the NiFi session (FlowFiles) first</li>
+     *   <li>Then Kafka offsets are committed while consumer is still in valid state</li>
+     * </ul>
+     * </p>
+     *
+     * @param callback the callback to invoke during rebalance, or null to clear
+     */
+    default void setRebalanceCallback(RebalanceCallback callback) {
+    }
 }

@@ -44,6 +44,7 @@ import org.apache.nifi.kafka.service.api.common.PartitionState;
 import org.apache.nifi.kafka.service.api.consumer.AutoOffsetReset;
 import org.apache.nifi.kafka.service.api.consumer.KafkaConsumerService;
 import org.apache.nifi.kafka.service.api.consumer.PollingContext;
+import org.apache.nifi.kafka.service.api.consumer.RebalanceCallback;
 import org.apache.nifi.kafka.service.api.record.ByteRecord;
 import org.apache.nifi.kafka.shared.attribute.KafkaFlowFileAttribute;
 import org.apache.nifi.kafka.shared.property.KeyEncoding;
@@ -348,6 +349,8 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
     private final Queue<KafkaConsumerService> consumerServices = new LinkedBlockingQueue<>();
     private final AtomicInteger activeConsumerCount = new AtomicInteger();
+    private final ThreadLocal<ProcessSession> currentSession = new ThreadLocal<>();
+    private final ThreadLocal<OffsetTracker> currentOffsetTracker = new ThreadLocal<>();
 
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -426,77 +429,85 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
         final OffsetTracker offsetTracker = new OffsetTracker();
         boolean recordsReceived = false;
 
-        while (System.currentTimeMillis() < stopTime) {
-            try {
-                final Duration maxWaitDuration = Duration.ofMillis(stopTime - System.currentTimeMillis());
-                if (maxWaitDuration.toMillis() <= 0) {
-                    break;
-                }
+        currentSession.set(session);
+        currentOffsetTracker.set(offsetTracker);
 
-                final Iterator<ByteRecord> consumerRecords = consumerService.poll(maxWaitDuration).iterator();
-                if (!consumerRecords.hasNext()) {
-                    getLogger().trace("No Kafka Records consumed: {}", pollingContext);
+        try {
+            while (System.currentTimeMillis() < stopTime) {
+                try {
+                    final Duration maxWaitDuration = Duration.ofMillis(stopTime - System.currentTimeMillis());
+                    if (maxWaitDuration.toMillis() <= 0) {
+                        break;
+                    }
+
+                    final Iterator<ByteRecord> consumerRecords = consumerService.poll(maxWaitDuration).iterator();
+                    if (!consumerRecords.hasNext()) {
+                        getLogger().trace("No Kafka Records consumed: {}", pollingContext);
+                        // Check if a rebalance occurred during poll - if so, break to commit what we have
+                        if (consumerService.hasRevokedPartitions()) {
+                            getLogger().debug("Rebalance detected with revoked partitions, breaking to commit session");
+                            break;
+                        }
+                        continue;
+                    }
+
+                    recordsReceived = true;
+                    processConsumerRecords(context, session, offsetTracker, consumerRecords);
+
                     // Check if a rebalance occurred during poll - if so, break to commit what we have
                     if (consumerService.hasRevokedPartitions()) {
                         getLogger().debug("Rebalance detected with revoked partitions, breaking to commit session");
                         break;
                     }
-                    continue;
-                }
 
-                recordsReceived = true;
-                processConsumerRecords(context, session, offsetTracker, consumerRecords);
-
-                // Check if a rebalance occurred during poll - if so, break to commit what we have
-                if (consumerService.hasRevokedPartitions()) {
-                    getLogger().debug("Rebalance detected with revoked partitions, breaking to commit session");
-                    break;
-                }
-
-                if (maxUncommittedSizeConfigured) {
-                    // Stop consuming before reaching Max Uncommitted Time when exceeding Max Uncommitted Size
-                    final long totalRecordSize = offsetTracker.getTotalRecordSize();
-                    if (totalRecordSize > maxUncommittedSize) {
-                        break;
+                    if (maxUncommittedSizeConfigured) {
+                        // Stop consuming before reaching Max Uncommitted Time when exceeding Max Uncommitted Size
+                        final long totalRecordSize = offsetTracker.getTotalRecordSize();
+                        if (totalRecordSize > maxUncommittedSize) {
+                            break;
+                        }
                     }
+                } catch (final Exception e) {
+                    getLogger().error("Failed to consume Kafka Records", e);
+                    consumerService.rollback();
+                    close(consumerService, "Encountered Exception while consuming or writing out Kafka Records");
+                    context.yield();
+                    // If there are any FlowFiles already created and transferred, roll them back because we're rolling back offsets and
+                    // because we will consume the data again, we don't want to transfer out the FlowFiles.
+                    session.rollback();
+                    return;
                 }
-            } catch (final Exception e) {
-                getLogger().error("Failed to consume Kafka Records", e);
-                consumerService.rollback();
-                close(consumerService, "Encountered Exception while consuming or writing out Kafka Records");
-                context.yield();
-                // If there are any FlowFiles already created and transferred, roll them back because we're rolling back offsets and
-                // because we will consume the data again, we don't want to transfer out the FlowFiles.
-                session.rollback();
+            }
+
+            if (!recordsReceived && !consumerService.hasRevokedPartitions()) {
+                getLogger().trace("No Kafka Records consumed, re-queuing consumer");
+                consumerServices.offer(consumerService);
                 return;
             }
-        }
 
-        if (!recordsReceived && !consumerService.hasRevokedPartitions()) {
-            getLogger().trace("No Kafka Records consumed, re-queuing consumer");
-            consumerServices.offer(consumerService);
-            return;
-        }
-
-        // If no records received but we have revoked partitions, we still need to commit their offsets
-        if (!recordsReceived && consumerService.hasRevokedPartitions()) {
-            getLogger().debug("No records received but rebalance occurred, committing offsets for revoked partitions");
-            try {
-                consumerService.commitOffsetsForRevokedPartitions();
-            } catch (final Exception e) {
-                getLogger().warn("Failed to commit offsets for revoked partitions", e);
+            // If no records received but we have revoked partitions, we still need to commit their offsets
+            if (!recordsReceived && consumerService.hasRevokedPartitions()) {
+                getLogger().debug("No records received but rebalance occurred, committing offsets for revoked partitions");
+                try {
+                    consumerService.commitOffsetsForRevokedPartitions();
+                } catch (final Exception e) {
+                    getLogger().warn("Failed to commit offsets for revoked partitions", e);
+                }
+                consumerServices.offer(consumerService);
+                return;
             }
-            consumerServices.offer(consumerService);
-            return;
-        }
 
-        session.commitAsync(
-            () -> commitOffsets(consumerService, offsetTracker, pollingContext, session),
-            throwable -> {
-                getLogger().error("Failed to commit session; will roll back any uncommitted records", throwable);
-                rollback(consumerService, offsetTracker, session);
-                context.yield();
-            });
+            session.commitAsync(
+                () -> commitOffsets(consumerService, offsetTracker, pollingContext, session),
+                throwable -> {
+                    getLogger().error("Failed to commit session; will roll back any uncommitted records", throwable);
+                    rollback(consumerService, offsetTracker, session);
+                    context.yield();
+                });
+        } finally {
+            currentSession.remove();
+            currentOffsetTracker.remove();
+        }
     }
 
     private void commitOffsets(final KafkaConsumerService consumerService, final OffsetTracker offsetTracker, final PollingContext pollingContext, final ProcessSession session) {
@@ -600,7 +611,38 @@ public class ConsumeKafka extends AbstractProcessor implements VerifiableProcess
 
         getLogger().info("No Kafka Consumer Service available; creating a new one. Active count: {}", activeCount);
         final KafkaConnectionService connectionService = context.getProperty(CONNECTION_SERVICE).asControllerService(KafkaConnectionService.class);
-        return connectionService.getConsumerService(pollingContext);
+        final KafkaConsumerService newService = connectionService.getConsumerService(pollingContext);
+        newService.setRebalanceCallback(createRebalanceCallback());
+        return newService;
+    }
+
+    private RebalanceCallback createRebalanceCallback() {
+        return revokedPartitions -> {
+            final ProcessSession session = currentSession.get();
+            final OffsetTracker offsetTracker = currentOffsetTracker.get();
+            if (session == null) {
+                getLogger().debug("No active session during rebalance callback, nothing to commit");
+                return;
+            }
+
+            getLogger().info("Rebalance callback invoked for {} revoked partitions, committing session synchronously",
+                    revokedPartitions.size());
+
+            try {
+                session.commit();
+                getLogger().debug("Session committed successfully during rebalance callback");
+
+                if (offsetTracker != null) {
+                    offsetTracker.getRecordCounts().forEach((topic, count) -> {
+                        session.adjustCounter("Records Acknowledged for " + topic, count, true);
+                    });
+                    offsetTracker.clear();
+                }
+            } catch (final Exception e) {
+                getLogger().error("Failed to commit session during rebalance callback", e);
+                throw new RuntimeException("Failed to commit session during rebalance", e);
+            }
+        };
     }
 
     private int getMaxConsumerCount() {
