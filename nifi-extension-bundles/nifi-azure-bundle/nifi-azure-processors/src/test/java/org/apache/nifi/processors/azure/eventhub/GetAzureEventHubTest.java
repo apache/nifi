@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import com.azure.core.credential.TokenCredential;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.models.LastEnqueuedEventProperties;
 import com.azure.messaging.eventhubs.models.PartitionContext;
@@ -32,7 +31,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxyConfigurationService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.scheduling.ExecutionNode;
-import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
+import org.apache.nifi.services.azure.MockIdentityFederationTokenProvider;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.util.MockFlowFile;
@@ -42,7 +41,6 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 
 import java.net.Proxy;
 import java.time.Instant;
@@ -346,11 +344,4 @@ public class GetAzureEventHubTest {
         }
     }
 
-    private static class MockIdentityFederationTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
-        @Override
-        public TokenCredential getCredentials() {
-            return tokenRequestContext -> Mono.just(
-                    new com.azure.core.credential.AccessToken("access-token", java.time.OffsetDateTime.now().plusMinutes(5)));
-        }
-    }
 }

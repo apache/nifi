@@ -175,8 +175,7 @@ public class PutAzureEventHub extends AbstractProcessor implements AzureEventHub
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext context) {
-        return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY,
-                EVENT_HUB_OAUTH2_ACCESS_TOKEN_PROVIDER, EVENT_HUB_IDENTITY_FEDERATION_TOKEN_PROVIDER, context);
+        return AzureEventHubUtils.customValidate(ACCESS_POLICY, POLICY_PRIMARY_KEY, context);
     }
 
     @Override

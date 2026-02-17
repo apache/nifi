@@ -52,6 +52,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -182,7 +183,8 @@ public abstract class AbstractAzureQueueStorage_v12 extends AbstractProcessor {
                 clientBuilder.credential(accessTokenCredential);
                 break;
             case IDENTITY_FEDERATION:
-                final AzureIdentityFederationTokenProvider identityTokenProvider = storageCredentialsDetails.getIdentityTokenProvider();
+                final AzureIdentityFederationTokenProvider identityTokenProvider = Objects.requireNonNull(
+                        storageCredentialsDetails.getIdentityTokenProvider(), "Identity Federation Token Provider is required");
                 clientBuilder.credential(identityTokenProvider.getCredentials());
                 break;
         }

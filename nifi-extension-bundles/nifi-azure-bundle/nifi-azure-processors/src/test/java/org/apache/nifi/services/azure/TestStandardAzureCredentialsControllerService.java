@@ -19,16 +19,12 @@ package org.apache.nifi.services.azure;
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.credential.TokenRequestContext;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -119,12 +115,4 @@ public class TestStandardAzureCredentialsControllerService {
         assertEquals(MockIdentityFederationTokenProvider.ACCESS_TOKEN_VALUE, accessToken.getToken());
     }
 
-    private static final class MockIdentityFederationTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
-        private static final String ACCESS_TOKEN_VALUE = "access-token";
-
-        @Override
-        public TokenCredential getCredentials() {
-            return tokenRequestContext -> Mono.just(new AccessToken(ACCESS_TOKEN_VALUE, OffsetDateTime.now().plusHours(1)));
-        }
-    }
 }

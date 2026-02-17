@@ -16,20 +16,16 @@
  */
 package org.apache.nifi.services.azure.storage;
 
-import com.azure.core.credential.AccessToken;
-import com.azure.core.credential.TokenCredential;
-import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
+import org.apache.nifi.services.azure.MockIdentityFederationTokenProvider;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Mono;
 
-import java.time.OffsetDateTime;
 import java.util.Collections;
 
 import static org.apache.nifi.processors.azure.AzureServiceEndpoints.DEFAULT_BLOB_ENDPOINT_SUFFIX;
@@ -60,7 +56,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
 
     private TestRunner runner;
     private AzureStorageCredentialsControllerService_v12 credentialsService;
-    private MockOAuth2AccessTokenProvider tokenProvider;
+    private MockIdentityFederationTokenProvider tokenProvider;
 
     @BeforeEach
     public void setUp() throws InitializationException {
@@ -68,7 +64,7 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         credentialsService = new AzureStorageCredentialsControllerService_v12();
         runner.addControllerService(CREDENTIALS_SERVICE_IDENTIFIER, credentialsService);
 
-        tokenProvider = new MockOAuth2AccessTokenProvider();
+        tokenProvider = new MockIdentityFederationTokenProvider();
         runner.addControllerService(TOKEN_PROVIDER_IDENTIFIER, tokenProvider);
         runner.enableControllerService(tokenProvider);
     }
@@ -328,12 +324,4 @@ public class TestAzureStorageCredentialsControllerService_v12 {
         runner.setProperty(credentialsService, AzureStorageUtils.IDENTITY_FEDERATION_TOKEN_PROVIDER, TOKEN_PROVIDER_IDENTIFIER);
     }
 
-    private static final class MockOAuth2AccessTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
-        private static final String ACCESS_TOKEN_VALUE = "access-token";
-
-        @Override
-        public TokenCredential getCredentials() {
-            return tokenRequestContext -> Mono.just(new AccessToken(ACCESS_TOKEN_VALUE, OffsetDateTime.now().plusHours(1)));
-        }
-    }
 }

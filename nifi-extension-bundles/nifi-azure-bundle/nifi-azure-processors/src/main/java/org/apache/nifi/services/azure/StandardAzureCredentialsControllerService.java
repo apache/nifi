@@ -44,16 +44,16 @@ import java.util.List;
 @Tags({"azure", "security", "credentials", "provider", "session"})
 @CapabilityDescription("Provide credentials to use with an Azure client.")
 public class StandardAzureCredentialsControllerService extends AbstractControllerService implements AzureCredentialsService {
-    public static AllowableValue DEFAULT_CREDENTIAL = new AllowableValue("default-credential",
+    public static final AllowableValue DEFAULT_CREDENTIAL = new AllowableValue("default-credential",
             "Default Credential",
             "Uses default credential chain. It first checks environment variables, before trying managed identity.");
-    public static AllowableValue MANAGED_IDENTITY = new AllowableValue("managed-identity",
+    public static final AllowableValue MANAGED_IDENTITY = new AllowableValue("managed-identity",
             "Managed Identity",
             "Azure Virtual Machine Managed Identity (it can only be used when NiFi is running on Azure)");
-    public static AllowableValue SERVICE_PRINCIPAL = new AllowableValue("service-principal",
+    public static final AllowableValue SERVICE_PRINCIPAL = new AllowableValue("service-principal",
             "Service Principal",
             "Azure Active Directory Service Principal with Client ID / Client Secret of a registered application");
-    public static AllowableValue IDENTITY_FEDERATION = new AllowableValue("identity-federation",
+    public static final AllowableValue IDENTITY_FEDERATION = new AllowableValue("identity-federation",
             "Identity Federation",
             "Uses workload identity federation to obtain access tokens for Azure clients via an external identity token.");
     public static final PropertyDescriptor CREDENTIAL_CONFIGURATION_STRATEGY = new PropertyDescriptor.Builder()

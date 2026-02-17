@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.azure.eventhub;
 
-import com.azure.core.credential.TokenCredential;
 import com.azure.messaging.eventhubs.CheckpointStore;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventProcessorClient;
@@ -49,7 +48,7 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.services.azure.AzureIdentityFederationTokenProvider;
+import org.apache.nifi.services.azure.MockIdentityFederationTokenProvider;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubAuthenticationStrategy;
 import org.apache.nifi.shared.azure.eventhubs.AzureEventHubTransportType;
 import org.apache.nifi.shared.azure.eventhubs.BlobStorageAuthenticationStrategy;
@@ -743,11 +742,4 @@ public class TestConsumeAzureEventHub {
         }
     }
 
-    private static class MockIdentityFederationTokenProvider extends AbstractControllerService implements AzureIdentityFederationTokenProvider {
-        @Override
-        public TokenCredential getCredentials() {
-            return tokenRequestContext -> Mono.just(
-                    new com.azure.core.credential.AccessToken("access-token", java.time.OffsetDateTime.now().plusMinutes(5)));
-        }
-    }
 }

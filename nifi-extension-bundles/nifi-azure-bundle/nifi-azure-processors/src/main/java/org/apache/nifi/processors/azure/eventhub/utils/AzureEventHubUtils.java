@@ -25,6 +25,7 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.oauth2.AccessToken;
 import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -36,6 +37,9 @@ import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +48,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 public final class AzureEventHubUtils {
+
+    private static final long DEFAULT_TOKEN_EXPIRATION_SECONDS = 300;
 
     public static final AllowableValue AZURE_ENDPOINT = new AllowableValue(".servicebus.windows.net", "Azure", "Servicebus endpoint for general use");
     public static final AllowableValue AZURE_CHINA_ENDPOINT = new AllowableValue(".servicebus.chinacloudapi.cn", "Azure China", "Servicebus endpoint for China");
@@ -75,8 +81,6 @@ public final class AzureEventHubUtils {
 
     public static List<ValidationResult> customValidate(PropertyDescriptor accessPolicyDescriptor,
                                                         PropertyDescriptor policyKeyDescriptor,
-                                                        PropertyDescriptor oauth2TokenProviderDescriptor,
-                                                        PropertyDescriptor identityFederationTokenProviderDescriptor,
                                                         ValidationContext context) {
         List<ValidationResult> validationResults = new ArrayList<>();
         boolean accessPolicyIsSet = context.getProperty(accessPolicyDescriptor).isSet();
@@ -158,18 +162,16 @@ public final class AzureEventHubUtils {
         Objects.requireNonNull(tokenProvider, "OAuth2 Access Token Provider is required");
 
         return tokenRequestContext -> Mono.fromSupplier(() -> {
-            final org.apache.nifi.oauth2.AccessToken accessToken = tokenProvider.getAccessDetails();
+            final AccessToken accessToken = tokenProvider.getAccessDetails();
             Objects.requireNonNull(accessToken, "Access Token is required");
             final String tokenValue = accessToken.getAccessToken();
             if (tokenValue == null || tokenValue.isEmpty()) {
                 throw new IllegalStateException("Access Token value is required");
             }
-            final java.time.Instant fetchTime = Objects.requireNonNull(accessToken.getFetchTime(), "Access Token fetch time required");
+            final Instant fetchTime = Objects.requireNonNull(accessToken.getFetchTime(), "Access Token fetch time required");
             final long expiresIn = accessToken.getExpiresIn();
-            final java.time.Instant expirationInstant = expiresIn > 0
-                    ? fetchTime.plusSeconds(expiresIn)
-                    : fetchTime.plusSeconds(300);
-            final java.time.OffsetDateTime expirationTime = java.time.OffsetDateTime.ofInstant(expirationInstant, java.time.ZoneOffset.UTC);
+            final Instant expirationInstant = expiresIn > 0 ? fetchTime.plusSeconds(expiresIn) : fetchTime.plusSeconds(DEFAULT_TOKEN_EXPIRATION_SECONDS);
+            final OffsetDateTime expirationTime = OffsetDateTime.ofInstant(expirationInstant, ZoneOffset.UTC);
             return new com.azure.core.credential.AccessToken(tokenValue, expirationTime);
         });
     }
