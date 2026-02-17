@@ -151,9 +151,9 @@ public class XmlRecordSource implements RecordSource<XmlNode> {
     }
 
     private void addXmlAttributesToChildNodes(StartElement startElement, Map<String, XmlNode> childNodes) {
-        final Iterator<?> attributeIterator = startElement.getAttributes();
+        final Iterator<Attribute> attributeIterator = startElement.getAttributes();
         while (attributeIterator.hasNext()) {
-            final Attribute attribute = (Attribute) attributeIterator.next();
+            final Attribute attribute = attributeIterator.next();
             final String rawName = attribute.getName().getLocalPart();
             final String fieldName = attributePrefix == null ? rawName : attributePrefix + rawName;
             childNodes.put(fieldName, new XmlTextNode(fieldName, attribute.getValue()));
