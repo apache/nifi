@@ -24,6 +24,7 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatisticsDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
 import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
 import org.apache.nifi.web.api.dto.status.FlowAnalysisRuleStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
@@ -132,12 +133,14 @@ public final class EntityFactory {
     public ConnectorEntity createConnectorEntity(final ConnectorDTO dto,
                                                  final RevisionDTO revision,
                                                  final PermissionsDTO permissions,
-                                                 final PermissionsDTO operatePermissions) {
+                                                 final PermissionsDTO operatePermissions,
+                                                 final ConnectorStatusDTO status) {
         final ConnectorEntity entity = new ConnectorEntity();
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
             entity.setOperatePermissions(operatePermissions);
+            entity.setStatus(status);
             entity.setId(dto.getId());
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);

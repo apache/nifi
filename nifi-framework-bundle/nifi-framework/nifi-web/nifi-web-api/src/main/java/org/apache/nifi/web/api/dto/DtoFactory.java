@@ -240,6 +240,8 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusPredictionsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
@@ -282,6 +284,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.text.Collator;
 import java.text.NumberFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -5273,6 +5276,61 @@ public final class DtoFactory {
         dto.setAvailableActions(createConnectorActionDtos(connector));
 
         return dto;
+    }
+
+    public ConnectorStatusDTO createConnectorStatusDto(final ConnectorNode connectorNode, final ProcessGroupStatus managedGroupStatus) {
+        if (connectorNode == null) {
+            return null;
+        }
+
+        final ConnectorStatusDTO statusDto = new ConnectorStatusDTO();
+        statusDto.setId(connectorNode.getIdentifier());
+        statusDto.setName(connectorNode.getName());
+        statusDto.setType(connectorNode.getCanonicalClassName());
+        statusDto.setRunStatus(connectorNode.getCurrentState().name());
+        statusDto.setValidationStatus(connectorNode.getValidationStatus().name());
+        statusDto.setStatsLastRefreshed(new Date());
+
+        final ConnectorStatusSnapshotDTO snapshot = new ConnectorStatusSnapshotDTO();
+        statusDto.setAggregateSnapshot(snapshot);
+
+        snapshot.setId(connectorNode.getIdentifier());
+        snapshot.setName(connectorNode.getName());
+        snapshot.setType(connectorNode.getCanonicalClassName());
+        snapshot.setRunStatus(connectorNode.getCurrentState().name());
+
+        // Populate all status metrics from the managed process group
+        if (managedGroupStatus != null) {
+            snapshot.setFlowFilesSent(managedGroupStatus.getFlowFilesSent());
+            snapshot.setBytesSent(managedGroupStatus.getBytesSent());
+            snapshot.setFlowFilesReceived(managedGroupStatus.getFlowFilesReceived());
+            snapshot.setBytesReceived(managedGroupStatus.getBytesReceived());
+            snapshot.setBytesRead(managedGroupStatus.getBytesRead());
+            snapshot.setBytesWritten(managedGroupStatus.getBytesWritten());
+            snapshot.setFlowFilesQueued(managedGroupStatus.getQueuedCount());
+            snapshot.setBytesQueued(managedGroupStatus.getQueuedContentSize());
+            snapshot.setActiveThreadCount(managedGroupStatus.getActiveThreadCount());
+
+            final ProcessingPerformanceStatus performanceStatus = managedGroupStatus.getProcessingPerformanceStatus();
+            if (performanceStatus != null) {
+                snapshot.setProcessingPerformanceStatus(createProcessingPerformanceStatusDTO(performanceStatus));
+            }
+        }
+
+        // Populate idle status
+        final Optional<Duration> idleDuration = connectorNode.getIdleDuration();
+        if (idleDuration.isPresent()) {
+            snapshot.setIdle(true);
+            final long idleMillis = idleDuration.get().toMillis();
+            snapshot.setIdleDurationMillis(idleMillis);
+            snapshot.setIdleDuration(FormatUtils.formatHoursMinutesSeconds(idleMillis, TimeUnit.MILLISECONDS));
+        } else {
+            snapshot.setIdle(false);
+        }
+
+        StatusMerger.updatePrettyPrintedFields(snapshot);
+
+        return statusDto;
     }
 
     private List<ConnectorActionDTO> createConnectorActionDtos(final ConnectorNode connector) {

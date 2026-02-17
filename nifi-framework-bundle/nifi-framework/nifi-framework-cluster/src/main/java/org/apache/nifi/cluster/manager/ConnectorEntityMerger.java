@@ -21,8 +21,11 @@ import org.apache.nifi.components.connector.ConnectorState;
 import org.apache.nifi.web.api.dto.ConfigurationStepConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorConfigurationDTO;
 import org.apache.nifi.web.api.dto.ConnectorDTO;
+import org.apache.nifi.web.api.dto.status.ConnectorStatusDTO;
+import org.apache.nifi.web.api.dto.status.NodeConnectorStatusSnapshotDTO;
 import org.apache.nifi.web.api.entity.ConnectorEntity;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,10 +51,47 @@ public class ConnectorEntityMerger {
     }
 
     private static void mergeStatus(final ConnectorEntity clientEntity, final Map<NodeIdentifier, ConnectorEntity> entityMap) {
-        for (final ConnectorEntity nodeEntity : entityMap.values()) {
-            if (nodeEntity != clientEntity && nodeEntity != null) {
-                StatusMerger.merge(clientEntity.getStatus(), nodeEntity.getStatus());
+        final ConnectorStatusDTO mergedStatus = clientEntity.getStatus();
+        if (mergedStatus == null) {
+            return;
+        }
+
+        mergedStatus.setNodeSnapshots(new ArrayList<>());
+
+        // Identify the selected node (the one whose response was chosen as the client entity)
+        final NodeIdentifier selectedNodeId = entityMap.entrySet().stream()
+                .filter(e -> e.getValue() == clientEntity)
+                .map(Map.Entry::getKey)
+                .findFirst()
+                .orElse(null);
+
+        // Add the selected node's snapshot to the node snapshots list
+        if (selectedNodeId != null && mergedStatus.getAggregateSnapshot() != null) {
+            final NodeConnectorStatusSnapshotDTO selectedNodeSnapshot = new NodeConnectorStatusSnapshotDTO();
+            selectedNodeSnapshot.setStatusSnapshot(mergedStatus.getAggregateSnapshot().clone());
+            selectedNodeSnapshot.setAddress(selectedNodeId.getApiAddress());
+            selectedNodeSnapshot.setApiPort(selectedNodeId.getApiPort());
+            selectedNodeSnapshot.setNodeId(selectedNodeId.getId());
+            mergedStatus.getNodeSnapshots().add(selectedNodeSnapshot);
+        }
+
+        // Merge snapshots from other nodes
+        for (final Map.Entry<NodeIdentifier, ConnectorEntity> entry : entityMap.entrySet()) {
+            final NodeIdentifier nodeId = entry.getKey();
+            final ConnectorEntity nodeEntity = entry.getValue();
+            if (nodeEntity == clientEntity || nodeEntity == null) {
+                continue;
             }
+
+            final ConnectorStatusDTO nodeStatus = nodeEntity.getStatus();
+            if (nodeStatus == null) {
+                continue;
+            }
+
+            final boolean clientReadable = clientEntity.getPermissions() != null && Boolean.TRUE.equals(clientEntity.getPermissions().getCanRead());
+            final boolean nodeReadable = nodeEntity.getPermissions() != null && Boolean.TRUE.equals(nodeEntity.getPermissions().getCanRead());
+            StatusMerger.merge(mergedStatus, clientReadable, nodeStatus, nodeReadable,
+                    nodeId.getId(), nodeId.getApiAddress(), nodeId.getApiPort());
         }
     }
 
