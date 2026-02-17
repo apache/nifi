@@ -19,6 +19,7 @@ package org.apache.nifi.mock.connector;
 
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConnectorValueReference;
@@ -219,6 +220,10 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
     @Override
     public int getHttpPort() {
         return mockServer.getHttpPort();
+    }
+
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName) {
+        return mockServer.fetchAllowableValues(stepName, propertyName);
     }
 
 

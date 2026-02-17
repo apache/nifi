@@ -965,6 +965,11 @@ public class StandardStatelessFlow implements StatelessDataflow {
             .collect(Collectors.toMap(Counter::getName, Counter::getValue));
     }
 
+    @Override
+    public OptionalLong getLatestActivityTime() {
+        return rootGroup.getFlowFileActivity().getLatestActivityTime();
+    }
+
     private String findInstanceId(final String componentId) {
         return rootGroup.findAllProcessors().stream()
             .filter(processor -> Objects.equals(processor.getIdentifier(), componentId) || Objects.equals(processor.getVersionedComponentId().orElse(""), componentId))

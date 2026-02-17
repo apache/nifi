@@ -18,7 +18,9 @@
 package org.apache.nifi.connectable;
 
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.groups.StatelessGroupNode;
 
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -88,14 +90,24 @@ public class ProcessGroupFlowFileActivity implements FlowFileActivity {
         }
 
         // Check stateless group node if present
-        group.getStatelessGroupNode().ifPresent(statelessGroupNode -> {
-            final OptionalLong activityTime = statelessGroupNode.getFlowFileActivity().getLatestActivityTime();
+        final Optional<StatelessGroupNode> statelessGroupNode = group.getStatelessGroupNode();
+        if (statelessGroupNode.isPresent()) {
+            final OptionalLong activityTime = statelessGroupNode.get().getFlowFileActivity().getLatestActivityTime();
             activityTime.ifPresent(time -> {
                 if (time > latestActivityTime.get()) {
                     latestActivityTime.set(time);
                 }
             });
-        });
+        }
+
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            final OptionalLong activityTime = childGroup.getFlowFileActivity().getLatestActivityTime();
+            activityTime.ifPresent(time -> {
+                if (time > latestActivityTime.get()) {
+                    latestActivityTime.set(time);
+                }
+            });
+        }
 
         final long result = latestActivityTime.get();
         return result == -1L ? OptionalLong.empty() : OptionalLong.of(result);
@@ -135,9 +147,18 @@ public class ProcessGroupFlowFileActivity implements FlowFileActivity {
             totalSentBytes += counts.getSentBytes();
         }
 
-        // Aggregate transfer counts from all funnels
-        for (final Connectable connectable : group.getFunnels()) {
-            final FlowFileTransferCounts counts = connectable.getFlowFileActivity().getTransferCounts();
+        for (final ProcessGroup childGroup : group.getProcessGroups()) {
+            final FlowFileTransferCounts counts = childGroup.getFlowFileActivity().getTransferCounts();
+            totalReceivedCount += counts.getReceivedCount();
+            totalReceivedBytes += counts.getReceivedBytes();
+            totalSentCount += counts.getSentCount();
+            totalSentBytes += counts.getSentBytes();
+        }
+
+        // Aggregate transfer counts from stateless group node if present
+        final Optional<StatelessGroupNode> statelessGroupNode = group.getStatelessGroupNode();
+        if (statelessGroupNode.isPresent()) {
+            final FlowFileTransferCounts counts = statelessGroupNode.get().getFlowFileActivity().getTransferCounts();
             totalReceivedCount += counts.getReceivedCount();
             totalReceivedBytes += counts.getReceivedBytes();
             totalSentCount += counts.getSentCount();

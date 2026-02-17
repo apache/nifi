@@ -17,8 +17,11 @@
 
 package org.apache.nifi.controller.tasks;
 
+import org.apache.nifi.connectable.ConnectableFlowFileActivity;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.ConnectionUtils.FlowFileCloneResult;
+import org.apache.nifi.connectable.FlowFileActivity;
+import org.apache.nifi.connectable.FlowFileTransferCounts;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.MockFlowFileRecord;
 import org.apache.nifi.controller.queue.FlowFileQueue;
@@ -63,6 +66,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -90,6 +94,8 @@ public class TestStatelessFlowTask {
     private List<ProvenanceEventRecord> statelessProvenanceEvents;
     private Map<String, StandardFlowFileEvent> flowFileEventsByComponentId;
     private ProvenanceEventRepository statelessProvRepo;
+    private FlowFileActivity groupNodeFlowFileActivity;
+    private StatelessDataflow statelessFlow;
 
     @BeforeEach
     public void setup() throws IOException {
@@ -123,10 +129,13 @@ public class TestStatelessFlowTask {
             return statelessProvenanceEvents.subList((int) startEventId, (int) lastEvent);
         }).when(statelessProvRepo).getEvents(anyLong(), anyInt());
 
-        final StatelessDataflow statelessFlow = mock(StatelessDataflow.class);
+        statelessFlow = mock(StatelessDataflow.class);
+        when(statelessFlow.getLatestActivityTime()).thenReturn(OptionalLong.empty());
 
         final StatelessGroupNode statelessGroupNode = mock(StatelessGroupNode.class);
         when(statelessGroupNode.getProcessGroup()).thenReturn(rootGroup);
+        groupNodeFlowFileActivity = new ConnectableFlowFileActivity();
+        when(statelessGroupNode.getFlowFileActivity()).thenReturn(groupNodeFlowFileActivity);
 
         final FlowFileRepository flowFileRepo = mock(FlowFileRepository.class);
 
@@ -530,6 +539,134 @@ public class TestStatelessFlowTask {
         assertEquals(10, inputPortEvent.getContentSizeOut());
     }
 
+
+    @Test
+    public void testUpdateFlowFileActivityWithNoEvents() {
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        final FlowFileTransferCounts counts = groupNodeFlowFileActivity.getTransferCounts();
+        assertEquals(0L, counts.getReceivedCount());
+        assertEquals(0L, counts.getReceivedBytes());
+        assertEquals(0L, counts.getSentCount());
+        assertEquals(0L, counts.getSentBytes());
+        assertTrue(groupNodeFlowFileActivity.getLatestActivityTime().isEmpty());
+    }
+
+    @Test
+    public void testUpdateFlowFileActivityCountsReceiveAndSendEvents() {
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.RECEIVE, 100L));
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.RECEIVE, 200L));
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.SEND, 50L));
+
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        final FlowFileTransferCounts counts = groupNodeFlowFileActivity.getTransferCounts();
+        assertEquals(2L, counts.getReceivedCount());
+        assertEquals(300L, counts.getReceivedBytes());
+        assertEquals(1L, counts.getSentCount());
+        assertEquals(50L, counts.getSentBytes());
+    }
+
+    @Test
+    public void testUpdateFlowFileActivityCountsCreateEvents() {
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.CREATE, 75L));
+
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        final FlowFileTransferCounts counts = groupNodeFlowFileActivity.getTransferCounts();
+        assertEquals(1L, counts.getReceivedCount());
+        assertEquals(75L, counts.getReceivedBytes());
+        assertEquals(0L, counts.getSentCount());
+        assertEquals(0L, counts.getSentBytes());
+    }
+
+    @Test
+    public void testUpdateFlowFileActivityCountsFetchBytesButNotCount() {
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.FETCH, 500L));
+
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        final FlowFileTransferCounts counts = groupNodeFlowFileActivity.getTransferCounts();
+        assertEquals(0L, counts.getReceivedCount());
+        assertEquals(500L, counts.getReceivedBytes());
+        assertEquals(0L, counts.getSentCount());
+        assertEquals(0L, counts.getSentBytes());
+    }
+
+    @Test
+    public void testUpdateFlowFileActivityIgnoresOtherEventTypes() {
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.ATTRIBUTES_MODIFIED, 100L));
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.CONTENT_MODIFIED, 200L));
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.ROUTE, 300L));
+
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        final FlowFileTransferCounts counts = groupNodeFlowFileActivity.getTransferCounts();
+        assertEquals(0L, counts.getReceivedCount());
+        assertEquals(0L, counts.getReceivedBytes());
+        assertEquals(0L, counts.getSentCount());
+        assertEquals(0L, counts.getSentBytes());
+    }
+
+    @Test
+    public void testUpdateFlowFileActivitySetsActivityTimeFromFlow() {
+        when(statelessFlow.getLatestActivityTime()).thenReturn(OptionalLong.of(System.currentTimeMillis()));
+
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        assertTrue(groupNodeFlowFileActivity.getLatestActivityTime().isPresent());
+    }
+
+    @Test
+    public void testUpdateFlowFileActivityNoActivityTimeWhenFlowReportsNone() {
+        when(statelessFlow.getLatestActivityTime()).thenReturn(OptionalLong.empty());
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.RECEIVE, 100L));
+
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        assertTrue(groupNodeFlowFileActivity.getLatestActivityTime().isEmpty());
+    }
+
+    @Test
+    public void testUpdateFlowFileActivityAccumulatesAcrossMultipleCalls() {
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.RECEIVE, 100L));
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        statelessProvenanceEvents.clear();
+        statelessProvenanceEvents.add(createProvenanceEvent(ProvenanceEventType.SEND, 50L));
+        task.updateFlowFileActivity(statelessProvRepo);
+
+        final FlowFileTransferCounts counts = groupNodeFlowFileActivity.getTransferCounts();
+        assertEquals(1L, counts.getReceivedCount());
+        assertEquals(100L, counts.getReceivedBytes());
+        assertEquals(1L, counts.getSentCount());
+        assertEquals(50L, counts.getSentBytes());
+    }
+
+    private ProvenanceEventRecord createProvenanceEvent(final ProvenanceEventType eventType, final long fileSize) {
+        final StandardProvenanceEventRecord.Builder builder = new StandardProvenanceEventRecord.Builder()
+            .setEventType(eventType)
+            .setComponentId("component-1")
+            .setEventTime(System.currentTimeMillis())
+            .setFlowFileUUID("uuid-1")
+            .setComponentType("Unit Test")
+            .setCurrentContentClaim(null, null, null, null, fileSize);
+
+        switch (eventType) {
+            case RECEIVE:
+            case SEND:
+            case FETCH:
+                builder.setTransitUri("http://localhost/test");
+                break;
+            case ROUTE:
+                builder.setRelationship("success");
+                break;
+            default:
+                break;
+        }
+
+        return builder.build();
+    }
 
     private FlowFileRecord createFlowFile() {
         final ResourceClaim resourceClaim = new StandardResourceClaim(resourceClaimManager, "container", "section", "1", false);

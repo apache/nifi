@@ -27,6 +27,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.bundle.BundleDetails;
 import org.apache.nifi.cluster.ClusterDetailsFactory;
 import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.Connector;
@@ -408,6 +409,11 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
             idleTime = connectorNode.getIdleDuration();
         }
+    }
+
+    @Override
+    public List<DescribedValue> fetchAllowableValues(final String stepName, final String propertyName) {
+        return connectorNode.fetchAllowableValues(stepName, propertyName);
     }
 
     @Override
