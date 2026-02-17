@@ -21,7 +21,6 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigVerificationResult;
 import org.apache.nifi.components.DescribedValue;
 import org.apache.nifi.components.connector.AssetReference;
-import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorUpdateContext;
@@ -76,10 +75,6 @@ public class StandardConnectorDAO implements ConnectorDAO {
         return flowController.getConnectorRepository();
     }
 
-    private ConnectorAssetRepository getConnectorAssetRepository() {
-        return flowController.getConnectorRepository().getAssetRepository();
-    }
-
     @Override
     public void verifyCreate(final ConnectorDTO connectorDTO) {
         final String id = connectorDTO.getId();
@@ -124,8 +119,8 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public void deleteConnector(final String id) {
+        getConnectorRepository().deleteAssets(id);
         getConnectorRepository().removeConnector(id);
-        getConnectorAssetRepository().deleteAssets(id);
     }
 
     @Override
@@ -250,6 +245,7 @@ public class StandardConnectorDAO implements ConnectorDAO {
     @Override
     public List<ConfigVerificationResult> verifyConfigurationStep(final String id, final String configurationStepName, final ConfigurationStepConfigurationDTO configurationStepDto) {
         final ConnectorNode connector = getConnector(id);
+        getConnectorRepository().syncAssetsFromProvider(connector);
         final StepConfiguration stepConfiguration = convertToStepConfiguration(configurationStepDto);
         return connector.verifyConfigurationStep(configurationStepName, stepConfiguration);
     }
@@ -271,20 +267,17 @@ public class StandardConnectorDAO implements ConnectorDAO {
 
     @Override
     public Asset createAsset(final String id, final String assetId, final String assetName, final InputStream content) throws IOException {
-        final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
-        return assetRepository.storeAsset(id, assetId, assetName, content);
+        return getConnectorRepository().storeAsset(id, assetId, assetName, content);
     }
 
     @Override
     public List<Asset> getAssets(final String id) {
-        final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
-        return assetRepository.getAssets(id);
+        return getConnectorRepository().getAssets(id);
     }
 
     @Override
     public Optional<Asset> getAsset(final String assetId) {
-        final ConnectorAssetRepository assetRepository = getConnectorAssetRepository();
-        return assetRepository.getAsset(assetId);
+        return getConnectorRepository().getAsset(assetId);
     }
 }
 

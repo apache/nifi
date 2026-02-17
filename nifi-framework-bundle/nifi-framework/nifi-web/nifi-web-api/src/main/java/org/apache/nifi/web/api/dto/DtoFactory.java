@@ -71,11 +71,11 @@ import org.apache.nifi.components.connector.AssetReference;
 import org.apache.nifi.components.connector.ConfigurationStep;
 import org.apache.nifi.components.connector.ConfigurationStepDependency;
 import org.apache.nifi.components.connector.ConnectorAction;
-import org.apache.nifi.components.connector.ConnectorAssetRepository;
 import org.apache.nifi.components.connector.ConnectorConfiguration;
 import org.apache.nifi.components.connector.ConnectorNode;
 import org.apache.nifi.components.connector.ConnectorPropertyDescriptor;
 import org.apache.nifi.components.connector.ConnectorPropertyGroup;
+import org.apache.nifi.components.connector.ConnectorRepository;
 import org.apache.nifi.components.connector.ConnectorValueReference;
 import org.apache.nifi.components.connector.FrameworkFlowContext;
 import org.apache.nifi.components.connector.NamedStepConfiguration;
@@ -324,7 +324,7 @@ public final class DtoFactory {
     private EntityFactory entityFactory;
     private Authorizer authorizer;
     private ExtensionManager extensionManager;
-    private ConnectorAssetRepository connectorAssetRepository;
+    private ConnectorRepository connectorRepository;
     private RuntimeManifestService runtimeManifestService;
 
     public ControllerConfigurationDTO createControllerConfigurationDto(final ControllerFacade controllerFacade) {
@@ -5223,8 +5223,8 @@ public final class DtoFactory {
         this.extensionManager = extensionManager;
     }
 
-    public void setConnectorAssetRepository(final ConnectorAssetRepository connectorAssetRepository) {
-        this.connectorAssetRepository = connectorAssetRepository;
+    public void setConnectorRepository(final ConnectorRepository connectorRepository) {
+        this.connectorRepository = connectorRepository;
     }
 
     public void setRuntimeManifestService(RuntimeManifestService runtimeManifestService) {
@@ -5492,7 +5492,7 @@ public final class DtoFactory {
     }
 
     private AssetReferenceDTO createConnectorAssetReferenceDto(final String assetId) {
-        final String assetName = connectorAssetRepository.getAsset(assetId).map(Asset::getName).orElse(assetId);
+        final String assetName = connectorRepository.getAsset(assetId).map(Asset::getName).orElse(assetId);
         return new AssetReferenceDTO(assetId, assetName);
     }
 
