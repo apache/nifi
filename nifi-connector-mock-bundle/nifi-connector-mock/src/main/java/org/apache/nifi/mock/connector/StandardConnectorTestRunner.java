@@ -46,15 +46,18 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeable {
     private final File narLibraryDirectory;
+    private final int httpPort;
 
     private ConnectorMockServer mockServer;
 
     private StandardConnectorTestRunner(final Builder builder) {
         this.narLibraryDirectory = builder.narLibraryDirectory;
+        this.httpPort = builder.httpPort;
 
         try {
             bootstrapInstance();
@@ -102,9 +105,14 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
 
         final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
+        final Properties additionalProperties = new Properties();
+        if (httpPort >= 0) {
+            additionalProperties.setProperty(NiFiProperties.WEB_HTTP_PORT, String.valueOf(httpPort));
+        }
+
         final NiFiProperties properties;
         try (final InputStream propertiesIn = getClass().getClassLoader().getResourceAsStream("nifi.properties")) {
-            properties = NiFiProperties.createBasicNiFiProperties(propertiesIn);
+            properties = NiFiProperties.createBasicNiFiProperties(propertiesIn, additionalProperties);
         }
 
         nifiServer.initialize(properties, systemBundle, narBundles, extensionMapping);
@@ -208,10 +216,16 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
         return mockServer.validate();
     }
 
+    @Override
+    public int getHttpPort() {
+        return mockServer.getHttpPort();
+    }
+
 
     public static class Builder {
         private String connectorClassName;
         private File narLibraryDirectory;
+        private int httpPort = -1;
         private final Map<String, Class<? extends Processor>> processorMocks = new HashMap<>();
         private final Map<String, Class<? extends ControllerService>> controllerServiceMocks = new HashMap<>();
 
@@ -222,6 +236,11 @@ public class StandardConnectorTestRunner implements ConnectorTestRunner, Closeab
 
         public Builder narLibraryDirectory(final File libDirectory) {
             this.narLibraryDirectory = libDirectory;
+            return this;
+        }
+
+        public Builder httpPort(final int httpPort) {
+            this.httpPort = httpPort;
             return this;
         }
 
