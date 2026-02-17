@@ -24,12 +24,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -48,10 +50,11 @@ class StandardConnectorMockServerJettyTest {
         Files.createDirectories(depsDir);
 
         final Path warFile = depsDir.resolve("my-app.war");
-        Files.createFile(warFile);
+        createConnectorWar(warFile);
 
         final Bundle bundle = createBundle(bundleWorkingDir);
-        final Map<File, Bundle> wars = invokeFindWars(Set.of(bundle));
+        final StandardConnectorMockServer server = new StandardConnectorMockServer();
+        final Map<File, Bundle> wars = server.findWars(Set.of(bundle));
 
         assertEquals(1, wars.size());
         assertTrue(wars.containsKey(warFile.toFile()));
@@ -68,7 +71,24 @@ class StandardConnectorMockServerJettyTest {
         Files.createFile(depsDir.resolve("config.xml"));
 
         final Bundle bundle = createBundle(bundleWorkingDir);
-        final Map<File, Bundle> wars = invokeFindWars(Set.of(bundle));
+        final StandardConnectorMockServer server = new StandardConnectorMockServer();
+        final Map<File, Bundle> wars = server.findWars(Set.of(bundle));
+
+        assertTrue(wars.isEmpty());
+    }
+
+    @Test
+    void testFindWarsIgnoresWarWithoutConnectorManifest() throws Exception {
+        final Path bundleWorkingDir = tempDir.resolve("test-bundle");
+        final Path depsDir = bundleWorkingDir.resolve(NAR_DEPENDENCIES_PATH);
+        Files.createDirectories(depsDir);
+
+        final Path warFile = depsDir.resolve("non-connector.war");
+        createWarWithoutConnectorManifest(warFile);
+
+        final Bundle bundle = createBundle(bundleWorkingDir);
+        final StandardConnectorMockServer server = new StandardConnectorMockServer();
+        final Map<File, Bundle> wars = server.findWars(Set.of(bundle));
 
         assertTrue(wars.isEmpty());
     }
@@ -79,7 +99,8 @@ class StandardConnectorMockServerJettyTest {
         Files.createDirectories(bundleWorkingDir);
 
         final Bundle bundle = createBundle(bundleWorkingDir);
-        final Map<File, Bundle> wars = invokeFindWars(Set.of(bundle));
+        final StandardConnectorMockServer server = new StandardConnectorMockServer();
+        final Map<File, Bundle> wars = server.findWars(Set.of(bundle));
 
         assertTrue(wars.isEmpty());
     }
@@ -90,12 +111,13 @@ class StandardConnectorMockServerJettyTest {
         final Path depsDir = bundleWorkingDir.resolve(NAR_DEPENDENCIES_PATH);
         Files.createDirectories(depsDir);
 
-        Files.createFile(depsDir.resolve("app-one.war"));
-        Files.createFile(depsDir.resolve("app-two.war"));
+        createConnectorWar(depsDir.resolve("app-one.war"));
+        createConnectorWar(depsDir.resolve("app-two.war"));
         Files.createFile(depsDir.resolve("some-lib.jar"));
 
         final Bundle bundle = createBundle(bundleWorkingDir);
-        final Map<File, Bundle> wars = invokeFindWars(Set.of(bundle));
+        final StandardConnectorMockServer server = new StandardConnectorMockServer();
+        final Map<File, Bundle> wars = server.findWars(Set.of(bundle));
 
         assertEquals(2, wars.size());
     }
@@ -105,17 +127,18 @@ class StandardConnectorMockServerJettyTest {
         final Path bundleDir1 = tempDir.resolve("bundle-1");
         final Path depsDir1 = bundleDir1.resolve(NAR_DEPENDENCIES_PATH);
         Files.createDirectories(depsDir1);
-        Files.createFile(depsDir1.resolve("first-app.war"));
+        createConnectorWar(depsDir1.resolve("first-app.war"));
 
         final Path bundleDir2 = tempDir.resolve("bundle-2");
         final Path depsDir2 = bundleDir2.resolve(NAR_DEPENDENCIES_PATH);
         Files.createDirectories(depsDir2);
-        Files.createFile(depsDir2.resolve("second-app.war"));
+        createConnectorWar(depsDir2.resolve("second-app.war"));
 
         final Bundle bundle1 = createBundle(bundleDir1, "test-bundle-1");
         final Bundle bundle2 = createBundle(bundleDir2, "test-bundle-2");
 
-        final Map<File, Bundle> wars = invokeFindWars(Set.of(bundle1, bundle2));
+        final StandardConnectorMockServer server = new StandardConnectorMockServer();
+        final Map<File, Bundle> wars = server.findWars(Set.of(bundle1, bundle2));
 
         assertEquals(2, wars.size());
     }
@@ -127,19 +150,24 @@ class StandardConnectorMockServerJettyTest {
     }
 
     @Test
-    void testContextPathDerivedFromWarFilename() {
-        final String warName = "my-custom-app.war";
-        final String expectedContextPath = "/my-custom-app";
-        final String warExtension = ".war";
-
-        final String contextPath = "/" + warName.substring(0, warName.length() - warExtension.length());
-        assertEquals(expectedContextPath, contextPath);
+    void testFindWarsReturnsEmptyForEmptyBundleSet() throws Exception {
+        final StandardConnectorMockServer server = new StandardConnectorMockServer();
+        final Map<File, Bundle> wars = server.findWars(Set.of());
+        assertTrue(wars.isEmpty());
     }
 
-    @Test
-    void testFindWarsReturnsEmptyForEmptyBundleSet() throws Exception {
-        final Map<File, Bundle> wars = invokeFindWars(Set.of());
-        assertTrue(wars.isEmpty());
+    private static void createConnectorWar(final Path warPath) throws IOException {
+        try (final JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(warPath.toFile()))) {
+            jarOut.putNextEntry(new JarEntry("META-INF/nifi-connector"));
+            jarOut.closeEntry();
+        }
+    }
+
+    private static void createWarWithoutConnectorManifest(final Path warPath) throws IOException {
+        try (final JarOutputStream jarOut = new JarOutputStream(new FileOutputStream(warPath.toFile()))) {
+            jarOut.putNextEntry(new JarEntry("WEB-INF/web.xml"));
+            jarOut.closeEntry();
+        }
     }
 
     private Bundle createBundle(final Path workingDir) {
@@ -155,19 +183,4 @@ class StandardConnectorMockServerJettyTest {
         return new Bundle(details, ClassLoader.getSystemClassLoader());
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<File, Bundle> invokeFindWars(final Set<Bundle> bundles) throws Exception {
-        final StandardConnectorMockServer server = new StandardConnectorMockServer();
-        final Method findWarsMethod = StandardConnectorMockServer.class.getDeclaredMethod("findWars", Set.class);
-        findWarsMethod.setAccessible(true);
-
-        try {
-            return (Map<File, Bundle>) findWarsMethod.invoke(server, bundles);
-        } catch (final InvocationTargetException e) {
-            if (e.getCause() instanceof Exception) {
-                throw (Exception) e.getCause();
-            }
-            throw e;
-        }
-    }
 }

@@ -65,6 +65,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.NiFiConnectorWebContext;
+import org.eclipse.jetty.ee.webapp.WebAppClassLoader;
 import org.eclipse.jetty.ee11.webapp.WebAppContext;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
@@ -87,6 +88,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
 public class StandardConnectorMockServer implements ConnectorMockServer {
@@ -94,6 +96,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
 
     private static final String CONNECTOR_ID = "test-connector";
     private static final String NAR_DEPENDENCIES_PATH = "NAR-INF/bundled-dependencies";
+    private static final String CONNECTOR_WAR_MANIFEST_PATH = "META-INF/nifi-connector";
     private static final String WAR_EXTENSION = ".war";
 
     private Bundle systemBundle;
@@ -473,7 +476,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
             final String contextPath = "/" + warName.substring(0, warName.length() - WAR_EXTENSION.length());
 
             final WebAppContext webAppContext = new WebAppContext(warFile.getPath(), contextPath);
-            webAppContext.setClassLoader(new org.eclipse.jetty.ee.webapp.WebAppClassLoader(bundle.getClassLoader(), webAppContext));
+            webAppContext.setClassLoader(new WebAppClassLoader(bundle.getClassLoader(), webAppContext));
 
             handlers.addHandler(webAppContext);
             webAppContexts.add(webAppContext);
@@ -501,7 +504,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
         }
     }
 
-    private Map<File, Bundle> findWars(final Set<Bundle> bundles) {
+    public Map<File, Bundle> findWars(final Set<Bundle> bundles) {
         final Map<File, Bundle> wars = new HashMap<>();
 
         bundles.forEach(bundle -> {
@@ -511,6 +514,7 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
                 try (final Stream<Path> dependencies = Files.list(bundledDependencies)) {
                     dependencies.filter(dependency -> dependency.getFileName().toString().endsWith(WAR_EXTENSION))
                             .map(Path::toFile)
+                            .filter(this::isConnectorWar)
                             .forEach(dependency -> wars.put(dependency, bundle));
                 } catch (final IOException e) {
                     logger.warn("Failed to find WAR files in bundled-dependencies [{}]", bundledDependencies, e);
@@ -519,5 +523,14 @@ public class StandardConnectorMockServer implements ConnectorMockServer {
         });
 
         return wars;
+    }
+
+    private boolean isConnectorWar(final File warFile) {
+        try (final JarFile jarFile = new JarFile(warFile)) {
+            return jarFile.getJarEntry(CONNECTOR_WAR_MANIFEST_PATH) != null;
+        } catch (final IOException e) {
+            logger.warn("Unable to inspect WAR file [{}] for connector manifest", warFile, e);
+            return false;
+        }
     }
 }
