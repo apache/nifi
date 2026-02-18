@@ -340,10 +340,10 @@ public class XMLRecordReader implements RecordReader {
     }
 
     private void parseAttributesForUnknownField(StartElement startElement, RecordSchema schema, boolean dropUnknown, Map<String, Object> recordValues) {
-        final Iterator iterator = startElement.getAttributes();
+        final Iterator<Attribute> iterator = startElement.getAttributes();
         while (iterator.hasNext()) {
-            final Attribute attribute = (Attribute) iterator.next();
-            final String attributeName = attribute.getName().toString();
+            final Attribute attribute = iterator.next();
+            final String attributeName = attribute.getName().getLocalPart();
             final String fieldName = ((attributePrefix == null) ? attributeName : (attributePrefix + attributeName));
 
             if (dropUnknown) {

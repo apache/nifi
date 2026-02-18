@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
+import com.jayway.jsonpath.JsonPath;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.nifi.avro.AvroRecordSetWriter;
@@ -51,6 +52,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -619,8 +621,12 @@ public class TestConvertRecord {
         runner.assertAllFlowFilesTransferred(ConvertRecord.REL_SUCCESS, 2);
         final MockFlowFile firstFlowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).getFirst();
         final MockFlowFile secondFlowFile = runner.getFlowFilesForRelationship(ConvertRecord.REL_SUCCESS).get(1);
-        assertFalse(firstFlowFile.getContent().contains("null"));
-        assertFalse(secondFlowFile.getContent().contains("null"));
-        assertEquals(firstFlowFile.getContent(), secondFlowFile.getContent());
+        final List<String> expectedAttributeValues = List.of("attr2 content 1", "attr2 content 2");
+        final String jsonPath = "$[0].entry.something.record_with_attr2[*].attr2";
+
+        final List<String> actualAttributeValuesFromFirstff = JsonPath.read(firstFlowFile.getContent(), jsonPath);
+        assertEquals(expectedAttributeValues, actualAttributeValuesFromFirstff);
+        final List<String> actualAttributeValuesFromSecondff = JsonPath.read(secondFlowFile.getContent(), jsonPath);
+        assertEquals(expectedAttributeValues, actualAttributeValuesFromSecondff);
     }
 }
