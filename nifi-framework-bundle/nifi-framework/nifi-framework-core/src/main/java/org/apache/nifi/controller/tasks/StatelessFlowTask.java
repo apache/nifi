@@ -66,6 +66,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -228,6 +229,8 @@ public class StatelessFlowTask {
                 statelessGroupNode.yield();
                 fail(successfulInvocations, statelessProvRepo, e);
             }
+
+            updateFlowFileActivity(statelessProvRepo);
 
             logger.debug("Acknowledging FlowFiles from {} invocations", allInvocations.size());
             for (final Invocation invocation : allInvocations) {
@@ -623,6 +626,71 @@ public class StatelessFlowTask {
         }
     }
 
+
+    /**
+     * Updates the Stateless Group Node's FlowFileActivity. The latest activity time is obtained from the stateless flow's root group,
+     * which is updated by processors within the flow when their sessions commit. Transfer counts are computed from provenance events
+     * generated during the stateless flow execution, mirroring the behavior of StandardProcessSession.updateTransferCounts.
+     *
+     * @param statelessProvRepo the provenance event repository used during stateless flow execution
+     */
+    void updateFlowFileActivity(final ProvenanceEventRepository statelessProvRepo) {
+        final OptionalLong latestActivityTime = flow.getLatestActivityTime();
+        if (latestActivityTime.isPresent()) {
+            statelessGroupNode.getFlowFileActivity().updateLatestActivityTime();
+        }
+
+        updateTransferCounts(statelessProvRepo);
+    }
+
+    private void updateTransferCounts(final ProvenanceEventRepository statelessProvRepo) {
+        int receivedCount = 0;
+        long receivedBytes = 0L;
+        int sentCount = 0;
+        long sentBytes = 0L;
+
+        long firstProvEventId = 0;
+        while (true) {
+            try {
+                final List<ProvenanceEventRecord> events = statelessProvRepo.getEvents(firstProvEventId, 1000);
+                if (events.isEmpty()) {
+                    break;
+                }
+
+                for (final ProvenanceEventRecord event : events) {
+                    final ProvenanceEventType eventType = event.getEventType();
+                    switch (eventType) {
+                        case RECEIVE:
+                        case CREATE:
+                            receivedCount++;
+                            receivedBytes += event.getFileSize();
+                            break;
+                        case FETCH:
+                            receivedBytes += event.getFileSize();
+                            break;
+                        case SEND:
+                            sentCount++;
+                            sentBytes += event.getFileSize();
+                            break;
+                        default:
+                            break;
+                    }
+                }
+
+                if (events.size() < 1000) {
+                    break;
+                }
+                firstProvEventId += 1000;
+            } catch (final IOException e) {
+                logger.warn("Failed to obtain Provenance Events for FlowFile Activity tracking", e);
+                break;
+            }
+        }
+
+        if (receivedCount > 0 || receivedBytes > 0L || sentCount > 0 || sentBytes > 0L) {
+            statelessGroupNode.getFlowFileActivity().updateTransferCounts(receivedCount, receivedBytes, sentCount, sentBytes);
+        }
+    }
 
     private void expireRecords(final FlowFileQueue sourceQueue, final Set<FlowFileRecord> expiredRecords) throws IOException {
         if (expiredRecords.isEmpty()) {
