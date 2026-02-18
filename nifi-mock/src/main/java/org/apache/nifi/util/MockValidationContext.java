@@ -31,6 +31,7 @@ import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterTokenList;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -218,6 +219,13 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     public boolean isParameterSet(final String parameterName) {
         final Map<String, String> contextParameters = context.getContextParameters();
         return contextParameters.containsKey(parameterName) && contextParameters.get(parameterName) != null;
+    }
+
+    @Override
+    public String evaluateParameters(final String value) {
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(value);
+        return parameterTokenList.substitute(parameterLookup);
     }
 
     private String getEffectiveValue(final PropertyDescriptor descriptor) {

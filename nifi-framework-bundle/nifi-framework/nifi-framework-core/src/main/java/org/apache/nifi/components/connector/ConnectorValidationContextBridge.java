@@ -25,8 +25,11 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.documentation.init.EmptyControllerServiceLookup;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.parameter.ParameterParser;
+import org.apache.nifi.parameter.ParameterTokenList;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -132,5 +135,12 @@ public class ConnectorValidationContextBridge implements ValidationContext {
     @Override
     public Map<String, String> getAllProperties() {
         return Collections.unmodifiableMap(rawValues);
+    }
+
+    @Override
+    public String evaluateParameters(final String value) {
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(value);
+        return parameterTokenList.substitute(parameterLookup);
     }
 }

@@ -36,9 +36,12 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.expression.ExpressionLanguageCompiler;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.parameter.ParameterParser;
 import org.apache.nifi.parameter.ParameterReference;
+import org.apache.nifi.parameter.ParameterTokenList;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -240,6 +243,13 @@ public class StandardValidationContext implements ValidationContext {
     @Override
     public boolean isValidateConnections() {
         return validateConnections;
+    }
+
+    @Override
+    public String evaluateParameters(final String value) {
+        final ParameterParser parameterParser = new ExpressionLanguageAgnosticParameterParser();
+        final ParameterTokenList parameterTokenList = parameterParser.parseTokens(value);
+        return parameterTokenList.substitute(parameterLookup);
     }
 
     @Override

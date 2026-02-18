@@ -1140,89 +1140,87 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     @Override
-    public List<ValidationResult> validateConfig() {
+    public List<ValidationResult> validateConfig(final ValidationContext validationContext) {
 
         final List<ValidationResult> results = new ArrayList<>();
-        final ParameterContext parameterContext = getParameterContext();
 
-        if (parameterContext == null && !this.parameterReferences.isEmpty()) {
-            results.add(new ValidationResult.Builder()
-                    .subject(RUN_SCHEDULE)
-                    .input("Parameter Context")
-                    .valid(false)
-                    .explanation("Processor configuration references one or more Parameters but no Parameter Context is currently set on the Process Group.")
-                    .build());
-        } else {
-            for (final ParameterReference paramRef : parameterReferences) {
-                final Optional<Parameter> parameterRef = parameterContext.getParameter(paramRef.getParameterName());
-                if (!parameterRef.isPresent()) {
-                    results.add(new ValidationResult.Builder()
-                            .subject(RUN_SCHEDULE)
-                            .input(paramRef.getParameterName())
-                            .valid(false)
-                            .explanation("Processor configuration references Parameter '" + paramRef.getParameterName() +
-                                    "' but the currently selected Parameter Context does not have a Parameter with that name")
-                            .build());
-                } else {
-                    final ParameterDescriptor parameterDescriptor = parameterRef.get().getDescriptor();
-                    if (parameterDescriptor.isSensitive()) {
-                        results.add(new ValidationResult.Builder()
-                                .subject(RUN_SCHEDULE)
-                                .input(parameterDescriptor.getName())
-                                .valid(false)
-                                .explanation("Processor configuration cannot reference sensitive parameters")
-                                .build());
-                    }
-                }
-            }
+        for (final ParameterReference paramRef : parameterReferences) {
+            final String paramName = paramRef.getParameterName();
 
-            final String schedulingPeriod = getSchedulingPeriod();
-            final String evaluatedSchedulingPeriod = evaluateParameters(schedulingPeriod);
-
-            if (evaluatedSchedulingPeriod != null) {
-                switch (schedulingStrategy) {
-                    case CRON_DRIVEN: {
-                        try {
-                            CronExpression.parse(evaluatedSchedulingPeriod);
-                        } catch (final Exception e) {
+            if (!validationContext.isParameterDefined(paramName)) {
+                results.add(new ValidationResult.Builder()
+                        .subject(RUN_SCHEDULE)
+                        .input(paramName)
+                        .valid(false)
+                        .explanation("Processor configuration references Parameter '" + paramName +
+                                "' but the currently selected Parameter Context does not have a Parameter with that name")
+                        .build());
+            } else {
+                final ParameterContext parameterContext = getParameterContext();
+                if (parameterContext != null) {
+                    final Optional<Parameter> parameterFromContext = parameterContext.getParameter(paramName);
+                    if (parameterFromContext.isPresent()) {
+                        final ParameterDescriptor parameterDescriptor = parameterFromContext.get().getDescriptor();
+                        if (parameterDescriptor.isSensitive()) {
                             results.add(new ValidationResult.Builder()
                                     .subject(RUN_SCHEDULE)
-                                    .input(schedulingPeriod)
+                                    .input(parameterDescriptor.getName())
                                     .valid(false)
-                                    .explanation("Scheduling Period is not a valid cron expression")
+                                    .explanation("Processor configuration cannot reference sensitive parameters")
                                     .build());
                         }
                     }
-                    break;
-                    case TIMER_DRIVEN: {
-                        try {
-                            final long schedulingNanos = FormatUtils.getTimeDuration(Objects.requireNonNull(evaluatedSchedulingPeriod),
-                                    TimeUnit.NANOSECONDS);
-
-                            if (schedulingNanos < 0) {
-                                results.add(new ValidationResult.Builder()
-                                        .subject(RUN_SCHEDULE)
-                                        .input(schedulingPeriod)
-                                        .valid(false)
-                                        .explanation("Scheduling Period must be positive")
-                                        .build());
-                            }
-
-                            this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
-
-                        } catch (final Exception e) {
-                            results.add(new ValidationResult.Builder()
-                                    .subject(RUN_SCHEDULE)
-                                    .input(schedulingPeriod)
-                                    .valid(false)
-                                    .explanation("Scheduling Period is not a valid time duration")
-                                    .build());
-                        }
-                    }
-                    break;
                 }
             }
         }
+
+        final String schedulingPeriod = getSchedulingPeriod();
+        final String evaluatedSchedulingPeriod = validationContext.evaluateParameters(schedulingPeriod);
+
+        if (evaluatedSchedulingPeriod != null) {
+            switch (schedulingStrategy) {
+                case CRON_DRIVEN: {
+                    try {
+                        CronExpression.parse(evaluatedSchedulingPeriod);
+                    } catch (final Exception e) {
+                        results.add(new ValidationResult.Builder()
+                                .subject(RUN_SCHEDULE)
+                                .input(schedulingPeriod)
+                                .valid(false)
+                                .explanation("Scheduling Period is not a valid cron expression")
+                                .build());
+                    }
+                }
+                break;
+                case TIMER_DRIVEN: {
+                    try {
+                        final long schedulingNanos = FormatUtils.getTimeDuration(Objects.requireNonNull(evaluatedSchedulingPeriod),
+                                TimeUnit.NANOSECONDS);
+
+                        if (schedulingNanos < 0) {
+                            results.add(new ValidationResult.Builder()
+                                    .subject(RUN_SCHEDULE)
+                                    .input(schedulingPeriod)
+                                    .valid(false)
+                                    .explanation("Scheduling Period must be positive")
+                                    .build());
+                        }
+
+                        this.schedulingNanos.set(Math.max(MINIMUM_SCHEDULING_NANOS, schedulingNanos));
+
+                    } catch (final Exception e) {
+                        results.add(new ValidationResult.Builder()
+                                .subject(RUN_SCHEDULE)
+                                .input(schedulingPeriod)
+                                .valid(false)
+                                .explanation("Scheduling Period is not a valid time duration")
+                                .build());
+                    }
+                }
+                break;
+            }
+        }
+
         return results;
     }
 
